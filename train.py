@@ -42,7 +42,9 @@ def main(args):
 
     dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata.csv'),
                               os.path.join(c.data_path, 'wavs'),
-                              c.r
+                              c.r,
+                              c.sample_rate,
+                              c.text_cleaner
                              )
 
     model = Tacotron(c.embedding_size,

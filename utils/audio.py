@@ -1,8 +1,6 @@
 import librosa
 import numpy as np
 from scipy import signal
-import Tacotron.train_config as c
-
 
 _mel_basis = None
 

@@ -33,7 +33,7 @@ def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
 
     checkpoint_files = glob.glob(experiment_path+"/*.pth.tar")
-    if len(checkpoint_files) < 2:
+    if len(checkpoint_files) < 1:
         shutil.rmtree(experiment_path)
         print(" ! Run is removed from {}".format(experiment_path))
     else:

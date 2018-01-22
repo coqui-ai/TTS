@@ -4,7 +4,6 @@ import numpy as np
 import collections
 from torch.utils.data import Dataset
 
-import train_config as c
 from Tacotron.utils.text import text_to_sequence
 from Tacotron.utils.audio import *
 from Tacotron.utils.data import prepare_data, pad_data, pad_per_step
@@ -12,16 +11,19 @@ from Tacotron.utils.data import prepare_data, pad_data, pad_per_step
 
 class LJSpeechDataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, outputs_per_step):
+    def __init__(self, csv_file, root_dir, outputs_per_step, sample_rate,
+                 cleaners):
         self.frames = pd.read_csv(csv_file, sep='|', header=None)
         self.root_dir = root_dir
         self.outputs_per_step = outputs_per_step
+        self.sample_rate = sample_rate
+        self.cleaners = cleaners
         print(" > Reading LJSpeech from - {}".format(root_dir))
         print(" | > Number of instances : {}".format(len(self.frames)))
 
     def load_wav(self, filename):
         try:
-            audio = librosa.load(filename, sr=c.sample_rate)
+            audio = librosa.load(filename, sr=self.sample_rate)
             return audio
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
@@ -33,7 +35,7 @@ class LJSpeechDataset(Dataset):
         wav_name = os.path.join(self.root_dir,
                                 self.frames.ix[idx, 0]) + '.wav'
         text = self.frames.ix[idx, 1]
-        text = np.asarray(text_to_sequence(text, [c.cleaners]), dtype=np.int32)
+        text = np.asarray(text_to_sequence(text, [self.cleaners]), dtype=np.int32)
         wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
         sample = {'text': text, 'wav': wav}
         return sample
