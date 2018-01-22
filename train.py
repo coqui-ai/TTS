@@ -8,14 +8,15 @@ import numpy as np
 
 import torch.nn as nn
 from torch import optim
+from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from network import *
 import train_config as c
 from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint)
 from utils.model import get_param_size
 from datasets.LJSpeech import LJSpeechDataset
+from models.tacotron import Tacotron
 
 use_cuda = torch.cuda.is_available()
 
@@ -40,8 +41,7 @@ def main(args):
                      c.hidden_size,
                      c.num_mels,
                      c.num_freq,
-                     c.dec_out_per_step,
-                     c.teacher_forcing_ratio)
+                     c.dec_out_per_step)
     if use_cuda:
         model = nn.DataParallel(model.cuda())
 
@@ -73,10 +73,13 @@ def main(args):
 
         dataloader = DataLoader(dataset, batch_size=args.batch_size,
                                 shuffle=True, collate_fn=dataset.collate_fn,
-                                drop_last=True, num_workers=8)
+                                drop_last=True, num_workers=32)
         progbar = Progbar(len(dataset) / args.batch_size)
 
         for i, data in enumerate(dataloader):
+            text_input = data[0]
+            magnitude_input = data[1]
+            mel_input = data[2]
 
             current_step = i + args.restore_step + epoch * len(dataloader) + 1
 
@@ -84,34 +87,37 @@ def main(args):
 
             try:
                 mel_input = np.concatenate((np.zeros(
-                    [args.batch_size, c.num_mels, 1], dtype=np.float32), data[2][:, :, 1:]), axis=2)
+                    [args.batch_size, 1, c.num_mels], dtype=np.float32),
+                    mel_input[:, 1:, :]), axis=1)
             except:
                 raise TypeError("not same dimension")
 
             if use_cuda:
-                characters = Variable(torch.from_numpy(data[0]).type(
+                text_input_var = Variable(torch.from_numpy(text_input).type(
                     torch.cuda.LongTensor), requires_grad=False).cuda()
-                mel_input = Variable(torch.from_numpy(mel_input).type(
+                mel_input_var = Variable(torch.from_numpy(mel_input).type(
                     torch.cuda.FloatTensor), requires_grad=False).cuda()
-                mel_spectrogram = Variable(torch.from_numpy(data[2]).type(
+                mel_spec_var = Variable(torch.from_numpy(mel_input).type(
                     torch.cuda.FloatTensor), requires_grad=False).cuda()
-                linear_spectrogram = Variable(torch.from_numpy(data[1]).type(
-                    torch.cuda.FloatTensor), requires_grad=False).cuda()
+                linear_spec_var = Variable(torch.from_numpy(magnitude_input)
+                    .type(torch.cuda.FloatTensor), requires_grad=False).cuda()
 
             else:
-                characters = Variable(torch.from_numpy(data[0]).type(
+                text_input_var = Variable(torch.from_numpy(text_input).type(
                     torch.LongTensor), requires_grad=False)
-                mel_input = Variable(torch.from_numpy(mel_input).type(
+                mel_input_var = Variable(torch.from_numpy(mel_input).type(
                     torch.FloatTensor), requires_grad=False)
-                mel_spectrogram = Variable(torch.from_numpy(
-                    data[2]).type(torch.FloatTensor), requires_grad=False)
-                linear_spectrogram = Variable(torch.from_numpy(
-                    data[1]).type(torch.FloatTensor), requires_grad=False)
+                mel_spec_var = Variable(torch.from_numpy(
+                    mel_input).type(torch.FloatTensor), requires_grad=False)
+                linear_spec_var = Variable(torch.from_numpy(
+                    magnitude_input).type(torch.FloatTensor),
+                                          requires_grad=False)
 
-            mel_output, linear_output = model.forward(characters, mel_input)
+            mel_output, linear_output, alignments =\
+                model.forward(text_input_var, mel_input_var)
 
-            mel_loss = criterion(mel_output, mel_spectrogram)
-            linear_loss = torch.abs(linear_output - linear_spectrogram)
+            mel_loss = criterion(mel_output, mel_spec_var)
+            linear_loss = torch.abs(linear_output - linear_spec_var)
             linear_loss = 0.5 * \
                 torch.mean(linear_loss) + 0.5 * \
                 torch.mean(linear_loss[:, :n_priority_freq, :])
@@ -168,9 +174,9 @@ def adjust_learning_rate(optimizer, step):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--restore_step', type=int,
-                        help='Global step to restore checkpoint', default=0)
+                        help='Global step to restore checkpoint', default=128)
     parser.add_argument('--batch_size', type=int,
-                        help='Batch size', default=32)
+                        help='Batch size', default=128)
     parser.add_argument('--config', type=str,
                        help='path to config file for training',)
     args = parser.parse_args()

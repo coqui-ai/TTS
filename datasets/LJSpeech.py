@@ -5,7 +5,7 @@ import collections
 from torch.utils.data import Dataset
 
 import train_config as c
-from Tacotron.text import text_to_sequence
+from Tacotron.utils.text import text_to_sequence
 from Tacotron.utils.audio import *
 from Tacotron.utils.data import prepare_data, pad_data, pad_per_step
 
@@ -53,12 +53,16 @@ class LJSpeechDataset(Dataset):
 
             magnitude = np.array([spectrogram(w) for w in wav])
             mel = np.array([melspectrogram(w) for w in wav])
-            timesteps = mel.shape[-1]
+            timesteps = mel.shape[2]
 
             # PAD with zeros that can be divided by outputs per step
             if timesteps % self.outputs_per_step != 0:
                 magnitude = pad_per_step(magnitude, self.outputs_per_step)
                 mel = pad_per_step(mel, self.outputs_per_step)
+
+            # reshape jombo
+            magnitude = magnitude.transpose(0, 2, 1)
+            mel = mel.transpose(0, 2, 1)
 
             return text, magnitude, mel
 
