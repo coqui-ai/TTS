@@ -107,10 +107,10 @@ venv.bak/
 .mypy_cache/
 
 # vim
-.swp
-.swm
-.swn
-.swo
+*.swp
+*.swm
+*.swn
+*.swo
 
 # pytorch models
 *.pth.tar
