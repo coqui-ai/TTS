@@ -4,7 +4,20 @@ import glob
 import time
 import shutil
 import datetime
+import json
 import numpy as np
+
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+def load_config(config_path):
+    config = AttrDict()
+    config.update(json.load(open(config_path, "r")))
+    return  config
 
 
 def create_experiment_folder(root_path):
@@ -20,7 +33,7 @@ def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
 
     checkpoint_files = glob.glob(experiment_path+"/*.pth.tar")
-    if len(checkpoint_files) == 0:
+    if len(checkpoint_files) < 2:
         shutil.rmtree(experiment_path)
         print(" ! Run is removed from {}".format(experiment_path))
     else:

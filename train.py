@@ -1,9 +1,11 @@
 import os
 import sys
 import time
+import shutil
 import torch
 import signal
 import argparse
+import importlib
 import numpy as np
 
 import torch.nn as nn
@@ -11,37 +13,43 @@ from torch import optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-import train_config as c
 from utils.generic_utils import (Progbar, remove_experiment_folder,
-                                 create_experiment_folder, save_checkpoint)
+                                 create_experiment_folder, save_checkpoint,
+                                 load_config)
 from utils.model import get_param_size
 from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
 
 use_cuda = torch.cuda.is_available()
 
-_ = os.path.dirname(os.path.realpath(__file__))
-OUT_PATH = os.path.join(_, c.output_path)
-OUT_PATH = create_experiment_folder(OUT_PATH)
-
-def signal_handler(signal, frame):
-    print(" !! Pressed Ctrl+C !!")
-    remove_experiment_folder(OUT_PATH)
-    sys.exit(0)
-
 
 def main(args):
 
+    # setup output paths and read configs
+    c = load_config(args.config_path)
+    _ = os.path.dirname(os.path.realpath(__file__))
+    OUT_PATH = os.path.join(_, c.output_path)
+    OUT_PATH = create_experiment_folder(OUT_PATH)
+    CHECKPOINT_PATH = os.path.join(OUT_PATH, 'checkpoints')
+    shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
+
+    # Ctrl+C handler to remove empty experiment folder
+    def signal_handler(signal, frame):
+        print(" !! Pressed Ctrl+C !!")
+        remove_experiment_folder(OUT_PATH)
+        sys.exit(0)
+    signal.signal(signal.SIGINT, signal_handler)
+
     dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata.csv'),
                               os.path.join(c.data_path, 'wavs'),
-                              c.dec_out_per_step
+                              c.r
                              )
 
     model = Tacotron(c.embedding_size,
                      c.hidden_size,
                      c.num_mels,
                      c.num_freq,
-                     c.dec_out_per_step)
+                     c.r)
     if use_cuda:
         model = nn.DataParallel(model.cuda())
 
@@ -49,7 +57,7 @@ def main(args):
 
     try:
         checkpoint = torch.load(os.path.join(
-            c.checkpoint_path, 'checkpoint_%d.pth.tar' % args.restore_step))
+            CHECKPOINT_PATH, 'checkpoint_%d.pth.tar' % args.restore_step))
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         print("\n > Model restored from step %d\n" % args.restore_step)
@@ -59,8 +67,8 @@ def main(args):
 
     model = model.train()
 
-    if not os.path.exists(c.checkpoint_path):
-        os.mkdir(c.checkpoint_path)
+    if not os.path.exists(CHECKPOINT_PATH):
+        os.mkdir(CHECKPOINT_PATH)
 
     if use_cuda:
         criterion = nn.L1Loss().cuda()
@@ -71,10 +79,10 @@ def main(args):
 
     for epoch in range(c.epochs):
 
-        dataloader = DataLoader(dataset, batch_size=args.batch_size,
+        dataloader = DataLoader(dataset, batch_size=c.batch_size,
                                 shuffle=True, collate_fn=dataset.collate_fn,
                                 drop_last=True, num_workers=32)
-        progbar = Progbar(len(dataset) / args.batch_size)
+        progbar = Progbar(len(dataset) / c.batch_size)
 
         for i, data in enumerate(dataloader):
             text_input = data[0]
@@ -87,7 +95,7 @@ def main(args):
 
             try:
                 mel_input = np.concatenate((np.zeros(
-                    [args.batch_size, 1, c.num_mels], dtype=np.float32),
+                    [c.batch_size, 1, c.num_mels], dtype=np.float32),
                     mel_input[:, 1:, :]), axis=1)
             except:
                 raise TypeError("not same dimension")
@@ -175,12 +183,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--restore_step', type=int,
                         help='Global step to restore checkpoint', default=128)
-    parser.add_argument('--batch_size', type=int,
-                        help='Batch size', default=128)
-    parser.add_argument('--config', type=str,
+    parser.add_argument('--config_path', type=str,
                        help='path to config file for training',)
     args = parser.parse_args()
-
-    signal.signal(signal.SIGINT, signal_handler)
-
     main(args)
