@@ -17,14 +17,5 @@ Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easie
 ## Data
 TODO
 
-## File description
-TODO
-
 ## Training the network
 TODO
-
-## Generate TTS wav file
-TODO
-
-
-
