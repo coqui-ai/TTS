@@ -1,8 +1,8 @@
 # Tacotron (Work in Progress...)
 
 Here we have pytorch implementation of: 
-    - Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135).
-    - Tacotron2 (TODO): [Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions](https://arxiv.org/pdf/1712.05884.pdf)
+- Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135).
+- Tacotron2 (TODO): [Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions](https://arxiv.org/pdf/1712.05884.pdf)
 
 At the end, it should be easy to add new models and try different architectures.
 
