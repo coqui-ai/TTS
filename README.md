@@ -1,42 +1,30 @@
-# Tacotron-pytorch
+# Tacotron (Work in Progress...)
 
-A pytorch implementation of [Tacotron: A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135).
+Here we have pytorch implementation of: 
+    - Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135).
+    - Tacotron2 (TODO): [Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions](https://arxiv.org/pdf/1712.05884.pdf)
 
-<img src="png/model.png">
+At the end, it should be easy to add new models and try different architectures.
+
+You can find [here](https://www.evernote.com/shard/s146/sh/9544e7e9-d372-4610-a7b7-3ddcb63d5dac/d01d33837dab625229dec3cfb4cfb887) a brief note about possible TTS architectures and their comparisons. 
 
 ## Requirements
-  * Install python 3
-  * Install pytorch == 0.2.0
-  * Install requirements:
-    ```
-   	pip install -r requirements.txt
-   	```
+Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
+  * python 3.6
+  * pytorch > 0.2.0
+  * TODO
 
 ## Data
-I used LJSpeech dataset which consists of pairs of text script and wav files. The complete dataset (13,100 pairs) can be downloaded [here](https://keithito.com/LJ-Speech-Dataset/). I referred https://github.com/keithito/tacotron for the preprocessing code.
+TODO
 
 ## File description
-  * `hyperparams.py` includes all hyper parameters that are needed.
-  * `data.py` loads training data and preprocess text to index and wav files to spectrogram. Preprocessing codes for text is in text/ directory.
-  * `module.py` contains all methods, including CBHG, highway, prenet, and so on.
-  * `network.py` contains networks including encoder, decoder and post-processing network.
-  * `train.py` is for training.
-  * `synthesis.py` is for generating TTS sample.
+TODO
 
 ## Training the network
-  * STEP 1. Download and extract LJSpeech data at any directory you want.
-  * STEP 2. Adjust hyperparameters in `hyperparams.py`, especially 'data_path' which is a directory that you extract files, and the others if necessary.
-  * STEP 3. Run `train.py`. 
+TODO
 
 ## Generate TTS wav file
-  * STEP 1. Run `synthesis.py`. Make sure the restore step. 
+TODO
 
-## Samples
-  * You can check the generated samples in 'samples/' directory. Training step was only 60K, so the performance is not good yet.
 
-## Reference
-  * Keith ito: https://github.com/keithito/tacotron
-
-## Comments
-  * Any comments for the codes are always welcome.
 
