@@ -1,4 +1,4 @@
-# Tacotron (Work in Progress...)
+# TTS (Work in Progress...)
 
 Here we have pytorch implementation of: 
 - Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135).
