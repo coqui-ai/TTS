@@ -42,7 +42,7 @@ def main(args):
     def signal_handler(signal, frame):
         print(" !! Pressed Ctrl+C !!")
         remove_experiment_folder(OUT_PATH)
-        sys.exit(0)
+        sys.exit(1)
     signal.signal(signal.SIGINT, signal_handler)
 
     dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata.csv'),
