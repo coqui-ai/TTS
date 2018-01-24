@@ -3,7 +3,7 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 from utils.text.symbols import symbols
-from Tacotron.layers.tacotron import Prenet, Encoder, Decoder, CBHG
+from TTS.layers.tacotron import Prenet, Encoder, Decoder, CBHG
 
 class Tacotron(nn.Module):
     def __init__(self, embedding_dim=256, linear_dim=1025, mel_dim=80,

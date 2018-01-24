@@ -1,8 +1,8 @@
 #-*- coding: utf-8 -*-
 
 import re
-from Tacotron.utils.text import cleaners
-from Tacotron.utils.text.symbols import symbols
+from TTS.utils.text import cleaners
+from TTS.utils.text.symbols import symbols
 
 
 # Mappings from symbol to numeric ID and vice versa:

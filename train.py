@@ -6,6 +6,7 @@ import torch
 import signal
 import argparse
 import importlib
+import pickle
 import numpy as np
 
 import torch.nn as nn
@@ -22,7 +23,6 @@ from models.tacotron import Tacotron
 
 use_cuda = torch.cuda.is_available()
 
-
 def main(args):
 
     # setup output paths and read configs
@@ -32,6 +32,11 @@ def main(args):
     OUT_PATH = create_experiment_folder(OUT_PATH)
     CHECKPOINT_PATH = os.path.join(OUT_PATH, 'checkpoints')
     shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
+
+    # save config to tmp place to be loaded by subsequent modules.
+    file_name = str(os.getpid())
+    tmp_path = os.path.join("/tmp/", file_name+'_tts')
+    pickle.dump(c, open(tmp_path, "wb"))
 
     # Ctrl+C handler to remove empty experiment folder
     def signal_handler(signal, frame):
@@ -44,7 +49,15 @@ def main(args):
                               os.path.join(c.data_path, 'wavs'),
                               c.r,
                               c.sample_rate,
-                              c.text_cleaner
+                              c.text_cleaner,
+                              c.num_mels,
+                              c.min_level_db,
+                              c.frame_shift_ms,
+                              c.frame_length_ms,
+                              c.preemphasis,
+                              c.ref_level_db,
+                              c.num_freq,
+                              c.power
                              )
 
     model = Tacotron(c.embedding_size,
