@@ -25,5 +25,6 @@
   "text_cleaner": "english_cleaners",
 
   "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
-  "output_path": "result"
+  "output_path": "result",
+  "log_dir": "/home/erogol/projects/TTS/logs/"
 }

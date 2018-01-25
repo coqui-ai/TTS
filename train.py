@@ -13,6 +13,7 @@ import torch.nn as nn
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
 
 from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
@@ -37,6 +38,10 @@ def main(args):
     file_name = str(os.getpid())
     tmp_path = os.path.join("/tmp/", file_name+'_tts')
     pickle.dump(c, open(tmp_path, "wb"))
+
+    # setup tensorboard
+    LOG_DIR = c.log_dir
+    tb = SummaryWriter(LOG_DIR)
 
     # Ctrl+C handler to remove empty experiment folder
     def signal_handler(signal, frame):
@@ -78,7 +83,7 @@ def main(args):
         print("\n > Model restored from step %d\n" % args.restore_step)
 
     except:
-        print("\n > Starting a new training\n")
+        print("\n > Starting a new training")
 
     model = model.train()
 
@@ -97,6 +102,7 @@ def main(args):
         dataloader = DataLoader(dataset, batch_size=c.batch_size,
                                 shuffle=True, collate_fn=dataset.collate_fn,
                                 drop_last=True, num_workers=32)
+        print("\n | > Epoch {}".format(epoch))
         progbar = Progbar(len(dataset) / c.batch_size)
 
         for i, data in enumerate(dataloader):
@@ -159,6 +165,10 @@ def main(args):
             progbar.update(i, values=[('total_loss', loss.data[0]),
                                       ('linear_loss', linear_loss.data[0]),
                                       ('mel_loss', mel_loss.data[0])])
+
+            tb.add_scalar('Train/TotalLoss', loss.data[0], current_step)
+            tb.add_scalar('Train/LinearLoss', linear_loss.data[0], current_step)
+            tb.add_scalar('Train/MelLoss', mel_loss.data[0], current_step)
 
             if current_step % c.save_step == 0:
                 checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
