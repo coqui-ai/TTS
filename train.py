@@ -106,7 +106,7 @@ def main(args):
 
         dataloader = DataLoader(dataset, batch_size=c.batch_size,
                                 shuffle=True, collate_fn=dataset.collate_fn,
-                                drop_last=True, num_workers=32)
+                                drop_last=True, num_workers=c.num_loader_workers)
         print("\n | > Epoch {}/{}".format(epoch, c.epochs))
         progbar = Progbar(len(dataset) / c.batch_size)
 
