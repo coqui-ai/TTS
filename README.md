@@ -15,7 +15,53 @@ Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easie
   * TODO
 
 ## Data
-TODO
+Currently TTS provides data loaders for
+- [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 
 ## Training the network
-TODO
+To run your own training, you need to define a ```config.json``` file (simple template below) and call the following command.
+
+```train.py --config_path config.json```
+
+If you like to use specific GPUs.
+
+```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
+
+Each run creates a experiment folder with the corresponfing date and time, under the folder you set in ```config.json```. And if there is no checkpoint yet under that folder, it is going to be removed when you Ctrl+C.
+
+Example ```config.json```:
+```
+{
+  // Data loading parameters
+  "num_mels": 80,
+  "num_freq": 1024,
+  "sample_rate": 20000,
+  "frame_length_ms": 50.0,
+  "frame_shift_ms": 12.5,
+  "preemphasis": 0.97,
+  "min_level_db": -100,
+  "ref_level_db": 20,
+  "hidden_size": 128,
+  "embedding_size": 256,
+  "text_cleaner": "english_cleaners",
+
+  // Training parameters
+  "epochs": 2000,
+  "lr": 0.001,
+  "lr_patience": 2,  // lr_scheduler.ReduceLROnPlateau().patience
+  "lr_decay": 0.5,   // lr_scheduler.ReduceLROnPlateau().factor
+  "batch_size": 256,
+  "griffinf_lim_iters": 60,
+  "power": 1.5,
+  "r": 5,            // number of decoder outputs for Tacotron
+
+  // Number of data loader processes
+  "num_loader_workers": 8,
+
+  // Experiment logging parameters
+  "save_step": 200,
+  "data_path": "/path/to/KeithIto/LJSpeech-1.0",
+  "output_path": "/path/to/my_experiment",
+  "log_dir": "/path/to/my/tensorboard/logs/"
+}
+```
