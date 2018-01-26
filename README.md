@@ -19,15 +19,15 @@ Currently TTS provides data loaders for
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 
 ## Training the network
-To run your own training, you need to define a ```config.json``` file (simple template below) and call the following command.
+To run your own training, you need to define a ```config.json``` file (simple template below) and call with the command.
 
 ```train.py --config_path config.json```
 
-If you like to use specific GPUs.
+If you like to use specific set of GPUs.
 
 ```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
 
-Each run creates a experiment folder with the corresponfing date and time, under the folder you set in ```config.json```. And if there is no checkpoint yet under that folder, it is going to be removed when you Ctrl+C.
+Each run creates an experiment folder with the corresponfing date and time, under the folder you set in ```config.json```. And if there is no checkpoint yet under that folder, it is going to be removed when you press Ctrl+C.
 
 Example ```config.json```:
 ```
