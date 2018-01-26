@@ -9,21 +9,18 @@
   "ref_level_db": 20,
   "hidden_size": 128,
   "embedding_size": 256,
+  "text_cleaner": "english_cleaners",
 
-  "epochs": 10000,
+  "epochs": 200,
   "lr": 0.01,
-  "decay_step": [500000, 1000000, 2000000],
-  "batch_size": 128,
-  "max_iters": 200,
+  "lr_patience": 2,
+  "lr_decay": 0.5,
+  "batch_size": 256,
   "griffinf_lim_iters": 60,
   "power": 1.5,
   "r": 5,
 
-  "log_step": 100,
-  "save_step": 2000,
-
-  "text_cleaner": "english_cleaners",
-
+  "save_step": 1,
   "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
   "output_path": "result",
   "log_dir": "/home/erogol/projects/TTS/logs/"
