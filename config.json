@@ -11,7 +11,7 @@
   "embedding_size": 256,
   "text_cleaner": "english_cleaners",
 
-  "epochs": 200,
+  "epochs": 2000,
   "lr": 0.01,
   "lr_patience": 2,
   "lr_decay": 0.5,
@@ -20,7 +20,7 @@
   "power": 1.5,
   "r": 5,
 
-  "save_step": 1,
+  "save_step": 200,
   "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
   "output_path": "result",
   "log_dir": "/home/erogol/projects/TTS/logs/"
