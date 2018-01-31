@@ -38,17 +38,11 @@ def main(args):
 
     # Sentences for generation
     sentences = [
-        "And it is worth mention in passing that, as an example of fine typography,",
-        # From July 8, 2017 New York Times:
-        'Scientists at the CERN laboratory say they have discovered a new particle.',
-        'There’s a way to measure the acute emotional intelligence that has never gone out of style.',
-        'President Trump met with other leaders at the Group of 20 conference.',
-        'The Senate\'s bill to repeal and replace the Affordable Care Act is now imperiled.',
-        # From Google's Tacotron example page:
-        'Generative adversarial network or variational auto-encoder.',
-        'The buses aren\'t the problem, they actually provide a solution.',
-        'Does the quick brown fox jump over the lazy dog?',
-        'Talib Kweli confirmed to AllHipHop that he will be releasing an album in the next year.',
+        "I try my best to translate text to speech. But I know I need more work",
+        "The new Firefox, Fast for good.",
+        "Technology is continually providing us with new ways to create and publish stories.",
+        "For these stories to achieve their full impact, it requires tool.",
+        "I am allien and I am here to destron your world."
     ]
 
     # Synthesis and save to wav files

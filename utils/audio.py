@@ -81,10 +81,10 @@ class AudioProcessor(object):
 
     def inv_spectrogram(self, spectrogram):
         '''Converts spectrogram to waveform using librosa'''
-        S = _denormalize(spectrogram)
-        S = _db_to_amp(S + self.ref_level_db)  # Convert back to linear
+        S = self._denormalize(spectrogram)
+        S = self._db_to_amp(S + self.ref_level_db)  # Convert back to linear
         # Reconstruct phase
-        return inv_preemphasis(_griffin_lim(S ** self.power))
+        return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
 
 
     def _griffin_lim(self, S):
@@ -93,16 +93,11 @@ class AudioProcessor(object):
         '''
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
         S_complex = np.abs(S).astype(np.complex)
-        y = _istft(S_complex * angles)
+        y = self._istft(S_complex * angles)
         for i in range(self.griffin_lim_iters):
-            angles = np.exp(1j * np.angle(_stft(y)))
-            y = _istft(S_complex * angles)
+            angles = np.exp(1j * np.angle(self._stft(y)))
+            y = self._istft(S_complex * angles)
         return y
-
-
-    def _istft(self, y):
-        _, hop_length, win_length = _stft_parameters()
-        return librosa.istft(y, hop_length=hop_length, win_length=win_length)
 
 
     def melspectrogram(self, y):
@@ -115,11 +110,15 @@ class AudioProcessor(object):
         n_fft, hop_length, win_length = self._stft_parameters()
         return librosa.stft(y=y, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
 
+    def _istft(self, y):
+        _, hop_length, win_length = self._stft_parameters()
+        return librosa.istft(y, hop_length=hop_length, win_length=win_length)
+
 
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)
         hop_length = int(window_length / 4)
-        threshold = _db_to_amp(threshold_db)
+        threshold = self._db_to_amp(threshold_db)
         for x in range(hop_length, len(wav) - window_length, hop_length):
             if np.max(wav[x:x + window_length]) < threshold:
                 return x + hop_length

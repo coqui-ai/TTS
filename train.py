@@ -111,6 +111,8 @@ def main(args):
         progbar = Progbar(len(dataset) / c.batch_size)
 
         for i, data in enumerate(dataloader):
+            start_time = time.time()
+
             text_input = data[0]
             magnitude_input = data[1]
             mel_input = data[2]
@@ -128,42 +130,40 @@ def main(args):
 
             if use_cuda:
                 text_input_var = Variable(torch.from_numpy(text_input).type(
-                    torch.cuda.LongTensor), requires_grad=False).cuda()
+                    torch.cuda.LongTensor)).cuda()
                 mel_input_var = Variable(torch.from_numpy(mel_input).type(
-                    torch.cuda.FloatTensor), requires_grad=False).cuda()
+                    torch.cuda.FloatTensor)).cuda()
                 mel_spec_var = Variable(torch.from_numpy(mel_input).type(
-                    torch.cuda.FloatTensor), requires_grad=False).cuda()
+                    torch.cuda.FloatTensor)).cuda()
                 linear_spec_var = Variable(torch.from_numpy(magnitude_input)
-                    .type(torch.cuda.FloatTensor), requires_grad=False).cuda()
+                    .type(torch.cuda.FloatTensor)).cuda()
 
             else:
                 text_input_var = Variable(torch.from_numpy(text_input).type(
-                    torch.LongTensor), requires_grad=False)
+                    torch.LongTensor),)
                 mel_input_var = Variable(torch.from_numpy(mel_input).type(
-                    torch.FloatTensor), requires_grad=False)
+                    torch.FloatTensor))
                 mel_spec_var = Variable(torch.from_numpy(
-                    mel_input).type(torch.FloatTensor), requires_grad=False)
+                    mel_input).type(torch.FloatTensor))
                 linear_spec_var = Variable(torch.from_numpy(
-                    magnitude_input).type(torch.FloatTensor),
-                                          requires_grad=False)
+                    magnitude_input).type(torch.FloatTensor))
 
             mel_output, linear_output, alignments =\
                 model.forward(text_input_var, mel_input_var)
 
             mel_loss = criterion(mel_output, mel_spec_var)
-            linear_loss = torch.abs(linear_output - linear_spec_var)
-            linear_loss = 0.5 * \
-                torch.mean(linear_loss) + 0.5 * \
-                torch.mean(linear_loss[:, :n_priority_freq, :])
+            #linear_loss = torch.abs(linear_output - linear_spec_var)
+            #linear_loss = 0.5 * \
+                #torch.mean(linear_loss) + 0.5 * \
+                #torch.mean(linear_loss[:, :n_priority_freq, :])
+            linear_loss = 0.5 * criterion(linear_output, linear_spec_var) \
+                    + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
+                                      linear_spec_var[: ,: ,:n_priority_freq])
             loss = mel_loss + linear_loss
-            loss = loss.cuda()
-
-            start_time = time.time()
+            # loss = loss.cuda()
 
             loss.backward()
-
-            nn.utils.clip_grad_norm(model.parameters(), 1.)
-
+            grad_norm = nn.utils.clip_grad_norm(model.parameters(), 1.)
             optimizer.step()
 
             step_time = time.time() - start_time
@@ -171,7 +171,8 @@ def main(args):
 
             progbar.update(i+1, values=[('total_loss', loss.data[0]),
                                       ('linear_loss', linear_loss.data[0]),
-                                      ('mel_loss', mel_loss.data[0])])
+                                      ('mel_loss', mel_loss.data[0]),
+                                      ('grad_norm', grad_norm)])
 
             tb.add_scalar('Train/TotalLoss', loss.data[0], current_step)
             tb.add_scalar('Train/LinearLoss', linear_loss.data[0],

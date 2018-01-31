@@ -20,6 +20,8 @@
   "power": 1.5,
   "r": 5,
 
+  "num_loader_workers": 16,
+
   "save_step": 1,
   "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
   "output_path": "result",

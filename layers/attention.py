@@ -73,7 +73,8 @@ class AttentionWrapper(nn.Module):
             alignment.data.masked_fill_(mask, self.score_mask_value)
 
         # Normalize attention weight
-        alignment = F.softmax(alignment, dim=0)
+        alignment = F.softmax(alignment, dim=-1) ## TODO: might be buggy
+        print(alignment.size())
 
         # Attention context vector
         # (batch, 1, dim)
