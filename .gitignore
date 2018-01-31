@@ -116,3 +116,5 @@ venv.bak/
 *.pth.tar
 result/
 
+# jupyter dummy files
+core
