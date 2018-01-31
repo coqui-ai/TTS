@@ -74,7 +74,6 @@ class AttentionWrapper(nn.Module):
 
         # Normalize attention weight
         alignment = F.softmax(alignment, dim=-1) ## TODO: might be buggy
-        print(alignment.size())
 
         # Attention context vector
         # (batch, 1, dim)

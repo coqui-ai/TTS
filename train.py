@@ -182,6 +182,7 @@ def main(args):
                           current_step)
             tb.add_scalar('Time/StepTime', step_time, current_step)
 
+
             if current_step % c.save_step == 0:
                 checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
                 checkpoint_path = os.path.join(OUT_PATH, checkpoint_path)
@@ -194,6 +195,13 @@ def main(args):
                                  'date': datetime.date.today().strftime("%B %d, %Y")},
                                 checkpoint_path)
                 print("\n | > Checkpoint is saved : {}".format(checkpoint_path))
+
+                # Log spectrogram reconstruction
+                const_spec = linear_output[0].data.cpu()[None, :]
+                gt_spec = linear_spec_var[0].data.cpu()[None, :]
+                tb.add_image('Spec/Reconstruction', const_spec, current_step)
+                tb.add_image('Spec/GroundTruth', gt_spec, current_step)
+
         lr_scheduler.step(loss.data[0])
         tb.add_scalar('Time/EpochTime', epoch_time, epoch)
         epoch_time = 0
