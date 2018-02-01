@@ -97,7 +97,7 @@ def main(args):
     else:
         criterion = nn.L1Loss()
 
-n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
+    n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
 
     #lr_scheduler = ReduceLROnPlateau(optimizer, factor=c.lr_decay,
     #                               patience=c.lr_patience, verbose=True)
@@ -121,7 +121,7 @@ n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
             current_step = i + args.restore_step + epoch * len(dataloader) + 1
 
             # setup lr
-            current_lr = lr_decay(init_lr, current_step)
+            current_lr = lr_decay(c.lr, current_step)
             for params_group in optimizer.param_groups:
                 param_group['lr'] = current_lr
 

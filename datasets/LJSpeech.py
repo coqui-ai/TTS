@@ -52,6 +52,8 @@ class LJSpeechDataset(Dataset):
             keys = list()
 
             text = [d['text'] for d in batch]
+            text_lenghts = [len(x) for x in text]
+            max_text_len = np.max(text_lengths)
             wav = [d['wav'] for d in batch]
 
             # PAD sequences with largest length of the batch
