@@ -15,6 +15,8 @@ class Tacotron(nn.Module):
         self.use_memory_mask = use_memory_mask
         self.embedding = nn.Embedding(len(symbols), embedding_dim,
                                       padding_idx=padding_idx)
+        print(" | > Embedding dim : {}".format(len(symbols)))
+
         # Trying smaller std
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)

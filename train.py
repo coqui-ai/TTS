@@ -19,7 +19,7 @@ from tensorboardX import SummaryWriter
 
 from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
-                                 load_config)
+                                 load_config, lr_decay)
 from utils.model import get_param_size
 from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
@@ -97,10 +97,11 @@ def main(args):
     else:
         criterion = nn.L1Loss()
 
-    n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
+n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
 
-    lr_scheduler = ReduceLROnPlateau(optimizer, factor=c.lr_decay,
-                                   patience=c.lr_patience, verbose=True)
+    #lr_scheduler = ReduceLROnPlateau(optimizer, factor=c.lr_decay,
+    #                               patience=c.lr_patience, verbose=True)
+    
     epoch_time = 0
     for epoch in range(c.epochs):
 
@@ -119,14 +120,19 @@ def main(args):
 
             current_step = i + args.restore_step + epoch * len(dataloader) + 1
 
+            # setup lr
+            current_lr = lr_decay(init_lr, current_step)
+            for params_group in optimizer.param_groups:
+                param_group['lr'] = current_lr
+
             optimizer.zero_grad()
 
-            try:
-                mel_input = np.concatenate((np.zeros(
-                    [c.batch_size, 1, c.num_mels], dtype=np.float32),
-                    mel_input[:, 1:, :]), axis=1)
-            except:
-                raise TypeError("not same dimension")
+            #try:
+            #    mel_input = np.concatenate((np.zeros(
+            #        [c.batch_size, 1, c.num_mels], dtype=np.float32),
+            #        mel_input[:, 1:, :]), axis=1)
+            #except:
+            #    raise TypeError("not same dimension")
 
             if use_cuda:
                 text_input_var = Variable(torch.from_numpy(text_input).type(
@@ -204,7 +210,7 @@ def main(args):
                 tb.add_image('Spec/Reconstruction', const_spec, current_step)
                 tb.add_image('Spec/GroundTruth', gt_spec, current_step)
 
-        lr_scheduler.step(loss.data[0])
+        #lr_scheduler.step(loss.data[0])
         tb.add_scalar('Time/EpochTime', epoch_time, epoch)
         epoch_time = 0
 
