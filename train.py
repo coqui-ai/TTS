@@ -174,12 +174,14 @@ def main(args):
                                       ('mel_loss', mel_loss.data[0]),
                                       ('grad_norm', grad_norm)])
 
-            tb.add_scalar('Train/TotalLoss', loss.data[0], current_step)
-            tb.add_scalar('Train/LinearLoss', linear_loss.data[0],
+            tb.add_scalar('Loss/TotalLoss', loss.data[0], current_step)
+            tb.add_scalar('Loss/LinearLoss', linear_loss.data[0],
                           current_step)
-            tb.add_scalar('Train/MelLoss', mel_loss.data[0], current_step)
-            tb.add_scalar('LearningRate', optimizer.param_groups[0]['lr'],
+            tb.add_scalar('Loss/MelLoss', mel_loss.data[0], current_step)
+
+            tb.add_scalar('Params/LearningRate', optimizer.param_groups[0]['lr'],
                           current_step)
+            tb.add_scalar('Params/GradNorm', grad_norm, current_step)
             tb.add_scalar('Time/StepTime', step_time, current_step)
 
 
