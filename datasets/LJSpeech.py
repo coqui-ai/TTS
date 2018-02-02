@@ -3,6 +3,7 @@ import os
 import numpy as np
 import collections
 import librosa
+import torch
 from torch.utils.data import Dataset
 
 from TTS.utils.text import text_to_sequence
@@ -45,6 +46,9 @@ class LJSpeechDataset(Dataset):
         sample = {'text': text, 'wav': wav}
         return sample
 
+    def get_dummy_data(self):
+        return torch.autograd.Variable(torch.ones(16, 143)).type(torch.LongTensor)
+
     def collate_fn(self, batch):
 
         # Puts each data field into a tensor with outer dimension batch size
@@ -73,7 +77,7 @@ class LJSpeechDataset(Dataset):
             magnitude = magnitude.transpose(0, 2, 1)
             mel = mel.transpose(0, 2, 1)
 
-            return text, magnitude, mel
+            return text, text_lenghts, magnitude, mel
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}"
