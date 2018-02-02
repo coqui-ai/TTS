@@ -55,6 +55,7 @@ class AttentionWrapper(nn.Module):
                 processed_memory=None, mask=None, memory_lengths=None):
         if processed_memory is None:
             processed_memory = memory
+
         if memory_lengths is not None and mask is None:
             mask = get_mask_from_lengths(memory, memory_lengths)
 
@@ -73,7 +74,7 @@ class AttentionWrapper(nn.Module):
             alignment.data.masked_fill_(mask, self.score_mask_value)
 
         # Normalize attention weight
-        alignment = F.softmax(alignment, dim=-1) ## TODO: might be buggy
+        alignment = F.softmax(alignment, dim=-1)
 
         # Attention context vector
         # (batch, 1, dim)

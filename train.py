@@ -123,7 +123,7 @@ def main(args):
             # setup lr
             current_lr = lr_decay(c.lr, current_step)
             for params_group in optimizer.param_groups:
-                param_group['lr'] = current_lr
+                params_group['lr'] = current_lr
 
             optimizer.zero_grad()
 
@@ -204,11 +204,14 @@ def main(args):
                                 checkpoint_path)
                 print("\n | > Checkpoint is saved : {}".format(checkpoint_path))
 
-                # Log spectrogram reconstruction
+                # Diagnostic visualizations
                 const_spec = linear_output[0].data.cpu()[None, :]
                 gt_spec = linear_spec_var[0].data.cpu()[None, :]
+                align_img = alignments[0].data.cpu().t()[None, :]
                 tb.add_image('Spec/Reconstruction', const_spec, current_step)
                 tb.add_image('Spec/GroundTruth', gt_spec, current_step)
+                tb.add_image('Attn/Alignment', align_img, current_step)
+
 
         #lr_scheduler.step(loss.data[0])
         tb.add_scalar('Time/EpochTime', epoch_time, epoch)
