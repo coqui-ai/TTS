@@ -15,7 +15,7 @@
   "lr": 0.003,
   "lr_patience": 5,
   "lr_decay": 0.5,
-  "batch_size": 256,
+  "batch_size": 128,
   "r": 5,
 
   "griffin_lim_iters": 60,
