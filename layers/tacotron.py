@@ -89,7 +89,7 @@ class CBHG(nn.Module):
         self.gru = nn.GRU(
             in_dim, in_dim, 1, batch_first=True, bidirectional=True)
 
-    def forward(self, inputs, input_lengths=None):
+    def forward(self, inputs):
         # (B, T_in, in_dim)
         x = inputs
 
@@ -121,17 +121,19 @@ class CBHG(nn.Module):
         for highway in self.highways:
             x = highway(x)
 
-        if input_lengths is not None:
-            x = nn.utils.rnn.pack_padded_sequence(
-                x, input_lengths, batch_first=True)
+        # if input_lengths is not None:
+        #     print(x.size())
+        #     print(len(input_lengths))
+        #     x = nn.utils.rnn.pack_padded_sequence(
+        #         x, input_lengths.data.cpu().numpy(), batch_first=True)
 
         # (B, T_in, in_dim*2)
         self.gru.flatten_parameters()
         outputs, _ = self.gru(x)
 
-        if input_lengths is not None:
-            outputs, _ = nn.utils.rnn.pad_packed_sequence(
-                outputs, batch_first=True)
+        #if input_lengths is not None:
+        #    outputs, _ = nn.utils.rnn.pad_packed_sequence(
+        #        outputs, batch_first=True)
 
         return outputs
 
@@ -142,9 +144,9 @@ class Encoder(nn.Module):
         self.prenet = Prenet(in_dim, sizes=[256, 128])
         self.cbhg = CBHG(128, K=16, projections=[128, 128])
 
-    def forward(self, inputs, input_lengths=None):
+    def forward(self, inputs):
         inputs = self.prenet(inputs)
-        return self.cbhg(inputs, input_lengths)
+        return self.cbhg(inputs)
 
 
 class Decoder(nn.Module):

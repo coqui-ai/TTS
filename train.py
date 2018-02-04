@@ -22,6 +22,7 @@ from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
                                  load_config, lr_decay)
 from utils.model import get_param_size
+from utils.visual import plot_alignment, plot_spectrogram
 from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
 
@@ -117,7 +118,6 @@ def main(args):
 
     #lr_scheduler = ReduceLROnPlateau(optimizer, factor=c.lr_decay,
     #                               patience=c.lr_patience, verbose=True)
-    
     epoch_time = 0
     for epoch in range(c.epochs):
 
@@ -133,6 +133,7 @@ def main(args):
             mel_input = data[3]
 
             current_step = i + args.restore_step + epoch * len(dataloader) + 1
+            print(current_step)
 
             # setup lr
             current_lr = lr_decay(c.lr, current_step)
@@ -148,32 +149,28 @@ def main(args):
             #except:
             #    raise TypeError("not same dimension")
 
-            if use_cuda:
-                text_input_var = Variable(torch.from_numpy(text_input).type(
-                    torch.cuda.LongTensor)).cuda()
-                text_lengths_var = Variable(torch.from_numpy(test_lengths).type(
-                    torch.cuda.LongTensor)).cuda()
-                mel_input_var = Variable(torch.from_numpy(mel_input).type(
-                    torch.cuda.FloatTensor)).cuda()
-                mel_spec_var = Variable(torch.from_numpy(mel_input).type(
-                    torch.cuda.FloatTensor)).cuda()
-                linear_spec_var = Variable(torch.from_numpy(magnitude_input)
-                    .type(torch.cuda.FloatTensor)).cuda()
+            # convert inputs to variables
+            text_input_var = Variable(text_input)
+            mel_spec_var = Variable(mel_input)
+            linear_spec_var = Variable(magnitude_input, volatile=True)
 
-            else:
-                text_input_var = Variable(torch.from_numpy(text_input).type(
-                    torch.LongTensor),)
-                text_lengths_var = Variable(torch.from_numpy(test_lengths).type(
-                    torch.LongTensor))
-                mel_input_var = Variable(torch.from_numpy(mel_input).type(
-                    torch.FloatTensor))
-                mel_spec_var = Variable(torch.from_numpy(
-                    mel_input).type(torch.FloatTensor))
-                linear_spec_var = Variable(torch.from_numpy(
-                    magnitude_input).type(torch.FloatTensor))
+            # sort sequence by length. Pytorch needs this.
+            sorted_lengths, indices = torch.sort(
+                     text_lengths.view(-1), dim=0, descending=True)
+            sorted_lengths = sorted_lengths.long().numpy()
+
+            text_input_var = text_input_var[indices]
+            mel_spec_var = mel_spec_var[indices]
+            linear_spec_var = linear_spec_var[indices]
+
+            if use_cuda:
+                text_input_var = text_input_var.cuda()
+                mel_spec_var = mel_spec_var.cuda()
+                linear_spec_var = linear_spec_var.cuda()
 
             mel_output, linear_output, alignments =\
-                model.forward(text_input_var, mel_input_var, input_lengths=input_lengths_var)
+                model.forward(text_input_var, mel_spec_var,
+                              input_lengths= torch.autograd.Variable(torch.cuda.LongTensor(sorted_lengths)))
 
             mel_loss = criterion(mel_output, mel_spec_var)
             #linear_loss = torch.abs(linear_output - linear_spec_var)
@@ -198,7 +195,6 @@ def main(args):
                                       ('mel_loss', mel_loss.data[0]),
                                       ('grad_norm', grad_norm)])
 
-            
             # Plot Learning Stats
             tb.add_scalar('Loss/TotalLoss', loss.data[0], current_step)
             tb.add_scalar('Loss/LinearLoss', linear_loss.data[0],
@@ -209,6 +205,9 @@ def main(args):
             tb.add_scalar('Params/GradNorm', grad_norm, current_step)
             tb.add_scalar('Time/StepTime', step_time, current_step)
 
+            align_img = alignments[0].data.cpu().numpy()
+            align_img = plot_alignment(align_img)
+            tb.add_image('Attn/Alignment', align_img, current_step)
 
             if current_step % c.save_step == 0:
                 checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
@@ -224,13 +223,24 @@ def main(args):
                 print("\n | > Checkpoint is saved : {}".format(checkpoint_path))
 
                 # Diagnostic visualizations
-                const_spec = linear_output[0].data.cpu()[None, :]
-                gt_spec = linear_spec_var[0].data.cpu()[None, :]
-                align_img = alignments[0].data.cpu().t()[None, :]
+                const_spec = linear_output[0].data.cpu().numpy()
+                gt_spec = linear_spec_var[0].data.cpu().numpy()
+
+                const_spec = plot_spectrogram(const_spec, dataset.ap)
+                gt_spec = plot_spectrogram(gt_spec, dataset.ap)
                 tb.add_image('Spec/Reconstruction', const_spec, current_step)
                 tb.add_image('Spec/GroundTruth', gt_spec, current_step)
+
+                align_img = alignments[0].data.cpu().numpy()
+                align_img = plot_alignment(align_img)
                 tb.add_image('Attn/Alignment', align_img, current_step)
 
+                # Sample audio
+                audio_signal = linear_output[0].data.cpu().numpy()
+                dataset.ap.griffin_lim_iters = 60
+                audio_signal = dataset.ap.inv_spectrogram(audio_signal.T)
+                tb.add_audio('SampleAudio', audio_signal, current_step,
+                             sample_rate=c.sample_rate)
 
         #lr_scheduler.step(loss.data[0])
         tb.add_scalar('Time/EpochTime', epoch_time, epoch)
@@ -240,7 +250,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--restore_step', type=int,
-                        help='Global step to restore checkpoint', default=128)
+                        help='Global step to restore checkpoint', default=0)
     parser.add_argument('--config_path', type=str,
                        help='path to config file for training',)
     args = parser.parse_args()

@@ -56,7 +56,7 @@ class LJSpeechDataset(Dataset):
             keys = list()
 
             text = [d['text'] for d in batch]
-            text_lenghts = [len(x) for x in text]
+            text_lenghts = np.array([len(x) for x in text])
             max_text_len = np.max(text_lenghts)
             wav = [d['wav'] for d in batch]
 
@@ -77,6 +77,10 @@ class LJSpeechDataset(Dataset):
             magnitude = magnitude.transpose(0, 2, 1)
             mel = mel.transpose(0, 2, 1)
 
+            text_lenghts = torch.LongTensor(text_lenghts)
+            text = torch.LongTensor(text)
+            magnitude = torch.FloatTensor(magnitude)
+            mel = torch.FloatTensor(mel)
             return text, text_lenghts, magnitude, mel
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\

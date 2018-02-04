@@ -30,7 +30,7 @@ class Tacotron(nn.Module):
 
         inputs = self.embedding(characters)
         # (B, T', in_dim)
-        encoder_outputs = self.encoder(inputs, input_lengths)
+        encoder_outputs = self.encoder(inputs)
 
         if self.use_memory_mask:
             memory_lengths = input_lengths
