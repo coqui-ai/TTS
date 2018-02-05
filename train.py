@@ -124,7 +124,7 @@ def main(args):
         print("\n | > Epoch {}/{}".format(epoch, c.epochs))
         progbar = Progbar(len(dataset) / c.batch_size)
 
-        for i, data in enumerate(dataloader):
+        for num_iter, data in enumerate(dataloader):
             start_time = time.time()
 
             text_input = data[0]
@@ -132,8 +132,7 @@ def main(args):
             magnitude_input = data[2]
             mel_input = data[3]
 
-            current_step = i + args.restore_step + epoch * len(dataloader) + 1
-            print(current_step)
+            current_step = num_iter + args.restore_step + epoch * len(dataloader) + 1
 
             # setup lr
             current_lr = lr_decay(c.lr, current_step)
@@ -190,10 +189,10 @@ def main(args):
             step_time = time.time() - start_time
             epoch_time += step_time
 
-            progbar.update(i+1, values=[('total_loss', loss.data[0]),
-                                      ('linear_loss', linear_loss.data[0]),
-                                      ('mel_loss', mel_loss.data[0]),
-                                      ('grad_norm', grad_norm)])
+            progbar.update(num_iter+1, values=[('total_loss', loss.data[0]),
+                                       ('linear_loss', linear_loss.data[0]),
+                                       ('mel_loss', mel_loss.data[0]),
+                                       ('grad_norm', grad_norm)])
 
             # Plot Learning Stats
             tb.add_scalar('Loss/TotalLoss', loss.data[0], current_step)

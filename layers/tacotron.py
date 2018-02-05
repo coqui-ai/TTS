@@ -152,29 +152,27 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, memory_dim, r):
         super(Decoder, self).__init__()
+        self.max_decoder_steps = 200
         self.memory_dim = memory_dim
         self.r = r
+        # input -> |Linear| -> processed_inputs
+        self.input_layer = nn.Linear(256, 256, bias=False)
+        # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, sizes=[256, 128])
-        # attetion RNN
+        # processed_inputs, prrocessed_memory -> |Attention| -> Attention, Alignment, RNN_State
         self.attention_rnn = AttentionWrapper(
             nn.GRUCell(256 + 128, 256),
             BahdanauAttention(256)
         )
-        
-        self.memory_layer = nn.Linear(256, 256, bias=False)
-
-        # concat and project context and attention vectors
-        # (prenet_out + attention context) -> output
+        # (prenet_out | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(512, 256)
-
-        # decoder RNNs
+        # decoder_RNN_input -> |RNN| -> RNN_state
         self.decoder_rnns = nn.ModuleList(
             [nn.GRUCell(256, 256) for _ in range(2)])
-
+        # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
-        self.max_decoder_steps = 200
 
-    def forward(self, decoder_inputs, memory=None, memory_lengths=None):
+    def forward(self, inputs, memory=None, memory_lengths=None):
         """
         Decoder forward step.
 
@@ -182,17 +180,18 @@ class Decoder(nn.Module):
         Tacotron paper, greedy decoding is adapted.
 
         Args:
-            decoder_inputs: Encoder outputs. (B, T_encoder, dim)
+            inputs: Encoder outputs. (B, T_encoder, dim)
             memory: Decoder memory. i.e., mel-spectrogram. If None (at eval-time),
               decoder outputs are used as decoder inputs.
             memory_lengths: Encoder output (memory) lengths. If not None, used for
               attention masking.
         """
-        B = decoder_inputs.size(0)
+        B = inputs.size(0)
 
-        processed_memory = self.memory_layer(decoder_inputs)
+        # TODO: take thi segment into Attention module.
+        processed_inputs = self.input_layer(inputs)
         if memory_lengths is not None:
-            mask = get_mask_from_lengths(processed_memory, memory_lengths)
+            mask = get_mask_from_lengths(processed_inputs, memory_lengths)
         else:
             mask = None
 
@@ -208,18 +207,18 @@ class Decoder(nn.Module):
                                                          self.memory_dim, self.r)
             T_decoder = memory.size(1)
 
-        # go frames - 0 frames tarting the sequence
-        initial_input = Variable(
-            decoder_inputs.data.new(B, self.memory_dim * self.r).zero_())
+        # go frame - 0 frames tarting the sequence
+        initial_memory = Variable(
+            inputs.data.new(B, self.memory_dim * self.r).zero_())
 
         # Init decoder states
         attention_rnn_hidden = Variable(
-            decoder_inputs.data.new(B, 256).zero_())
+            inputs.data.new(B, 256).zero_())
         decoder_rnn_hiddens = [Variable(
-            decoder_inputs.data.new(B, 256).zero_())
+            inputs.data.new(B, 256).zero_())
             for _ in range(len(self.decoder_rnns))]
-        current_attention = Variable(
-            decoder_inputs.data.new(B, 256).zero_())
+        current_context_vec = Variable(
+            inputs.data.new(B, 256).zero_())
 
         # Time first (T_decoder, B, memory_dim)
         if memory is not None:
@@ -229,21 +228,21 @@ class Decoder(nn.Module):
         alignments = []
 
         t = 0
-        current_input = initial_input
+        memory_input = initial_memory
         while True:
             if t > 0:
-                current_input = outputs[-1] if greedy else memory[t - 1]
+                memory_input = outputs[-1] if greedy else memory[t - 1]
             # Prenet
-            current_input = self.prenet(current_input)
+            memory_input = self.prenet(memory_input)
 
             # Attention RNN
-            attention_rnn_hidden, current_attention, alignment = self.attention_rnn(
-                current_input, current_attention, attention_rnn_hidden,
-                decoder_inputs, processed_memory=processed_memory, mask=mask)
+            attention_rnn_hidden, current_context_vec, alignment = self.attention_rnn(
+                memory_input, current_context_vec, attention_rnn_hidden,
+                inputs, processed_inputs=processed_inputs, mask=mask)
 
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
-                torch.cat((attention_rnn_hidden, current_attention), -1))
+                torch.cat((attention_rnn_hidden, current_context_vec), -1))
 
             # Pass through the decoder RNNs
             for idx in range(len(self.decoder_rnns)):
@@ -266,7 +265,8 @@ class Decoder(nn.Module):
                 if t > 1 and is_end_of_frames(output):
                     break
                 elif t > self.max_decoder_steps:
-                    print("Warning! doesn't seems to be converged")
+                    print(" !! Decoder stopped with 'max_decoder_steps'. \
+                          Something is probably wrong.")
                     break
             else:
                 if t >= T_decoder:
