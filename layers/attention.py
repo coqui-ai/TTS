@@ -30,15 +30,15 @@ class BahdanauAttention(nn.Module):
         return alignment.squeeze(-1)
 
 
-def get_mask_from_lengths(memory, memory_lengths):
+def get_mask_from_lengths(inputs, inputs_lengths):
     """Get mask tensor from list of length
 
     Args:
-        memory: (batch, max_time, dim)
-        memory_lengths: array like
+        inputs: (batch, max_time, dim)
+        inputs_lengths: array like
     """
-    mask = memory.data.new(memory.size(0), memory.size(1)).byte().zero_()
-    for idx, l in enumerate(memory_lengths):
+    mask = inputs.data.new(inputs.size(0), inputs.size(1)).byte().zero_()
+    for idx, l in enumerate(inputs_lengths):
         mask[idx][:l] = 1
     return ~mask
 
@@ -51,14 +51,14 @@ class AttentionWrapper(nn.Module):
         self.alignment_model = alignment_model
         self.score_mask_value = score_mask_value
 
-    def forward(self, query, context_vec, cell_state, memory,
-                processed_inputs=None, mask=None, memory_lengths=None):
+    def forward(self, query, context_vec, cell_state, inputs,
+                processed_inputs=None, mask=None, inputs_lengths=None):
 
         if processed_inputs is None:
-            processed_inputs = memory
+            processed_inputs = inputs
 
-        if memory_lengths is not None and mask is None:
-            mask = get_mask_from_lengths(memory, memory_lengths)
+        if inputs_lengths is not None and mask is None:
+            mask = get_mask_from_lengths(inputs, inputs_lengths)
 
         # Alignment
         # (batch, max_time)
@@ -77,7 +77,7 @@ class AttentionWrapper(nn.Module):
         # Attention context vector
         # (batch, 1, dim)
         # c_i = \sum_{j=1}^{T_x} \alpha_{ij} h_j
-        context_vec = torch.bmm(alignment.unsqueeze(1), memory)
+        context_vec = torch.bmm(alignment.unsqueeze(1), inputs)
         context_vec = context_vec.squeeze(1)
 
         # Concat input query and previous context_vec context

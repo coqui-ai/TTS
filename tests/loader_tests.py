@@ -41,9 +41,8 @@ class TestDataset(unittest.TestCase):
                 break
             text_input = data[0]
             text_lengths = data[1]
-            print(text_lengths)
-            magnitude_input = data[2]
             mel_input = data[3]
+            item_idx = data[4]
 
             neg_values = text_input[text_input < 0]
             check_count = len(neg_values)
