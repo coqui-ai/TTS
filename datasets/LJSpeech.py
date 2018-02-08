@@ -29,7 +29,7 @@ class LJSpeechDataset(Dataset):
 
     def load_wav(self, filename):
         try:
-            audio = librosa.load(filename, sr=self.sample_rate)
+            audio = librosa.core.load(filename, sr=self.sample_rate)
             return audio
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
@@ -43,7 +43,7 @@ class LJSpeechDataset(Dataset):
         text = self.frames.ix[idx, 1]
         text = np.asarray(text_to_sequence(text, [self.cleaners]), dtype=np.int32)
         wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
-        sample = {'text': text, 'wav': wav}
+        sample = {'text': text, 'wav': wav, 'item_idx': self.frames.ix[idx, 0]}
         return sample
 
     def get_dummy_data(self):
@@ -55,33 +55,36 @@ class LJSpeechDataset(Dataset):
         if isinstance(batch[0], collections.Mapping):
             keys = list()
 
+            wav = [d['wav'] for d in batch]
+            item_idxs = [d['item_idx'] for d in batch]
             text = [d['text'] for d in batch]
+
             text_lenghts = np.array([len(x) for x in text])
             max_text_len = np.max(text_lenghts)
-            wav = [d['wav'] for d in batch]
 
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
             wav = prepare_data(wav)
 
-            magnitude = np.array([self.ap.spectrogram(w) for w in wav])
-            mel = np.array([self.ap.melspectrogram(w) for w in wav])
+            linear = np.array([self.ap.spectrogram(w).astype('float32') for w in wav])
+            mel = np.array([self.ap.melspectrogram(w).astype('float32') for w in wav])
+            assert mel.shape[2] == linear.shape[2]
             timesteps = mel.shape[2]
 
             # PAD with zeros that can be divided by outputs per step
-            if timesteps % self.outputs_per_step != 0:
-                magnitude = pad_per_step(magnitude, self.outputs_per_step)
-                mel = pad_per_step(mel, self.outputs_per_step)
+            # if timesteps % self.outputs_per_step != 0:
+            linear = pad_per_step(linear, self.outputs_per_step)
+            mel = pad_per_step(mel, self.outputs_per_step)
 
             # reshape jombo
-            magnitude = magnitude.transpose(0, 2, 1)
+            linear = linear.transpose(0, 2, 1)
             mel = mel.transpose(0, 2, 1)
 
             text_lenghts = torch.LongTensor(text_lenghts)
             text = torch.LongTensor(text)
-            magnitude = torch.FloatTensor(magnitude)
+            linear = torch.FloatTensor(linear)
             mel = torch.FloatTensor(mel)
-            return text, text_lenghts, magnitude, mel
+            return text, text_lenghts, linear, mel, item_idxs[0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}"

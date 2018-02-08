@@ -3,6 +3,7 @@ import numpy as np
 
 def pad_data(x, length):
     _pad = 0
+    assert x.ndim == 1
     return np.pad(x, (0, length - x.shape[0]),
                   mode='constant',
                   constant_values=_pad)

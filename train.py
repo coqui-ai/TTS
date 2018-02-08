@@ -71,8 +71,8 @@ def main(args):
                              )
 
     dataloader = DataLoader(dataset, batch_size=c.batch_size,
-                                shuffle=True, collate_fn=dataset.collate_fn,
-                                drop_last=True, num_workers=c.num_loader_workers)
+                            shuffle=True, collate_fn=dataset.collate_fn,
+                            drop_last=True, num_workers=c.num_loader_workers)
 
     # setup the model
     model = Tacotron(c.embedding_size,
@@ -94,14 +94,16 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
 
-    try:
+    if args.restore_step:
         checkpoint = torch.load(os.path.join(
-            CHECKPOINT_PATH, 'checkpoint_%d.pth.tar' % args.restore_step))
+            args.restore_path, 'checkpoint_%d.pth.tar' % args.restore_step))
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         print("\n > Model restored from step %d\n" % args.restore_step)
+        start_epoch = checkpoint['step'] // len(dataloader)
 
-    except:
+    else:
+        start_epoch = 0
         print("\n > Starting a new training")
 
     model = model.train()
@@ -119,7 +121,7 @@ def main(args):
     #lr_scheduler = ReduceLROnPlateau(optimizer, factor=c.lr_decay,
     #                               patience=c.lr_patience, verbose=True)
     epoch_time = 0
-    for epoch in range(c.epochs):
+    for epoch in range(0, c.epochs):
 
         print("\n | > Epoch {}/{}".format(epoch, c.epochs))
         progbar = Progbar(len(dataset) / c.batch_size)
@@ -214,6 +216,7 @@ def main(args):
                 save_checkpoint({'model': model.state_dict(),
                                  'optimizer': optimizer.state_dict(),
                                  'step': current_step,
+                                 'epoch': epoch,
                                  'total_loss': loss.data[0],
                                  'linear_loss': linear_loss.data[0],
                                  'mel_loss': mel_loss.data[0],
@@ -238,8 +241,13 @@ def main(args):
                 audio_signal = linear_output[0].data.cpu().numpy()
                 dataset.ap.griffin_lim_iters = 60
                 audio_signal = dataset.ap.inv_spectrogram(audio_signal.T)
-                tb.add_audio('SampleAudio', audio_signal, current_step,
-                             sample_rate=c.sample_rate)
+                try:
+                    tb.add_audio('SampleAudio', audio_signal, current_step,
+                                 sample_rate=c.sample_rate)
+                except:
+                    print("\n > Error at audio signal on TB!!")
+                    print(audio_signal.max())
+                    print(audio_signal.min())
 
         #lr_scheduler.step(loss.data[0])
         tb.add_scalar('Time/EpochTime', epoch_time, epoch)
@@ -250,6 +258,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--restore_step', type=int,
                         help='Global step to restore checkpoint', default=0)
+    parser.add_argument('--restore_path', type=str,
+                        help='Folder path to checkpoints', default=0)
     parser.add_argument('--config_path', type=str,
                        help='path to config file for training',)
     args = parser.parse_args()

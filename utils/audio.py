@@ -5,7 +5,6 @@ import numpy as np
 from scipy import signal
 
 _mel_basis = None
-global c
 
 
 class AudioProcessor(object):
@@ -37,7 +36,7 @@ class AudioProcessor(object):
         return np.dot(_mel_basis, spectrogram)
 
 
-    def _build_mel_basis(self):
+    def _build_mel_basis(self, ):
         n_fft = (self.num_freq - 1) * 2
         return librosa.filters.mel(self.sample_rate, n_fft, n_mels=self.num_mels)
 
@@ -50,7 +49,7 @@ class AudioProcessor(object):
         return (np.clip(S, 0, 1) * -self.min_level_db) + self.min_level_db
 
 
-    def _stft_parameters(self):
+    def _stft_parameters(self, ):
         n_fft = (self.num_freq - 1) * 2
         hop_length = int(self.frame_shift_ms / 1000 * self.sample_rate)
         win_length = int(self.frame_length_ms / 1000 * self.sample_rate)
@@ -102,7 +101,7 @@ class AudioProcessor(object):
 
     def melspectrogram(self, y):
         D = self._stft(self.apply_preemphasis(y))
-        S = self._amp_to_db(self._linear_to_mel(np.abs(D)))
+        S = self._amp_to_db(self._linear_to_mel(np.abs(D))) - self.ref_level_db
         return self._normalize(S)
 
 
