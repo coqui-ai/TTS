@@ -15,6 +15,7 @@ def prepare_data(inputs):
 
 
 def pad_per_step(inputs, outputs_per_step):
+    """zero pad inputs if it is not divisible with outputs_per_step (r)"""
     timesteps = inputs.shape[-1]
     return np.pad(inputs, [[0, 0], [0, 0],
                            [0, outputs_per_step - (timesteps % outputs_per_step)]],

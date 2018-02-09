@@ -48,8 +48,26 @@ def copy_config_file(config_file, path):
     shutil.copyfile(config_file, out_path)
 
 
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
+def save_checkpoint(model, model_loss, best_loss, out_path):
+    checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
+    checkpoint_path = os.path.join(out_path, checkpoint_path)
+    print("\n | > Checkpoint saving : {}".format(checkpoint_path))
+    state = {'model': model.state_dict(),
+             'optimizer': optimizer.state_dict(),
+             'step': current_step,
+             'epoch': epoch,
+             'total_loss': loss.data[0],
+             'linear_loss': linear_loss.data[0],
+             'mel_loss': mel_loss.data[0],
+             'date': datetime.date.today().strftime("%B %d, %Y")}
+    torch.save(state, checkpoint_path)
+    if model_loss < best_loss:
+        best_loss = model_loss
+        bestmodel_path = 'best_model.pth.tar'.format(current_step)
+        bestmodel_path = os.path.join(out_path, bestmodel_path)
+        print("\n | > Best model saving with loss {} : {}".format(model_loss, bestmodel_path))
+        torch.save(state, bestmodel_path)
+    return best_loss
 
 
 def lr_decay(init_lr, global_step):

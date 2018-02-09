@@ -121,6 +121,7 @@ def main(args):
     #lr_scheduler = ReduceLROnPlateau(optimizer, factor=c.lr_decay,
     #                               patience=c.lr_patience, verbose=True)
     epoch_time = 0
+    best_loss = float('inf')
     for epoch in range(0, c.epochs):
 
         print("\n | > Epoch {}/{}".format(epoch, c.epochs))
@@ -131,7 +132,7 @@ def main(args):
 
             text_input = data[0]
             text_lengths = data[1]
-            magnitude_input = data[2]
+            linear_input = data[2]
             mel_input = data[3]
 
             current_step = num_iter + args.restore_step + epoch * len(dataloader) + 1
@@ -153,9 +154,10 @@ def main(args):
             # convert inputs to variables
             text_input_var = Variable(text_input)
             mel_spec_var = Variable(mel_input)
-            linear_spec_var = Variable(magnitude_input, volatile=True)
+            linear_spec_var = Variable(linear_input, volatile=True)
 
-            # sort sequence by length. Pytorch needs this.
+            # sort sequence by length.
+            # TODO: might be unnecessary
             sorted_lengths, indices = torch.sort(
                      text_lengths.view(-1), dim=0, descending=True)
             sorted_lengths = sorted_lengths.long().numpy()
@@ -211,18 +213,10 @@ def main(args):
             tb.add_image('Attn/Alignment', align_img, current_step)
 
             if current_step % c.save_step == 0:
-                checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
-                checkpoint_path = os.path.join(OUT_PATH, checkpoint_path)
-                save_checkpoint({'model': model.state_dict(),
-                                 'optimizer': optimizer.state_dict(),
-                                 'step': current_step,
-                                 'epoch': epoch,
-                                 'total_loss': loss.data[0],
-                                 'linear_loss': linear_loss.data[0],
-                                 'mel_loss': mel_loss.data[0],
-                                 'date': datetime.date.today().strftime("%B %d, %Y")},
-                                checkpoint_path)
-                print("\n | > Checkpoint is saved : {}".format(checkpoint_path))
+
+                # save model
+                best_loss = save_checkpoint(model, loss.data[0],
+                                            best_loss, out_path=OUT_PATH)
 
                 # Diagnostic visualizations
                 const_spec = linear_output[0].data.cpu().numpy()

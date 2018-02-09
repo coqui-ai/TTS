@@ -72,14 +72,15 @@ class LJSpeechDataset(Dataset):
             timesteps = mel.shape[2]
 
             # PAD with zeros that can be divided by outputs per step
-            # if timesteps % self.outputs_per_step != 0:
-            linear = pad_per_step(linear, self.outputs_per_step)
-            mel = pad_per_step(mel, self.outputs_per_step)
+            if timesteps % self.outputs_per_step != 0:
+                linear = pad_per_step(linear, self.outputs_per_step)
+                mel = pad_per_step(mel, self.outputs_per_step)
 
             # reshape jombo
             linear = linear.transpose(0, 2, 1)
             mel = mel.transpose(0, 2, 1)
 
+            # convert things to pytorch
             text_lenghts = torch.LongTensor(text_lenghts)
             text = torch.LongTensor(text)
             linear = torch.FloatTensor(linear)
