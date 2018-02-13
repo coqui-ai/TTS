@@ -5,6 +5,7 @@ from torch import nn
 from TTS.utils.text.symbols import symbols
 from TTS.layers.tacotron import Prenet, Encoder, Decoder, CBHG
 
+
 class Tacotron(nn.Module):
     def __init__(self, embedding_dim=256, linear_dim=1025, mel_dim=80,
                  freq_dim=1025, r=5, padding_idx=None,

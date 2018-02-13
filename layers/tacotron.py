@@ -197,8 +197,8 @@ class Encoder(nn.Module):
             inputs (FloatTensor): embedding features
 
         Shapes:
-            - inputs: batch x time x embedding_size
-            - outputs: batch x time x 128
+            - inputs: batch x time x in_features
+            - outputs: batch x time x 128*2
         """
         inputs = self.prenet(inputs)
         return self.cbhg(inputs)
@@ -211,11 +211,13 @@ class Decoder(nn.Module):
         in_features (int): input vector (encoder output) sample size.
         memory_dim (int): memory vector (prev. time-step output) sample size.
         r (int): number of outputs per time step.
+        eps (float): threshold for detecting the end of a sentence.
     """
-    def __init__(self, in_features, memory_dim, r):
+    def __init__(self, in_features, memory_dim, r, eps=0.2):
         super(Decoder, self).__init__()
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
+        self.eps = eps
         self.r = r
         # input -> |Linear| -> processed_inputs
         self.input_layer = nn.Linear(in_features, 256, bias=False)
@@ -242,7 +244,7 @@ class Decoder(nn.Module):
         Tacotron paper, greedy decoding is adapted.
 
         Args:
-            inputs: Encoder outputs. 
+            inputs: Encoder outputs.
             memory: Decoder memory (autoregression. If None (at eval-time),
               decoder outputs are used as decoder inputs.
             memory_lengths: Encoder output (memory) lengths. If not None, used for
@@ -329,7 +331,7 @@ class Decoder(nn.Module):
             t += 1
 
             if greedy:
-                if t > 1 and is_end_of_frames(output):
+                if t > 1 and is_end_of_frames(output, self.eps):
                     break
                 elif t > self.max_decoder_steps:
                     print(" !! Decoder stopped with 'max_decoder_steps'. \
@@ -348,5 +350,5 @@ class Decoder(nn.Module):
         return outputs, alignments
 
 
-def is_end_of_frames(output, eps=0.2):
+def is_end_of_frames(output, eps=0.1): #0.2 
     return (output.data <= eps).all()
