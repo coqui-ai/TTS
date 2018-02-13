@@ -5,6 +5,7 @@ import time
 import shutil
 import datetime
 import json
+import torch
 import numpy as np
 
 
@@ -34,8 +35,9 @@ def remove_experiment_folder(experiment_path):
 
     checkpoint_files = glob.glob(experiment_path+"/*.pth.tar")
     if len(checkpoint_files) < 1:
-        shutil.rmtree(experiment_path)
-        print(" ! Run is removed from {}".format(experiment_path))
+        if os.path.exists(experiment_path):
+            shutil.rmtree(experiment_path)
+            print(" ! Run is removed from {}".format(experiment_path))
     else:
         print(" ! Run is kept in {}".format(experiment_path))
 
@@ -46,9 +48,43 @@ def copy_config_file(config_file, path):
     shutil.copyfile(config_file, out_path)
 
 
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
+def save_checkpoint(model, optimizer, model_loss, best_loss, out_path,
+                    current_step, epoch):
+    checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
+    checkpoint_path = os.path.join(out_path, checkpoint_path)
+    print("\n | > Checkpoint saving : {}".format(checkpoint_path))
+    state = {'model': model.state_dict(),
+             'optimizer': optimizer.state_dict(),
+             'step': current_step,
+             'epoch': epoch,
+             'linear_loss': model_loss,
+             'date': datetime.date.today().strftime("%B %d, %Y")}
+    torch.save(state, checkpoint_path)
 
+
+def save_best_model(model, optimizer, model_loss, best_loss, out_path,
+                    current_step, epoch):
+    if model_loss < best_loss:
+        state = {'model': model.state_dict(),
+                 'optimizer': optimizer.state_dict(),
+                 'step': current_step,
+                 'epoch': epoch,
+                 'linear_loss': model_loss,
+                 'date': datetime.date.today().strftime("%B %d, %Y")}
+        best_loss = model_loss
+        bestmodel_path = 'best_model.pth.tar'
+        bestmodel_path = os.path.join(out_path, bestmodel_path)
+        print("\n | > Best model saving with loss {0:.2f} : {1:}".format(model_loss, bestmodel_path))
+        torch.save(state, bestmodel_path)
+    return best_loss
+
+
+def lr_decay(init_lr, global_step):
+    warmup_steps = 4000.0
+    step = global_step + 1.
+    lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5,
+                                                  step**-0.5)
+    return lr
 
 class Progbar(object):
     """Displays a progress bar.

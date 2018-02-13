@@ -2,8 +2,9 @@
 import torch
 from torch.autograd import Variable
 from torch import nn
-from utils.text.symbols import symbols
-from Tacotron.layers.tacotron import Prenet, Encoder, Decoder, CBHG
+from TTS.utils.text.symbols import symbols
+from TTS.layers.tacotron import Prenet, Encoder, Decoder, CBHG
+
 
 class Tacotron(nn.Module):
     def __init__(self, embedding_dim=256, linear_dim=1025, mel_dim=80,
@@ -15,10 +16,12 @@ class Tacotron(nn.Module):
         self.use_memory_mask = use_memory_mask
         self.embedding = nn.Embedding(len(symbols), embedding_dim,
                                       padding_idx=padding_idx)
+        print(" | > Embedding dim : {}".format(len(symbols)))
+
         # Trying smaller std
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)
-        self.decoder = Decoder(mel_dim, r)
+        self.decoder = Decoder(256, mel_dim, r)
 
         self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
         self.last_linear = nn.Linear(mel_dim * 2, freq_dim)
@@ -28,7 +31,7 @@ class Tacotron(nn.Module):
 
         inputs = self.embedding(characters)
         # (B, T', in_dim)
-        encoder_outputs = self.encoder(inputs, input_lengths)
+        encoder_outputs = self.encoder(inputs)
 
         if self.use_memory_mask:
             memory_lengths = input_lengths
