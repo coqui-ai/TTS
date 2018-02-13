@@ -13,8 +13,6 @@
 
   "epochs": 2000,
   "lr": 0.003,
-  "lr_patience": 5,
-  "lr_decay": 0.5,
   "batch_size": 180,
   "r": 5,
 
