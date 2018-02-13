@@ -48,8 +48,6 @@ Example ```config.json```:
   // Training parameters
   "epochs": 2000,
   "lr": 0.001,
-  "lr_patience": 2,  // lr_scheduler.ReduceLROnPlateau().patience
-  "lr_decay": 0.5,   // lr_scheduler.ReduceLROnPlateau().factor
   "batch_size": 256,
   "griffinf_lim_iters": 60,
   "power": 1.5,
@@ -59,6 +57,7 @@ Example ```config.json```:
   "num_loader_workers": 8,
 
   // Experiment logging parameters
+  "checkpoint": true,  // if save checkpoint per save_step
   "save_step": 200,
   "data_path": "/path/to/KeithIto/LJSpeech-1.0",
   "output_path": "/path/to/my_experiment",
