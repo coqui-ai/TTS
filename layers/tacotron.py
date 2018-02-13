@@ -192,6 +192,14 @@ class Encoder(nn.Module):
         self.cbhg = CBHG(128, K=16, projections=[128, 128])
 
     def forward(self, inputs):
+        r"""
+        Args:
+            inputs (FloatTensor): embedding features
+
+        Shapes:
+            - inputs: batch x time x embedding_size
+            - outputs: batch x time x 128
+        """
         inputs = self.prenet(inputs)
         return self.cbhg(inputs)
 
@@ -200,12 +208,9 @@ class Decoder(nn.Module):
     r"""Decoder module.
 
     Args:
-        memory_dim (int): memory vector sample size
-        r (int): number of outputs per time step
-
-    Shape:
-        - input: 
-        - output:
+        in_features (int): input vector (encoder output) sample size.
+        memory_dim (int): memory vector (prev. time-step output) sample size.
+        r (int): number of outputs per time step.
     """
     def __init__(self, in_features, memory_dim, r):
         super(Decoder, self).__init__()
@@ -263,9 +268,7 @@ class Decoder(nn.Module):
 
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
-                print(" > Blamento", memory.shape)
                 memory = memory.view(B, memory.size(1) // self.r, -1)
-                print(" > Blamento", memory.shape)
             assert memory.size(-1) == self.memory_dim * self.r,\
                 " !! Dimension mismatch {} vs {} * {}".format(memory.size(-1),
                                                          self.memory_dim, self.r)

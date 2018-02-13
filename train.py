@@ -20,7 +20,7 @@ from tensorboardX import SummaryWriter
 
 from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
-                                 load_config, lr_decay)
+                                 save_best_model, load_config, lr_decay)
 from utils.model import get_param_size
 from utils.visual import plot_alignment, plot_spectrogram
 from datasets.LJSpeech import LJSpeechDataset
@@ -101,7 +101,7 @@ def main(args):
         optimizer.load_state_dict(checkpoint['optimizer'])
         print("\n > Model restored from step %d\n" % args.restore_step)
         start_epoch = checkpoint['step'] // len(dataloader)
-
+        best_loss = checkpoint['linear_loss']
     else:
         start_epoch = 0
         print("\n > Starting a new training")
@@ -144,6 +144,7 @@ def main(args):
 
             optimizer.zero_grad()
 
+            # Add a single frame of zeros to Mel Specs for better end detection
             #try:
             #    mel_input = np.concatenate((np.zeros(
             #        [c.batch_size, 1, c.num_mels], dtype=np.float32),
@@ -214,9 +215,11 @@ def main(args):
 
             if current_step % c.save_step == 0:
 
-                # save model
-                best_loss = save_checkpoint(model, loss.data[0],
-                                            best_loss, out_path=OUT_PATH)
+                if c.checkpoint:
+                    # save model
+                    save_checkpoint(model, optimizer, linear_loss.data[0],
+                                    best_loss, OUT_PATH,
+                                    current_step, epoch)
 
                 # Diagnostic visualizations
                 const_spec = linear_output[0].data.cpu().numpy()
@@ -242,6 +245,14 @@ def main(args):
                     print("\n > Error at audio signal on TB!!")
                     print(audio_signal.max())
                     print(audio_signal.min())
+
+
+        # average loss after the epoch
+        avg_epoch_loss = np.mean(
+            progbar.sum_values['linear_loss'][0] / max(1, progbar.sum_values['linear_loss'][1]))
+        best_loss = save_best_model(model, optimizer, avg_epoch_loss,
+                                    best_loss, OUT_PATH,
+                                    current_step, epoch)
 
         #lr_scheduler.step(loss.data[0])
         tb.add_scalar('Time/EpochTime', epoch_time, epoch)

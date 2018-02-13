@@ -15,7 +15,7 @@
   "lr": 0.003,
   "lr_patience": 5,
   "lr_decay": 0.5,
-  "batch_size": 98,
+  "batch_size": 180,
   "r": 5,
 
   "griffin_lim_iters": 60,
@@ -23,7 +23,8 @@
 
   "num_loader_workers": 32,
 
-  "save_step": 200,
+  "checkpoint": false,
+  "save_step": 69,
   "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
   "output_path": "result",
   "log_dir": "/home/erogol/projects/TTS/logs/"

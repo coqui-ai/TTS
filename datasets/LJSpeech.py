@@ -72,9 +72,14 @@ class LJSpeechDataset(Dataset):
             timesteps = mel.shape[2]
 
             # PAD with zeros that can be divided by outputs per step
-            if timesteps % self.outputs_per_step != 0:
-                linear = pad_per_step(linear, self.outputs_per_step)
-                mel = pad_per_step(mel, self.outputs_per_step)
+            if (timesteps + 1) % self.outputs_per_step != 0:
+                pad_len = self.outputs_per_step - \
+                        ((timesteps + 1) % self.outputs_per_step)
+                pad_len += 1
+            else:
+                pad_len = 1
+            linear = pad_per_step(linear, pad_len)
+            mel = pad_per_step(mel, pad_len)
 
             # reshape jombo
             linear = linear.transpose(0, 2, 1)

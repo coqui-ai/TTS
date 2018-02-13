@@ -20,7 +20,7 @@ class Tacotron(nn.Module):
         # Trying smaller std
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)
-        self.decoder = Decoder(mel_dim, r)
+        self.decoder = Decoder(256, mel_dim, r)
 
         self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
         self.last_linear = nn.Linear(mel_dim * 2, freq_dim)
