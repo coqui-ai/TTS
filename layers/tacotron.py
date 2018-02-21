@@ -213,7 +213,7 @@ class Decoder(nn.Module):
         r (int): number of outputs per time step.
         eps (float): threshold for detecting the end of a sentence.
     """
-    def __init__(self, in_features, memory_dim, r, eps=0.2):
+    def __init__(self, in_features, memory_dim, r, eps=0.05):
         super(Decoder, self).__init__()
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
