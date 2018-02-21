@@ -60,7 +60,7 @@ def _trim_model_state_dict(state_dict):
     return new_state_dict
 
 
-def save_checkpoint(model, optimizer, model_loss, best_loss, out_path,
+def save_checkpoint(model, optimizer, model_loss, out_path,
                     current_step, epoch):
     checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
     checkpoint_path = os.path.join(out_path, checkpoint_path)
