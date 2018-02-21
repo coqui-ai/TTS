@@ -218,8 +218,7 @@ def main(args):
                 if c.checkpoint:
                     # save model
                     save_checkpoint(model, optimizer, linear_loss.data[0],
-                                    best_loss, OUT_PATH,
-                                    current_step, epoch)
+                                    OUT_PATH, current_step, epoch)
 
                 # Diagnostic visualizations
                 const_spec = linear_output[0].data.cpu().numpy()
