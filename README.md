@@ -29,6 +29,8 @@ If you like to use specific set of GPUs.
 
 Each run creates an experiment folder with the corresponfing date and time, under the folder you set in ```config.json```. And if there is no checkpoint yet under that folder, it is going to be removed when you press Ctrl+C.
 
+You can also enjoy Tensorboard with couple of good training logs, if you point ```--logdir``` the experiment folder.
+
 Example ```config.json```:
 ```
 {
@@ -64,3 +66,9 @@ Example ```config.json```:
   "log_dir": "/path/to/my/tensorboard/logs/"
 }
 ```
+
+## Testing
+Best way to test your pretrained network is to use the Notebook under ```notebooks``` folder. 
+
+## Contribution
+Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on the track as this repo gets bigger. 
