@@ -10,7 +10,6 @@ class PrenetTests(unittest.TestCase):
         layer = Prenet(128, out_features=[256, 128])
         dummy_input = T.autograd.Variable(T.rand(4, 128))
 
-
         print(layer)
         output = layer(dummy_input)
         assert output.shape[0] == 4
@@ -49,7 +48,7 @@ class EncoderTests(unittest.TestCase):
 
     def test_in_out(self):
         layer = Encoder(128)
-        dummy_input = T.autograd.Variable(T.rand(4, 8, 128))
+       dummy_input = T.autograd.Variable(T.rand(4, 8, 128))
 
         print(layer)
         output = layer(dummy_input)
