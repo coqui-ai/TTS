@@ -101,6 +101,12 @@ def lr_decay(init_lr, global_step):
                                                   step**-0.5)
     return lr
 
+
+def count_parameters(model):
+    r"""Count number of trainable parameters in a network"""
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 class Progbar(object):
     """Displays a progress bar.
     # Arguments
