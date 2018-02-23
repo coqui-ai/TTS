@@ -34,12 +34,13 @@ class Tacotron(nn.Module):
         encoder_outputs = self.encoder(inputs)
 
         if self.use_memory_mask:
-            memory_lengths = input_lengths
+            input_lengths = input_lengths
         else:
-            memory_lengths = None
+            input_lengths = None
+
         # (B, T', mel_dim*r)
         mel_outputs, alignments = self.decoder(
-            encoder_outputs, mel_specs, memory_lengths=memory_lengths)
+            encoder_outputs, mel_specs, input_lengths=input_lengths)
 
         # Post net processing below
 
