@@ -90,9 +90,6 @@ def main(args):
     # onnx.export(model, dummy_input, model_proto_path, verbose=True)
     # tb.add_graph_onnx(model_proto_path)
 
-    if use_cuda:
-        model = nn.DataParallel(model.cuda())
-
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
 
     if args.restore_step:
@@ -103,9 +100,19 @@ def main(args):
         print("\n > Model restored from step %d\n" % args.restore_step)
         start_epoch = checkpoint['step'] // len(dataloader)
         best_loss = checkpoint['linear_loss']
-    else:
+    elif args.restore_path:
+        checkpoint = torch.load(args.restore_path)
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        print("\n > Model restored from step %d\n" % checkpoint['step'])
+        start_epoch = checkpoint['step'] // len(dataloader)
+        best_loss = checkpoint['linear_loss']
         start_epoch = 0
+    else:
         print("\n > Starting a new training")
+
+    if use_cuda:
+        model = nn.DataParallel(model.cuda())
 
     num_params = count_parameters(model)
     print(" | > Model has {} parameters".format(num_params))
@@ -142,9 +149,9 @@ def main(args):
             current_step = num_iter + args.restore_step + epoch * len(dataloader) + 1
 
             # setup lr
-            current_lr = lr_decay(c.lr, current_step)
-            for params_group in optimizer.param_groups:
-                params_group['lr'] = current_lr
+            # current_lr = lr_decay(c.lr, current_step)
+            # for params_group in optimizer.param_groups:
+            #    params_group['lr'] = current_lr
 
             optimizer.zero_grad()
 
@@ -192,7 +199,7 @@ def main(args):
             # loss = loss.cuda()
 
             loss.backward()
-            grad_norm = nn.utils.clip_grad_norm(model.parameters(), 1.)  ## TODO: maybe no need
+            grad_norm = nn.utils.clip_grad_norm(model.parameters(), 0.5)  ## TODO: maybe no need
             optimizer.step()
 
             step_time = time.time() - start_time

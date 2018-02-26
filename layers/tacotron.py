@@ -307,9 +307,13 @@ class Decoder(nn.Module):
                 else:
                     # combine prev. model output and prev. real target
                     memory_input = torch.div(outputs[-1] + memory[t-1], 2.0)
+                    memory_input = torch.nn.functional.dropout(memory_input,
+                                                               0.1,
+                                                               training=True)
                     # add a random noise
-                    memory_input += torch.autograd.Variable(
-                        torch.randn(memory_input.size())).type_as(memory_input)
+                    noise = torch.autograd.Variable(
+                        memory_input.data.new(ins.size()).normal_(0.0, 1.0))
+                    memory_input = memory_input + noise
 
             # Prenet
             processed_memory = self.prenet(memory_input)
@@ -360,5 +364,5 @@ class Decoder(nn.Module):
         return outputs, alignments
 
 
-def is_end_of_frames(output, eps=0.1): #0.2 
+def is_end_of_frames(output, eps=0.2): #0.2
     return (output.data <= eps).all()
