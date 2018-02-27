@@ -13,6 +13,7 @@
 
   "epochs": 2000,
   "lr": 0.005,
+  "warmup_steps": 4000,
   "batch_size": 180,
   "r": 5,
 

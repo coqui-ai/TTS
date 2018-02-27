@@ -95,8 +95,21 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
     return best_loss
 
 
-def lr_decay(init_lr, global_step):
-    warmup_steps = 4000.0
+def check_update(model, grad_clip, grad_top):
+    r'''Check model gradient against unexpected jumps and failures'''
+    skip_flag = False
+    grad_norm = torch.nn.utils.clip_grad_norm(model.parameters(), grad_clip)
+    if np.isinf(grad_norm):
+        print(" | > Gradient is INF !!")
+        skip_flag = True
+    elif grad_norm > grad_top:
+        print(" | > Gradient is above the top limit !!")
+        skip_flag = True
+    return grad_norm, skip_flag
+
+
+def lr_decay(init_lr, global_step, warmup_steps):
+    r'''from https://github.com/r9y9/tacotron_pytorch/blob/master/train.py'''
     step = global_step + 1.
     lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5,
                                                   step**-0.5)
