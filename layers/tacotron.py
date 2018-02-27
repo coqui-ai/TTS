@@ -312,7 +312,7 @@ class Decoder(nn.Module):
                                                                training=True)
                     # add a random noise
                     noise = torch.autograd.Variable(
-                        memory_input.data.new(ins.size()).normal_(0.0, 1.0))
+                        memory_input.data.new(memory_input.size()).normal_(0.0, 1.0))
                     memory_input = memory_input + noise
 
             # Prenet
