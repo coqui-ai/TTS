@@ -71,7 +71,7 @@ Best way to test your pretrained network is to use the Notebook under ```noteboo
 Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on the track as this repo gets bigger. 
 
 ## TODO
-- Make the default Tacotron architecture functional with reasonable fidelity. [DONE]
+- [DONE] Make the default Tacotron architecture functional with reasonable fidelity.
 - Update the architecture with the latest improvements at the field. (e.g. Monotonic Attention, World Vocoder)
     - Using harmonized teacher forcing proposed by 
     - Update the attention module with a monotonic alternative. (e.g GMM attention, Window based attention)
