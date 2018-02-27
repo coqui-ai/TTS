@@ -198,13 +198,13 @@ class Progbar(object):
                     eta_format = '%ds' % eta
 
                 info = ' - ETA: %s' % eta_format
+
+            if time_per_unit >= 1:
+                info += ' %.0fs/step' % time_per_unit
+            elif time_per_unit >= 1e-3:
+                info += ' %.0fms/step' % (time_per_unit * 1e3)
             else:
-                if time_per_unit >= 1:
-                    info += ' %.0fs/step' % time_per_unit
-                elif time_per_unit >= 1e-3:
-                    info += ' %.0fms/step' % (time_per_unit * 1e3)
-                else:
-                    info += ' %.0fus/step' % (time_per_unit * 1e6)
+                info += ' %.0fus/step' % (time_per_unit * 1e6)
 
             for k in self.unique_values:
                 info += ' - %s:' % k

@@ -132,7 +132,8 @@ def main(args):
     #lr_scheduler = ReduceLROnPlateau(optimizer, factor=c.lr_decay,
     #                               patience=c.lr_patience, verbose=True)
     epoch_time = 0
-    best_loss = float('inf')
+    if 'best_loss' not in locals():
+        best_loss = float('inf')
     for epoch in range(0, c.epochs):
 
         print("\n | > Epoch {}/{}".format(epoch, c.epochs))
