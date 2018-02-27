@@ -1,12 +1,9 @@
 # TTS (Work in Progress...)
+TTS targets a Text2Speech engine lightweight in computation with hight quality speech construction. 
 
-Here we have pytorch implementation of: 
-- Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135).
-- Tacotron2 (TODO): [Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions](https://arxiv.org/pdf/1712.05884.pdf)
+Here we have pytorch implementation of Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135) as the start point. We plan to improve the model by the recent updated at the field.  
 
-At the end, it should be easy to add new models and try different architectures.
-
-You can find [here](https://www.evernote.com/shard/s146/sh/9544e7e9-d372-4610-a7b7-3ddcb63d5dac/d01d33837dab625229dec3cfb4cfb887) a brief note about possible TTS architectures and their comparisons. 
+You can find [here](https://www.evernote.com/shard/s146/sh/9544e7e9-d372-4610-a7b7-3ddcb63d5dac/d01d33837dab625229dec3cfb4cfb887) a brief note pointing possible TTS architectures and their comparisons.
 
 ## Requirements
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
@@ -72,3 +69,21 @@ Best way to test your pretrained network is to use the Notebook under ```noteboo
 
 ## Contribution
 Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on the track as this repo gets bigger. 
+
+## TODO
+- Make the default Tacotron architecture functional with reasonable fidelity. [DONE]
+- Update the architecture with the latest improvements at the field. (e.g. Monotonic Attention, World Vocoder)
+    - Using harmonized teacher forcing proposed by 
+    - Update the attention module with a monotonic alternative. (e.g GMM attention, Window based attention)
+    - References:
+        - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1506.07503.pdf)
+        - [Attention-Based models for speech recognition](https://arxiv.org/pdf/1308.0850.pdf)
+        - [Char2Wav](https://openreview.net/pdf?id=B1VWyySKx)
+        - [VoiceLoop](https://arxiv.org/pdf/1707.06588.pdf)
+- Simplify the architecture and push the limits of performance vs efficiency.
+- Improve vocoder part of the network.
+    - Possible Solutions:
+        - WORLD vocoder
+        - [WaveRNN](https://128.84.21.199/pdf/1802.08435.pdf)
+        - [Faster WaveNet](https://arxiv.org/abs/1611.09482) 
+        - [Parallel WaveNet](https://arxiv.org/abs/1711.10433)
