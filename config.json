@@ -20,11 +20,10 @@
   "griffin_lim_iters": 60,
   "power": 1.5,
 
-  "num_loader_workers": 32,
+  "num_loader_workers": 16,
 
   "checkpoint": false,
   "save_step": 69,
-  "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
+  "data_path": "/run/shm/erogol/LJSpeech-1.0",
   "output_path": "result",
-  "log_dir": "/home/erogol/projects/TTS/logs/"
 }
