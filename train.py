@@ -73,7 +73,8 @@ def main(args):
 
     dataloader = DataLoader(dataset, batch_size=c.batch_size,
                             shuffle=True, collate_fn=dataset.collate_fn,
-                            drop_last=True, num_workers=c.num_loader_workers)
+                            drop_last=True, num_workers=c.num_loader_workers,
+                            pin_memory=True)
 
     # setup the model
     model = Tacotron(c.embedding_size,
@@ -108,6 +109,7 @@ def main(args):
         start_epoch = checkpoint['step'] // len(dataloader)
         best_loss = checkpoint['linear_loss']
         start_epoch = 0
+        args.restore_step = checkpoint['step']
     else:
         print("\n > Starting a new training")
 
