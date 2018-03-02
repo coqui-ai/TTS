@@ -18,7 +18,6 @@ class LJSpeechDataset(Dataset):
         
         with open(csv_file, "r") as f:
             self.frames = [line.split('|') for line in f]
-            self.frames = self.frames[:256]
         self.root_dir = root_dir
         self.outputs_per_step = outputs_per_step
         self.sample_rate = sample_rate

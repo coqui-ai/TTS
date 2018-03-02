@@ -285,6 +285,7 @@ def evaluate(model, criterion, data_loader, current_step):
         
 def main(args):
 
+    # Setup the dataset
     train_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_train.csv'),
                               os.path.join(c.data_path, 'wavs'),
                               c.r,
@@ -325,6 +326,7 @@ def main(args):
                             drop_last=True, num_workers= 4,
                             pin_memory=True)
 
+    model = Tacotron(c.embedding_size,
                      c.hidden_size,
                      c.num_mels,
                      c.num_freq,
