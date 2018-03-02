@@ -1,4 +1,3 @@
-import pandas as pd
 import os
 import numpy as np
 import collections
@@ -16,7 +15,10 @@ class LJSpeechDataset(Dataset):
     def __init__(self, csv_file, root_dir, outputs_per_step, sample_rate,
                 text_cleaner, num_mels, min_level_db, frame_shift_ms,
                 frame_length_ms, preemphasis, ref_level_db, num_freq, power):
-        self.frames = pd.read_csv(csv_file, sep='|', header=None)
+        
+        f = open(csv_file, "r")
+        self.frames = [line.split('|') for line in f]
+        f.close()
         self.root_dir = root_dir
         self.outputs_per_step = outputs_per_step
         self.sample_rate = sample_rate
@@ -40,7 +42,7 @@ class LJSpeechDataset(Dataset):
     def __getitem__(self, idx):
         wav_name = os.path.join(self.root_dir,
                                 self.frames.ix[idx, 0]) + '.wav'
-        text = self.frames.ix[idx, 1]
+        text = self.frames[idx][1]
         text = np.asarray(text_to_sequence(text, [self.cleaners]), dtype=np.int32)
         wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
         sample = {'text': text, 'wav': wav, 'item_idx': self.frames.ix[idx, 0]}

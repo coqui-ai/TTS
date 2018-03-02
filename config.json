@@ -12,7 +12,7 @@
   "text_cleaner": "english_cleaners",
 
   "epochs": 2000,
-  "lr": 0.005,
+  "lr": 0.0006,
   "warmup_steps": 4000,
   "batch_size": 180,
   "r": 5,
