@@ -16,16 +16,15 @@ class LJSpeechDataset(Dataset):
                 text_cleaner, num_mels, min_level_db, frame_shift_ms,
                 frame_length_ms, preemphasis, ref_level_db, num_freq, power):
         
-        f = open(csv_file, "r")
-        self.frames = [line.split('|') for line in f]
-        f.close()
+        with open(csv_file, "r") as f:
+            self.frames = [line.split('|') for line in f]
+            self.frames = self.frames[:256]
         self.root_dir = root_dir
         self.outputs_per_step = outputs_per_step
         self.sample_rate = sample_rate
         self.cleaners = text_cleaner
         self.ap = AudioProcessor(sample_rate, num_mels, min_level_db, frame_shift_ms,
-                                 frame_length_ms, preemphasis, ref_level_db, num_freq, power
-                                )
+                                 frame_length_ms, preemphasis, ref_level_db, num_freq, power)
         print(" > Reading LJSpeech from - {}".format(root_dir))
         print(" | > Number of instances : {}".format(len(self.frames)))
 
@@ -41,11 +40,11 @@ class LJSpeechDataset(Dataset):
 
     def __getitem__(self, idx):
         wav_name = os.path.join(self.root_dir,
-                                self.frames.ix[idx, 0]) + '.wav'
+                                self.frames[idx][0]) + '.wav'
         text = self.frames[idx][1]
         text = np.asarray(text_to_sequence(text, [self.cleaners]), dtype=np.int32)
         wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
-        sample = {'text': text, 'wav': wav, 'item_idx': self.frames.ix[idx, 0]}
+        sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0]}
         return sample
 
     def get_dummy_data(self):
