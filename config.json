@@ -25,5 +25,5 @@
   "checkpoint": false,
   "save_step": 69,
   "data_path": "/run/shm/erogol/LJSpeech-1.0",
-  "output_path": "result",
+  "output_path": "result"
 }
