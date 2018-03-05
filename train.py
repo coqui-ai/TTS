@@ -159,8 +159,8 @@ def train(model, criterion, data_loader, optimizer, epoch):
             const_spec = linear_output[0].data.cpu().numpy()
             gt_spec = linear_spec_var[0].data.cpu().numpy()
 
-            const_spec = plot_spectrogram(const_spec, dataset.ap)
-            gt_spec = plot_spectrogram(gt_spec, dataset.ap)
+            const_spec = plot_spectrogram(const_spec, data_loader.dataset.ap)
+            gt_spec = plot_spectrogram(gt_spec, data_loader.dataset.ap)
             tb.add_image('Visual/Reconstruction', const_spec, current_step)
             tb.add_image('Visual/GroundTruth', gt_spec, current_step)
 
@@ -170,8 +170,8 @@ def train(model, criterion, data_loader, optimizer, epoch):
 
             # Sample audio
             audio_signal = linear_output[0].data.cpu().numpy()
-            dataset.ap.griffin_lim_iters = 60
-            audio_signal = dataset.ap.inv_spectrogram(audio_signal.T)
+            data_loader.dataset.ap.griffin_lim_iters = 60
+            audio_signal = data_loader.dataset.ap.inv_spectrogram(audio_signal.T)
             try:
                 tb.add_audio('SampleAudio', audio_signal, current_step,
                              sample_rate=c.sample_rate)
