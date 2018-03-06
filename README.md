@@ -71,19 +71,20 @@ Best way to test your pretrained network is to use the Notebook under ```noteboo
 Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on the track as this repo gets bigger. 
 
 ## TODO
-- [DONE] Make the default Tacotron architecture functional with reasonable fidelity.
-- Update the architecture with the latest improvements at the field. (e.g. Monotonic Attention, World Vocoder)
+- [x] Make the default Tacotron architecture functional with reasonable fidelity.
+- [ ] Update the architecture with the latest improvements at the field. (e.g. Monotonic Attention, World Vocoder)
     - Using harmonized teacher forcing proposed by 
     - Update the attention module with a monotonic alternative. (e.g GMM attention, Window based attention)
     - References:
-        - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1506.07503.pdf)
-        - [Attention-Based models for speech recognition](https://arxiv.org/pdf/1308.0850.pdf)
-        - [Char2Wav](https://openreview.net/pdf?id=B1VWyySKx)
-        - [VoiceLoop](https://arxiv.org/pdf/1707.06588.pdf)
-- Simplify the architecture and push the limits of performance vs efficiency.
-- Improve vocoder part of the network.
+        - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1802.08435.pdf)
+        - [Attention-Based models for speech recognition](https://arxiv.org/pdf/1506.07503.pdf)
+        - [Generating Sequences With Recurrent Neural Networks](https://arxiv.org/pdf/1308.0850.pdf)
+        - [Char2Wav: End-to-End Speech Synthesis](https://openreview.net/pdf?id=B1VWyySKx)
+        - [VoiceLoop: Voice Fitting and Synthesis via a Phonological Loop](https://arxiv.org/pdf/1707.06588.pdf)
+- [ ] Simplify the architecture and push the limits of performance vs efficiency.
+- [ ] Improve vocoder part of the network.
     - Possible Solutions:
         - WORLD vocoder
-        - [WaveRNN](https://128.84.21.199/pdf/1802.08435.pdf)
+        - [WaveRNN](https://arxiv.org/pdf/1802.08435.pdf)
         - [Faster WaveNet](https://arxiv.org/abs/1611.09482) 
         - [Parallel WaveNet](https://arxiv.org/abs/1711.10433)
