@@ -14,7 +14,7 @@
   "epochs": 2000,
   "lr": 0.0006,
   "warmup_steps": 4000,
-  "batch_size": 180,
+  "batch_size": 32,
   "r": 5,
 
   "griffin_lim_iters": 60,
