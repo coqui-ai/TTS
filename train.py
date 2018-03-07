@@ -199,7 +199,7 @@ def evaluate(model, criterion, data_loader, current_step):
     model = model.train()
     epoch_time = 0
     
-    print("\n | > Validation")
+    print(" | > Validation")
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     progbar = Progbar(len(data_loader.dataset) / c.batch_size)
     
@@ -246,10 +246,10 @@ def evaluate(model, criterion, data_loader, current_step):
                                            ('mel_loss', mel_loss.data[0])])
         
         avg_linear_loss += linear_loss.data[0]
-        avg_mel_loss += avg_mel_loss.data[0]
+        avg_mel_loss += mel_loss.data[0]
 
     # Diagnostic visualizations
-    idx = np.random.randint(c.batch_size)
+    idx = np.random.randint(mel_input.shape[0])
     const_spec = linear_output[idx].data.cpu().numpy()
     gt_spec = linear_spec_var[idx].data.cpu().numpy()
     align_img = alignments[idx].data.cpu().numpy()
@@ -270,7 +270,7 @@ def evaluate(model, criterion, data_loader, current_step):
         tb.add_audio('ValSampleAudio', audio_signal, current_step,
                      sample_rate=c.sample_rate)
     except:
-        print("\n > Error at audio signal on TB!!")
+        print(" | > Error at audio signal on TB!!")
         print(audio_signal.max())
         print(audio_signal.min())
                 
@@ -305,8 +305,8 @@ def main(args):
                              )
 
     train_loader = DataLoader(train_dataset, batch_size=c.batch_size,
-                            shuffle=True, collate_fn=train_dataset.collate_fn,
-                            drop_last=True, num_workers=c.num_loader_workers,
+                            shuffle=False, collate_fn=train_dataset.collate_fn,
+                            drop_last=False, num_workers=c.num_loader_workers,
                             pin_memory=True)
     
     val_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_val.csv'),
@@ -325,15 +325,16 @@ def main(args):
                              )
 
     val_loader = DataLoader(val_dataset, batch_size=c.batch_size,
-                            shuffle=True, collate_fn=val_dataset.collate_fn,
-                            drop_last=True, num_workers= 4,
+                            shuffle=False, collate_fn=val_dataset.collate_fn,
+                            drop_last=False, num_workers= 4,
                             pin_memory=True)
 
     model = Tacotron(c.embedding_size,
                      c.hidden_size,
                      c.num_mels,
                      c.num_freq,
-                     c.r)
+                     c.r,
+                     use_atten_mask=True)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
     
@@ -352,6 +353,7 @@ def main(args):
         start_epoch = 0
         args.restore_step = checkpoint['step']
     else:
+        args.restore_step = 0
         print("\n > Starting a new training")
 
     if use_cuda:

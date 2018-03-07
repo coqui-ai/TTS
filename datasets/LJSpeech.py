@@ -26,6 +26,7 @@ class LJSpeechDataset(Dataset):
                                  frame_length_ms, preemphasis, ref_level_db, num_freq, power)
         print(" > Reading LJSpeech from - {}".format(root_dir))
         print(" | > Number of instances : {}".format(len(self.frames)))
+        self._sort_frames()
 
     def load_wav(self, filename):
         try:
@@ -34,6 +35,20 @@ class LJSpeechDataset(Dataset):
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
 
+    def _sort_frames(self):
+        r"""Sort sequences in ascending order"""
+        lengths = np.array([len(ins[1]) for ins in self.frames])
+        
+        print(" | > Max length sequence {}".format(np.max(lengths)))
+        print(" | > Min length sequence {}".format(np.min(lengths)))
+        print(" | > Avg length sequence {}".format(np.mean(lengths)))
+        
+        idxs = np.argsort(lengths)
+        new_frames = [None] * len(lengths)
+        for i, idx in enumerate(idxs):
+            new_frames[i] = self.frames[idx]
+        self.frames = new_frames
+        
     def __len__(self):
         return len(self.frames)
 
@@ -47,9 +62,17 @@ class LJSpeechDataset(Dataset):
         return sample
 
     def get_dummy_data(self):
+        r"""Get a dummy input for testing"""
         return torch.autograd.Variable(torch.ones(16, 143)).type(torch.LongTensor)
 
     def collate_fn(self, batch):
+        r"""
+            Perform preprocessing and create a final data batch:
+            1. PAD sequences with the longest sequence in the batch
+            2. Convert Audio signal to Spectrograms.
+            3. PAD sequences that can be divided by r.
+            4. Convert Numpy to Torch tensors.
+        """
 
         # Puts each data field into a tensor with outer dimension batch size
         if isinstance(batch[0], collections.Mapping):
