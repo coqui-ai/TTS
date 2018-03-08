@@ -12,18 +12,18 @@
   "text_cleaner": "english_cleaners",
 
   "epochs": 2000,
-  "lr": 0.003,
-  "batch_size": 180,
+  "lr": 0.0006,
+  "warmup_steps": 4000,
+  "batch_size": 32,
   "r": 5,
 
   "griffin_lim_iters": 60,
   "power": 1.5,
 
-  "num_loader_workers": 32,
+  "num_loader_workers": 16,
 
   "checkpoint": false,
   "save_step": 69,
-  "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
-  "output_path": "result",
-  "log_dir": "/home/erogol/projects/TTS/logs/"
+  "data_path": "/run/shm/erogol/LJSpeech-1.0",
+  "output_path": "result"
 }

@@ -3,7 +3,7 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 
-from .attention import BahdanauAttention, AttentionWrapper
+from .attention import AttentionRNN
 from .attention import get_mask_from_lengths
 
 class Prenet(nn.Module):
@@ -153,7 +153,7 @@ class CBHG(nn.Module):
             out = conv1d(x)
             out = out[:, :, :T]
             outs.append(out)
-        
+
         x = torch.cat(outs, dim=1)
         assert x.size(1) == self.in_features * len(self.conv1d_banks)
 
@@ -219,15 +219,10 @@ class Decoder(nn.Module):
         self.memory_dim = memory_dim
         self.eps = eps
         self.r = r
-        # input -> |Linear| -> processed_inputs
-        self.input_layer = nn.Linear(in_features, 256, bias=False)
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, Alignment, RNN_State
-        self.attention_rnn = AttentionWrapper(
-            nn.GRUCell(in_features + 128, 256),
-            BahdanauAttention(256)
-        )
+        self.attention_rnn = AttentionRNN(256, in_features, 128)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256+in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state
@@ -236,7 +231,7 @@ class Decoder(nn.Module):
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
 
-    def forward(self, inputs, memory=None, memory_lengths=None):
+    def forward(self, inputs, memory=None, input_lengths=None):
         r"""
         Decoder forward step.
 
@@ -245,9 +240,9 @@ class Decoder(nn.Module):
 
         Args:
             inputs: Encoder outputs.
-            memory: Decoder memory (autoregression. If None (at eval-time),
+            memory (None): Decoder memory (autoregression. If None (at eval-time),
               decoder outputs are used as decoder inputs.
-            memory_lengths: Encoder output (memory) lengths. If not None, used for
+            input_lengths (None): input lengths, used for
               attention masking.
 
         Shapes:
@@ -256,12 +251,11 @@ class Decoder(nn.Module):
         """
         B = inputs.size(0)
 
-        # TODO: take this segment into Attention module.
-        processed_inputs = self.input_layer(inputs)
-        if memory_lengths is not None:
-            mask = get_mask_from_lengths(processed_inputs, memory_lengths)
-        else:
-            mask = None
+        
+        # if input_lengths is not None:
+            # mask = get_mask_from_lengths(processed_inputs, input_lengths)
+        # else:
+            # mask = None
 
         # Run greedy decoding if memory is None
         greedy = memory is None
@@ -301,13 +295,14 @@ class Decoder(nn.Module):
         while True:
             if t > 0:
                 memory_input = outputs[-1] if greedy else memory[t - 1]
+
             # Prenet
             processed_memory = self.prenet(memory_input)
 
             # Attention RNN
             attention_rnn_hidden, current_context_vec, alignment = self.attention_rnn(
                 processed_memory, current_context_vec, attention_rnn_hidden,
-                inputs, processed_inputs=processed_inputs, mask=mask)
+                inputs)
 
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
@@ -350,5 +345,5 @@ class Decoder(nn.Module):
         return outputs, alignments
 
 
-def is_end_of_frames(output, eps=0.1): #0.2 
+def is_end_of_frames(output, eps=0.2): #0.2
     return (output.data <= eps).all()
