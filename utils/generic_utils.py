@@ -7,6 +7,7 @@ import datetime
 import json
 import torch
 import numpy as np
+from collections import OrderedDict
 
 
 class AttrDict(dict):
@@ -94,8 +95,21 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
     return best_loss
 
 
-def lr_decay(init_lr, global_step):
-    warmup_steps = 4000.0
+def check_update(model, grad_clip, grad_top):
+    r'''Check model gradient against unexpected jumps and failures'''
+    skip_flag = False
+    grad_norm = torch.nn.utils.clip_grad_norm(model.parameters(), grad_clip)
+    if np.isinf(grad_norm):
+        print(" | > Gradient is INF !!")
+        skip_flag = True
+    elif grad_norm > grad_top:
+        print(" | > Gradient is above the top limit !!")
+        skip_flag = True
+    return grad_norm, skip_flag
+
+
+def lr_decay(init_lr, global_step, warmup_steps):
+    r'''from https://github.com/r9y9/tacotron_pytorch/blob/master/train.py'''
     step = global_step + 1.
     lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5,
                                                   step**-0.5)
@@ -197,13 +211,13 @@ class Progbar(object):
                     eta_format = '%ds' % eta
 
                 info = ' - ETA: %s' % eta_format
+
+            if time_per_unit >= 1:
+                info += ' %.0fs/step' % time_per_unit
+            elif time_per_unit >= 1e-3:
+                info += ' %.0fms/step' % (time_per_unit * 1e3)
             else:
-                if time_per_unit >= 1:
-                    info += ' %.0fs/step' % time_per_unit
-                elif time_per_unit >= 1e-3:
-                    info += ' %.0fms/step' % (time_per_unit * 1e3)
-                else:
-                    info += ' %.0fus/step' % (time_per_unit * 1e6)
+                info += ' %.0fus/step' % (time_per_unit * 1e6)
 
             for k in self.unique_values:
                 info += ' - %s:' % k
