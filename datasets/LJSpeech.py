@@ -52,7 +52,7 @@ class LJSpeechDataset(Dataset):
             length = lengths[idx]
             if length < self.min_seq_length:
                 ignored.append(idx)
-            else
+            else:
                 new_frames[i] = self.frames[idx]
         print(" | > {} instances are ignored by min_seq_len ({})".format(len(ignored), self.min_seq_len))
         self.frames = new_frames
