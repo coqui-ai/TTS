@@ -45,6 +45,7 @@ OUT_PATH = create_experiment_folder(OUT_PATH)
 CHECKPOINT_PATH = os.path.join(OUT_PATH, 'checkpoints')
 shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
 
+parser.add_argument('--finetine_path', type=str)
 # save config to tmp place to be loaded by subsequent modules.
 file_name = str(os.getpid())
 tmp_path = os.path.join("/tmp/", file_name+'_tts')
