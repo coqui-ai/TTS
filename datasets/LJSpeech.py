@@ -23,7 +23,7 @@ class LJSpeechDataset(Dataset):
         self.outputs_per_step = outputs_per_step
         self.sample_rate = sample_rate
         self.cleaners = text_cleaner
-        self.min_seq_length = min_seq_length
+        self.min_seq_len = min_seq_len
         self.ap = AudioProcessor(sample_rate, num_mels, min_level_db, frame_shift_ms,
                                  frame_length_ms, preemphasis, ref_level_db, num_freq, power)
         print(" > Reading LJSpeech from - {}".format(root_dir))
@@ -46,14 +46,14 @@ class LJSpeechDataset(Dataset):
         print(" | > Avg length sequence {}".format(np.mean(lengths)))
         
         idxs = np.argsort(lengths)
-        new_frames = [None] * len(lengths)
+        new_frames = []
         ignored = []
         for i, idx in enumerate(idxs):
             length = lengths[idx]
-            if length < self.min_seq_length:
+            if length < self.min_seq_len:
                 ignored.append(idx)
             else:
-                new_frames[i] = self.frames[idx]
+                new_frames[i].append(self.frames[idx])
         print(" | > {} instances are ignored by min_seq_len ({})".format(len(ignored), self.min_seq_len))
         self.frames = new_frames
         
