@@ -12,9 +12,9 @@
   "text_cleaner": "english_cleaners",
 
   "epochs": 2000,
-  "lr": 0.0003,
+  "lr": 0.0006 / 32,
   "warmup_steps": 4000,
-  "batch_size": 8,
+  "batch_size": 1,
   "r": 5,
 
   "griffin_lim_iters": 60,
@@ -25,5 +25,6 @@
   "checkpoint": false,
   "save_step": 69,
   "data_path": "/run/shm/erogol/LJSpeech-1.0",
+  "min_seq_len": 90, 
   "output_path": "result"
 }

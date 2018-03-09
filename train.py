@@ -302,7 +302,8 @@ def main(args):
                               c.preemphasis,
                               c.ref_level_db,
                               c.num_freq,
-                              c.power
+                              c.power,
+                              min_seq_len=c.min_seq_len
                              )
 
     train_loader = DataLoader(train_dataset, batch_size=c.batch_size,

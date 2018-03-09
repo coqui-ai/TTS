@@ -14,7 +14,8 @@ class LJSpeechDataset(Dataset):
 
     def __init__(self, csv_file, root_dir, outputs_per_step, sample_rate,
                 text_cleaner, num_mels, min_level_db, frame_shift_ms,
-                frame_length_ms, preemphasis, ref_level_db, num_freq, power):
+                frame_length_ms, preemphasis, ref_level_db, num_freq, power,
+                min_seq_len=0):
         
         with open(csv_file, "r") as f:
             self.frames = [line.split('|') for line in f]
@@ -22,6 +23,7 @@ class LJSpeechDataset(Dataset):
         self.outputs_per_step = outputs_per_step
         self.sample_rate = sample_rate
         self.cleaners = text_cleaner
+        self.min_seq_length = min_seq_length
         self.ap = AudioProcessor(sample_rate, num_mels, min_level_db, frame_shift_ms,
                                  frame_length_ms, preemphasis, ref_level_db, num_freq, power)
         print(" > Reading LJSpeech from - {}".format(root_dir))
@@ -45,8 +47,14 @@ class LJSpeechDataset(Dataset):
         
         idxs = np.argsort(lengths)
         new_frames = [None] * len(lengths)
+        ignored = []
         for i, idx in enumerate(idxs):
-            new_frames[i] = self.frames[idx]
+            length = lengths[idx]
+            if length < self.min_seq_length:
+                ignored.append(idx)
+            else
+                new_frames[i] = self.frames[idx]
+        print(" | > {} instances are ignored by min_seq_len ({})".format(len(ignored), self.min_seq_len))
         self.frames = new_frames
         
     def __len__(self):
