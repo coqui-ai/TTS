@@ -326,7 +326,7 @@ def main(args):
                               c.power
                              )
 
-    val_loader = DataLoader(val_dataset, batch_size=c.batch_size,
+    val_loader = DataLoader(val_dataset, batch_size=c.eval_batch_size,
                             shuffle=False, collate_fn=val_dataset.collate_fn,
                             drop_last=False, num_workers= 4,
                             pin_memory=True)
