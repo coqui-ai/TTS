@@ -228,8 +228,7 @@ def evaluate(model, criterion, data_loader, current_step):
             linear_spec_var = linear_spec_var.cuda()
 
         # forward pass
-        mel_output, linear_output, alignments =\
-            model.forward(text_input_var, mel_spec_var)
+        mel_output, linear_output, alignments = model.forward(text_input_var)
         
         # loss computation
         mel_loss = criterion(mel_output, mel_spec_var)

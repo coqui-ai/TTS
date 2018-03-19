@@ -48,6 +48,7 @@ class BatchNormConv1d(nn.Module):
         - input: batch x dims
         - output: batch x dims
     """
+
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
                  activation=None):
         super(BatchNormConv1d, self).__init__()
@@ -241,7 +242,8 @@ class Decoder(nn.Module):
         Args:
             inputs: Encoder outputs.
             memory (None): Decoder memory (autoregression. If None (at eval-time),
-              decoder outputs are used as decoder inputs.
+              decoder outputs are used as decoder inputs. If None, it uses the last
+              output as the input.
 
         Shapes:
             - inputs: batch x time x encoder_out_dim
@@ -293,7 +295,7 @@ class Decoder(nn.Module):
                     memory_input = torch.div(outputs[-1] + memory[t-1], 2.0)
                     # add a random noise
                     noise = torch.autograd.Variable(
-                        memory_input.data.new(memory_input.size()).normal_(0.0, 1.0))
+                        memory_input.data.new(memory_input.size()).normal_(0.0, 0.5))
                     memory_input = memory_input + noise
 
             # Prenet
