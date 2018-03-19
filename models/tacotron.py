@@ -8,12 +8,11 @@ from TTS.layers.tacotron import Prenet, Encoder, Decoder, CBHG
 
 class Tacotron(nn.Module):
     def __init__(self, embedding_dim=256, linear_dim=1025, mel_dim=80,
-                 freq_dim=1025, r=5, padding_idx=None,
-                 use_atten_mask=False):
+                 freq_dim=1025, r=5, padding_idx=None):
+                 
         super(Tacotron, self).__init__()
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
-        self.use_atten_mask = use_atten_mask
         self.embedding = nn.Embedding(len(symbols), embedding_dim,
                                       padding_idx=padding_idx)
         print(" | > Embedding dim : {}".format(len(symbols)))
@@ -26,15 +25,12 @@ class Tacotron(nn.Module):
         self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
         self.last_linear = nn.Linear(mel_dim * 2, freq_dim)
 
-    def forward(self, characters, mel_specs=None, input_lengths=None):
+    def forward(self, characters, mel_specs=None):
         B = characters.size(0)
 
         inputs = self.embedding(characters)
         # (B, T', in_dim)
         encoder_outputs = self.encoder(inputs)
-
-        if not self.use_atten_mask:
-            input_lengths = None
 
         # (B, T', mel_dim*r)
         mel_outputs, alignments = self.decoder(

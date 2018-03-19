@@ -231,8 +231,8 @@ class Decoder(nn.Module):
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
 
-    def forward(self, inputs, memory=None, input_lengths=None):
-        r"""
+    def forward(self, inputs, memory=None):
+        """
         Decoder forward step.
 
         If decoder inputs are not given (e.g., at testing time), as noted in
@@ -242,20 +242,12 @@ class Decoder(nn.Module):
             inputs: Encoder outputs.
             memory (None): Decoder memory (autoregression. If None (at eval-time),
               decoder outputs are used as decoder inputs.
-            input_lengths (None): input lengths, used for
-              attention masking.
 
         Shapes:
             - inputs: batch x time x encoder_out_dim
             - memory: batch x #mels_pecs x mel_spec_dim
         """
         B = inputs.size(0)
-
-        
-        # if input_lengths is not None:
-            # mask = get_mask_from_lengths(processed_inputs, input_lengths)
-        # else:
-            # mask = None
 
         # Run greedy decoding if memory is None
         greedy = memory is None
