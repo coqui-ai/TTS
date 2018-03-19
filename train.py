@@ -112,8 +112,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
 
         # forward pass
         mel_output, linear_output, alignments =\
-            model.forward(text_input_var, mel_spec_var,
-                          input_lengths= torch.autograd.Variable(torch.cuda.LongTensor(sorted_lengths)))
+            model.forward(text_input_var, mel_spec_var)
         
         # loss computation
         mel_loss = criterion(mel_output, mel_spec_var)
@@ -337,9 +336,8 @@ def main(args):
                      c.hidden_size,
                      c.num_mels,
                      c.num_freq,
-                     c.r,
-                     use_atten_mask=True)
-
+                     c.r)
+                     
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
     
     if use_cuda:
