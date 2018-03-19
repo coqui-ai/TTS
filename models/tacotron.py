@@ -34,7 +34,7 @@ class Tacotron(nn.Module):
 
         # (B, T', mel_dim*r)
         mel_outputs, alignments = self.decoder(
-            encoder_outputs, mel_specs, input_lengths=input_lengths)
+            encoder_outputs, mel_specs)
 
         # Post net processing below
 
