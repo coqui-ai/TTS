@@ -35,7 +35,7 @@ class Tacotron(nn.Module):
         encoder_outputs = self.encoder(inputs)
 
         # (B, T', mel_dim*r)
-        mel_outputs, alignments, stop_outputs = self.decoder(
+        mel_outputs, alignments = self.decoder(
             encoder_outputs, mel_specs)
 
         # Post net processing below
@@ -43,9 +43,8 @@ class Tacotron(nn.Module):
         # Reshape
         # (B, T, mel_dim)
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
-        stop_outputs = stop_outputs.view(B, -1)
 
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
 
-        return mel_outputs, linear_outputs, alignments, stop_outputs
+        return mel_outputs, linear_outputs, alignments
