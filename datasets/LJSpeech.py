@@ -98,9 +98,6 @@ class LJSpeechDataset(Dataset):
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
             mel_lengths = [m.shape[1] for m in mel]
 
-            # compute 'stop token' targets
-            stop_targets = [np.array([0.]*mel_len) for mel_len in mel_lengths]
-
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
             wav = prepare_data(wav)
@@ -111,9 +108,6 @@ class LJSpeechDataset(Dataset):
             assert mel.shape[2] == linear.shape[2]
             timesteps = mel.shape[2]
 
-            # PAD stop targets
-            stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
-
             # PAD with zeros that can be divided by outputs per step
             if (timesteps + 1) % self.outputs_per_step != 0:
                 pad_len = self.outputs_per_step - \
@@ -123,8 +117,17 @@ class LJSpeechDataset(Dataset):
                 pad_len = 1
             linear = pad_per_step(linear, pad_len)
             mel = pad_per_step(mel, pad_len)
+            
+            # update mel lengths
+            mel_lengths = [l+pad_len for l in mel_lengths]
+            
+            # compute 'stop token' targets
+            stop_targets = [np.array([0.]*mel_len) for mel_len in mel_lengths]
+            
+            # PAD stop targets
+            stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
 
-            # reshape mojo
+            # B x T x D
             linear = linear.transpose(0, 2, 1)
             mel = mel.transpose(0, 2, 1)
 
@@ -133,8 +136,9 @@ class LJSpeechDataset(Dataset):
             text = torch.LongTensor(text)
             linear = torch.FloatTensor(linear)
             mel = torch.FloatTensor(mel)
+            mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
-            return text, text_lenghts, linear, mel, stop_targets, item_idxs[0]
+            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}"
