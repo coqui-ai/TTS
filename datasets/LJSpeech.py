@@ -97,6 +97,12 @@ class LJSpeechDataset(Dataset):
             linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
             mel_lengths = [m.shape[1] for m in mel]
+            
+            # compute 'stop token' targets
+            stop_targets = [np.array([0.]*mel_len) for mel_len in mel_lengths]
+            
+            # PAD stop targets
+            stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
 
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
@@ -106,7 +112,7 @@ class LJSpeechDataset(Dataset):
             linear = prepare_tensor(linear)
             mel = prepare_tensor(mel)
             assert mel.shape[2] == linear.shape[2]
-            timesteps = mel.shape[2]
+            timesteps = mel.shape[2]            
 
             # PAD with zeros that can be divided by outputs per step
             if (timesteps + 1) % self.outputs_per_step != 0:
@@ -120,12 +126,6 @@ class LJSpeechDataset(Dataset):
             
             # update mel lengths
             mel_lengths = [l+pad_len for l in mel_lengths]
-            
-            # compute 'stop token' targets
-            stop_targets = [np.array([0.]*mel_len) for mel_len in mel_lengths]
-            
-            # PAD stop targets
-            stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
 
             # B x T x D
             linear = linear.transpose(0, 2, 1)
