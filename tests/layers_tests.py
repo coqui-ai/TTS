@@ -37,16 +37,12 @@ class DecoderTests(unittest.TestCase):
         dummy_memory = T.autograd.Variable(T.rand(4, 120, 32))
 
         print(layer)
-        output, alignment, stop_output = layer(dummy_input, dummy_memory)
+        output, alignment = layer(dummy_input, dummy_memory)
         print(output.shape)
-        print(" > Stop ", stop_output.shape)
         
         assert output.shape[0] == 4
         assert output.shape[1] == 120 / 5
         assert output.shape[2] == 32 * 5
-        assert stop_output.shape[0] == 4
-        assert stop_output.shape[1] == 120 / 5
-        assert stop_output.shape[2] == 5
         
 
 class EncoderTests(unittest.TestCase):

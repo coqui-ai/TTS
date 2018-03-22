@@ -43,9 +43,10 @@ class TestDataset(unittest.TestCase):
             text_lengths = data[1]
             linear_input = data[2]
             mel_input = data[3]
-            stop_targets = data[4]
-            item_idx = data[5]
-
+            mel_lengths = data[4]
+            stop_target = data[5]
+            item_idx = data[6]
+            
             neg_values = text_input[text_input < 0]
             check_count = len(neg_values)
             assert check_count == 0, \
@@ -82,8 +83,9 @@ class TestDataset(unittest.TestCase):
             text_lengths = data[1]
             linear_input = data[2]
             mel_input = data[3]
-            stop_target = data[4]
-            item_idx = data[5]
+            mel_lengths = data[4]
+            stop_target = data[5]
+            item_idx = data[6]
 
             # check the last time step to be zero padded
             assert mel_input[0, -1].sum() == 0
@@ -92,6 +94,10 @@ class TestDataset(unittest.TestCase):
             assert linear_input[0, -2].sum() != 0
             assert stop_target[0, -1] == 1
             assert stop_target.sum() == 1
+            assert len(mel_lengths.shape) == 1
+            print(mel_lengths)
+            print(mel_input)
+            assert mel_lengths[0] == mel_input[0].shape[0]
 
 
 
