@@ -7,7 +7,8 @@ from torch.utils.data import Dataset
 
 from TTS.utils.text import text_to_sequence
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.data import prepare_data, pad_data, pad_per_step
+from TTS.utils.data import (prepare_data, pad_data, pad_per_step,
+                            prepare_tensor, prepare_stop_target)
 
 
 class LJSpeechDataset(Dataset):
@@ -93,14 +94,25 @@ class LJSpeechDataset(Dataset):
             text_lenghts = np.array([len(x) for x in text])
             max_text_len = np.max(text_lenghts)
 
+            linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
+            mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
+            mel_lengths = [m.shape[1] for m in mel]
+
+            # compute 'stop token' targets
+            stop_targets = [np.array([0.]*mel_len) for mel_len in mel_lengths]
+
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
             wav = prepare_data(wav)
 
-            linear = np.array([self.ap.spectrogram(w).astype('float32') for w in wav])
-            mel = np.array([self.ap.melspectrogram(w).astype('float32') for w in wav])
+            # PAD features with largest length of the batch
+            linear = prepare_tensor(linear)
+            mel = prepare_tensor(mel)
             assert mel.shape[2] == linear.shape[2]
             timesteps = mel.shape[2]
+
+            # PAD stop targets
+            stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
 
             # PAD with zeros that can be divided by outputs per step
             if (timesteps + 1) % self.outputs_per_step != 0:
@@ -112,7 +124,7 @@ class LJSpeechDataset(Dataset):
             linear = pad_per_step(linear, pad_len)
             mel = pad_per_step(mel, pad_len)
 
-            # reshape jombo
+            # reshape mojo
             linear = linear.transpose(0, 2, 1)
             mel = mel.transpose(0, 2, 1)
 
@@ -121,7 +133,8 @@ class LJSpeechDataset(Dataset):
             text = torch.LongTensor(text)
             linear = torch.FloatTensor(linear)
             mel = torch.FloatTensor(mel)
-            return text, text_lenghts, linear, mel, item_idxs[0]
+            stop_targets = torch.FloatTensor(stop_targets)
+            return text, text_lenghts, linear, mel, stop_targets, item_idxs[0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}"

@@ -32,7 +32,7 @@ class TestDataset(unittest.TestCase):
                                   c.power
                                 )
 
-        dataloader = DataLoader(dataset, batch_size=c.batch_size,
+        dataloader = DataLoader(dataset, batch_size=2,
                                 shuffle=True, collate_fn=dataset.collate_fn,
                                 drop_last=True, num_workers=c.num_loader_workers)
 
@@ -43,7 +43,8 @@ class TestDataset(unittest.TestCase):
             text_lengths = data[1]
             linear_input = data[2]
             mel_input = data[3]
-            item_idx = data[4]
+            stop_targets = data[4]
+            item_idx = data[5]
 
             neg_values = text_input[text_input < 0]
             check_count = len(neg_values)
@@ -81,13 +82,16 @@ class TestDataset(unittest.TestCase):
             text_lengths = data[1]
             linear_input = data[2]
             mel_input = data[3]
-            item_idx = data[4]
+            stop_target = data[4]
+            item_idx = data[5]
 
             # check the last time step to be zero padded
             assert mel_input[0, -1].sum() == 0
             assert mel_input[0, -2].sum() != 0
             assert linear_input[0, -1].sum() == 0
             assert linear_input[0, -2].sum() != 0
+            assert stop_target[0, -1] == 1
+            assert stop_target.sum() == 1
 
 
 

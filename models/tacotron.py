@@ -11,6 +11,7 @@ class Tacotron(nn.Module):
                  freq_dim=1025, r=5, padding_idx=None):
                  
         super(Tacotron, self).__init__()
+        self.r = r
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
         self.embedding = nn.Embedding(len(symbols), embedding_dim,
@@ -26,6 +27,7 @@ class Tacotron(nn.Module):
         self.last_linear = nn.Linear(mel_dim * 2, freq_dim)
 
     def forward(self, characters, mel_specs=None):
+        
         B = characters.size(0)
 
         inputs = self.embedding(characters)
@@ -33,7 +35,7 @@ class Tacotron(nn.Module):
         encoder_outputs = self.encoder(inputs)
 
         # (B, T', mel_dim*r)
-        mel_outputs, alignments = self.decoder(
+        mel_outputs, alignments, stop_outputs = self.decoder(
             encoder_outputs, mel_specs)
 
         # Post net processing below
@@ -41,8 +43,9 @@ class Tacotron(nn.Module):
         # Reshape
         # (B, T, mel_dim)
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
+        stop_outputs = stop_outputs.view(B, -1)
 
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
 
-        return mel_outputs, linear_outputs, alignments
+        return mel_outputs, linear_outputs, alignments, stop_outputs

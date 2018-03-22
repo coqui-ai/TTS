@@ -5,6 +5,7 @@ from torch import nn
 
 from .attention import AttentionRNN
 from .attention import get_mask_from_lengths
+from .custom_layers import StopProjection
 
 class Prenet(nn.Module):
     r""" Prenet as explained at https://arxiv.org/abs/1703.10135.
@@ -214,8 +215,9 @@ class Decoder(nn.Module):
         r (int): number of outputs per time step.
         eps (float): threshold for detecting the end of a sentence.
     """
-    def __init__(self, in_features, memory_dim, r, eps=0.05):
+    def __init__(self, in_features, memory_dim, r, eps=0.05, mode='train'):
         super(Decoder, self).__init__()
+        self.mode = mode
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
         self.eps = eps
@@ -231,6 +233,8 @@ class Decoder(nn.Module):
             [nn.GRUCell(256, 256) for _ in range(2)])
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
+        # RNN_state | attention_context -> |Linear| -> stop_token
+        self.stop_token = StopProjection(256 + in_features, r)
 
     def forward(self, inputs, memory=None):
         """
@@ -252,10 +256,9 @@ class Decoder(nn.Module):
         B = inputs.size(0)
 
         # Run greedy decoding if memory is None
-        greedy = memory is None
+        greedy = ~self.training
 
         if memory is not None:
-
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
                 memory = memory.view(B, memory.size(1) // self.r, -1)
@@ -283,6 +286,7 @@ class Decoder(nn.Module):
 
         outputs = []
         alignments = []
+        stop_outputs = []
 
         t = 0
         memory_input = initial_memory
@@ -292,11 +296,12 @@ class Decoder(nn.Module):
                     memory_input = outputs[-1]
                 else:
                     # combine prev. model output and prev. real target
-                    memory_input = torch.div(outputs[-1] + memory[t-1], 2.0)
+                    # memory_input = torch.div(outputs[-1] + memory[t-1], 2.0)
                     # add a random noise
-                    noise = torch.autograd.Variable(
-                        memory_input.data.new(memory_input.size()).normal_(0.0, 0.5))
-                    memory_input = memory_input + noise
+                    # noise = torch.autograd.Variable(
+                        # memory_input.data.new(memory_input.size()).normal_(0.0, 0.5))
+                    # memory_input = memory_input + noise
+                    memory_input = memory[t-1]
 
             # Prenet
             processed_memory = self.prenet(memory_input)
@@ -316,35 +321,42 @@ class Decoder(nn.Module):
                     decoder_input, decoder_rnn_hiddens[idx])
                 # Residual connectinon
                 decoder_input = decoder_rnn_hiddens[idx] + decoder_input
-
+            
             output = decoder_input
+            stop_token_input = decoder_input
+            
+            # stop token prediction
+            stop_token_input = torch.cat((output, current_context_vec), -1)
+            stop_output = self.stop_token(stop_token_input)
 
             # predict mel vectors from decoder vectors
             output = self.proj_to_mel(output)
 
             outputs += [output]
             alignments += [alignment]
+            stop_outputs += [stop_output]
 
             t += 1
 
-            if greedy:
+            if (not greedy and self.training) or (greedy and memory is not None):
+                if t >= T_decoder:
+                    break
+            else:
                 if t > 1 and is_end_of_frames(output, self.eps):
                     break
                 elif t > self.max_decoder_steps:
                     print(" !! Decoder stopped with 'max_decoder_steps'. \
                           Something is probably wrong.")
                     break
-            else:
-                if t >= T_decoder:
-                    break
-
+                           
         assert greedy or len(outputs) == T_decoder
 
         # Back to batch first
         alignments = torch.stack(alignments).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
+        stop_outputs = torch.stack(stop_outputs).transpose(0, 1).contiguous()
 
-        return outputs, alignments
+        return outputs, alignments, stop_outputs
 
 
 def is_end_of_frames(output, eps=0.2): #0.2
