@@ -5,7 +5,6 @@ from torch import nn
 
 from .attention import AttentionRNN
 from .attention import get_mask_from_lengths
-from .custom_layers import StopProjection
 
 class Prenet(nn.Module):
     r""" Prenet as explained at https://arxiv.org/abs/1703.10135.
@@ -233,8 +232,6 @@ class Decoder(nn.Module):
             [nn.GRUCell(256, 256) for _ in range(2)])
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
-        # RNN_state | attention_context -> |Linear| -> stop_token
-        self.stop_token = StopProjection(256 + in_features, r)
 
     def forward(self, inputs, memory=None):
         """
@@ -286,7 +283,6 @@ class Decoder(nn.Module):
 
         outputs = []
         alignments = []
-        stop_outputs = []
 
         t = 0
         memory_input = initial_memory
@@ -323,18 +319,13 @@ class Decoder(nn.Module):
                 decoder_input = decoder_rnn_hiddens[idx] + decoder_input
             
             output = decoder_input
-            stop_token_input = decoder_input
             
-            # stop token prediction
-            stop_token_input = torch.cat((output, current_context_vec), -1)
-            stop_output = self.stop_token(stop_token_input)
 
             # predict mel vectors from decoder vectors
             output = self.proj_to_mel(output)
 
             outputs += [output]
             alignments += [alignment]
-            stop_outputs += [stop_output]
 
             t += 1
 
@@ -354,9 +345,8 @@ class Decoder(nn.Module):
         # Back to batch first
         alignments = torch.stack(alignments).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
-        stop_outputs = torch.stack(stop_outputs).transpose(0, 1).contiguous()
 
-        return outputs, alignments, stop_outputs
+        return outputs, alignments
 
 
 def is_end_of_frames(output, eps=0.2): #0.2
