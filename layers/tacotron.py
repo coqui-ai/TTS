@@ -253,7 +253,7 @@ class Decoder(nn.Module):
         B = inputs.size(0)
 
         # Run greedy decoding if memory is None
-        greedy = ~self.training
+        greedy = not self.training
 
         if memory is not None:
             # Grouping multiple frames if necessary
