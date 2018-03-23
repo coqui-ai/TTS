@@ -240,7 +240,7 @@ def evaluate(model, criterion, data_loader, current_step):
         mel_output, linear_output, alignments = model.forward(text_input_var, mel_spec_var)
         
         # loss computation
-        mel_loss = criterion(mel_output, mel_spec_var, mel_lengths)
+        mel_loss = criterion(mel_output, mel_spec_var, mel_lengths_var)
         linear_loss = 0.5 * criterion(linear_output, linear_spec_var, mel_lengths_var) \
                 + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
                                   linear_spec_var[: ,: ,:n_priority_freq],

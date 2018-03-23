@@ -47,5 +47,5 @@ def L1LossMasked(input, target, length):
     # mask: (batch, max_len)
     mask = _sequence_mask(sequence_length=length, max_len=target.size(1)).unsqueeze(2)
     losses = losses * mask.float()
-    loss = losses.sum() / length.float().sum()
-    return loss / input.shape[0]
+    loss = losses.sum() / (length.float().sum() * target.shape[2])
+    return loss
