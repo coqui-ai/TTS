@@ -23,9 +23,9 @@
 
   "num_loader_workers": 8,
 
-  "checkpoint": false,
-  "save_step": 69,
+  "checkpoint": true,
+  "save_step": 378,
   "data_path": "/run/shm/erogol/LJSpeech-1.0",
   "min_seq_len": 0, 
-  "output_path": "result"
+  "output_path": "/data/shared/erogol_models/"
 }
