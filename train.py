@@ -349,7 +349,10 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
     
-    criterion = L1LossMasked
+    if use_cuda:
+        criterion = L1LossMasked().cuda()
+    else:
+        criterion = L1LossMasked()   
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
