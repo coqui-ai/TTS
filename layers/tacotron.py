@@ -256,13 +256,10 @@ class Decoder(nn.Module):
         greedy = not self.training
 
         if memory is not None:
-            print(memory.shape)
             
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
                 memory = memory.view(B, memory.size(1) // self.r, -1)
-            print(memory.shape)
-            assert memory.size(-1) == self.memory_dim * self.r,\
                 " !! Dimension mismatch {} vs {} * {}".format(memory.size(-1),
                                                          self.memory_dim, self.r)
             T_decoder = memory.size(1)
