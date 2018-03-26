@@ -33,17 +33,15 @@ class CBHGTests(unittest.TestCase):
 class DecoderTests(unittest.TestCase):
 
     def test_in_out(self):
-        layer = Decoder(in_features=128, memory_dim=32, r=5)
-        dummy_input = T.autograd.Variable(T.rand(4, 8, 128))
-        dummy_memory = T.autograd.Variable(T.rand(4, 120, 32))
+        layer = Decoder(in_features=256, memory_dim=80, r=2)
+        dummy_input = T.autograd.Variable(T.rand(4, 8, 256))
+        dummy_memory = T.autograd.Variable(T.rand(4, 2, 80))
 
-        print(layer)
         output, alignment = layer(dummy_input, dummy_memory)
-        print(output.shape)
         
         assert output.shape[0] == 4
-        assert output.shape[1] == 120 / 5
-        assert output.shape[2] == 32 * 5
+        assert output.shape[1] == 1, "size not {}".format(output.shape[1])
+        assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
         
 
 class EncoderTests(unittest.TestCase):

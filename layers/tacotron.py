@@ -304,8 +304,7 @@ class Decoder(nn.Module):
 
             # Attention RNN
             attention_rnn_hidden, current_context_vec, alignment = self.attention_rnn(
-                processed_memory, current_context_vec, attention_rnn_hidden,
-                inputs)
+                processed_memory, current_context_vec, attention_rnn_hidden, inputs)
 
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(

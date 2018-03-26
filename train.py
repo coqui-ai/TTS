@@ -98,16 +98,6 @@ def train(model, criterion, data_loader, optimizer, epoch):
         mel_lengths_var = Variable(mel_lengths)
         linear_spec_var = Variable(linear_input, volatile=True)
 
-        # sort sequence by length for curriculum learning
-        # TODO: might be unnecessary
-        sorted_lengths, indices = torch.sort(
-                 text_lengths.view(-1), dim=0, descending=True)
-        sorted_lengths = sorted_lengths.long().numpy()
-        text_input_var = text_input_var[indices]
-        mel_spec_var = mel_spec_var[indices]
-        mel_lengths_var = mel_lengths_var[indices]
-        linear_spec_var = linear_spec_var[indices]
-
         # dispatch data to GPU
         if use_cuda:
             text_input_var = text_input_var.cuda()

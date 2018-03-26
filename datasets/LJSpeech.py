@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 from TTS.utils.text import text_to_sequence
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.data import (prepare_data, pad_data, pad_per_step,
+from TTS.utils.data import (prepare_data, pad_per_step,
                             prepare_tensor, prepare_stop_target)
 
 
@@ -96,10 +96,10 @@ class LJSpeechDataset(Dataset):
 
             linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
-            mel_lengths = [m.shape[1] for m in mel]
+            mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame 
             
             # compute 'stop token' targets
-            stop_targets = [np.array([0.]*mel_len) for mel_len in mel_lengths]
+            stop_targets = [np.array([0.]*(mel_len-1)) for mel_len in mel_lengths]
             
             # PAD stop targets
             stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
@@ -108,24 +108,11 @@ class LJSpeechDataset(Dataset):
             text = prepare_data(text).astype(np.int32)
             wav = prepare_data(wav)
 
-            # PAD features with largest length of the batch
-            linear = prepare_tensor(linear)
-            mel = prepare_tensor(mel)
+            # PAD features with largest length + a zero frame
+            linear = prepare_tensor(linear, self.outputs_per_step)
+            mel = prepare_tensor(mel, self.outputs_per_step)
             assert mel.shape[2] == linear.shape[2]
             timesteps = mel.shape[2]            
-
-            # PAD with zeros that can be divided by outputs per step
-            if (timesteps + 1) % self.outputs_per_step != 0:
-                pad_len = self.outputs_per_step - \
-                        ((timesteps + 1) % self.outputs_per_step)
-                pad_len += 1
-            else:
-                pad_len = 1
-            linear = pad_per_step(linear, pad_len)
-            mel = pad_per_step(mel, pad_len)
-            
-            # update mel lengths
-            mel_lengths = [l+pad_len for l in mel_lengths]
 
             # B x T x D
             linear = linear.transpose(0, 2, 1)
