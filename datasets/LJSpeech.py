@@ -125,6 +125,7 @@ class LJSpeechDataset(Dataset):
             mel = torch.FloatTensor(mel)
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
+            
             return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\

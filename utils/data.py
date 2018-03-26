@@ -17,13 +17,13 @@ def prepare_data(inputs):
 def _pad_tensor(x, length):
     _pad = 0
     assert x.ndim == 2
-    return np.pad(x, [[0, 0], [0, length - x.shape[1]]], mode='constant', constant_values=_pad)
-
+    x = np.pad(x, [[0, 0], [0, length - x.shape[1]]], mode='constant', constant_values=_pad)
+    return x
 
 def prepare_tensor(inputs, out_steps):
     max_len = max((x.shape[1] for x in inputs)) + 1 # zero-frame
     remainder = max_len % out_steps
-    return np.stack([_pad_tensor(x, max_len + remainder) for x in inputs])
+    return np.stack([_pad_tensor(x, max_len + (out_steps - remainder)) for x in inputs])
 
 
 def _pad_stop_target(x, length):
@@ -35,7 +35,7 @@ def _pad_stop_target(x, length):
 def prepare_stop_target(inputs, out_steps):
     max_len = max((x.shape[0] for x in inputs)) + 1  # zero-frame
     remainder = max_len % out_steps
-    return np.stack([_pad_stop_target(x, max_len + remainder) for x in inputs])
+    return np.stack([_pad_stop_target(x, max_len + (out_steps - remainder)) for x in inputs])
 
 
 def pad_per_step(inputs, pad_len):
