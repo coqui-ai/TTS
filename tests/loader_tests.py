@@ -72,8 +72,9 @@ class TestDataset(unittest.TestCase):
                                   c.power
                                 )
 
+        # Test for batch size 1
         dataloader = DataLoader(dataset, batch_size=1,
-                                shuffle=True, collate_fn=dataset.collate_fn,
+                                shuffle=False, collate_fn=dataset.collate_fn,
                                 drop_last=True, num_workers=c.num_loader_workers)
 
         for i, data in enumerate(dataloader):
@@ -93,11 +94,53 @@ class TestDataset(unittest.TestCase):
             assert linear_input[0, -1].sum() == 0
             assert linear_input[0, -2].sum() != 0
             assert stop_target[0, -1] == 1
+            assert stop_target[0, -2] == 0
             assert stop_target.sum() == 1
             assert len(mel_lengths.shape) == 1
-            print(mel_lengths)
-            print(mel_input)
             assert mel_lengths[0] == mel_input[0].shape[0]
+            
+        # Test for batch size 2    
+        dataloader = DataLoader(dataset, batch_size=2,
+                                shuffle=False, collate_fn=dataset.collate_fn,
+                                drop_last=False, num_workers=c.num_loader_workers)
+
+        for i, data in enumerate(dataloader):
+            if i == self.max_loader_iter:
+                break
+            text_input = data[0]
+            text_lengths = data[1]
+            linear_input = data[2]
+            mel_input = data[3]
+            mel_lengths = data[4]
+            stop_target = data[5]
+            item_idx = data[6]
+
+            if mel_lengths[0] >  mel_lengths[1]:
+                idx = 0
+            else:
+                idx = 1
+                
+            # check the first item in the batch
+            assert mel_input[idx, -1].sum() == 0
+            assert mel_input[idx, -2].sum() != 0, mel_input
+            assert linear_input[idx, -1].sum() == 0
+            assert linear_input[idx, -2].sum() != 0
+            assert stop_target[idx, -1] == 1
+            assert stop_target[idx, -2] == 0
+            assert stop_target[idx].sum() == 1
+            assert len(mel_lengths.shape) == 1
+            assert mel_lengths[idx] == mel_input[idx].shape[0]
+            
+            # check the second itme in the batch
+            assert mel_input[1-idx, -1].sum() == 0
+            assert linear_input[1-idx, -1].sum() == 0
+            assert stop_target[1-idx, -1] == 1
+            assert len(mel_lengths.shape) == 1
+            
+            # check batch conditions
+            assert (mel_input * stop_target.unsqueeze(2)).sum() == 0
+            assert (linear_input * stop_target.unsqueeze(2)).sum() == 0
+
 
 
 

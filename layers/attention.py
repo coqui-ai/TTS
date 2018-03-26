@@ -48,7 +48,7 @@ class AttentionRNN(nn.Module):
     def __init__(self, out_dim, annot_dim, memory_dim,
                  score_mask_value=-float("inf")):
         super(AttentionRNN, self).__init__()
-        self.rnn_cell = nn.GRUCell(annot_dim + memory_dim, out_dim)
+        self.rnn_cell = nn.GRUCell(out_dim + memory_dim, out_dim)
         self.alignment_model = BahdanauAttention(annot_dim, out_dim, out_dim)
         self.score_mask_value = score_mask_value
 
