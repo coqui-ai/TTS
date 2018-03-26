@@ -82,7 +82,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
         linear_input = data[2]
         mel_input = data[3]
         mel_lengths = data[4]
-
+        
         current_step = num_iter + args.restore_step + epoch * len(data_loader) + 1
 
         # setup lr
