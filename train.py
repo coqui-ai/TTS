@@ -26,6 +26,7 @@ from utils.model import get_param_size
 from utils.visual import plot_alignment, plot_spectrogram
 from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
+from layers.losses import L1LossMasked
 
 
 use_cuda = torch.cuda.is_available()
@@ -80,7 +81,8 @@ def train(model, criterion, data_loader, optimizer, epoch):
         text_lengths = data[1]
         linear_input = data[2]
         mel_input = data[3]
-
+        mel_lengths = data[4]
+        
         current_step = num_iter + args.restore_step + epoch * len(data_loader) + 1
 
         # setup lr
@@ -93,21 +95,14 @@ def train(model, criterion, data_loader, optimizer, epoch):
         # convert inputs to variables
         text_input_var = Variable(text_input)
         mel_spec_var = Variable(mel_input)
+        mel_lengths_var = Variable(mel_lengths)
         linear_spec_var = Variable(linear_input, volatile=True)
-
-        # sort sequence by length for curriculum learning
-        # TODO: might be unnecessary
-        sorted_lengths, indices = torch.sort(
-                 text_lengths.view(-1), dim=0, descending=True)
-        sorted_lengths = sorted_lengths.long().numpy()
-        text_input_var = text_input_var[indices]
-        mel_spec_var = mel_spec_var[indices]
-        linear_spec_var = linear_spec_var[indices]
 
         # dispatch data to GPU
         if use_cuda:
             text_input_var = text_input_var.cuda()
             mel_spec_var = mel_spec_var.cuda()
+            mel_lengths_var = mel_lengths_var.cuda()
             linear_spec_var = linear_spec_var.cuda()
 
         # forward pass
@@ -115,10 +110,11 @@ def train(model, criterion, data_loader, optimizer, epoch):
             model.forward(text_input_var, mel_spec_var)
         
         # loss computation
-        mel_loss = criterion(mel_output, mel_spec_var)
-        linear_loss = 0.5 * criterion(linear_output, linear_spec_var) \
+        mel_loss = criterion(mel_output, mel_spec_var, mel_lengths_var)
+        linear_loss = 0.5 * criterion(linear_output, linear_spec_var, mel_lengths_var) \
                 + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
-                                  linear_spec_var[: ,: ,:n_priority_freq])
+                                  linear_spec_var[: ,: ,:n_priority_freq],
+                                  mel_lengths_var)
         loss = mel_loss + linear_loss
 
         # backpass and check the grad norm 
@@ -215,28 +211,31 @@ def evaluate(model, criterion, data_loader, current_step):
         text_lengths = data[1]
         linear_input = data[2]
         mel_input = data[3]
+        mel_lengths = data[4]
 
         # convert inputs to variables
         text_input_var = Variable(text_input)
         mel_spec_var = Variable(mel_input)
+        mel_lengths_var = Variable(mel_lengths)
         linear_spec_var = Variable(linear_input, volatile=True)
 
         # dispatch data to GPU
         if use_cuda:
             text_input_var = text_input_var.cuda()
             mel_spec_var = mel_spec_var.cuda()
+            mel_lengths_var = mel_lengths_var.cuda()
             linear_spec_var = linear_spec_var.cuda()
 
         # forward pass
-        mel_output, linear_output, alignments =\
-            model.forward(text_input_var, mel_spec_var)
+        mel_output, linear_output, alignments = model.forward(text_input_var, mel_spec_var)
         
         # loss computation
-        mel_loss = criterion(mel_output, mel_spec_var)
-        linear_loss = 0.5 * criterion(linear_output, linear_spec_var) \
+        mel_loss = criterion(mel_output, mel_spec_var, mel_lengths_var)
+        linear_loss = 0.5 * criterion(linear_output, linear_spec_var, mel_lengths_var) \
                 + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
-                                  linear_spec_var[: ,: ,:n_priority_freq])
-        loss = mel_loss + linear_loss
+                                  linear_spec_var[: ,: ,:n_priority_freq],
+                                  mel_lengths_var)
+        loss = mel_loss + linear_loss 
 
         step_time = time.time() - start_time
         epoch_time += step_time
@@ -333,17 +332,16 @@ def main(args):
                             pin_memory=True)
 
     model = Tacotron(c.embedding_size,
-                     c.hidden_size,
-                     c.num_mels,
                      c.num_freq,
+                     c.num_mels,
                      c.r)
-                     
+
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
     
     if use_cuda:
-        criterion = nn.L1Loss().cuda()
+        criterion = L1LossMasked().cuda()
     else:
-        criterion = nn.L1Loss()
+        criterion = L1LossMasked()   
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)

@@ -48,6 +48,7 @@ class BatchNormConv1d(nn.Module):
         - input: batch x dims
         - output: batch x dims
     """
+
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
                  activation=None):
         super(BatchNormConv1d, self).__init__()
@@ -213,8 +214,9 @@ class Decoder(nn.Module):
         r (int): number of outputs per time step.
         eps (float): threshold for detecting the end of a sentence.
     """
-    def __init__(self, in_features, memory_dim, r, eps=0.05):
+    def __init__(self, in_features, memory_dim, r, eps=0.05, mode='train'):
         super(Decoder, self).__init__()
+        self.mode = mode
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
         self.eps = eps
@@ -241,7 +243,8 @@ class Decoder(nn.Module):
         Args:
             inputs: Encoder outputs.
             memory (None): Decoder memory (autoregression. If None (at eval-time),
-              decoder outputs are used as decoder inputs.
+              decoder outputs are used as decoder inputs. If None, it uses the last
+              output as the input.
 
         Shapes:
             - inputs: batch x time x encoder_out_dim
@@ -250,14 +253,13 @@ class Decoder(nn.Module):
         B = inputs.size(0)
 
         # Run greedy decoding if memory is None
-        greedy = memory is None
+        greedy = not self.training
 
         if memory is not None:
-
+            
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
                 memory = memory.view(B, memory.size(1) // self.r, -1)
-            assert memory.size(-1) == self.memory_dim * self.r,\
                 " !! Dimension mismatch {} vs {} * {}".format(memory.size(-1),
                                                          self.memory_dim, self.r)
             T_decoder = memory.size(1)
@@ -286,15 +288,23 @@ class Decoder(nn.Module):
         memory_input = initial_memory
         while True:
             if t > 0:
-                memory_input = outputs[-1] if greedy else memory[t - 1]
+                if greedy:
+                    memory_input = outputs[-1]
+                else:
+                    # combine prev. model output and prev. real target
+                    # memory_input = torch.div(outputs[-1] + memory[t-1], 2.0)
+                    # add a random noise
+                    # noise = torch.autograd.Variable(
+                        # memory_input.data.new(memory_input.size()).normal_(0.0, 0.5))
+                    # memory_input = memory_input + noise
+                    memory_input = memory[t-1]
 
             # Prenet
             processed_memory = self.prenet(memory_input)
 
             # Attention RNN
             attention_rnn_hidden, current_context_vec, alignment = self.attention_rnn(
-                processed_memory, current_context_vec, attention_rnn_hidden,
-                inputs)
+                processed_memory, current_context_vec, attention_rnn_hidden, inputs)
 
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
@@ -306,8 +316,9 @@ class Decoder(nn.Module):
                     decoder_input, decoder_rnn_hiddens[idx])
                 # Residual connectinon
                 decoder_input = decoder_rnn_hiddens[idx] + decoder_input
-
+            
             output = decoder_input
+            
 
             # predict mel vectors from decoder vectors
             output = self.proj_to_mel(output)
@@ -317,17 +328,17 @@ class Decoder(nn.Module):
 
             t += 1
 
-            if greedy:
+            if (not greedy and self.training) or (greedy and memory is not None):
+                if t >= T_decoder:
+                    break
+            else:
                 if t > 1 and is_end_of_frames(output, self.eps):
                     break
                 elif t > self.max_decoder_steps:
                     print(" !! Decoder stopped with 'max_decoder_steps'. \
                           Something is probably wrong.")
                     break
-            else:
-                if t >= T_decoder:
-                    break
-
+                           
         assert greedy or len(outputs) == T_decoder
 
         # Back to batch first
