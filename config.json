@@ -7,7 +7,6 @@
   "preemphasis": 0.97,
   "min_level_db": -100,
   "ref_level_db": 20,
-  "hidden_size": 128,
   "embedding_size": 256,
   "text_cleaner": "english_cleaners",
 
