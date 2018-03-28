@@ -332,9 +332,8 @@ def main(args):
                             pin_memory=True)
 
     model = Tacotron(c.embedding_size,
-                     c.hidden_size,
-                     c.num_mels,
                      c.num_freq,
+                     c.num_mels,
                      c.r)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
