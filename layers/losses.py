@@ -27,11 +27,11 @@ class L1LossMasked(nn.Module):
     def forward(self, input, target, length):
         """
         Args:
-            logits: A Variable containing a FloatTensor of size
-                (batch, max_len, num_classes) which contains the
+            input: A Variable containing a FloatTensor of size
+                (batch, max_len, dim) which contains the
                 unnormalized probability for each class.
             target: A Variable containing a LongTensor of size
-                (batch, max_len) which contains the index of the true
+                (batch, max_len, dim) which contains the index of the true
                 class for each corresponding step.
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
@@ -42,12 +42,12 @@ class L1LossMasked(nn.Module):
         target = target.contiguous()
 
         # logits_flat: (batch * max_len, dim)
-        input = input.view(-1, input.size(-1))
+        input = input.view(-1, input.shape[-1])
         # target_flat: (batch * max_len, dim)
-        target_flat = target.view(-1, 1)
+        target_flat = target.view(-1, target.shape[-1])
         # losses_flat: (batch * max_len, dim)
         losses_flat = functional.l1_loss(input, target, size_average=False,
-                             reduce=False)
+                                         reduce=False)
         # losses: (batch, max_len, dim)
         losses = losses_flat.view(*target.size())
         # mask: (batch, max_len, 1)
