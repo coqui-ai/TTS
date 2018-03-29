@@ -2,7 +2,7 @@ import unittest
 import torch as T
 
 from TTS.layers.tacotron import Prenet, CBHG, Decoder, Encoder
-from layers.losses import L1LossMasked, _sequence_mask
+from TTS.layers.losses import L1LossMasked, _sequence_mask
 
 
 class PrenetTests(unittest.TestCase):
@@ -66,7 +66,7 @@ class L1LossMaskedTests(unittest.TestCase):
         dummy_target = T.autograd.Variable(T.ones(4, 8, 128).float())
         dummy_length = T.autograd.Variable((T.ones(4) * 8).long())
         output = layer(dummy_input, dummy_target, dummy_length)
-        assert output.shape[0] == 1
+        assert output.shape[0] == 0
         assert len(output.shape) == 1
         assert output.data[0] == 0.0
         
