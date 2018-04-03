@@ -288,7 +288,8 @@ class AttentionDecoder(nn.Module):
         bf_out = gru2_input + gru2_hidden
 
         # Output
-        output = self.out(bf_out).view(-1, self.num_mels, self.outputs_per_step)
+        output = self.out(bf_out).view(-1, self.num_mels,
+                                       self.outputs_per_step)
 
         return output, d_t, gru1_hidden, gru2_hidden
 

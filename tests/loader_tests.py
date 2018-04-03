@@ -10,6 +10,7 @@ from TTS.datasets.LJSpeech import LJSpeechDataset
 file_path = os.path.dirname(os.path.realpath(__file__))
 c = load_config(os.path.join(file_path, 'test_config.json'))
 
+
 class TestDataset(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -30,7 +31,7 @@ class TestDataset(unittest.TestCase):
                                   c.ref_level_db,
                                   c.num_freq,
                                   c.power
-                                )
+                                  )
 
         dataloader = DataLoader(dataset, batch_size=2,
                                 shuffle=True, collate_fn=dataset.collate_fn,
@@ -46,7 +47,7 @@ class TestDataset(unittest.TestCase):
             mel_lengths = data[4]
             stop_target = data[5]
             item_idx = data[6]
-            
+
             neg_values = text_input[text_input < 0]
             check_count = len(neg_values)
             assert check_count == 0, \
@@ -70,7 +71,7 @@ class TestDataset(unittest.TestCase):
                                   c.ref_level_db,
                                   c.num_freq,
                                   c.power
-                                )
+                                  )
 
         # Test for batch size 1
         dataloader = DataLoader(dataset, batch_size=1,
@@ -98,8 +99,8 @@ class TestDataset(unittest.TestCase):
             assert stop_target.sum() == 1
             assert len(mel_lengths.shape) == 1
             assert mel_lengths[0] == mel_input[0].shape[0]
-            
-        # Test for batch size 2    
+
+        # Test for batch size 2
         dataloader = DataLoader(dataset, batch_size=2,
                                 shuffle=False, collate_fn=dataset.collate_fn,
                                 drop_last=False, num_workers=c.num_loader_workers)
@@ -115,11 +116,11 @@ class TestDataset(unittest.TestCase):
             stop_target = data[5]
             item_idx = data[6]
 
-            if mel_lengths[0] >  mel_lengths[1]:
+            if mel_lengths[0] > mel_lengths[1]:
                 idx = 0
             else:
                 idx = 1
-                
+
             # check the first item in the batch
             assert mel_input[idx, -1].sum() == 0
             assert mel_input[idx, -2].sum() != 0, mel_input
@@ -130,17 +131,13 @@ class TestDataset(unittest.TestCase):
             assert stop_target[idx].sum() == 1
             assert len(mel_lengths.shape) == 1
             assert mel_lengths[idx] == mel_input[idx].shape[0]
-            
+
             # check the second itme in the batch
             assert mel_input[1-idx, -1].sum() == 0
             assert linear_input[1-idx, -1].sum() == 0
             assert stop_target[1-idx, -1] == 1
             assert len(mel_lengths.shape) == 1
-            
+
             # check batch conditions
             assert (mel_input * stop_target.unsqueeze(2)).sum() == 0
             assert (linear_input * stop_target.unsqueeze(2)).sum() == 0
-
-
-
-

@@ -6,6 +6,7 @@ from torch import nn
 from .attention import AttentionRNN
 from .attention import get_mask_from_lengths
 
+
 class Prenet(nn.Module):
     r""" Prenet as explained at https://arxiv.org/abs/1703.10135.
     It creates as many layers as given by 'out_features'
@@ -14,7 +15,7 @@ class Prenet(nn.Module):
         in_features (int): size of the input vector
         out_features (int or list): size of each output sample.
             If it is a list, for each value, there is created a new layer.  
-    """  
+    """
 
     def __init__(self, in_features, out_features=[256, 128]):
         super(Prenet, self).__init__()
@@ -60,7 +61,7 @@ class BatchNormConv1d(nn.Module):
         self.activation = activation
 
     def forward(self, x):
-        x = self.conv1d(x) 
+        x = self.conv1d(x)
         if self.activation is not None:
             x = self.activation(x)
         return self.bn(x)
@@ -116,7 +117,7 @@ class CBHG(nn.Module):
         self.max_pool1d = nn.MaxPool1d(kernel_size=2, stride=1, padding=1)
 
         out_features = [K * in_features] + projections[:-1]
-        activations = [self.relu] * (len(projections) - 1) 
+        activations = [self.relu] * (len(projections) - 1)
         activations += [None]
 
         # setup conv1d projection layers
@@ -179,7 +180,7 @@ class CBHG(nn.Module):
 
         # (B, T_in, in_features*2)
         # TODO: replace GRU with convolution as in Deep Voice 3
-        self.gru.flatten_parameters() 
+        self.gru.flatten_parameters()
         outputs, _ = self.gru(x)
         return outputs
 
@@ -214,6 +215,7 @@ class Decoder(nn.Module):
         r (int): number of outputs per time step.
         eps (float): threshold for detecting the end of a sentence.
     """
+
     def __init__(self, in_features, memory_dim, r, eps=0.05, mode='train'):
         super(Decoder, self).__init__()
         self.mode = mode
@@ -251,23 +253,18 @@ class Decoder(nn.Module):
             - memory: batch x #mels_pecs x mel_spec_dim
         """
         B = inputs.size(0)
-
         # Run greedy decoding if memory is None
         greedy = not self.training
-
         if memory is not None:
-            
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
                 memory = memory.view(B, memory.size(1) // self.r, -1)
                 " !! Dimension mismatch {} vs {} * {}".format(memory.size(-1),
-                                                         self.memory_dim, self.r)
+                                                              self.memory_dim, self.r)
             T_decoder = memory.size(1)
-
         # go frame - 0 frames tarting the sequence
         initial_memory = Variable(
             inputs.data.new(B, self.memory_dim * self.r).zero_())
-
         # Init decoder states
         attention_rnn_hidden = Variable(
             inputs.data.new(B, 256).zero_())
@@ -276,14 +273,11 @@ class Decoder(nn.Module):
             for _ in range(len(self.decoder_rnns))]
         current_context_vec = Variable(
             inputs.data.new(B, 256).zero_())
-
         # Time first (T_decoder, B, memory_dim)
         if memory is not None:
             memory = memory.transpose(0, 1)
-
         outputs = []
         alignments = []
-
         t = 0
         memory_input = initial_memory
         while True:
@@ -291,6 +285,7 @@ class Decoder(nn.Module):
                 if greedy:
                     memory_input = outputs[-1]
                 else:
+                    # TODO: try sampled teacher forcing
                     # combine prev. model output and prev. real target
                     # memory_input = torch.div(outputs[-1] + memory[t-1], 2.0)
                     # add a random noise
@@ -298,36 +293,26 @@ class Decoder(nn.Module):
                         # memory_input.data.new(memory_input.size()).normal_(0.0, 0.5))
                     # memory_input = memory_input + noise
                     memory_input = memory[t-1]
-
             # Prenet
             processed_memory = self.prenet(memory_input)
-
             # Attention RNN
             attention_rnn_hidden, current_context_vec, alignment = self.attention_rnn(
                 processed_memory, current_context_vec, attention_rnn_hidden, inputs)
-
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
                 torch.cat((attention_rnn_hidden, current_context_vec), -1))
-
             # Pass through the decoder RNNs
             for idx in range(len(self.decoder_rnns)):
                 decoder_rnn_hiddens[idx] = self.decoder_rnns[idx](
                     decoder_input, decoder_rnn_hiddens[idx])
                 # Residual connectinon
                 decoder_input = decoder_rnn_hiddens[idx] + decoder_input
-            
             output = decoder_input
-            
-
             # predict mel vectors from decoder vectors
             output = self.proj_to_mel(output)
-
             outputs += [output]
             alignments += [alignment]
-
             t += 1
-
             if (not greedy and self.training) or (greedy and memory is not None):
                 if t >= T_decoder:
                     break
@@ -338,15 +323,12 @@ class Decoder(nn.Module):
                     print(" !! Decoder stopped with 'max_decoder_steps'. \
                           Something is probably wrong.")
                     break
-                           
         assert greedy or len(outputs) == T_decoder
-
         # Back to batch first
         alignments = torch.stack(alignments).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
-
         return outputs, alignments
 
 
-def is_end_of_frames(output, eps=0.2): #0.2
+def is_end_of_frames(output, eps=0.2):  # 0.2
     return (output.data <= eps).all()
