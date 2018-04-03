@@ -1,4 +1,4 @@
-import torch 
+import torch
 from torch.nn import functional
 from torch.autograd import Variable
 from torch import nn
@@ -20,10 +20,10 @@ def _sequence_mask(sequence_length, max_len=None):
 
 
 class L1LossMasked(nn.Module):
-    
+
     def __init__(self):
         super(L1LossMasked, self).__init__()
-    
+
     def forward(self, input, target, length):
         """
         Args:
@@ -51,7 +51,8 @@ class L1LossMasked(nn.Module):
         # losses: (batch, max_len, dim)
         losses = losses_flat.view(*target.size())
         # mask: (batch, max_len, 1)
-        mask = _sequence_mask(sequence_length=length, max_len=target.size(1)).unsqueeze(2)
+        mask = _sequence_mask(sequence_length=length,
+                              max_len=target.size(1)).unsqueeze(2)
         losses = losses * mask.float()
         loss = losses.sum() / (length.float().sum() * float(target.shape[2]))
         return loss

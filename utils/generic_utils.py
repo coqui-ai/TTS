@@ -19,7 +19,7 @@ class AttrDict(dict):
 def load_config(config_path):
     config = AttrDict()
     config.update(json.load(open(config_path, "r")))
-    return  config
+    return config
 
 
 def create_experiment_folder(root_path):
@@ -56,7 +56,7 @@ def _trim_model_state_dict(state_dict):
 
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
-        name = k[7:] # remove `module.`
+        name = k[7:]  # remove `module.`
         new_state_dict[name] = v
     return new_state_dict
 
@@ -90,7 +90,8 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
         best_loss = model_loss
         bestmodel_path = 'best_model.pth.tar'
         bestmodel_path = os.path.join(out_path, bestmodel_path)
-        print("\n | > Best model saving with loss {0:.2f} : {1:}".format(model_loss, bestmodel_path))
+        print("\n | > Best model saving with loss {0:.2f} : {1:}".format(
+            model_loss, bestmodel_path))
         torch.save(state, bestmodel_path)
     return best_loss
 

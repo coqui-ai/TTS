@@ -14,10 +14,10 @@ from TTS.utils.data import (prepare_data, pad_per_step,
 class LJSpeechDataset(Dataset):
 
     def __init__(self, csv_file, root_dir, outputs_per_step, sample_rate,
-                text_cleaner, num_mels, min_level_db, frame_shift_ms,
-                frame_length_ms, preemphasis, ref_level_db, num_freq, power,
-                min_seq_len=0):
-        
+                 text_cleaner, num_mels, min_level_db, frame_shift_ms,
+                 frame_length_ms, preemphasis, ref_level_db, num_freq, power,
+                 min_seq_len=0):
+
         with open(csv_file, "r") as f:
             self.frames = [line.split('|') for line in f]
         self.root_dir = root_dir
@@ -41,11 +41,11 @@ class LJSpeechDataset(Dataset):
     def _sort_frames(self):
         r"""Sort sequences in ascending order"""
         lengths = np.array([len(ins[1]) for ins in self.frames])
-        
+
         print(" | > Max length sequence {}".format(np.max(lengths)))
         print(" | > Min length sequence {}".format(np.min(lengths)))
         print(" | > Avg length sequence {}".format(np.mean(lengths)))
-        
+
         idxs = np.argsort(lengths)
         new_frames = []
         ignored = []
@@ -55,9 +55,10 @@ class LJSpeechDataset(Dataset):
                 ignored.append(idx)
             else:
                 new_frames.append(self.frames[idx])
-        print(" | > {} instances are ignored by min_seq_len ({})".format(len(ignored), self.min_seq_len))
+        print(" | > {} instances are ignored by min_seq_len ({})".format(
+            len(ignored), self.min_seq_len))
         self.frames = new_frames
-        
+
     def __len__(self):
         return len(self.frames)
 
@@ -65,7 +66,8 @@ class LJSpeechDataset(Dataset):
         wav_name = os.path.join(self.root_dir,
                                 self.frames[idx][0]) + '.wav'
         text = self.frames[idx][1]
-        text = np.asarray(text_to_sequence(text, [self.cleaners]), dtype=np.int32)
+        text = np.asarray(text_to_sequence(
+            text, [self.cleaners]), dtype=np.int32)
         wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
         sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0]}
         return sample
@@ -96,13 +98,15 @@ class LJSpeechDataset(Dataset):
 
             linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
-            mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame 
-            
+            mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
+
             # compute 'stop token' targets
-            stop_targets = [np.array([0.]*(mel_len-1)) for mel_len in mel_lengths]
-            
+            stop_targets = [np.array([0.]*(mel_len-1))
+                            for mel_len in mel_lengths]
+
             # PAD stop targets
-            stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
+            stop_targets = prepare_stop_target(
+                stop_targets, self.outputs_per_step)
 
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
@@ -112,7 +116,7 @@ class LJSpeechDataset(Dataset):
             linear = prepare_tensor(linear, self.outputs_per_step)
             mel = prepare_tensor(mel, self.outputs_per_step)
             assert mel.shape[2] == linear.shape[2]
-            timesteps = mel.shape[2]            
+            timesteps = mel.shape[2]
 
             # B x T x D
             linear = linear.transpose(0, 2, 1)
@@ -125,7 +129,7 @@ class LJSpeechDataset(Dataset):
             mel = torch.FloatTensor(mel)
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
-            
+
             return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\

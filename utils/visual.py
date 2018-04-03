@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def plot_alignment(alignment, info=None):
-    fig, ax = plt.subplots(figsize=(16,10))
+    fig, ax = plt.subplots(figsize=(16, 10))
     im = ax.imshow(alignment.T, aspect='auto', origin='lower',
                    interpolation='none')
     fig.colorbar(im, ax=ax)

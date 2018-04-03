@@ -20,7 +20,7 @@ class PrenetTests(unittest.TestCase):
 class CBHGTests(unittest.TestCase):
 
     def test_in_out(self):
-        layer = CBHG(128, K= 6, projections=[128, 128], num_highways=2)
+        layer = CBHG(128, K=6, projections=[128, 128], num_highways=2)
         dummy_input = T.autograd.Variable(T.rand(4, 8, 128))
 
         print(layer)
@@ -38,11 +38,11 @@ class DecoderTests(unittest.TestCase):
         dummy_memory = T.autograd.Variable(T.rand(4, 2, 80))
 
         output, alignment = layer(dummy_input, dummy_memory)
-        
+
         assert output.shape[0] == 4
         assert output.shape[1] == 1, "size not {}".format(output.shape[1])
         assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
-        
+
 
 class EncoderTests(unittest.TestCase):
 
@@ -56,10 +56,10 @@ class EncoderTests(unittest.TestCase):
         assert output.shape[0] == 4
         assert output.shape[1] == 8
         assert output.shape[2] == 256  # 128 * 2 BiRNN
-        
+
 
 class L1LossMaskedTests(unittest.TestCase):
-    
+
     def test_in_out(self):
         layer = L1LossMasked()
         dummy_input = T.autograd.Variable(T.ones(4, 8, 128).float())
@@ -69,7 +69,7 @@ class L1LossMaskedTests(unittest.TestCase):
         assert output.shape[0] == 0
         assert len(output.shape) == 1
         assert output.data[0] == 0.0
-        
+
         dummy_input = T.autograd.Variable(T.ones(4, 8, 128).float())
         dummy_target = T.autograd.Variable(T.zeros(4, 8, 128).float())
         dummy_length = T.autograd.Variable((T.ones(4) * 8).long())
@@ -78,7 +78,8 @@ class L1LossMaskedTests(unittest.TestCase):
 
         dummy_input = T.autograd.Variable(T.ones(4, 8, 128).float())
         dummy_target = T.autograd.Variable(T.zeros(4, 8, 128).float())
-        dummy_length = T.autograd.Variable((T.arange(5,9)).long())
-        mask = ((_sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
+        dummy_length = T.autograd.Variable((T.arange(5, 9)).long())
+        mask = ((_sequence_mask(dummy_length).float() - 1.0)
+                * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
         assert output.data[0] == 1.0, "1.0 vs {}".format(output.data[0])

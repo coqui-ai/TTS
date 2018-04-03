@@ -17,11 +17,13 @@ def prepare_data(inputs):
 def _pad_tensor(x, length):
     _pad = 0
     assert x.ndim == 2
-    x = np.pad(x, [[0, 0], [0, length - x.shape[1]]], mode='constant', constant_values=_pad)
+    x = np.pad(x, [[0, 0], [0, length - x.shape[1]]],
+               mode='constant', constant_values=_pad)
     return x
 
+
 def prepare_tensor(inputs, out_steps):
-    max_len = max((x.shape[1] for x in inputs)) + 1 # zero-frame
+    max_len = max((x.shape[1] for x in inputs)) + 1  # zero-frame
     remainder = max_len % out_steps
     pad_len = max_len + (out_steps - remainder) if remainder > 0 else max_len
     return np.stack([_pad_tensor(x, pad_len) for x in inputs])

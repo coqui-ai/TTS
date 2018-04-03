@@ -25,7 +25,8 @@ class BahdanauAttention(nn.Module):
         processed_annots = self.annot_layer(annots)
 
         # (batch, max_time, 1)
-        alignment = self.v(nn.functional.tanh(processed_query + processed_annots))
+        alignment = self.v(nn.functional.tanh(
+            processed_query + processed_annots))
 
         # (batch, max_time)
         return alignment.squeeze(-1)
@@ -57,11 +58,11 @@ class AttentionRNN(nn.Module):
 
         if annotations_lengths is not None and mask is None:
             mask = get_mask_from_lengths(annotations, annotations_lengths)
-            
+
         # Concat input query and previous context context
         rnn_input = torch.cat((memory, context), -1)
         #rnn_input = rnn_input.unsqueeze(1)
-        
+
         # Feed it to RNN
         # s_i = f(y_{i-1}, c_{i}, s_{i-1})
         rnn_output = self.rnn_cell(rnn_input, rnn_state)
@@ -85,5 +86,3 @@ class AttentionRNN(nn.Module):
         context = torch.bmm(alignment.unsqueeze(1), annotations)
         context = context.squeeze(1)
         return rnn_output, context, alignment
-
-

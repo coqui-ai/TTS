@@ -6,6 +6,7 @@ from TTS.layers.tacotron import Prenet, CBHG, Decoder, Encoder
 
 OUT_PATH = '/tmp/test.pth.tar'
 
+
 class ModelSavingTests(unittest.TestCase):
 
     def save_checkpoint_test(self):
