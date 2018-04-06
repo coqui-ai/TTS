@@ -1,17 +1,67 @@
-# -*- coding: utf-8 -*-
-
-import inflect
 import re
 
-
-_inflect = inflect.engine()
 _comma_number_re = re.compile(r'([0-9][0-9\,]+[0-9])')
 _decimal_number_re = re.compile(r'([0-9]+\.[0-9]+)')
 _pounds_re = re.compile(r'£([0-9\,]*[0-9]+)')
 _dollars_re = re.compile(r'\$([0-9\.\,]*[0-9]+)')
-_ordinal_re = re.compile(r'[0-9]+(st|nd|rd|th)')
+_ordinal_re = re.compile(r'([0-9]+)(st|nd|rd|th)')
 _number_re = re.compile(r'[0-9]+')
 
+_units = [
+  '',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen'
+]
+
+_tens = [
+  '',
+  'ten',
+  'twenty',
+  'thirty',
+  'forty',
+  'fifty',
+  'sixty',
+  'seventy',
+  'eighty',
+  'ninety',
+]
+
+_digit_groups = [
+  '',
+  'thousand',
+  'million',
+  'billion',
+  'trillion',
+  'quadrillion',
+]
+
+_ordinal_suffixes = [
+  ('one', 'first'),
+  ('two', 'second'),
+  ('three', 'third'),
+  ('five', 'fifth'),
+  ('eight', 'eighth'),
+  ('nine', 'ninth'),
+  ('twelve', 'twelfth'),
+  ('ty', 'tieth'),
+]
 
 def _remove_commas(m):
     return m.group(1).replace(',', '')
@@ -42,23 +92,47 @@ def _expand_dollars(m):
         return 'zero dollars'
 
 
-def _expand_ordinal(m):
-    return _inflect.number_to_words(m.group(0))
+def _standard_number_to_words(n, digit_group):
+    parts = []
+    if n >= 1000:
+        # Format next higher digit group.
+        parts.append(_standard_number_to_words(n // 1000, digit_group + 1))
+        n = n % 1000
+
+    if n >= 100:
+        parts.append('%s hundred' % _units[n // 100])
+    if n % 100 >= len(_units):
+        parts.append(_tens[(n % 100) // 10])
+        parts.append(_units[(n % 100) % 10])
+    else:
+        parts.append(_units[n % 100])
+    if n > 0:
+        parts.append(_digit_groups[digit_group])
+    return ' '.join([x for x in parts if x])
+
+
+def _number_to_words(n):
+    # Handle special cases first, then go to the standard case:
+    if n >= 1000000000000000000:
+        return str(n)   # Too large, just return the digits
+    elif n == 0:
+        return 'zero'
+    elif n % 100 == 0 and n % 1000 != 0 and n < 3000:
+        return _standard_number_to_words(n // 100, 0) + ' hundred'
+    else:
+        return _standard_number_to_words(n, 0)
 
 
 def _expand_number(m):
-    num = int(m.group(0))
-    if num > 1000 and num < 3000:
-        if num == 2000:
-            return 'two thousand'
-        elif num > 2000 and num < 2010:
-            return 'two thousand ' + _inflect.number_to_words(num % 100)
-        elif num % 100 == 0:
-            return _inflect.number_to_words(num // 100) + ' hundred'
-        else:
-            return _inflect.number_to_words(num, andword='', zero='oh', group=2).replace(', ', ' ')
-    else:
-        return _inflect.number_to_words(num, andword='')
+    return _number_to_words(int(m.group(0)))
+
+
+def _expand_ordinal(m):
+    num = _number_to_words(int(m.group(1)))
+    for suffix, replacement in _ordinal_suffixes:
+        if num.endswith(suffix):
+            return num[:-len(suffix)] + replacement
+    return num + 'th'
 
 
 def normalize_numbers(text):
