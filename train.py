@@ -21,7 +21,7 @@ from tensorboardX import SummaryWriter
 from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
                                  save_best_model, load_config, lr_decay,
-                                 count_parameters, check_update)
+                                 count_parameters, check_update, get_commit_hash)
 from utils.model import get_param_size
 from utils.visual import plot_alignment, plot_spectrogram
 from datasets.LJSpeech import LJSpeechDataset

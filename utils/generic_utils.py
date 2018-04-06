@@ -6,6 +6,7 @@ import shutil
 import datetime
 import json
 import torch
+import subprocess
 import numpy as np
 from collections import OrderedDict
 
@@ -22,10 +23,19 @@ def load_config(config_path):
     return config
 
 
+def get_commit_hash():
+    """https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script"""
+    subprocess.check_output(['git', 'diff-index', '--quiet', 'HEAD'])   # Verify client is clean
+    commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
+    print(' > Git Hash: {}'.format(commit))
+    return commit
+
+
 def create_experiment_folder(root_path):
     """ Create a folder with the current date and time """
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I:%M%p")
-    output_folder = os.path.join(root_path, date_str)
+    commit_hash = get_commit_hash()
+    output_folder = os.path.join(root_path, date_str + '-' + commit_hash)
     os.makedirs(output_folder, exist_ok=True)
     print(" > Experiment folder: {}".format(output_folder))
     return output_folder
@@ -111,6 +121,7 @@ def check_update(model, grad_clip, grad_top):
 
 def lr_decay(init_lr, global_step, warmup_steps):
     r'''from https://github.com/r9y9/tacotron_pytorch/blob/master/train.py'''
+    warmup_steps = float(warmup_steps)
     step = global_step + 1.
     lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5,
                                                   step**-0.5)
@@ -124,7 +135,7 @@ def count_parameters(model):
 
 class Progbar(object):
     """Displays a progress bar.
-    # Arguments
+    Args:
         target: Total number of steps expected, None if unknown.
         interval: Minimum visual progress update interval (in seconds).
     """

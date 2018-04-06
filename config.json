@@ -11,7 +11,7 @@
   "text_cleaner": "english_cleaners",
 
   "epochs": 2000,
-  "lr": 0.002,
+  "lr": 0.003,
   "warmup_steps": 4000,
   "batch_size": 128,
   "eval_batch_size":32,
@@ -20,7 +20,7 @@
   "griffin_lim_iters": 60,
   "power": 1.5,
 
-  "num_loader_workers": 8,
+  "num_loader_workers": 12,
 
   "checkpoint": true,
   "save_step": 94,
