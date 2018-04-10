@@ -93,3 +93,7 @@ Any kind of contribution is highly welcome as we are propelled by the open-sourc
         - [WaveRNN](https://arxiv.org/pdf/1802.08435.pdf)
         - [Faster WaveNet](https://arxiv.org/abs/1611.09482) 
         - [Parallel WaveNet](https://arxiv.org/abs/1711.10433)
+        
+### Precursor implementations
+- https://github.com/keithito/tacotron (Dataset and Test processing)
+- https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)

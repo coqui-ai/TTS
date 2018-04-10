@@ -3,3 +3,6 @@ inflect
 unidecode
 tensorboard
 tensorboardX
+torch
+matplotlib
+Pillow
