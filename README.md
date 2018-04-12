@@ -20,7 +20,7 @@ All samples below are generated in test setting and can be generated a model tra
 
 | Models        | Commit            | Audio Sample  |
 | ------------- |:-----------------:|:-------------|
-| [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)      | 99d56f7           | https://soundcloud.com/user-565970875/99d56f7-iter62410 |
+| [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)      | [99d56f7](https://github.com/mozilla/TTS/tree/99d56f7e93ccd7567beb0af8fcbd4d24c48e59e9)           | https://soundcloud.com/user-565970875/99d56f7-iter62410 |
 
 
 ## Data
