@@ -136,6 +136,8 @@ def train(model, criterion, data_loader, optimizer, epoch):
                                             linear_loss.data[0]),
                                            ('mel_loss', mel_loss.data[0]),
                                            ('grad_norm', grad_norm)])
+        avg_linear_loss += linear_loss.data[0]
+        avg_mel_loss += mel_loss.data[0]
 
         # Plot Training Iter Stats
         tb.add_scalar('TrainIterLoss/TotalLoss', loss.data[0], current_step)
@@ -185,10 +187,9 @@ def train(model, criterion, data_loader, optimizer, epoch):
     avg_total_loss = avg_mel_loss + avg_linear_loss
 
     # Plot Training Epoch Stats
-    tb.add_scalar('TrainEpochLoss/TotalLoss', loss.data[0], current_step)
-    tb.add_scalar('TrainEpochLoss/LinearLoss',
-                  linear_loss.data[0], current_step)
-    tb.add_scalar('TrainEpochLoss/MelLoss', mel_loss.data[0], current_step)
+    tb.add_scalar('TrainEpochLoss/TotalLoss', avg_total_loss, current_step)
+    tb.add_scalar('TrainEpochLoss/LinearLoss', avg_linear_loss, current_step)
+    tb.add_scalar('TrainEpochLoss/MelLoss', avg_mel_loss, current_step)
     tb.add_scalar('Time/EpochTime', epoch_time, epoch)
     epoch_time = 0
 
@@ -198,14 +199,12 @@ def train(model, criterion, data_loader, optimizer, epoch):
 def evaluate(model, criterion, data_loader, current_step):
     model = model.eval()
     epoch_time = 0
-
-    print(" | > Validation")
-    n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
-    progbar = Progbar(len(data_loader.dataset) / c.eval_batch_size)
-
     avg_linear_loss = 0
     avg_mel_loss = 0
 
+    print(" | > Validation")
+    progbar = Progbar(len(data_loader.dataset) / c.batch_size)
+    n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -230,8 +229,8 @@ def evaluate(model, criterion, data_loader, current_step):
             linear_spec_var = linear_spec_var.cuda()
 
         # forward pass
-        mel_output, linear_output, alignments = model.forward(
-            text_input_var, mel_spec_var)
+        mel_output, linear_output, alignments =\
+            model.forward(text_input_var, mel_spec_var)
 
         # loss computation
         mel_loss = criterion(mel_output, mel_spec_var, mel_lengths_var)
