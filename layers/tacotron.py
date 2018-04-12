@@ -285,12 +285,7 @@ class Decoder(nn.Module):
                 if greedy:
                     memory_input = outputs[-1]
                 else:
-                    combine prev. model output and prev. real target
-                    memory_input = torch.div(outputs[-1] + memory[t-1], 2.0)
-                    noise = torch.autograd.Variable(
-                        memory_input.data.new(memory_input.size()).normal_(0.0, 2.0))
-                    memory_input = memory_input + noise
-                    
+                    memory_input = memory[t-1]
             # Prenet
             processed_memory = self.prenet(memory_input)
             # Attention RNN
