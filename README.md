@@ -15,6 +15,13 @@ Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easie
 All samples below are generated in test setting and can be generated a model trained on the master branch.
   * https://soundcloud.com/user-565970875/tts-ljspeech-val-35000 (iteration 35000)
   * https://soundcloud.com/user-565970875/tts-ljspeech-val-13585
+  
+## Checkpoints
+
+| Models        | Commit            | Audio Sample  |
+| ------------- |:-----------------:|:-------------|
+| [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)      | 99d56f7           | https://soundcloud.com/user-565970875/99d56f7-iter62410 |
+
 
 ## Data
 Currently TTS provides data loaders for
