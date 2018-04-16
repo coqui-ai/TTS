@@ -323,6 +323,6 @@ class Decoder(nn.Module):
         return outputs, alignments
 
 
-def is_end_of_frames(output, alignment, eps=0.05):  # 0.2
+def is_end_of_frames(output, alignment, eps=0.01):  # 0.2
     return ((output.data <= eps).prod(0) > 0).any() \
             and alignment.data[:, int(alignment.shape[1]/2):].sum() > 0.7
