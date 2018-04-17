@@ -1,7 +1,7 @@
 {
   "num_mels": 80,
   "num_freq": 1025,
-  "sample_rate": 20000,
+  "sample_rate": 22050,
   "frame_length_ms": 50,
   "frame_shift_ms": 12.5,
   "preemphasis": 0.97,
@@ -24,7 +24,8 @@
   "num_loader_workers": 4,
 
   "save_step": 200,
-  "data_path": "/data/shared/KeithIto/LJSpeech-1.0",
+  "data_path_LJSpeech": "/data/shared/KeithIto/LJSpeech-1.0",
+  "data_path_TWEB": "/data/shared/BibleSpeech",
   "output_path": "result",
   "log_dir": "/home/erogol/projects/TTS/logs/"
 }
