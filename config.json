@@ -20,7 +20,7 @@
   "griffin_lim_iters": 60,
   "power": 1.2,
 
-  "dataset": "TWEB"
+  "dataset": "TWEB",
   "data_path": "/run/shm/erogol/BibleSpeech/",
   "min_seq_len": 0, 
   "num_loader_workers": 8,
