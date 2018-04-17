@@ -28,6 +28,6 @@
   "num_loader_workers": 8,
 
   "checkpoint": true,
-  "save_step": 376,
+  "save_step": 908,
   "output_path": "/data/shared/erogol_models/"
 }
