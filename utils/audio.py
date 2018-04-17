@@ -74,16 +74,29 @@ class AudioProcessor(object):
         # Reconstruct phase
         return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
 
+#     def _griffin_lim(self, S):
+#         '''librosa implementation of Griffin-Lim
+#         Based on https://github.com/librosa/librosa/issues/434
+#         '''
+#         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
+#         S_complex = np.abs(S).astype(np.complex)
+#         y = self._istft(S_complex * angles)
+#         for i in range(self.griffin_lim_iters):
+#             angles = np.exp(1j * np.angle(self._stft(y)))
+#             y = self._istft(S_complex * angles)
+#         return y
+    
     def _griffin_lim(self, S):
-        '''librosa implementation of Griffin-Lim
-        Based on https://github.com/librosa/librosa/issues/434
+        '''Applies Griffin-Lim's raw.
         '''
-        angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
-        S_complex = np.abs(S).astype(np.complex)
-        y = self._istft(S_complex * angles)
+        S_best = copy.deepcopy(S)
         for i in range(self.griffin_lim_iters):
-            angles = np.exp(1j * np.angle(self._stft(y)))
-            y = self._istft(S_complex * angles)
+            S_t = self._istft(S_best)
+            est = self._stft(S_t)
+            phase = est / np.maximum(1e-8, np.abs(est))
+            S_best = S * phase
+        S_t = self._istft(S_best)
+        y = np.real(S_t)
         return y
 
     def melspectrogram(self, y):
@@ -97,7 +110,7 @@ class AudioProcessor(object):
 
     def _istft(self, y):
         _, hop_length, win_length = self._stft_parameters()
-        return librosa.istft(y, hop_length=hop_length, win_length=win_length)
+        return librosa.istft(y, hop_length=hop_length, win_length=win_length, window='hann')
 
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)
