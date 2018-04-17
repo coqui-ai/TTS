@@ -12,7 +12,6 @@ import numpy as np
 
 import torch.nn as nn
 from torch import optim
-from torch import onnx
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -292,6 +291,9 @@ def evaluate(model, criterion, data_loader, current_step):
 
 
 def main(args):
+    print(" > Using dataset: {}".format(c.dataset))
+    mod = importlib.import_module('datasets.{}'.format(c.dataset))
+    Dataset = getattr(mod, c.dataset+"Dataset")
 
     # Setup the dataset
     train_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_train.csv'),

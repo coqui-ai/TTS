@@ -1,6 +1,7 @@
 import os
 import librosa
 import pickle
+import copy
 import numpy as np
 from scipy import signal
 
@@ -38,15 +39,15 @@ class AudioProcessor(object):
         return librosa.filters.mel(self.sample_rate, n_fft, n_mels=self.num_mels)
 
     def _normalize(self, S):
-        return np.clip((S - self.min_level_db) / -self.min_level_db, 0, 1)
+        return np.clip((S - self.min_level_db) / -self.min_level_db, 1e-8, 1)
 
     def _denormalize(self, S):
         return (np.clip(S, 0, 1) * -self.min_level_db) + self.min_level_db
 
     def _stft_parameters(self, ):
         n_fft = (self.num_freq - 1) * 2
-        hop_length = int(self.frame_shift_ms / 1000 * self.sample_rate)
-        win_length = int(self.frame_length_ms / 1000 * self.sample_rate)
+        hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
+        win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
         return n_fft, hop_length, win_length
 
     def _amp_to_db(self, x):
