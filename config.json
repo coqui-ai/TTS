@@ -21,6 +21,8 @@
   "power": 1.2,
 
   "dataset": "TWEB",
+  "meta_file_train": "transcript_train.txt",
+  "meta_file_val": "transcript_val.txt"
   "data_path": "/run/shm/erogol/BibleSpeech/",
   "min_seq_len": 0, 
   "num_loader_workers": 8,

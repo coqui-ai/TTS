@@ -296,7 +296,7 @@ def main(args):
     Dataset = getattr(mod, c.dataset+"Dataset")
 
     # Setup the dataset
-    train_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_train.csv'),
+    train_dataset = LJSpeechDataset(os.path.join(c.data_path, c.meta_file_train),
                                     os.path.join(c.data_path, 'wavs'),
                                     c.r,
                                     c.sample_rate,
@@ -317,7 +317,7 @@ def main(args):
                               drop_last=False, num_workers=c.num_loader_workers,
                               pin_memory=True)
 
-    val_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_val.csv'),
+    val_dataset = LJSpeechDataset(os.path.join(c.data_path, c.meta_file_val),
                                   os.path.join(c.data_path, 'wavs'),
                                   c.r,
                                   c.sample_rate,
