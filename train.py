@@ -14,7 +14,6 @@ import torch.nn as nn
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tensorboardX import SummaryWriter
 
 from utils.generic_utils import (Progbar, remove_experiment_folder,
