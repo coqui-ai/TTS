@@ -43,36 +43,37 @@ You can also enjoy Tensorboard with couple of good training logs, if you point `
 Example ```config.json```:
 ```
 {
-  // Data loading parameters
   "num_mels": 80,
-  "num_freq": 1024,
-  "sample_rate": 20000,
-  "frame_length_ms": 50.0,
+  "num_freq": 1025,
+  "sample_rate": 22050,
+  "frame_length_ms": 50,
   "frame_shift_ms": 12.5,
   "preemphasis": 0.97,
   "min_level_db": -100,
   "ref_level_db": 20,
-  "hidden_size": 128,
   "embedding_size": 256,
   "text_cleaner": "english_cleaners",
 
-  // Training parameters
-  "epochs": 2000,
-  "lr": 0.001,
-  "batch_size": 256,
-  "griffinf_lim_iters": 60,
-  "power": 1.5,
-  "r": 5,            // number of decoder outputs for Tacotron
+  "epochs": 200,
+  "lr": 0.002,
+  "warmup_steps": 4000,
+  "batch_size": 32,
+  "eval_batch_size":32,
+  "r": 5,
 
-  // Number of data loader processes
+  "griffin_lim_iters": 60,
+  "power": 1.2,
+
+  "dataset": "TWEB",
+  "meta_file_train": "transcript_train.txt",
+  "meta_file_val": "transcript_val.txt",
+  "data_path": "/data/shared/BibleSpeech/",
+  "min_seq_len": 0, 
   "num_loader_workers": 8,
 
-  // Experiment logging parameters
   "checkpoint": true,  // if save checkpoint per save_step
   "save_step": 200,
-  "data_path": "/path/to/KeithIto/LJSpeech-1.0",
   "output_path": "/path/to/my_experiment",
-  "log_dir": "/path/to/my/tensorboard/logs/"
 }
 ```
 
