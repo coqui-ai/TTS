@@ -11,16 +11,14 @@ Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easie
   * pytorch > 0.2.0
   * TODO
 
-## Audio Samples
-All samples below are generated in test setting and can be generated a model trained on the master branch.
-  * https://soundcloud.com/user-565970875/tts-ljspeech-val-35000 (iteration 35000)
-  * https://soundcloud.com/user-565970875/tts-ljspeech-val-13585
   
-## Checkpoints
+## Checkpoints and Audio Samples
+Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the-most-perfect-instrument-of-all-arvo-part) to compare the samples (except the first) below.
 
 | Models        | Commit            | Audio Sample  |
 | ------------- |:-----------------:|:-------------|
-| [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)      | [99d56f7](https://github.com/mozilla/TTS/tree/99d56f7e93ccd7567beb0af8fcbd4d24c48e59e9)           | https://soundcloud.com/user-565970875/99d56f7-iter62410 |
+| [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)| [99d56f7](https://github.com/mozilla/TTS/tree/99d56f7e93ccd7567beb0af8fcbd4d24c48e59e9)           | [link](https://soundcloud.com/user-565970875/99d56f7-iter62410 )|
+| Best: [iter-170K](https://drive.google.com/open?id=16L6JbPXj6MSlNUxEStNn28GiSzi4fu1j) | [e00bc66]() |[link](https://soundcloud.com/user-565970875/april-13-2018-07-06pm-e00bc66-iter170k)|
 
 
 ## Data
