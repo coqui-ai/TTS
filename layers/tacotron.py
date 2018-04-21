@@ -325,4 +325,4 @@ class Decoder(nn.Module):
 
 def is_end_of_frames(output, alignment, eps=0.01):  # 0.2
     return ((output.data <= eps).prod(0) > 0).any() \
-            and alignment.data[:, int(alignment.shape[1]/2):].sum() > 0.7
+            and alignment.data[:, alignment.shape[1] - int(alignment.shape[1]/9):].sum() > 0.7
