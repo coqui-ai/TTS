@@ -20,7 +20,7 @@
   "griffin_lim_iters": 60,
   "power": 1.2,
 
-  "dataset": "TWEB",
+  "dataset": "LJSpeech",
   "meta_file_train": "metadata_train.csv",
   "meta_file_val": "metadata_val.csv",
   "data_path": "/data/shared/KeithIto/LJSpeech-1.0/",
