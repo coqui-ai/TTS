@@ -21,9 +21,9 @@
   "power": 1.2,
 
   "dataset": "TWEB",
-  "meta_file_train": "transcript_train.txt",
-  "meta_file_val": "transcript_val.txt",
-  "data_path": "/data/shared/BibleSpeech/",
+  "meta_file_train": "metadata_train.csv",
+  "meta_file_val": "metadata_val.csv",
+  "data_path": "/data/shared/KeithIto/LJSpeech-1.0/",
   "min_seq_len": 0, 
   "num_loader_workers": 8,
 
