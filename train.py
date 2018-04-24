@@ -106,6 +106,8 @@ def train(model, criterion, data_loader, optimizer, epoch):
             
         # create attention mask
         # TODO: vectorize
+        print(tet_input_var.shape)
+        print(mel_spec_var.shape)
         N = text_input_var.shape[1]
         T = mel_spec_var.shape[1]
         M = np.zeros([N, T])
