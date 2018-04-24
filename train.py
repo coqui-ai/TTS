@@ -66,6 +66,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
     epoch_time = 0
     avg_linear_loss = 0
     avg_mel_loss = 0
+    avg_attn_loss = 0
 
     print(" | > Epoch {}/{}".format(epoch, c.epochs))
     progbar = Progbar(len(data_loader.dataset) / c.batch_size)
@@ -102,6 +103,18 @@ def train(model, criterion, data_loader, optimizer, epoch):
             mel_spec_var = mel_spec_var.cuda()
             mel_lengths_var = mel_lengths_var.cuda()
             linear_spec_var = linear_spec_var.cuda()
+            
+        # create attention mask
+        # TODO: vectorize
+        M = np.zeros([N, T])
+        for t in range(T):
+            for n in range(N):
+                val = 20 * np.exp(-pow((n/N)-(t/T), 2.0)/0.05)
+                M[n, t] = val
+        e_x = np.exp(M - np.max(M))
+        M = e_x / e_x.sum(axis=0) # only difference
+        M = Variable(M)
+        M = torch.stack([M]*32)
 
         # forward pass
         mel_output, linear_output, alignments =\
@@ -113,7 +126,8 @@ def train(model, criterion, data_loader, optimizer, epoch):
             + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
                               linear_spec_var[:, :, :n_priority_freq],
                               mel_lengths_var)
-        loss = mel_loss + linear_loss
+        attention_loss = criterion(, alignments, mel_lengths_var)
+        loss = mel_loss + linear_loss + 0.2 * attention_loss
 
         # backpass and check the grad norm
         loss.backward()
@@ -132,15 +146,18 @@ def train(model, criterion, data_loader, optimizer, epoch):
                                            ('linear_loss',
                                             linear_loss.data[0]),
                                            ('mel_loss', mel_loss.data[0]),
+                                           ('attn_loss', attention_loss.data[0]),
                                            ('grad_norm', grad_norm)])
         avg_linear_loss += linear_loss.data[0]
         avg_mel_loss += mel_loss.data[0]
+        avg_attn_loss += attention_loss.data[0]
 
         # Plot Training Iter Stats
         tb.add_scalar('TrainIterLoss/TotalLoss', loss.data[0], current_step)
         tb.add_scalar('TrainIterLoss/LinearLoss', linear_loss.data[0],
                       current_step)
         tb.add_scalar('TrainIterLoss/MelLoss', mel_loss.data[0], current_step)
+        tb.add_scalar('TrainIterLoss/AttnLoss', attention_loss.data[0], current_step)
         tb.add_scalar('Params/LearningRate', optimizer.param_groups[0]['lr'],
                       current_step)
         tb.add_scalar('Params/GradNorm', grad_norm, current_step)
@@ -181,12 +198,14 @@ def train(model, criterion, data_loader, optimizer, epoch):
 
     avg_linear_loss /= (num_iter + 1)
     avg_mel_loss /= (num_iter + 1)
+    avg_attn_loss /= (num_iter + 1)
     avg_total_loss = avg_mel_loss + avg_linear_loss
 
     # Plot Training Epoch Stats
     tb.add_scalar('TrainEpochLoss/TotalLoss', avg_total_loss, current_step)
     tb.add_scalar('TrainEpochLoss/LinearLoss', avg_linear_loss, current_step)
     tb.add_scalar('TrainEpochLoss/MelLoss', avg_mel_loss, current_step)
+    tb.add_scalar('TrainEpochLoss/AttnLoss', avg_attn_loss, current_step)
     tb.add_scalar('Time/EpochTime', epoch_time, epoch)
     epoch_time = 0
 
