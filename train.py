@@ -115,7 +115,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
                 M[n, t] = val
         e_x = np.exp(M - np.max(M))
         M = e_x / e_x.sum(axis=0) # only difference
-        M = Variable(M)
+        M = Variable(torch.FloatTensor(M))
         M = torch.stack([M]*32)
 
         # forward pass
