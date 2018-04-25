@@ -148,7 +148,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
         progbar_display['grad_norm'] = grad_norm
 
         # update
-        progbar.update(num_iter+1, values=[list(progbar_display.items())])
+        progbar.update(num_iter+1, values=list(progbar_display.items()))
         avg_linear_loss += linear_loss.data[0]
         avg_mel_loss += mel_loss.data[0]
 
