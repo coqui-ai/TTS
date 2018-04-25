@@ -258,6 +258,7 @@ def evaluate(model, criterion, data_loader, current_step):
                                                ('linear_loss',
                                                 linear_loss.item()),
                                                ('mel_loss', mel_loss.item())])
+            sys.stdout.flush()
 
             avg_linear_loss += linear_loss.item()
             avg_mel_loss += mel_loss.item()
