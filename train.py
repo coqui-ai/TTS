@@ -111,7 +111,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
         # create attention mask
         N = text_input_var.shape[1]
         T = mel_spec_var.shape[1] // c.r
-        M = create_attn_mask(N, T, g)
+        M = create_attn_mask(N, T, 0.03)
         
         # forward pass
         mel_output, linear_output, alignments =\
