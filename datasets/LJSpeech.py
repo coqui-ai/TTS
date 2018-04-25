@@ -74,7 +74,7 @@ class LJSpeechDataset(Dataset):
 
     def get_dummy_data(self):
         r"""Get a dummy input for testing"""
-        return torch.autograd.Variable(torch.ones(16, 143)).type(torch.LongTensor)
+        return torch.ones(16, 143).type(torch.LongTensor)
 
     def collate_fn(self, batch):
         r"""
