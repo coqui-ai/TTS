@@ -12,7 +12,6 @@ import numpy as np
 
 import torch.nn as nn
 from torch import optim
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
@@ -94,41 +93,41 @@ def train(model, criterion, data_loader, optimizer, epoch):
         optimizer.zero_grad()
 
         # convert inputs to variables
-        text_input_var = Variable(text_input)
-        mel_spec_var = Variable(mel_input)
-        mel_lengths_var = Variable(mel_lengths)
-        linear_spec_var = Variable(linear_input, volatile=True)
+        text_input.requires_grad_()
+        mel_spec.requires_grad_()
+        # mel_lengths.requires_grad_() 
+        # linear_spec.requires_grad_() 
 
         # dispatch data to GPU
         if use_cuda:
-            text_input_var = text_input_var.cuda()
-            mel_spec_var = mel_spec_var.cuda()
-            mel_lengths_var = mel_lengths_var.cuda()
-            linear_spec_var = linear_spec_var.cuda()
+            text_input = text_input.cuda()
+            mel_spec = mel_spec.cuda()
+            mel_lengths = mel_lengths.cuda()
+            linear_spec = linear_spec.cuda()
             
         # create attention mask
         if c.mk > 0.0:
-            N = text_input_var.shape[1]
-            T = mel_spec_var.shape[1] // c.r
+            N = text_input.shape[1]
+            T = mel_spec.shape[1] // c.r
             M = create_attn_mask(N, T, 0.03)
             mk = mk_decay(c.mk, c.epochs, epoch)
         
         # forward pass
         mel_output, linear_output, alignments =\
-            model.forward(text_input_var, mel_spec_var)
+            model.forward(text_input, mel_spec)
 
         # loss computation
-        mel_loss = criterion(mel_output, mel_spec_var, mel_lengths_var)
-        linear_loss = 0.5 * criterion(linear_output, linear_spec_var, mel_lengths_var) \
+        mel_loss = criterion(mel_output, mel_spec, mel_lengths)
+        linear_loss = 0.5 * criterion(linear_output, linear_spec, mel_lengths) \
             + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
-                              linear_spec_var[:, :, :n_priority_freq],
-                              mel_lengths_var)
+                              linear_spec[:, :, :n_priority_freq],
+                              mel_lengths)
         loss = mel_loss + linear_loss
         if c.mk > 0.0:
-            attention_loss = criterion(alignments, M, mel_lengths_var)
+            attention_loss = criterion(alignments, M, mel_lengths)
             loss += mk * attention_loss
-            avg_attn_loss += attention_loss.data[0]
-            progbar_display['attn_loss'] = attention_loss.data[0]
+            avg_attn_loss += attention_loss.item()
+            progbar_display['attn_loss'] = attention_loss.item()
 
         # backpass and check the grad norm
         loss.backward()
@@ -142,21 +141,21 @@ def train(model, criterion, data_loader, optimizer, epoch):
         step_time = time.time() - start_time
         epoch_time += step_time
         
-        progbar_display['total_loss'] =  loss.data[0]
-        progbar_display['linear_loss'] = linear_loss.data[0]
-        progbar_display['mel_loss'] = mel_loss.data[0]
+        progbar_display['total_loss'] =  loss.item()
+        progbar_display['linear_loss'] = linear_loss.item()
+        progbar_display['mel_loss'] = mel_loss.item()
         progbar_display['grad_norm'] = grad_norm
 
         # update
         progbar.update(num_iter+1, values=list(progbar_display.items()))
-        avg_linear_loss += linear_loss.data[0]
-        avg_mel_loss += mel_loss.data[0]
+        avg_linear_loss += linear_loss.item()
+        avg_mel_loss += mel_loss.item()
 
         # Plot Training Iter Stats
-        tb.add_scalar('TrainIterLoss/TotalLoss', loss.data[0], current_step)
-        tb.add_scalar('TrainIterLoss/LinearLoss', linear_loss.data[0],
+        tb.add_scalar('TrainIterLoss/TotalLoss', loss.item(), current_step)
+        tb.add_scalar('TrainIterLoss/LinearLoss', linear_loss.item(),
                       current_step)
-        tb.add_scalar('TrainIterLoss/MelLoss', mel_loss.data[0], current_step)
+        tb.add_scalar('TrainIterLoss/MelLoss', mel_loss.item(), current_step)
         tb.add_scalar('Params/LearningRate', optimizer.param_groups[0]['lr'],
                       current_step)
         tb.add_scalar('Params/GradNorm', grad_norm, current_step)
@@ -165,12 +164,12 @@ def train(model, criterion, data_loader, optimizer, epoch):
         if current_step % c.save_step == 0:
             if c.checkpoint:
                 # save model
-                save_checkpoint(model, optimizer, linear_loss.data[0],
+                save_checkpoint(model, optimizer, linear_loss.item(),
                                 OUT_PATH, current_step, epoch)
 
             # Diagnostic visualizations
             const_spec = linear_output[0].data.cpu().numpy()
-            gt_spec = linear_spec_var[0].data.cpu().numpy()
+            gt_spec = linear_spec[0].data.cpu().numpy()
 
             const_spec = plot_spectrogram(const_spec, data_loader.dataset.ap)
             gt_spec = plot_spectrogram(gt_spec, data_loader.dataset.ap)
@@ -221,57 +220,52 @@ def evaluate(model, criterion, data_loader, current_step):
     print(" | > Validation")
     progbar = Progbar(len(data_loader.dataset) / c.batch_size)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
-    for num_iter, data in enumerate(data_loader):
-        start_time = time.time()
+    with torch.no_grad():
+        for num_iter, data in enumerate(data_loader):
+            start_time = time.time()
 
-        # setup input data
-        text_input = data[0]
-        text_lengths = data[1]
-        linear_input = data[2]
-        mel_input = data[3]
-        mel_lengths = data[4]
+            # setup input data
+            text_input = data[0]
+            text_lengths = data[1]
+            linear_input = data[2]
+            mel_input = data[3]
+            mel_lengths = data[4]
 
-        # convert inputs to variables
-        text_input_var = Variable(text_input)
-        mel_spec_var = Variable(mel_input)
-        mel_lengths_var = Variable(mel_lengths)
-        linear_spec_var = Variable(linear_input, volatile=True)
+            # dispatch data to GPU
+            if use_cuda:
+                text_input = text_input.cuda()
+                mel_spec = mel_spec.cuda()
+                mel_lengths = mel_lengths.cuda()
+                linear_spec = linear_spec.cuda()
 
-        # dispatch data to GPU
-        if use_cuda:
-            text_input_var = text_input_var.cuda()
-            mel_spec_var = mel_spec_var.cuda()
-            mel_lengths_var = mel_lengths_var.cuda()
-            linear_spec_var = linear_spec_var.cuda()
+            # forward pass
+            mel_output, linear_output, alignments =\
+                model.forward(text_input, mel_spec)
 
-        # forward pass
-        mel_output, linear_output, alignments =\
-            model.forward(text_input_var, mel_spec_var)
+            # loss computation
+            mel_loss = criterion(mel_output, mel_spec, mel_lengths)
+            linear_loss = 0.5 * criterion(linear_output, linear_spec, mel_lengths) \
+                + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
+                                  linear_spec[:, :, :n_priority_freq],
+                                  mel_lengths)
+            loss = mel_loss + linear_loss
 
-        # loss computation
-        mel_loss = criterion(mel_output, mel_spec_var, mel_lengths_var)
-        linear_loss = 0.5 * criterion(linear_output, linear_spec_var, mel_lengths_var) \
-            + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
-                              linear_spec_var[:, :, :n_priority_freq],
-                              mel_lengths_var)
-        loss = mel_loss + linear_loss
+            step_time = time.time() - start_time
+            epoch_time += step_time
 
-        step_time = time.time() - start_time
-        epoch_time += step_time
+            # update
+            progbar.update(num_iter+1, values=[('total_loss', loss.item()),
+                                               ('linear_loss',
+                                                linear_loss.item()),
+                                               ('mel_loss', mel_loss.item())])
 
-        # update
-        progbar.update(num_iter+1, values=[('total_loss', loss.data[0]),
-                                           ('linear_loss',
-                                            linear_loss.data[0]),
-                                           ('mel_loss', mel_loss.data[0])])
-
-        avg_linear_loss += linear_loss.data[0]
-        avg_mel_loss += mel_loss.data[0]
+            avg_linear_loss += linear_loss.item()
+            avg_mel_loss += mel_loss.item()
 
     # Diagnostic visualizations
     idx = np.random.randint(mel_input.shape[0])
     const_spec = linear_output[idx].data.cpu().numpy()
-    gt_spec = linear_spec_var[idx].data.cpu().numpy()
+    gt_spec = linear_spec[idx].data.cpu().numpy()
     align_img = alignments[idx].data.cpu().numpy()
 
     const_spec = plot_spectrogram(const_spec, data_loader.dataset.ap)
