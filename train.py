@@ -20,7 +20,7 @@ from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
                                  save_best_model, load_config, lr_decay,
                                  count_parameters, check_update, get_commit_hash,
-                                 create_attn_mask)
+                                 create_attn_mask, mk_decay)
 from utils.model import get_param_size
 from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
