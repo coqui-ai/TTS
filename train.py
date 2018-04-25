@@ -124,6 +124,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
                               linear_spec_var[:, :, :n_priority_freq],
                               mel_lengths_var)
         attention_loss = criterion(alignments, M, mel_lengths_var)
+        print(mk)
         loss = mel_loss + linear_loss + mk * attention_loss
 
         # backpass and check the grad norm
