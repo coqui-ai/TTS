@@ -126,6 +126,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
         if c.mk > 0.0:
             attention_loss = criterion(alignments, M, mel_lengths_var)
             loss += mk * attention_loss
+            avg_attn_loss += attention_loss.data[0]
 
         # backpass and check the grad norm
         loss.backward()
@@ -148,7 +149,6 @@ def train(model, criterion, data_loader, optimizer, epoch):
                                            ('grad_norm', grad_norm)])
         avg_linear_loss += linear_loss.data[0]
         avg_mel_loss += mel_loss.data[0]
-        avg_attn_loss += attention_loss.data[0]
 
         # Plot Training Iter Stats
         tb.add_scalar('TrainIterLoss/TotalLoss', loss.data[0], current_step)

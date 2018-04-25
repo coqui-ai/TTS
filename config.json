@@ -16,7 +16,7 @@
     "batch_size": 32,
     "eval_batch_size":32,
     "r": 5,
-    "mk": 1,
+    "mk": 0,
 
     "griffin_lim_iters": 60,
     "power": 1.2,
