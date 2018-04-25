@@ -19,7 +19,8 @@ from tensorboardX import SummaryWriter
 from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
                                  save_best_model, load_config, lr_decay,
-                                 count_parameters, check_update, get_commit_hash)
+                                 count_parameters, check_update, get_commit_hash,
+                                 create_attn_mask)
 from utils.model import get_param_size
 from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
@@ -90,6 +91,9 @@ def train(model, criterion, data_loader, optimizer, epoch):
             params_group['lr'] = current_lr
 
         optimizer.zero_grad()
+        
+        # setup mk
+        mk = mk_decay(c.mk, c.epochs, epoch)
 
         # convert inputs to variables
         text_input_var = Variable(text_input)
@@ -105,19 +109,10 @@ def train(model, criterion, data_loader, optimizer, epoch):
             linear_spec_var = linear_spec_var.cuda()
             
         # create attention mask
-        # TODO: vectorize
         N = text_input_var.shape[1]
         T = mel_spec_var.shape[1] // c.r
-        M = np.zeros([N, T])
-        for t in range(T):
-            for n in range(N):
-                val = 20 * np.exp(-pow((n/N)-(t/T), 2.0)/0.05)
-                M[n, t] = val
-        e_x = np.exp(M - np.max(M))
-        M = e_x / e_x.sum(axis=0) # only difference
-        M = Variable(torch.FloatTensor(M).t()).cuda()
-        M = torch.stack([M]*32)
-
+        M = create_attn_mask(N, T, g)
+        
         # forward pass
         mel_output, linear_output, alignments =\
             model.forward(text_input_var, mel_spec_var)
@@ -129,7 +124,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
                               linear_spec_var[:, :, :n_priority_freq],
                               mel_lengths_var)
         attention_loss = criterion(alignments, M, mel_lengths_var)
-        loss = mel_loss + linear_loss + attention_loss
+        loss = mel_loss + linear_loss + mk * attention_loss
 
         # backpass and check the grad norm
         loss.backward()
