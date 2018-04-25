@@ -9,6 +9,7 @@ import torch
 import subprocess
 import numpy as np
 from collections import OrderedDict
+from torch.autograd import Variable
 
 
 class AttrDict(dict):
