@@ -264,7 +264,7 @@ def evaluate(model, criterion, data_loader, current_step):
             avg_mel_loss += mel_loss.item()
 
     # Diagnostic visualizations
-    idx = np.random.randint(mel_input.shape[0])
+    idx = np.random.randint(mel_spec.shape[0])
     const_spec = linear_output[idx].data.cpu().numpy()
     gt_spec = linear_spec[idx].data.cpu().numpy()
     align_img = alignments[idx].data.cpu().numpy()
