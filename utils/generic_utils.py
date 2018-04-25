@@ -131,6 +131,24 @@ def lr_decay(init_lr, global_step, warmup_steps):
     return lr
 
 
+def create_attn_mask(N, T, g=0.05):
+    r'''creating attn mask for guided attention'''
+    M = np.zeros([N, T])
+    for t in range(T):
+        for n in range(N):
+            val = 20 * np.exp(-pow((n/N)-(t/T), 2.0)/g)
+            M[n, t] = val
+    e_x = np.exp(M - np.max(M))
+    M = e_x / e_x.sum(axis=0) # only difference
+    M = Variable(torch.FloatTensor(M).t()).cuda()
+    M = torch.stack([M]*32)
+    return M
+
+
+def mk_decay(init_mk, max_epoch, n_epoch):
+    return init_mk * ((max_epoch - n_epoch) / max_epoch)
+
+
 def count_parameters(model):
     r"""Count number of trainable parameters in a network"""
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
