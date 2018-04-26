@@ -54,6 +54,12 @@ pickle.dump(c, open(tmp_path, "wb"))
 LOG_DIR = OUT_PATH
 tb = SummaryWriter(LOG_DIR)
 
+if c.priority_freq:
+    n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
+    print(" > Using num priority freq. : {}".format(n_priority_freq))
+else:
+    print(" > Priority freq. is disabled.")
+
 
 def signal_handler(signal, frame):
     """Ctrl+C handler to remove empty experiment folder"""
@@ -71,7 +77,6 @@ def train(model, criterion, data_loader, optimizer, epoch):
 
     print(" | > Epoch {}/{}".format(epoch, c.epochs))
     progbar = Progbar(len(data_loader.dataset) / c.batch_size)
-    n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     progbar_display = {}
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
@@ -214,7 +219,6 @@ def evaluate(model, criterion, data_loader, current_step):
 
     print("\n | > Validation")
     progbar = Progbar(len(data_loader.dataset) / c.batch_size)
-    n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     with torch.no_grad():
         for num_iter, data in enumerate(data_loader):
             start_time = time.time()

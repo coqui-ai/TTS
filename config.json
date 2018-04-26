@@ -17,6 +17,7 @@
     "eval_batch_size":32,
     "r": 5,
     "mk": 1.0,
+    "priority_freq": false,
 
     "griffin_lim_iters": 60,
     "power": 1.2,
