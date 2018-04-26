@@ -8,6 +8,7 @@ import signal
 import argparse
 import importlib
 import pickle
+import traceback
 import numpy as np
 
 import torch.nn as nn
@@ -395,5 +396,10 @@ def main(args):
 
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal_handler)
-    main(args)
+    # signal.signal(signal.SIGINT, signal_handler)
+    try:
+        main(args)
+    except:
+        signal_handler()
+        traceback.print_exc()
+        sys.exit()
