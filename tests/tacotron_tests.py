@@ -1,0 +1,55 @@
+import os
+import copy
+import torch
+import unittest
+import numpy as np
+
+from torch import optim
+from TTS.utils.generic_utils import load_config
+from TTS.layers.losses import L1LossMasked
+from TTS.models.tacotron import Tacotron
+
+torch.manual_seed(1)
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+file_path = os.path.dirname(os.path.realpath(__file__))
+c = load_config(os.path.join(file_path, 'test_config.json'))
+
+
+class TacotronTrainTest(unittest.TestCase):
+    
+    def test_train_step(self):
+        input = torch.randint(0, 24, (8, 128)).long().to(device)
+        mel_spec = torch.rand(8, 30, c.num_mels).to(device)
+        linear_spec = torch.rand(8, 30, c.num_freq).to(device)
+        mel_lengths = torch.randint(20, 30, (8,)).long().to(device)
+        criterion = L1LossMasked().to(device)
+        model = Tacotron(c.embedding_size,
+                         c.num_freq,
+                         c.num_mels,
+                         c.r).to(device)
+        model.train()
+        model_ref = copy.deepcopy(model)
+        count = 0
+        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+            assert (param - param_ref).sum() == 0, param
+            count += 1
+        optimizer = optim.Adam(model.parameters(), lr=c.lr)
+        for i in range(5):
+            mel_out, linear_out, align = model.forward(input, mel_spec)
+            optimizer.zero_grad()
+            loss = criterion(mel_out, mel_spec, mel_lengths) 
+            loss = 0.5 * loss + 0.5 * criterion(linear_out, linear_spec, mel_lengths)
+            loss.backward()
+            optimizer.step()
+        # check parameter changes
+        count = 0
+        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+            # ignore pre-higway layer since it works conditional 
+            if count not in [139, 59]:
+                assert (param != param_ref).any(), "param {} with shape {} not updated!! \n{}\n{}".format(count, param.shape, param, param_ref)
+            count += 1
+            
+        
+        
