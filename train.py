@@ -62,13 +62,6 @@ else:
     print(" > Priority freq. is disabled.")
 
 
-def signal_handler(signal, frame):
-    """Ctrl+C handler to remove empty experiment folder"""
-    print(" !! Pressed Ctrl+C !!")
-    remove_experiment_folder(OUT_PATH)
-    sys.exit(1)
-
-
 def train(model, criterion, data_loader, optimizer, epoch):
     model = model.train()
     epoch_time = 0
@@ -403,7 +396,13 @@ if __name__ == '__main__':
     # signal.signal(signal.SIGINT, signal_handler)
     try:
         main(args)
-    except:
-        signal_handler()
+    except KeyboardInterrupt:
+        remove_experiment_folder(OUT_PATH)
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
+    except Exception:
+        remove_experiment_folder(OUT_PATH)
         traceback.print_exc()
-        sys.exit()
+        sys.exit(1)
