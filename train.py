@@ -25,6 +25,7 @@ from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
 
+torch.manual_seed(1)
 
 use_cuda = torch.cuda.is_available()
 
@@ -217,7 +218,7 @@ def evaluate(model, criterion, data_loader, current_step):
     avg_linear_loss = 0
     avg_mel_loss = 0
 
-    print(" | > Validation")
+    print("\n | > Validation")
     progbar = Progbar(len(data_loader.dataset) / c.batch_size)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     with torch.no_grad():
