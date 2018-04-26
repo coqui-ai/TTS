@@ -93,12 +93,6 @@ def train(model, criterion, data_loader, optimizer, epoch):
 
         optimizer.zero_grad()
 
-        # convert inputs to variables
-        text_input.requires_grad_()
-        mel_spec.requires_grad_()
-        # mel_lengths.requires_grad_() 
-        # linear_spec.requires_grad_() 
-
         # dispatch data to GPU
         if use_cuda:
             text_input = text_input.cuda()

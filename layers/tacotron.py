@@ -263,15 +263,15 @@ class Decoder(nn.Module):
             T_decoder = memory.size(1)
         # go frame - 0 frames tarting the sequence
         initial_memory = \
-            inputs.data.new(B, self.memory_dim * self.r).zero_().requires_grad_()
+            inputs.data.new(B, self.memory_dim * self.r).zero_()
         # Init decoder states
         attention_rnn_hidden = \
-            inputs.data.new(B, 256).zero_().requires_grad_()
+            inputs.data.new(B, 256).zero_()
         decoder_rnn_hiddens = [
-            inputs.data.new(B, 256).zero_().requires_grad_()
+            inputs.data.new(B, 256).zero_()
             for _ in range(len(self.decoder_rnns))]
         current_context_vec = \
-            inputs.data.new(B, 256).zero_().requires_grad_()
+            inputs.data.new(B, 256).zero_()
         # Time first (T_decoder, B, memory_dim)
         if memory is not None:
             memory = memory.transpose(0, 1)
