@@ -41,7 +41,7 @@ args = parser.parse_args()
 c = load_config(args.config_path)
 _ = os.path.dirname(os.path.realpath(__file__))
 OUT_PATH = os.path.join(_, c.output_path)
-OUT_PATH = create_experiment_folder(OUT_PATH)
+OUT_PATH = create_experiment_folder(OUT_PATH, c.model_name)
 CHECKPOINT_PATH = os.path.join(OUT_PATH, 'checkpoints')
 shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
 
