@@ -11,14 +11,14 @@
     "embedding_size": 256,
     "text_cleaner": "english_cleaners",
 
-    "epochs": 500,
+    "epochs": 50,
     "lr": 0.002,
     "warmup_steps": 4000,
     "batch_size": 32,
     "eval_batch_size":32,
     "r": 5,
-    "mk": 1.0,
-    "priority_freq": false,
+    "mk": 0.0,
+    "priority_freq": true,
 
     "griffin_lim_iters": 60,
     "power": 1.2,
