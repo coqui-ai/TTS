@@ -12,7 +12,7 @@
     "text_cleaner": "english_cleaners",
 
     "epochs": 50,
-    "lr": 0.002,
+    "lr": 0.004,
     "warmup_steps": 4000,
     "batch_size": 32,
     "eval_batch_size":32,
@@ -23,10 +23,10 @@
     "griffin_lim_iters": 60,
     "power": 1.2,
 
-    "dataset": "LJSpeech",
-    "meta_file_train": "metadata_train.csv",
-    "meta_file_val": "metadata_val.csv",
-    "data_path": "/data/shared/KeithIto/LJSpeech-1.0/",
+    "dataset": "TWEB",
+    "meta_file_train": "transcript_train.txt",
+    "meta_file_val": "transcript_val.txt",
+    "data_path": "/data/shared/BibleSpeech/",
     "min_seq_len": 0, 
     "num_loader_workers": 8,
 
