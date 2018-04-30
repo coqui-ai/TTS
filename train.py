@@ -115,7 +115,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
         # loss computation
         mel_loss = criterion(mel_output, mel_spec, mel_lengths)
         linear_loss = criterion(linear_output, linear_spec, mel_lengths)
-        stop_loss = criterion_st(stop_tokens, stop_targets)
+        stop_loss = criterion_st(stop_tokens, stop_target)
         if c.priority_freq:
             linear_loss =  0.5 * linear_loss\
                 + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
@@ -249,7 +249,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
             # loss computation
             mel_loss = criterion(mel_output, mel_spec, mel_lengths)
             linear_loss = criterion(linear_output, linear_spec, mel_lengths)
-            stop_loss = criterion_st(stop_tokens, stop_targets)
+            stop_loss = criterion_st(stop_tokens, stop_target)
             if c.priority_freq:
                 linear_loss =  0.5 * linear_loss\
                     + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
