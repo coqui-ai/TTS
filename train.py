@@ -102,6 +102,8 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
             linear_spec = linear_spec.cuda()
             stop_target = stop_target.cuda()
             
+        stop_target = stop_target.view(B, stop_target.size(1) // c.r, -1)
+        stop_target = (stop_target.sum(1) > 0.0).long()
             
         # create attention mask
         if c.mk > 0.0:
