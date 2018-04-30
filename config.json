@@ -11,7 +11,7 @@
     "embedding_size": 256,
     "text_cleaner": "english_cleaners",
 
-    "epochs": 50,
+    "epochs": 500,
     "lr": 0.002,
     "warmup_steps": 4000,
     "batch_size": 32,

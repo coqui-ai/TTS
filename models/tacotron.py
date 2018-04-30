@@ -18,7 +18,6 @@ class Tacotron(nn.Module):
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(256, mel_dim, r)
-        self.stopnet = nn.Sequential(nn.Linear(80, 1), nn.Sigmoid())
         self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
         self.last_linear = nn.Linear(mel_dim * 2, linear_dim)
 
@@ -28,12 +27,11 @@ class Tacotron(nn.Module):
         # batch x time x dim
         encoder_outputs = self.encoder(inputs)
         # batch x time x dim*r
-        mel_outputs, alignments = self.decoder(
+        mel_outputs, alignments, stop_tokens = self.decoder(
             encoder_outputs, mel_specs)
         # Reshape
         # batch x time x dim
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
-        stop_tokens = self.stopnet(mel_outputs).squeeze()
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
         return mel_outputs, linear_outputs, alignments, stop_tokens

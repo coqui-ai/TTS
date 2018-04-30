@@ -23,7 +23,7 @@ def create_speech(m, s, CONFIG, use_cuda, ap):
             torch.from_numpy(seq), volatile=True).unsqueeze(0)
 #         mel_var = torch.autograd.Variable(torch.from_numpy(mel).type(torch.FloatTensor), volatile=True)
 
-    mel_out, linear_out, alignments = m.forward(chars_var)
+    mel_out, linear_out, alignments, stop_tokens = m.forward(chars_var)
     linear_out = linear_out[0].data.cpu().numpy()
     alignment = alignments[0].cpu().data.numpy()
     spec = ap._denormalize(linear_out)
@@ -31,7 +31,7 @@ def create_speech(m, s, CONFIG, use_cuda, ap):
     wav = wav[:ap.find_endpoint(wav)]
     out = io.BytesIO()
     ap.save_wav(wav, out)
-    return wav, alignment, spec
+    return wav, alignment, spec, stop_tokens
 
 
 def visualize(alignment, spectrogram, CONFIG):
