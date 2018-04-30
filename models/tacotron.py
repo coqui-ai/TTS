@@ -33,7 +33,7 @@ class Tacotron(nn.Module):
         # Reshape
         # batch x time x dim
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
-        stop_tokens = self.stopnet(mel_outputs)
+        stop_tokens = self.stopnet(mel_outputs).squeeze()
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
         return mel_outputs, linear_outputs, alignments, stop_tokens
