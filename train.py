@@ -81,6 +81,7 @@ def train(model, criterion, data_loader, optimizer, epoch):
         linear_spec = data[2]
         mel_spec = data[3]
         mel_lengths = data[4]
+        stop_target = data[5]
 
         current_step = num_iter + args.restore_step + \
             epoch * len(data_loader) + 1
@@ -225,6 +226,7 @@ def evaluate(model, criterion, data_loader, current_step):
             linear_spec = data[2]
             mel_spec = data[3]
             mel_lengths = data[4]
+            stop_target = data[5]
 
             # dispatch data to GPU
             if use_cuda:
