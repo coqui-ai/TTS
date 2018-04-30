@@ -152,7 +152,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
         progbar.update(num_iter+1, values=list(progbar_display.items()))
         avg_linear_loss += linear_loss.item()
         avg_mel_loss += mel_loss.item()
-        avg_stop_loss += st_loss.item()
+        avg_stop_loss += stop_loss.item()
 
         # Plot Training Iter Stats
         tb.add_scalar('TrainIterLoss/TotalLoss', loss.item(), current_step)
