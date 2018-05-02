@@ -93,6 +93,9 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
             params_group['lr'] = current_lr
 
         optimizer.zero_grad()
+        
+        stop_target = stop_target.view(c.batch_size, stop_target.size(1) // c.r, -1)
+        stop_target = (stop_target.sum(2) > 0.0).long()
 
         # dispatch data to GPU
         if use_cuda:
@@ -101,9 +104,6 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
             mel_lengths = mel_lengths.cuda()
             linear_spec = linear_spec.cuda()
             stop_target = stop_target.cuda()
-            
-        stop_target = stop_target.view(c.batch_size, stop_target.size(1) // c.r, -1)
-        stop_target = (stop_target.sum(2) > 0.0).long()
             
         # create attention mask
         if c.mk > 0.0:
