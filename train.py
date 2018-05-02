@@ -94,7 +94,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
 
         optimizer.zero_grad()
         
-        stop_target = stop_target.view(c.batch_size, stop_target.size(1) // c.r, -1)
+        stop_target = stop_target.view(text_input.shape[0], stop_target.size(1) // c.r, -1)
         stop_target = (stop_target.sum(2) > 0.0).float().unsqueeze(2)
 
         # dispatch data to GPU
@@ -239,7 +239,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
             mel_lengths = data[4]
             stop_target = data[5]
 
-            stop_target = stop_target.view(c.batch_size, stop_target.size(1) // c.r, -1)
+            stop_target = stop_target.view(text_input.shape[0], stop_target.size(1) // c.r, -1)
             stop_target = (stop_target.sum(2) > 0.0).float().unsqueeze(2)
         
             # dispatch data to GPU
