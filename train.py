@@ -103,8 +103,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
             stop_target = stop_target.cuda()
             
         stop_target = stop_target.view(c.batch_size, stop_target.size(1) // c.r, -1)
-        import ipdb; ipdb.set_trace()
-        stop_target = (stop_target.sum(1) > 0.0).long()
+        stop_target = (stop_target.sum(2) > 0.0).long()
             
         # create attention mask
         if c.mk > 0.0:
