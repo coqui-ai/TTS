@@ -95,7 +95,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
         optimizer.zero_grad()
         
         stop_target = stop_target.view(c.batch_size, stop_target.size(1) // c.r, -1)
-        stop_target = (stop_target.sum(2) > 0.0).long()
+        stop_target = (stop_target.sum(2) > 0.0).float()
 
         # dispatch data to GPU
         if use_cuda:
