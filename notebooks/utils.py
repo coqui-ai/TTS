@@ -34,20 +34,25 @@ def create_speech(m, s, CONFIG, use_cuda, ap):
     return wav, alignment, spec, stop_tokens
 
 
-def visualize(alignment, spectrogram, CONFIG):
+def visualize(alignment, spectrogram, stop_tokens, CONFIG):
     label_fontsize = 16
-    plt.figure(figsize=(16, 16))
+    plt.figure(figsize=(16, 24))
 
-    plt.subplot(2, 1, 1)
+    plt.subplot(3, 1, 1)
     plt.imshow(alignment.T, aspect="auto", origin="lower", interpolation=None)
     plt.xlabel("Decoder timestamp", fontsize=label_fontsize)
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
     plt.colorbar()
+    
+    plt.subplot(3, 1, 2)
+    plt.plot(range(len(stop_tokens)), list(stop_tokens))
 
-    plt.subplot(2, 1, 2)
+    plt.subplot(3, 1, 3)
     librosa.display.specshow(spectrogram.T, sr=CONFIG.sample_rate,
                              hop_length=hop_length, x_axis="time", y_axis="linear")
     plt.xlabel("Time", fontsize=label_fontsize)
     plt.ylabel("Hz", fontsize=label_fontsize)
     plt.tight_layout()
     plt.colorbar()
+    
+   
