@@ -95,7 +95,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, epoch):
         optimizer.zero_grad()
         
         stop_target = stop_target.view(text_input.shape[0], stop_target.size(1) // c.r, -1)
-        stop_target = (stop_target.sum(2) > 0.0).float().unsqueeze(2)
+        stop_target = (stop_target.sum(2) > 0.0).float()
 
         # dispatch data to GPU
         if use_cuda:
@@ -240,7 +240,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
             stop_target = data[5]
 
             stop_target = stop_target.view(text_input.shape[0], stop_target.size(1) // c.r, -1)
-            stop_target = (stop_target.sum(2) > 0.0).float().unsqueeze(2)
+            stop_target = (stop_target.sum(2) > 0.0).float()
         
             # dispatch data to GPU
             if use_cuda:
