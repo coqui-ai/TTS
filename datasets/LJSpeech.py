@@ -72,10 +72,6 @@ class LJSpeechDataset(Dataset):
         sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0]}
         return sample
 
-    def get_dummy_data(self):
-        r"""Get a dummy input for testing"""
-        return torch.autograd.Variable(torch.ones(16, 143)).type(torch.LongTensor)
-
     def collate_fn(self, batch):
         r"""
             Perform preprocessing and create a final data batch:
