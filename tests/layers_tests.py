@@ -73,7 +73,7 @@ class L1LossMaskedTests(unittest.TestCase):
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
         assert output.item() == 1.0, "1.0 vs {}".format(output.data[0])
-
+        
         dummy_input = T.ones(4, 8, 128).float()
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.arange(5, 9)).long()
