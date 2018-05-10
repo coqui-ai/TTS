@@ -1,4 +1,5 @@
 {
+  "model_name": "best_model",
   "num_mels": 80,
   "num_freq": 1025,
   "sample_rate": 20000,
