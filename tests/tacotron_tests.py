@@ -42,20 +42,21 @@ class TacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
-            mel_out, linear_out, align, stop_tokens = model.forward(input, mel_spec)
-            assert stop_tokens.data.max() <= 1.0
-            assert stop_tokens.data.min() >= 0.0
+            mel_out, linear_out, align = model.forward(input, mel_spec)
+            # mel_out, linear_out, align, stop_tokens = model.forward(input, mel_spec)
+            # assert stop_tokens.data.max() <= 1.0
+            # assert stop_tokens.data.min() >= 0.0
             optimizer.zero_grad()
             loss = criterion(mel_out, mel_spec, mel_lengths) 
-            stop_loss = criterion_st(stop_tokens, stop_targets)
-            loss = loss + criterion(linear_out, linear_spec, mel_lengths) + stop_loss
+            # stop_loss = criterion_st(stop_tokens, stop_targets)
+            loss = loss + criterion(linear_out, linear_spec, mel_lengths)
             loss.backward()
             optimizer.step()
         # check parameter changes
         count = 0
         for param, param_ref in zip(model.parameters(), model_ref.parameters()):
             # ignore pre-higway layer since it works conditional 
-            if count not in [141, 59]:
+            if count not in [139, 59]:
                 assert (param != param_ref).any(), "param {} with shape {} not updated!! \n{}\n{}".format(count, param.shape, param, param_ref)
             count += 1
             
