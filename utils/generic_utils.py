@@ -112,7 +112,7 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
 def check_update(model, grad_clip, grad_top):
     r'''Check model gradient against unexpected jumps and failures'''
     skip_flag = False
-    grad_norm = torch.nn.utils.clip_grad_norm(model.parameters(), grad_clip)
+    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
     if np.isinf(grad_norm):
         print(" | > Gradient is INF !!")
         skip_flag = True
