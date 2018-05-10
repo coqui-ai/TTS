@@ -1,7 +1,6 @@
 # coding: utf-8
 import torch
 from torch import nn
-
 from .attention import AttentionRNN
 from .attention import get_mask_from_lengths
 
