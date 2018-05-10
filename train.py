@@ -8,6 +8,7 @@ import signal
 import argparse
 import importlib
 import pickle
+import traceback
 import numpy as np
 
 import torch.nn as nn
@@ -54,13 +55,6 @@ pickle.dump(c, open(tmp_path, "wb"))
 # setup tensorboard
 LOG_DIR = OUT_PATH
 tb = SummaryWriter(LOG_DIR)
-
-
-def signal_handler(signal, frame):
-    """Ctrl+C handler to remove empty experiment folder"""
-    print(" !! Pressed Ctrl+C !!")
-    remove_experiment_folder(OUT_PATH)
-    sys.exit(1)
 
 
 def train(model, criterion, data_loader, optimizer, epoch):
@@ -369,5 +363,16 @@ def main(args):
 
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal_handler)
-    main(args)
+    # signal.signal(signal.SIGINT, signal_handler)
+    try:
+        main(args)
+    except KeyboardInterrupt:
+        remove_experiment_folder(OUT_PATH)
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
+    except Exception:
+        remove_experiment_folder(OUT_PATH)
+        traceback.print_exc()
+        sys.exit(1)
