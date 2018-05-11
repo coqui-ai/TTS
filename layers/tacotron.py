@@ -303,7 +303,7 @@ class Decoder(nn.Module):
             stop_token = self.stopnet(output)
             outputs += [output]
             alignments += [alignment]
-            stop_tokens += stop_token
+            stop_tokens += [stop_token]
             t += 1
             if (not greedy and self.training) or (greedy and memory is not None):
                 if t >= T_decoder:
