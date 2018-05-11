@@ -36,13 +36,15 @@ parser.add_argument('--restore_path', type=str,
                     help='Folder path to checkpoints', default=0)
 parser.add_argument('--config_path', type=str,
                     help='path to config file for training',)
+parser.add_argument('--debug', type=bool, default=False,
+                    help='do not ask for git has before run.')
 args = parser.parse_args()
 
 # setup output paths and read configs
 c = load_config(args.config_path)
 _ = os.path.dirname(os.path.realpath(__file__))
 OUT_PATH = os.path.join(_, c.output_path)
-OUT_PATH = create_experiment_folder(OUT_PATH, c.model_name)
+OUT_PATH = create_experiment_folder(OUT_PATH, c.model_name, args.debug)
 CHECKPOINT_PATH = os.path.join(OUT_PATH, 'checkpoints')
 shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
 
