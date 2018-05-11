@@ -28,7 +28,7 @@ from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
 
-
+torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 
 parser = argparse.ArgumentParser()
