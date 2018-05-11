@@ -34,10 +34,13 @@ def get_commit_hash():
     return commit
 
 
-def create_experiment_folder(root_path, model_name):
+def create_experiment_folder(root_path, model_name, debug):
     """ Create a folder with the current date and time """
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I:%M%p")
-    commit_hash = get_commit_hash()
+    if debug:
+        commit_hash = 'debug'
+    else: 
+        commit_hash = get_commit_hash()
     output_folder = os.path.join(root_path, date_str + '-' + model_name + '-' + commit_hash)
     os.makedirs(output_folder, exist_ok=True)
     print(" > Experiment folder: {}".format(output_folder))
