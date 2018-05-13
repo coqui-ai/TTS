@@ -309,7 +309,7 @@ class Decoder(nn.Module):
                 if t >= T_decoder:
                     break
             else:
-                if t > 1 and is_end_of_frames(output.view(self.r, -1), alignment, self.eps):
+                if t > 1 and stop_token > 0.5:
                     break
                 elif t > self.max_decoder_steps:
                     print(" !! Decoder stopped with 'max_decoder_steps'. \
