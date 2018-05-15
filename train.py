@@ -300,6 +300,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
 
     # compute average losses
     avg_linear_loss /= (num_iter + 1)
+    avg_mel_loss /= (num_iter + 1)
     avg_stop_loss /= (num_iter + 1)
     avg_total_loss = avg_mel_loss + avg_linear_loss + stop_loss
 
