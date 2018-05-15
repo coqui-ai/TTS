@@ -88,12 +88,13 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
 
         # setup lr
         current_lr = lr_decay(c.lr, current_step, c.warmup_steps)
+        current_lr_st = lr_decay(0.01, current_step, c.warmup_steps)
         
         for params_group in optimizer.param_groups:
             params_group['lr'] = current_lr
             
         for params_group in optimizer_st.param_groups:
-            params_group['lr'] = current_lr
+            params_group['lr'] = current_lr_st
 
         optimizer.zero_grad()
         optimizer_st.zero_grad()
