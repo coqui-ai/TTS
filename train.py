@@ -88,7 +88,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
 
         # setup lr
         current_lr = lr_decay(c.lr, current_step, c.warmup_steps)
-        current_lr_st = lr_decay(0.01, current_step, c.warmup_steps)
+        current_lr_st = lr_decay(c.lr, current_step, c.warmup_steps)
         
         for params_group in optimizer.param_groups:
             params_group['lr'] = current_lr
@@ -363,8 +363,7 @@ def main(args):
                      c.r)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
-    optimizer_st = optim.SGD(model.decoder.stopnet.parameters(), lr=0.01,
-                             momentum=0.9, nesterov=True)
+    optimizer_st = optim.Adam(model.decoder.stopnet.parameters(), lr=c.lr)
 
     criterion = L1LossMasked()
     criterion_st = nn.BCELoss()  
