@@ -311,7 +311,7 @@ class Decoder(nn.Module):
                 if t >= T_decoder:
                     break
             else:
-                if t > 1 and stop_token > 0.8:
+                if t > inputs.shape[1]/2 and stop_token > 0.8:
                     break
                 elif t > self.max_decoder_steps:
                     print(" !! Decoder stopped with 'max_decoder_steps'. \
