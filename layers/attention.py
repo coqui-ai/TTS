@@ -13,8 +13,8 @@ class BahdanauAttention(nn.Module):
     def forward(self, annots, query):
         """
         Shapes:
-            - query: (batch, 1, dim) or (batch, dim)
             - annots: (batch, max_time, dim)
+            - query: (batch, 1, dim) or (batch, dim)
         """
         if query.dim() == 2:
             # insert time-axis for broadcasting
