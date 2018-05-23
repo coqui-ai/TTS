@@ -209,7 +209,6 @@ class Decoder(nn.Module):
         in_features (int): input vector (encoder output) sample size.
         memory_dim (int): memory vector (prev. time-step output) sample size.
         r (int): number of outputs per time step.
-        eps (float): threshold for detecting the end of a sentence.
     """
 
     def __init__(self, in_features, memory_dim, r):
