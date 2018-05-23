@@ -69,10 +69,18 @@ class LocationSensitiveAttention(nn.Module):
 
 
 class AttentionRNN(nn.Module):
-    def __init__(self, out_dim, annot_dim, memory_dim):
+    def __init__(self, out_dim, annot_dim, memory_dim, align_model):
         super(AttentionRNN, self).__init__()
         self.rnn_cell = nn.GRUCell(out_dim + memory_dim, out_dim)
-        self.alignment_model = LocationSensitiveAttention(annot_dim, out_dim, out_dim)
+        # pick bahdanau or location sensitive attention
+        if align_model == 'b':
+            self.alignment_model = BahdanauAttention(annot_dim, out_dim, out_dim)
+        if align_model == 'ls':
+            self.alignment_model = LocationSensitiveAttention(annot_dim, out_dim, out_dim)
+        else:
+            raise RuntimeError(" Wrong alignment model name: {}. Use\
+                'b' (Bahdanau) or 'ls' (Location Sensitive).".format(align_model))
+            
 
     def forward(self, memory, context, rnn_state, annotations,
                 attention_vec, mask=None, annotations_lengths=None):
@@ -88,7 +96,10 @@ class AttentionRNN(nn.Module):
         # Alignment
         # (batch, max_time)
         # e_{ij} = a(s_{i-1}, h_j)
-        alignment = self.alignment_model(annotations, rnn_output, attention_vec)
+        if attnetion_vec is None:
+            alignment = self.alignment_model(annotations, rnn_output)
+        else:
+            alignment = self.alignment_model(annotations, rnn_output, attention_vec)
 
         # TODO: needs recheck.
         if mask is not None:
