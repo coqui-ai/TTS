@@ -28,18 +28,23 @@ Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the
 Currently TTS provides data loaders for
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 
-## Training the network
-To run your own training, you need to define a ```config.json``` file (simple template below) and call with the command.
+## Training and Finetunning
+To train a new model, you need to define a ```config.json``` file (simple template below) and call with the command below.
 
 ```train.py --config_path config.json```
 
-If you like to use specific set of GPUs.
+To finetune a model, use ```--restore_path``` argument.
+
+```train.py --config_path config.json --restore_path /path/to/your/model.pth.tar```
+
+If you like to use specific set of GPUs, you need set an environment variable. The code uses automatically all the provided GPUs for data parallel training. If you don't specify the GPUs, it uses all GPUs of the system.
 
 ```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
 
-Each run creates an experiment folder with the date and the time, under the folder you set in ```config.json```. And if there is no checkpoint yet under that folder, it is going to be removed when you exit the training or an error is raised.
+Each run creates an experiment folder with some meta information, under the folder you set in ```config.json```. 
+In case of any error or intercepted execution, if there is no checkpoint yet under the execution folder, the whole folder is going to be removed.
 
-You can also enjoy Tensorboard with couple of good training indicators, if you point the Tensorboard argument```--logdir``` to the experiment folder.
+You can also enjoy Tensorboard, if you point the Tensorboard argument```--logdir``` to the experiment folder.
 
 Example ```config.json```:
 ```
