@@ -200,7 +200,7 @@ class Decoder(nn.Module):
 
     def __init__(self, in_features, memory_dim, r):
         super(Decoder, self).__init__()
-        self.mode = mode
+        self.r = r
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
         # memory -> |Prenet| -> processed_memory
