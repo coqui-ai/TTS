@@ -39,7 +39,7 @@ class AudioProcessor(object):
         return librosa.filters.mel(self.sample_rate, n_fft, n_mels=self.num_mels)
 
     def _normalize(self, S):
-        return np.clip((S - self.min_level_db) / -self.min_level_db, 1e-8, 1)
+        return np.clip((S - self.min_level_db) / -self.min_level_db, 0, 1)
 
     def _denormalize(self, S):
         return (np.clip(S, 0, 1) * -self.min_level_db) + self.min_level_db
