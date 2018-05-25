@@ -1,5 +1,5 @@
 # TTS (Work in Progress...)
-TTS targets a Text2Speech engine lightweight in computation with hight quality speech construction. 
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS targets a Text2Speech engine lightweight in computation with high quality speech synthesis. You might hear a sample [here]().
 
 Here we have pytorch implementation of Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135). We plan to improve the model by the time with new architectural updates.
 
@@ -22,7 +22,7 @@ Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the
 | ------------- |:-----------------:|:-------------|
 | [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)| [99d56f7](https://github.com/mozilla/TTS/tree/99d56f7e93ccd7567beb0af8fcbd4d24c48e59e9)           | [link](https://soundcloud.com/user-565970875/99d56f7-iter62410 )|
 | [iter-170K](https://drive.google.com/open?id=16L6JbPXj6MSlNUxEStNn28GiSzi4fu1j) | [e00bc66](https://github.com/mozilla/TTS/tree/e00bc66) |[link](https://soundcloud.com/user-565970875/april-13-2018-07-06pm-e00bc66-iter170k)|
-| Best: [iter-270K](https://)|[256ed63](https://github.com/mozilla/TTS/tree/256ed63)|[link](https://soundcloud.com/user-565970875/sets/samples-256ed63)|
+| Best: [iter-270K](https://drive.google.com/drive/folders/1Q6BKeEkZyxSGsocK2p_mqgzLwlNvbHFJ?usp=sharing)|[256ed63](https://github.com/mozilla/TTS/tree/256ed63)|[link](https://soundcloud.com/user-565970875/sets/samples-1650226)|
 
 ## Data
 Currently TTS provides data loaders for
