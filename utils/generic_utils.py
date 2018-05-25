@@ -9,6 +9,7 @@ import torch
 import subprocess
 import numpy as np
 from collections import OrderedDict
+from torch.autograd import Variable
 
 
 class AttrDict(dict):
@@ -132,6 +133,25 @@ def lr_decay(init_lr, global_step, warmup_steps):
     lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5,
                                                   step**-0.5)
     return lr
+
+
+def create_attn_mask(N, T, g=0.05):
+    r'''creating attn mask for guided attention
+    TODO: vectorize'''
+    M = np.zeros([N, T])
+    for t in range(T):
+        for n in range(N):
+            val = 20 * np.exp(-pow((n/N)-(t/T), 2.0)/g)
+            M[n, t] = val
+    e_x = np.exp(M - np.max(M))
+    M = e_x / e_x.sum(axis=0) # only difference
+    M = torch.FloatTensor(M).t().cuda()
+    M = torch.stack([M]*32)
+    return M
+
+
+def mk_decay(init_mk, max_epoch, n_epoch):
+    return init_mk * ((max_epoch - n_epoch) / max_epoch)
 
 
 def count_parameters(model):

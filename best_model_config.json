@@ -1,5 +1,5 @@
 {
-  "model_name": "best_model",
+  "model_name": "best-model",
   "num_mels": 80,
   "num_freq": 1025,
   "sample_rate": 20000,
@@ -11,13 +11,13 @@
   "embedding_size": 256,
   "text_cleaner": "english_cleaners",
 
-  "epochs": 200,
+  "epochs": 1000,
   "lr": 0.002,
   "warmup_steps": 4000,
   "batch_size": 32,
   "eval_batch_size":32,
   "r": 5,
-
+    
   "griffin_lim_iters": 60,
   "power": 1.5,
 
