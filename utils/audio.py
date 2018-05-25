@@ -1,6 +1,7 @@
 import os
 import librosa
 import pickle
+import copy
 import numpy as np
 from scipy import signal
 
@@ -38,15 +39,15 @@ class AudioProcessor(object):
         return librosa.filters.mel(self.sample_rate, n_fft, n_mels=self.num_mels)
 
     def _normalize(self, S):
-        return np.clip((S - self.min_level_db) / -self.min_level_db, 0, 1)
+        return np.clip((S - self.min_level_db) / -self.min_level_db, 1e-8, 1)
 
     def _denormalize(self, S):
         return (np.clip(S, 0, 1) * -self.min_level_db) + self.min_level_db
 
     def _stft_parameters(self, ):
         n_fft = (self.num_freq - 1) * 2
-        hop_length = int(self.frame_shift_ms / 1000 * self.sample_rate)
-        win_length = int(self.frame_length_ms / 1000 * self.sample_rate)
+        hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
+        win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
         return n_fft, hop_length, win_length
 
     def _amp_to_db(self, x):
@@ -73,16 +74,29 @@ class AudioProcessor(object):
         # Reconstruct phase
         return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
 
+#     def _griffin_lim(self, S):
+#         '''librosa implementation of Griffin-Lim
+#         Based on https://github.com/librosa/librosa/issues/434
+#         '''
+#         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
+#         S_complex = np.abs(S).astype(np.complex)
+#         y = self._istft(S_complex * angles)
+#         for i in range(self.griffin_lim_iters):
+#             angles = np.exp(1j * np.angle(self._stft(y)))
+#             y = self._istft(S_complex * angles)
+#         return y
+    
     def _griffin_lim(self, S):
-        '''librosa implementation of Griffin-Lim
-        Based on https://github.com/librosa/librosa/issues/434
+        '''Applies Griffin-Lim's raw.
         '''
-        angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
-        S_complex = np.abs(S).astype(np.complex)
-        y = self._istft(S_complex * angles)
+        S_best = copy.deepcopy(S)
         for i in range(self.griffin_lim_iters):
-            angles = np.exp(1j * np.angle(self._stft(y)))
-            y = self._istft(S_complex * angles)
+            S_t = self._istft(S_best)
+            est = self._stft(S_t)
+            phase = est / np.maximum(1e-8, np.abs(est))
+            S_best = S * phase
+        S_t = self._istft(S_best)
+        y = np.real(S_t)
         return y
 
     def melspectrogram(self, y):
@@ -96,7 +110,7 @@ class AudioProcessor(object):
 
     def _istft(self, y):
         _, hop_length, win_length = self._stft_parameters()
-        return librosa.istft(y, hop_length=hop_length, win_length=win_length)
+        return librosa.istft(y, hop_length=hop_length, win_length=win_length, window='hann')
 
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)

@@ -5,8 +5,6 @@ import numpy as np
 from torch.utils.data import DataLoader
 from TTS.utils.generic_utils import load_config
 from TTS.datasets.LJSpeech import LJSpeechDataset
-# from TTS.datasets.TWEB import TWEBDataset
-
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 c = load_config(os.path.join(file_path, 'test_config.json'))
@@ -19,8 +17,8 @@ class TestLJSpeechDataset(unittest.TestCase):
         self.max_loader_iter = 4
 
     def test_loader(self):
-        dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata.csv'),
-                                  os.path.join(c.data_path, 'wavs'),
+        dataset = LJSpeechDataset(os.path.join(c.data_path_LJSpeech, 'metadata.csv'),
+                                  os.path.join(c.data_path_LJSpeech, 'wavs'),
                                   c.r,
                                   c.sample_rate,
                                   c.text_cleaner,
@@ -59,8 +57,8 @@ class TestLJSpeechDataset(unittest.TestCase):
             assert mel_input.shape[2] == c.num_mels
 
     def test_padding(self):
-        dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata.csv'),
-                                  os.path.join(c.data_path, 'wavs'),
+        dataset = LJSpeechDataset(os.path.join(c.data_path_LJSpeech, 'metadata.csv'),
+                                  os.path.join(c.data_path_LJSpeech, 'wavs'),
                                   1,
                                   c.sample_rate,
                                   c.text_cleaner,

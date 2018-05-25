@@ -334,4 +334,3 @@ class StopNet(nn.Module):
         outputs = self.linear(outputs)
         outputs = self.sigmoid(outputs)
         return outputs, rnn_hidden
-        
