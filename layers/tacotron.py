@@ -198,13 +198,11 @@ class Decoder(nn.Module):
         eps (float): threshold for detecting the end of a sentence.
     """
 
-    def __init__(self, in_features, memory_dim, r, eps=0, mode='train'):
+    def __init__(self, in_features, memory_dim, r):
         super(Decoder, self).__init__()
         self.mode = mode
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
-        self.eps = eps
-        self.r = r
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, Alignment, RNN_State
