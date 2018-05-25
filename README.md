@@ -1,9 +1,9 @@
 # TTS (Work in Progress...)
 TTS targets a Text2Speech engine lightweight in computation with hight quality speech construction. 
 
-Here we have pytorch implementation of Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135) as the start point. We plan to improve the model by the time with new architectural changes.
+Here we have pytorch implementation of Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135). We plan to improve the model by the time with new architectural updates.
 
-You can find [here](http://www.erogol.com/speech-text-deep-learning-architectures/) a brief note pointing possible TTS architectures and their comparisons.
+You can find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief note pointing possible TTS architectures and their comparisons.
 
 ## Requirements
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
@@ -21,7 +21,8 @@ Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the
 | Models        | Commit            | Audio Sample  |
 | ------------- |:-----------------:|:-------------|
 | [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)| [99d56f7](https://github.com/mozilla/TTS/tree/99d56f7e93ccd7567beb0af8fcbd4d24c48e59e9)           | [link](https://soundcloud.com/user-565970875/99d56f7-iter62410 )|
-| Best: [iter-170K](https://drive.google.com/open?id=16L6JbPXj6MSlNUxEStNn28GiSzi4fu1j) | [e00bc66]() |[link](https://soundcloud.com/user-565970875/april-13-2018-07-06pm-e00bc66-iter170k)|
+| [iter-170K](https://drive.google.com/open?id=16L6JbPXj6MSlNUxEStNn28GiSzi4fu1j) | [e00bc66](https://github.com/mozilla/TTS/tree/e00bc66) |[link](https://soundcloud.com/user-565970875/april-13-2018-07-06pm-e00bc66-iter170k)|
+| Best: [iter-270K](https://)|[256ed63](https://github.com/mozilla/TTS/tree/256ed63)|[link](https://soundcloud.com/user-565970875/sets/samples-256ed63)|
 
 ## Data
 Currently TTS provides data loaders for
@@ -36,16 +37,17 @@ If you like to use specific set of GPUs.
 
 ```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
 
-Each run creates an experiment folder with the corresponfing date and time, under the folder you set in ```config.json```. And if there is no checkpoint yet under that folder, it is going to be removed when you press Ctrl+C.
+Each run creates an experiment folder with the date and the time, under the folder you set in ```config.json```. And if there is no checkpoint yet under that folder, it is going to be removed when you exit the training or an error is raised.
 
-You can also enjoy Tensorboard with couple of good training logs, if you point ```--logdir``` the experiment folder.
+You can also enjoy Tensorboard with couple of good training indicators, if you point the Tensorboard argument```--logdir``` to the experiment folder.
 
 Example ```config.json```:
 ```
 {
+  "model_name": "my-model", // used in the experiment folder name
   "num_mels": 80,
   "num_freq": 1025,
-  "sample_rate": 22050,
+  "sample_rate": 20000,
   "frame_length_ms": 50,
   "frame_shift_ms": 12.5,
   "preemphasis": 0.97,
@@ -54,36 +56,32 @@ Example ```config.json```:
   "embedding_size": 256,
   "text_cleaner": "english_cleaners",
 
-  "epochs": 200,
+  "epochs": 1000,
   "lr": 0.002,
   "warmup_steps": 4000,
   "batch_size": 32,
   "eval_batch_size":32,
   "r": 5,
-  "mk": 0.0,  // guidede attention loss weight. if 0 no use
-  "priority_freq": true,  // freq range emphasis
-
+    
   "griffin_lim_iters": 60,
-  "power": 1.2,
+  "power": 1.5,
 
-  "dataset": "TWEB",
-  "meta_file_train": "transcript_train.txt",
-  "meta_file_val": "transcript_val.txt",
-  "data_path": "/data/shared/BibleSpeech/",
-  "min_seq_len": 0, 
   "num_loader_workers": 8,
 
-  "checkpoint": true,  // if save checkpoint per save_step
-  "save_step": 200,
-  "output_path": "/path/to/my_experiment",
+  "checkpoint": true,
+  "save_step": 376,
+  "data_path": "/my/training/data/path",
+  "min_seq_len": 0, 
+  "output_path": "/my/experiment/folder/path"
 }
+
 ```
 
 ## Testing
-Best way to test your pretrained network is to use the Notebook under ```notebooks``` folder. 
+Best way to test your pretrained network is to use Notebooks under ```notebooks``` folder. 
 
 ## Contribution
-Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on the track as this repo gets bigger. 
+Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on track as this repo gets bigger. 
 
 ## TODO
 Checkout issues and Project field.
