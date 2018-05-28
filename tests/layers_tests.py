@@ -37,11 +37,14 @@ class DecoderTests(unittest.TestCase):
         dummy_input = T.rand(4, 8, 256)
         dummy_memory = T.rand(4, 2, 80)
 
-        output, alignment = layer(dummy_input, dummy_memory)
+        output, alignment, stop_tokens = layer(dummy_input, dummy_memory)
 
         assert output.shape[0] == 4
         assert output.shape[1] == 1, "size not {}".format(output.shape[1])
         assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
+        assert stop_tokens.shape[0] == 4
+        assert stop_tokens.max() <= 1.0
+        assert stop_tokens.min() >= 0
 
 
 class EncoderTests(unittest.TestCase):
@@ -73,7 +76,6 @@ class L1LossMaskedTests(unittest.TestCase):
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
         assert output.item() == 1.0, "1.0 vs {}".format(output.data[0])
-        
         dummy_input = T.ones(4, 8, 128).float()
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.arange(5, 9)).long()
