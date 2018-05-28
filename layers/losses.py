@@ -48,6 +48,7 @@ class L1LossMasked(nn.Module):
                                          reduce=False)
         # losses: (batch, max_len, dim)
         losses = losses_flat.view(*target.size())
+        
         # mask: (batch, max_len, 1)
         mask = _sequence_mask(sequence_length=length,
                               max_len=target.size(1)).unsqueeze(2)

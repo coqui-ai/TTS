@@ -100,22 +100,18 @@ class CBHG(nn.Module):
         super(CBHG, self).__init__()
         self.in_features = in_features
         self.relu = nn.ReLU()
-
         # list of conv1d bank with filter size k=1...K
         # TODO: try dilational layers instead
         self.conv1d_banks = nn.ModuleList(
             [BatchNormConv1d(in_features, in_features, kernel_size=k, stride=1,
                              padding=k // 2, activation=self.relu)
                 for k in range(1, K + 1)])
-
         # max pooling of conv bank
         # TODO: try average pooling OR larger kernel size
         self.max_pool1d = nn.MaxPool1d(kernel_size=2, stride=1, padding=1)
-
         out_features = [K * in_features] + projections[:-1]
         activations = [self.relu] * (len(projections) - 1)
         activations += [None]
-
         # setup conv1d projection layers
         layer_set = []
         for (in_size, out_size, ac) in zip(out_features, projections, activations):
@@ -123,12 +119,10 @@ class CBHG(nn.Module):
                                     padding=1, activation=ac)
             layer_set.append(layer)
         self.conv1d_projections = nn.ModuleList(layer_set)
-
         # setup Highway layers
         self.pre_highway = nn.Linear(projections[-1], in_features, bias=False)
         self.highways = nn.ModuleList(
             [Highway(in_features, in_features) for _ in range(num_highways)])
-
         # bi-directional GPU layer
         self.gru = nn.GRU(
             in_features, in_features, 1, batch_first=True, bidirectional=True)
@@ -136,14 +130,11 @@ class CBHG(nn.Module):
     def forward(self, inputs):
         # (B, T_in, in_features)
         x = inputs
-
         # Needed to perform conv1d on time-axis
         # (B, in_features, T_in)
         if x.size(-1) == self.in_features:
             x = x.transpose(1, 2)
-
         T = x.size(-1)
-
         # (B, in_features*K, T_in)
         # Concat conv1d bank outputs
         outs = []
@@ -151,29 +142,22 @@ class CBHG(nn.Module):
             out = conv1d(x)
             out = out[:, :, :T]
             outs.append(out)
-
         x = torch.cat(outs, dim=1)
         assert x.size(1) == self.in_features * len(self.conv1d_banks)
-
         x = self.max_pool1d(x)[:, :, :T]
-
         for conv1d in self.conv1d_projections:
             x = conv1d(x)
-
         # (B, T_in, in_features)
         # Back to the original shape
         x = x.transpose(1, 2)
-
         if x.size(-1) != self.in_features:
             x = self.pre_highway(x)
-
         # Residual connection
         # TODO: try residual scaling as in Deep Voice 3
         # TODO: try plain residual layers
         x += inputs
         for highway in self.highways:
             x = highway(x)
-
         # (B, T_in, in_features*2)
         # TODO: replace GRU with convolution as in Deep Voice 3
         # self.gru.flatten_parameters()
@@ -213,9 +197,9 @@ class Decoder(nn.Module):
 
     def __init__(self, in_features, memory_dim, r):
         super(Decoder, self).__init__()
+        self.r = r
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
-        self.r = r
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
@@ -244,7 +228,7 @@ class Decoder(nn.Module):
 
         Shapes:
             - inputs: batch x time x encoder_out_dim
-            - memory: batch x #mels_pecs x mel_spec_dim
+            - memory: batch x #mel_specs x mel_spec_dim
         """
         B = inputs.size(0)
         T = inputs.size(1)
@@ -329,6 +313,13 @@ class Decoder(nn.Module):
 
     
 class StopNet(nn.Module):
+    r"""
+    Predicting stop-token in decoder.
+    
+    Args:
+        r (int): number of output frames of the network.
+        memory_dim (int): feature dimension for each output frame.
+    """
     
     def __init__(self, r, memory_dim):
         r"""
@@ -345,9 +336,13 @@ class StopNet(nn.Module):
         self.sigmoid = nn.Sigmoid()
         
     def forward(self, inputs, rnn_hidden):
+        """
+        Args:
+            inputs: network output tensor with r x memory_dim feature dimension.
+            rnn_hidden: hidden state of the RNN cell.
+        """
         rnn_hidden = self.rnn(inputs, rnn_hidden)
         outputs = self.relu(rnn_hidden)
         outputs = self.linear(outputs)
         outputs = self.sigmoid(outputs)
         return outputs, rnn_hidden
-        
