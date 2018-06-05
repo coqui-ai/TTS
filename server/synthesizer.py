@@ -2,7 +2,9 @@ import io
 import os
 import librosa
 import torch
+import scipy
 import numpy as np
+import soundfile as sf
 from TTS.utils.text import text_to_sequence
 from TTS.utils.generic_utils import load_config
 from TTS.utils.audio import AudioProcessor
@@ -24,7 +26,7 @@ class Synthesizer(object):
         self.model = Tacotron(config.embedding_size, config.num_freq, config.num_mels, config.r)
         self.ap = AudioProcessor(config.sample_rate, config.num_mels, config.min_level_db,
                                  config.frame_shift_ms, config.frame_length_ms, config.preemphasis,
-                                 config.ref_level_db, config.num_freq, config.power, griffin_lim_iters=30)  
+                                 config.ref_level_db, config.num_freq, config.power, griffin_lim_iters=60)  
         # load model state
         if use_cuda:
             cp = torch.load(self.model_file)
@@ -37,8 +39,13 @@ class Synthesizer(object):
         self.model.eval()       
     
     def save_wav(self, wav, path):
-        wav *= 32767 / max(0.01, np.max(np.abs(wav)))
-        librosa.output.write_wav(path, wav.astype(np.float), self.config.sample_rate, norm=True)
+        wav *= 32767 / max(1e-8, np.max(np.abs(wav)))
+        # sf.write(path, wav.astype(np.int32), self.config.sample_rate, format='wav')
+        # wav = librosa.util.normalize(wav.astype(np.float), norm=np.inf, axis=None)
+        # wav = wav / wav.max()
+        # sf.write(path, wav.astype('float'), self.config.sample_rate, format='ogg')
+        scipy.io.wavfile.write(path, self.config.sample_rate, wav.astype(np.int16))
+        # librosa.output.write_wav(path, wav.astype(np.int16), self.config.sample_rate, norm=True)
 
     def tts(self, text):
         text_cleaner = [self.config.text_cleaner]
@@ -47,6 +54,7 @@ class Synthesizer(object):
             if len(sen) < 3:
                 continue
             sen +='.'
+            print(sen)
             sen = sen.strip()
             seq = np.array(text_to_sequence(text, text_cleaner))
             chars_var = torch.from_numpy(seq).unsqueeze(0)
@@ -55,7 +63,7 @@ class Synthesizer(object):
             mel_out, linear_out, alignments, stop_tokens = self.model.forward(chars_var)
             linear_out = linear_out[0].data.cpu().numpy()
             wav = self.ap.inv_spectrogram(linear_out.T)
-            wav = wav[:self.ap.find_endpoint(wav)]
+            # wav = wav[:self.ap.find_endpoint(wav)]
             out = io.BytesIO()
             wavs.append(wav)
             wavs.append(np.zeros(10000))

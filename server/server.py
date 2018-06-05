@@ -25,9 +25,7 @@ def tts():
     text = request.args.get('text')
     print(" > Model input: {}".format(text))
     data = synthesizer.tts(text)
-    return send_file(data,
-                     attachment_filename="testing.wav",
-                     as_attachment=True,
+    return send_file(data,  
                      mimetype='audio/wav')
 
 if __name__ == '__main__':
