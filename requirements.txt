@@ -6,3 +6,5 @@ tensorboardX
 torch
 matplotlib
 Pillow
+flask
+scipy
