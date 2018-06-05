@@ -72,15 +72,15 @@
             function q(selector) {return document.querySelector(selector)}
             q('#text').focus()
             q('#speak-button').addEventListener('click', function(e) {
-            text = q('#text').value.trim()
-            if (text) {
-                q('#message').textContent = 'Synthesizing...'
-                q('#speak-button').disabled = true
-                q('#audio').hidden = true
-                synthesize(text)
-            }
-            e.preventDefault()
-            return false
+                text = q('#text').value
+                if (text) {
+                    q('#message').textContent = 'Synthesizing...'
+                    q('#speak-button').disabled = true
+                    q('#audio').hidden = true
+                    synthesize(text)
+                }
+                e.preventDefault()
+                return false
             })
             function synthesize(text) {
                 fetch('/api/tts?text=' + encodeURIComponent(text), {cache: 'no-cache'})
