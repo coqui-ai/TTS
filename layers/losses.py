@@ -17,10 +17,10 @@ def _sequence_mask(sequence_length, max_len=None):
     return seq_range_expand < seq_length_expand
 
 
-class L1LossMasked(nn.Module):
+class L2LossMasked(nn.Module):
 
     def __init__(self):
-        super(L1LossMasked, self).__init__()
+        super(L2LossMasked, self).__init__()
 
     def forward(self, input, target, length):
         """
@@ -44,7 +44,7 @@ class L1LossMasked(nn.Module):
         # target_flat: (batch * max_len, dim)
         target_flat = target.view(-1, target.shape[-1])
         # losses_flat: (batch * max_len, dim)
-        losses_flat = functional.l1_loss(input, target_flat, size_average=False,
+        losses_flat = functional.mse_loss(input, target_flat, size_average=False,
                                          reduce=False)
         # losses: (batch, max_len, dim)
         losses = losses_flat.view(*target.size())
