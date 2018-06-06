@@ -53,6 +53,7 @@ class Synthesizer(object):
         for sen in text.split('.'):
             if len(sen) < 3:
                 continue
+            sen = sen.strip()
             sen +='.'
             print(sen)
             sen = sen.strip()
