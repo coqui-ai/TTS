@@ -1,0 +1,7 @@
+{
+    "model_path":"/data/shared/erogol_models/May-25-2018_03:01PM-loc-sens-attention-ad94312",
+    "model_name":"checkpoint_291024.pth.tar",
+    "model_config":"config.json",
+    "port": 5000,
+    "use_cuda": true
+}
