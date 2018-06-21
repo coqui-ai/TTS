@@ -1,4 +1,3 @@
 #!/bin/bash
 source ../tmp/venv/bin/activate
-export PYTHONPATH='
 python train.py --config_path config.json
