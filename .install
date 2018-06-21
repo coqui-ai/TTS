@@ -1,0 +1,4 @@
+#!/bin/bash
+virtualenv -p python3 ../tmp/venv
+source ../tmp/venv/bin/activate
+pip install --no-cache-dir -r requirements.txt
