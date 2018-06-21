@@ -71,6 +71,7 @@ setup(name='TTS',
       install_requires=[
           "numpy",
           "scipy",
+          "librosa",
           "torch >= 0.4.0",
           "unidecode",
           "tensorboardX",

@@ -5,9 +5,9 @@ import librosa
 import torch
 from torch.utils.data import Dataset
 
-from TTS.utils.text import text_to_sequence
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.data import (prepare_data, pad_per_step,
+from utils.text import text_to_sequence
+from utils.audio import AudioProcessor
+from utils.data import (prepare_data, pad_per_step,
                             prepare_tensor, prepare_stop_target)
 
 
