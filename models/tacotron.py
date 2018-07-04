@@ -1,8 +1,8 @@
 # coding: utf-8
 import torch
 from torch import nn
-from TTS.utils.text.symbols import symbols
-from TTS.layers.tacotron import Prenet, Encoder, Decoder, CBHG
+from utils.text.symbols import symbols
+from layers.tacotron import Prenet, Encoder, Decoder, CBHG
 
 
 class Tacotron(nn.Module):
