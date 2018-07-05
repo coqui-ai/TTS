@@ -14,7 +14,7 @@ def create_speech(m, s, CONFIG, use_cuda, ap):
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
         chars_var = chars_var.cuda()
-    mel_out, linear_out, alignments, stop_tokens = m.forward(chars_var)
+    mel_out, linear_out, alignments, stop_tokens = m.forward(chars_var.long())
     linear_out = linear_out[0].data.cpu().numpy()
     alignment = alignments[0].cpu().data.numpy()
     spec = ap._denormalize(linear_out)
@@ -34,7 +34,7 @@ def visualize(alignment, spectrogram, stop_tokens, CONFIG):
     plt.xlabel("Decoder timestamp", fontsize=label_fontsize)
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
     plt.colorbar()
-    
+
     stop_tokens = stop_tokens.squeeze().detach().to('cpu').numpy()
     plt.subplot(3, 1, 2)
     plt.plot(range(len(stop_tokens)), list(stop_tokens))
@@ -46,5 +46,3 @@ def visualize(alignment, spectrogram, stop_tokens, CONFIG):
     plt.ylabel("Hz", fontsize=label_fontsize)
     plt.tight_layout()
     plt.colorbar()
-    
-   
