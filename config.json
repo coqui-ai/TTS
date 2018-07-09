@@ -28,5 +28,5 @@
     "print_step": 50,
     "data_path": "/snakepit/shared/data/keithito/LJSpeech-1.1/",
     "min_seq_len": 0,
-    "output_path": "models/"
+    "output_path": "experiments/"
   }
