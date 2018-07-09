@@ -150,9 +150,10 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         #                                    ('grad_norm_st', grad_norm_st.item())])
 
         if current_step % c.print_step == 0:
-            print(" | | > TotalLoss: {:.5f}\t LinearLoss: {:.5f}\t MelLoss: \
-                  {:.5f}\t StopLoss: {:.5f}\t GradNorm: {:.5f}\t \
-                  GradNormST: {:.5f}".format(loss.item(),
+            print(" | | > Step:{}\tGlobalStep:{}\tTotalLoss:{:.5f}\tLinearLoss:{:.5f}\tMelLoss:\
+                  {:.5f}\tStopLoss:{:.5f}\tGradNorm:{:.5f}\t\
+                  GradNormST: {:.5f}".format(num_iter, current_step,
+                                             loss.item(),
                                              linear_loss.item(),
                                              mel_loss.item(),
                                              stop_loss.item(),
