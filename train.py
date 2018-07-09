@@ -320,7 +320,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
     avg_linear_loss /= (num_iter + 1)
     avg_mel_loss /= (num_iter + 1)
     avg_stop_loss /= (num_iter + 1)
-    avg_total_loss = avg_mel_loss + avg_linear_loss + stop_loss
+    avg_total_loss = avg_mel_loss + avg_linear_loss + avg_stop_loss
 
     # Plot Learning Stats
     tb.add_scalar('ValEpochLoss/TotalLoss', avg_total_loss, current_step)
