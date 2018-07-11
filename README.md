@@ -14,7 +14,7 @@ Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easie
   * tensorboardX
   * matplotlib
   * unidecode
- 
+
 ## Checkpoints and Audio Samples
 Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the-most-perfect-instrument-of-all-arvo-part) to compare the samples (except the first) below.
 
@@ -29,6 +29,14 @@ Currently TTS provides data loaders for
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 
 ## Training and Finetunning
+Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```.
+
+```
+shuf metadata.csv > metadata_shuf.csv
+head -n 12000 metadata_shuf.csv > metadata_train.csv
+tail -n 11000 metadata_shuf.csv > metadata_val.csv
+```
+
 To train a new model, you need to define a ```config.json``` file (simple template below) and call with the command below.
 
 ```train.py --config_path config.json```
@@ -41,7 +49,7 @@ If you like to use specific set of GPUs, you need set an environment variable. T
 
 ```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
 
-Each run creates an experiment folder with some meta information, under the folder you set in ```config.json```. 
+Each run creates an experiment folder with some meta information, under the folder you set in ```config.json```.
 In case of any error or intercepted execution, if there is no checkpoint yet under the execution folder, the whole folder is going to be removed.
 
 You can also enjoy Tensorboard, if you point the Tensorboard argument```--logdir``` to the experiment folder.
@@ -67,7 +75,7 @@ Example ```config.json```:
   "batch_size": 32,
   "eval_batch_size":32,
   "r": 5,
-    
+
   "griffin_lim_iters": 60,
   "power": 1.5,
 
@@ -76,17 +84,17 @@ Example ```config.json```:
   "checkpoint": true,
   "save_step": 376,
   "data_path": "/my/training/data/path",
-  "min_seq_len": 0, 
+  "min_seq_len": 0,
   "output_path": "/my/experiment/folder/path"
 }
 
 ```
 
 ## Testing
-Best way to test your pretrained network is to use Notebooks under ```notebooks``` folder. 
+Best way to test your pretrained network is to use Notebooks under ```notebooks``` folder.
 
 ## Contribution
-Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on track as this repo gets bigger. 
+Any kind of contribution is highly welcome as we are propelled by the open-source spirit. If you like to add or edit things in code, please also consider to write tests to verify your segment so that we can be sure things are on track as this repo gets bigger.
 
 ## TODO
 Checkout issues and Project field.
@@ -98,9 +106,9 @@ Checkout issues and Project field.
 - [Char2Wav: End-to-End Speech Synthesis](https://openreview.net/pdf?id=B1VWyySKx)
 - [VoiceLoop: Voice Fitting and Synthesis via a Phonological Loop](https://arxiv.org/pdf/1707.06588.pdf)
 - [WaveRNN](https://arxiv.org/pdf/1802.08435.pdf)
-- [Faster WaveNet](https://arxiv.org/abs/1611.09482) 
+- [Faster WaveNet](https://arxiv.org/abs/1611.09482)
 - [Parallel WaveNet](https://arxiv.org/abs/1711.10433)
-        
+
 ### Precursor implementations
 - https://github.com/keithito/tacotron (Dataset and Test processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
