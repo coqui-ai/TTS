@@ -18,7 +18,7 @@ class LJSpeechDataset(Dataset):
                  frame_length_ms, preemphasis, ref_level_db, num_freq, power,
                  min_seq_len=0):
 
-        with open(csv_file, "r") as f:
+        with open(csv_file, "r", encoding="utf8") as f:
             self.frames = [line.split('|') for line in f]
         self.root_dir = root_dir
         self.outputs_per_step = outputs_per_step
