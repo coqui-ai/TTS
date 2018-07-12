@@ -144,8 +144,8 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         #                                    ('grad_norm_st', grad_norm_st.item())])
 
         if current_step % c.print_step == 0:
-            print(" | | > Step:{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}"\
-                  "MelLoss:{:.5f}  StopLoss:{:.5f}  GradNorm:{:.5f}"\
+            print(" | | > Step:{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}  "\
+                  "MelLoss:{:.5f}  StopLoss:{:.5f}  GradNorm:{:.5f}  "\
                   "GradNormST:{:.5f}  StepTime:{:.2f}".format(num_iter, current_step,
                                              loss.item(),
                                              linear_loss.item(),
@@ -209,8 +209,8 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     avg_total_loss = avg_mel_loss + avg_linear_loss + avg_stop_loss
 
     # print epoch stats
-    print(" | | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}"\
-          "AvgLinearLoss:{:.5f}  AvgMelLoss:{:.5f}"\
+    print(" | | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  "\
+          "AvgLinearLoss:{:.5f}  AvgMelLoss:{:.5f}  "\
           "AvgStopLoss:{:.5f}  EpochTime:{:.2f}".format(current_step,
                                                        avg_total_loss,
                                                        avg_linear_loss,
@@ -284,7 +284,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
             #                                    ('mel_loss', mel_loss.item()),
             #                                    ('stop_loss', stop_loss.item())])
             if current_step % c.print_step == 0:
-                print(" | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss:{:.5f}"\
+                print(" | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss:{:.5f}  "\
                       "StopLoss: {:.5f}  ".format(loss.item(),
                                                           linear_loss.item(),
                                                           mel_loss.item(),
