@@ -150,9 +150,9 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         #                                    ('grad_norm_st', grad_norm_st.item())])
 
         if current_step % c.print_step == 0:
-            print(" | | > Step:{}\tGlobalStep:{}\tTotalLoss:{:.5f}\tLinearLoss:{:.5f}\tMelLoss:\
-                  {:.5f}\tStopLoss:{:.5f}\tGradNorm:{:.5f}\t\
-                  GradNormST:{:.5f}\tStepTime:{:.2f}".format(num_iter, current_step,
+            print(" | | > Step:{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}  MelLoss:\
+                  {:.5f}  StopLoss:{:.5f}  GradNorm:{:.5f}  \
+                  GradNormST:{:.5f}  StepTime:{:.2f}".format(num_iter, current_step,
                                              loss.item(),
                                              linear_loss.item(),
                                              mel_loss.item(),
@@ -215,9 +215,9 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     avg_total_loss = avg_mel_loss + avg_linear_loss + avg_stop_loss
 
     # print epoch stats
-    print(" | | > EPOCH END -- GlobalStep:{}\tAvgTotalLoss:{:.5f}\t\
-          AvgLinearLoss:{:.5f}\tAvgMelLoss:{:.5f}\t\
-          AvgStopLoss:{:.5f}\tEpochTime:{:.2f}".format(current_step,
+    print(" | | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  \
+          AvgLinearLoss:{:.5f}  AvgMelLoss:{:.5f}  \
+          AvgStopLoss:{:.5f}  EpochTime:{:.2f}".format(current_step,
                                                        avg_total_loss,
                                                        avg_linear_loss,
                                                        avg_mel_loss,
@@ -290,8 +290,8 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
             #                                    ('mel_loss', mel_loss.item()),
             #                                    ('stop_loss', stop_loss.item())])
             if current_step % c.print_step == 0:
-                print(" | | > TotalLoss: {:.5f}\t LinearLoss: {:.5f}\t MelLoss: \
-                      {:.5f}\t StopLoss: {:.5f}\t".format(loss.item(),
+                print(" | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss: \
+                      {:.5f}   StopLoss: {:.5f}  ".format(loss.item(),
                                                           linear_loss.item(),
                                                           mel_loss.item(),
                                                           stop_loss.item()))
@@ -434,7 +434,7 @@ def main(args):
         train_loss, current_step = train(
             model, criterion, criterion_st, train_loader, optimizer, optimizer_st, epoch)
         val_loss = evaluate(model, criterion, criterion_st, val_loader, current_step)
-        print(" | > Train Loss: {:.5f}\t Validation Loss: {:.5f}".format(train_loss, val_loss))
+        print(" | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(train_loss, val_loss))
         best_loss = save_best_model(model, optimizer, val_loss,
                                     best_loss, OUT_PATH,
                                     current_step, epoch)
