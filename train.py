@@ -22,7 +22,6 @@ from utils.generic_utils import (Progbar, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
                                  save_best_model, load_config, lr_decay,
                                  count_parameters, check_update, get_commit_hash)
-from utils.model import get_param_size
 from utils.visual import plot_alignment, plot_spectrogram
 from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
@@ -96,6 +95,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         # dispatch data to GPU
         if use_cuda:
             text_input = text_input.cuda()
+            text_lengths = text_lengths.cuda()
             mel_input = mel_input.cuda()
             mel_lengths = mel_lengths.cuda()
             linear_input = linear_input.cuda()
@@ -103,7 +103,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
 
         # forward pass
         mel_output, linear_output, alignments, stop_tokens =\
-            model.forward(text_input, mel_input)
+            model.forward(text_input, mel_input, text_lengths)
 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets)
