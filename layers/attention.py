@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+from utils.generic_utils import sequence_mask
 
 
 class BahdanauAttention(nn.Module):
@@ -91,8 +92,17 @@ class AttentionRNNCell(nn.Module):
                 'b' (Bahdanau) or 'ls' (Location Sensitive).".format(align_model))
 
 
-    def forward(self, memory, context, rnn_state, annotations,
-                attention_vec, mask=None, annotations_lengths=None):
+    def forward(self, memory, context, rnn_state, annots,
+                atten, annot_lens=None):
+        """
+        Shapes:
+            - memory: (batch, 1, dim) or (batch, dim)
+            - context: (batch, dim)
+            - rnn_state: (batch, out_dim)
+            - annots: (batch, max_time, annot_dim)
+            - atten: (batch, max_time)
+            - annot_lens: (batch,)
+        """
         # Concat input query and previous context context
         rnn_input = torch.cat((memory, context), -1)
         # Feed it to RNN
@@ -102,18 +112,18 @@ class AttentionRNNCell(nn.Module):
         # (batch, max_time)
         # e_{ij} = a(s_{i-1}, h_j)
         if self.align_model is 'b':
-            alignment = self.alignment_model(annotations, rnn_output)
+            alignment = self.alignment_model(annots, rnn_output)
         else:
-            alignment = self.alignment_model(annotations, rnn_output, attention_vec)
-        # TODO: needs recheck.
-        if mask is not None:
-            mask = mask.view(query.size(0), -1)
-            alignment.data.masked_fill_(mask, self.score_mask_value)
+            alignment = self.alignment_model(annots, rnn_output, atten)
+        if annot_lens is not None:
+            mask = sequence_mask(annot_lens)
+            mask = mask.view(memory.size(0), -1)
+            alignment.masked_fill_(1 - mask, -float("inf"))
         # Normalize context weight
         alignment = F.softmax(alignment, dim=-1)
         # Attention context vector
         # (batch, 1, dim)
         # c_i = \sum_{j=1}^{T_x} \alpha_{ij} h_j
-        context = torch.bmm(alignment.unsqueeze(1), annotations)
+        context = torch.bmm(alignment.unsqueeze(1), annots)
         context = context.squeeze(1)
         return rnn_output, context, alignment
