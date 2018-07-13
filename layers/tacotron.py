@@ -1,9 +1,7 @@
 # coding: utf-8
 import torch
 from torch import nn
-from .attention import AttentionRNN
-from .attention import get_mask_from_lengths
-
+from .attention import AttentionRNNCell
 
 class Prenet(nn.Module):
     r""" Prenet as explained at https://arxiv.org/abs/1703.10135.
@@ -12,7 +10,7 @@ class Prenet(nn.Module):
     Args:
         in_features (int): size of the input vector
         out_features (int or list): size of each output sample.
-            If it is a list, for each value, there is created a new layer.  
+            If it is a list, for each value, there is created a new layer.
     """
 
     def __init__(self, in_features, out_features=[256, 128]):
@@ -162,7 +160,7 @@ class CBHG(nn.Module):
             x = highway(x)
         # (B, T_in, in_features*2)
         # TODO: replace GRU with convolution as in Deep Voice 3
-        self.gru.flatten_parameters()
+        # self.gru.flatten_parameters()
         outputs, _ = self.gru(x)
         return outputs
 
@@ -195,7 +193,6 @@ class Decoder(nn.Module):
         in_features (int): input vector (encoder output) sample size.
         memory_dim (int): memory vector (prev. time-step output) sample size.
         r (int): number of outputs per time step.
-        eps (float): threshold for detecting the end of a sentence.
     """
 
     def __init__(self, in_features, memory_dim, r):
@@ -205,8 +202,8 @@ class Decoder(nn.Module):
         self.memory_dim = memory_dim
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, out_features=[256, 128])
-        # processed_inputs, processed_memory -> |Attention| -> Attention, Alignment, RNN_State
-        self.attention_rnn = AttentionRNN(256, in_features, 128)
+        # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
+        self.attention_rnn = AttentionRNNCell(256, in_features, 128, align_model='ls')
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256+in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state
@@ -234,6 +231,7 @@ class Decoder(nn.Module):
             - memory: batch x #mel_specs x mel_spec_dim
         """
         B = inputs.size(0)
+        T = inputs.size(1)
         # Run greedy decoding if memory is None
         greedy = not self.training
         if memory is not None:
@@ -243,19 +241,22 @@ class Decoder(nn.Module):
                 " !! Dimension mismatch {} vs {} * {}".format(memory.size(-1),
                                                               self.memory_dim, self.r)
             T_decoder = memory.size(1)
-        # go frame - 0 frames tarting the sequence
+        # go frame as zeros matrix
         initial_memory = inputs.data.new(B, self.memory_dim * self.r).zero_()
-        # Init decoder states
+        # decoder states
         attention_rnn_hidden = inputs.data.new(B, 256).zero_()
         decoder_rnn_hiddens = [inputs.data.new(B, 256).zero_()
             for _ in range(len(self.decoder_rnns))]
         current_context_vec = inputs.data.new(B, 256).zero_()
         stopnet_rnn_hidden = inputs.data.new(B, self.r * self.memory_dim).zero_()
+        # attention states
+        attention = inputs.data.new(B, T).zero_()
+        # attention_cum = inputs.data.new(B, T).zero_()
         # Time first (T_decoder, B, memory_dim)
         if memory is not None:
             memory = memory.transpose(0, 1)
         outputs = []
-        alignments = []
+        attentions = []
         stop_tokens = []
         t = 0
         memory_input = initial_memory
@@ -268,8 +269,12 @@ class Decoder(nn.Module):
             # Prenet
             processed_memory = self.prenet(memory_input)
             # Attention RNN
-            attention_rnn_hidden, current_context_vec, alignment = self.attention_rnn(
-                processed_memory, current_context_vec, attention_rnn_hidden, inputs)
+            # attention_cat = torch.cat((attention.unsqueeze(1),
+                                       # attention_cum.unsqueeze(1)),
+                                      # dim=1)
+            attention_rnn_hidden, current_context_vec, attention = self.attention_rnn(
+                processed_memory, current_context_vec, attention_rnn_hidden, inputs, attention)
+            # attention_cum += attention
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
                 torch.cat((attention_rnn_hidden, current_context_vec), -1))
@@ -286,14 +291,14 @@ class Decoder(nn.Module):
             # predict stop token
             stop_token, stopnet_rnn_hidden = self.stopnet(stop_input, stopnet_rnn_hidden)
             outputs += [output]
-            alignments += [alignment]
+            attentions += [attention]
             stop_tokens += [stop_token]
             t += 1
             if (not greedy and self.training) or (greedy and memory is not None):
                 if t >= T_decoder:
                     break
             else:
-                if t > inputs.shape[1]/2 and stop_token > 0.8:
+                if t > inputs.shape[1]/2 and stop_token > 0.6:
                     break
                 elif t > self.max_decoder_steps:
                     print(" !! Decoder stopped with 'max_decoder_steps'. \
@@ -301,28 +306,35 @@ class Decoder(nn.Module):
                     break
         assert greedy or len(outputs) == T_decoder
         # Back to batch first
-        alignments = torch.stack(alignments).transpose(0, 1)
+        attentions = torch.stack(attentions).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
         stop_tokens = torch.stack(stop_tokens).transpose(0, 1)
-        return outputs, alignments, stop_tokens
+        return outputs, attentions, stop_tokens
 
-    
+
 class StopNet(nn.Module):
     r"""
     Predicting stop-token in decoder.
-    
+
     Args:
         r (int): number of output frames of the network.
         memory_dim (int): feature dimension for each output frame.
     """
-    
+
     def __init__(self, r, memory_dim):
+        r"""
+        Predicts the stop token to stop the decoder at testing time
+
+        Args:
+            r (int): number of network output frames.
+            memory_dim (int): single feature dim of a single network output frame.
+        """
         super(StopNet, self).__init__()
         self.rnn = nn.GRUCell(memory_dim * r, memory_dim * r)
         self.relu = nn.ReLU()
         self.linear = nn.Linear(r * memory_dim, 1)
         self.sigmoid = nn.Sigmoid()
-        
+
     def forward(self, inputs, rnn_hidden):
         """
         Args:
