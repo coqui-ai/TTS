@@ -25,7 +25,7 @@ from utils.generic_utils import (Progbar, remove_experiment_folder,
 from utils.visual import plot_alignment, plot_spectrogram
 from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
-from layers.losses import L2LossMasked
+from layers.losses import L1LossMasked
 
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
@@ -338,6 +338,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
 
 def main(args):
 
+    # Setup the dataset
     # Setup the dataset
     train_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_train.csv'),
                                     os.path.join(c.data_path, 'wavs'),

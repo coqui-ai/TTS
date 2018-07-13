@@ -1,11 +1,13 @@
 {
-    "model_name": "best-model",
+    "model_name": "audio-update-l2-loss",
     "num_mels": 80,
     "num_freq": 1025,
     "sample_rate": 20000,
     "frame_length_ms": 50,
     "frame_shift_ms": 12.5,
     "preemphasis": 0.97,
+    "min_mel_freq": 125,
+    "max_mel_freq": 7600,
     "min_level_db": -100,
     "ref_level_db": 20,
     "embedding_size": 256,
@@ -25,7 +27,7 @@
 
     "checkpoint": true,
     "save_step": 376,
-    "print_step": 50,
+    "print_step": 10,
     "data_path": "/snakepit/shared/data/keithito/LJSpeech-1.1/",
     "min_seq_len": 0,
     "output_path": "experiments/"

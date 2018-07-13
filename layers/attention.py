@@ -38,11 +38,11 @@ class LocationSensitiveAttention(nn.Module):
         super(LocationSensitiveAttention, self).__init__()
         self.kernel_size = kernel_size
         self.filters = filters
-        padding = int((kernel - 1) / 2)
-        self.loc_conv =  nn.Conv1d(2, filters,
+        padding = int((kernel_size - 1) / 2)
+        self.loc_conv =  nn.Conv1d(1, filters,
                                    kernel_size=kernel_size, stride=1,
                                    padding=padding, bias=False)
-        self.loc_linear = nn.Linear(loc_dim, hidden_dim)
+        self.loc_linear = nn.Linear(filters, hidden_dim)
         self.query_layer = nn.Linear(query_dim, hidden_dim, bias=True)
         self.annot_layer = nn.Linear(annot_dim, hidden_dim, bias=True)
         self.v = nn.Linear(hidden_dim, 1, bias=False)
@@ -79,7 +79,7 @@ class AttentionRNNCell(nn.Module):
             memory_dim (int): memory vector (decoder autogression) feature dimension.
             align_model (str): 'b' for Bahdanau, 'ls' Location Sensitive alignment.
         """
-        super(AttentionRNN, self).__init__()
+        super(AttentionRNNCell, self).__init__()
         self.align_model = align_model
         self.rnn_cell = nn.GRUCell(out_dim + memory_dim, out_dim)
         # pick bahdanau or location sensitive attention
