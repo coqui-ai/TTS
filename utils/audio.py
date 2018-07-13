@@ -59,11 +59,11 @@ class AudioProcessor(object):
     def _db_to_amp(self, x):
         return np.power(10.0, x * 0.05)
 
-    def apply_preemphasis(self, x):
-        return signal.lfilter([1, -self.preemphasis], [1], x)
-
-    def apply_inv_preemphasis(self, x):
-        return signal.lfilter([1], [1, -self.preemphasis], x)
+    # def apply_preemphasis(self, x):
+    #     return signal.lfilter([1, -self.preemphasis], [1], x)
+    #
+    # def apply_inv_preemphasis(self, x):
+    #     return signal.lfilter([1], [1, -self.preemphasis], x)
 
     def spectrogram(self, y):
         # D = self._stft(self.apply_preemphasis(y))
@@ -105,7 +105,7 @@ class AudioProcessor(object):
         return y
 
     def melspectrogram(self, y):
-        D = self._stft(self.apply_preemphasis(y))
+        D = self._stft(y)
         S = self._amp_to_db(self._linear_to_mel(np.abs(D))) - self.ref_level_db
         return self._normalize(S)
 

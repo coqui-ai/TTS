@@ -352,6 +352,8 @@ def main(args):
                                     c.ref_level_db,
                                     c.num_freq,
                                     c.power,
+                                    c.min_mel_freq,
+                                    c.max_mel_freq,
                                     min_seq_len=c.min_seq_len
                                     )
 
@@ -372,7 +374,9 @@ def main(args):
                                   c.preemphasis,
                                   c.ref_level_db,
                                   c.num_freq,
-                                  c.power
+                                  c.power,
+                                  c.min_mel_freq,
+                                  c.max_mel_freq
                                   )
 
     val_loader = DataLoader(val_dataset, batch_size=c.eval_batch_size,
