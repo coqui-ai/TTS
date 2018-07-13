@@ -16,7 +16,7 @@ class LJSpeechDataset(Dataset):
     def __init__(self, csv_file, root_dir, outputs_per_step, sample_rate,
                  text_cleaner, num_mels, min_level_db, frame_shift_ms,
                  frame_length_ms, preemphasis, ref_level_db, num_freq, power,
-                 min_seq_len=0):
+                 min_mel_freq, max_mel_freq, min_seq_len=0):
 
         with open(csv_file, "r", encoding="utf8") as f:
             self.frames = [line.split('|') for line in f]
@@ -26,7 +26,8 @@ class LJSpeechDataset(Dataset):
         self.cleaners = text_cleaner
         self.min_seq_len = min_seq_len
         self.ap = AudioProcessor(sample_rate, num_mels, min_level_db, frame_shift_ms,
-                                 frame_length_ms, preemphasis, ref_level_db, num_freq, power)
+                                 frame_length_ms, preemphasis, ref_level_db, num_freq, power,
+                                 min_mel_freq, max_mel_freq)
         print(" > Reading LJSpeech from - {}".format(root_dir))
         print(" | > Number of instances : {}".format(len(self.frames)))
         self._sort_frames()
