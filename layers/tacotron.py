@@ -275,7 +275,7 @@ class Decoder(nn.Module):
                                       # dim=1)
             attention_rnn_hidden, current_context_vec, attention = self.attention_rnn(
                 processed_memory, current_context_vec, attention_rnn_hidden,
-                inputs, attention, input_lens)
+                inputs, attention.unsqueeze(1), input_lens)
             # attention_cum += attention
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
