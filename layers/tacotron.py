@@ -203,7 +203,7 @@ class Decoder(nn.Module):
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
-        self.attention_rnn = AttentionRNNCell(256, in_features, 128, align_model='ls')
+        self.attention_rnn = AttentionRNNCell(128, in_features, 128, align_model='ls')
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256+in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state
@@ -248,7 +248,7 @@ class Decoder(nn.Module):
         attention_rnn_hidden = inputs.data.new(B, 256).zero_()
         decoder_rnn_hiddens = [inputs.data.new(B, 256).zero_()
             for _ in range(len(self.decoder_rnns))]
-        current_context_vec = inputs.data.new(B, 256).zero_()
+        current_context_vec = inputs.data.new(B, 128).zero_()
         stopnet_rnn_hidden = inputs.data.new(B, self.r * self.memory_dim).zero_()
         # attention states
         attention = inputs.data.new(B, T).zero_()
