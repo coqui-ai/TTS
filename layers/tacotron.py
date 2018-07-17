@@ -198,6 +198,7 @@ class Decoder(nn.Module):
     def __init__(self, in_features, memory_dim, r):
         super(Decoder, self).__init__()
         self.r = r
+        self.in_features = in_features
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
         # memory -> |Prenet| -> processed_memory
@@ -249,7 +250,7 @@ class Decoder(nn.Module):
         attention_rnn_hidden = inputs.data.new(B, 256).zero_()
         decoder_rnn_hiddens = [inputs.data.new(B, 256).zero_()
             for _ in range(len(self.decoder_rnns))]
-        current_context_vec = inputs.data.new(B, 128).zero_()
+        current_context_vec = inputs.data.new(B, self.in_features).zero_()
         stopnet_rnn_hidden = inputs.data.new(B, self.r * self.memory_dim).zero_()
         # attention states
         attention = inputs.data.new(B, T).zero_()
