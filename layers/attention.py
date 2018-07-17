@@ -5,11 +5,11 @@ from utils.generic_utils import sequence_mask
 
 
 class BahdanauAttention(nn.Module):
-    def __init__(self, annot_dim, query_dim, hidden_dim):
+    def __init__(self, annot_dim, query_dim, attn_dim):
         super(BahdanauAttention, self).__init__()
-        self.query_layer = nn.Linear(query_dim, hidden_dim, bias=True)
-        self.annot_layer = nn.Linear(annot_dim, hidden_dim, bias=True)
-        self.v = nn.Linear(hidden_dim, 1, bias=False)
+        self.query_layer = nn.Linear(query_dim, attn_dim, bias=True)
+        self.annot_layer = nn.Linear(annot_dim, attn_dim, bias=True)
+        self.v = nn.Linear(attn_dim, 1, bias=False)
 
     def forward(self, annots, query):
         """
@@ -33,8 +33,8 @@ class BahdanauAttention(nn.Module):
 class LocationSensitiveAttention(nn.Module):
     """Location sensitive attention following
     https://arxiv.org/pdf/1506.07503.pdf"""
-    def __init__(self, annot_dim, query_dim, hidden_dim,
-                 kernel_size=7, filters=20):
+    def __init__(self, annot_dim, query_dim, attn_dim,
+                 kernel_size=31, filters=32):
         super(LocationSensitiveAttention, self).__init__()
         self.kernel_size = kernel_size
         self.filters = filters
@@ -42,10 +42,10 @@ class LocationSensitiveAttention(nn.Module):
         self.loc_conv =  nn.Conv1d(1, filters,
                                    kernel_size=kernel_size, stride=1,
                                    padding=padding, bias=False)
-        self.loc_linear = nn.Linear(filters, hidden_dim)
-        self.query_layer = nn.Linear(query_dim, hidden_dim, bias=True)
-        self.annot_layer = nn.Linear(annot_dim, hidden_dim, bias=True)
-        self.v = nn.Linear(hidden_dim, 1, bias=False)
+        self.loc_linear = nn.Linear(filters, attn_dim)
+        self.query_layer = nn.Linear(query_dim, attn_dim, bias=True)
+        self.annot_layer = nn.Linear(annot_dim, attn_dim, bias=True)
+        self.v = nn.Linear(attn_dim, 1, bias=False)
 
     def forward(self, annot, query, loc):
         """
@@ -104,6 +104,7 @@ class AttentionRNNCell(nn.Module):
             - annot_lens: (batch,)
         """
         # Concat input query and previous context context
+        print(context.shape)
         rnn_input = torch.cat((memory, context), -1)
         # Feed it to RNN
         # s_i = f(y_{i-1}, c_{i}, s_{i-1})
