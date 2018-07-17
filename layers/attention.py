@@ -69,24 +69,25 @@ class LocationSensitiveAttention(nn.Module):
 
 
 class AttentionRNNCell(nn.Module):
-    def __init__(self, out_dim, annot_dim, memory_dim, align_model):
+    def __init__(self, out_dim, rnn_dim, annot_dim, memory_dim, align_model):
         r"""
         General Attention RNN wrapper
 
         Args:
             out_dim (int): context vector feature dimension.
+            rnn_dim (int): rnn hidden state dimension.
             annot_dim (int): annotation vector feature dimension.
             memory_dim (int): memory vector (decoder autogression) feature dimension.
             align_model (str): 'b' for Bahdanau, 'ls' Location Sensitive alignment.
         """
         super(AttentionRNNCell, self).__init__()
         self.align_model = align_model
-        self.rnn_cell = nn.GRUCell(out_dim + memory_dim, out_dim)
+        self.rnn_cell = nn.GRUCell(out_dim + memory_dim, rnn_dim)
         # pick bahdanau or location sensitive attention
         if align_model == 'b':
             self.alignment_model = BahdanauAttention(annot_dim, out_dim, out_dim)
         if align_model == 'ls':
-            self.alignment_model = LocationSensitiveAttention(annot_dim, out_dim, out_dim)
+            self.alignment_model = LocationSensitiveAttention(annot_dim, rnn_dim, out_dim)
         else:
             raise RuntimeError(" Wrong alignment model name: {}. Use\
                 'b' (Bahdanau) or 'ls' (Location Sensitive).".format(align_model))
@@ -100,11 +101,10 @@ class AttentionRNNCell(nn.Module):
             - context: (batch, dim)
             - rnn_state: (batch, out_dim)
             - annots: (batch, max_time, annot_dim)
-            - atten: (batch, max_time)
+            - atten: (batch, 2, max_time)
             - annot_lens: (batch,)
         """
         # Concat input query and previous context context
-        print(context.shape)
         rnn_input = torch.cat((memory, context), -1)
         # Feed it to RNN
         # s_i = f(y_{i-1}, c_{i}, s_{i-1})
