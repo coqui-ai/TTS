@@ -1,5 +1,5 @@
 {
-    "model_name": "audio-update-l2-loss",
+    "model_name": "loc-sens-attn-new",
     "num_mels": 80,
     "num_freq": 1025,
     "sample_rate": 20000,
@@ -23,7 +23,7 @@
     "griffin_lim_iters": 60,
     "power": 1.5,
 
-    "num_loader_workers": 8,
+    "num_loader_workers": 4,
 
     "checkpoint": true,
     "save_step": 376,
