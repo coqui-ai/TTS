@@ -54,6 +54,7 @@ class AudioProcessor(object):
         return n_fft, hop_length, win_length
 
     def _amp_to_db(self, x):
+        min_level = np.exp(hparams.min_level_db / 20 * np.log(10))
         return 20 * np.log10(np.maximum(1e-5, x))
 
     def _db_to_amp(self, x):
