@@ -26,6 +26,7 @@ from utils.visual import plot_alignment, plot_spectrogram
 from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
+from utils.audio import AudioProcessor
 
 
 torch.manual_seed(1)
@@ -33,14 +34,13 @@ torch.set_num_threads(4)
 use_cuda = torch.cuda.is_available()
 
 
-def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, epoch):
+def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, ap, epoch):
     model = model.train()
     epoch_time = 0
     avg_linear_loss = 0
     avg_mel_loss = 0
     avg_stop_loss = 0
     print(" | > Epoch {}/{}".format(epoch, c.epochs))
-    progbar = Progbar(len(data_loader.dataset) / c.batch_size)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
@@ -153,8 +153,8 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
             const_spec = linear_output[0].data.cpu().numpy()
             gt_spec = linear_input[0].data.cpu().numpy()
 
-            const_spec = plot_spectrogram(const_spec, data_loader.dataset.ap)
-            gt_spec = plot_spectrogram(gt_spec, data_loader.dataset.ap)
+            const_spec = plot_spectrogram(const_spec, ap)
+            gt_spec = plot_spectrogram(gt_spec, ap)
             tb.add_image('Visual/Reconstruction', const_spec, current_step)
             tb.add_image('Visual/GroundTruth', gt_spec, current_step)
 
@@ -164,16 +164,12 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
 
             # Sample audio
             audio_signal = linear_output[0].data.cpu().numpy()
-            data_loader.dataset.ap.griffin_lim_iters = 60
-            audio_signal = data_loader.dataset.ap.inv_spectrogram(
-                audio_signal.T)
+            ap.griffin_lim_iters = 60
+            audio_signal = ap.inv_spectrogram(audio_signal.T)
             try:
                 tb.add_audio('SampleAudio', audio_signal, current_step,
                              sample_rate=c.sample_rate)
             except:
-                # print("\n > Error at audio signal on TB!!")
-                # print(audio_signal.max())
-                # print(audio_signal.min())
                 pass
 
     avg_linear_loss /= (num_iter + 1)
@@ -202,7 +198,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     return avg_linear_loss, current_step
 
 
-def evaluate(model, criterion, criterion_st, data_loader, current_step):
+def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
     model = model.eval()
     epoch_time = 0
     avg_linear_loss = 0
@@ -213,100 +209,100 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
                       "Be a voice, not an echo.",
                       "I'm sorry Dave. I'm afraid I can't do that.",
                       "This cake is great. It's so delicious and moist."]
-    # progbar = Progbar(len(data_loader.dataset) / c.batch_size)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     with torch.no_grad():
-        for num_iter, data in enumerate(data_loader):
-            start_time = time.time()
+        if data_loader is not None:
+            for num_iter, data in enumerate(data_loader):
+                start_time = time.time()
 
-            # setup input data
-            text_input = data[0]
-            text_lengths = data[1]
-            linear_input = data[2]
-            mel_input = data[3]
-            mel_lengths = data[4]
-            stop_targets = data[5]
+                # setup input data
+                text_input = data[0]
+                text_lengths = data[1]
+                linear_input = data[2]
+                mel_input = data[3]
+                mel_lengths = data[4]
+                stop_targets = data[5]
 
-            # set stop targets view, we predict a single stop token per r frames prediction
-            stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // c.r, -1)
-            stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float()
+                # set stop targets view, we predict a single stop token per r frames prediction
+                stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // c.r, -1)
+                stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float()
 
-            # dispatch data to GPU
-            if use_cuda:
-                text_input = text_input.cuda()
-                mel_input = mel_input.cuda()
-                mel_lengths = mel_lengths.cuda()
-                linear_input = linear_input.cuda()
-                stop_targets = stop_targets.cuda()
+                # dispatch data to GPU
+                if use_cuda:
+                    text_input = text_input.cuda()
+                    mel_input = mel_input.cuda()
+                    mel_lengths = mel_lengths.cuda()
+                    linear_input = linear_input.cuda()
+                    stop_targets = stop_targets.cuda()
 
-            # forward pass
-            mel_output, linear_output, alignments, stop_tokens =\
-                model.forward(text_input, mel_input)
+                # forward pass
+                mel_output, linear_output, alignments, stop_tokens =\
+                    model.forward(text_input, mel_input)
 
-            # loss computation
-            stop_loss = criterion_st(stop_tokens, stop_targets)
-            mel_loss = criterion(mel_output, mel_input, mel_lengths)
-            linear_loss = 0.5 * criterion(linear_output, linear_input, mel_lengths) \
-                + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
-                                  linear_input[:, :, :n_priority_freq],
-                                  mel_lengths)
-            loss = mel_loss + linear_loss + stop_loss
+                # loss computation
+                stop_loss = criterion_st(stop_tokens, stop_targets)
+                mel_loss = criterion(mel_output, mel_input, mel_lengths)
+                linear_loss = 0.5 * criterion(linear_output, linear_input, mel_lengths) \
+                    + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
+                                    linear_input[:, :, :n_priority_freq],
+                                    mel_lengths)
+                loss = mel_loss + linear_loss + stop_loss
 
-            step_time = time.time() - start_time
-            epoch_time += step_time
+                step_time = time.time() - start_time
+                epoch_time += step_time
 
-            if num_iter % c.print_step == 0:
-                print(" | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss:{:.5f}  "\
-                      "StopLoss: {:.5f}  ".format(loss.item(),
-                                                          linear_loss.item(),
-                                                          mel_loss.item(),
-                                                          stop_loss.item()))
+                if num_iter % c.print_step == 0:
+                    print(" | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss:{:.5f}  "\
+                        "StopLoss: {:.5f}  ".format(loss.item(),
+                                                            linear_loss.item(),
+                                                            mel_loss.item(),
+                                                            stop_loss.item()))
 
-            avg_linear_loss += linear_loss.item()
-            avg_mel_loss += mel_loss.item()
-            avg_stop_loss += stop_loss.item()
+                avg_linear_loss += linear_loss.item()
+                avg_mel_loss += mel_loss.item()
+                avg_stop_loss += stop_loss.item()
 
-    # Diagnostic visualizations
-    idx = np.random.randint(mel_input.shape[0])
-    const_spec = linear_output[idx].data.cpu().numpy()
-    gt_spec = linear_input[idx].data.cpu().numpy()
-    align_img = alignments[idx].data.cpu().numpy()
+            # Diagnostic visualizations
+            idx = np.random.randint(mel_input.shape[0])
+            const_spec = linear_output[idx].data.cpu().numpy()
+            gt_spec = linear_input[idx].data.cpu().numpy()
+            align_img = alignments[idx].data.cpu().numpy()
 
-    const_spec = plot_spectrogram(const_spec, data_loader.dataset.ap)
-    gt_spec = plot_spectrogram(gt_spec, data_loader.dataset.ap)
-    align_img = plot_alignment(align_img)
+            const_spec = plot_spectrogram(const_spec, ap)
+            gt_spec = plot_spectrogram(gt_spec, ap)
+            align_img = plot_alignment(align_img)
 
-    tb.add_image('ValVisual/Reconstruction', const_spec, current_step)
-    tb.add_image('ValVisual/GroundTruth', gt_spec, current_step)
-    tb.add_image('ValVisual/ValidationAlignment', align_img, current_step)
+            tb.add_image('ValVisual/Reconstruction', const_spec, current_step)
+            tb.add_image('ValVisual/GroundTruth', gt_spec, current_step)
+            tb.add_image('ValVisual/ValidationAlignment', align_img, current_step)
 
-    # Sample audio
-    audio_signal = linear_output[idx].data.cpu().numpy()
-    data_loader.dataset.ap.griffin_lim_iters = 60
-    audio_signal = data_loader.dataset.ap.inv_spectrogram(audio_signal.T)
-    try:
-        tb.add_audio('ValSampleAudio', audio_signal, current_step,
-                     sample_rate=c.sample_rate)
-    except:
-        # sometimes audio signal is out of boundaries
-        pass
+            # Sample audio
+            audio_signal = linear_output[idx].data.cpu().numpy()
+            ap.griffin_lim_iters = 60
+            audio_signal = ap.inv_spectrogram(audio_signal.T)
+            try:
+                tb.add_audio('ValSampleAudio', audio_signal, current_step,
+                            sample_rate=c.sample_rate)
+            except:
+                # sometimes audio signal is out of boundaries
+                pass
 
-    # compute average losses
-    avg_linear_loss /= (num_iter + 1)
-    avg_mel_loss /= (num_iter + 1)
-    avg_stop_loss /= (num_iter + 1)
-    avg_total_loss = avg_mel_loss + avg_linear_loss + avg_stop_loss
+            # compute average losses
+            avg_linear_loss /= (num_iter + 1)
+            avg_mel_loss /= (num_iter + 1)
+            avg_stop_loss /= (num_iter + 1)
+            avg_total_loss = avg_mel_loss + avg_linear_loss + avg_stop_loss
 
-    # Plot Learning Stats
-    tb.add_scalar('ValEpochLoss/TotalLoss', avg_total_loss, current_step)
-    tb.add_scalar('ValEpochLoss/LinearLoss', avg_linear_loss, current_step)
-    tb.add_scalar('ValEpochLoss/MelLoss', avg_mel_loss, current_step)
-    tb.add_scalar('ValEpochLoss/Stop_loss', avg_stop_loss, current_step)
+            # Plot Learning Stats
+            tb.add_scalar('ValEpochLoss/TotalLoss', avg_total_loss, current_step)
+            tb.add_scalar('ValEpochLoss/LinearLoss', avg_linear_loss, current_step)
+            tb.add_scalar('ValEpochLoss/MelLoss', avg_mel_loss, current_step)
+            tb.add_scalar('ValEpochLoss/Stop_loss', avg_stop_loss, current_step)
 
     # test sentences
-    data_loader.dataset.ap.griffin_lim_iters = 60
+    ap.griffin_lim_iters = 60
     for idx, test_sentence in enumerate(test_sentences):
-        wav = synthesis(model, data_loader.dataset.ap, test_sentence, use_cuda,
+        wav = synthesis(model, ap, test_sentence, use_cuda,
                         c.text_cleaner)
         try:
             wav_name = 'TestSentences/{}'.format(idx)
@@ -318,23 +314,23 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
 
 
 def main(args):
+    ap = AudioProcessor(sample_rate = c.sample_rate,
+                        num_mels = c.num_mels, 
+                        min_level_db = c.min_level_db, 
+                        frame_shift_ms = c.frame_shift_ms,
+                        frame_length_ms = c.frame_length_ms,
+                        ref_level_db = c.ref_level_db,
+                        num_freq = c.num_freq,
+                        power = c.power,
+                        min_mel_freq = c.min_mel_freq,
+                        max_mel_freq = c.max_mel_freq)
 
     # Setup the dataset
     train_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_train.csv'),
                                     os.path.join(c.data_path, 'wavs'),
                                     c.r,
-                                    c.sample_rate,
                                     c.text_cleaner,
-                                    c.num_mels,
-                                    c.min_level_db,
-                                    c.frame_shift_ms,
-                                    c.frame_length_ms,
-                                    c.preemphasis,
-                                    c.ref_level_db,
-                                    c.num_freq,
-                                    c.power,
-                                    c.min_mel_freq,
-                                    c.max_mel_freq,
+                                    ap = ap,
                                     min_seq_len=c.min_seq_len
                                     )
 
@@ -343,27 +339,20 @@ def main(args):
                               drop_last=False, num_workers=c.num_loader_workers,
                               pin_memory=True)
 
-    val_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_val.csv'),
-                                  os.path.join(c.data_path, 'wavs'),
-                                  c.r,
-                                  c.sample_rate,
-                                  c.text_cleaner,
-                                  c.num_mels,
-                                  c.min_level_db,
-                                  c.frame_shift_ms,
-                                  c.frame_length_ms,
-                                  c.preemphasis,
-                                  c.ref_level_db,
-                                  c.num_freq,
-                                  c.power,
-                                  c.min_mel_freq,
-                                  c.max_mel_freq
-                                  )
+    if c.run_eval:
+        val_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_val.csv'),
+                                    os.path.join(c.data_path, 'wavs'),
+                                    c.r,
+                                    c.text_cleaner,
+                                    ap = ap
+                                    )
 
-    val_loader = DataLoader(val_dataset, batch_size=c.eval_batch_size,
-                            shuffle=False, collate_fn=val_dataset.collate_fn,
-                            drop_last=False, num_workers=4,
-                            pin_memory=True)
+        val_loader = DataLoader(val_dataset, batch_size=c.eval_batch_size,
+                                shuffle=False, collate_fn=val_dataset.collate_fn,
+                                drop_last=False, num_workers=4,
+                                pin_memory=True)
+    else:
+        val_loader = None
 
     model = Tacotron(c.embedding_size,
                      c.num_freq,
@@ -408,11 +397,8 @@ def main(args):
         best_loss = float('inf')
 
     for epoch in range(0, c.epochs):
-        # train_loss, current_step = train(
-        current_step = 0
-        train_loss = 0
-        #     model, criterion, criterion_st, train_loader, optimizer, optimizer_st, epoch)
-        val_loss = evaluate(model, criterion, criterion_st, val_loader, current_step)
+        train_loss, current_step = train(model, criterion, criterion_st, train_loader, optimizer, optimizer_st, ap, epoch)
+        val_loss = evaluate(model, criterion, criterion_st, val_loader, ap, current_step)
         print(" | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(train_loss, val_loss))
         best_loss = save_best_model(model, optimizer, val_loss,
                                     best_loss, OUT_PATH,
