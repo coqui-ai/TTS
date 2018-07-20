@@ -28,6 +28,7 @@
     "checkpoint": true,
     "save_step": 376,
     "print_step": 10,
+    "run_eval": false,
     "data_path": "/snakepit/shared/data/keithito/LJSpeech-1.1/",
     "min_seq_len": 0,
     "output_path": "experiments/"

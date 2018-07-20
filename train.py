@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tensorboardX import SummaryWriter
 
-from utils.generic_utils import (Progbar, remove_experiment_folder,
+from utils.generic_utils import (synthesis, remove_experiment_folder,
                                  create_experiment_folder, save_checkpoint,
                                  save_best_model, load_config, lr_decay,
                                  count_parameters, check_update, get_commit_hash)
@@ -116,14 +116,6 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         step_time = time.time() - start_time
         epoch_time += step_time
 
-        # update
-        # progbar.update(num_iter+1, values=[('total_loss', loss.item()),
-        #                                    ('linear_loss', linear_loss.item()),
-        #                                    ('mel_loss', mel_loss.item()),
-        #                                    ('stop_loss', stop_loss.item()),
-        #                                    ('grad_norm', grad_norm.item()),
-        #                                    ('grad_norm_st', grad_norm_st.item())])
-
         if current_step % c.print_step == 0:
             print(" | | > Step:{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}  "\
                   "MelLoss:{:.5f}  StopLoss:{:.5f}  GradNorm:{:.5f}  "\
@@ -217,6 +209,10 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
     avg_mel_loss = 0
     avg_stop_loss = 0
     print(" | > Validation")
+    test_sentences = ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                      "Be a voice, not an echo.",
+                      "I'm sorry Dave. I'm afraid I can't do that.",
+                      "This cake is great. It's so delicious and moist."]
     # progbar = Progbar(len(data_loader.dataset) / c.batch_size)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     with torch.no_grad():
@@ -259,11 +255,6 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
             step_time = time.time() - start_time
             epoch_time += step_time
 
-            # update
-            # progbar.update(num_iter+1, values=[('total_loss', loss.item()),
-            #                                    ('linear_loss', linear_loss.item()),
-            #                                    ('mel_loss', mel_loss.item()),
-            #                                    ('stop_loss', stop_loss.item())])
             if num_iter % c.print_step == 0:
                 print(" | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss:{:.5f}  "\
                       "StopLoss: {:.5f}  ".format(loss.item(),
@@ -297,9 +288,7 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
         tb.add_audio('ValSampleAudio', audio_signal, current_step,
                      sample_rate=c.sample_rate)
     except:
-        # print(" | > Error at audio signal on TB!!")
-        # print(audio_signal.max())
-        # print(audio_signal.min())
+        # sometimes audio signal is out of boundaries
         pass
 
     # compute average losses
@@ -314,6 +303,17 @@ def evaluate(model, criterion, criterion_st, data_loader, current_step):
     tb.add_scalar('ValEpochLoss/MelLoss', avg_mel_loss, current_step)
     tb.add_scalar('ValEpochLoss/Stop_loss', avg_stop_loss, current_step)
 
+    # test sentences
+    data_loader.dataset.ap.griffin_lim_iters = 60
+    for idx, test_sentence in enumerate(test_sentences):
+        wav = synthesis(model, data_loader.dataset.ap, test_sentence, use_cuda,
+                        c.text_cleaner)
+        try:
+            wav_name = 'TestSentences/{}'.format(idx)
+            tb.add_audio(wav_name, wav, current_step,
+                         sample_rate=c.sample_rate)
+        except:
+            pass
     return avg_linear_loss
 
 
@@ -408,8 +408,10 @@ def main(args):
         best_loss = float('inf')
 
     for epoch in range(0, c.epochs):
-        train_loss, current_step = train(
-            model, criterion, criterion_st, train_loader, optimizer, optimizer_st, epoch)
+        # train_loss, current_step = train(
+        current_step = 0
+        train_loss = 0
+        #     model, criterion, criterion_st, train_loader, optimizer, optimizer_st, epoch)
         val_loss = evaluate(model, criterion, criterion_st, val_loader, current_step)
         print(" | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(train_loss, val_loss))
         best_loss = save_best_model(model, optimizer, val_loss,
