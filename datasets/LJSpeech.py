@@ -6,28 +6,23 @@ import torch
 from torch.utils.data import Dataset
 
 from utils.text import text_to_sequence
-from utils.audio import AudioProcessor
 from utils.data import (prepare_data, pad_per_step,
                             prepare_tensor, prepare_stop_target)
 
 
 class LJSpeechDataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, outputs_per_step, sample_rate,
-                 text_cleaner, num_mels, min_level_db, frame_shift_ms,
-                 frame_length_ms, preemphasis, ref_level_db, num_freq, power,
-                 min_mel_freq, max_mel_freq, min_seq_len=0):
+    def __init__(self, csv_file, root_dir, outputs_per_step,
+                 text_cleaner, ap, min_seq_len=0):
 
         with open(csv_file, "r", encoding="utf8") as f:
             self.frames = [line.split('|') for line in f]
         self.root_dir = root_dir
         self.outputs_per_step = outputs_per_step
-        self.sample_rate = sample_rate
+        self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner
         self.min_seq_len = min_seq_len
-        self.ap = AudioProcessor(sample_rate, num_mels, min_level_db, frame_shift_ms,
-                                 frame_length_ms, preemphasis, ref_level_db, num_freq, power,
-                                 min_mel_freq, max_mel_freq)
+        self.ap = ap
         print(" > Reading LJSpeech from - {}".format(root_dir))
         print(" | > Number of instances : {}".format(len(self.frames)))
         self._sort_frames()

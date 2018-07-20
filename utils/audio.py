@@ -11,14 +11,13 @@ _mel_basis = None
 class AudioProcessor(object):
 
     def __init__(self, sample_rate, num_mels, min_level_db, frame_shift_ms,
-                 frame_length_ms, preemphasis, ref_level_db, num_freq, power,
+                 frame_length_ms, ref_level_db, num_freq, power,
                  min_mel_freq, max_mel_freq, griffin_lim_iters=None):
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db
         self.frame_shift_ms = frame_shift_ms
         self.frame_length_ms = frame_length_ms
-        self.preemphasis = preemphasis
         self.ref_level_db = ref_level_db
         self.num_freq = num_freq
         self.power = power
