@@ -23,10 +23,10 @@
     "griffin_lim_iters": 60,
     "power": 1.5,
 
-    "num_loader_workers": 4,
+    "num_loader_workers": 14,
 
     "checkpoint": true,
-    "save_step": 376,
+    "save_step": 750,
     "print_step": 10,
     "run_eval": false,
     "data_path": "/snakepit/shared/data/keithito/LJSpeech-1.1/",

@@ -302,14 +302,20 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
     # test sentences
     ap.griffin_lim_iters = 60
     for idx, test_sentence in enumerate(test_sentences):
-        wav = synthesis(model, ap, test_sentence, use_cuda,
-                        c.text_cleaner)
+        wav, linear_out, alignments = synthesis(model, ap, test_sentence, use_cuda,
+                                                c.text_cleaner)
         try:
             wav_name = 'TestSentences/{}'.format(idx)
             tb.add_audio(wav_name, wav, current_step,
                          sample_rate=c.sample_rate)
         except:
             pass
+        align_img = alignments[0].data.cpu().numpy()
+        linear_spec = linear_output[0].data.cpu().numpy()
+        linear_spec = plot_spectrogram(linear_spec, ap)
+        align_img = plot_alignment(align_img)
+        tb.add_image('TestSentences/{}_GroundTruth'.format(idx), gt_spec, current_step)
+        tb.add_image('TestSentences/{}_Alignment'.format(idx), align_img, current_step)
     return avg_linear_loss
 
 
