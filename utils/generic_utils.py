@@ -166,7 +166,7 @@ def synthesis(model, ap, text, use_cuda, text_cleaner):
         chars_var = torch.from_numpy(seq).unsqueeze(0)
         if use_cuda:
             chars_var = chars_var.cuda().long()
-        _, linear_out, _, _ = model.forward(chars_var)
+        _, linear_out, alignments, _ = model.forward(chars_var)
         linear_out = linear_out[0].data.cpu().numpy()
         wav = ap.inv_spectrogram(linear_out.T)
-        return wav
+        return wav, linear_out, alignments
