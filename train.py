@@ -332,7 +332,7 @@ def main(args):
                         max_mel_freq = c.max_mel_freq)
 
     # Setup the dataset
-    train_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_train.csv'),
+    train_dataset = LJSpeechDataset(os.path.join(c.data_path, c.meta_file_train),
                                     os.path.join(c.data_path, 'wavs'),
                                     c.r,
                                     c.text_cleaner,
@@ -346,7 +346,7 @@ def main(args):
                               pin_memory=True)
 
     if c.run_eval:
-        val_dataset = LJSpeechDataset(os.path.join(c.data_path, 'metadata_val.csv'),
+        val_dataset = LJSpeechDataset(os.path.join(c.data_path, c.meta_file_val),
                                     os.path.join(c.data_path, 'wavs'),
                                     c.r,
                                     c.text_cleaner,
