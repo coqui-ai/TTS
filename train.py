@@ -23,7 +23,6 @@ from utils.generic_utils import (synthesis, remove_experiment_folder,
                                  save_best_model, load_config, lr_decay,
                                  count_parameters, check_update, get_commit_hash)
 from utils.visual import plot_alignment, plot_spectrogram
-from datasets.LJSpeech import LJSpeechDataset
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
 from utils.audio import AudioProcessor
@@ -40,7 +39,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     avg_linear_loss = 0
     avg_mel_loss = 0
     avg_stop_loss = 0
-    print(" | > Epoch {}/{}".format(epoch, c.epochs))
+    print(" | > Epoch {}/{}".format(epoch, c.epochs), flush=True)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
@@ -100,7 +99,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         grad_norm, skip_flag = check_update(model, 0.5, 100)
         if skip_flag:
             optimizer.zero_grad()
-            print(" | > Iteration skipped!!")
+            print(" | > Iteration skipped!!", flush=True)
             continue
         optimizer.step()
 
@@ -126,7 +125,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
                                              stop_loss.item(),
                                              grad_norm.item(),
                                              grad_norm_st.item(),
-                                             step_time))
+                                             step_time), flush=True)
 
         avg_linear_loss += linear_loss.item()
         avg_mel_loss += mel_loss.item()
@@ -185,7 +184,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
                                                        avg_linear_loss,
                                                        avg_mel_loss,
                                                        avg_stop_loss,
-                                                       epoch_time))
+                                                       epoch_time), flush=True)
 
     # Plot Training Epoch Stats
     tb.add_scalar('TrainEpochLoss/TotalLoss', avg_total_loss, current_step)
@@ -320,6 +319,9 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
 
 
 def main(args):
+    dataset = importlib.import_module('datasets.'+c.dataset)
+    Dataset = getattr(dataset, 'MyDataset')
+
     ap = AudioProcessor(sample_rate = c.sample_rate,
                         num_mels = c.num_mels, 
                         min_level_db = c.min_level_db, 
@@ -332,13 +334,13 @@ def main(args):
                         max_mel_freq = c.max_mel_freq)
 
     # Setup the dataset
-    train_dataset = LJSpeechDataset(os.path.join(c.data_path, c.meta_file_train),
-                                    os.path.join(c.data_path, 'wavs'),
-                                    c.r,
-                                    c.text_cleaner,
-                                    ap = ap,
-                                    min_seq_len=c.min_seq_len
-                                    )
+    train_dataset = Dataset(c.data_path,
+                            c.meta_file_train,
+                            c.r,
+                            c.text_cleaner,
+                            ap = ap,
+                            min_seq_len=c.min_seq_len
+                            )
 
     train_loader = DataLoader(train_dataset, batch_size=c.batch_size,
                               shuffle=False, collate_fn=train_dataset.collate_fn,
@@ -346,12 +348,12 @@ def main(args):
                               pin_memory=True)
 
     if c.run_eval:
-        val_dataset = LJSpeechDataset(os.path.join(c.data_path, c.meta_file_val),
-                                    os.path.join(c.data_path, 'wavs'),
-                                    c.r,
-                                    c.text_cleaner,
-                                    ap = ap
-                                    )
+        val_dataset = Dataset(c.data_path,
+                              c.meta_file_val,
+                              c.r,
+                              c.text_cleaner,
+                              ap = ap
+                              )
 
         val_loader = DataLoader(val_dataset, batch_size=c.eval_batch_size,
                                 shuffle=False, collate_fn=val_dataset.collate_fn,
@@ -374,6 +376,10 @@ def main(args):
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
         model.load_state_dict(checkpoint['model'])
+        if use_cuda:
+            model = nn.DataParallel(model.cuda())
+            criterion.cuda()
+            criterion_st.cuda()
         optimizer.load_state_dict(checkpoint['optimizer'])
         optimizer_st.load_state_dict(checkpoint['optimizer_st'])
         for state in optimizer.state.values():
@@ -387,11 +393,10 @@ def main(args):
     else:
         args.restore_step = 0
         print("\n > Starting a new training")
-
-    if use_cuda:
-        model = nn.DataParallel(model.cuda())
-        criterion.cuda()
-        criterion_st.cuda()
+        if use_cuda:
+            model = nn.DataParallel(model.cuda())
+            criterion.cuda()
+            criterion_st.cuda()
 
     num_params = count_parameters(model)
     print(" | > Model has {} parameters".format(num_params))

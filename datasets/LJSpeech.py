@@ -10,14 +10,15 @@ from utils.data import (prepare_data, pad_per_step,
                             prepare_tensor, prepare_stop_target)
 
 
-class LJSpeechDataset(Dataset):
+class MyDataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, outputs_per_step,
+    def __init__(self, root_dir, csv_file, outputs_per_step,
                  text_cleaner, ap, min_seq_len=0):
-
-        with open(csv_file, "r", encoding="utf8") as f:
-            self.frames = [line.split('|') for line in f]
         self.root_dir = root_dir
+        self.wav_dir = os.path.join(root_dir, 'wavs')
+        self.csv_dir = os.path.join(root_dir, csv_file)
+        with open(self.csv_dir, "r", encoding="utf8") as f:
+            self.frames = [line.split('|') for line in f]
         self.outputs_per_step = outputs_per_step
         self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner
@@ -59,7 +60,7 @@ class LJSpeechDataset(Dataset):
         return len(self.frames)
 
     def __getitem__(self, idx):
-        wav_name = os.path.join(self.root_dir,
+        wav_name = os.path.join(self.wav_dir,
                                 self.frames[idx][0]) + '.wav'
         text = self.frames[idx][1]
         text = np.asarray(text_to_sequence(

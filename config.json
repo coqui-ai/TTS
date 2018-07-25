@@ -31,7 +31,8 @@
     "run_eval": false,
     "data_path": "/snakepit/shared/data/keithito/LJSpeech-1.1/",
     "meta_file_train": "metadata.csv",
-    "meta_file_val": "metadata_val.csv",
+    "meta_file_val": null,
+    "dataset": "LJSpeechCached",
     "min_seq_len": 0,
     "output_path": "experiments/"
   }
