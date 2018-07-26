@@ -305,8 +305,7 @@ class Decoder(nn.Module):
                 if t > inputs.shape[1]/2 and stop_token > 0.6:
                     break
                 elif t > self.max_decoder_steps:
-                    print(" !! Decoder stopped with 'max_decoder_steps'. \
-                          Something is probably wrong.")
+                    print(" | | > Decoder stopped with 'max_decoder_steps")
                     break
         assert greedy or len(outputs) == T_decoder
         # Back to batch first
