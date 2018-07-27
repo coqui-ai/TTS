@@ -3,5 +3,6 @@
 # ls /snakepit/jobs/650/keep/
 source /snakepit/jobs/650/keep/venv/bin/activate
 # source  /snakepit/jobs/560/tmp/venv/bin/activate
-python extract_feats.py --data_path /snakepit/shared/data/keithito/LJSpeech-1.1/wavs --out_path /snakepit/shared/data/keithito/LJSpeech-1.1/loader_data/  --config config.json --num_proc 8
-python train.py --config_path config.json --debug true
+# python extract_feats.py --data_path /snakepit/shared/data/keithito/LJSpeech-1.1/wavs --out_path /snakepit/shared/data/keithito/LJSpeech-1.1/loader_data/  --config config.json --num_proc 32
+CUDA_VISIBLE_DEVICES="1" python train.py --config_path config.json --debug true
+# nvidia-smi

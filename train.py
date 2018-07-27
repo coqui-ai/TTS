@@ -410,7 +410,7 @@ def main(args):
         train_loss, current_step = train(model, criterion, criterion_st, train_loader, optimizer, optimizer_st, ap, epoch)
         val_loss = evaluate(model, criterion, criterion_st, val_loader, ap, current_step)
         print(" | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(train_loss, val_loss))
-        best_loss = save_best_model(model, optimizer, val_loss,
+        best_loss = save_best_model(model, optimizer, train_loss,
                                     best_loss, OUT_PATH,
                                     current_step, epoch)
 
