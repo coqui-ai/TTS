@@ -78,6 +78,7 @@ setup(name='TTS',
           "matplotlib",
           "Pillow",
           "flask",
+          "lws"
       ],
       extras_require={
           "bin": [
