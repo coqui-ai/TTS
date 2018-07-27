@@ -75,8 +75,8 @@ if __name__ == "__main__":
         if args.num_proc > 1:
             print(" > Using {} processes.".format(args.num_proc))
             with Pool(args.num_proc) as p:
-                # r = list(tqdm.tqdm(p.imap(extract_mel, file_names), total=len(file_names)))
-                r = list(p.imap(extract_mel, file_names))
+                r = list(tqdm.tqdm(p.imap(extract_mel, file_names), total=len(file_names)))
+                # r = list(p.imap(extract_mel, file_names))
         else:
             print(" > Using single process run.")
             for file_name in file_names:
