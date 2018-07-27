@@ -41,6 +41,7 @@ if __name__ == "__main__":
                         ref_level_db = CONFIG.ref_level_db,
                         num_freq = CONFIG.num_freq,
                         power = CONFIG.power,
+                        preemphasis = CONFIG.preemphasis,
                         min_mel_freq = CONFIG.min_mel_freq,
                         max_mel_freq = CONFIG.max_mel_freq)
 
