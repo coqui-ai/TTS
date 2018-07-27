@@ -11,8 +11,9 @@ _mel_basis = None
 class AudioProcessor(object):
 
     def __init__(self, sample_rate, num_mels, min_level_db, frame_shift_ms,
-                 frame_length_ms, ref_level_db, num_freq, power,
+                 frame_length_ms, ref_level_db, num_freq, power, preemphasis,
                  min_mel_freq, max_mel_freq, griffin_lim_iters=None):
+
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db
@@ -21,9 +22,11 @@ class AudioProcessor(object):
         self.ref_level_db = ref_level_db
         self.num_freq = num_freq
         self.power = power
+        self.preemphasis = preemphasis
         self.min_mel_freq = min_mel_freq
         self.max_mel_freq = max_mel_freq
         self.griffin_lim_iters = griffin_lim_iters
+        self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
 
     def save_wav(self, wav, path):
         wav *= 32767 / max(0.01, np.max(np.abs(wav)))
@@ -60,14 +63,20 @@ class AudioProcessor(object):
         return np.power(10.0, x * 0.05)
 
     def apply_preemphasis(self, x):
-        return signal.lfilter([1, -0.97], [1], x)
+        if self.preemphasis == 0:
+            raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
+        return signal.lfilter([1, -self.preemphasis], [1], x)
     
     def apply_inv_preemphasis(self, x):
-        return signal.lfilter([1], [1, -0.97], x)
+        if self.preemphasis == 0:
+            raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
+        return signal.lfilter([1], [1, -self.preemphasis], x)
 
     def spectrogram(self, y):
-        D = self._stft(self.apply_preemphasis(y))
-        # D = self._stft(apply_preemphasis(y))
+        if self.preemphasis != 0:
+            D = self._stft(self.apply_preemphasis(y))
+        else:
+            D = self._stft(y)
         S = self._amp_to_db(np.abs(D)) - self.ref_level_db
         return self._normalize(S)
 
@@ -76,20 +85,10 @@ class AudioProcessor(object):
         S = self._denormalize(spectrogram)
         S = self._db_to_amp(S + self.ref_level_db)  # Convert back to linear
         # Reconstruct phase
-        return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
-        # return self._griffin_lim(S ** self.power)
-
-#     def _griffin_lim(self, S):
-#         '''librosa implementation of Griffin-Lim
-#         Based on https://github.com/librosa/librosa/issues/434
-#         '''
-#         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
-#         S_complex = np.abs(S).astype(np.complex)
-#         y = self._istft(S_complex * angles)
-#         for i in range(self.griffin_lim_iters):
-#             angles = np.exp(1j * np.angle(self._stft(y)))
-#             y = self._istft(S_complex * angles)
-#         return y
+        if self.preemphasis != 0:
+            return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
+        else:
+            return self._griffin_lim(S ** self.power)
 
     def _griffin_lim(self, S):
         '''Applies Griffin-Lim's raw.
@@ -105,7 +104,10 @@ class AudioProcessor(object):
         return y
 
     def melspectrogram(self, y):
-        D = self._stft(self.apply_preemphasis(y))
+        if self.preemphasis != 0:
+            D = self._stft(self.apply_preemphasis(y))
+        else:
+            D = self._stft(y)
         S = self._amp_to_db(self._linear_to_mel(np.abs(D))) - self.ref_level_db
         return self._normalize(S)
 
