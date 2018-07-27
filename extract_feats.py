@@ -27,8 +27,12 @@ if __name__ == "__main__":
     DATA_PATH = args.data_path
     OUT_PATH = args.out_path
     CONFIG = load_config(args.config)
+
     print(" > Input path: ", DATA_PATH)
     print(" > Output path: ", OUT_PATH)
+
+    audio = importlib.import_module('utils.'+c.audio_processor)
+    AudioProcessor = getattr(audio, 'AudioProcessor')
     ap = AudioProcessor(sample_rate = CONFIG.sample_rate,
                         num_mels = CONFIG.num_mels, 
                         min_level_db = CONFIG.min_level_db, 
