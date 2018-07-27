@@ -39,6 +39,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     avg_linear_loss = 0
     avg_mel_loss = 0
     avg_stop_loss = 0
+    avg_step_time = 0
     print(" | > Epoch {}/{}".format(epoch, c.epochs), flush=True)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     for num_iter, data in enumerate(data_loader):
@@ -130,6 +131,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         avg_linear_loss += linear_loss.item()
         avg_mel_loss += mel_loss.item()
         avg_stop_loss += stop_loss.item()
+        avg_step_time += step_time
 
         # Plot Training Iter Stats
         tb.add_scalar('TrainIterLoss/TotalLoss', loss.item(), current_step)
@@ -175,16 +177,19 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     avg_mel_loss /= (num_iter + 1)
     avg_stop_loss /= (num_iter + 1)
     avg_total_loss = avg_mel_loss + avg_linear_loss + avg_stop_loss
+    avg_step_time /= (num_iter + 1)
 
     # print epoch stats
     print(" | | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  "\
           "AvgLinearLoss:{:.5f}  AvgMelLoss:{:.5f}  "\
-          "AvgStopLoss:{:.5f}  EpochTime:{:.2f}".format(current_step,
-                                                       avg_total_loss,
-                                                       avg_linear_loss,
-                                                       avg_mel_loss,
-                                                       avg_stop_loss,
-                                                       epoch_time), flush=True)
+          "AvgStopLoss:{:.5f}  EpochTime:{:.2f}"\
+          "AvgStepTime:{:.2f}".format(current_step,
+                                      avg_total_loss,
+                                      avg_linear_loss,
+                                      avg_mel_loss,
+                                      avg_stop_loss,
+                                      epoch_time,
+                                      avg_step_time), flush=True)
 
     # Plot Training Epoch Stats
     tb.add_scalar('TrainEpochLoss/TotalLoss', avg_total_loss, current_step)
