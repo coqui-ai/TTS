@@ -8,8 +8,7 @@ import glob
 import argparse
 import librosa
 import numpy as np
-# import tqdm
-from utils.audio import AudioProcessor
+import tqdm
 from utils.generic_utils import load_config
 
 from multiprocessing import Pool
