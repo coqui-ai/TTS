@@ -8,7 +8,7 @@ import glob
 import argparse
 import librosa
 import numpy as np
-import tqdm
+# import tqdm
 from utils.audio import AudioProcessor
 from utils.generic_utils import load_config
 
@@ -25,13 +25,11 @@ if __name__ == "__main__":
     parser.add_argument("--num_proc", type=int, default=8,
                         help="number of processes.")
     args = parser.parse_args()
-
-    print(" > Input path: ", DATA_PATH)
-    print(" > Output path: ", OUT_PATH)
-
     DATA_PATH = args.data_path
     OUT_PATH = args.out_path
     CONFIG = load_config(args.config)
+    print(" > Input path: ", DATA_PATH)
+    print(" > Output path: ", OUT_PATH)
     ap = AudioProcessor(sample_rate = CONFIG.sample_rate,
                         num_mels = CONFIG.num_mels, 
                         min_level_db = CONFIG.min_level_db, 
@@ -46,8 +44,8 @@ if __name__ == "__main__":
     def extract_mel(file_path):
         # x, fs = sf.read(file_path)
         x, fs = librosa.load(file_path, CONFIG.sample_rate)
-        mel = ap.melspectrogram(x.astype('float32'))
-        linear = ap.spectrogram(x.astype('float32'))
+        mel = ap.melspectrogram(x.astype('float32')).astype('float32')
+        linear = ap.spectrogram(x.astype('float32')).astype('float32')
         file_name = os.path.basename(file_path).replace(".wav","")
         mel_file = file_name + ".mel"
         linear_file = file_name + ".linear"
@@ -73,7 +71,8 @@ if __name__ == "__main__":
         if args.num_proc > 1:
             print(" > Using {} processes.".format(args.num_proc))
             with Pool(args.num_proc) as p:
-                r = list(tqdm.tqdm(p.imap(extract_mel, file_names), total=len(file_names)))
+                # r = list(tqdm.tqdm(p.imap(extract_mel, file_names), total=len(file_names)))
+                r = list(p.imap(extract_mel, file_names))
         else:
             print(" > Using single process run.")
             for file_name in file_names:
