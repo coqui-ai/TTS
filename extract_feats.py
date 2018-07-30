@@ -13,6 +13,7 @@ from utils.generic_utils import load_config
 
 from multiprocessing import Pool
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str,
@@ -23,6 +24,8 @@ if __name__ == "__main__":
                         help='conf.json file for run settings.')
     parser.add_argument("--num_proc", type=int, default=8,
                         help="number of processes.")
+    parser.add_argument("--trim_silence", type=bool, default=False,
+                        help="trim silence in the voice clip.")
     args = parser.parse_args()
     DATA_PATH = args.data_path
     OUT_PATH = args.out_path
@@ -45,9 +48,19 @@ if __name__ == "__main__":
                         min_mel_freq = CONFIG.min_mel_freq,
                         max_mel_freq = CONFIG.max_mel_freq)
 
+    def trim_silence(self, wav):
+        margin = int(CONFIG.sample_rate * 0.1)
+        wav = wav[margin:-margin]
+        return librosa.effects.trim(
+                 wav, top_db=40,
+                 frame_length=1024,
+                 hop_length=256)[0]
+
     def extract_mel(file_path):
         # x, fs = sf.read(file_path)
         x, fs = librosa.load(file_path, CONFIG.sample_rate)
+        if args.trim_silence:
+            x = trim_silence(x)
         mel = ap.melspectrogram(x.astype('float32')).astype('float32')
         linear = ap.spectrogram(x.astype('float32')).astype('float32')
         file_name = os.path.basename(file_path).replace(".wav","")
