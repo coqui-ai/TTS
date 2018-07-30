@@ -182,7 +182,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     # print epoch stats
     print(" | | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  "\
           "AvgLinearLoss:{:.5f}  AvgMelLoss:{:.5f}  "\
-          "AvgStopLoss:{:.5f}  EpochTime:{:.2f}"\
+          "AvgStopLoss:{:.5f}  EpochTime:{:.2f}  "\
           "AvgStepTime:{:.2f}".format(current_step,
                                       avg_total_loss,
                                       avg_linear_loss,
@@ -260,7 +260,7 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
                         "StopLoss: {:.5f}  ".format(loss.item(),
                                                             linear_loss.item(),
                                                             mel_loss.item(),
-                                                            stop_loss.item()))
+                                                            stop_loss.item()), flush=True)
 
                 avg_linear_loss += linear_loss.item()
                 avg_mel_loss += mel_loss.item()
@@ -373,7 +373,7 @@ def main(args):
                      ap.num_freq,
                      c.num_mels,
                      c.r)
-    print(" | > Num output units : {}".format(ap.num_freq))
+    print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
     optimizer_st = optim.Adam(model.decoder.stopnet.parameters(), lr=c.lr)
@@ -394,20 +394,20 @@ def main(args):
             for k, v in state.items():
                 if torch.is_tensor(v):
                     state[k] = v.cuda()
-        print(" > Model restored from step %d" % checkpoint['step'])
+        print(" > Model restored from step %d" % checkpoint['step'], flush=True)
         start_epoch = checkpoint['step'] // len(train_loader)
         best_loss = checkpoint['linear_loss']
         args.restore_step = checkpoint['step']
     else:
         args.restore_step = 0
-        print("\n > Starting a new training")
+        print("\n > Starting a new training", flush=True)
         if use_cuda:
             model = nn.DataParallel(model.cuda())
             criterion.cuda()
             criterion_st.cuda()
 
     num_params = count_parameters(model)
-    print(" | > Model has {} parameters".format(num_params))
+    print(" | > Model has {} parameters".format(num_params), flush=True)
 
     if not os.path.exists(CHECKPOINT_PATH):
         os.mkdir(CHECKPOINT_PATH)
@@ -418,7 +418,7 @@ def main(args):
     for epoch in range(0, c.epochs):
         train_loss, current_step = train(model, criterion, criterion_st, train_loader, optimizer, optimizer_st, ap, epoch)
         val_loss = evaluate(model, criterion, criterion_st, val_loader, ap, current_step)
-        print(" | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(train_loss, val_loss))
+        print(" | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(train_loss, val_loss), flush=True)
         best_loss = save_best_model(model, optimizer, train_loss,
                                     best_loss, OUT_PATH,
                                     current_step, epoch)
