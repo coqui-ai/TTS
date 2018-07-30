@@ -9,6 +9,8 @@
     "ref_level_db": 20,
     "hidden_size": 128,
     "embedding_size": 256,
+    "min_mel_freq": null,
+    "max_mel_freq": null,
     "text_cleaner": "english_cleaners",
 
     "epochs": 2000,
@@ -27,8 +29,9 @@
     "num_loader_workers": 4,
 
     "save_step": 200,
-    "data_path_LJSpeech": "/data/shared/KeithIto/LJSpeech-1.0",
-    "data_path_TWEB": "/data/shared/BibleSpeech",
+    "data_path_LJSpeech": "C:/Users/erogol/Data/LJSpeech-1.1",
+    "data_path_Kusal": "C:/Users/erogol/Data/Kusal",
     "output_path": "result",
+    "min_seq_len": 0,
     "log_dir": "/home/erogol/projects/TTS/logs/"
     }
