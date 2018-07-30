@@ -60,7 +60,7 @@ class TacotronTrainTest(unittest.TestCase):
         count = 0
         for param, param_ref in zip(model.parameters(), model_ref.parameters()):
             # ignore pre-higway layer since it works conditional 
-            if count not in [145, 59]:
+            if count not in [148, 59]:
                 assert (param != param_ref).any(), "param {} with shape {} not updated!! \n{}\n{}".format(count, param.shape, param, param_ref)
             count += 1
             
