@@ -2,7 +2,8 @@ import unittest
 import torch as T
 
 from TTS.layers.tacotron import Prenet, CBHG, Decoder, Encoder
-from TTS.layers.losses import L1LossMasked, _sequence_mask
+from TTS.layers.losses import L1LossMasked
+from TTS.utils.generic_utils import sequence_mask
 
 
 class PrenetTests(unittest.TestCase):
@@ -79,7 +80,7 @@ class L1LossMaskedTests(unittest.TestCase):
         dummy_input = T.ones(4, 8, 128).float()
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.arange(5, 9)).long()
-        mask = ((_sequence_mask(dummy_length).float() - 1.0)
+        mask = ((sequence_mask(dummy_length).float() - 1.0)
                 * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
         assert output.item() == 1.0, "1.0 vs {}".format(output.data[0])
