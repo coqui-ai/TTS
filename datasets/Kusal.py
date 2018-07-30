@@ -17,7 +17,7 @@ class MyDataset(Dataset):
     def __init__(self, root_dir, csv_file, outputs_per_step,
                  text_cleaner, ap, min_seq_len=0):
         self.root_dir = root_dir
-        self.wav_dir = os.path.join(root_dir, 'wavs')
+        self.wav_dir = os.path.join(root_dir, 'wav')
         self.wav_files = glob.glob(os.path.join(self.wav_dir, '*.wav'))
         self._create_file_dict()
         self.csv_dir = os.path.join(root_dir, csv_file)
