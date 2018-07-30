@@ -30,7 +30,7 @@ class MyDataset(Dataset):
 
     def load_wav(self, filename):
         try:
-            audio = librosa.core.load(filename, sr=self.sample_rate)
+            audio = librosa.core.load(filename, sr=self.sample_rate)[0]
             return audio
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
@@ -65,7 +65,7 @@ class MyDataset(Dataset):
         text = self.frames[idx][1]
         text = np.asarray(text_to_sequence(
             text, [self.cleaners]), dtype=np.int32)
-        wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
+        wav = np.asarray(self.load_wav(wav_name), dtype=np.float32)
         sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0]}
         return sample
 
