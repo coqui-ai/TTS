@@ -63,27 +63,29 @@ setup(name='TTS',
       version=version,
       url='https://github.com/mozilla/TTS',
       description='Text to Speech with Deep Learning',
+
       packages=find_packages(),
       cmdclass={
           'build_py': build_py,
           'develop': develop,
       },
+      setup_requires=[
+          "numpy"
+      ],
       install_requires=[
-          "numpy",
           "scipy",
+          "torch == 0.4.0",
           "librosa",
-          "torch >= 0.4.0",
           "unidecode",
           "tensorboardX",
           "matplotlib",
           "Pillow",
           "flask",
-          "lws"
+          "lws",
       ],
       extras_require={
           "bin": [
               "tqdm",
-              "tensorboardX",
               "requests",
           ],
       })
