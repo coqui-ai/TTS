@@ -1,9 +1,9 @@
 {
-    "model_name": "loc-sens-attn-lws-no_preemphasis",
+    "model_name": "TTS-kusal",
     "audio_processor": "audio_lws",
     "num_mels": 80,
     "num_freq": 1025,
-    "sample_rate": 22050,
+    "sample_rate": 22000,
     "frame_length_ms": 50,
     "frame_shift_ms": 12.5,
     "preemphasis": 0.97,
@@ -17,7 +17,7 @@
     "epochs": 1000,
     "lr": 0.002,
     "warmup_steps": 4000,
-    "batch_size": 48,
+    "batch_size": 52,
     "eval_batch_size":-1,
     "r": 5,
 
