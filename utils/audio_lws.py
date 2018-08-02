@@ -13,6 +13,7 @@ class AudioProcessor(object):
     def __init__(self, sample_rate, num_mels, min_level_db, frame_shift_ms,
                  frame_length_ms, ref_level_db, num_freq, power, preemphasis,
                  min_mel_freq, max_mel_freq, griffin_lim_iters=None, ):
+        print(" > Setting up Audio Processor...")
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db
@@ -25,8 +26,7 @@ class AudioProcessor(object):
         self.max_mel_freq = max_mel_freq
         self.griffin_lim_iters = griffin_lim_iters
         self.preemphasis =preemphasis
-        _, self.hop_length, self.win_length = self._stft_parameters()
-        self.num_freq = (self.win_length // 2) + 1
+        self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
         if preemphasis == 0:
             print(" | > Preemphasis is deactive.")
 
@@ -35,14 +35,21 @@ class AudioProcessor(object):
         librosa.output.write_wav(path, wav.astype(np.float), self.sample_rate, norm=True)
         
     def _stft_parameters(self, ):
-        n_fft = (self.num_freq - 1) * 2
+        n_fft = int((self.num_freq - 1) * 2)
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate) 
         win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
-        return n_fft, hop_length, win_length
+        if n_fft % hop_length != 0:
+            hop_length = n_fft / 8
+            print(" | > hop_length is set to default ({}).".format(hop_length))
+        if n_fft % win_length != 0:
+            win_length = n_fft / 2
+            print(" | > win_length is set to default ({}).".format(win_length))
+        print(" | > fft size: {}, hop length: {}, win length: {}".format(n_fft, hop_length, win_length))
+        return int(n_fft), int(hop_length), int(win_length)
         
     def _lws_processor(self):
         try:
-            return lws.lws(self.win_length, self.hop_length ,mode="speech")
+            return lws.lws(self.win_length, self.hop_length, fftsize=self.n_fft, mode="speech")
         except:
             raise RuntimeError(" !! WindowLength({}) is not multiple of HopLength({}).".format(self.win_length, self.hop_length))
 
@@ -70,15 +77,22 @@ class AudioProcessor(object):
         return signal.lfilter([1], [1, -self.preemphasis], x)
 
     def spectrogram(self, y):
+        f = open(os.devnull, 'w')
+        old_out = sys.stdout
+        sys.stdout = f
         if self.preemphasis:
             D = self._lws_processor().stft(self.apply_preemphasis(y)).T
         else:
             D = self._lws_processor().stft(y).T
         S = self._amp_to_db(np.abs(D)) - self.ref_level_db
+        sys.stdout = old_out
         return self._normalize(S)
 
     def inv_spectrogram(self, spectrogram):
         '''Converts spectrogram to waveform using librosa'''
+        f = open(os.devnull, 'w')
+        old_out = sys.stdout
+        sys.stdout = f
         S = self._denormalize(spectrogram)
         S = self._db_to_amp(S + self.ref_level_db)  # Convert back to linear
         processor = self._lws_processor()
@@ -87,6 +101,7 @@ class AudioProcessor(object):
         # Reconstruct phase
         if self.preemphasis:
             return self.apply_inv_preemphasis(y)
+        sys.stdout = old_out
         return y
     
     def _linear_to_mel(self, spectrogram):
@@ -96,13 +111,17 @@ class AudioProcessor(object):
         return np.dot(_mel_basis, spectrogram)
 
     def _build_mel_basis(self, ):
-        return librosa.filters.mel(self.sample_rate, self.win_length, n_mels=self.num_mels)
+        return librosa.filters.mel(self.sample_rate, self.n_fft, n_mels=self.num_mels)
 #                                    fmin=self.min_mel_freq, fmax=self.max_mel_freq)
 
     def melspectrogram(self, y):
+        f = open(os.devnull, 'w')
+        old_out = sys.stdout
+        sys.stdout = f
         if self.preemphasis:
             D = self._lws_processor().stft(self.apply_preemphasis(y)).T
         else:
             D = self._lws_processor().stft(y).T
         S = self._amp_to_db(self._linear_to_mel(np.abs(D))) - self.ref_level_db
+        sys.stdout = old_out
         return self._normalize(S)
