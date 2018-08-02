@@ -8,21 +8,28 @@ import torch
 from torch.utils.data import Dataset
 
 from utils.text import text_to_sequence
-from utils.data import (prepare_data, pad_per_step,
-                            prepare_tensor, prepare_stop_target)
+from utils.data import (prepare_data, pad_per_step, prepare_tensor,
+                        prepare_stop_target)
 
 
 class MyDataset(Dataset):
-
-    def __init__(self, root_dir, csv_file, outputs_per_step,
-                 text_cleaner, ap, min_seq_len=0):
+    def __init__(self,
+                 root_dir,
+                 csv_file,
+                 outputs_per_step,
+                 text_cleaner,
+                 ap,
+                 min_seq_len=0):
         self.root_dir = root_dir
         self.wav_dir = os.path.join(root_dir, 'wav')
         self.wav_files = glob.glob(os.path.join(self.wav_dir, '*.wav'))
         self._create_file_dict()
         self.csv_dir = os.path.join(root_dir, csv_file)
         with open(self.csv_dir, "r", encoding="utf8") as f:
-            self.frames = [line.split('\t') for line in f if line.split('\t')[0] in self.wav_files_dict.keys()]
+            self.frames = [
+                line.split('\t') for line in f
+                if line.split('\t')[0] in self.wav_files_dict.keys()
+            ]
         self.outputs_per_step = outputs_per_step
         self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner
@@ -43,10 +50,8 @@ class MyDataset(Dataset):
             print(" !! Cannot read file : {}".format(filename))
 
     def _trim_silence(self, wav):
-         return librosa.effects.trim(
-             wav, top_db=40,
-             frame_length=1024,
-             hop_length=256)[0]
+        return librosa.effects.trim(
+            wav, top_db=40, frame_length=1024, hop_length=256)[0]
 
     def _create_file_dict(self):
         self.wav_files_dict = {}
@@ -87,11 +92,10 @@ class MyDataset(Dataset):
         sidx = self.frames[idx][0]
         sidx_files = self.wav_files_dict[sidx]
         file_name = random.choice(sidx_files)
-        wav_name = os.path.join(self.wav_dir,
-                                file_name)
+        wav_name = os.path.join(self.wav_dir, file_name)
         text = self.frames[idx][2]
-        text = np.asarray(text_to_sequence(
-            text, [self.cleaners]), dtype=np.int32)
+        text = np.asarray(
+            text_to_sequence(text, [self.cleaners]), dtype=np.int32)
         wav = np.asarray(self.load_wav(wav_name), dtype=np.float32)
         sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0]}
         return sample
@@ -121,12 +125,13 @@ class MyDataset(Dataset):
             mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
 
             # compute 'stop token' targets
-            stop_targets = [np.array([0.]*(mel_len-1))
-                            for mel_len in mel_lengths]
+            stop_targets = [
+                np.array([0.] * (mel_len - 1)) for mel_len in mel_lengths
+            ]
 
             # PAD stop targets
-            stop_targets = prepare_stop_target(
-                stop_targets, self.outputs_per_step)
+            stop_targets = prepare_stop_target(stop_targets,
+                                               self.outputs_per_step)
 
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
@@ -150,8 +155,8 @@ class MyDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[0]
+            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[
+                0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
-                         found {}"
-                         .format(type(batch[0]))))
+                         found {}".format(type(batch[0]))))

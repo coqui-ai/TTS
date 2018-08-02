@@ -40,8 +40,12 @@ def visualize(alignment, spectrogram, stop_tokens, CONFIG):
     plt.plot(range(len(stop_tokens)), list(stop_tokens))
 
     plt.subplot(3, 1, 3)
-    librosa.display.specshow(spectrogram.T, sr=CONFIG.sample_rate,
-                             hop_length=hop_length, x_axis="time", y_axis="linear")
+    librosa.display.specshow(
+        spectrogram.T,
+        sr=CONFIG.sample_rate,
+        hop_length=hop_length,
+        x_axis="time",
+        y_axis="linear")
     plt.xlabel("Time", fontsize=label_fontsize)
     plt.ylabel("Hz", fontsize=label_fontsize)
     plt.tight_layout()

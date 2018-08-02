@@ -28,10 +28,13 @@ def load_config(config_path):
 def get_commit_hash():
     """https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script"""
     try:
-        subprocess.check_output(['git', 'diff-index', '--quiet', 'HEAD'])   # Verify client is clean
+        subprocess.check_output(['git', 'diff-index', '--quiet',
+                                 'HEAD'])  # Verify client is clean
     except:
-        raise RuntimeError(" !! Commit before training to get the commit hash.")
-    commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
+        raise RuntimeError(
+            " !! Commit before training to get the commit hash.")
+    commit = subprocess.check_output(['git', 'rev-parse', '--short',
+                                      'HEAD']).decode().strip()
     print(' > Git Hash: {}'.format(commit))
     return commit
 
@@ -43,7 +46,8 @@ def create_experiment_folder(root_path, model_name, debug):
         commit_hash = 'debug'
     else:
         commit_hash = get_commit_hash()
-    output_folder = os.path.join(root_path, date_str + '-' + model_name + '-' + commit_hash)
+    output_folder = os.path.join(
+        root_path, date_str + '-' + model_name + '-' + commit_hash)
     os.makedirs(output_folder, exist_ok=True)
     print(" > Experiment folder: {}".format(output_folder))
     return output_folder
@@ -52,7 +56,7 @@ def create_experiment_folder(root_path, model_name, debug):
 def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
 
-    checkpoint_files = glob.glob(experiment_path+"/*.pth.tar")
+    checkpoint_files = glob.glob(experiment_path + "/*.pth.tar")
     if len(checkpoint_files) < 1:
         if os.path.exists(experiment_path):
             shutil.rmtree(experiment_path)
@@ -86,13 +90,15 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
     print(" | | > Checkpoint saving : {}".format(checkpoint_path))
 
     new_state_dict = _trim_model_state_dict(model.state_dict())
-    state = {'model': new_state_dict,
-             'optimizer': optimizer.state_dict(),
-             'optimizer_st': optimizer_st.state_dict(),
-             'step': current_step,
-             'epoch': epoch,
-             'linear_loss': model_loss,
-             'date': datetime.date.today().strftime("%B %d, %Y")}
+    state = {
+        'model': new_state_dict,
+        'optimizer': optimizer.state_dict(),
+        'optimizer_st': optimizer_st.state_dict(),
+        'step': current_step,
+        'epoch': epoch,
+        'linear_loss': model_loss,
+        'date': datetime.date.today().strftime("%B %d, %Y")
+    }
     torch.save(state, checkpoint_path)
 
 
@@ -100,12 +106,14 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
                     current_step, epoch):
     if model_loss < best_loss:
         new_state_dict = _trim_model_state_dict(model.state_dict())
-        state = {'model': new_state_dict,
-                 'optimizer': optimizer.state_dict(),
-                 'step': current_step,
-                 'epoch': epoch,
-                 'linear_loss': model_loss,
-                 'date': datetime.date.today().strftime("%B %d, %Y")}
+        state = {
+            'model': new_state_dict,
+            'optimizer': optimizer.state_dict(),
+            'step': current_step,
+            'epoch': epoch,
+            'linear_loss': model_loss,
+            'date': datetime.date.today().strftime("%B %d, %Y")
+        }
         best_loss = model_loss
         bestmodel_path = 'best_model.pth.tar'
         bestmodel_path = os.path.join(out_path, bestmodel_path)
@@ -161,12 +169,12 @@ def sequence_mask(sequence_length, max_len=None):
 
 
 def synthesis(model, ap, text, use_cuda, text_cleaner):
-        text_cleaner = [text_cleaner]
-        seq = np.array(text_to_sequence(text, text_cleaner))
-        chars_var = torch.from_numpy(seq).unsqueeze(0)
-        if use_cuda:
-            chars_var = chars_var.cuda().long()
-        _, linear_out, alignments, _ = model.forward(chars_var)
-        linear_out = linear_out[0].data.cpu().numpy()
-        wav = ap.inv_spectrogram(linear_out.T)
-        return wav, linear_out, alignments
+    text_cleaner = [text_cleaner]
+    seq = np.array(text_to_sequence(text, text_cleaner))
+    chars_var = torch.from_numpy(seq).unsqueeze(0)
+    if use_cuda:
+        chars_var = chars_var.cuda().long()
+    _, linear_out, alignments, _ = model.forward(chars_var)
+    linear_out = linear_out[0].data.cpu().numpy()
+    wav = ap.inv_spectrogram(linear_out.T)
+    return wav, linear_out, alignments

@@ -8,60 +8,44 @@ _ordinal_re = re.compile(r'([0-9]+)(st|nd|rd|th)')
 _number_re = re.compile(r'[0-9]+')
 
 _units = [
-  '',
-  'one',
-  'two',
-  'three',
-  'four',
-  'five',
-  'six',
-  'seven',
-  'eight',
-  'nine',
-  'ten',
-  'eleven',
-  'twelve',
-  'thirteen',
-  'fourteen',
-  'fifteen',
-  'sixteen',
-  'seventeen',
-  'eighteen',
-  'nineteen'
+    '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+    'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+    'seventeen', 'eighteen', 'nineteen'
 ]
 
 _tens = [
-  '',
-  'ten',
-  'twenty',
-  'thirty',
-  'forty',
-  'fifty',
-  'sixty',
-  'seventy',
-  'eighty',
-  'ninety',
+    '',
+    'ten',
+    'twenty',
+    'thirty',
+    'forty',
+    'fifty',
+    'sixty',
+    'seventy',
+    'eighty',
+    'ninety',
 ]
 
 _digit_groups = [
-  '',
-  'thousand',
-  'million',
-  'billion',
-  'trillion',
-  'quadrillion',
+    '',
+    'thousand',
+    'million',
+    'billion',
+    'trillion',
+    'quadrillion',
 ]
 
 _ordinal_suffixes = [
-  ('one', 'first'),
-  ('two', 'second'),
-  ('three', 'third'),
-  ('five', 'fifth'),
-  ('eight', 'eighth'),
-  ('nine', 'ninth'),
-  ('twelve', 'twelfth'),
-  ('ty', 'tieth'),
+    ('one', 'first'),
+    ('two', 'second'),
+    ('three', 'third'),
+    ('five', 'fifth'),
+    ('eight', 'eighth'),
+    ('nine', 'ninth'),
+    ('twelve', 'twelfth'),
+    ('ty', 'tieth'),
 ]
+
 
 def _remove_commas(m):
     return m.group(1).replace(',', '')
@@ -114,7 +98,7 @@ def _standard_number_to_words(n, digit_group):
 def _number_to_words(n):
     # Handle special cases first, then go to the standard case:
     if n >= 1000000000000000000:
-        return str(n)   # Too large, just return the digits
+        return str(n)  # Too large, just return the digits
     elif n == 0:
         return 'zero'
     elif n % 100 == 0 and n % 1000 != 0 and n < 3000:
