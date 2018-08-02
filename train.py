@@ -1,39 +1,34 @@
 import os
 import sys
 import time
-import datetime
 import shutil
 import torch
-import signal
 import argparse
 import importlib
-import pickle
 import traceback
 import numpy as np
 
 import torch.nn as nn
 from torch import optim
-from torch import onnx
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tensorboardX import SummaryWriter
 
-from utils.generic_utils import (synthesis, remove_experiment_folder,
-                                 create_experiment_folder, save_checkpoint,
-                                 save_best_model, load_config, lr_decay,
-                                 count_parameters, check_update, get_commit_hash)
+from utils.generic_utils import (
+    synthesis, remove_experiment_folder, create_experiment_folder,
+    save_checkpoint, save_best_model, load_config, lr_decay, count_parameters,
+    check_update, get_commit_hash)
 from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
 from utils.audio import AudioProcessor
-
 
 torch.manual_seed(1)
 torch.set_num_threads(4)
 use_cuda = torch.cuda.is_available()
 
 
-def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, ap, epoch):
+def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
+          ap, epoch):
     model = model.train()
     epoch_time = 0
     avg_linear_loss = 0
@@ -54,7 +49,8 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         stop_targets = data[5]
 
         # set stop targets view, we predict a single stop token per r frames prediction
-        stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // c.r, -1)
+        stop_targets = stop_targets.view(text_input.shape[0],
+                                         stop_targets.size(1) // c.r, -1)
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float()
 
         current_step = num_iter + args.restore_step + \
@@ -89,7 +85,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets)
         mel_loss = criterion(mel_output, mel_input, mel_lengths)
-        linear_loss = 0.5 * criterion(linear_output, linear_input, mel_lengths) \
+        linear_loss = 0.5 * criterion(linear_output, linear_input, mel_lengths)\
             + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
                               linear_input[:, :, :n_priority_freq],
                               mel_lengths)
@@ -106,7 +102,8 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
 
         # backpass and check the grad norm for stop loss
         stop_loss.backward()
-        grad_norm_st, skip_flag = check_update(model.module.decoder.stopnet, 0.5, 100)
+        grad_norm_st, skip_flag = check_update(model.module.decoder.stopnet,
+                                               0.5, 100)
         if skip_flag:
             optimizer_st.zero_grad()
             print(" | | > Iteration skipped fro stopnet!!")
@@ -117,9 +114,10 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         epoch_time += step_time
 
         if current_step % c.print_step == 0:
-            print(" | | > Step:{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}  "\
-                  "MelLoss:{:.5f}  StopLoss:{:.5f}  GradNorm:{:.5f}  "\
-                  "GradNormST:{:.5f}  StepTime:{:.2f}".format(num_iter, current_step,
+            print(" | | > Step:{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}  "
+                  "MelLoss:{:.5f}  StopLoss:{:.5f}  GradNorm:{:.5f}  "
+                  "GradNormST:{:.5f}  StepTime:{:.2f}".format(num_iter,
+                                             current_step,
                                              loss.item(),
                                              linear_loss.item(),
                                              mel_loss.item(),
@@ -147,8 +145,9 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
         if current_step % c.save_step == 0:
             if c.checkpoint:
                 # save model
-                save_checkpoint(model, optimizer, optimizer_st, linear_loss.item(),
-                                OUT_PATH, current_step, epoch)
+                save_checkpoint(model, optimizer, optimizer_st,
+                                linear_loss.item(), OUT_PATH, current_step,
+                                epoch)
 
             # Diagnostic visualizations
             const_spec = linear_output[0].data.cpu().numpy()
@@ -168,8 +167,11 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
             ap.griffin_lim_iters = 60
             audio_signal = ap.inv_spectrogram(audio_signal.T)
             try:
-                tb.add_audio('SampleAudio', audio_signal, current_step,
-                             sample_rate=c.sample_rate)
+                tb.add_audio(
+                    'SampleAudio',
+                    audio_signal,
+                    current_step,
+                    sample_rate=c.sample_rate)
             except:
                 pass
 
@@ -180,9 +182,9 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st, 
     avg_step_time /= (num_iter + 1)
 
     # print epoch stats
-    print(" | | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  "\
-          "AvgLinearLoss:{:.5f}  AvgMelLoss:{:.5f}  "\
-          "AvgStopLoss:{:.5f}  EpochTime:{:.2f}  "\
+    print(" | | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  "
+          "AvgLinearLoss:{:.5f}  AvgMelLoss:{:.5f}  "
+          "AvgStopLoss:{:.5f}  EpochTime:{:.2f}  "
           "AvgStepTime:{:.2f}".format(current_step,
                                       avg_total_loss,
                                       avg_linear_loss,
@@ -209,10 +211,12 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
     avg_mel_loss = 0
     avg_stop_loss = 0
     print(" | > Validation")
-    test_sentences = ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-                      "Be a voice, not an echo.",
-                      "I'm sorry Dave. I'm afraid I can't do that.",
-                      "This cake is great. It's so delicious and moist."]
+    test_sentences = [
+        "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+        "Be a voice, not an echo.",
+        "I'm sorry Dave. I'm afraid I can't do that.",
+        "This cake is great. It's so delicious and moist."
+    ]
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
     with torch.no_grad():
         if data_loader is not None:
@@ -228,7 +232,9 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
                 stop_targets = data[5]
 
                 # set stop targets view, we predict a single stop token per r frames prediction
-                stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // c.r, -1)
+                stop_targets = stop_targets.view(text_input.shape[0],
+                                                 stop_targets.size(1) // c.r,
+                                                 -1)
                 stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float()
 
                 # dispatch data to GPU
@@ -256,11 +262,11 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
                 epoch_time += step_time
 
                 if num_iter % c.print_step == 0:
-                    print(" | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss:{:.5f}  "\
-                        "StopLoss: {:.5f}  ".format(loss.item(),
-                                                            linear_loss.item(),
-                                                            mel_loss.item(),
-                                                            stop_loss.item()), flush=True)
+                    print(
+                        " | | > TotalLoss: {:.5f}   LinearLoss: {:.5f}   MelLoss:{:.5f}  "
+                        "StopLoss: {:.5f}  ".format(loss.item(), linear_loss.item(),
+                                                    mel_loss.item(), stop_loss.item()),
+                        flush=True)
 
                 avg_linear_loss += linear_loss.item()
                 avg_mel_loss += mel_loss.item()
@@ -278,15 +284,19 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
 
             tb.add_image('ValVisual/Reconstruction', const_spec, current_step)
             tb.add_image('ValVisual/GroundTruth', gt_spec, current_step)
-            tb.add_image('ValVisual/ValidationAlignment', align_img, current_step)
+            tb.add_image('ValVisual/ValidationAlignment', align_img,
+                         current_step)
 
             # Sample audio
             audio_signal = linear_output[idx].data.cpu().numpy()
             ap.griffin_lim_iters = 60
             audio_signal = ap.inv_spectrogram(audio_signal.T)
             try:
-                tb.add_audio('ValSampleAudio', audio_signal, current_step,
-                            sample_rate=c.sample_rate)
+                tb.add_audio(
+                    'ValSampleAudio',
+                    audio_signal,
+                    current_step,
+                    sample_rate=c.sample_rate)
             except:
                 # sometimes audio signal is out of boundaries
                 pass
@@ -298,81 +308,88 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
             avg_total_loss = avg_mel_loss + avg_linear_loss + avg_stop_loss
 
             # Plot Learning Stats
-            tb.add_scalar('ValEpochLoss/TotalLoss', avg_total_loss, current_step)
-            tb.add_scalar('ValEpochLoss/LinearLoss', avg_linear_loss, current_step)
+            tb.add_scalar('ValEpochLoss/TotalLoss', avg_total_loss,
+                          current_step)
+            tb.add_scalar('ValEpochLoss/LinearLoss', avg_linear_loss,
+                          current_step)
             tb.add_scalar('ValEpochLoss/MelLoss', avg_mel_loss, current_step)
-            tb.add_scalar('ValEpochLoss/Stop_loss', avg_stop_loss, current_step)
+            tb.add_scalar('ValEpochLoss/Stop_loss', avg_stop_loss,
+                          current_step)
 
     # test sentences
     ap.griffin_lim_iters = 60
     for idx, test_sentence in enumerate(test_sentences):
-        wav, linear_spec, alignments = synthesis(model, ap, test_sentence, use_cuda,
-                                                c.text_cleaner)
+        wav, linear_spec, alignments = synthesis(model, ap, test_sentence,
+                                                 use_cuda, c.text_cleaner)
         try:
             wav_name = 'TestSentences/{}'.format(idx)
-            tb.add_audio(wav_name, wav, current_step,
-                         sample_rate=c.sample_rate)
+            tb.add_audio(
+                wav_name, wav, current_step, sample_rate=c.sample_rate)
         except:
             pass
         align_img = alignments[0].data.cpu().numpy()
         linear_spec = plot_spectrogram(linear_spec, ap)
         align_img = plot_alignment(align_img)
-        tb.add_image('TestSentences/{}_Spectrogram'.format(idx), linear_spec, current_step)
-        tb.add_image('TestSentences/{}_Alignment'.format(idx), align_img, current_step)
+        tb.add_image('TestSentences/{}_Spectrogram'.format(idx), linear_spec,
+                     current_step)
+        tb.add_image('TestSentences/{}_Alignment'.format(idx), align_img,
+                     current_step)
     return avg_linear_loss
 
 
 def main(args):
-    dataset = importlib.import_module('datasets.'+c.dataset)
+    dataset = importlib.import_module('datasets.' + c.dataset)
     Dataset = getattr(dataset, 'MyDataset')
-    audio = importlib.import_module('utils.'+c.audio_processor)
+    audio = importlib.import_module('utils.' + c.audio_processor)
     AudioProcessor = getattr(audio, 'AudioProcessor')
 
-    ap = AudioProcessor(sample_rate=c.sample_rate,
-                        num_mels=c.num_mels, 
-                        min_level_db=c.min_level_db, 
-                        frame_shift_ms=c.frame_shift_ms,
-                        frame_length_ms=c.frame_length_ms,
-                        ref_level_db=c.ref_level_db,
-                        num_freq=c.num_freq,
-                        power=c.power,
-                        preemphasis=c.preemphasis,
-                        min_mel_freq=c.min_mel_freq,
-                        max_mel_freq=c.max_mel_freq)
+    ap = AudioProcessor(
+        sample_rate=c.sample_rate,
+        num_mels=c.num_mels,
+        min_level_db=c.min_level_db,
+        frame_shift_ms=c.frame_shift_ms,
+        frame_length_ms=c.frame_length_ms,
+        ref_level_db=c.ref_level_db,
+        num_freq=c.num_freq,
+        power=c.power,
+        preemphasis=c.preemphasis,
+        min_mel_freq=c.min_mel_freq,
+        max_mel_freq=c.max_mel_freq)
 
     # Setup the dataset
-    train_dataset = Dataset(c.data_path,
-                            c.meta_file_train,
-                            c.r,
-                            c.text_cleaner,
-                            ap = ap,
-                            min_seq_len=c.min_seq_len
-                            )
+    train_dataset = Dataset(
+        c.data_path,
+        c.meta_file_train,
+        c.r,
+        c.text_cleaner,
+        ap=ap,
+        min_seq_len=c.min_seq_len)
 
-    train_loader = DataLoader(train_dataset, batch_size=c.batch_size,
-                              shuffle=False, collate_fn=train_dataset.collate_fn,
-                              drop_last=False, num_workers=c.num_loader_workers,
-                              pin_memory=True)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=c.batch_size,
+        shuffle=False,
+        collate_fn=train_dataset.collate_fn,
+        drop_last=False,
+        num_workers=c.num_loader_workers,
+        pin_memory=True)
 
     if c.run_eval:
-        val_dataset = Dataset(c.data_path,
-                              c.meta_file_val,
-                              c.r,
-                              c.text_cleaner,
-                              ap = ap
-                              )
+        val_dataset = Dataset(
+            c.data_path, c.meta_file_val, c.r, c.text_cleaner, ap=ap)
 
-        val_loader = DataLoader(val_dataset, batch_size=c.eval_batch_size,
-                                shuffle=False, collate_fn=val_dataset.collate_fn,
-                                drop_last=False, num_workers=4,
-                                pin_memory=True)
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=c.eval_batch_size,
+            shuffle=False,
+            collate_fn=val_dataset.collate_fn,
+            drop_last=False,
+            num_workers=4,
+            pin_memory=True)
     else:
         val_loader = None
 
-    model = Tacotron(c.embedding_size,
-                     ap.num_freq,
-                     c.num_mels,
-                     c.r)
+    model = Tacotron(c.embedding_size, ap.num_freq, c.num_mels, c.r)
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr)
@@ -394,7 +411,8 @@ def main(args):
             for k, v in state.items():
                 if torch.is_tensor(v):
                     state[k] = v.cuda()
-        print(" > Model restored from step %d" % checkpoint['step'], flush=True)
+        print(
+            " > Model restored from step %d" % checkpoint['step'], flush=True)
         start_epoch = checkpoint['step'] // len(train_loader)
         best_loss = checkpoint['linear_loss']
         args.restore_step = checkpoint['step']
@@ -416,22 +434,36 @@ def main(args):
         best_loss = float('inf')
 
     for epoch in range(0, c.epochs):
-        train_loss, current_step = train(model, criterion, criterion_st, train_loader, optimizer, optimizer_st, ap, epoch)
-        val_loss = evaluate(model, criterion, criterion_st, val_loader, ap, current_step)
-        print(" | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(train_loss, val_loss), flush=True)
-        best_loss = save_best_model(model, optimizer, train_loss,
-                                    best_loss, OUT_PATH,
-                                    current_step, epoch)
+        train_loss, current_step = train(model, criterion, criterion_st,
+                                         train_loader, optimizer, optimizer_st,
+                                         ap, epoch)
+        val_loss = evaluate(model, criterion, criterion_st, val_loader, ap,
+                            current_step)
+        print(
+            " | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(
+                train_loss, val_loss),
+            flush=True)
+        best_loss = save_best_model(model, optimizer, train_loss, best_loss,
+                                    OUT_PATH, current_step, epoch)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--restore_path', type=str,
-                        help='Folder path to checkpoints', default=0)
-    parser.add_argument('--config_path', type=str,
-                        help='path to config file for training',)
-    parser.add_argument('--debug', type=bool, default=False,
-                        help='do not ask for git has before run.')
+    parser.add_argument(
+        '--restore_path',
+        type=str,
+        help='Folder path to checkpoints',
+        default=0)
+    parser.add_argument(
+        '--config_path',
+        type=str,
+        help='path to config file for training',
+    )
+    parser.add_argument(
+        '--debug',
+        type=bool,
+        default=False,
+        help='do not ask for git has before run.')
     args = parser.parse_args()
 
     # setup output paths and read configs

@@ -24,8 +24,8 @@ class BahdanauAttention(nn.Module):
         processed_query = self.query_layer(query)
         processed_annots = self.annot_layer(annots)
         # (batch, max_time, 1)
-        alignment = self.v(nn.functional.tanh(
-            processed_query + processed_annots))
+        alignment = self.v(
+            nn.functional.tanh(processed_query + processed_annots))
         # (batch, max_time)
         return alignment.squeeze(-1)
 
@@ -33,15 +33,24 @@ class BahdanauAttention(nn.Module):
 class LocationSensitiveAttention(nn.Module):
     """Location sensitive attention following
     https://arxiv.org/pdf/1506.07503.pdf"""
-    def __init__(self, annot_dim, query_dim, attn_dim,
-                 kernel_size=7, filters=20):
+
+    def __init__(self,
+                 annot_dim,
+                 query_dim,
+                 attn_dim,
+                 kernel_size=7,
+                 filters=20):
         super(LocationSensitiveAttention, self).__init__()
         self.kernel_size = kernel_size
         self.filters = filters
         padding = int((kernel_size - 1) / 2)
-        self.loc_conv =  nn.Conv1d(2, filters,
-                                   kernel_size=kernel_size, stride=1,
-                                   padding=padding, bias=False)
+        self.loc_conv = nn.Conv1d(
+            2,
+            filters,
+            kernel_size=kernel_size,
+            stride=1,
+            padding=padding,
+            bias=False)
         self.loc_linear = nn.Linear(filters, attn_dim)
         self.query_layer = nn.Linear(query_dim, attn_dim, bias=True)
         self.annot_layer = nn.Linear(annot_dim, attn_dim, bias=True)
@@ -62,8 +71,9 @@ class LocationSensitiveAttention(nn.Module):
         processed_loc = self.loc_linear(loc_conv)
         processed_query = self.query_layer(query)
         processed_annots = self.annot_layer(annot)
-        alignment = self.v(nn.functional.tanh(
-            processed_query + processed_annots + processed_loc))
+        alignment = self.v(
+            nn.functional.tanh(processed_query + processed_annots +
+                               processed_loc))
         # (batch, max_time)
         return alignment.squeeze(-1)
 
@@ -85,16 +95,23 @@ class AttentionRNNCell(nn.Module):
         self.rnn_cell = nn.GRUCell(annot_dim + memory_dim, rnn_dim)
         # pick bahdanau or location sensitive attention
         if align_model == 'b':
-            self.alignment_model = BahdanauAttention(annot_dim, rnn_dim, out_dim)
+            self.alignment_model = BahdanauAttention(annot_dim, rnn_dim,
+                                                     out_dim)
         if align_model == 'ls':
-            self.alignment_model = LocationSensitiveAttention(annot_dim, rnn_dim, out_dim)
+            self.alignment_model = LocationSensitiveAttention(
+                annot_dim, rnn_dim, out_dim)
         else:
             raise RuntimeError(" Wrong alignment model name: {}. Use\
-                'b' (Bahdanau) or 'ls' (Location Sensitive).".format(align_model))
+                'b' (Bahdanau) or 'ls' (Location Sensitive)."
+                               .format(align_model))
 
-
-    def forward(self, memory, context, rnn_state, annots,
-                atten, annot_lens=None):
+    def forward(self,
+                memory,
+                context,
+                rnn_state,
+                annots,
+                atten,
+                annot_lens=None):
         """
         Shapes:
             - memory: (batch, 1, dim) or (batch, dim)

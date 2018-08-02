@@ -4,9 +4,8 @@ import numpy as np
 def _pad_data(x, length):
     _pad = 0
     assert x.ndim == 1
-    return np.pad(x, (0, length - x.shape[0]),
-                  mode='constant',
-                  constant_values=_pad)
+    return np.pad(
+        x, (0, length - x.shape[0]), mode='constant', constant_values=_pad)
 
 
 def prepare_data(inputs):
@@ -17,8 +16,10 @@ def prepare_data(inputs):
 def _pad_tensor(x, length):
     _pad = 0
     assert x.ndim == 2
-    x = np.pad(x, [[0, 0], [0, length - x.shape[1]]],
-               mode='constant', constant_values=_pad)
+    x = np.pad(
+        x, [[0, 0], [0, length - x.shape[1]]],
+        mode='constant',
+        constant_values=_pad)
     return x
 
 
@@ -32,7 +33,8 @@ def prepare_tensor(inputs, out_steps):
 def _pad_stop_target(x, length):
     _pad = 1.
     assert x.ndim == 1
-    return np.pad(x, (0, length - x.shape[0]), mode='constant', constant_values=_pad)
+    return np.pad(
+        x, (0, length - x.shape[0]), mode='constant', constant_values=_pad)
 
 
 def prepare_stop_target(inputs, out_steps):
@@ -44,6 +46,7 @@ def prepare_stop_target(inputs, out_steps):
 
 def pad_per_step(inputs, pad_len):
     timesteps = inputs.shape[-1]
-    return np.pad(inputs, [[0, 0], [0, 0],
-                           [0, pad_len]],
-                  mode='constant', constant_values=0.0)
+    return np.pad(
+        inputs, [[0, 0], [0, 0], [0, pad_len]],
+        mode='constant',
+        constant_values=0.0)

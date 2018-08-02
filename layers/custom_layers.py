@@ -2,7 +2,6 @@
 import torch
 from torch import nn
 
-
 # class StopProjection(nn.Module):
 #     r""" Simple projection layer to predict the "stop token"
 

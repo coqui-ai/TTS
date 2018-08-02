@@ -6,14 +6,18 @@ import torch
 from torch.utils.data import Dataset
 
 from utils.text import text_to_sequence
-from utils.data import (prepare_data, pad_per_step,
-                            prepare_tensor, prepare_stop_target)
+from utils.data import (prepare_data, pad_per_step, prepare_tensor,
+                        prepare_stop_target)
 
 
 class MyDataset(Dataset):
-
-    def __init__(self, root_dir, csv_file, outputs_per_step,
-                 text_cleaner, ap, min_seq_len=0):
+    def __init__(self,
+                 root_dir,
+                 csv_file,
+                 outputs_per_step,
+                 text_cleaner,
+                 ap,
+                 min_seq_len=0):
         self.root_dir = root_dir
         self.wav_dir = os.path.join(root_dir, 'wavs')
         self.feat_dir = os.path.join(root_dir, 'loader_data')
@@ -35,7 +39,7 @@ class MyDataset(Dataset):
             return audio
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
-    
+
     def load_np(self, filename):
         data = np.load(filename).astype('float32')
         return data
@@ -66,20 +70,24 @@ class MyDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.items[idx] is None:
-            wav_name = os.path.join(self.wav_dir,
-                                    self.frames[idx][0]) + '.wav'
+            wav_name = os.path.join(self.wav_dir, self.frames[idx][0]) + '.wav'
             mel_name = os.path.join(self.feat_dir,
                                     self.frames[idx][0]) + '.mel.npy'
             linear_name = os.path.join(self.feat_dir,
                                        self.frames[idx][0]) + '.linear.npy'
             text = self.frames[idx][1]
-            text = np.asarray(text_to_sequence(
-                text, [self.cleaners]), dtype=np.int32)
+            text = np.asarray(
+                text_to_sequence(text, [self.cleaners]), dtype=np.int32)
             wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
             mel = self.load_np(mel_name)
             linear = self.load_np(linear_name)
-            sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0],
-                      'mel':mel, 'linear': linear}
+            sample = {
+                'text': text,
+                'wav': wav,
+                'item_idx': self.frames[idx][0],
+                'mel': mel,
+                'linear': linear
+            }
             self.items[idx] = sample
         else:
             sample = self.items[idx]
@@ -109,12 +117,13 @@ class MyDataset(Dataset):
             mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
 
             # compute 'stop token' targets
-            stop_targets = [np.array([0.]*(mel_len-1))
-                            for mel_len in mel_lengths]
+            stop_targets = [
+                np.array([0.] * (mel_len - 1)) for mel_len in mel_lengths
+            ]
 
             # PAD stop targets
-            stop_targets = prepare_stop_target(
-                stop_targets, self.outputs_per_step)
+            stop_targets = prepare_stop_target(stop_targets,
+                                               self.outputs_per_step)
 
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
@@ -138,8 +147,8 @@ class MyDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[0]
+            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[
+                0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
-                         found {}"
-                         .format(type(batch[0]))))
+                         found {}".format(type(batch[0]))))

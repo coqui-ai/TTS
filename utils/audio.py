@@ -9,10 +9,19 @@ _mel_basis = None
 
 
 class AudioProcessor(object):
-
-    def __init__(self, sample_rate, num_mels, min_level_db, frame_shift_ms,
-                 frame_length_ms, ref_level_db, num_freq, power, preemphasis,
-                 min_mel_freq, max_mel_freq, griffin_lim_iters=None):
+    def __init__(self,
+                 sample_rate,
+                 num_mels,
+                 min_level_db,
+                 frame_shift_ms,
+                 frame_length_ms,
+                 ref_level_db,
+                 num_freq,
+                 power,
+                 preemphasis,
+                 min_mel_freq,
+                 max_mel_freq,
+                 griffin_lim_iters=None):
 
         self.sample_rate = sample_rate
         self.num_mels = num_mels
@@ -30,7 +39,8 @@ class AudioProcessor(object):
 
     def save_wav(self, wav, path):
         wav *= 32767 / max(0.01, np.max(np.abs(wav)))
-        librosa.output.write_wav(path, wav.astype(np.float), self.sample_rate, norm=True)
+        librosa.output.write_wav(
+            path, wav.astype(np.float), self.sample_rate, norm=True)
 
     def _linear_to_mel(self, spectrogram):
         global _mel_basis
@@ -40,8 +50,9 @@ class AudioProcessor(object):
 
     def _build_mel_basis(self, ):
         n_fft = (self.num_freq - 1) * 2
-        return librosa.filters.mel(self.sample_rate, n_fft, n_mels=self.num_mels)
-                                #    fmin=self.min_mel_freq, fmax=self.max_mel_freq)
+        return librosa.filters.mel(
+            self.sample_rate, n_fft, n_mels=self.num_mels)
+        #    fmin=self.min_mel_freq, fmax=self.max_mel_freq)
 
     def _normalize(self, S):
         return np.clip((S - self.min_level_db) / -self.min_level_db, 0, 1)
@@ -66,7 +77,7 @@ class AudioProcessor(object):
         if self.preemphasis == 0:
             raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
         return signal.lfilter([1, -self.preemphasis], [1], x)
-    
+
     def apply_inv_preemphasis(self, x):
         if self.preemphasis == 0:
             raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
@@ -86,9 +97,9 @@ class AudioProcessor(object):
         S = self._db_to_amp(S + self.ref_level_db)  # Convert back to linear
         # Reconstruct phase
         if self.preemphasis != 0:
-            return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
+            return self.apply_inv_preemphasis(self._griffin_lim(S**self.power))
         else:
-            return self._griffin_lim(S ** self.power)
+            return self._griffin_lim(S**self.power)
 
     def _griffin_lim(self, S):
         '''Applies Griffin-Lim's raw.
@@ -113,7 +124,8 @@ class AudioProcessor(object):
 
     def _stft(self, y):
         n_fft, hop_length, win_length = self._stft_parameters()
-        return librosa.stft(y=y, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
+        return librosa.stft(
+            y=y, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
 
     def _istft(self, y):
         _, hop_length, win_length = self._stft_parameters()

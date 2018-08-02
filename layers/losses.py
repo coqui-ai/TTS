@@ -5,7 +5,6 @@ from utils.generic_utils import sequence_mask
 
 
 class L1LossMasked(nn.Module):
-
     def __init__(self):
         super(L1LossMasked, self).__init__()
 
@@ -31,21 +30,20 @@ class L1LossMasked(nn.Module):
         # target_flat: (batch * max_len, dim)
         target_flat = target.view(-1, target.shape[-1])
         # losses_flat: (batch * max_len, dim)
-        losses_flat = functional.l1_loss(input, target_flat, size_average=False,
-                                         reduce=False)
+        losses_flat = functional.l1_loss(
+            input, target_flat, size_average=False, reduce=False)
         # losses: (batch, max_len, dim)
         losses = losses_flat.view(*target.size())
 
         # mask: (batch, max_len, 1)
-        mask = sequence_mask(sequence_length=length,
-                              max_len=target.size(1)).unsqueeze(2)
+        mask = sequence_mask(
+            sequence_length=length, max_len=target.size(1)).unsqueeze(2)
         losses = losses * mask.float()
         loss = losses.sum() / (length.float().sum() * float(target.shape[2]))
         return loss
 
 
 class MSELossMasked(nn.Module):
-
     def __init__(self):
         super(MSELossMasked, self).__init__()
 
@@ -71,14 +69,14 @@ class MSELossMasked(nn.Module):
         # target_flat: (batch * max_len, dim)
         target_flat = target.view(-1, target.shape[-1])
         # losses_flat: (batch * max_len, dim)
-        losses_flat = functional.mse_loss(input, target_flat, size_average=False,
-                                         reduce=False)
+        losses_flat = functional.mse_loss(
+            input, target_flat, size_average=False, reduce=False)
         # losses: (batch, max_len, dim)
         losses = losses_flat.view(*target.size())
 
         # mask: (batch, max_len, 1)
-        mask = sequence_mask(sequence_length=length,
-                              max_len=target.size(1)).unsqueeze(2)
+        mask = sequence_mask(
+            sequence_length=length, max_len=target.size(1)).unsqueeze(2)
         losses = losses * mask.float()
         loss = losses.sum() / (length.float().sum() * float(target.shape[2]))
         return loss
