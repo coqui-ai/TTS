@@ -40,7 +40,7 @@ class AudioProcessor(object):
     def save_wav(self, wav, path):
         wav *= 32767 / max(0.01, np.max(np.abs(wav)))
         librosa.output.write_wav(
-            path, wav.astype(np.float), self.sample_rate, norm=True)
+            path, wav.astype(np.int16), self.sample_rate)
 
     def _linear_to_mel(self, spectrogram):
         global _mel_basis
