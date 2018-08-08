@@ -3,7 +3,7 @@
     "audio_processor": "audio",
     "num_mels": 80,
     "num_freq": 1025,
-    "sample_rate": 22050,
+    "sample_rate": 22000,
     "frame_length_ms": 50,
     "frame_shift_ms": 12.5,
     "preemphasis": 0.97,
@@ -21,7 +21,7 @@
     "eval_batch_size":-1,
     "r": 5,
 
-    "griffin_lim_iters": 60,
+    "griffin_lim_iters": 50,
     "power": 1.5,
 
     "num_loader_workers": 8,
