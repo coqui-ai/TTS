@@ -37,6 +37,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
     avg_step_time = 0
     print(" | > Epoch {}/{}".format(epoch, c.epochs), flush=True)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
+    batch_n_iter = len(data_loader.dataset) / c.batch_size
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -114,9 +115,10 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
         epoch_time += step_time
 
         if current_step % c.print_step == 0:
-            print(" | | > Step:{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}  "
+            print(" | | > Step:{}/{}  GlobalStep:{}  TotalLoss:{:.5f}  LinearLoss:{:.5f}  "
                   "MelLoss:{:.5f}  StopLoss:{:.5f}  GradNorm:{:.5f}  "
                   "GradNormST:{:.5f}  StepTime:{:.2f}".format(num_iter,
+                                             batch_n_iter,
                                              current_step,
                                              loss.item(),
                                              linear_loss.item(),
