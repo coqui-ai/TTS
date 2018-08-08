@@ -2,7 +2,7 @@
 import torch
 from torch import nn
 from utils.text.symbols import symbols
-from layers.tacotron import Prenet, Encoder, Decoder, CBHG
+from layers.tacotron import Prenet, Encoder, Decoder, PostCBHG
 
 
 class Tacotron(nn.Module):
@@ -22,8 +22,8 @@ class Tacotron(nn.Module):
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(256, mel_dim, r)
-        self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
-        self.last_linear = nn.Linear(mel_dim * 2, linear_dim)
+        self.postnet = PostCBHG(mel_dim)
+        self.last_linear = nn.Linear(256, linear_dim)
 
     def forward(self, characters, mel_specs=None, text_lens=None):
         B = characters.size(0)

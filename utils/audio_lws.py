@@ -120,9 +120,9 @@ class AudioProcessor(object):
         D = processor.run_lws(S.astype(np.float64).T**self.power)
         y = processor.istft(D).astype(np.float32)
         # Reconstruct phase
+        sys.stdout = old_out
         if self.preemphasis:
             return self.apply_inv_preemphasis(y)
-        sys.stdout = old_out
         return y
 
     def _linear_to_mel(self, spectrogram):
