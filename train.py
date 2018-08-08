@@ -37,7 +37,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
     avg_step_time = 0
     print(" | > Epoch {}/{}".format(epoch, c.epochs), flush=True)
     n_priority_freq = int(3000 / (c.sample_rate * 0.5) * c.num_freq)
-    batch_n_iter = len(data_loader.dataset) / c.batch_size
+    batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -321,13 +321,14 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
     # test sentences
     ap.griffin_lim_iters = 60
     for idx, test_sentence in enumerate(test_sentences):
+        try:
         wav, linear_spec, alignments = synthesis(model, ap, test_sentence,
                                                  use_cuda, c.text_cleaner)
-        try:
-            wav_name = 'TestSentences/{}'.format(idx)
-            tb.add_audio(
-                wav_name, wav, current_step, sample_rate=c.sample_rate)
+        wav_name = 'TestSentences/{}'.format(idx)
+        tb.add_audio(
+            wav_name, wav, current_step, sample_rate=c.sample_rate)
         except:
+            print(" !! Error as creating Test Sentence -", idx)
             pass
         align_img = alignments[0].data.cpu().numpy()
         linear_spec = plot_spectrogram(linear_spec, ap)

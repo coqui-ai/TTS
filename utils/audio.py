@@ -23,6 +23,7 @@ class AudioProcessor(object):
                  max_mel_freq,
                  griffin_lim_iters=None):
 
+        print(" > Setting up Audio Processor...")
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db
@@ -36,11 +37,12 @@ class AudioProcessor(object):
         self.max_mel_freq = max_mel_freq
         self.griffin_lim_iters = griffin_lim_iters
         self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
+        if preemphasis == 0:
+            print(" | > Preemphasis is deactive.")
 
     def save_wav(self, wav, path):
         wav *= 32767 / max(0.01, np.max(np.abs(wav)))
-        librosa.output.write_wav(
-            path, wav.astype(np.int16), self.sample_rate)
+        librosa.output.write_wav(path, wav.astype(np.int16), self.sample_rate)
 
     def _linear_to_mel(self, spectrogram):
         global _mel_basis
@@ -64,6 +66,10 @@ class AudioProcessor(object):
         n_fft = (self.num_freq - 1) * 2
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
         win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
+        hop_length = 256
+        win_length = 1024
+        print(" | > fft size: {}, hop length: {}, win length: {}".format(
+            n_fft, hop_length, win_length))
         return n_fft, hop_length, win_length
 
     def _amp_to_db(self, x):
@@ -123,13 +129,11 @@ class AudioProcessor(object):
         return self._normalize(S)
 
     def _stft(self, y):
-        n_fft, hop_length, win_length = self._stft_parameters()
         return librosa.stft(
-            y=y, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
+            y=y, n_fft=self.n_fft, hop_length=self.hop_length, win_length=self.win_length)
 
     def _istft(self, y):
-        _, hop_length, win_length = self._stft_parameters()
-        return librosa.istft(y, hop_length=hop_length, win_length=win_length)
+        return librosa.istft(y, hop_length=self.hop_length, win_length=self.win_length)
 
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)
