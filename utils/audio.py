@@ -66,8 +66,6 @@ class AudioProcessor(object):
         n_fft = (self.num_freq - 1) * 2
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
         win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
-        hop_length = 256
-        win_length = 1024
         print(" | > fft size: {}, hop length: {}, win length: {}".format(
             n_fft, hop_length, win_length))
         return n_fft, hop_length, win_length
@@ -107,17 +105,26 @@ class AudioProcessor(object):
         else:
             return self._griffin_lim(S**self.power)
 
+    # def _griffin_lim(self, S):
+    #     '''Applies Griffin-Lim's raw.
+    #     '''
+    #     S_best = copy.deepcopy(S)
+    #     for i in range(self.griffin_lim_iters):
+    #         S_t = self._istft(S_best)
+    #         est = self._stft(S_t)
+    #         phase = est / np.maximum(1e-8, np.abs(est))
+    #         S_best = S * phase
+    #     S_t = self._istft(S_best)
+    #     y = np.real(S_t)
+    #     return y
+
     def _griffin_lim(self, S):
-        '''Applies Griffin-Lim's raw.
-        '''
-        S_best = copy.deepcopy(S)
+        angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
+        S_complex = np.abs(S).astype(np.complex)
+        y = self._istft(S_complex * angles)
         for i in range(self.griffin_lim_iters):
-            S_t = self._istft(S_best)
-            est = self._stft(S_t)
-            phase = est / np.maximum(1e-8, np.abs(est))
-            S_best = S * phase
-        S_t = self._istft(S_best)
-        y = np.real(S_t)
+            angles = np.exp(1j * np.angle(self._stft(y)))
+            y = self._istft(S_complex * angles)
         return y
 
     def melspectrogram(self, y):

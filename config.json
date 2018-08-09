@@ -21,7 +21,7 @@
     "eval_batch_size":-1,
     "r": 5,
 
-    "griffin_lim_iters": 50,
+    "griffin_lim_iters": 60,
     "power": 1.5,
 
     "num_loader_workers": 8,
