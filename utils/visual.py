@@ -17,7 +17,7 @@ def plot_alignment(alignment, info=None):
     plt.tight_layout()
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3, ))
+    data = data.reshape((3, ) + fig.canvas.get_width_height()[::-1])
     plt.close()
     return data
 
@@ -30,6 +30,6 @@ def plot_spectrogram(linear_output, audio):
     plt.tight_layout()
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3, ))
+    data = data.reshape((3, ) + fig.canvas.get_width_height()[::-1])
     plt.close()
     return data
