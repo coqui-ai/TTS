@@ -189,7 +189,7 @@ class CBHG(nn.Module):
             x = highway(x)
         # (B, T_in, hid_features*2)
         # TODO: replace GRU with convolution as in Deep Voice 3
-        # self.gru.flatten_parameters()
+        self.gru.flatten_parameters()
         outputs, _ = self.gru(x)
         return outputs
 
@@ -268,7 +268,7 @@ class Decoder(nn.Module):
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
         self.stopnet = StopNet(r, memory_dim)
 
-    def forward(self, inputs, memory=None, input_lens=None):
+    def forward(self, inputs, memory=None, mask=None):
         """
         Decoder forward step.
 
@@ -280,7 +280,7 @@ class Decoder(nn.Module):
             memory (None): Decoder memory (autoregression. If None (at eval-time),
               decoder outputs are used as decoder inputs. If None, it uses the last
               output as the input.
-            input_lens (None): Time length of each input in batch.
+            mask (None): Attention mask for sequence padding.
 
         Shapes:
             - inputs: batch x time x encoder_out_dim
@@ -332,7 +332,7 @@ class Decoder(nn.Module):
                 (attention.unsqueeze(1), attention_cum.unsqueeze(1)), dim=1)
             attention_rnn_hidden, current_context_vec, attention = self.attention_rnn(
                 processed_memory, current_context_vec, attention_rnn_hidden,
-                inputs, attention_cat, input_lens)
+                inputs, attention_cat, mask)
             attention_cum += attention
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(

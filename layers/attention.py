@@ -105,13 +105,7 @@ class AttentionRNNCell(nn.Module):
                 'b' (Bahdanau) or 'ls' (Location Sensitive)."
                                .format(align_model))
 
-    def forward(self,
-                memory,
-                context,
-                rnn_state,
-                annots,
-                atten,
-                annot_lens=None):
+    def forward(self, memory, context, rnn_state, annots, atten, mask):
         """
         Shapes:
             - memory: (batch, 1, dim) or (batch, dim)
@@ -119,7 +113,7 @@ class AttentionRNNCell(nn.Module):
             - rnn_state: (batch, out_dim)
             - annots: (batch, max_time, annot_dim)
             - atten: (batch, 2, max_time)
-            - annot_lens: (batch,)
+            - mask: (batch,)
         """
         # Concat input query and previous context context
         rnn_input = torch.cat((memory, context), -1)
@@ -133,8 +127,7 @@ class AttentionRNNCell(nn.Module):
             alignment = self.alignment_model(annots, rnn_output)
         else:
             alignment = self.alignment_model(annots, rnn_output, atten)
-        if annot_lens is not None:
-            mask = sequence_mask(annot_lens)
+        if mask is not None:
             mask = mask.view(memory.size(0), -1)
             alignment.masked_fill_(1 - mask, -float("inf"))
         # Normalize context weight

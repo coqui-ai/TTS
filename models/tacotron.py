@@ -25,14 +25,14 @@ class Tacotron(nn.Module):
         self.postnet = PostCBHG(mel_dim)
         self.last_linear = nn.Linear(256, linear_dim)
 
-    def forward(self, characters, mel_specs=None, text_lens=None):
+    def forward(self, characters, mel_specs=None, mask=None):
         B = characters.size(0)
         inputs = self.embedding(characters)
         # batch x time x dim
         encoder_outputs = self.encoder(inputs)
         # batch x time x dim*r
         mel_outputs, alignments, stop_tokens = self.decoder(
-            encoder_outputs, mel_specs, text_lens)
+            encoder_outputs, mel_specs, mask)
         # Reshape
         # batch x time x dim
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
