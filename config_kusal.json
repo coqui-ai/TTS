@@ -1,7 +1,7 @@
 {
-    "model_name": "TTS-kusal-larger",
+    "model_name": "TTS-larger-kusal",
     "audio_processor": "audio",
-    "num_mels": 80,
+     "num_mels": 80,
     "num_freq": 1025,
     "sample_rate": 22000,
     "frame_length_ms": 50,
@@ -16,12 +16,14 @@
 
     "epochs": 1000,
     "lr": 0.002,
+    "lr_decay": 0.5,
+    "decay_step": 100000,
     "warmup_steps": 4000,
     "batch_size": 32,
     "eval_batch_size":-1,
     "r": 5,
 
-    "griffin_lim_iters": 50,
+    "griffin_lim_iters": 60,
     "power": 1.5,
 
     "num_loader_workers": 8,

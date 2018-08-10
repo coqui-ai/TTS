@@ -16,6 +16,8 @@
 
     "epochs": 1000,
     "lr": 0.002,
+    "lr_decay": 0.5,
+    "decay_step": 100000,
     "warmup_steps": 4000,
     "batch_size": 32,
     "eval_batch_size":-1,
