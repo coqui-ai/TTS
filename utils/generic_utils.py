@@ -89,7 +89,7 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
     checkpoint_path = os.path.join(out_path, checkpoint_path)
     print(" | | > Checkpoint saving : {}".format(checkpoint_path))
 
-    new_state_dict = _trim_model_state_dict(model.state_dict())
+    new_state_dict = model.state_dict()
     state = {
         'model': new_state_dict,
         'optimizer': optimizer.state_dict(),
@@ -105,7 +105,7 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
 def save_best_model(model, optimizer, model_loss, best_loss, out_path,
                     current_step, epoch):
     if model_loss < best_loss:
-        new_state_dict = _trim_model_state_dict(model.state_dict())
+        new_state_dict = model.state_dict()
         state = {
             'model': new_state_dict,
             'optimizer': optimizer.state_dict(),
