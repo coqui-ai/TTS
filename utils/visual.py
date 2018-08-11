@@ -15,11 +15,7 @@ def plot_alignment(alignment, info=None):
     plt.xlabel(xlabel)
     plt.ylabel('Encoder timestep')
     plt.tight_layout()
-    fig.canvas.draw()
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape((3, ) + fig.canvas.get_width_height()[::-1])
-    plt.close()
-    return data
+    return fig
 
 
 def plot_spectrogram(linear_output, audio):
@@ -28,8 +24,4 @@ def plot_spectrogram(linear_output, audio):
     plt.imshow(spectrogram.T, aspect="auto", origin="lower")
     plt.colorbar()
     plt.tight_layout()
-    fig.canvas.draw()
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape((3, ) + fig.canvas.get_width_height()[::-1])
-    plt.close()
-    return data
+    return fig
