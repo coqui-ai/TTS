@@ -312,9 +312,9 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
     # test sentences
     ap.griffin_lim_iters = 60
     for idx, test_sentence in enumerate(test_sentences):
-        try:
-            wav, linear_spec, alignments = synthesis(model, ap, test_sentence,
+        wav, linear_spec, alignments = synthesis(model, ap, test_sentence,
                                                      use_cuda, c.text_cleaner)
+        try:
             wav_name = 'TestSentences/{}'.format(idx)
             tb.add_audio(
                 wav_name, wav, current_step, sample_rate=c.sample_rate)

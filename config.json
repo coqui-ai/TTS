@@ -15,7 +15,7 @@
     "text_cleaner": "english_cleaners",
 
     "epochs": 1000,
-    "lr": 0.002,
+    "lr": 0.001,
     "lr_decay": 0.5,
     "decay_step": 100000,
     "warmup_steps": 4000,
