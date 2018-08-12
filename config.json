@@ -1,5 +1,5 @@
 {
-    "model_name": "TTS-larger-256",
+    "model_name": "TTS-smaller-anneal_lr",
     "audio_processor": "audio",
     "num_mels": 80,
     "num_freq": 1025,
@@ -15,10 +15,13 @@
     "text_cleaner": "english_cleaners",
 
     "epochs": 1000,
-    "lr": 0.001,
+    "lr": 0.002,
+    "lr_scheduler": "AnnealLR",
+    "warmup_steps": 4000,
+
     "lr_decay": 0.5,
     "decay_step": 100000,
-    "warmup_steps": 4000,
+
     "batch_size": 32,
     "eval_batch_size":-1,
     "r": 5,
