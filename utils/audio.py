@@ -9,24 +9,40 @@ _mel_basis = None
 
 
 class AudioProcessor(object):
-
-    def __init__(self, sample_rate, num_mels, min_level_db, frame_shift_ms,
-                 frame_length_ms, preemphasis, ref_level_db, num_freq, power,
+    def __init__(self,
+                 sample_rate,
+                 num_mels,
+                 min_level_db,
+                 frame_shift_ms,
+                 frame_length_ms,
+                 ref_level_db,
+                 num_freq,
+                 power,
+                 preemphasis,
+                 min_mel_freq,
+                 max_mel_freq,
                  griffin_lim_iters=None):
+
+        print(" > Setting up Audio Processor...")
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db
         self.frame_shift_ms = frame_shift_ms
         self.frame_length_ms = frame_length_ms
-        self.preemphasis = preemphasis
         self.ref_level_db = ref_level_db
         self.num_freq = num_freq
         self.power = power
+        self.preemphasis = preemphasis
+        self.min_mel_freq = min_mel_freq
+        self.max_mel_freq = max_mel_freq
         self.griffin_lim_iters = griffin_lim_iters
+        self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
+        if preemphasis == 0:
+            print(" | > Preemphasis is deactive.")
 
     def save_wav(self, wav, path):
         wav *= 32767 / max(0.01, np.max(np.abs(wav)))
-        librosa.output.write_wav(path, wav.astype(np.float), self.sample_rate, norm=True)
+        librosa.output.write_wav(path, wav.astype(np.int16), self.sample_rate)
 
     def _linear_to_mel(self, spectrogram):
         global _mel_basis
@@ -36,7 +52,9 @@ class AudioProcessor(object):
 
     def _build_mel_basis(self, ):
         n_fft = (self.num_freq - 1) * 2
-        return librosa.filters.mel(self.sample_rate, n_fft, n_mels=self.num_mels)
+        return librosa.filters.mel(
+            self.sample_rate, n_fft, n_mels=self.num_mels)
+        #    fmin=self.min_mel_freq, fmax=self.max_mel_freq)
 
     def _normalize(self, S):
         return np.clip((S - self.min_level_db) / -self.min_level_db, 0, 1)
@@ -48,22 +66,32 @@ class AudioProcessor(object):
         n_fft = (self.num_freq - 1) * 2
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
         win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
+        print(" | > fft size: {}, hop length: {}, win length: {}".format(
+            n_fft, hop_length, win_length))
         return n_fft, hop_length, win_length
 
     def _amp_to_db(self, x):
-        return 20 * np.log10(np.maximum(1e-5, x))
+        min_level = np.exp(self.min_level_db / 20 * np.log(10))
+        return 20 * np.log10(np.maximum(min_level, x))
 
     def _db_to_amp(self, x):
         return np.power(10.0, x * 0.05)
 
     def apply_preemphasis(self, x):
+        if self.preemphasis == 0:
+            raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
         return signal.lfilter([1, -self.preemphasis], [1], x)
 
     def apply_inv_preemphasis(self, x):
+        if self.preemphasis == 0:
+            raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
         return signal.lfilter([1], [1, -self.preemphasis], x)
 
     def spectrogram(self, y):
-        D = self._stft(self.apply_preemphasis(y))
+        if self.preemphasis != 0:
+            D = self._stft(self.apply_preemphasis(y))
+        else:
+            D = self._stft(y)
         S = self._amp_to_db(np.abs(D)) - self.ref_level_db
         return self._normalize(S)
 
@@ -72,45 +100,47 @@ class AudioProcessor(object):
         S = self._denormalize(spectrogram)
         S = self._db_to_amp(S + self.ref_level_db)  # Convert back to linear
         # Reconstruct phase
-        return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
+        if self.preemphasis != 0:
+            return self.apply_inv_preemphasis(self._griffin_lim(S**self.power))
+        else:
+            return self._griffin_lim(S**self.power)
 
-#     def _griffin_lim(self, S):
-#         '''librosa implementation of Griffin-Lim
-#         Based on https://github.com/librosa/librosa/issues/434
-#         '''
-#         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
-#         S_complex = np.abs(S).astype(np.complex)
-#         y = self._istft(S_complex * angles)
-#         for i in range(self.griffin_lim_iters):
-#             angles = np.exp(1j * np.angle(self._stft(y)))
-#             y = self._istft(S_complex * angles)
-#         return y
-    
+    # def _griffin_lim(self, S):
+    #     '''Applies Griffin-Lim's raw.
+    #     '''
+    #     S_best = copy.deepcopy(S)
+    #     for i in range(self.griffin_lim_iters):
+    #         S_t = self._istft(S_best)
+    #         est = self._stft(S_t)
+    #         phase = est / np.maximum(1e-8, np.abs(est))
+    #         S_best = S * phase
+    #     S_t = self._istft(S_best)
+    #     y = np.real(S_t)
+    #     return y
+
     def _griffin_lim(self, S):
-        '''Applies Griffin-Lim's raw.
-        '''
-        S_best = copy.deepcopy(S)
+        angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
+        S_complex = np.abs(S).astype(np.complex)
+        y = self._istft(S_complex * angles)
         for i in range(self.griffin_lim_iters):
-            S_t = self._istft(S_best)
-            est = self._stft(S_t)
-            phase = est / np.maximum(1e-8, np.abs(est))
-            S_best = S * phase
-        S_t = self._istft(S_best)
-        y = np.real(S_t)
+            angles = np.exp(1j * np.angle(self._stft(y)))
+            y = self._istft(S_complex * angles)
         return y
 
     def melspectrogram(self, y):
-        D = self._stft(self.apply_preemphasis(y))
+        if self.preemphasis != 0:
+            D = self._stft(self.apply_preemphasis(y))
+        else:
+            D = self._stft(y)
         S = self._amp_to_db(self._linear_to_mel(np.abs(D))) - self.ref_level_db
         return self._normalize(S)
 
     def _stft(self, y):
-        n_fft, hop_length, win_length = self._stft_parameters()
-        return librosa.stft(y=y, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
+        return librosa.stft(
+            y=y, n_fft=self.n_fft, hop_length=self.hop_length, win_length=self.win_length)
 
     def _istft(self, y):
-        _, hop_length, win_length = self._stft_parameters()
-        return librosa.istft(y, hop_length=hop_length, win_length=win_length, window='hann')
+        return librosa.istft(y, hop_length=self.hop_length, win_length=self.win_length)
 
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)

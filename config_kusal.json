@@ -1,7 +1,7 @@
 {
-    "model_name": "TTS-smaller-anneal_lr",
+    "model_name": "TTS-larger-kusal",
     "audio_processor": "audio",
-    "num_mels": 80,
+     "num_mels": 80,
     "num_freq": 1025,
     "sample_rate": 22000,
     "frame_length_ms": 50,
@@ -16,12 +16,9 @@
 
     "epochs": 1000,
     "lr": 0.002,
-    "lr_scheduler": "AnnealLR",
-    "warmup_steps": 4000,
-
     "lr_decay": 0.5,
     "decay_step": 100000,
-
+    "warmup_steps": 4000,
     "batch_size": 32,
     "eval_batch_size":-1,
     "r": 5,
@@ -29,17 +26,16 @@
     "griffin_lim_iters": 60,
     "power": 1.5,
 
-    "num_loader_workers": 4,
+    "num_loader_workers": 8,
 
     "checkpoint": true,
-
     "save_step": 25000,
     "print_step": 10,
     "run_eval": false,
-    "data_path": "/snakepit/shared/data/keithito/LJSpeech-1.1/",
-    "meta_file_train": "metadata.csv",
+    "data_path": "/snakepit/shared/data/mycroft/kusal/",
+    "meta_file_train": "prompts.txt",
     "meta_file_val": null,
-    "dataset": "LJSpeech",
+    "dataset": "Kusal",
     "min_seq_len": 0,
     "output_path": "../keep/"
 }

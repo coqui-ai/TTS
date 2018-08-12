@@ -1,8 +1,7 @@
 # coding: utf-8
 import torch
 from torch import nn
-from .attention import AttentionRNN
-from .attention import get_mask_from_lengths
+from .attention import AttentionRNNCell
 
 
 class Prenet(nn.Module):
@@ -12,15 +11,16 @@ class Prenet(nn.Module):
     Args:
         in_features (int): size of the input vector
         out_features (int or list): size of each output sample.
-            If it is a list, for each value, there is created a new layer.  
+            If it is a list, for each value, there is created a new layer.
     """
 
     def __init__(self, in_features, out_features=[256, 128]):
         super(Prenet, self).__init__()
         in_features = [in_features] + out_features[:-1]
-        self.layers = nn.ModuleList(
-            [nn.Linear(in_size, out_size)
-             for (in_size, out_size) in zip(in_features, out_features)])
+        self.layers = nn.ModuleList([
+            nn.Linear(in_size, out_size)
+            for (in_size, out_size) in zip(in_features, out_features)
+        ])
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
 
@@ -48,12 +48,21 @@ class BatchNormConv1d(nn.Module):
         - output: batch x dims
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding,
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride,
+                 padding,
                  activation=None):
         super(BatchNormConv1d, self).__init__()
-        self.conv1d = nn.Conv1d(in_channels, out_channels,
-                                kernel_size=kernel_size,
-                                stride=stride, padding=padding, bias=False)
+        self.conv1d = nn.Conv1d(
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=False)
         # Following tensorflow's default parameters
         self.bn = nn.BatchNorm1d(out_channels, momentum=0.99, eps=1e-3)
         self.activation = activation
@@ -98,36 +107,66 @@ class CBHG(nn.Module):
             - output: batch x time x dim*2
     """
 
-    def __init__(self, in_features, K=16, projections=[128, 128], num_highways=4):
+    def __init__(self,
+                 in_features,
+                 K=16,
+                 conv_bank_features=128,
+                 conv_projections=[128, 128],
+                 highway_features=128,
+                 gru_features=128,
+                 num_highways=4):
         super(CBHG, self).__init__()
         self.in_features = in_features
+        self.conv_bank_features = conv_bank_features
+        self.highway_features = highway_features
+        self.gru_features = gru_features
+        self.conv_projections = conv_projections
         self.relu = nn.ReLU()
         # list of conv1d bank with filter size k=1...K
         # TODO: try dilational layers instead
-        self.conv1d_banks = nn.ModuleList(
-            [BatchNormConv1d(in_features, in_features, kernel_size=k, stride=1,
-                             padding=k // 2, activation=self.relu)
-                for k in range(1, K + 1)])
+        self.conv1d_banks = nn.ModuleList([
+            BatchNormConv1d(
+                in_features,
+                conv_bank_features,
+                kernel_size=k,
+                stride=1,
+                padding=k // 2,
+                activation=self.relu) for k in range(1, K + 1)
+        ])
         # max pooling of conv bank
         # TODO: try average pooling OR larger kernel size
         self.max_pool1d = nn.MaxPool1d(kernel_size=2, stride=1, padding=1)
-        out_features = [K * in_features] + projections[:-1]
-        activations = [self.relu] * (len(projections) - 1)
+        out_features = [K * conv_bank_features] + conv_projections[:-1]
+        activations = [self.relu] * (len(conv_projections) - 1)
         activations += [None]
         # setup conv1d projection layers
         layer_set = []
-        for (in_size, out_size, ac) in zip(out_features, projections, activations):
-            layer = BatchNormConv1d(in_size, out_size, kernel_size=3, stride=1,
-                                    padding=1, activation=ac)
+        for (in_size, out_size, ac) in zip(out_features, conv_projections,
+                                           activations):
+            layer = BatchNormConv1d(
+                in_size,
+                out_size,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                activation=ac)
             layer_set.append(layer)
         self.conv1d_projections = nn.ModuleList(layer_set)
         # setup Highway layers
-        self.pre_highway = nn.Linear(projections[-1], in_features, bias=False)
-        self.highways = nn.ModuleList(
-            [Highway(in_features, in_features) for _ in range(num_highways)])
+        if self.highway_features != conv_projections[-1]:
+            self.pre_highway = nn.Linear(
+                conv_projections[-1], highway_features, bias=False)
+        self.highways = nn.ModuleList([
+            Highway(highway_features, highway_features)
+            for _ in range(num_highways)
+        ])
         # bi-directional GPU layer
         self.gru = nn.GRU(
-            in_features, in_features, 1, batch_first=True, bidirectional=True)
+            gru_features,
+            gru_features,
+            1,
+            batch_first=True,
+            bidirectional=True)
 
     def forward(self, inputs):
         # (B, T_in, in_features)
@@ -137,7 +176,7 @@ class CBHG(nn.Module):
         if x.size(-1) == self.in_features:
             x = x.transpose(1, 2)
         T = x.size(-1)
-        # (B, in_features*K, T_in)
+        # (B, hid_features*K, T_in)
         # Concat conv1d bank outputs
         outs = []
         for conv1d in self.conv1d_banks:
@@ -145,26 +184,42 @@ class CBHG(nn.Module):
             out = out[:, :, :T]
             outs.append(out)
         x = torch.cat(outs, dim=1)
-        assert x.size(1) == self.in_features * len(self.conv1d_banks)
+        assert x.size(1) == self.conv_bank_features * len(self.conv1d_banks)
         x = self.max_pool1d(x)[:, :, :T]
         for conv1d in self.conv1d_projections:
             x = conv1d(x)
-        # (B, T_in, in_features)
-        # Back to the original shape
+        # (B, T_in, hid_feature)
         x = x.transpose(1, 2)
-        if x.size(-1) != self.in_features:
+        # Back to the original shape
+        x += inputs
+        if self.highway_features != self.conv_projections[-1]:
             x = self.pre_highway(x)
         # Residual connection
         # TODO: try residual scaling as in Deep Voice 3
         # TODO: try plain residual layers
-        x += inputs
         for highway in self.highways:
             x = highway(x)
-        # (B, T_in, in_features*2)
+        # (B, T_in, hid_features*2)
         # TODO: replace GRU with convolution as in Deep Voice 3
         self.gru.flatten_parameters()
         outputs, _ = self.gru(x)
         return outputs
+
+
+class EncoderCBHG(nn.Module):
+    def __init__(self):
+        super(EncoderCBHG, self).__init__()
+        self.cbhg = CBHG(
+            128,
+            K=16,
+            conv_bank_features=128,
+            conv_projections=[128, 128],
+            highway_features=128,
+            gru_features=128,
+            num_highways=4)
+
+    def forward(self, x):
+        return self.cbhg(x)
 
 
 class Encoder(nn.Module):
@@ -173,7 +228,7 @@ class Encoder(nn.Module):
     def __init__(self, in_features):
         super(Encoder, self).__init__()
         self.prenet = Prenet(in_features, out_features=[256, 128])
-        self.cbhg = CBHG(128, K=16, projections=[128, 128])
+        self.cbhg = EncoderCBHG()
 
     def forward(self, inputs):
         r"""
@@ -188,6 +243,21 @@ class Encoder(nn.Module):
         return self.cbhg(inputs)
 
 
+class PostCBHG(nn.Module):
+    def __init__(self, mel_dim):
+        super(PostCBHG, self).__init__()
+        self.cbhg = CBHG(
+            mel_dim,
+            K=8,
+            conv_bank_features=80,
+            conv_projections=[160, mel_dim],
+            highway_features=80,
+            gru_features=80,
+            num_highways=4)
+    def forward(self, x):
+        return self.cbhg(x)
+
+
 class Decoder(nn.Module):
     r"""Decoder module.
 
@@ -195,20 +265,25 @@ class Decoder(nn.Module):
         in_features (int): input vector (encoder output) sample size.
         memory_dim (int): memory vector (prev. time-step output) sample size.
         r (int): number of outputs per time step.
-        eps (float): threshold for detecting the end of a sentence.
     """
 
     def __init__(self, in_features, memory_dim, r):
         super(Decoder, self).__init__()
         self.r = r
+        self.in_features = in_features
         self.max_decoder_steps = 200
         self.memory_dim = memory_dim
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, out_features=[256, 128])
-        # processed_inputs, processed_memory -> |Attention| -> Attention, Alignment, RNN_State
-        self.attention_rnn = AttentionRNN(256, in_features, 128)
+        # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
+        self.attention_rnn = AttentionRNNCell(
+            out_dim=128,
+            rnn_dim=256,
+            annot_dim=in_features,
+            memory_dim=128,
+            align_model='ls')
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
-        self.project_to_decoder_in = nn.Linear(256+in_features, 256)
+        self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state
         self.decoder_rnns = nn.ModuleList(
             [nn.GRUCell(256, 256) for _ in range(2)])
@@ -216,7 +291,7 @@ class Decoder(nn.Module):
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
         self.stopnet = StopNet(r, memory_dim)
 
-    def forward(self, inputs, memory=None):
+    def forward(self, inputs, memory=None, mask=None):
         """
         Decoder forward step.
 
@@ -228,34 +303,42 @@ class Decoder(nn.Module):
             memory (None): Decoder memory (autoregression. If None (at eval-time),
               decoder outputs are used as decoder inputs. If None, it uses the last
               output as the input.
+            mask (None): Attention mask for sequence padding.
 
         Shapes:
             - inputs: batch x time x encoder_out_dim
             - memory: batch x #mel_specs x mel_spec_dim
         """
         B = inputs.size(0)
+        T = inputs.size(1)
         # Run greedy decoding if memory is None
         greedy = not self.training
         if memory is not None:
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
                 memory = memory.view(B, memory.size(1) // self.r, -1)
-                " !! Dimension mismatch {} vs {} * {}".format(memory.size(-1),
-                                                              self.memory_dim, self.r)
+                " !! Dimension mismatch {} vs {} * {}".format(
+                    memory.size(-1), self.memory_dim, self.r)
             T_decoder = memory.size(1)
-        # go frame - 0 frames tarting the sequence
+        # go frame as zeros matrix
         initial_memory = inputs.data.new(B, self.memory_dim * self.r).zero_()
-        # Init decoder states
+        # decoder states
         attention_rnn_hidden = inputs.data.new(B, 256).zero_()
-        decoder_rnn_hiddens = [inputs.data.new(B, 256).zero_()
-            for _ in range(len(self.decoder_rnns))]
-        current_context_vec = inputs.data.new(B, 256).zero_()
-        stopnet_rnn_hidden = inputs.data.new(B, self.r * self.memory_dim).zero_()
+        decoder_rnn_hiddens = [
+            inputs.data.new(B, 256).zero_()
+            for _ in range(len(self.decoder_rnns))
+        ]
+        current_context_vec = inputs.data.new(B, self.in_features).zero_()
+        stopnet_rnn_hidden = inputs.data.new(B,
+                                             self.r * self.memory_dim).zero_()
+        # attention states
+        attention = inputs.data.new(B, T).zero_()
+        attention_cum = inputs.data.new(B, T).zero_()
         # Time first (T_decoder, B, memory_dim)
         if memory is not None:
             memory = memory.transpose(0, 1)
         outputs = []
-        alignments = []
+        attentions = []
         stop_tokens = []
         t = 0
         memory_input = initial_memory
@@ -264,12 +347,16 @@ class Decoder(nn.Module):
                 if greedy:
                     memory_input = outputs[-1]
                 else:
-                    memory_input = memory[t-1]
+                    memory_input = memory[t - 1]
             # Prenet
             processed_memory = self.prenet(memory_input)
             # Attention RNN
-            attention_rnn_hidden, current_context_vec, alignment = self.attention_rnn(
-                processed_memory, current_context_vec, attention_rnn_hidden, inputs)
+            attention_cat = torch.cat(
+                (attention.unsqueeze(1), attention_cum.unsqueeze(1)), dim=1)
+            attention_rnn_hidden, current_context_vec, attention = self.attention_rnn(
+                processed_memory, current_context_vec, attention_rnn_hidden,
+                inputs, attention_cat, mask)
+            attention_cum += attention
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
                 torch.cat((attention_rnn_hidden, current_context_vec), -1))
@@ -284,45 +371,53 @@ class Decoder(nn.Module):
             output = self.proj_to_mel(decoder_output)
             stop_input = output
             # predict stop token
-            stop_token, stopnet_rnn_hidden = self.stopnet(stop_input, stopnet_rnn_hidden)
+            stop_token, stopnet_rnn_hidden = self.stopnet(
+                stop_input, stopnet_rnn_hidden)
             outputs += [output]
-            alignments += [alignment]
+            attentions += [attention]
             stop_tokens += [stop_token]
             t += 1
-            if (not greedy and self.training) or (greedy and memory is not None):
+            if (not greedy and self.training) or (greedy
+                                                  and memory is not None):
                 if t >= T_decoder:
                     break
             else:
-                if t > inputs.shape[1]/2 and stop_token > 0.8:
+                if t > inputs.shape[1] / 4 and stop_token > 0.6:
                     break
                 elif t > self.max_decoder_steps:
-                    print(" !! Decoder stopped with 'max_decoder_steps'. \
-                          Something is probably wrong.")
+                    print("   | > Decoder stopped with 'max_decoder_steps")
                     break
         assert greedy or len(outputs) == T_decoder
         # Back to batch first
-        alignments = torch.stack(alignments).transpose(0, 1)
+        attentions = torch.stack(attentions).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
         stop_tokens = torch.stack(stop_tokens).transpose(0, 1)
-        return outputs, alignments, stop_tokens
+        return outputs, attentions, stop_tokens
 
-    
+
 class StopNet(nn.Module):
     r"""
     Predicting stop-token in decoder.
-    
+
     Args:
         r (int): number of output frames of the network.
         memory_dim (int): feature dimension for each output frame.
     """
-    
+
     def __init__(self, r, memory_dim):
+        r"""
+        Predicts the stop token to stop the decoder at testing time
+
+        Args:
+            r (int): number of network output frames.
+            memory_dim (int): single feature dim of a single network output frame.
+        """
         super(StopNet, self).__init__()
         self.rnn = nn.GRUCell(memory_dim * r, memory_dim * r)
         self.relu = nn.ReLU()
         self.linear = nn.Linear(r * memory_dim, 1)
         self.sigmoid = nn.Sigmoid()
-        
+
     def forward(self, inputs, rnn_hidden):
         """
         Args:

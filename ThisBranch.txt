@@ -1,0 +1,10 @@
+- location sensitive attention
+- attention masking
+x updated audio pre-processing (removed preemphasis and updated normalization)
+- testing with example senteces
+- optional eval-iteration
+- plot alignments and specs for test sentences
+- use lws as an alternative audio processor
+- make configurable audio module
+- make precomputed of on-the-fly dataloader configurable
+- use of preemphasis is configurable. It is skipped if config.preamphasis == 0

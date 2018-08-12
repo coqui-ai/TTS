@@ -1,3 +1,10 @@
 #!/bin/bash
 source ../tmp/venv/bin/activate
-python train.py --config_path config.json 
+# ls /snakepit/jobs/1023/keep/
+# source /snakepit/jobs/1023/keep/venv/bin/activate
+# source  /snakepit/jobs/1047/keep/venv/bin/activate
+# python extract_feats.py --data_path /snakepit/shared/data/keithito/LJSpeech-1.1/wavs --out_path /snakepit/shared/data/keithito/LJSpeech-1.1/loader_data/  --config config.json --num_proc 32
+# python train.py --config_path config_kusal.json --debug true
+python train.py --config_path config.json --debug true
+# python -m cProfile -o profile.cprof train.py --config_path config.json --debug true
+# nvidia-smi

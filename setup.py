@@ -25,7 +25,6 @@ else:
 
 
 class build_py(setuptools.command.build_py.build_py):
-
     def run(self):
         self.create_version_file()
         setuptools.command.build_py.build_py.run(self)
@@ -40,7 +39,6 @@ class build_py(setuptools.command.build_py.build_py):
 
 
 class develop(setuptools.command.develop.develop):
-
     def run(self):
         build_py.create_version_file()
         setuptools.command.develop.develop.run(self)
@@ -50,8 +48,11 @@ def create_readme_rst():
     global cwd
     try:
         subprocess.check_call(
-            ["pandoc", "--from=markdown", "--to=rst", "--output=README.rst",
-             "README.md"], cwd=cwd)
+            [
+                "pandoc", "--from=markdown", "--to=rst", "--output=README.rst",
+                "README.md"
+            ],
+            cwd=cwd)
         print("Generated README.rst from README.md using pandoc.")
     except subprocess.CalledProcessError:
         pass
@@ -59,30 +60,31 @@ def create_readme_rst():
         pass
 
 
-setup(name='TTS',
-      version=version,
-      url='https://github.com/mozilla/TTS',
-      description='Text to Speech with Deep Learning',
-      packages=find_packages(),
-      cmdclass={
-          'build_py': build_py,
-          'develop': develop,
-      },
-      install_requires=[
-          "numpy",
-          "scipy",
-          "librosa",
-          "torch >= 0.4.0",
-          "unidecode",
-          "tensorboardX",
-          "matplotlib",
-          "Pillow",
-          "flask",
-      ],
-      extras_require={
-          "bin": [
-              "tqdm",
-              "tensorboardX",
-              "requests",
-          ],
-      })
+setup(
+    name='TTS',
+    version=version,
+    url='https://github.com/mozilla/TTS',
+    description='Text to Speech with Deep Learning',
+    packages=find_packages(),
+    cmdclass={
+        'build_py': build_py,
+        'develop': develop,
+    },
+    setup_requires=["numpy==1.14.3"],
+    install_requires=[
+        "scipy==0.19.0",
+        "torch == 0.4.0",
+        "librosa==0.5.1",
+        "unidecode==0.4.20",
+        "tensorboardX",
+        "matplotlib==2.0.2",
+        "Pillow",
+        "flask",
+        "lws",
+    ],
+    extras_require={
+        "bin": [
+            "tqdm",
+            "requests",
+        ],
+    })

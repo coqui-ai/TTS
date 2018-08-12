@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 def plot_alignment(alignment, info=None):
     fig, ax = plt.subplots(figsize=(16, 10))
-    im = ax.imshow(alignment.T, aspect='auto', origin='lower',
-                   interpolation='none')
+    im = ax.imshow(
+        alignment.T, aspect='auto', origin='lower', interpolation='none')
     fig.colorbar(im, ax=ax)
     xlabel = 'Decoder timestep'
     if info is not None:
@@ -15,11 +15,7 @@ def plot_alignment(alignment, info=None):
     plt.xlabel(xlabel)
     plt.ylabel('Encoder timestep')
     plt.tight_layout()
-    fig.canvas.draw()
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    plt.close()
-    return data
+    return fig
 
 
 def plot_spectrogram(linear_output, audio):
@@ -28,8 +24,4 @@ def plot_spectrogram(linear_output, audio):
     plt.imshow(spectrogram.T, aspect="auto", origin="lower")
     plt.colorbar()
     plt.tight_layout()
-    fig.canvas.draw()
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    plt.close()
-    return data
+    return fig
