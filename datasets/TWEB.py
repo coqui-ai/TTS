@@ -7,15 +7,25 @@ from torch.utils.data import Dataset
 
 from TTS.utils.text import text_to_sequence
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.data import (prepare_data, pad_per_step,
-                            prepare_tensor, prepare_stop_target)
+from TTS.utils.data import (prepare_data, pad_per_step, prepare_tensor,
+                            prepare_stop_target)
 
 
 class TWEBDataset(Dataset):
-
-    def __init__(self, csv_file, root_dir, outputs_per_step, sample_rate,
-                 text_cleaner, num_mels, min_level_db, frame_shift_ms,
-                 frame_length_ms, preemphasis, ref_level_db, num_freq, power,
+    def __init__(self,
+                 csv_file,
+                 root_dir,
+                 outputs_per_step,
+                 sample_rate,
+                 text_cleaner,
+                 num_mels,
+                 min_level_db,
+                 frame_shift_ms,
+                 frame_length_ms,
+                 preemphasis,
+                 ref_level_db,
+                 num_freq,
+                 power,
                  min_seq_len=0):
 
         with open(csv_file, "r") as f:
@@ -25,8 +35,9 @@ class TWEBDataset(Dataset):
         self.sample_rate = sample_rate
         self.cleaners = text_cleaner
         self.min_seq_len = min_seq_len
-        self.ap = AudioProcessor(sample_rate, num_mels, min_level_db, frame_shift_ms,
-                                 frame_length_ms, preemphasis, ref_level_db, num_freq, power)
+        self.ap = AudioProcessor(sample_rate, num_mels, min_level_db,
+                                 frame_shift_ms, frame_length_ms, preemphasis,
+                                 ref_level_db, num_freq, power)
         print(" > Reading TWEB from - {}".format(root_dir))
         print(" | > Number of instances : {}".format(len(self.frames)))
         self._sort_frames()
@@ -63,11 +74,10 @@ class TWEBDataset(Dataset):
         return len(self.frames)
 
     def __getitem__(self, idx):
-        wav_name = os.path.join(self.root_dir,
-                                self.frames[idx][0]) + '.wav'
+        wav_name = os.path.join(self.root_dir, self.frames[idx][0]) + '.wav'
         text = self.frames[idx][1]
-        text = np.asarray(text_to_sequence(
-            text, [self.cleaners]), dtype=np.int32)
+        text = np.asarray(
+            text_to_sequence(text, [self.cleaners]), dtype=np.int32)
         wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
         sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0]}
         return sample
@@ -97,12 +107,13 @@ class TWEBDataset(Dataset):
             mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
 
             # compute 'stop token' targets
-            stop_targets = [np.array([0.]*(mel_len-1))
-                            for mel_len in mel_lengths]
+            stop_targets = [
+                np.array([0.] * (mel_len - 1)) for mel_len in mel_lengths
+            ]
 
             # PAD stop targets
-            stop_targets = prepare_stop_target(
-                stop_targets, self.outputs_per_step)
+            stop_targets = prepare_stop_target(stop_targets,
+                                               self.outputs_per_step)
 
             # PAD sequences with largest length of the batch
             text = prepare_data(text).astype(np.int32)
@@ -126,8 +137,8 @@ class TWEBDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[0]
+            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[
+                0]
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
-                         found {}"
-                         .format(type(batch[0]))))
+                         found {}".format(type(batch[0]))))

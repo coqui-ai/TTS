@@ -1,5 +1,5 @@
 {
-    "model_path":"/home/erogol/projects/models/LJSpeech/May-22-2018_03_24PM-e6112f7",
+    "model_path":"../models/May-22-2018_03_24PM-e6112f7",
     "model_name":"checkpoint_272976.pth.tar",
     "model_config":"config.json",
     "port": 5002,
