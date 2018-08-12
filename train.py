@@ -21,7 +21,7 @@ from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
 from utils.audio import AudioProcessor
-from torch.optim.lr_scheduler import StepLR
+
 
 torch.manual_seed(1)
 torch.set_num_threads(4)
@@ -336,6 +336,14 @@ def main(args):
     Dataset = getattr(dataset, 'MyDataset')
     audio = importlib.import_module('utils.' + c.audio_processor)
     AudioProcessor = getattr(audio, 'AudioProcessor')
+
+    print(" > LR scheduler: {} ", c.lr_scheduler)
+    try:
+        scheduler = importlib.import_module('torch.optim.lr_scheduler')
+        scheduler = getattr(scheduler, c.lr_scheduler)
+    except:
+        scheduler = importlib.import_module('utils.generic_utils')
+        scheduler = getattr(scheduler, c.lr_scheduler)
 
     ap = AudioProcessor(
         sample_rate=c.sample_rate,
