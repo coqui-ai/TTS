@@ -1,5 +1,5 @@
 {
-    "model_name": "TTS-smaller-anneal_lr",
+    "model_name": "TTS-smaller-lws",
     "audio_processor": "audio",
     "num_mels": 80,
     "num_freq": 1025,
@@ -16,7 +16,6 @@
 
     "epochs": 1000,
     "lr": 0.002,
-    "lr_scheduler": "AnnealLR",
     "warmup_steps": 4000,
 
     "lr_decay": 0.5,
