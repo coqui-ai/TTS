@@ -116,7 +116,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
                 "GradNormST:{:.5f}  StepTime:{:.2f}".format(
                     num_iter, batch_n_iter, current_step, loss.item(),
                     linear_loss.item(), mel_loss.item(), stop_loss.item(),
-                    grad_norm.item(), grad_norm_st.item(), step_time),
+                    grad_norm, grad_norm_st, step_time),
                 flush=True)
 
         avg_linear_loss += linear_loss.item()
