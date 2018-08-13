@@ -9,6 +9,8 @@ from TTS.datasets import LJSpeech, Kusal
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 c = load_config(os.path.join(file_path, 'test_config.json'))
+ok_kusal = os.path.exists(c.data_path_Kusal)
+ok_ljspeech = os.path.exists(c.data_path_LJSpeech)
 
 
 class TestLJSpeechDataset(unittest.TestCase):

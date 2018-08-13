@@ -29,8 +29,8 @@
     "num_loader_workers": 4,
 
     "save_step": 200,
-    "data_path_LJSpeech": "C:/Users/erogol/Data/LJSpeech-1.1",
-    "data_path_Kusal": "C:/Users/erogol/Data/Kusal",
+    "data_path_LJSpeech": "/home/erogol/Data/LJSpeech-1.1",
+    "data_path_Kusal": "/home/erogol/Data/Kusal",
     "output_path": "result",
     "min_seq_len": 0,
     "log_dir": "/home/erogol/projects/TTS/logs/"

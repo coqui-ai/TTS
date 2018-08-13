@@ -24,7 +24,7 @@ from utils.audio import AudioProcessor
 
 
 torch.manual_seed(1)
-torch.set_num_threads(4)
+# torch.set_num_threads(4)
 use_cuda = torch.cuda.is_available()
 
 

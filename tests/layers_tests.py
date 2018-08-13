@@ -19,14 +19,21 @@ class PrenetTests(unittest.TestCase):
 
 class CBHGTests(unittest.TestCase):
     def test_in_out(self):
-        layer = CBHG(128, K=6, projections=[128, 128], num_highways=2)
+        layer = self.cbhg = CBHG(
+            128,
+            K=8,
+            conv_bank_features=80,
+            conv_projections=[160, 128],
+            highway_features=80,
+            gru_features=80,
+            num_highways=4)
         dummy_input = T.rand(4, 8, 128)
 
         print(layer)
         output = layer(dummy_input)
         assert output.shape[0] == 4
         assert output.shape[1] == 8
-        assert output.shape[2] == 256
+        assert output.shape[2] == 160
 
 
 class DecoderTests(unittest.TestCase):
