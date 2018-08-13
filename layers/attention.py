@@ -24,8 +24,7 @@ class BahdanauAttention(nn.Module):
         processed_query = self.query_layer(query)
         processed_annots = self.annot_layer(annots)
         # (batch, max_time, 1)
-        alignment = self.v(
-            nn.functional.tanh(processed_query + processed_annots))
+        alignment = self.v(torch.tanh(processed_query + processed_annots))
         # (batch, max_time)
         return alignment.squeeze(-1)
 
@@ -72,8 +71,7 @@ class LocationSensitiveAttention(nn.Module):
         processed_query = self.query_layer(query)
         processed_annots = self.annot_layer(annot)
         alignment = self.v(
-            nn.functional.tanh(processed_query + processed_annots +
-                               processed_loc))
+            torch.tanh(processed_query + processed_annots + processed_loc))
         # (batch, max_time)
         return alignment.squeeze(-1)
 

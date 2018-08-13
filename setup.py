@@ -73,7 +73,7 @@ setup(
     setup_requires=["numpy==1.14.3"],
     install_requires=[
         "scipy==0.19.0",
-        "torch == 0.4.0",
+        "torch >= 0.4.1",
         "librosa==0.5.1",
         "unidecode==0.4.20",
         "tensorboardX",
