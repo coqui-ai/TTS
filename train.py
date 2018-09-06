@@ -347,9 +347,7 @@ def main(args):
         ref_level_db=c.ref_level_db,
         num_freq=c.num_freq,
         power=c.power,
-        preemphasis=c.preemphasis,
-        min_mel_freq=c.min_mel_freq,
-        max_mel_freq=c.max_mel_freq)
+        preemphasis=c.preemphasis)
 
     # Setup the dataset
     train_dataset = Dataset(
