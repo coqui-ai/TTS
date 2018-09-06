@@ -37,8 +37,8 @@ class LocationSensitiveAttention(nn.Module):
                  annot_dim,
                  query_dim,
                  attn_dim,
-                 kernel_size=7,
-                 filters=20):
+                 kernel_size=31,
+                 filters=32):
         super(LocationSensitiveAttention, self).__init__()
         self.kernel_size = kernel_size
         self.filters = filters
