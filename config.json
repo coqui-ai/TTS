@@ -1,5 +1,6 @@
 {
-    "model_name": "TTS-smaller-lws",
+    "model_name": "TTS",
+    "model_description": "normal size TTS finetuning",
     "audio_processor": "audio",
     "num_mels": 80,
     "num_freq": 1025,
@@ -14,13 +15,13 @@
     "embedding_size": 256,
     "text_cleaner": "english_cleaners",
 
+    "num_loader_workers": 4,
+
     "epochs": 1000,
     "lr": 0.002,
     "warmup_steps": 4000,
-
     "lr_decay": 0.5,
     "decay_step": 100000,
-
     "batch_size": 32,
     "eval_batch_size":-1,
     "r": 5,
@@ -28,10 +29,7 @@
     "griffin_lim_iters": 60,
     "power": 1.5,
 
-    "num_loader_workers": 4,
-
     "checkpoint": true,
-
     "save_step": 25000,
     "print_step": 10,
     "run_eval": false,
