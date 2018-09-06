@@ -249,10 +249,10 @@ class PostCBHG(nn.Module):
         self.cbhg = CBHG(
             mel_dim,
             K=8,
-            conv_bank_features=80,
-            conv_projections=[160, mel_dim],
-            highway_features=80,
-            gru_features=80,
+            conv_bank_features=128,
+            conv_projections=[256, mel_dim],
+            highway_features=128,
+            gru_features=128,
             num_highways=4)
     def forward(self, x):
         return self.cbhg(x)

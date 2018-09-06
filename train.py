@@ -401,7 +401,7 @@ def main(args):
             criterion.cuda()
             criterion_st.cuda()
         optimizer.load_state_dict(checkpoint['optimizer'])
-        optimizer_st.load_state_dict(checkpoint['optimizer_st'])
+        # optimizer_st.load_state_dict(checkpoint['optimizer_st'])
         for state in optimizer.state.values():
             for k, v in state.items():
                 if torch.is_tensor(v):
