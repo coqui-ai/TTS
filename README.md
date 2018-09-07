@@ -58,35 +58,44 @@ You can also enjoy Tensorboard, if you point the Tensorboard argument```--logdir
 Example ```config.json```:
 ```
 {
-  "model_name": "my-model", // used in the experiment folder name
-  "num_mels": 80,
-  "num_freq": 1025,
-  "sample_rate": 20000,
-  "frame_length_ms": 50,
-  "frame_shift_ms": 12.5,
-  "preemphasis": 0.97,
-  "min_level_db": -100,
-  "ref_level_db": 20,
-  "embedding_size": 256,
-  "text_cleaner": "english_cleaners",
+    "model_name": "TTS",
+    "model_description": "what is going on with this model.",
+    "audio_processor": "audio", //audio or audio_lws
+    "num_mels": 80,
+    "num_freq": 1025,
+    "sample_rate": 22000,
+    "frame_length_ms": 50,
+    "frame_shift_ms": 12.5,
+    "preemphasis": 0.97,
+    "min_level_db": -100,
+    "ref_level_db": 20,
+    "embedding_size": 256,
+    "text_cleaner": "english_cleaners",
 
-  "epochs": 1000,
-  "lr": 0.002,
-  "warmup_steps": 4000,
-  "batch_size": 32,
-  "eval_batch_size":32,
-  "r": 5,
+    "num_loader_workers": 4,
 
-  "griffin_lim_iters": 60,
-  "power": 1.5,
+    "epochs": 1000,
+    "lr": 0.002,
+    "warmup_steps": 4000,
+    "lr_decay": 0.5,
+    "decay_step": 100000,
+    "batch_size": 32,
+    "eval_batch_size":-1,
+    "r": 5,
 
-  "num_loader_workers": 8,
+    "griffin_lim_iters": 60,
+    "power": 1.5,
 
-  "checkpoint": true,
-  "save_step": 376,
-  "data_path": "/my/training/data/path",
-  "min_seq_len": 0,
-  "output_path": "/my/experiment/folder/path"
+    "checkpoint": true,
+    "save_step": 25000,
+    "print_step": 10,
+    "run_eval": false,
+    "data_path": "root/path/to/your/data",
+    "meta_file_train": "metadata.csv",
+    "meta_file_val": null,
+    "dataset": "LJSpeech",
+    "min_seq_len": 0,
+    "output_path": "../keep/"
 }
 
 ```
