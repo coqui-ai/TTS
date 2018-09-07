@@ -4,7 +4,6 @@ import librosa
 import torch
 import scipy
 import numpy as np
-import soundfile as sf
 from TTS.utils.text import text_to_sequence
 from TTS.utils.generic_utils import load_config
 from TTS.utils.audio import AudioProcessor
