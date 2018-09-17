@@ -315,10 +315,15 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
         try:
             wav, linear_spec, alignments = synthesis(model, ap, test_sentence,
                                                      use_cuda, c.text_cleaner)
+
+            file_path = os.path.join(AUDIO_PATH, str(current_step))
+            os.makedirs(file_path, exist_ok=True)
+            file_path = os.path.join(file_path, "TestSentence_{}.wav".format(idx))
+            ap.save_wav(wav, file_path)
+
             wav_name = 'TestSentences/{}'.format(idx)
             tb.add_audio(
                 wav_name, wav, current_step, sample_rate=c.sample_rate)
-
             align_img = alignments[0].data.cpu().numpy()
             linear_spec = plot_spectrogram(linear_spec, ap)
             align_img = plot_alignment(align_img)
@@ -466,6 +471,8 @@ if __name__ == '__main__':
     OUT_PATH = os.path.join(_, c.output_path)
     OUT_PATH = create_experiment_folder(OUT_PATH, c.model_name, args.debug)
     CHECKPOINT_PATH = os.path.join(OUT_PATH, 'checkpoints')
+    AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
+    os.mkdir(AUDIO_PATH)
     shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
 
     # setup tensorboard
