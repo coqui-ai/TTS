@@ -57,6 +57,7 @@ class BatchNormConv1d(nn.Module):
                  activation=None):
         super(BatchNormConv1d, self).__init__()
         self.padding = padding
+        self.padder = nn.ConstantPad1d(padding, 0)
         self.conv1d = nn.Conv1d(
             in_channels,
             out_channels,
@@ -69,7 +70,7 @@ class BatchNormConv1d(nn.Module):
         self.activation = activation
 
     def forward(self, x):
-        x = nn.functional.pad(x, self.padding)
+        x = self.padder(x)
         x = self.conv1d(x)
         if self.activation is not None:
             x = self.activation(x)
@@ -135,9 +136,11 @@ class CBHG(nn.Module):
                 padding=[(k - 1) // 2, k // 2],
                 activation=self.relu) for k in range(1, K + 1)
         ])
-        # max pooling of conv bank, padding with nn.functional 
+        # max pooling of conv bank, padding with nn.functional
         # TODO: try average pooling OR larger kernel size
-        self.max_pool1d = nn.MaxPool1d(kernel_size=2, stride=1, padding=0)
+        self.max_pool1d = nn.Sequential(
+            nn.ConstantPad1d([0, 1], value=0),
+            nn.MaxPool1d(kernel_size=2, stride=1, padding=0))
         out_features = [K * conv_bank_features] + conv_projections[:-1]
         activations = [self.relu] * (len(conv_projections) - 1)
         activations += [None]
@@ -186,7 +189,6 @@ class CBHG(nn.Module):
             outs.append(out)
         x = torch.cat(outs, dim=1)
         assert x.size(1) == self.conv_bank_features * len(self.conv1d_banks)
-        x = nn.functional.pad(x, [0, 1])
         x = self.max_pool1d(x)
         for conv1d in self.conv1d_projections:
             x = conv1d(x)
@@ -256,6 +258,7 @@ class PostCBHG(nn.Module):
             highway_features=128,
             gru_features=128,
             num_highways=4)
+
     def forward(self, x):
         return self.cbhg(x)
 
