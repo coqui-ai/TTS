@@ -22,7 +22,6 @@ from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
 from utils.audio import AudioProcessor
 
-
 torch.manual_seed(1)
 # torch.set_num_threads(4)
 use_cuda = torch.cuda.is_available()
@@ -278,7 +277,7 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
             tb.add_figure('ValVisual/Reconstruction', const_spec, current_step)
             tb.add_figure('ValVisual/GroundTruth', gt_spec, current_step)
             tb.add_figure('ValVisual/ValidationAlignment', align_img,
-                         current_step)
+                          current_step)
 
             # Sample audio
             audio_signal = linear_output[idx].data.cpu().numpy()
@@ -318,7 +317,8 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
 
             file_path = os.path.join(AUDIO_PATH, str(current_step))
             os.makedirs(file_path, exist_ok=True)
-            file_path = os.path.join(file_path, "TestSentence_{}.wav".format(idx))
+            file_path = os.path.join(file_path,
+                                     "TestSentence_{}.wav".format(idx))
             ap.save_wav(wav, file_path)
 
             wav_name = 'TestSentences/{}'.format(idx)
@@ -327,10 +327,10 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
             align_img = alignments[0].data.cpu().numpy()
             linear_spec = plot_spectrogram(linear_spec, ap)
             align_img = plot_alignment(align_img)
-            tb.add_figure('TestSentences/{}_Spectrogram'.format(idx), linear_spec,
-                        current_step)
+            tb.add_figure('TestSentences/{}_Spectrogram'.format(idx),
+                          linear_spec, current_step)
             tb.add_figure('TestSentences/{}_Alignment'.format(idx), align_img,
-                        current_step)
+                          current_step)
         except:
             print(" !! Error as creating Test Sentence -", idx)
             pass
@@ -390,8 +390,9 @@ def main(args):
     model = Tacotron(c.embedding_size, ap.num_freq, c.num_mels, c.r)
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
-    optimizer = optim.Adam(model.parameters(), lr=c.lr)
-    optimizer_st = optim.Adam(model.decoder.stopnet.parameters(), lr=c.lr)
+    optimizer = optim.Adam(model.parameters(), lr=c.lr, weight_decay=c.wd)
+    optimizer_st = optim.Adam(
+        model.decoder.stopnet.parameters(), lr=c.lr, weight_decay=c.wd)
 
     criterion = L1LossMasked()
     criterion_st = nn.BCELoss()
