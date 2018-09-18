@@ -23,6 +23,7 @@
     "batch_size": 32,
     "eval_batch_size":-1,
     "r": 5,
+    "wd": 0.0001,
 
     "griffin_lim_iters": 60,
     "power": 1.5,
