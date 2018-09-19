@@ -42,7 +42,7 @@ class LocationSensitiveAttention(nn.Module):
         super(LocationSensitiveAttention, self).__init__()
         self.kernel_size = kernel_size
         self.filters = filters
-        padding = int((kernel_size - 1) / 2)
+        padding = [(kernel_size - 1) // 2, (kernel_size - 1) // 2]
         self.loc_conv = nn.Conv1d(
             2,
             filters,
