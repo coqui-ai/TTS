@@ -1,6 +1,6 @@
 {
-    "model_name": "TTS-master",
-    "model_description": "'Same' padding as in TF",
+    "model_name": "TTS-weight-decay",
+    "model_description": "Weight decay as in FastAI",
     "audio_processor": "audio",
     "num_mels": 80,
     "num_freq": 1025,
