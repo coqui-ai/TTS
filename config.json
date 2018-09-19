@@ -1,6 +1,6 @@
 {
-    "model_name": "TTS-small",
-    "model_description": "loc-sens attention paper values for number of filters and filter size",
+    "model_name": "TTS-master",
+    "model_description": "'Same' padding as in TF",
     "audio_processor": "audio",
     "num_mels": 80,
     "num_freq": 1025,
