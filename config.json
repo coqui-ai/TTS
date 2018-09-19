@@ -1,6 +1,6 @@
 {
-    "model_name": "TTS-master",
-    "model_description": "'Same' padding as in TF",
+    "model_name": "TTS-sigmoid",
+    "model_description": "Net outputting Sigmoid unit",
     "audio_processor": "audio",
     "num_mels": 80,
     "num_freq": 1025,
