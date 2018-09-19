@@ -136,7 +136,7 @@ class CBHG(nn.Module):
                 padding=[(k - 1) // 2, k // 2],
                 activation=self.relu) for k in range(1, K + 1)
         ])
-        # max pooling of conv bank, padding with nn.functional
+        # max pooling of conv bank, with padding
         # TODO: try average pooling OR larger kernel size
         self.max_pool1d = nn.Sequential(
             nn.ConstantPad1d([0, 1], value=0),
