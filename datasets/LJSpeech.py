@@ -3,6 +3,7 @@ import numpy as np
 import collections
 import librosa
 import torch
+import random
 from torch.utils.data import Dataset
 
 from utils.text import text_to_sequence
@@ -17,8 +18,10 @@ class MyDataset(Dataset):
                  outputs_per_step,
                  text_cleaner,
                  ap,
+                 batch_group_size=0,
                  min_seq_len=0):
         self.root_dir = root_dir
+        self.batch_group_size = batch_group_size
         self.wav_dir = os.path.join(root_dir, 'wavs')
         self.csv_dir = os.path.join(root_dir, csv_file)
         with open(self.csv_dir, "r", encoding="utf8") as f:
@@ -30,7 +33,7 @@ class MyDataset(Dataset):
         self.ap = ap
         print(" > Reading LJSpeech from - {}".format(root_dir))
         print(" | > Number of instances : {}".format(len(self.frames)))
-        self._sort_frames()
+        self.sort_frames()
 
     def load_wav(self, filename):
         try:
@@ -39,8 +42,8 @@ class MyDataset(Dataset):
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
 
-    def _sort_frames(self):
-        r"""Sort sequences in ascending order"""
+    def sort_frames(self):
+        r"""Sort text sequences in ascending order"""
         lengths = np.array([len(ins[1]) for ins in self.frames])
 
         print(" | > Max length sequence {}".format(np.max(lengths)))
@@ -58,6 +61,15 @@ class MyDataset(Dataset):
                 new_frames.append(self.frames[idx])
         print(" | > {} instances are ignored by min_seq_len ({})".format(
             len(ignored), self.min_seq_len))
+        # shuffle batch groups
+        if self.batch_group_size > 0:
+            print(" | > Batch group shuffling is active.")
+            for i in range(len(new_frames) // self.batch_group_size):
+                offset = i * self.batch_group_size
+                end_offset = offset + self.batch_group_size
+                temp_frames = new_frames[offset : end_offset]
+                random.shuffle(temp_frames)
+                new_frames[offset : end_offset] = temp_frames
         self.frames = new_frames
 
     def __len__(self):
