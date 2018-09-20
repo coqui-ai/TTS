@@ -191,7 +191,6 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
     tb.add_scalar('TrainEpochLoss/StopLoss', avg_stop_loss, current_step)
     tb.add_scalar('Time/EpochTime', epoch_time, epoch)
     epoch_time = 0
-
     return avg_linear_loss, current_step
 
 
@@ -361,6 +360,7 @@ def main(args):
         c.r,
         c.text_cleaner,
         ap=ap,
+        batch_group_size=16*c.batch_size,
         min_seq_len=c.min_seq_len)
 
     train_loader = DataLoader(
@@ -374,7 +374,7 @@ def main(args):
 
     if c.run_eval:
         val_dataset = Dataset(
-            c.data_path, c.meta_file_val, c.r, c.text_cleaner, ap=ap)
+            c.data_path, c.meta_file_val, c.r, c.text_cleaner, ap=ap, batch_group_size=0)
 
         val_loader = DataLoader(
             val_dataset,
@@ -444,6 +444,8 @@ def main(args):
             flush=True)
         best_loss = save_best_model(model, optimizer, train_loss, best_loss,
                                     OUT_PATH, current_step, epoch)
+         # shuffle batch groups
+        train_loader.dataset.sort_frames()
 
 
 if __name__ == '__main__':

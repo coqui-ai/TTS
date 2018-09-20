@@ -66,6 +66,49 @@ class TestLJSpeechDataset(unittest.TestCase):
                 assert mel_input.shape[0] == c.batch_size
                 assert mel_input.shape[2] == c.num_mels
 
+    def test_batch_group_shuffle(self):
+        if ok_ljspeech:
+            dataset = LJSpeech.MyDataset(
+                os.path.join(c.data_path_LJSpeech),
+                os.path.join(c.data_path_LJSpeech, 'metadata.csv'),
+                c.r,
+                c.text_cleaner,
+                ap=self.ap,
+                batch_group_size=16,
+                min_seq_len=c.min_seq_len)
+
+            dataloader = DataLoader(
+                dataset,
+                batch_size=2,
+                shuffle=True,
+                collate_fn=dataset.collate_fn,
+                drop_last=True,
+                num_workers=c.num_loader_workers)
+
+            frames = dataset.frames
+            for i, data in enumerate(dataloader):
+                if i == self.max_loader_iter:
+                    break
+                text_input = data[0]
+                text_lengths = data[1]
+                linear_input = data[2]
+                mel_input = data[3]
+                mel_lengths = data[4]
+                stop_target = data[5]
+                item_idx = data[6]
+
+                neg_values = text_input[text_input < 0]
+                check_count = len(neg_values)
+                assert check_count == 0, \
+                    " !! Negative values in text_input: {}".format(check_count)
+                # TODO: more assertion here
+                assert linear_input.shape[0] == c.batch_size
+                assert mel_input.shape[0] == c.batch_size
+                assert mel_input.shape[2] == c.num_mels
+            dataloader.dataset.sort_frames()
+            assert frames[0] != dataloader.dataset.frames[0]
+
+
     def test_padding(self):
         if ok_ljspeech:
             dataset = LJSpeech.MyDataset(
