@@ -3,6 +3,7 @@ import librosa
 import pickle
 import copy
 import numpy as np
+import scipy
 from scipy import signal
 
 _mel_basis = None
@@ -38,7 +39,8 @@ class AudioProcessor(object):
 
     def save_wav(self, wav, path):
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
-        librosa.output.write_wav(path, wav_norm.astype(np.int16), self.sample_rate)
+        # librosa.output.write_wav(path, wav_norm.astype(np.int16), self.sample_rate)
+        scipy.io.wavfile.write(path, self.sample_rate, wav.astype(np.int16))
 
     def _linear_to_mel(self, spectrogram):
         global _mel_basis

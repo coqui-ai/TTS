@@ -479,7 +479,7 @@ if __name__ == '__main__':
     OUT_PATH = create_experiment_folder(OUT_PATH, c.model_name, args.debug)
     CHECKPOINT_PATH = os.path.join(OUT_PATH, 'checkpoints')
     AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
-    os.mkdir(AUDIO_PATH)
+    os.makedirs(AUDIO_PATH, exist_ok=True)
     shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
 
     # setup tensorboard
