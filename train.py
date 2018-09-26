@@ -366,7 +366,7 @@ def main(args):
         c.r,
         c.text_cleaner,
         ap=ap,
-        batch_group_size=16*c.batch_size,
+        batch_group_size=8*c.batch_size,
         min_seq_len=c.min_seq_len)
 
     train_loader = DataLoader(
