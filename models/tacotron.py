@@ -23,7 +23,9 @@ class Tacotron(nn.Module):
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(256, mel_dim, r)
         self.postnet = PostCBHG(mel_dim)
-        self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim)
+        self.last_linear = nn.Sequential(
+            nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),
+            nn.Sigmoid())
 
     def forward(self, characters, mel_specs=None, mask=None):
         B = characters.size(0)
