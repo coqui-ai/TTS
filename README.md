@@ -34,11 +34,11 @@ Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the
 | Best: [iter-K] | [bla]() | [link]() | Location Sensitive attention |
 
 ## Example Model Outputs
-Below you see the model after 16K iteration with batch-size 32. 
+Below you see model state after 16K iterations with batch-size 32. 
 
-Sentence -- "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase the grey matter in the parts of the brain responsible for emotional regulation and learning."
+> "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase the grey matter in the parts of the brain responsible for emotional regulation and learning."
 
-[[https://github.com/mozilla/TTS/blob/master/images/example_model_output.png|alt=example_model_output]]
+![example_model_output](images/example_model_output.png?raw=true)
 
 
 ## Data
