@@ -38,6 +38,8 @@ Below you see model state after 16K iterations with batch-size 32.
 
 > "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase the grey matter in the parts of the brain responsible for emotional regulation and learning."
 
+Audio output: [https://soundcloud.com/user-565970875/iter16k-f48c3b](https://soundcloud.com/user-565970875/iter16k-f48c3b)
+
 ![example_model_output](images/example_model_output.png?raw=true)
 
 
