@@ -429,7 +429,7 @@ def main(args):
             criterion.cuda()
             criterion_st.cuda()
 
-    scheduler = AnnealLR(optimizer, warmup_steps=c.warmup_steps)
+    scheduler = AnnealLR(optimizer, warmup_steps=c.warmup_steps, last_epoch=args.restore_step)
     num_params = count_parameters(model)
     print(" | > Model has {} parameters".format(num_params), flush=True)
 
