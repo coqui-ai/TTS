@@ -42,6 +42,18 @@ Audio output: [https://soundcloud.com/user-565970875/iter16k-f48c3b](https://sou
 
 ![example_model_output](images/example_model_output.png?raw=true)
 
+## Runtime
+The most time-consuming part is the vocoder algorithm (Griffin-Lim) which runs on CPU. By setting its number of iterations, you might have faster execution with a small loss of quality. Some of the experimental values are below.
+
+Sentence: "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent."
+
+Audio length is approximately 6 secs.
+
+| Time (secs) | System | # GL iters |
+| ---- |:-------|:-----------|
+|2.00|GTX1080Ti|30|
+|3.01|GTX1080Ti|60|
+
 
 ## Data
 Currently TTS provides data loaders for datasets depicted below. It is also very is to adapt new datasets with few changes.
