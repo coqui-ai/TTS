@@ -139,8 +139,7 @@ class MyDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs[
-                0]
+            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}".format(type(batch[0]))))
