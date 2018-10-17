@@ -98,8 +98,21 @@ If you train TTS with LJSpeech dataset, you start to hear reasonable results aft
 - Stop token prediction with an additional module. The original Tacotron model does not propose a stop token to stop the decoding process. Therefore, you need to use heuristic measures to stop the decoder. Here, we prefer to use additional layers at the end to decide when to stop.
 - Applying sigmoid to the model outputs. Since the output values are expected to be in the range [0, 1], we apply sigmoid to make things easier to approximate the expected output distribution. 
 
-One common question is to ask why we don't use Tacotron2 architecture. According to the experiments we performed by the individual components, noting, except the Location Sensitive Attention, improves the baseline perfomance of the Tacotron. 
+One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the baseline perfomance of vanilla Tacotron. 
 Please feel free to offer new changes and pull things off. We are happy to discuss and make things better. 
+
+## Problems waiting to be solved, based on LJSpeech Dataset
+- Punctuations at the end of a sentence affects the pronounciation of the last word in certain cases. Because punctuation sign is attended by the attention module , that forces network to create a voice signal or at least modify the voice signal being generated for neighboring frames. However, punctuation should only affect the general flow (like ? and !) or pauses in the sentence (. or ,).
+- Simpler stop-token prediction. Right now we use RNN to keep the history of the previous frames. However, we never tested, if something simpler would work as well.
+- Train for better mel-specs. Mel-spectrograms are not good enough to be fed to Neural Vocoder. Therefore, we needs better ways to improve the quality. These might be using adversarial training or some other trick ued by image generation methods. At the end, it is partially a text to image problem.
+- irregular words: "minute", "focus", "aren't" etc. Even though, it might be solved by a larger or better dataset, some of irregular words cause network to mis-pronounce. Irregular means in this context is that written form and the pronounciation of the word have a unique difference.
+
+## Major TODOs
+- [x] Implement the model.
+- [x] Generate human-like speech on LJSpeech dataset.
+- [] Generate human-like speech on a different dataset.
+- [] Adapting Neural Vocoder.
+- [] Multi-speaker embedding.
 
 ## References
 - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1802.08435.pdf)
