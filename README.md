@@ -110,9 +110,9 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 ## Major TODOs
 - [x] Implement the model.
 - [x] Generate human-like speech on LJSpeech dataset.
-- [] Generate human-like speech on a different dataset.
-- [] Adapting Neural Vocoder.
-- [] Multi-speaker embedding.
+- [ ] Generate human-like speech on a different dataset.
+- [ ] Adapting Neural Vocoder.
+- [ ] Multi-speaker embedding.
 
 ## References
 - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1802.08435.pdf)
