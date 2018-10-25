@@ -321,6 +321,7 @@ class Decoder(nn.Module):
         if memory is not None:
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
+                memory = memory.contiguous()
                 memory = memory.view(B, memory.size(1) // self.r, -1)
                 " !! Dimension mismatch {} vs {} * {}".format(
                     memory.size(-1), self.memory_dim, self.r)
