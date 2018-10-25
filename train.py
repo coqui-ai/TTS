@@ -274,7 +274,7 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
             const_spec = linear_output[idx].data.cpu().numpy()
             gt_spec = linear_input[idx].data.cpu().numpy()
             align_img = alignments[idx].data.cpu().numpy()
-
+\
             const_spec = plot_spectrogram(const_spec, ap)
             gt_spec = plot_spectrogram(gt_spec, ap)
             align_img = plot_alignment(align_img)
@@ -422,7 +422,7 @@ def main(args):
         best_loss = checkpoint['linear_loss']
         args.restore_step = checkpoint['step']
     else:
-        args.restore_step = 0
+        args.restore_step = -1
         print("\n > Starting a new training", flush=True)
         if use_cuda:
             model = model.cuda()
