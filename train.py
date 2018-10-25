@@ -75,8 +75,11 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
         mask = sequence_mask(text_lengths)
 
         # forward pass
-        mel_output, linear_output, alignments, stop_tokens = torch.nn.parallel.data_parallel(
-            model, (text_input, mel_input, mask))
+        if use_cuda:
+            mel_output, linear_output, alignments, stop_tokens = torch.nn.parallel.data_parallel(
+                model, (text_input, mel_input, mask))
+        else:
+            mel_output, linear_output, alignments, stop_tokens = model(text_input, mel_input, mask)
 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets)
@@ -274,7 +277,6 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
             const_spec = linear_output[idx].data.cpu().numpy()
             gt_spec = linear_input[idx].data.cpu().numpy()
             align_img = alignments[idx].data.cpu().numpy()
-\
             const_spec = plot_spectrogram(const_spec, ap)
             gt_spec = plot_spectrogram(gt_spec, ap)
             align_img = plot_alignment(align_img)
@@ -422,14 +424,14 @@ def main(args):
         best_loss = checkpoint['linear_loss']
         args.restore_step = checkpoint['step']
     else:
-        args.restore_step = -1
+        args.restore_step = 0
         print("\n > Starting a new training", flush=True)
         if use_cuda:
             model = model.cuda()
             criterion.cuda()
             criterion_st.cuda()
 
-    scheduler = AnnealLR(optimizer, warmup_steps=c.warmup_steps, last_epoch=args.restore_step)
+    scheduler = AnnealLR(optimizer, warmup_steps=c.warmup_steps, last_epoch= (args.restore_step-1))
     num_params = count_parameters(model)
     print(" | > Model has {} parameters".format(num_params), flush=True)
 
@@ -472,6 +474,11 @@ if __name__ == '__main__':
         type=bool,
         default=False,
         help='do not ask for git has before run.')
+    parser.add_argument(
+        '--data_path',
+        type=str,
+        default='',
+        help='data path to overrite config.json')
     args = parser.parse_args()
 
     # setup output paths and read configs
@@ -483,6 +490,9 @@ if __name__ == '__main__':
     AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
     os.makedirs(AUDIO_PATH, exist_ok=True)
     shutil.copyfile(args.config_path, os.path.join(OUT_PATH, 'config.json'))
+
+    if args.data_path != "":
+        c.data_path = args.data_path
 
     # setup tensorboard
     LOG_DIR = OUT_PATH
