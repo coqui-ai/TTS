@@ -48,11 +48,10 @@ class AudioProcessor(object):
         self.max_norm = 1.0 if max_norm is None else float(max_norm)
         self.clip_norm = clip_norm
         self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
-        if preemphasis == 0:
-            print(" | > Preemphasis is deactive.")
         print(" | > Audio Processor attributes.")
         members = vars(self)
-        pprint(members)
+        for key, value in members.items():
+            print("   | > {}:{}".format(key, value))
 
     def save_wav(self, wav, path):
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
@@ -226,6 +225,7 @@ class AudioProcessor(object):
 
     def load_wav(self, filename, encode=False):
         x, sr = librosa.load(filename, sr=self.sample_rate)
+        # sr, x = io.wavfile.read(filename)
         assert self.sample_rate == sr
         return x
 
