@@ -80,11 +80,11 @@ setup(
         "matplotlib==2.0.2",
         "Pillow",
         "flask",
-        "lws",
+        # "lws",
+        "tqdm",
     ],
     extras_require={
         "bin": [
-            "tqdm",
             "requests",
         ],
     })

@@ -1,16 +1,25 @@
     {
-    "num_mels": 80,
-    "num_freq": 1025,
-    "sample_rate": 22050,
-    "frame_length_ms": 50,
-    "frame_shift_ms": 12.5,
-    "preemphasis": 0.97,
-    "min_level_db": -100,
-    "ref_level_db": 20,
+    "audio":{
+        "audio_processor": "audio",     // to use dictate different audio processors, if available.
+        "num_mels": 80,         // size of the mel spec frame. 
+        "num_freq": 1025,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 22050,   // wav sample-rate. If different than the original data, it is resampled.
+        "frame_length_ms": 50,  // stft window length in ms.
+        "frame_shift_ms": 12.5, // stft window hop-lengh in ms.
+        "preemphasis": 0.97,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100,   // normalization range
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 30,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        "signal_norm": true,    // normalize the spec values in range [0, 1]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "clip_norm": true,       // clip normalized values into the range.
+        "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "mel_fmin": 95,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 7600        // maximum freq level for mel-spec. Tune for dataset!!
+    },
     "hidden_size": 128,
     "embedding_size": 256,
-    "min_mel_freq": null,
-    "max_mel_freq": null,
     "text_cleaner": "english_cleaners",
 
     "epochs": 2000,
@@ -21,16 +30,11 @@
     "r": 5,
     "mk": 1.0,
     "priority_freq": false,
-
-
-    "griffin_lim_iters": 60,
-    "power": 1.5,
-
     "num_loader_workers": 4,
 
     "save_step": 200,
-    "data_path_LJSpeech": "/home/erogol/Data/LJSpeech-1.1",
-    "data_path_Kusal": "/home/erogol/Data/Kusal",
+    "data_path": "/home/erogol/Data/LJSpeech-1.1/",
+    "data_path_cache": "/home/erogol/Data/LJSpeech-1.1/tts_cache/",
     "output_path": "result",
     "min_seq_len": 0,
     "log_dir": "/home/erogol/projects/TTS/logs/"
