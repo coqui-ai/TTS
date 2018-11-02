@@ -23,6 +23,13 @@ class Prenet(nn.Module):
         ])
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
+        # self.init_layers()
+
+    def init_layers(self):
+        for layer in self.layers:
+            torch.nn.init.xavier_uniform_(
+                layer.weight,
+                gain=torch.nn.init.calculate_gain('relu'))
 
     def forward(self, inputs):
         for linear in self.layers:
@@ -55,6 +62,7 @@ class BatchNormConv1d(nn.Module):
                  stride,
                  padding,
                  activation=None):
+
         super(BatchNormConv1d, self).__init__()
         self.padding = padding
         self.padder = nn.ConstantPad1d(padding, 0)
@@ -68,13 +76,28 @@ class BatchNormConv1d(nn.Module):
         # Following tensorflow's default parameters
         self.bn = nn.BatchNorm1d(out_channels, momentum=0.99, eps=1e-3)
         self.activation = activation
+        # self.init_layers()
+
+    def init_layers(self):
+        if type(self.activation) == torch.nn.ReLU:
+            w_gain = 'relu'
+        elif type(self.activation) == torch.nn.Tanh:
+            w_gain = 'tanh'
+        elif self.activation is None:
+            w_gain = 'linear'
+        else:
+            raise RuntimeError('Unknown activation function')
+        torch.nn.init.xavier_uniform_(
+            self.conv1d.weight,
+            gain=torch.nn.init.calculate_gain(w_gain))
 
     def forward(self, x):
         x = self.padder(x)
         x = self.conv1d(x)
+        x = self.bn(x)
         if self.activation is not None:
             x = self.activation(x)
-        return self.bn(x)
+        return x
 
 
 class Highway(nn.Module):
@@ -86,6 +109,15 @@ class Highway(nn.Module):
         self.T.bias.data.fill_(-1)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
+        # self.init_layers()
+
+    def init_layers(self):
+        torch.nn.init.xavier_uniform_(
+            self.H.weight,
+            gain=torch.nn.init.calculate_gain('relu'))
+        torch.nn.init.xavier_uniform_(
+            self.T.weight,
+            gain=torch.nn.init.calculate_gain('sigmoid'))
 
     def forward(self, inputs):
         H = self.relu(self.H(inputs))
@@ -276,7 +308,7 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.r = r
         self.in_features = in_features
-        self.max_decoder_steps = 200
+        self.max_decoder_steps = 500
         self.memory_dim = memory_dim
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(memory_dim * r, out_features=[256, 128])
@@ -294,7 +326,16 @@ class Decoder(nn.Module):
             [nn.GRUCell(256, 256) for _ in range(2)])
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
-        self.stopnet = StopNet(r, memory_dim)
+        self.stopnet = StopNet(256 + memory_dim * r)
+        # self.init_layers()
+
+    def init_layers(self):
+        torch.nn.init.xavier_uniform_(
+            self.project_to_decoder_in.weight,
+            gain=torch.nn.init.calculate_gain('linear'))
+        torch.nn.init.xavier_uniform_(
+            self.proj_to_mel.weight,
+            gain=torch.nn.init.calculate_gain('linear'))
 
     def forward(self, inputs, memory=None, mask=None):
         """
@@ -350,7 +391,7 @@ class Decoder(nn.Module):
         memory_input = initial_memory
         while True:
             if t > 0:
-                if greedy:
+                if memory is None:
                     memory_input = outputs[-1]
                 else:
                     memory_input = memory[t - 1]
@@ -375,17 +416,14 @@ class Decoder(nn.Module):
             decoder_output = decoder_input
             # predict mel vectors from decoder vectors
             output = self.proj_to_mel(decoder_output)
-            output = torch.sigmoid(output)
-            stop_input = output
             # predict stop token
-            stop_token, stopnet_rnn_hidden = self.stopnet(
-                stop_input, stopnet_rnn_hidden)
+            stopnet_input = torch.cat([decoder_input, output], -1)
+            stop_token = self.stopnet(stopnet_input)
             outputs += [output]
             attentions += [attention]
             stop_tokens += [stop_token]
             t += 1
-            if (not greedy and self.training) or (greedy
-                                                  and memory is not None):
+            if memory is not None:
                 if t >= T_decoder:
                     break
             else:
@@ -394,7 +432,6 @@ class Decoder(nn.Module):
                 elif t > self.max_decoder_steps:
                     print("   | > Decoder stopped with 'max_decoder_steps")
                     break
-        assert greedy or len(outputs) == T_decoder
         # Back to batch first
         attentions = torch.stack(attentions).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
@@ -407,32 +444,22 @@ class StopNet(nn.Module):
     Predicting stop-token in decoder.
 
     Args:
-        r (int): number of output frames of the network.
-        memory_dim (int): feature dimension for each output frame.
+        in_features (int): feature dimension of input.
     """
 
-    def __init__(self, r, memory_dim):
-        r"""
-        Predicts the stop token to stop the decoder at testing time
-
-        Args:
-            r (int): number of network output frames.
-            memory_dim (int): single feature dim of a single network output frame.
-        """
+    def __init__(self, in_features):
         super(StopNet, self).__init__()
-        self.rnn = nn.GRUCell(memory_dim * r, memory_dim * r)
-        self.relu = nn.ReLU()
-        self.linear = nn.Linear(r * memory_dim, 1)
+        self.dropout = nn.Dropout(0.5)
+        self.linear = nn.Linear(in_features, 1)
         self.sigmoid = nn.Sigmoid()
+        torch.nn.init.xavier_uniform_(
+            self.linear.weight,
+            gain=torch.nn.init.calculate_gain('linear'))
 
-    def forward(self, inputs, rnn_hidden):
-        """
-        Args:
-            inputs: network output tensor with r x memory_dim feature dimension.
-            rnn_hidden: hidden state of the RNN cell.
-        """
-        rnn_hidden = self.rnn(inputs, rnn_hidden)
-        outputs = self.relu(rnn_hidden)
+    def forward(self, inputs):
+        # rnn_hidden = self.rnn(inputs, rnn_hidden)
+        # outputs = self.relu(rnn_hidden)
+        outputs = self.dropout(inputs)
         outputs = self.linear(outputs)
         outputs = self.sigmoid(outputs)
-        return outputs, rnn_hidden
+        return outputs

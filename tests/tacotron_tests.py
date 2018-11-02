@@ -21,8 +21,8 @@ c = load_config(os.path.join(file_path, 'test_config.json'))
 class TacotronTrainTest(unittest.TestCase):
     def test_train_step(self):
         input = torch.randint(0, 24, (8, 128)).long().to(device)
-        mel_spec = torch.rand(8, 30, c.num_mels).to(device)
-        linear_spec = torch.rand(8, 30, c.num_freq).to(device)
+        mel_spec = torch.rand(8, 30, c.audio['num_mels']).to(device)
+        linear_spec = torch.rand(8, 30, c.audio['num_freq']).to(device)
         mel_lengths = torch.randint(20, 30, (8, )).long().to(device)
         stop_targets = torch.zeros(8, 30, 1).float().to(device)
 
@@ -35,7 +35,7 @@ class TacotronTrainTest(unittest.TestCase):
 
         criterion = L1LossMasked().to(device)
         criterion_st = nn.BCELoss().to(device)
-        model = Tacotron(c.embedding_size, c.num_freq, c.num_mels,
+        model = Tacotron(c.embedding_size, c.audio['num_freq'], c.audio['num_mels'],
                          c.r).to(device)
         model.train()
         model_ref = copy.deepcopy(model)

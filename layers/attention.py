@@ -52,10 +52,25 @@ class LocationSensitiveAttention(nn.Module):
                 stride=1,
                 padding=0,
                 bias=False))
-        self.loc_linear = nn.Linear(filters, attn_dim)
+        self.loc_linear = nn.Linear(filters, attn_dim, bias=True)
         self.query_layer = nn.Linear(query_dim, attn_dim, bias=True)
         self.annot_layer = nn.Linear(annot_dim, attn_dim, bias=True)
         self.v = nn.Linear(attn_dim, 1, bias=False)
+        # self.init_layers()
+
+    def init_layers(self):
+        torch.nn.init.xavier_uniform_(
+            self.loc_linear.weight,
+            gain=torch.nn.init.calculate_gain('tanh'))
+        torch.nn.init.xavier_uniform_(
+            self.query_layer.weight,
+            gain=torch.nn.init.calculate_gain('tanh'))
+        torch.nn.init.xavier_uniform_(
+            self.annot_layer.weight,
+            gain=torch.nn.init.calculate_gain('tanh'))
+        torch.nn.init.xavier_uniform_(
+            self.v.weight,
+            gain=torch.nn.init.calculate_gain('linear'))
 
     def forward(self, annot, query, loc):
         """

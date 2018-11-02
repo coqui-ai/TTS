@@ -1,41 +1,47 @@
 {
-    "model_name": "TTS-sigmoid",
-    "model_description": "Net outputting Sigmoid unit",
-    "audio_processor": "audio",
-    "num_mels": 80,
-    "num_freq": 1025,
-    "sample_rate": 22000,
-    "frame_length_ms": 50,
-    "frame_shift_ms": 12.5,
-    "preemphasis": 0.97,
-    "min_level_db": -100,
-    "ref_level_db": 20,
+    "model_name": "TTS-master-_tmp",
+    "model_description": "Higher dropout rate for stopnet and disabled custom initialization, pull current mel prediction to stopnet.",
+
+    "audio":{
+        "audio_processor": "audio",     // to use dictate different audio processors, if available.
+        "num_mels": 80,         // size of the mel spec frame. 
+        "num_freq": 1025,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 22050,   // wav sample-rate. If different than the original data, it is resampled.
+        "frame_length_ms": 50,  // stft window length in ms.
+        "frame_shift_ms": 12.5, // stft window hop-lengh in ms.
+        "preemphasis": 0.97,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100,   // normalization range
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        "signal_norm": true,    // normalize the spec values in range [0, 1]
+        "symmetric_norm": false, // move normalization to range [-1, 1]
+        "max_norm": 1,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true,      // clip normalized values into the range.
+        "mel_fmin": null,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": null        // maximum freq level for mel-spec. Tune for dataset!!
+    },
+
     "embedding_size": 256,
     "text_cleaner": "english_cleaners",
-
-    "num_loader_workers": 4,
-
     "epochs": 1000,
-    "lr": 0.002,
+    "lr": 0.0015,
     "warmup_steps": 4000,
-    "lr_decay": 0.5,
-    "decay_step": 100000,
-    "batch_size": 32,
-    "eval_batch_size":-1,
-    "r": 5,
-    "wd": 0.0001,
-
-    "griffin_lim_iters": 60,
-    "power": 1.5,
-
+    "batch_size":32,
+    "eval_batch_size":32,
+    "r": 1,
+    "wd": 0.000001,
     "checkpoint": true,
-    "save_step": 25000,
+    "save_step": 5000,
     "print_step": 10,
-    "run_eval": false,
-    "data_path": "/snakepit/shared/data/keithito/LJSpeech-1.1/",
-    "meta_file_train": "metadata.csv",
-    "meta_file_val": null,
-    "dataset": "LJSpeech",
+
+    "run_eval": true,
+    "data_path": "../../Data/LJSpeech-1.1/tts_cache",  // can overwritten from command argument
+    "meta_file_train": "metadata_train.csv",      // metafile for training dataloader
+    "meta_file_val": "metadata_val.csv",    // metafile for validation dataloader
+    "data_loader": "TTSDataset",      // dataloader, ["TTSDataset", "TTSDatasetCached", "TTSDatasetMemory"]
+    "dataset": "ljspeech",     // one of TTS.dataset.preprocessors, only valid id dataloader == "TTSDataset", rest uses "tts_cache" by default.
     "min_seq_len": 0,
-    "output_path": "../keep/"
+    "output_path": "../keep/",
+    "num_loader_workers": 8
 }

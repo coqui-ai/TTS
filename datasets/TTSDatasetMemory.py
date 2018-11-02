@@ -1,50 +1,81 @@
 import os
+import random
 import numpy as np
 import collections
 import librosa
 import torch
-import random
+from tqdm import tqdm
 from torch.utils.data import Dataset
 
 from utils.text import text_to_sequence
+from datasets.preprocess import tts_cache
 from utils.data import (prepare_data, pad_per_step, prepare_tensor,
                         prepare_stop_target)
 
 
 class MyDataset(Dataset):
+    # TODO: Not finished yet.
     def __init__(self,
-                 root_dir,
-                 csv_file,
+                 root_path,
+                 meta_file,
                  outputs_per_step,
                  text_cleaner,
                  ap,
-                 batch_group_size=0,
-                 min_seq_len=0):
-        self.root_dir = root_dir
+                 batch_group_size=0,                 
+                 min_seq_len=0,
+                 **kwargs
+                 ):
+        self.root_path = root_path
         self.batch_group_size = batch_group_size
-        self.wav_dir = os.path.join(root_dir, 'wavs')
-        self.csv_dir = os.path.join(root_dir, csv_file)
-        with open(self.csv_dir, "r", encoding="utf8") as f:
-            self.frames = [line.split('|') for line in f]
+        self.feat_dir = os.path.join(root_path, 'loader_data')
+        self.items = tts_cache(root_path, meta_file)
         self.outputs_per_step = outputs_per_step
         self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner
         self.min_seq_len = min_seq_len
-        self.ap = ap
-        print(" > Reading LJSpeech from - {}".format(root_dir))
-        print(" | > Number of instances : {}".format(len(self.frames)))
-        self.sort_frames()
+        self.wavs = None
+        self.mels = None
+        self.linears = None
+        print(" > Reading LJSpeech from - {}".format(root_path))
+        print(" | > Number of instances : {}".format(len(self.items)))
+        self.sort_items()
+        self.fill_data()
+
+    def fill_data(self):
+        if self.wavs is None and self.mels is None:
+            self.wavs = []
+            self.mels = []
+            self.linears = []
+            self.texts = []
+            for item in tqdm(self.items):
+                wav_file = item[0]
+                mel_file = item[1]
+                linear_file = item[2]
+                text = item[-1]
+                wav = self.load_np(wav_file)
+                mel = self.load_np(mel_file)
+                linear = self.load_np(linear_file)
+                self.wavs.append(wav)
+                self.mels.append(mel)
+                self.linears.append(linear)
+                self.texts.append(np.asarray(
+                    text_to_sequence(text, [self.cleaners]), dtype=np.int32))
+            print(" > Data loaded to memory")
 
     def load_wav(self, filename):
         try:
-            audio = librosa.core.load(filename, sr=self.sample_rate)[0]
+            audio = librosa.core.load(filename, sr=self.sample_rate)
             return audio
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
 
-    def sort_frames(self):
+    def load_np(self, filename):
+        data = np.load(filename).astype('float32')
+        return data
+
+    def sort_items(self):
         r"""Sort text sequences in ascending order"""
-        lengths = np.array([len(ins[1]) for ins in self.frames])
+        lengths = np.array([len(ins[-1]) for ins in self.items])
 
         print(" | > Max length sequence {}".format(np.max(lengths)))
         print(" | > Min length sequence {}".format(np.min(lengths)))
@@ -58,7 +89,7 @@ class MyDataset(Dataset):
             if length < self.min_seq_len:
                 ignored.append(idx)
             else:
-                new_frames.append(self.frames[idx])
+                new_frames.append(self.items[idx])
         print(" | > {} instances are ignored by min_seq_len ({})".format(
             len(ignored), self.min_seq_len))
         # shuffle batch groups
@@ -70,18 +101,23 @@ class MyDataset(Dataset):
                 temp_frames = new_frames[offset : end_offset]
                 random.shuffle(temp_frames)
                 new_frames[offset : end_offset] = temp_frames
-        self.frames = new_frames
+        self.items = new_frames
 
     def __len__(self):
-        return len(self.frames)
+        return len(self.items)
 
     def __getitem__(self, idx):
-        wav_name = os.path.join(self.wav_dir, self.frames[idx][0]) + '.wav'
-        text = self.frames[idx][1]
-        text = np.asarray(
-            text_to_sequence(text, [self.cleaners]), dtype=np.int32)
-        wav = np.asarray(self.load_wav(wav_name), dtype=np.float32)
-        sample = {'text': text, 'wav': wav, 'item_idx': self.frames[idx][0]}
+        text = self.texts[idx]
+        wav = self.wavs[idx]
+        mel = self.mels[idx]
+        linear = self.linears[idx]
+        sample = {
+            'text': text,
+            'wav': wav,
+            'item_idx': self.items[idx][0],
+            'mel': mel,
+            'linear': linear
+        }
         return sample
 
     def collate_fn(self, batch):
@@ -100,12 +136,11 @@ class MyDataset(Dataset):
             wav = [d['wav'] for d in batch]
             item_idxs = [d['item_idx'] for d in batch]
             text = [d['text'] for d in batch]
+            mel = [d['mel'] for d in batch]
+            linear = [d['linear'] for d in batch]
 
             text_lenghts = np.array([len(x) for x in text])
             max_text_len = np.max(text_lenghts)
-
-            linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
-            mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
             mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
 
             # compute 'stop token' targets
@@ -124,7 +159,6 @@ class MyDataset(Dataset):
             # PAD features with largest length + a zero frame
             linear = prepare_tensor(linear, self.outputs_per_step)
             mel = prepare_tensor(mel, self.outputs_per_step)
-            assert mel.shape[2] == linear.shape[2]
             timesteps = mel.shape[2]
 
             # B x T x D

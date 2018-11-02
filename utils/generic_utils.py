@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import glob
 import time
@@ -21,18 +22,23 @@ class AttrDict(dict):
 
 def load_config(config_path):
     config = AttrDict()
-    config.update(json.load(open(config_path, "r")))
+    with open(config_path, "r") as f:
+        input_str = f.read()
+    input_str = re.sub(r'\\\n', '', input_str)
+    input_str = re.sub(r'//.*\n', '\n', input_str)
+    data = json.loads(input_str)
+    config.update(data)
     return config
 
 
 def get_commit_hash():
     """https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script"""
-    try:
-        subprocess.check_output(['git', 'diff-index', '--quiet',
-                                 'HEAD'])  # Verify client is clean
-    except:
-        raise RuntimeError(
-            " !! Commit before training to get the commit hash.")
+    # try:
+    #     subprocess.check_output(['git', 'diff-index', '--quiet',
+    #                              'HEAD'])  # Verify client is clean
+    # except:
+    #     raise RuntimeError(
+    #         " !! Commit before training to get the commit hash.")
     commit = subprocess.check_output(['git', 'rev-parse', '--short',
                                       'HEAD']).decode().strip()
     print(' > Git Hash: {}'.format(commit))
@@ -177,15 +183,3 @@ def sequence_mask(sequence_length, max_len=None):
     seq_length_expand = (sequence_length.unsqueeze(1)
                          .expand_as(seq_range_expand))
     return seq_range_expand < seq_length_expand
-
-
-def synthesis(model, ap, text, use_cuda, text_cleaner):
-    text_cleaner = [text_cleaner]
-    seq = np.array(text_to_sequence(text, text_cleaner))
-    chars_var = torch.from_numpy(seq).unsqueeze(0)
-    if use_cuda:
-        chars_var = chars_var.cuda().long()
-    _, linear_out, alignments, _ = model.forward(chars_var)
-    linear_out = linear_out[0].data.cpu().numpy()
-    wav = ap.inv_spectrogram(linear_out.T)
-    return wav, linear_out, alignments
