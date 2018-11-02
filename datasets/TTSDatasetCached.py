@@ -24,6 +24,7 @@ class MyDataset(Dataset):
                  min_seq_len=0,
                  **kwargs
                  ):
+        self.ap = ap
         self.root_path = root_path
         self.batch_group_size = batch_group_size
         self.feat_dir = os.path.join(root_path, 'loader_data')
@@ -38,7 +39,7 @@ class MyDataset(Dataset):
 
     def load_wav(self, filename):
         try:
-            audio = librosa.core.load(filename, sr=self.sample_rate)
+            audio = self.ap.load_wav(filename)
             return audio
         except RuntimeError as e:
             print(" !! Cannot read file : {}".format(filename))
@@ -90,7 +91,7 @@ class MyDataset(Dataset):
         if wav_name.split('.')[-1] == 'npy':
             wav = self.load_np(wav_name)
         else:
-            wav = np.asarray(self.load_wav(wav_name)[0], dtype=np.float32)
+            wav = np.asarray(self.load_wav(wav_name), dtype=np.float32)
         mel = self.load_np(mel_name)
         linear = self.load_np(linear_name)
         sample = {

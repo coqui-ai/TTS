@@ -416,6 +416,7 @@ class Decoder(nn.Module):
             decoder_output = decoder_input
             # predict mel vectors from decoder vectors
             output = self.proj_to_mel(decoder_output)
+            output = torch.sigmoid(output)
             # predict stop token
             stopnet_input = torch.cat([decoder_input, output], -1)
             stop_token = self.stopnet(stopnet_input)

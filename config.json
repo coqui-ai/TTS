@@ -4,6 +4,7 @@
 
     "audio":{
         "audio_processor": "audio",     // to use dictate different audio processors, if available.
+        // Audio processing parameters
         "num_mels": 80,         // size of the mel spec frame. 
         "num_freq": 1025,       // number of stft frequency levels. Size of the linear spectogram frame.
         "sample_rate": 22050,   // wav sample-rate. If different than the original data, it is resampled.
@@ -14,6 +15,7 @@
         "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
         "power": 1.5,           // value to sharpen wav signals after GL algorithm.
         "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        // Normalization parameters
         "signal_norm": true,    // normalize the spec values in range [0, 1]
         "symmetric_norm": false, // move normalization to range [-1, 1]
         "max_norm": 1,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
@@ -22,7 +24,7 @@
         "mel_fmax": null        // maximum freq level for mel-spec. Tune for dataset!!
     },
 
-    "embedding_size": 256,
+    "embedding_size": 256,    
     "text_cleaner": "english_cleaners",
     "epochs": 1000,
     "lr": 0.0015,
@@ -36,7 +38,7 @@
     "print_step": 10,
 
     "run_eval": true,
-    "data_path": "../../Data/LJSpeech-1.1/tts_cache",  // can overwritten from command argument
+    "data_path": "../../Data/LJSpeech-1.1/",  // can overwritten from command argument
     "meta_file_train": "metadata_train.csv",      // metafile for training dataloader
     "meta_file_val": "metadata_val.csv",    // metafile for validation dataloader
     "data_loader": "TTSDataset",      // dataloader, ["TTSDataset", "TTSDatasetCached", "TTSDatasetMemory"]
