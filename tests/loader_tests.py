@@ -15,6 +15,13 @@ os.makedirs(OUTPATH, exist_ok=True)
 c = load_config(os.path.join(file_path, 'test_config.json'))
 ok_ljspeech = os.path.exists(c.data_path)
 
+DATA_EXIST = True
+CACHE_EXIST = True
+if not os.path.exists(c.data_path_cache):
+    CACHE_EXIST = False
+
+if not os.path.exists(c.data_path):
+    DATA_EXIST = False
 
 class TestTTSDataset(unittest.TestCase):
     def __init__(self, *args, **kwargs):
