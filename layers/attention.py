@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from utils.generic_utils import sequence_mask
+from TTS.utils.generic_utils import sequence_mask
 
 
 class BahdanauAttention(nn.Module):

@@ -1,7 +1,7 @@
 # coding: utf-8
 import torch
 from torch import nn
-from utils.text.symbols import symbols
+from TTS.utils.text.symbols import symbols
 from layers.tacotron import Prenet, Encoder, Decoder, PostCBHG
 
 
