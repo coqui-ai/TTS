@@ -58,7 +58,8 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
             epoch * len(data_loader) + 1
 
         # setup lr
-        scheduler.step()
+        if c.lr_decay:
+            scheduler.step()
         optimizer.zero_grad()
         optimizer_st.zero_grad()
 
@@ -92,6 +93,7 @@ def train(model, criterion, criterion_st, data_loader, optimizer, optimizer_st,
 
         # backpass and check the grad norm for spec losses
         loss.backward(retain_graph=True)
+        # custom weight decay
         for group in optimizer.param_groups:
             for param in group['params']:
                 param.data = param.data.add(-c.wd * group['lr'], param.data)
