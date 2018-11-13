@@ -458,8 +458,6 @@ class StopNet(nn.Module):
             gain=torch.nn.init.calculate_gain('linear'))
 
     def forward(self, inputs):
-        # rnn_hidden = self.rnn(inputs, rnn_hidden)
-        # outputs = self.relu(rnn_hidden)
         outputs = self.dropout(inputs)
         outputs = self.linear(outputs)
         outputs = self.sigmoid(outputs)

@@ -1,5 +1,5 @@
 {
-    "model_name": "TTS-master-_tmp",
+    "model_name": "TTS-master",
     "model_description": "Higher dropout rate for stopnet and disabled custom initialization, pull current mel prediction to stopnet.",
 
     "audio":{
