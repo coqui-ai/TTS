@@ -28,8 +28,8 @@
     "text_cleaner": "english_cleaners",
     "epochs": 1000,
     
-    "lr": 0.0015,
-    "lr_decay": true,
+    "lr": 0.0001,
+    "lr_decay": false,
     "warmup_steps": 4000,
 
     "batch_size": 32,
