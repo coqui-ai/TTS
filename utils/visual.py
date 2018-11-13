@@ -29,11 +29,16 @@ def plot_spectrogram(linear_output, audio):
     return fig
 
 
-def visualize(alignment, spectrogram, stop_tokens, text, hop_length, CONFIG):
+def visualize(alignment, spectrogram, stop_tokens, text, hop_length, CONFIG, spectrogram2=None):
+    if spectrogram2 is not None:
+        num_plot = 4
+    else:
+        num_plot = 3
+
     label_fontsize = 16
     plt.figure(figsize=(16, 32))
 
-    plt.subplot(3, 1, 1)
+    plt.subplot(num_plot, 1, 1)
     plt.imshow(alignment.T, aspect="auto", origin="lower", interpolation=None)
     plt.xlabel("Decoder timestamp", fontsize=label_fontsize)
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
@@ -41,14 +46,21 @@ def visualize(alignment, spectrogram, stop_tokens, text, hop_length, CONFIG):
     plt.colorbar()
     
     stop_tokens = stop_tokens.squeeze().detach().to('cpu').numpy()
-    plt.subplot(3, 1, 2)
+    plt.subplot(num_plot, 1, 2)
     plt.plot(range(len(stop_tokens)), list(stop_tokens))
 
-    plt.subplot(3, 1, 3)
+    plt.subplot(num_plot, 1, 3)
     librosa.display.specshow(spectrogram.T, sr=CONFIG.audio['sample_rate'],
                              hop_length=hop_length, x_axis="time", y_axis="linear")
     plt.xlabel("Time", fontsize=label_fontsize)
     plt.ylabel("Hz", fontsize=label_fontsize)
+
+    if spectrogram2 is not None:
+        plt.subplot(num_plot, 1, 4)
+        librosa.display.specshow(spectrogram2.T, sr=CONFIG.audio['sample_rate'],
+                                hop_length=hop_length, x_axis="time", y_axis="linear")
+        plt.xlabel("Time", fontsize=label_fontsize)
+        plt.ylabel("Hz", fontsize=label_fontsize)
 
     plt.tight_layout()
     plt.colorbar()
