@@ -1,6 +1,6 @@
 {
-    "model_path":"../models/May-22-2018_03_24PM-e6112f7",
-    "model_name":"checkpoint_272976.pth.tar",
+    "model_path":"/home/erogol/projects/runs/2579/keep/November-04-2018_06+19PM-TTS-master-_tmp-debug/",
+    "model_name":"best_model.pth.tar",
     "model_config":"config.json",
     "port": 5002,
     "use_cuda": true

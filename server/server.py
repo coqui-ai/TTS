@@ -1,7 +1,7 @@
 #!flask/bin/python
 import argparse
 from synthesizer import Synthesizer
-from TTS.utils.generic_utils import load_config
+from utils.generic_utils import load_config
 from flask import Flask, Response, request, render_template, send_file
 
 parser = argparse.ArgumentParser()

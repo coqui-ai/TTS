@@ -5,10 +5,10 @@ import torch
 import scipy
 import numpy as np
 import soundfile as sf
-from TTS.utils.text import text_to_sequence
-from TTS.utils.generic_utils import load_config
-from TTS.utils.audio import AudioProcessor
-from TTS.models.tacotron import Tacotron
+from utils.text import text_to_sequence
+from utils.generic_utils import load_config
+from utils.audio import AudioProcessor
+from models.tacotron import Tacotron
 from matplotlib import pylab as plt
 
 
@@ -22,19 +22,8 @@ class Synthesizer(object):
         config = load_config(model_config)
         self.config = config
         self.use_cuda = use_cuda
-        self.model = Tacotron(config.embedding_size, config.num_freq,
-                              config.num_mels, config.r)
-        self.ap = AudioProcessor(
-            config.sample_rate,
-            config.num_mels,
-            config.min_level_db,
-            config.frame_shift_ms,
-            config.frame_length_ms,
-            config.preemphasis,
-            config.ref_level_db,
-            config.num_freq,
-            config.power,
-            griffin_lim_iters=60)
+        self.ap = AudioProcessor(**config.audio)
+        self.model = Tacotron(config.embedding_size, self.ap.num_freq, self.ap.num_mels, config.r)
         # load model state
         if use_cuda:
             cp = torch.load(self.model_file)
@@ -48,9 +37,8 @@ class Synthesizer(object):
         self.model.eval()
 
     def save_wav(self, wav, path):
-        wav *= 32767 / max(1e-8, np.max(np.abs(wav)))
-        librosa.output.write_wav(path, wav.astype(np.int16),
-                                 self.config.sample_rate)
+        # wav *= 32767 / max(1e-8, np.max(np.abs(wav)))
+        self.ap.save_wav(wav, path)
 
     def tts(self, text):
         text_cleaner = [self.config.text_cleaner]
@@ -70,7 +58,6 @@ class Synthesizer(object):
                 chars_var)
             linear_out = linear_out[0].data.cpu().numpy()
             wav = self.ap.inv_spectrogram(linear_out.T)
-            # wav = wav[:self.ap.find_endpoint(wav)]
             out = io.BytesIO()
             wavs.append(wav)
             wavs.append(np.zeros(10000))
