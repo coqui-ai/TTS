@@ -55,6 +55,6 @@ def nancy(root_path, meta_file):
             id = line.split()[1]
             text = line[line.find('"')+1:line.rfind('"')-1]
             wav_file = root_path + 'wavn/' + id + '.wav'
-            items.append(text, wav_file)
+            items.append([text, wav_file])
     random.shuffle(items)    
     return items
