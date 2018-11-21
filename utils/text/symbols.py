@@ -12,10 +12,11 @@ _eos = '~'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 
 # Prepend "@" to ARPAbet symbols to ensure uniqueness (some are the same as uppercase letters):
-_arpabet = ['@' + s for s in cmudict.valid_symbols]
+_arpabet = ['@' + s for s in cmudict._phonemes]
 
 # Export all symbols:
 symbols = [_pad, _eos] + list(_characters) + _arpabet
+phonemes = [_pad, _eos] + cmudict._phonemes + list('!\'(),-.:;?')
 
 if __name__ == '__main__':
     print(symbols)

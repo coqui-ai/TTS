@@ -2,14 +2,24 @@
 
 import re
 from utils.text import cleaners
-from utils.text.symbols import symbols
+from utils.text.symbols import symbols, phonemes
 
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
 _id_to_symbol = {i: s for i, s in enumerate(symbols)}
 
+_phonemes_to_id = {s: i for i, s in enumerate(phonemes)}
+_id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
+
 # Regular expression matching text enclosed in curly braces:
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
+
+
+def phoneme_to_sequence(text, cleaner_names):
+    sequence = []
+    sequence += _phonem_to_sequence(_clean_text(text, cleaner_names))
+    sequence.append(_phonemes_to_id['~'])
+    return sequence
 
 
 def text_to_sequence(text, cleaner_names):
@@ -69,9 +79,17 @@ def _symbols_to_sequence(symbols):
     return [_symbol_to_id[s] for s in symbols if _should_keep_symbol(s)]
 
 
+def _phonem_to_sequence(phonemes):
+    return [_phonemes_to_id[s] for s in phonemes if _should_keep_phonem(s)]
+
+
 def _arpabet_to_sequence(text):
     return _symbols_to_sequence(['@' + s for s in text.split()])
 
 
 def _should_keep_symbol(s):
     return s in _symbol_to_id and s is not '_' and s is not '~'
+
+
+def _should_keep_phonem(p):
+    return p in _phonemes_to_id and p is not '_' and p is not '~'
