@@ -3,6 +3,7 @@
 import re
 from utils.text import cleaners
 from utils.text.symbols import symbols, phonemes
+from utils.text.cmudict import text2phone
 
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
@@ -15,9 +16,18 @@ _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 
-def phoneme_to_sequence(text, cleaner_names):
+def phonem_to_sequence(text, cleaner_names):
+    '''
+    TODO: This ignores punctuations
+    '''
     sequence = []
-    sequence += _phonem_to_sequence(_clean_text(text, cleaner_names))
+    clean_text = _clean_text(text, cleaner_names)
+    for word in clean_text.split():
+        phonems_text = text2phone(word)
+        if phonems_text == None:
+            continue
+        sequence += _phonem_to_sequence(phonems_text)
+        sequence.append(_phonemes_to_id[' '])
     sequence.append(_phonemes_to_id['~'])
     return sequence
 
@@ -66,6 +76,17 @@ def sequence_to_text(sequence):
     return result.replace('}{', ' ')
 
 
+def sequence_to_phonem(sequence):
+    '''Converts a sequence of IDs back to a string'''
+    result = ''
+    for symbol_id in sequence:
+        if symbol_id in _id_to_phonemes:
+            s = _id_to_phonemes[symbol_id]
+            print(s)
+            result += s
+    return result.replace('}{', ' ')
+
+
 def _clean_text(text, cleaner_names):
     for name in cleaner_names:
         cleaner = getattr(cleaners, name)
@@ -80,7 +101,7 @@ def _symbols_to_sequence(symbols):
 
 
 def _phonem_to_sequence(phonemes):
-    return [_phonemes_to_id[s] for s in phonemes if _should_keep_phonem(s)]
+    return [_phonemes_to_id[s] for s in phonemes.split(" ") if _should_keep_phonem(s)]
 
 
 def _arpabet_to_sequence(text):
