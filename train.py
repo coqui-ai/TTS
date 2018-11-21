@@ -330,7 +330,7 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
     ap.griffin_lim_iters = 60
     for idx, test_sentence in enumerate(test_sentences):
         try:
-            wav, alignment, linear_spec, stop_tokens = synthesis(
+            wav, alignment, linear_spec, _, stop_tokens = synthesis(
                 model, test_sentence, c, use_cuda, ap)
 
             file_path = os.path.join(AUDIO_PATH, str(current_step))
@@ -345,6 +345,7 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
                 wav,
                 current_step,
                 sample_rate=c.audio['sample_rate'])
+
             linear_spec = plot_spectrogram(linear_spec, ap)
             align_img = plot_alignment(alignment)
             tb.add_figure('TestSentences/{}_Spectrogram'.format(idx),
@@ -352,7 +353,8 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
             tb.add_figure('TestSentences/{}_Alignment'.format(idx), align_img,
                           current_step)
         except:
-            print(" !! Error as creating Test Sentence -", idx)
+            print(" !! Error creating Test Sentence -", idx)
+            traceback.print_exc()
             pass
     return avg_linear_loss
 
