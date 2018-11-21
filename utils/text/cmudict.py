@@ -64,12 +64,11 @@ _phonemes = set(_phonemes)
 
 def text2phone(text):
     seperator = phonemizer.separator.Separator('', '', ' ')
-    ph = phonemizer.phonemize(text, separator=seperator)
-    ph = ph.split(' ')
-    ph.remove('')
-
-    result = [char2code[p] for p in ph]
-    return result
+    try:
+        ph = phonemizer.phonemize(text, separator=seperator)
+    except:
+        ph = None
+    return ph
 
 
 class CMUDict:
@@ -94,6 +93,20 @@ class CMUDict:
     def lookup(self, word):
         '''Returns list of ARPAbet pronunciations of the given word.'''
         return self._entries.get(word.upper())
+
+    def get_arpabet(self, word, cmudict, punctuation_symbols):
+        first_symbol, last_symbol = '', ''
+        if len(word) > 0 and word[0] in punctuation_symbols:
+            first_symbol = word[0]
+            word = word[1:]
+        if len(word) > 0 and word[-1] in punctuation_symbols:
+            last_symbol = word[-1]
+            word = word[:-1]
+        arpabet = cmudict.lookup(word)
+        if arpabet is not None:
+            return first_symbol + '{%s}' % arpabet[0] + last_symbol
+        else:
+            return first_symbol + word + last_symbol
 
 
 _alt_re = re.compile(r'\([0-9]+\)')

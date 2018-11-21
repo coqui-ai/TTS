@@ -6,7 +6,7 @@ import torch
 import random
 from torch.utils.data import Dataset
 
-from utils.text import text_to_sequence, phoneme_to_sequence
+from utils.text import text_to_sequence, phonem_to_sequence
 from utils.data import (prepare_data, pad_per_step, prepare_tensor,
                         prepare_stop_target)
 
