@@ -3,7 +3,11 @@
 import re
 import phonemizer
 from utils.text import cleaners
+<<<<<<< HEAD
 from utils.text.symbols import symbols, phonemes, _punctuations
+=======
+from utils.text.symbols import symbols, phonemes
+>>>>>>> phonem extraction for training
 
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
@@ -65,6 +69,13 @@ def sequence_to_phoneme(sequence):
             print(s)
             result += s
     return result.replace('}{', ' ')
+
+
+def phoneme_to_sequence(text, cleaner_names):
+    sequence = []
+    sequence += _phonem_to_sequence(_clean_text(text, cleaner_names))
+    sequence.append(_phonemes_to_id['~'])
+    return sequence
 
 
 def text_to_sequence(text, cleaner_names):
