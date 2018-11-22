@@ -123,7 +123,7 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
         best_loss = model_loss
         bestmodel_path = 'best_model.pth.tar'
         bestmodel_path = os.path.join(out_path, bestmodel_path)
-        print(" | > Best model saving with loss {0:.2f} : {1:}".format(
+        print(" | > Best model saving with loss {0:.5f} : {1:}".format(
             model_loss, bestmodel_path))
         torch.save(state, bestmodel_path)
     return best_loss
