@@ -26,6 +26,7 @@ class AudioProcessor(object):
                  mel_fmax=None,
                  clip_norm=True,
                  griffin_lim_iters=None,
+                 do_trim_silence=False,
                  **kwargs):
 
         print(" > Setting up Audio Processor...")
@@ -47,6 +48,7 @@ class AudioProcessor(object):
         self.mel_fmax = mel_fmax
         self.max_norm = 1.0 if max_norm is None else float(max_norm)
         self.clip_norm = clip_norm
+        self.do_trim_silence = do_trim_silence
         self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
         print(" | > Audio Processor attributes.")
         members = vars(self)
@@ -203,6 +205,13 @@ class AudioProcessor(object):
                 return x + hop_length
         return len(wav)
 
+    def trim_silence(self, wav):
+        """ Trim silent parts with a threshold and 0.1 sec margin """
+        margin = int(self.sample_rate * 0.1)
+        wav = wav[margin:-margin]
+        return librosa.effects.trim(
+            wav, top_db=40, frame_length=1024, hop_length=256)[0]
+
     # WaveRNN repo specific functions
     # def mulaw_encode(self, wav, qc):
     #     mu = qc - 1
@@ -225,6 +234,8 @@ class AudioProcessor(object):
 
     def load_wav(self, filename, encode=False):
         x, sr = librosa.load(filename, sr=self.sample_rate)
+        if self.do_trim_silence:
+            x = self.trim_silence(x)
         # sr, x = io.wavfile.read(filename)
         assert self.sample_rate == sr
         return x
