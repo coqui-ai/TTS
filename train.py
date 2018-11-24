@@ -306,7 +306,7 @@ def evaluate(model, criterion, criterion_st, data_loader, ap, current_step):
                     'ValSampleAudio',
                     audio_signal,
                     current_step,
-                    sample_rate=c.sample_rate)
+                    sample_rate=c.audio["sample_rate"])
             except:
                 # sometimes audio signal is out of boundaries
                 pass
