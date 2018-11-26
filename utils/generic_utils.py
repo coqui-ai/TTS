@@ -148,10 +148,10 @@ def lr_decay(init_lr, global_step, warmup_steps):
     return lr
 
 
-class AnnealLR(torch.optim.lr_scheduler._LRScheduler):
+class NoamLR(torch.optim.lr_scheduler._LRScheduler):
     def __init__(self, optimizer, warmup_steps=0.1, last_epoch=-1):
         self.warmup_steps = float(warmup_steps)
-        super(AnnealLR, self).__init__(optimizer, last_epoch)
+        super(NoamLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         step = max(self.last_epoch, 1)
