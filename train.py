@@ -16,7 +16,7 @@ from tensorboardX import SummaryWriter
 from utils.generic_utils import (
     remove_experiment_folder, create_experiment_folder, save_checkpoint,
     save_best_model, load_config, lr_decay, count_parameters, check_update,
-    get_commit_hash, sequence_mask, AnnealLR)
+    get_commit_hash, sequence_mask, NoamLR)
 from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
@@ -444,7 +444,7 @@ def main(args):
             criterion_st.cuda()
 
     if c.lr_decay:
-        scheduler = AnnealLR(
+        scheduler = NoamLR(
             optimizer,
             warmup_steps=c.warmup_steps,
             last_epoch=args.restore_step - 1)
