@@ -26,11 +26,7 @@ class AudioProcessor(object):
                  mel_fmax=None,
                  clip_norm=True,
                  griffin_lim_iters=None,
-<<<<<<< HEAD
                  do_trim_silence=False,
-=======
-                 do_trim_silence=False
->>>>>>> 0f0bde935ceec25f93117ff6d507f19162101041
                  **kwargs):
 
         print(" > Setting up Audio Processor...")
