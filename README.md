@@ -7,8 +7,8 @@ You can find [here](http://www.erogol.com/text-speech-deep-learning-architecture
 
 ## Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
-  * python 3.6
-  * pytorch 0.4
+  * python>=3.6
+  * pytorch>=0.4.1
   * librosa
   * tensorboard
   * tensorboardX
@@ -56,10 +56,12 @@ Audio length is approximately 6 secs.
 
 
 ## Data
-Currently TTS provides data loaders for datasets depicted below. It is also very is to adapt new datasets with few changes.
-- [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
+TTS provides a generic dataloder easy to use for new datasets. You need to write an adaptor to formatyour dataset.Check ```datasets/preprocess.py``` to see example adaptors. After your adaptor, you need to set ```dataset``` field in ```config.json``` accordingly. Some example datasets, we successfuly applied TTS, are linked below.
 
-## Training and Fine-tuning
+- [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
+- [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
+
+## Training and Fine-tuning LJ-Speech
 Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use the all data for training and check the model performance by relying on human inspection.
 
 ```
@@ -68,7 +70,7 @@ head -n 12000 metadata_shuf.csv > metadata_train.csv
 tail -n 11000 metadata_shuf.csv > metadata_val.csv
 ```
 
-To train a new model, you need to define a ```config.json``` file (simple template below) and call with the command below.
+To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below.
 
 ```train.py --config_path config.json```
 
@@ -80,9 +82,9 @@ If you like to use specific set of GPUs, you need set an environment variable. T
 
 ```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
 
-Each run creates an experiment folder with some meta information, under the folder you set in ```config.json```. Also a copy of ```config.json``` is moved under the experiment folder for reproducibility. 
+Each run creates a new output folder and ```config.json``` is copied under this folder. 
 
-In case of any error or intercepted execution, if there is no checkpoint yet under the execution folder, the whole folder is going to be removed.
+In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
 You can also enjoy Tensorboard, if you point the Tensorboard argument```--logdir``` to the experiment folder.
 
@@ -98,20 +100,23 @@ If you train TTS with LJSpeech dataset, you start to hear reasonable results aft
 - Stop token prediction with an additional module. The original Tacotron model does not propose a stop token to stop the decoding process. Therefore, you need to use heuristic measures to stop the decoder. Here, we prefer to use additional layers at the end to decide when to stop.
 - Applying sigmoid to the model outputs. Since the output values are expected to be in the range [0, 1], we apply sigmoid to make things easier to approximate the expected output distribution. 
 
-One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the baseline perfomance of vanilla Tacotron. 
+One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the performance, given the big increase in the model size.
+
 Please feel free to offer new changes and pull things off. We are happy to discuss and make things better. 
 
-## Problems waiting to be solved, based on LJSpeech Dataset
-- Punctuations at the end of a sentence affects the pronounciation of the last word in certain cases. Because punctuation sign is attended by the attention module , that forces network to create a voice signal or at least modify the voice signal being generated for neighboring frames. However, punctuation should only affect the general flow (like ? and !) or pauses in the sentence (. or ,).
-- Simpler stop-token prediction. Right now we use RNN to keep the history of the previous frames. However, we never tested, if something simpler would work as well.
-- Train for better mel-specs. Mel-spectrograms are not good enough to be fed to Neural Vocoder. Therefore, we needs better ways to improve the quality. These might be using adversarial training or some other trick ued by image generation methods. At the end, it is partially a text to image problem.
-- irregular words: "minute", "focus", "aren't" etc. Even though, it might be solved by a larger or better dataset, some of irregular words cause network to mis-pronounce. Irregular means in this context is that written form and the pronounciation of the word have a unique difference.
+## Problems waiting to be solved.
+- Punctuations at the end of a sentence sometimes affect the pronounciation of the last word. Because punctuation sign is attended by the attention module , that forces network to create a voice signal or at least modify the voice signal being generated for neighboring frames.
+- ~~Simpler stop-token prediction. Right now we use RNN to keep the history of the previous frames. However, we never tested, if something simpler would work as well.~~
+- Train for better mel-specs. Mel-spectrograms are not good enough to be fed Neural Vocoder. Easy solution to this problem is to train the model with r=1. However,in this case model struggles to align the attention.
+- irregular words: "minute", "focus", "aren't" etc. Even though, ~~it might be solved~~ (Nancy dataset give much better results compared to LJSpeech) it is solved by a larger or better dataset, some of irregular words cause network to mis-pronounce. Irregular means in this context is that written form and pronounciation of a word have a unique disparity.
 
 ## Major TODOs
 - [x] Implement the model.
 - [x] Generate human-like speech on LJSpeech dataset.
-- [ ] Generate human-like speech on a different dataset.
-- [ ] Adapting Neural Vocoder.
+- [x] Generate human-like speech on a different dataset (Nancy).
+- [ ] Train TTS with r=1 successfully.
+- [ ] Enable process based distributed training. Similar [to] (https://github.com/fastai/imagenet-fast/). 
+- [ ] Adapting Neural Vocoder. The most active work is [here] (https://github.com/erogol/WaveRNN) 
 - [ ] Multi-speaker embedding.
 
 ## References
