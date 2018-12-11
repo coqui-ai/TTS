@@ -482,20 +482,20 @@ if __name__ == '__main__':
     parser.add_argument(
         '--restore_path',
         type=str,
-        help='Folder path to checkpoints',
+        help='Path to model outputs (checkpoint, tensorboard etc.).',
         default=0)
     parser.add_argument(
         '--config_path',
         type=str,
-        help='path to config file for training',
+        help='Path to config file for training.',
     )
     parser.add_argument(
         '--debug',
         type=bool,
         default=False,
-        help='do not ask for git has before run.')
+        help='Do not verify commit integrity to run training.')
     parser.add_argument(
-        '--data_path', type=str, help='dataset path.', default='')
+        '--data_path', type=str, help='dataset path.', default='Defines the data path. It overwrites config.json.')
     args = parser.parse_args()
 
     # setup output paths and read configs
