@@ -4,10 +4,10 @@ import shutil
 import numpy as np
 
 from torch.utils.data import DataLoader
-from TTS.utils.generic_utils import load_config
-from TTS.utils.audio import AudioProcessor
-from TTS.datasets import TTSDataset, TTSDatasetCached, TTSDatasetMemory
-from TTS.datasets.preprocess import ljspeech, tts_cache
+from utils.generic_utils import load_config
+from utils.audio import AudioProcessor
+from datasets import TTSDataset, TTSDatasetCached, TTSDatasetMemory
+from datasets.preprocess import ljspeech, tts_cache
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(file_path, "outputs/loader_tests/")

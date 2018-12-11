@@ -1,9 +1,9 @@
 import unittest
 import torch as T
 
-from TTS.layers.tacotron import Prenet, CBHG, Decoder, Encoder
-from TTS.layers.losses import L1LossMasked
-from TTS.utils.generic_utils import sequence_mask
+from layers.tacotron import Prenet, CBHG, Decoder, Encoder
+from layers.losses import L1LossMasked
+from utils.generic_utils import sequence_mask
 
 
 class PrenetTests(unittest.TestCase):

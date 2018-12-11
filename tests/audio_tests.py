@@ -2,8 +2,8 @@ import os
 import unittest
 import numpy as np
 import torch as T
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import load_config
+from utils.audio import AudioProcessor
+from utils.generic_utils import load_config
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 INPUTPATH = os.path.join(file_path, 'inputs')
