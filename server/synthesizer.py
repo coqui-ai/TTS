@@ -38,6 +38,7 @@ class Synthesizer(object):
 
     def save_wav(self, wav, path):
         # wav *= 32767 / max(1e-8, np.max(np.abs(wav)))
+        wav = np.array(wav)
         self.ap.save_wav(wav, path)
 
     def tts(self, text):
@@ -50,7 +51,7 @@ class Synthesizer(object):
             sen += '.'
             print(sen)
             sen = sen.strip()
-            seq = np.array(text_to_sequence(text, text_cleaner))
+            seq = np.array(text_to_sequence(sen, text_cleaner))
             chars_var = torch.from_numpy(seq).unsqueeze(0).long()
             if self.use_cuda:
                 chars_var = chars_var.cuda()
@@ -59,7 +60,7 @@ class Synthesizer(object):
             linear_out = linear_out[0].data.cpu().numpy()
             wav = self.ap.inv_spectrogram(linear_out.T)
             out = io.BytesIO()
-            wavs.append(wav)
-            wavs.append(np.zeros(10000))
-        self.save_wav(wav, out)
+            wavs += list(wav)
+            wavs += [0] * 10000
+        self.save_wav(wavs, out)
         return out
