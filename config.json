@@ -49,5 +49,6 @@
     "dataset": "ljspeech",     // one of TTS.dataset.preprocessors, only valid id dataloader == "TTSDataset", rest uses "tts_cache" by default.
     "min_seq_len": 0,
     "output_path": "../keep/",
-    "num_loader_workers": 8
+    "num_loader_workers": 8,
+    "num_val_loader_workers": 4
 }
