@@ -339,11 +339,10 @@ class Decoder(nn.Module):
 
     def _reshape_memory(self, memory):
         B = memory.shape[0]
-        if memory is not None:
-            # Grouping multiple frames if necessary
-            if memory.size(-1) == self.memory_dim:
-                memory = memory.contiguous()
-                memory = memory.view(B, memory.size(1) // self.r, -1)
+        # Grouping multiple frames if necessary
+        if memory.size(-1) == self.memory_dim:
+            memory = memory.contiguous()
+            memory = memory.view(B, memory.size(1) // self.r, -1)
         # Time first (T_decoder, B, memory_dim)
         memory = memory.transpose(0, 1)
         return memory
@@ -370,7 +369,8 @@ class Decoder(nn.Module):
         T = inputs.size(1)
         # Run greedy decoding if memory is None
         greedy = not self.training
-        memory = self._reshape_memory(memory)
+        if memory is not None:
+            memory = self._reshape_memory(memory)
         T_decoder = memory.size(0)
         # go frame as zeros matrix
         initial_memory = inputs.data.new(B, self.memory_dim * self.r).zero_()
