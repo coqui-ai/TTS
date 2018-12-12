@@ -338,8 +338,8 @@ class Decoder(nn.Module):
             gain=torch.nn.init.calculate_gain('linear'))
 
     def _reshape_memory(self, memory):
-        B = memory.shape[0]
         if memory is not None:
+            B = memory.shape[0]
             # Grouping multiple frames if necessary
             if memory.size(-1) == self.memory_dim:
                 memory = memory.contiguous()
