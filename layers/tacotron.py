@@ -371,7 +371,7 @@ class Decoder(nn.Module):
         greedy = not self.training
         if memory is not None:
             memory = self._reshape_memory(memory)
-        T_decoder = memory.size(0)
+            T_decoder = memory.size(0)
         # go frame as zeros matrix
         initial_memory = inputs.data.new(B, self.memory_dim * self.r).zero_()
         # decoder states
