@@ -121,3 +121,5 @@ version.py
 
 # jupyter dummy files
 core
+
+tests/outputs/*
