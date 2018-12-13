@@ -40,6 +40,7 @@
     "checkpoint": true,
     "save_step": 5000,
     "print_step": 10,
+    "tb_model_param_stats": true,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
 
     "run_eval": true,
     "data_path": "../../Data/LJSpeech-1.1/",  // can overwritten from command argument
