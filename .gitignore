@@ -123,3 +123,6 @@ version.py
 core
 
 tests/outputs/*
+TODO.txt
+.vscode/*
+data/*
