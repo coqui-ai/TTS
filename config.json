@@ -43,10 +43,10 @@
 
     "run_eval": true,
     "data_path": "../../Data/LJSpeech-1.1/",  // can overwritten from command argument
-    "meta_file_train": "metadata_train.csv",      // metafile for training dataloader
-    "meta_file_val": "metadata_val.csv",    // metafile for validation dataloader
+    "meta_file_train": "prompts_train.data",      // metafile for training dataloader
+    "meta_file_val": "prompts_val.data",    // metafile for validation dataloader
     "data_loader": "TTSDataset",      // dataloader, ["TTSDataset", "TTSDatasetCached", "TTSDatasetMemory"]
-    "dataset": "ljspeech",     // one of TTS.dataset.preprocessors, only valid id dataloader == "TTSDataset", rest uses "tts_cache" by default.
+    "dataset": "nancy",     // one of TTS.dataset.preprocessors, only valid id dataloader == "TTSDataset", rest uses "tts_cache" by default.
     "min_seq_len": 0,
     "output_path": "../keep/",
     "num_loader_workers": 8,
