@@ -193,7 +193,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st,
             figures = {"prediction": plot_spectrogram(const_spec, ap),
                        "ground_truth": plot_spectrogram(gt_spec, ap),
                        "alignment": plot_alignment(align_img)}
-            tb_logger.tb_train_figures(figures, current_step)
+            tb_logger.tb_train_figures(current_step, figures)
 
             # Sample audio
             tb_logger.tb_train_audios(current_step, 
