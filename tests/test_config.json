@@ -16,7 +16,8 @@
         "clip_norm": true,       // clip normalized values into the range.
         "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "mel_fmin": 95,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
-        "mel_fmax": 7600        // maximum freq level for mel-spec. Tune for dataset!!
+        "mel_fmax": 7600,        // maximum freq level for mel-spec. Tune for dataset!!
+        "do_trim_silence": false
     },
     "hidden_size": 128,
     "embedding_size": 256,
@@ -34,8 +35,9 @@
 
     "save_step": 200,
     "data_path": "/home/erogol/Data/LJSpeech-1.1/",
-    "data_path_cache": "/home/erogol/Data/LJSpeech-1.1/tts_cache/",
+    "data_path_cache": "/media/erogol/data_ssd/Data/Nancy/tts_cache/",
     "output_path": "result",
     "min_seq_len": 0,
+    "max_seq_len": 300,
     "log_dir": "/home/erogol/projects/TTS/logs/"
     }
