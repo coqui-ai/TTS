@@ -18,9 +18,7 @@ from multiprocessing import Pool
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, help='Data folder.')
-    parser.add_argument('--cache_path', type=str, help='Cache folder, place to output all the intermediate spectrogram files.')
-    # parser.add_argument('--keep_cache', type=bool, help='If True, it keeps the cache folder.')
-    # parser.add_argument('--hdf5_path', type=str, help='hdf5 folder.')
+    parser.add_argument('--cache_path', type=str, help='Cache folder, place to output all the spectrogram files.')
     parser.add_argument(
         '--config', type=str, help='conf.json file for run settings.')
     parser.add_argument(
@@ -49,24 +47,14 @@ if __name__ == "__main__":
     print(" > Input path: ", DATA_PATH)
     print(" > Cache path: ", CACHE_PATH)
 
-    # audio = importlib.import_module('utils.' + c.audio_processor)
-    # AudioProcessor = getattr(audio, 'AudioProcessor')
     ap = AudioProcessor(**CONFIG.audio)
 
-    def trim_silence(self, wav):
-        """ Trim silent parts with a threshold and 0.1 sec margin """
-        margin = int(ap.sample_rate * 0.1)
-        wav = wav[margin:-margin]
-        return librosa.effects.trim(
-            wav, top_db=40, frame_length=1024, hop_length=256)[0]
 
     def extract_mel(item):
         """ Compute spectrograms, length information """
         text = item[0]
         file_path = item[1]
         x = ap.load_wav(file_path, ap.sample_rate)
-        if args.trim_silence:
-            x = trim_silence(x)
         file_name = os.path.basename(file_path).replace(".wav", "")
         mel_file = file_name + "_mel"
         mel_path = os.path.join(CACHE_PATH, 'mel', mel_file)
@@ -74,20 +62,20 @@ if __name__ == "__main__":
         np.save(mel_path, mel, allow_pickle=False)
         mel_len = mel.shape[1]
         wav_len = x.shape[0]
-        output = [file_path, mel_path+".npy", str(wav_len), str(mel_len), text]
+        output = [text, file_path, mel_path+".npy", str(wav_len), str(mel_len)]
         if not args.only_mel:
             linear_file = file_name + "_linear"
             linear_path = os.path.join(CACHE_PATH, 'linear', linear_file)
             linear = ap.spectrogram(x.astype('float32')).astype('float32')
             linear_len = linear.shape[1]
             np.save(linear_path, linear, allow_pickle=False)
-            output.insert(2, linear_path+".npy")
+            output.insert(3, linear_path+".npy")
         if args.process_audio:
             audio_file = file_name + "_audio"
             audio_path = os.path.join(CACHE_PATH, 'audio', audio_file)
             np.save(audio_path, x, allow_pickle=False)
             del output[0]
-            output.insert(0, audio_path+".npy")
+            output.insert(1, audio_path+".npy")
         assert mel_len == linear_len
         return output
 
