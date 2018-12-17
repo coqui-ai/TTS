@@ -151,8 +151,8 @@ class MyDataset(Dataset):
             # convert things to pytorch
             text_lenghts = torch.LongTensor(text_lenghts)
             text = torch.LongTensor(text)
-            linear = torch.FloatTensor(linear)
-            mel = torch.FloatTensor(mel)
+            linear = torch.FloatTensor(linear).contiguous()
+            mel = torch.FloatTensor(mel).contiguous()
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
