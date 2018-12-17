@@ -12,16 +12,16 @@ class Logger(object):
         layer_num = 1
         for name, param in model.named_parameters():
             self.writer.add_scalar(
-                "layer{}-ModelParams/{}/max".format(layer_num, name),
+                "layer{}-{}/max".format(layer_num, name),
                 param.max(), step)
             self.writer.add_scalar(
-                "layer{}-ModelParams/{}/min".format(layer_num, name),
+                "layer{}-{}/min".format(layer_num, name),
                 param.min(), step)
             self.writer.add_scalar(
-                "layer{}-ModelParams/{}/mean".format(layer_num, name),
+                "layer{}-{}/mean".format(layer_num, name),
                 param.mean(), step)
             self.writer.add_scalar(
-                "layer{}-ModelParams/{}/std".format(layer_num, name),
+                "layer{}-{}/std".format(layer_num, name),
                 param.std(), step)
             self.writer.add_histogram(
                 "layer{}-{}/param".format(layer_num, name), param, step)
