@@ -118,7 +118,7 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - Punctuations at the end of a sentence sometimes affect the pronounciation of the last word. Because punctuation sign is attended by the attention module , that forces network to create a voice signal or at least modify the voice signal being generated for neighboring frames.
 - ~~Simpler stop-token prediction. Right now we use RNN to keep the history of the previous frames. However, we never tested, if something simpler would work as well.~~ Yet RNN based model gives more stable predictions.
 - Train for better mel-specs. Mel-spectrograms are not good enough to be fed Neural Vocoder. Easy solution to this problem is to train the model with r=1. However,in this case model struggles to align the attention.
-- irregular words: "minute", "focus", "aren't" etc. Even though, ~~it might be solved~~ (Nancy dataset give much better results compared to LJSpeech) it is solved by a larger or better dataset, some of irregular words cause network to mis-pronounce. Irregular means in this context is that written form and pronounciation of a word have a unique disparity.
+- irregular words: "minute", "focus", "aren't" etc. Even though, ~~it might be solved~~ (Nancy dataset delivers much better quality compared to LJSpeech) it is solved by a larger or a better dataset, some of irregular words cause network to mispronounce.
 
 ## Major TODOs
 - [x] Implement the model.
