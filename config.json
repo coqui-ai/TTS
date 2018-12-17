@@ -1,5 +1,5 @@
 {
-    "model_name": "TTS-master",
+    "model_name": "TTS-dev-tweb",
     "model_description": "Higher dropout rate for stopnet and disabled custom initialization, pull current mel prediction to stopnet.",
 
     "audio":{
@@ -22,18 +22,18 @@
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": null,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": null,        // maximum freq level for mel-spec. Tune for dataset!!
-        "do_trim_silence": true  // enable trimming of slience of audio as you load it.
+        "do_trim_silence": false  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
     },
 
     "embedding_size": 256,    
     "text_cleaner": "english_cleaners",
     "epochs": 1000,
     
-    "lr": 0.0001,
+    "lr": 0.001,
     "lr_decay": false,
     "warmup_steps": 4000,
 
-    "batch_size": 32,
+    "batch_size": 20,
     "eval_batch_size":32,
     "r": 5,
     "wd": 0.000001,
@@ -44,12 +44,12 @@
 
     "run_eval": true,
     "data_path": "../../Data/LJSpeech-1.1/",  // can overwritten from command argument
-    "meta_file_train": "prompts_train.data",      // metafile for training dataloader
-    "meta_file_val": "prompts_val.data",    // metafile for validation dataloader
-    "data_loader": "TTSDataset",      // dataloader, ["TTSDataset", "TTSDatasetCached", "TTSDatasetMemory"]
-    "dataset": "nancy",     // one of TTS.dataset.preprocessors, only valid id dataloader == "TTSDataset", rest uses "tts_cache" by default.
-    "min_seq_len": 0,
-    "output_path": "../keep/",
-    "num_loader_workers": 8,
-    "num_val_loader_workers": 4
+    "meta_file_train": "transcript.txt",      // metafile for training dataloader.
+    "meta_file_val": "",    // metafile for evaluation dataloader.
+    "dataset": "tweb",      // one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
+    "min_seq_len": 0,       // minimum text length to use in training
+    "max_seq_len": 300,     // maximum text length
+    "output_path": "../keep/",      // output path for all training outputs.
+    "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_val_loader_workers": 4     // number of evaluation data loader processes.
 }
