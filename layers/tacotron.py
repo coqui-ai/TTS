@@ -403,6 +403,7 @@ class Decoder(nn.Module):
             attention_rnn_hidden, current_context_vec, attention = self.attention_rnn(
                 processed_memory, current_context_vec, attention_rnn_hidden,
                 inputs, attention_cat, mask, t)
+            del attention_cat
             attention_cum += attention
             # Concat RNN output and attention context vector
             decoder_input = self.project_to_decoder_in(
@@ -414,15 +415,19 @@ class Decoder(nn.Module):
                 # Residual connectinon
                 decoder_input = decoder_rnn_hiddens[idx] + decoder_input
             decoder_output = decoder_input
+            del decoder_input
             # predict mel vectors from decoder vectors
             output = self.proj_to_mel(decoder_output)
             output = torch.sigmoid(output)
             # predict stop token
-            stopnet_input = torch.cat([decoder_input, output], -1)
+            stopnet_input = torch.cat([decoder_output, output], -1)
+            del decoder_output
             stop_token = self.stopnet(stopnet_input)
+            del stopnet_input
             outputs += [output]
             attentions += [attention]
             stop_tokens += [stop_token]
+            del output
             t += 1
             if memory is not None:
                 if t >= T_decoder:
