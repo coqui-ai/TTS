@@ -478,7 +478,7 @@ if __name__ == '__main__':
         default=False,
         help='Do not verify commit integrity to run training.')
     parser.add_argument(
-        '--data_path', type=str, help='dataset path.', default='Defines the data path. It overwrites config.json.')
+        '--data_path', type=str, help='Defines the data path. It overwrites config.json.', default='')
     args = parser.parse_args()
 
     # setup output paths and read configs
