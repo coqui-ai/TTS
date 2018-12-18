@@ -86,15 +86,15 @@ class LocationSensitiveAttention(nn.Module):
         if query.dim() == 2:
             # insert time-axis for broadcasting
             query = query.unsqueeze(1)
-        loc_conv = self.loc_conv(loc)
-        loc_conv = loc_conv.transpose(1, 2)
-        processed_loc = self.loc_linear(loc_conv)
+        processed_loc = self.loc_linear(self.loc_conv(loc).transpose(1, 2))
         processed_query = self.query_layer(query)
         # cache annots
         if self.processed_annots is None:
             self.processed_annots = self.annot_layer(annot)
         alignment = self.v(
             torch.tanh(processed_query + self.processed_annots + processed_loc))
+        del processed_loc
+        del processed_query
         # (batch, max_time)
         return alignment.squeeze(-1)
 
@@ -138,11 +138,9 @@ class AttentionRNNCell(nn.Module):
         """
         if t == 0:
             self.alignment_model.reset()
-        # Concat input query and previous context context
-        rnn_input = torch.cat((memory, context), -1)
         # Feed it to RNN
         # s_i = f(y_{i-1}, c_{i}, s_{i-1})
-        rnn_output = self.rnn_cell(rnn_input, rnn_state)
+        rnn_output = self.rnn_cell(torch.cat((memory, context), -1), rnn_state)
         # Alignment
         # (batch, max_time)
         # e_{ij} = a(s_{i-1}, h_j)
