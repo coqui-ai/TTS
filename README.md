@@ -63,11 +63,16 @@ Audio length is approximately 6 secs.
 |3.01|GTX1080Ti|60|
 
 
-## Data
-TTS provides a generic dataloder easy to use for new datasets. You need to write an adaptor to formatyour dataset.Check ```datasets/preprocess.py``` to see example adaptors. After your adaptor, you need to set ```dataset``` field in ```config.json``` accordingly. Some example datasets, we successfuly applied TTS, are linked below.
+## Datasets and Data-Loading
+TTS provides a generic dataloder easy to use for new datasets. You need to write an adaptor to format and that's all you need.Check ```datasets/preprocess.py``` to see example adaptors. After you wrote an adaptor, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields. 
+
+You can also use pre-computed features. In this case, compute features with ```extract_features.py``` and set ```dataset``` field as ```tts_cache```. 
+
+Example datasets, we successfully applied TTS, are linked below.
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
+- [TWEB](http://https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)\
 
 ## Training and Fine-tuning LJ-Speech
 [Click Here](https://gist.github.com/erogol/8f39174c3f0475221c8978aeb10d4fdc) for hands on **Notebook example**, training LJSpeech.
