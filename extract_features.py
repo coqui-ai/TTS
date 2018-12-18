@@ -82,13 +82,13 @@ if __name__ == "__main__":
             linear_len = linear.shape[1]
             np.save(linear_path, linear, allow_pickle=False)
             output.insert(2, linear_path+".npy")
+            assert mel_len == linear_len
         if args.process_audio:
             audio_file = file_name + "_audio"
             audio_path = os.path.join(CACHE_PATH, 'audio', audio_file)
             np.save(audio_path, x, allow_pickle=False)
             del output[0]
             output.insert(0, audio_path+".npy")
-        assert mel_len == linear_len
         return output
 
 
