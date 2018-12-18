@@ -55,11 +55,16 @@ Audio length is approximately 6 secs.
 |3.01|GTX1080Ti|60|
 
 
-## Data
-TTS provides a generic dataloder easy to use for new datasets. You need to write an adaptor to formatyour dataset.Check ```datasets/preprocess.py``` to see example adaptors. After your adaptor, you need to set ```dataset``` field in ```config.json``` accordingly. Some example datasets, we successfuly applied TTS, are linked below.
+## Datasets and Data-Loading
+TTS provides a generic dataloder easy to use for new datasets. You need to write an adaptor to format and that's all you need.Check ```datasets/preprocess.py``` to see example adaptors. After you wrote an adaptor, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields. 
+
+You can also use pre-computed features. In this case, compute features with ```extract_features.py``` and set ```dataset``` field as ```tts_cache```. 
+
+Example datasets, we successfully applied TTS, are linked below.
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
+- [TWEB](http://https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)\
 
 ## Training and Fine-tuning LJ-Speech
 Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use the all data for training and check the model performance by relying on human inspection.
