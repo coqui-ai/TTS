@@ -62,6 +62,8 @@ TTS provides a generic dataloder easy to use for new datasets. You need to write
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
 
 ## Training and Fine-tuning LJ-Speech
+[Click Here](https://colab.research.google.com/drive/1yUUBzdlavefXj3WRgK1SuWyJf92ME9_m?authuser=1#folderId=0AIBvuHEQn-h3Uk9PVA&updateTitle=true) for hands on **CoLab example**, training LJSpeech.
+
 Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use the all data for training and check the model performance by relying on human inspection.
 
 ```
