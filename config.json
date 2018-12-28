@@ -22,7 +22,7 @@
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": null,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": null,        // maximum freq level for mel-spec. Tune for dataset!!
-        "do_trim_silence": false  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": true  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
     },
 
     "embedding_size": 256,    
