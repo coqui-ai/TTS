@@ -75,14 +75,14 @@ Example datasets, we successfully applied TTS, are linked below.
 - [TWEB](http://https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)\
 
 ## Training and Fine-tuning LJ-Speech
-[Click Here](https://gist.github.com/erogol/8f39174c3f0475221c8978aeb10d4fdc) for hands on **Notebook example**, training LJSpeech.
+[Click Here](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) for hands on **Notebook example**, training LJSpeech.
 
 Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use the all data for training and check the model performance by relying on human inspection.
 
 ```
 shuf metadata.csv > metadata_shuf.csv
 head -n 12000 metadata_shuf.csv > metadata_train.csv
-tail -n 11000 metadata_shuf.csv > metadata_val.csv
+tail -n 1100 metadata_shuf.csv > metadata_val.csv
 ```
 
 To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below.
