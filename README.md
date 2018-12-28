@@ -1,7 +1,7 @@
 # TTS
 This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a Text2Speech engine low in cost and high in quality. To begin with, you can hear a sample [here](https://soundcloud.com/user-565970875/commonvoice-loc-sens-attn).
 
-The model here is highly inspired from Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135) however, it has many important updates over the baseline model that make training faster and computationally very efficient. Feel free to experiment new ideas and propose changes. 
+The model here is highly inspired from Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135) however, it has many important updates over the baseline model that make training faster and computationally very efficient. Feel free to experiment new ideas and propose changes.
 
 You can find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief note pointing possible TTS architectures and their comparisons.
 
@@ -23,6 +23,14 @@ Or you can use ```requirements.txt``` to install the requirements only.
 
 ```pip install -r requirements.txt```
 
+### Docker
+A barebone `Dockerfile` exists at the root of the project, which should let you quickly setup the environment. By default, it will start the server and let you query it. Make sure to use `nvidia-docker` to use your GPUs. Make sure you follow the instructions in the [`server README`](server/README.md) before you build your image so that the server can find the model within the image.
+
+```
+docker build -t mozilla-tts .
+nvidia-docker run -it --rm -p 5002:5002 mozilla-tts
+```
+
 ## Checkpoints and Audio Samples
 Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the-most-perfect-instrument-of-all-arvo-part) to compare the samples (except the first) below.
 
@@ -34,7 +42,7 @@ Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the
 | Best: [iter-120K](https://drive.google.com/open?id=1A5Hr6aSvfGgIiE20mBkpzyn3vvbR2APj) | [bf7590](https://github.com/mozilla/TTS/tree/bf7590) | [link](https://soundcloud.com/user-565970875/sets/september-26-2018-bf7590) | Better for longer sentences |
 
 ## Example Model Outputs
-Below you see model state after 16K iterations with batch-size 32. 
+Below you see model state after 16K iterations with batch-size 32.
 
 > "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase the grey matter in the parts of the brain responsible for emotional regulation and learning."
 
@@ -62,6 +70,8 @@ TTS provides a generic dataloder easy to use for new datasets. You need to write
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
 
 ## Training and Fine-tuning LJ-Speech
+[Click Here](https://gist.github.com/erogol/8f39174c3f0475221c8978aeb10d4fdc) for hands on **Notebook example**, training LJSpeech.
+
 Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use the all data for training and check the model performance by relying on human inspection.
 
 ```
@@ -82,7 +92,7 @@ If you like to use specific set of GPUs, you need set an environment variable. T
 
 ```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
 
-Each run creates a new output folder and ```config.json``` is copied under this folder. 
+Each run creates a new output folder and ```config.json``` is copied under this folder.
 
 In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
@@ -95,14 +105,14 @@ Best way to test your pre-trained network is to use Notebooks under ```notebooks
 If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character based methods up to our knowledge. Out implementation is also quite robust against long sentences.
 
 - Location sensitive attention ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention is the vital part of text2speech models. Therefore, it is important to use an attention mechanism that suits the diagonal nature of the problem where the output strictly aligns with the text monotonically. Location sensitive attention performs better by looking into the previous alignment vectors and learns diagonal attention more easily. Yet, I believe there is a good space for research at this front to find a better solution.
-- Attention smoothing with sigmoid ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention weights are computed by normalized sigmoid values instead of softmax for sharper values. That enables the model to pick multiple highly scored inputs for alignments while reducing the noise. 
-- Weight decay ([ref](http://www.fast.ai/2018/07/02/adam-weight-decay/)). After a certain point of the training, you might observe the model over-fitting. That is, model is able to pronounce words probably better but quality of the speech quality gets lower and sometimes attention alignment gets disoriented. 
+- Attention smoothing with sigmoid ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention weights are computed by normalized sigmoid values instead of softmax for sharper values. That enables the model to pick multiple highly scored inputs for alignments while reducing the noise.
+- Weight decay ([ref](http://www.fast.ai/2018/07/02/adam-weight-decay/)). After a certain point of the training, you might observe the model over-fitting. That is, model is able to pronounce words probably better but quality of the speech quality gets lower and sometimes attention alignment gets disoriented.
 - Stop token prediction with an additional module. The original Tacotron model does not propose a stop token to stop the decoding process. Therefore, you need to use heuristic measures to stop the decoder. Here, we prefer to use additional layers at the end to decide when to stop.
-- Applying sigmoid to the model outputs. Since the output values are expected to be in the range [0, 1], we apply sigmoid to make things easier to approximate the expected output distribution. 
+- Applying sigmoid to the model outputs. Since the output values are expected to be in the range [0, 1], we apply sigmoid to make things easier to approximate the expected output distribution.
 
 One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the performance, given the big increase in the model size.
 
-Please feel free to offer new changes and pull things off. We are happy to discuss and make things better. 
+Please feel free to offer new changes and pull things off. We are happy to discuss and make things better.
 
 ## Problems waiting to be solved.
 - Punctuations at the end of a sentence sometimes affect the pronounciation of the last word. Because punctuation sign is attended by the attention module , that forces network to create a voice signal or at least modify the voice signal being generated for neighboring frames.
@@ -115,8 +125,8 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - [x] Generate human-like speech on LJSpeech dataset.
 - [x] Generate human-like speech on a different dataset (Nancy).
 - [ ] Train TTS with r=1 successfully.
-- [ ] Enable process based distributed training. Similar [to] (https://github.com/fastai/imagenet-fast/). 
-- [ ] Adapting Neural Vocoder. The most active work is [here] (https://github.com/erogol/WaveRNN) 
+- [ ] Enable process based distributed training. Similar [to] (https://github.com/fastai/imagenet-fast/).
+- [ ] Adapting Neural Vocoder. The most active work is [here] (https://github.com/erogol/WaveRNN)
 - [ ] Multi-speaker embedding.
 
 ## References
