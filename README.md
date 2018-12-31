@@ -106,6 +106,10 @@ You can also enjoy Tensorboard, if you point the Tensorboard argument```--logdir
 ## Testing
 Best way to test your pre-trained network is to use Notebooks under ```notebooks``` folder.
 
+## Logging 
+# TODO
+TTS enables intense logging on Tensorboard. 
+
 ## What is new with TTS
 If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character based methods up to our knowledge. Out implementation is also quite robust against long sentences.
 

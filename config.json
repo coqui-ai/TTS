@@ -49,7 +49,7 @@
     "dataset": "tweb",      // one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
     "min_seq_len": 0,       // minimum text length to use in training
     "max_seq_len": 300,     // maximum text length
-    "output_path": "../keep/",      // output path for all training outputs.
+    "output_path": "/media/erogol/data_ssd/Data/models/tweb_models/",      // output path for all training outputs.
     "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4     // number of evaluation data loader processes.
 }
