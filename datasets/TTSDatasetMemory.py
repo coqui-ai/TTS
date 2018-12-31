@@ -14,7 +14,7 @@ from utils.data import (prepare_data, pad_per_step, prepare_tensor,
 
 
 class MyDataset(Dataset):
-    # TODO: Not finished yet.
+    # TODO: Merge to TTSDataset.py, but it is not fast as it is supposed to be
     def __init__(self,
                  root_path,
                  meta_file,
