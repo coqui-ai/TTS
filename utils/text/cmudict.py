@@ -65,7 +65,7 @@ _phonemes = set(_phonemes)
 def text2phone(text):
     seperator = phonemizer.separator.Separator('', '', ' ')
     try:
-        ph = phonemizer.phonemize(text, separator=seperator)
+        ph = phonemizer.phonemize(text, separator=seperator, strip=True, njobs=1)
     except:
         ph = None
     return ph
