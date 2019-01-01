@@ -3,7 +3,7 @@ import time
 import librosa
 import torch
 import numpy as np
-from .text import text_to_sequence
+from .text import text_to_sequence, phoneme_to_sequence
 from .visual import visualize
 from matplotlib import pylab as plt
 
@@ -11,7 +11,7 @@ from matplotlib import pylab as plt
 def synthesis(m, s, CONFIG, use_cuda, ap):
     """ Given the text, synthesising the audio """
     text_cleaner = [CONFIG.text_cleaner]
-    seq = np.array(text_to_sequence(s, text_cleaner))
+    seq = np.array(phoneme_to_sequence(s, text_cleaner))
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
         chars_var = chars_var.cuda()
