@@ -1,6 +1,6 @@
 {
-    "model_name": "TTS-dev-tweb",
-    "model_description": "Higher dropout rate for stopnet and disabled custom initialization, pull current mel prediction to stopnet.",
+    "model_name": "TTS-phoneme",
+    "model_description": "Training with phonemes.",
 
     "audio":{
         "audio_processor": "audio",     // to use dictate different audio processors, if available.
