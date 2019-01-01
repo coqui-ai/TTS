@@ -6,7 +6,7 @@ import torch
 import random
 from torch.utils.data import Dataset
 
-from utils.text import text_to_sequence, phonem_to_sequence
+from utils.text import text_to_sequence, phoneme_to_sequence
 from utils.data import (prepare_data, pad_per_step, prepare_tensor,
                         prepare_stop_target)
 
@@ -86,8 +86,14 @@ class MyDataset(Dataset):
             sample = {'text': text, 'wav': wav, 'item_idx': self.items[idx][1], 'mel':mel, 'linear': linear}
         else:
             text, wav_file = self.items[idx]
-            text = np.asarray(
-                phonem_to_sequence(text, [self.cleaners]), dtype=np.int32)
+            file_name = os.path.basename(wav_file).split('.')[0]
+            tmp_path = os.path.join("tmp/",file_name+'_phoneme.npy')
+            if os.path.isfile(tmp_path):
+                text = np.load(tmp_path)
+            else:
+                text = np.asarray(
+                    phoneme_to_sequence(text, [self.cleaners]), dtype=np.int32)
+                np.save(tmp_path, text)
             wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
             sample = {'text': text, 'wav': wav, 'item_idx': self.items[idx][1]}
         return sample
