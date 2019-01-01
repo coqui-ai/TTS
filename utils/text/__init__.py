@@ -67,20 +67,37 @@ def sequence_to_phoneme(sequence):
     return result.replace('}{', ' ')
 
 
-def phonem_to_sequence(text, cleaner_names):
+def phoneme_to_sequence(text, cleaner_names):
     '''
     TODO: This ignores punctuations
     '''
     sequence = []
     clean_text = _clean_text(text, cleaner_names)
     for word in clean_text.split():
-        phonems_text = text2phone(word)
-        if phonems_text == None:
+        phonemes_text = text2phone(word)
+        if phonemes_text == None:
+            print("!! After phoneme conversion the result is None. -- {} ".format(word))
             continue
-        sequence += _phonem_to_sequence(phonems_text)
+        sequence += _phoneme_to_sequence(phonemes_text)
+        if word[0] in _punctuations:
+            sequence.append(_phonemes_to_id[word[0]])
+        elif word[-1] in _punctuations:
+            sequence.append(_phonemes_to_id[word[-1]])
         sequence.append(_phonemes_to_id[' '])
+    # Aeepnd EOS char
     sequence.append(_phonemes_to_id['~'])
     return sequence
+
+
+def sequence_to_phoneme(sequence):
+    '''Converts a sequence of IDs back to a string'''
+    result = ''
+    for symbol_id in sequence:
+        if symbol_id in _id_to_phonemes:
+            s = _id_to_phonemes[symbol_id]
+            print(s)
+            result += s
+    return result.replace('}{', ' ')
 
 
 def text_to_sequence(text, cleaner_names):
@@ -127,17 +144,6 @@ def sequence_to_text(sequence):
     return result.replace('}{', ' ')
 
 
-def sequence_to_phonem(sequence):
-    '''Converts a sequence of IDs back to a string'''
-    result = ''
-    for symbol_id in sequence:
-        if symbol_id in _id_to_phonemes:
-            s = _id_to_phonemes[symbol_id]
-            print(s)
-            result += s
-    return result.replace('}{', ' ')
-
-
 def _clean_text(text, cleaner_names):
     for name in cleaner_names:
         cleaner = getattr(cleaners, name)
@@ -152,12 +158,17 @@ def _symbols_to_sequence(symbols):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def _phoneme_to_sequence(phonemes):
     return [_phonemes_to_id[s] for s in list(phonemes) if _should_keep_phoneme(s)]
 =======
 def _phonem_to_sequence(phonemes):
     return [_phonemes_to_id[s] for s in phonemes.split(" ") if _should_keep_phonem(s)]
 >>>>>>> phonem updates
+=======
+def _phoneme_to_sequence(phonemes):
+    return [_phonemes_to_id[s] for s in phonemes.split(" ") if _should_keep_phoneme(s)]
+>>>>>>> Convesntional update s
 
 
 def _arpabet_to_sequence(text):
