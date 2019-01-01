@@ -20,5 +20,7 @@ symbols = [_pad, _eos] + list(_characters) + _arpabet
 phonemes = [_pad, _eos] + list(cmudict._phonemes) + list(_punctuations)
 
 if __name__ == '__main__':
+    print(" > TTS symbols ")
     print(symbols)
+    print(" > TTS phonemes ")
     print(phonemes)
