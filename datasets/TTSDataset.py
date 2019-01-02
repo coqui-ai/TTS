@@ -89,7 +89,7 @@ class MyDataset(Dataset):
             file_name = os.path.basename(wav_file).split('.')[0]
             tmp_path = os.path.join("tmp/",file_name+'_phoneme.npy')
             if os.path.isfile(tmp_path):
-                text = np.load(tmp_path)
+                text = np.load(tmp_path, dtype=np.int32)
             else:
                 text = np.asarray(
                     phoneme_to_sequence(text, [self.cleaners]), dtype=np.int32)

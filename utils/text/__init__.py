@@ -75,6 +75,7 @@ def phoneme_to_sequence(text, cleaner_names):
     clean_text = _clean_text(text, cleaner_names)
     for word in clean_text.split():
         phonemes_text = text2phone(word)
+        print(word, ' -- ', phonemes_text)
         if phonemes_text == None:
             print("!! After phoneme conversion the result is None. -- {} ".format(word))
             continue
