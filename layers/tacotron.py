@@ -22,7 +22,7 @@ class Prenet(nn.Module):
             for (in_size, out_size) in zip(in_features, out_features)
         ])
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.1)
         # self.init_layers()
 
     def init_layers(self):
@@ -455,7 +455,7 @@ class StopNet(nn.Module):
 
     def __init__(self, in_features):
         super(StopNet, self).__init__()
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.1)
         self.linear = nn.Linear(in_features, 1)
         self.sigmoid = nn.Sigmoid()
         torch.nn.init.xavier_uniform_(
