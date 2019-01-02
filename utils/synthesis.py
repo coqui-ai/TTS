@@ -11,7 +11,10 @@ from matplotlib import pylab as plt
 def synthesis(m, s, CONFIG, use_cuda, ap):
     """ Given the text, synthesising the audio """
     text_cleaner = [CONFIG.text_cleaner]
-    seq = np.array(phoneme_to_sequence(s, text_cleaner))
+    # print(phoneme_to_sequence(s, text_cleaner))
+    # print(sequence_to_phoneme(phoneme_to_sequence(s, text_cleaner)))
+    seq = np.asarray(
+                phoneme_to_sequence(s, text_cleaner), dtype=np.int32)
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
         chars_var = chars_var.cuda()
