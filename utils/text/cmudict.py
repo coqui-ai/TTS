@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import re
-import phonemizer
+import epitran
+epi = epitran.Epitran('eng-Latn')
 
 # valid_symbols = [
 #     'AA', 'AA0', 'AA1', 'AA2', 'AE', 'AE0', 'AE1', 'AE2', 'AH', 'AH0', 'AH1',
@@ -16,56 +17,61 @@ import phonemizer
 
 
 _phonemes = {
-    'aa',
-    'ae',
-    'ah',
-    'ao',
-    'aw',
-    'ax',
-    'ay',
+    '$',
+    '&',
+    'a',
     'b',
-    'ch',
     'd',
-    'dh',
-    'eh',
-    'ey',
+    'd͡ʒ',
+    'e',
     'f',
-    'g',
-    'hh',
+    'h',
     'i',
-    'ih',
-    'iy',
-    'jh',
+    'j',
     'k',
     'l',
     'm',
     'n',
-    'ng',
-    'ow',
-    'oy',
+    'o',
     'p',
-    'pau',
-    'r',
     's',
-    'sh',
-    'ssil',
     't',
-    'th',
-    'uh',
-    'uw',
+    't͡ʃ',
+    'u',
     'v',
     'w',
-    'y',
-    'z'
-}
+    'z',
+    '£',
+    'à',
+    'â',
+    'æ',
+    'è',
+    'é',
+    'ê',
+    'ð',
+    'ü',
+    'ŋ',
+    'ɑ',
+    'ɔ',
+    'ə',
+    'ɛ',
+    'ɡ',
+    'ɪ',
+    'ɹ',
+    'ɹ̩',
+    'ʃ',
+    'ʊ',
+    'ʌ',
+    'ʒ',
+    'θ'
+    }
 
 _phonemes = set(_phonemes)
 
 
 def text2phone(text):
-    seperator = phonemizer.separator.Separator('', '', ' ')
     try:
-        ph = phonemizer.phonemize(text, separator=seperator, strip=True, njobs=1)
+        ph = epi.trans_list(text, normpunc=True)
     except:
         ph = None
     return ph
