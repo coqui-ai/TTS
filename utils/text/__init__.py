@@ -24,7 +24,7 @@ def phoneme_to_sequence(text, cleaner_names):
     clean_text = _clean_text(text, cleaner_names)
     for word in clean_text.split():
         phonemes_text = text2phone(word)
-        print(word, ' -- ', phonemes_text)
+        # print(word, ' -- ', phonemes_text)
         if phonemes_text == None:
             print("!! After phoneme conversion the result is None. -- {} ".format(word))
             continue
@@ -108,7 +108,7 @@ def _symbols_to_sequence(symbols):
 
 
 def _phoneme_to_sequence(phonemes):
-    return [_phonemes_to_id[s] for s in phonemes.split(" ") if _should_keep_phoneme(s)]
+    return [_phonemes_to_id[s] for s in phonemes if _should_keep_phoneme(s)]
 
 
 def _arpabet_to_sequence(text):
