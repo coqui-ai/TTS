@@ -67,6 +67,18 @@ def sequence_to_phoneme(sequence):
     return result.replace('}{', ' ')
 
 
+
+def text2phone(text):
+    '''
+    Convert graphemes to phonemes.
+    '''
+    try:
+        ph = epi.trans_list(text, normpunc=True)
+    except:
+        ph = None
+    return ph
+
+   
 def phoneme_to_sequence(text, cleaner_names):
     '''
     TODO: This ignores punctuations
