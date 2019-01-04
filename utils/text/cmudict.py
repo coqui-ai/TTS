@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import re
-import epitran
-epi = epitran.Epitran('eng-Latn')
 
 # valid_symbols = [
 #     'AA', 'AA0', 'AA1', 'AA2', 'AE', 'AE0', 'AE1', 'AE2', 'AH', 'AH0', 'AH1',
