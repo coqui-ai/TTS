@@ -11,13 +11,63 @@ _pad = '_'
 _eos = '~'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _punctuations = '!\'(),-.:;? '
+_phonemes = [
+    '$',
+    '&',
+    'a',
+    'b',
+    'd',
+    'd͡ʒ',
+    'e',
+    'f',
+    'h',
+    'i',
+    'j',
+    'k',
+    'l',
+    'm',
+    'n',
+    'o',
+    'p',
+    's',
+    't',
+    't͡ʃ',
+    'u',
+    'v',
+    'w',
+    'z',
+    '£',
+    'à',
+    'â',
+    'æ',
+    'è',
+    'é',
+    'ê',
+    'ð',
+    'ü',
+    'ŋ',
+    'ɑ',
+    'ɔ',
+    'ə',
+    'ɛ',
+    'ɡ',
+    'ɪ',
+    'ɹ',
+    'ɹ̩',
+    'ʃ',
+    'ʊ',
+    'ʌ',
+    'ʒ',
+    'θ'
+]
+_phonemes = sorted(list(set(_phonemes)))
 
 # Prepend "@" to ARPAbet symbols to ensure uniqueness (some are the same as uppercase letters):
-_arpabet = ['@' + s for s in cmudict._phonemes]
+_arpabet = ['@' + s for s in _phonemes]
 
 # Export all symbols:
 symbols = [_pad, _eos] + list(_characters) + _arpabet
-phonemes = [_pad, _eos] + list(cmudict._phonemes) + list(_punctuations)
+phonemes = [_pad, _eos] + list(_phonemes) + list(_punctuations)
 
 if __name__ == '__main__':
     print(" > TTS symbols ")

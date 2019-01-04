@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import re
+import epitran
 from utils.text import cleaners
 from utils.text.symbols import symbols, phonemes, _punctuations
-from utils.text.cmudict import text2phone
 
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
@@ -15,7 +15,21 @@ _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 # Regular expression matching text enclosed in curly braces:
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
+# phoneme converter
+epi = epitran.Epitran('eng-Latn')
 
+
+def text2phone(text):
+    '''
+    Convert graphemes to phonemes.
+    '''
+    try:
+        ph = epi.trans_list(text, normpunc=True)
+    except:
+        ph = None
+    return ph
+
+   
 def phoneme_to_sequence(text, cleaner_names):
     '''
     TODO: This ignores punctuations
