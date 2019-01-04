@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import re
-import epitran
-epi = epitran.Epitran('eng-Latn')
 
 # valid_symbols = [
 #     'AA', 'AA0', 'AA1', 'AA2', 'AE', 'AE0', 'AE1', 'AE2', 'AH', 'AH0', 'AH1',
@@ -14,67 +12,6 @@ epi = epitran.Epitran('eng-Latn')
 #     'T', 'TH', 'UH', 'UH0', 'UH1', 'UH2', 'UW', 'UW0', 'UW1', 'UW2', 'V', 'W',
 #     'Y', 'Z', 'ZH'
 # ]
-
-
-_phonemes = {
-    '$',
-    '&',
-    'a',
-    'b',
-    'd',
-    'd͡ʒ',
-    'e',
-    'f',
-    'h',
-    'i',
-    'j',
-    'k',
-    'l',
-    'm',
-    'n',
-    'o',
-    'p',
-    's',
-    't',
-    't͡ʃ',
-    'u',
-    'v',
-    'w',
-    'z',
-    '£',
-    'à',
-    'â',
-    'æ',
-    'è',
-    'é',
-    'ê',
-    'ð',
-    'ü',
-    'ŋ',
-    'ɑ',
-    'ɔ',
-    'ə',
-    'ɛ',
-    'ɡ',
-    'ɪ',
-    'ɹ',
-    'ɹ̩',
-    'ʃ',
-    'ʊ',
-    'ʌ',
-    'ʒ',
-    'θ'
-    }
-
-_phonemes = set(_phonemes)
-
-
-def text2phone(text):
-    try:
-        ph = epi.trans_list(text, normpunc=True)
-    except:
-        ph = None
-    return ph
 
 
 class CMUDict:
