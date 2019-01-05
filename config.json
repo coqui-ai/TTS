@@ -28,7 +28,6 @@
     "embedding_size": 256,
     "text_cleaner": "english_cleaners",
     "epochs": 1000,
-
     "lr": 0.001,
     "lr_decay": false,
     "warmup_steps": 4000,

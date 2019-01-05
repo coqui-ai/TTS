@@ -8,7 +8,7 @@ def tts_cache(root_path, meta_file):
     with open(txt_file, 'r', encoding='utf8') as f:
         for line in f:
             cols = line.split('| ')
-            items.append(cols)  # wav_full_path, mel_name, linear_name, wav_len, mel_len, text
+            items.append(cols)  # text, wav_full_path, mel_name, linear_name, wav_len, mel_len
     random.shuffle(items)
     return items            
 
