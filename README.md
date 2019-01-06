@@ -34,12 +34,13 @@ nvidia-docker run -it --rm -p 5002:5002 mozilla-tts
 ## Checkpoints and Audio Samples
 Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the-most-perfect-instrument-of-all-arvo-part) to compare the samples (except the first) below.
 
-| Models        | Commit            | Audio Sample  | Details |
-| ------------- |:-----------------:|:--------------|:--------|
-| [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)| [99d56f7](https://github.com/mozilla/TTS/tree/99d56f7e93ccd7567beb0af8fcbd4d24c48e59e9)           | [link](https://soundcloud.com/user-565970875/99d56f7-iter62410 )|First model with plain Tacotron implementation.|
-| [iter-170K](https://drive.google.com/open?id=16L6JbPXj6MSlNUxEStNn28GiSzi4fu1j) | [e00bc66](https://github.com/mozilla/TTS/tree/e00bc66) |[link](https://soundcloud.com/user-565970875/april-13-2018-07-06pm-e00bc66-iter170k)|More stable and longer trained model.|
-| [iter-270K](https://drive.google.com/drive/folders/1Q6BKeEkZyxSGsocK2p_mqgzLwlNvbHFJ?usp=sharing)|[256ed63](https://github.com/mozilla/TTS/tree/256ed63)|[link](https://soundcloud.com/user-565970875/sets/samples-1650226)|Stop-Token prediction is added, to detect end of speech.|
-| Best: [iter-120K](https://drive.google.com/open?id=1A5Hr6aSvfGgIiE20mBkpzyn3vvbR2APj) | [bf7590](https://github.com/mozilla/TTS/tree/bf7590) | [link](https://soundcloud.com/user-565970875/sets/september-26-2018-bf7590) | Better for longer sentences |
+| Models        |Dataset | Commit            | Audio Sample  | Details |
+| ------------- |:------:|:-----------------:|:--------------|:--------|
+| [iter-62410](https://drive.google.com/open?id=1pjJNzENL3ZNps9n7k_ktGbpEl6YPIkcZ)|LJSpeech| [99d56f7](https://github.com/mozilla/TTS/tree/99d56f7e93ccd7567beb0af8fcbd4d24c48e59e9)           | [link](https://soundcloud.com/user-565970875/99d56f7-iter62410 )|First model with plain Tacotron implementation.|
+| [iter-170K](https://drive.google.com/open?id=16L6JbPXj6MSlNUxEStNn28GiSzi4fu1j) |LJSpeech| [e00bc66](https://github.com/mozilla/TTS/tree/e00bc66) |[link](https://soundcloud.com/user-565970875/april-13-2018-07-06pm-e00bc66-iter170k)|More stable and longer trained model.|
+| [iter-270K](https://drive.google.com/drive/folders/1Q6BKeEkZyxSGsocK2p_mqgzLwlNvbHFJ?usp=sharing)|LJSpeech|[256ed63](https://github.com/mozilla/TTS/tree/256ed63)|[link](https://soundcloud.com/user-565970875/sets/samples-1650226)|Stop-Token prediction is added, to detect end of speech.|
+| Best: [iter-120K](https://drive.google.com/open?id=1A5Hr6aSvfGgIiE20mBkpzyn3vvbR2APj) |LJSpeech| [bf7590](https://github.com/mozilla/TTS/tree/bf7590) | [link](https://soundcloud.com/user-565970875/sets/september-26-2018-bf7590) | Better for longer sentences |
+|NEW: [iter-108K](https://drive.google.com/open?id=1deQ2akq9cuyreda0DgZOiBdydkbgseWP)| TWEB | [2810d57](https://github.com/mozilla/TTS/tree/2810d57) | [link](https://soundcloud.com/user-565970875/tweb-example-108k-iters-2810d57) | https://github.com/mozilla/TTS/issues/22 | 
 
 ## Example Model Outputs
 Below you see model state after 16K iterations with batch-size 32.
@@ -132,7 +133,7 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 ## Major TODOs
 - [x] Implement the model.
 - [x] Generate human-like speech on LJSpeech dataset.
-- [x] Generate human-like speech on a different dataset (Nancy).
+- [x] Generate human-like speech on a different dataset (Nancy) (TWEB).
 - [ ] Train TTS with r=1 successfully.
 - [ ] Enable process based distributed training. Similar [to] (https://github.com/fastai/imagenet-fast/).
 - [ ] Adapting Neural Vocoder. The most active work is [here] (https://github.com/erogol/WaveRNN)
