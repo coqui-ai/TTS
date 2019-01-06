@@ -106,7 +106,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st,
             mel_lengths = mel_lengths.cuda(non_blocking=True)
             linear_input = linear_input.cuda(non_blocking=True)
             stop_targets = stop_targets.cuda(non_blocking=True)
-    
+
         # compute mask for padding
         mask = sequence_mask(text_lengths)
 
@@ -385,7 +385,7 @@ def main(args):
         optimizer.load_state_dict(checkpoint['optimizer'])
         print(
             " > Model restored from step %d" % checkpoint['step'], flush=True)
-        start_epoch = checkpoint['epoch'] 
+        start_epoch = checkpoint['epoch']
         best_loss = checkpoint['linear_loss']
         args.restore_step = checkpoint['step']
     else:
