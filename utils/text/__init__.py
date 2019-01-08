@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-import epitran
+import phonemizer
 from utils.text import cleaners
 from utils.text.symbols import symbols, phonemes, _punctuations
 
@@ -15,39 +15,40 @@ _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 # Regular expression matching text enclosed in curly braces:
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
-# phoneme converter
-epi = epitran.Epitran('eng-Latn')
+# Regular expression matchinf punctuations, ignoring empty space
+pat = r'['+_punctuations[:-1]+']+'
 
 
 def text2phone(text):
     '''
     Convert graphemes to phonemes.
     '''
-    try:
-        ph = epi.trans_list(text, normpunc=True)
-    except:
-        ph = None
+    seperator = phonemizer.separator.Separator(' ', '', '|')
+    #try:
+    punctuations = re.findall(pat, text)
+    ph = phonemizer.phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language='en-us')
+    # Replace \n with matching punctuations.
+    for punct in punctuations[:-1]:
+        ph = ph.replace(' \n', punct+'| ', 1)
+    ph = ph[:-1] + punctuations[-1]
+    #except:
+    #    ph = None
     return ph
 
-   
+
 def phoneme_to_sequence(text, cleaner_names):
     '''
     TODO: This ignores punctuations
     '''
     sequence = []
     clean_text = _clean_text(text, cleaner_names)
-    for word in clean_text.split():
-        phonemes_text = text2phone(word)
+    phonemes = text2phone(clean_text)
+    print(phonemes.replace('|', ''))
+    if phonemes is None:
+        print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
+    for phoneme in phonemes.split('|'):
         # print(word, ' -- ', phonemes_text)
-        if phonemes_text == None:
-            print("!! After phoneme conversion the result is None. -- {} ".format(word))
-            continue
-        sequence += _phoneme_to_sequence(phonemes_text)
-        if word[0] in _punctuations:
-            sequence.append(_phonemes_to_id[word[0]])
-        elif word[-1] in _punctuations:
-            sequence.append(_phonemes_to_id[word[-1]])
-        sequence.append(_phonemes_to_id[' '])
+        sequence += _phoneme_to_sequence(phoneme)
     # Aeepnd EOS char
     sequence.append(_phonemes_to_id['~'])
     return sequence
@@ -122,7 +123,7 @@ def _symbols_to_sequence(symbols):
 
 
 def _phoneme_to_sequence(phonemes):
-    return [_phonemes_to_id[s] for s in phonemes if _should_keep_phoneme(s)]
+    return [_phonemes_to_id[s] for s in list(phonemes) if _should_keep_phoneme(s)]
 
 
 def _arpabet_to_sequence(text):
