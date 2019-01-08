@@ -1,6 +1,6 @@
 {
     "model_name": "TTS-phoneme",
-    "model_description": "Training with phonemes, dropout rate 0.5",
+    "model_description": "Training with phonemes created by phonemizer.",
 
     "audio":{
         "audio_processor": "audio",     // to use dictate different audio processors, if available.
@@ -25,13 +25,12 @@
         "do_trim_silence": true  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
     },
 
-    "embedding_size": 256,    
+    "embedding_size": 256,  // Character embedding vector length. You don't need to change it in general.
     "text_cleaner": "phoneme_cleaners",
-    "epochs": 1000,
-    
-    "lr": 0.0001,
-    "lr_decay": false,
-    "warmup_steps": 4000,
+    "epochs": 1000,         // total number of epochs to train.
+    "lr": 0.001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_decay": false,      // if true, Noam learning rate decaying is applied through training.
+    "warmup_steps": 4000,   // Noam decay steps to increase the learning rate from 0 to "lr"
 
     "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":32,   
