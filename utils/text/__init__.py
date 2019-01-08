@@ -76,11 +76,13 @@ def text2phone(text):
     punctuations = re.findall(pat, text)
     ph = phonemizer.phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language='en-us')
     # Replace \n with matching punctuations.
-    for punct in punctuations[:-1]:
-        ph = ph.replace(' \n', punct+'| ', 1)
-    ph = ph[:-1] + punctuations[-1]
-    #except:
-    #    ph = None
+    if len(punctuations) > 0:
+        for punct in punctuations[:-1]:
+             ph = ph.replace(' \n', punct+'| ', 1)
+        try:
+             ph = ph[:-1] + punctuations[-1]
+        except:
+             print(text)
     return ph
 
 
@@ -91,7 +93,7 @@ def phoneme_to_sequence(text, cleaner_names):
     sequence = []
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text)
-    print(phonemes.replace('|', ''))
+#     print(phonemes.replace('|', ''))
     if phonemes is None:
         print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
     for phoneme in phonemes.split('|'):
