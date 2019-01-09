@@ -22,7 +22,7 @@ class Prenet(nn.Module):
             for (in_size, out_size) in zip(in_features, out_features)
         ])
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.5)
         # self.init_layers()
 
     def init_layers(self):
