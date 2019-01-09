@@ -1,6 +1,6 @@
 {
     "model_name": "TTS-phoneme",
-    "model_description": "Training with phonemes created by phonemizer.",
+    "model_description": "Training with phonemes, dropout rate 0.5",
 
     "audio":{
         "audio_processor": "audio",     // to use dictate different audio processors, if available.
