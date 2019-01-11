@@ -2,6 +2,7 @@
 
 import re
 import phonemizer
+from phonemizer.phonemize import phonemize
 from utils.text import cleaners
 from utils.text.symbols import symbols, phonemes, _punctuations
 
@@ -26,7 +27,7 @@ def text2phone(text):
     seperator = phonemizer.separator.Separator(' ', '', '|')
     #try:
     punctuations = re.findall(pat, text)
-    ph = phonemizer.phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language='en-us')
+    ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language='en-us')
     # Replace \n with matching punctuations.
     if len(punctuations) > 0:
         for punct in punctuations[:-1]:
