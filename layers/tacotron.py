@@ -304,7 +304,7 @@ class Decoder(nn.Module):
         r (int): number of outputs per time step.
     """
 
-    def __init__(self, in_features, memory_dim, r):
+    def __init__(self, in_features, memory_dim, r, attn_windowing):
         super(Decoder, self).__init__()
         self.r = r
         self.in_features = in_features
@@ -318,7 +318,8 @@ class Decoder(nn.Module):
             rnn_dim=256,
             annot_dim=in_features,
             memory_dim=128,
-            align_model='ls')
+            align_model='ls',
+            windowing=attn_windowing)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state

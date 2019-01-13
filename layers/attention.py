@@ -100,7 +100,7 @@ class LocationSensitiveAttention(nn.Module):
 
 
 class AttentionRNNCell(nn.Module):
-    def __init__(self, out_dim, rnn_dim, annot_dim, memory_dim, align_model):
+    def __init__(self, out_dim, rnn_dim, annot_dim, memory_dim, align_model, windowing=False):
         r"""
         General Attention RNN wrapper
 
@@ -110,10 +110,17 @@ class AttentionRNNCell(nn.Module):
             annot_dim (int): annotation vector feature dimension.
             memory_dim (int): memory vector (decoder output) feature dimension.
             align_model (str): 'b' for Bahdanau, 'ls' Location Sensitive alignment.
+            windowing (bool): attention windowing forcing monotonic attention.
+                It is only active in eval mode.
         """
         super(AttentionRNNCell, self).__init__()
         self.align_model = align_model
         self.rnn_cell = nn.GRUCell(annot_dim + memory_dim, rnn_dim)
+        self.windowing = windowing
+        if self.windowing:
+            self.win_back = 1
+            self.win_front = 3
+            self.win_idx = None
         # pick bahdanau or location sensitive attention
         if align_model == 'b':
             self.alignment_model = BahdanauAttention(annot_dim, rnn_dim,
@@ -138,6 +145,7 @@ class AttentionRNNCell(nn.Module):
         """
         if t == 0:
             self.alignment_model.reset()
+            self.win_idx = 0
         # Feed it to RNN
         # s_i = f(y_{i-1}, c_{i}, s_{i-1})
         rnn_output = self.rnn_cell(torch.cat((memory, context), -1), rnn_state)
@@ -151,6 +159,17 @@ class AttentionRNNCell(nn.Module):
         if mask is not None:
             mask = mask.view(memory.size(0), -1)
             alignment.masked_fill_(1 - mask, -float("inf"))
+        # Windowing
+        if not self.training:
+            # print(" > Windowing active")
+            back_win = self.win_idx - self.win_back
+            front_win = self.win_idx + self.win_front
+            if back_win > 0:
+                alignment[:, :back_win] = -float("inf")
+            if front_win < memory.shape[1]:
+                alignment[:, front_win:] = -float("inf")
+        # Update the window
+        self.win_idx = torch.argmax(alignment,1).long()[0].item()
         # Normalize context weight
         # alignment = F.softmax(alignment, dim=-1)
         # alignment = 5 * alignment

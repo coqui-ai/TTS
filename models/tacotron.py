@@ -12,7 +12,8 @@ class Tacotron(nn.Module):
                  linear_dim=1025,
                  mel_dim=80,
                  r=5,
-                 padding_idx=None):
+                 padding_idx=None, 
+                 attn_windowing=False):
         super(Tacotron, self).__init__()
         self.r = r
         self.mel_dim = mel_dim
@@ -24,7 +25,7 @@ class Tacotron(nn.Module):
         val = sqrt(3.0) * std  # uniform bounds for std
         self.embedding.weight.data.uniform_(-val, val)
         self.encoder = Encoder(embedding_dim)
-        self.decoder = Decoder(256, mel_dim, r)
+        self.decoder = Decoder(256, mel_dim, r, attn_windowing)
         self.postnet = PostCBHG(mel_dim)
         self.last_linear = nn.Sequential(
             nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),
