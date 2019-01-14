@@ -31,6 +31,7 @@
     "lr": 0.001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
     "lr_decay": false,      // if true, Noam learning rate decaying is applied through training.
     "warmup_steps": 4000,   // Noam decay steps to increase the learning rate from 0 to "lr"
+    "windowing": true,      // Enables attention windowing. Used only in eval mode.
 
     "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":32,   
