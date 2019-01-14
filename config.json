@@ -43,13 +43,13 @@
     "tb_model_param_stats": true,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
 
     "run_eval": true,
-    "data_path": "../../Data/LJSpeech-1.1/",  // DATASET-RELATED: can overwritten from command argument
-    "meta_file_train": "transcript_train.txt",      // DATASET-RELATED: metafile for training dataloader.
-    "meta_file_val": "transcript_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.
-    "dataset": "tweb",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
+    "data_path": "/home/erogol/Data/en_UK/by_book/female/elizabeth_klett/",  // DATASET-RELATED: can overwritten from command argument
+    "meta_file_train": "jane_eyre/metadata_train.csv, wives_and_daughters/metadata_train.csv",      // DATASET-RELATED: metafile for training dataloader.
+    "meta_file_val": "jane_eyre/metadata_val.csv, wives_and_daughters/metadata_val.csv",    // DATASET-RELATED: metafile for evaluation dataloader.
+    "dataset": "mailabs",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
     "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 300,     // DATASET-RELATED: maximum text length
-    "output_path": "/media/erogol/data_ssd/Data/models/tweb_models/",      // DATASET-RELATED: output path for all training outputs.
+    "output_path": "/media/erogol/data_ssd/Data/models/en_UK/",      // DATASET-RELATED: output path for all training outputs.
     "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4     // number of evaluation data loader processes.
 }
