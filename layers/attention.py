@@ -160,8 +160,7 @@ class AttentionRNNCell(nn.Module):
             mask = mask.view(memory.size(0), -1)
             alignment.masked_fill_(1 - mask, -float("inf"))
         # Windowing
-        if not self.training:
-            # print(" > Windowing active")
+        if not self.training and self.windowing:
             back_win = self.win_idx - self.win_back
             front_win = self.win_idx + self.win_front
             if back_win > 0:
