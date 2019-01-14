@@ -42,6 +42,28 @@ def tweb(root_path, meta_file):
 #     return  {'text': texts, 'wavs': wavs}
 
 
+def mailabs(root_path, meta_files):
+        """Normalizes M-AI-Labs meta data files to TTS format"""
+        folders = [os.path.dirname(f.strip()) for f in meta_files.split(",")]
+        meta_files = [f.strip() for f in meta_files.split(",")]
+        items = []
+        for idx, meta_file in enumerate(meta_files):
+                print(" | > {}".format(meta_file))
+                folder = folders[idx]
+                txt_file = os.path.join(root_path, meta_file)
+                with open(txt_file, 'r') as ttf:
+                        for line in ttf:
+                                cols = line.split('|')
+                                wav_file = os.path.join(root_path, folder, 'wavs', cols[0]+'.wav')
+                                if os.path.isfile(wav_file):
+                                        text = cols[1]
+                                        items.append([text, wav_file])
+                                else: 
+                                        continue
+        random.shuffle(items)
+        return items
+
+
 def ljspeech(root_path, meta_file):
     """Normalizes the Nancy meta data file to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
