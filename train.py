@@ -46,7 +46,9 @@ def setup_loader(is_val=False):
             batch_group_size=0 if is_val else 8 * c.batch_size,
             min_seq_len=0 if is_val else c.min_seq_len,
             max_seq_len=float("inf") if is_val else c.max_seq_len,
-            cached=False if c.dataset != "tts_cache" else True)
+            cached=False if c.dataset != "tts_cache" else True,
+            phoneme_cache_path=c.phoneme_cache_path
+            )
         loader = DataLoader(
             dataset,
             batch_size=c.eval_batch_size if is_val else c.batch_size,
