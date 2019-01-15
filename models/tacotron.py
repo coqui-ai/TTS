@@ -21,9 +21,7 @@ class Tacotron(nn.Module):
         self.embedding = nn.Embedding(
             len(phonemes), embedding_dim, padding_idx=padding_idx)
         print(" | > Number of characters : {}".format(len(phonemes)))
-        std = sqrt(2.0 / (len(phonemes) + embedding_dim))
-        val = sqrt(3.0) * std  # uniform bounds for std
-        self.embedding.weight.data.uniform_(-val, val)
+        self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(256, mel_dim, r, attn_windowing)
         self.postnet = PostCBHG(mel_dim)
