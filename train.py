@@ -223,10 +223,6 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st,
                                     avg_stop_loss, epoch_time, avg_step_time),
         flush=True)
 
-    align_img = alignments[0].data.cpu().numpy()
-    align_img = plot_alignment(align_img)
-    align_img.savefig('/home/erogol/Desktop/alignment_{}.png'.format(current_step))
-
     # Plot Training Epoch Stats
     epoch_stats = {"loss_postnet": avg_linear_loss,
                    "loss_decoder": avg_mel_loss,

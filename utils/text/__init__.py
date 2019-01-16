@@ -20,54 +20,6 @@ _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 pat = r'['+_punctuations[:-1]+']+'
 
 
-def text2phone(text):
-    '''
-    Convert graphemes to phonemes.
-    '''
-    seperator = phonemizer.separator.Separator(' ', '', '|')
-    #try:
-    punctuations = re.findall(pat, text)
-    ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language='en-us')
-    # Replace \n with matching punctuations.
-    if len(punctuations) > 0:
-        for punct in punctuations[:-1]:
-             ph = ph.replace(' \n', punct+'| ', 1)
-        try:
-             ph = ph[:-1] + punctuations[-1]
-        except:
-             print(text)
-    return ph
-
-
-def phoneme_to_sequence(text, cleaner_names):
-    '''
-    TODO: This ignores punctuations
-    '''
-    sequence = []
-    clean_text = _clean_text(text, cleaner_names)
-    phonemes = text2phone(clean_text)
-#     print(phonemes.replace('|', ''))
-    if phonemes is None:
-        print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
-    for phoneme in phonemes.split('|'):
-        # print(word, ' -- ', phonemes_text)
-        sequence += _phoneme_to_sequence(phoneme)
-    # Aeepnd EOS char
-    sequence.append(_phonemes_to_id['~'])
-    return sequence
-
-
-def sequence_to_phoneme(sequence):
-    '''Converts a sequence of IDs back to a string'''
-    result = ''
-    for symbol_id in sequence:
-        if symbol_id in _id_to_phonemes:
-            s = _id_to_phonemes[symbol_id]
-            print(s)
-            result += s
-    return result.replace('}{', ' ')
-
-
 def text2phone(text, language):
     '''
     Convert graphemes to phonemes.
