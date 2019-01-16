@@ -52,10 +52,10 @@ class LocationSensitiveAttention(nn.Module):
                 stride=1,
                 padding=0,
                 bias=False))
-        self.loc_linear = nn.Linear(filters, attn_dim, bias=True)
-        self.query_layer = nn.Linear(query_dim, attn_dim, bias=True)
-        self.annot_layer = nn.Linear(annot_dim, attn_dim, bias=True)
-        self.v = nn.Linear(attn_dim, 1, bias=False)
+        self.loc_linear = nn.Linear(filters, attn_dim, bias=False)
+        self.query_layer = nn.Linear(query_dim, attn_dim, bias=False)
+        self.annot_layer = nn.Linear(annot_dim, attn_dim, bias=False)
+        self.v = nn.Linear(attn_dim, 1, bias=True)
         self.processed_annots = None
         # self.init_layers()
 
