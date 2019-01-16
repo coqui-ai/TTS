@@ -51,5 +51,8 @@
     "max_seq_len": 300,     // DATASET-RELATED: maximum text length
     "output_path": "/media/erogol/data_ssd/Data/models/en_UK/",      // DATASET-RELATED: output path for all training outputs.
     "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
-    "num_val_loader_workers": 4     // number of evaluation data loader processes.
+    "num_val_loader_workers": 4,    // number of evaluation data loader processes.
+    "phoneme_cache_path": "tmp_en_uk",  // phoneme computation is slow, therefore, it caches results in the given folder.
+    "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
+    "phoneme_language": "en-us"     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 }
