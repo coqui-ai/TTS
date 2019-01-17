@@ -413,7 +413,7 @@ class Decoder(nn.Module):
             for idx in range(len(self.decoder_rnns)):
                 decoder_rnn_hiddens[idx] = self.decoder_rnns[idx](
                     decoder_input, decoder_rnn_hiddens[idx])
-                # Residual connectinon
+                # Residual connection
                 decoder_input = decoder_rnn_hiddens[idx] + decoder_input
             decoder_output = decoder_input
             del decoder_input
