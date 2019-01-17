@@ -11,52 +11,11 @@ _pad = '_'
 _eos = '~'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _punctuations = '!\'(),-.:;? '
-_phonemes = ['l',
-             'ɹ',
-             'ɜ',
-             'ɚ',
-             'k',
-             'u',
-             'ʔ',
-             'ð',
-             'ɐ',
-             'ɾ',
-             'ɑ',
-             'ɔ',
-             'b',
-             'ɛ',
-             't',
-             'v',
-             'n',
-             'm',
-             'ʊ',
-             'ŋ',
-             's',
-             'ʌ',
-             'o',
-             'ʃ',
-             'i',
-             'p',
-             'æ',
-             'e',
-             'a',
-             'ʒ',
-             ' ',
-             'h',
-             'ɪ',
-             'ɡ',
-             'f',
-             'r',
-             'w',
-             'ɫ',
-             'd',
-             'x',
-             'ː',
-             'ᵻ',
-             'ə',
-             'j',
-             'θ',
-             'z']
+
+# TODO: include more phoneme characters for other languages.
+_phonemes = ['l','ɹ','ɜ','ɚ','k','u','ʔ','ð','ɐ','ɾ','ɑ','ɔ','b','ɛ','t','v','n','m','ʊ','ŋ','s',
+             'ʌ','o','ʃ','i','p','æ','e','a','ʒ',' ','h','ɪ','ɡ','f','r','w','ɫ','ɬ','d','x','ː',
+             'ᵻ','ə','j','θ','z']
 
 _phonemes = sorted(list(set(_phonemes)))
 
