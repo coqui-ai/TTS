@@ -73,7 +73,8 @@ Example datasets, we successfully applied TTS, are linked below.
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
-- [TWEB](http://https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)\
+- [TWEB](http://https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)
+- [M-AI-Labs](http://www.caito.de/2019/01/the-m-ailabs-speech-dataset/)
 
 ## Training and Fine-tuning LJ-Speech
 [Click Here](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) for hands on **Notebook example**, training LJSpeech.
@@ -105,11 +106,7 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 You can also enjoy Tensorboard, if you point the Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Testing
-Best way to test your pre-trained network is to use Notebooks under ```notebooks``` folder.
-
-## Logging 
-# TODO
-TTS enables intense logging on Tensorboard. 
+Best way to test your network is to use Notebooks under ```notebooks``` folder.
 
 ## What is new with TTS
 If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character based methods up to our knowledge. Out implementation is also quite robust against long sentences.
@@ -119,8 +116,11 @@ If you train TTS with LJSpeech dataset, you start to hear reasonable results aft
 - Weight decay ([ref](http://www.fast.ai/2018/07/02/adam-weight-decay/)). After a certain point of the training, you might observe the model over-fitting. That is, model is able to pronounce words probably better but quality of the speech quality gets lower and sometimes attention alignment gets disoriented.
 - Stop token prediction with an additional module. The original Tacotron model does not propose a stop token to stop the decoding process. Therefore, you need to use heuristic measures to stop the decoder. Here, we prefer to use additional layers at the end to decide when to stop.
 - Applying sigmoid to the model outputs. Since the output values are expected to be in the range [0, 1], we apply sigmoid to make things easier to approximate the expected output distribution.
+- Phoneme based training is enabled for easier learning and robust pronunciation. It also makes easier to adapt TTS to the most languages without worrying about language specific characters.
+- Configurable attention windowing at inference-time for robust alignment. It enforces network to only consider a certain window of encoder steps per iteration.
+- Detailed Tensorboard stats for activation, weight and gradient values per layer. It is useful to detect defects and compare networks.
 
-One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the performance, given the big increase in the model size.
+One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the performance, given the increase in the model size.
 
 Please feel free to offer new changes and pull things off. We are happy to discuss and make things better.
 
