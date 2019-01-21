@@ -17,6 +17,7 @@ from utils.generic_utils import (
     remove_experiment_folder, create_experiment_folder, save_checkpoint,
     save_best_model, load_config, lr_decay, count_parameters, check_update,
     get_commit_hash, sequence_mask, NoamLR)
+from utils.text.symbols import symbols, phonemes
 from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
@@ -355,7 +356,8 @@ def evaluate(model, criterion, criterion_st, ap, current_step):
 
 
 def main(args):
-    model = Tacotron(c.embedding_size, ap.num_freq, ap.num_mels, c.r)
+    num_chars = len(phonemes) if c.use_phonemes else len(symbols)
+    model = Tacotron(num_chars, c.embedding_size, ap.num_freq, ap.num_mels, c.r)
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr, weight_decay=0)

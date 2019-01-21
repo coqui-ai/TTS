@@ -2,12 +2,12 @@
 import torch
 from torch import nn
 from math import sqrt
-from utils.text.symbols import symbols, phonemes
 from layers.tacotron import Prenet, Encoder, Decoder, PostCBHG
 
 
 class Tacotron(nn.Module):
     def __init__(self,
+                 num_chars,
                  embedding_dim=256,
                  linear_dim=1025,
                  mel_dim=80,
@@ -19,8 +19,8 @@ class Tacotron(nn.Module):
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
         self.embedding = nn.Embedding(
-            len(phonemes), embedding_dim, padding_idx=padding_idx)
-        print(" | > Number of characters : {}".format(len(phonemes)))
+            num_chars, embedding_dim, padding_idx=padding_idx)
+        print(" | > Number of characters : {}".format(num_chars))
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(256, mel_dim, r, attn_windowing)
