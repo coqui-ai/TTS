@@ -24,7 +24,7 @@ def text2phone(text, language):
     '''
     Convert graphemes to phonemes.
     '''
-    seperator = phonemizer.separator.Separator(' ', '', '|')
+    seperator = phonemizer.separator.Separator(' |', '', '|')
     #try:
     punctuations = re.findall(pat, text)
     ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
