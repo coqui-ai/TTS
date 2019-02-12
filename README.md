@@ -1,4 +1,6 @@
-# TTS
+<p align="center"><img src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png =250x250)
+" width="320" height="95" /></p>
+
 This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a Text2Speech engine low in cost and high in quality. To begin with, you can hear a sample [here](https://soundcloud.com/user-565970875/commonvoice-loc-sens-attn).
 
 The model here is highly inspired from Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135) however, it has many important updates over the baseline model that make training faster and computationally very efficient. Feel free to experiment new ideas and propose changes.
