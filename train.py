@@ -126,8 +126,8 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st,
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets)
         mel_loss = criterion(mel_output, mel_input, mel_lengths)
-        linear_loss = 0.5 * criterion(linear_output, linear_input, mel_lengths)\
-            + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
+        linear_loss = (1 - c.loss_weight) * criterion(linear_output, linear_input, mel_lengths)\
+            + c.loss_weight * criterion(linear_output[:, :, :n_priority_freq],
                               linear_input[:, :, :n_priority_freq],
                               mel_lengths)
         loss = mel_loss + linear_loss
