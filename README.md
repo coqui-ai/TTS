@@ -1,11 +1,11 @@
 <p align="center"><img src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png =250x250)
 " width="320" height="95" /></p>
 
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a Text2Speech engine low in cost and high in quality. To begin with, you can hear a sample [here](https://soundcloud.com/user-565970875/commonvoice-loc-sens-attn).
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality. To begin with, you can hear a sample generated voice from [here](https://soundcloud.com/user-565970875/commonvoice-loc-sens-attn).
 
-The model here is highly inspired from Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135) however, it has many important updates over the baseline model that make training faster and computationally very efficient. Feel free to experiment new ideas and propose changes.
+The model architecture is highly inspired by Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135). However, it has many important updates that make training faster and computationally very efficient. Feel free to experiment with new ideas and propose changes.
 
-You can find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief note pointing possible TTS architectures and their comparisons.
+You can find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief note about TTS architectures and their comparisons.
 
 ## Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
@@ -17,7 +17,7 @@ Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easie
   * matplotlib
   * unidecode
 
-Install TTS using ```setup.py```. It will install all of the requirements automatically and make TTS available to all python environment as an ordinary python module. This makes things easier to run your model outside of the project folder.
+Install TTS using ```setup.py```. It will install all of the requirements automatically and make TTS available to all the python environment as an ordinary python module.
 
 ```python setup.py develop```
 
@@ -34,7 +34,7 @@ nvidia-docker run -it --rm -p 5002:5002 mozilla-tts
 ```
 
 ## Checkpoints and Audio Samples
-Checkout [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the-most-perfect-instrument-of-all-arvo-part) to compare the samples (except the first) below.
+Check out [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-the-most-perfect-instrument-of-all-arvo-part) to compare the samples (except the first) below.
 
 | Models        |Dataset | Commit            | Audio Sample  | Details |
 | ------------- |:------:|:-----------------:|:--------------|:--------|
@@ -78,9 +78,9 @@ Example datasets, we successfully applied TTS, are linked below.
 - [TWEB](http://https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)\
 
 ## Training and Fine-tuning LJ-Speech
-[Click Here](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) for hands on **Notebook example**, training LJSpeech.
+[Click Here](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) for hands-on **Notebook example**, training LJSpeech.
 
-Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use the all data for training and check the model performance by relying on human inspection.
+Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use all data for training and check the model performance by relying on human inspection.
 
 ```
 shuf metadata.csv > metadata_shuf.csv
@@ -96,7 +96,7 @@ To fine-tune a model, use ```--restore_path```.
 
 ```train.py --config_path config.json --restore_path /path/to/your/model.pth.tar```
 
-If you like to use specific set of GPUs, you need set an environment variable. The code uses automatically all the available GPUs for data parallel training. If you don't specify the GPUs, it uses the all.
+If you like to use a specific set of GPUs, you need to set an environment variable. The code uses automatically all the available GPUs for data parallel training. If you don't specify the GPUs, it uses them all.
 
 ```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
 
@@ -104,7 +104,7 @@ Each run creates a new output folder and ```config.json``` is copied under this 
 
 In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
-You can also enjoy Tensorboard, if you point the Tensorboard argument```--logdir``` to the experiment folder.
+You can also enjoy Tensorboard,  if you point the Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Testing
 Best way to test your pre-trained network is to use Notebooks under ```notebooks``` folder.
@@ -114,11 +114,11 @@ Best way to test your pre-trained network is to use Notebooks under ```notebooks
 TTS enables intense logging on Tensorboard. 
 
 ## What is new with TTS
-If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character based methods up to our knowledge. Out implementation is also quite robust against long sentences.
+If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character-based methods up to our knowledge. Out implementation is also quite robust against long sentences.
 
-- Location sensitive attention ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention is the vital part of text2speech models. Therefore, it is important to use an attention mechanism that suits the diagonal nature of the problem where the output strictly aligns with the text monotonically. Location sensitive attention performs better by looking into the previous alignment vectors and learns diagonal attention more easily. Yet, I believe there is a good space for research at this front to find a better solution.
+- Location sensitive attention ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention is a vital part of text2speech models. Therefore, it is important to use an attention mechanism that suits the diagonal nature of the problem where the output strictly aligns with the text monotonically. Location sensitive attention performs better by looking into the previous alignment vectors and learns diagonal attention more easily. Yet, I believe there is a good space for research at this front to find a better solution.
 - Attention smoothing with sigmoid ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention weights are computed by normalized sigmoid values instead of softmax for sharper values. That enables the model to pick multiple highly scored inputs for alignments while reducing the noise.
-- Weight decay ([ref](http://www.fast.ai/2018/07/02/adam-weight-decay/)). After a certain point of the training, you might observe the model over-fitting. That is, model is able to pronounce words probably better but quality of the speech quality gets lower and sometimes attention alignment gets disoriented.
+- Weight decay ([ref](http://www.fast.ai/2018/07/02/adam-weight-decay/)). After a certain point of the training, you might observe the model over-fitting. That is, the model is able to pronounce words probably better but the quality of the speech quality gets lower and sometimes attention alignment gets disoriented.
 - Stop token prediction with an additional module. The original Tacotron model does not propose a stop token to stop the decoding process. Therefore, you need to use heuristic measures to stop the decoder. Here, we prefer to use additional layers at the end to decide when to stop.
 - Applying sigmoid to the model outputs. Since the output values are expected to be in the range [0, 1], we apply sigmoid to make things easier to approximate the expected output distribution.
 
@@ -127,10 +127,10 @@ One common question is to ask why we don't use Tacotron2 architecture. According
 Please feel free to offer new changes and pull things off. We are happy to discuss and make things better.
 
 ## Problems waiting to be solved.
-- Punctuations at the end of a sentence sometimes affect the pronounciation of the last word. Because punctuation sign is attended by the attention module , that forces network to create a voice signal or at least modify the voice signal being generated for neighboring frames.
+- Punctuations at the end of a sentence sometimes affect the pronunciation of the last word. Because punctuation sign is attended by the attention module, that forces the network to create a voice signal or at least modify the voice signal being generated for neighboring frames.
 - ~~Simpler stop-token prediction. Right now we use RNN to keep the history of the previous frames. However, we never tested, if something simpler would work as well.~~ Yet RNN based model gives more stable predictions.
-- Train for better mel-specs. Mel-spectrograms are not good enough to be fed Neural Vocoder. Easy solution to this problem is to train the model with r=1. However,in this case model struggles to align the attention.
-- irregular words: "minute", "focus", "aren't" etc. Even though, ~~it might be solved~~ (Nancy dataset delivers much better quality compared to LJSpeech) it is solved by a larger or a better dataset, some of irregular words cause network to mispronounce.
+- Train for better mel-specs. Mel-spectrograms are not good enough to be fed Neural Vocoder. Easy solution to this problem is to train the model with r=1. However, in this case, model struggles to align the attention.
+- irregular words: "minute", "focus", "aren't" etc. Even though ~~it might be solved~~ (Nancy dataset delivers much better quality compared to LJSpeech) it is solved by a larger or a better dataset, some of the irregular words cause network to mispronounce.
 
 ## Major TODOs
 - [x] Implement the model.
