@@ -309,7 +309,7 @@ class Decoder(nn.Module):
         self.memory_size = memory_size if memory_size > 0 else r
         self.memory_dim = memory_dim
         # memory -> |Prenet| -> processed_memory
-        self.prenet = Prenet(memory_dim * memory_dim * self.memory_size, out_features=[256, 128])
+        self.prenet = Prenet(memory_dim * self.memory_size, out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
         self.attention_rnn = AttentionRNNCell(
             out_dim=128,

@@ -357,7 +357,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step):
 
 def main(args):
     num_chars = len(phonemes) if c.use_phonemes else len(symbols)
-    model = Tacotron(num_chars, c.embedding_size, ap.num_freq, ap.num_mels, c.r)
+    model = Tacotron(num_chars, c.embedding_size, ap.num_freq, ap.num_mels, c.r, c.memory_size)
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr, weight_decay=0)
