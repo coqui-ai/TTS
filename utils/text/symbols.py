@@ -11,6 +11,7 @@ _pad = '_'
 _eos = '~'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _punctuations = '!\'(),-.:;? '
+_phoneme_punctuations = '.!;:,?'
 
 # TODO: include more phoneme characters for other languages.
 _phonemes = ['l','ɹ','ɜ','ɚ','k','u','ʔ','ð','ɐ','ɾ','ɑ','ɔ','b','ɛ','t','v','n','m','ʊ','ŋ','s',

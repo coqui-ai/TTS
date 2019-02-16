@@ -4,7 +4,7 @@ import re
 import phonemizer
 from phonemizer.phonemize import phonemize
 from utils.text import cleaners
-from utils.text.symbols import symbols, phonemes, _punctuations
+from utils.text.symbols import symbols, phonemes, _phoneme_punctuations
 
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
@@ -17,7 +17,7 @@ _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 # Regular expression matchinf punctuations, ignoring empty space
-pat = r'['+_punctuations[:-1]+']+'
+pat = r'['+_phoneme_punctuations[:-1]+']+'
 
 
 def text2phone(text, language):
@@ -31,7 +31,7 @@ def text2phone(text, language):
     # Replace \n with matching punctuations.
     if len(punctuations) > 0:
         for punct in punctuations[:-1]:
-             ph = ph.replace(' \n', punct+'| ', 1)
+             ph = ph.replace('| |\n', '|'+punct+'| |', 1)
         try:
              ph = ph[:-1] + punctuations[-1]
         except:
@@ -63,7 +63,6 @@ def sequence_to_phoneme(sequence):
     for symbol_id in sequence:
         if symbol_id in _id_to_phonemes:
             s = _id_to_phonemes[symbol_id]
-            print(s)
             result += s
     return result.replace('}{', ' ')
 
