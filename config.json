@@ -1,6 +1,6 @@
 {
-    "model_name": "embed_init_loss_weight",
-    "model_description": "Lower loss freq is weight 0.0, higher weight decay, ref_level_db: 40->20, sample_rate:16000 -> 22050",
+    "model_name": "queue",
+    "model_description": "Queue memory and change lower r incrementatlly",
 
     "audio":{
         "audio_processor": "audio",     // to use dictate different audio processors, if available.
@@ -28,15 +28,16 @@
     "embedding_size": 256,  // Character embedding vector length. You don't need to change it in general.
     "text_cleaner": "phoneme_cleaners",
     "epochs": 1000,         // total number of epochs to train.
-    "lr": 0.001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr": 0.0001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
     "lr_decay": false,      // if true, Noam learning rate decaying is applied through training.
     "loss_weight": 0.0,     // loss weight to emphasize lower frequencies. Lower frequencies are in general more important for speech signals.
     "warmup_steps": 4000,   // Noam decay steps to increase the learning rate from 0 to "lr"
     "windowing": false,      // Enables attention windowing. Used only in eval mode.
+    "memory_size": 5,       // memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
 
     "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":32,   
-    "r": 5,                 // Number of frames to predict for step.
+    "r": 2,                 // Number of frames to predict for step.
     "wd": 0.00001,         // Weight decay weight.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
     "save_step": 5000,      // Number of training steps expected to save traning stats and checkpoints.
