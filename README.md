@@ -121,6 +121,8 @@ If you train TTS with LJSpeech dataset, you start to hear reasonable results aft
 - Phoneme based training is enabled for easier learning and robust pronunciation. It also makes easier to adapt TTS to the most languages without worrying about language specific characters.
 - Configurable attention windowing at inference-time for robust alignment. It enforces network to only consider a certain window of encoder steps per iteration.
 - Detailed Tensorboard stats for activation, weight and gradient values per layer. It is useful to detect defects and compare networks.
+- Constant history window. Instead of using only the last frame of predictions, define a constant history queue. It enables training with gradually decreasing prediction frame (r=5 --> r=1) by only changing the last layer. For instance, you can train the model with r=5 and then fine-tune it with r=1 without any performance loss. It also solves well-known PreNet problem [#50](https://github.com/mozilla/TTS/issues/50). 
+- Initialization of hidden decoder states with Embedding layers instead of zero initialization. 
 
 One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the performance, given the increase in the model size.
 
@@ -130,13 +132,13 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - Punctuations at the end of a sentence sometimes affect the pronunciation of the last word. Because punctuation sign is attended by the attention module, that forces the network to create a voice signal or at least modify the voice signal being generated for neighboring frames.
 - ~~Simpler stop-token prediction. Right now we use RNN to keep the history of the previous frames. However, we never tested, if something simpler would work as well.~~ Yet RNN based model gives more stable predictions.
 - Train for better mel-specs. Mel-spectrograms are not good enough to be fed Neural Vocoder. Easy solution to this problem is to train the model with r=1. However, in this case, model struggles to align the attention.
-- irregular words: "minute", "focus", "aren't" etc. Even though ~~it might be solved~~ (Nancy dataset delivers much better quality compared to LJSpeech) it is solved by a larger or a better dataset, some of the irregular words cause network to mispronounce.
+- irregular words: "minute", "focus", "aren't" etc. Even though ~~it might be solved~~ (Use a better dataset like Nancy or train phonemes enabled.)
 
 ## Major TODOs
 - [x] Implement the model.
 - [x] Generate human-like speech on LJSpeech dataset.
 - [x] Generate human-like speech on a different dataset (Nancy) (TWEB).
-- [ ] Train TTS with r=1 successfully.
+- [x] Train TTS with r=1 successfully.
 - [ ] Enable process based distributed training. Similar [to] (https://github.com/fastai/imagenet-fast/).
 - [ ] Adapting Neural Vocoder. The most active work is [here] (https://github.com/erogol/WaveRNN)
 - [ ] Multi-speaker embedding.
