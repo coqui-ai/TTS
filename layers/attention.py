@@ -118,8 +118,8 @@ class AttentionRNNCell(nn.Module):
         self.rnn_cell = nn.GRUCell(annot_dim + memory_dim, rnn_dim)
         self.windowing = windowing
         if self.windowing:
-            self.win_back = 1
-            self.win_front = 3
+            self.win_back = 3
+            self.win_front = 6
             self.win_idx = None
         # pick bahdanau or location sensitive attention
         if align_model == 'b':
