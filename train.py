@@ -17,6 +17,7 @@ from utils.generic_utils import (
     remove_experiment_folder, create_experiment_folder, save_checkpoint,
     save_best_model, load_config, lr_decay, count_parameters, check_update,
     get_commit_hash, sequence_mask, NoamLR)
+from utils.text.symbols import symbols, phonemes
 from utils.visual import plot_alignment, plot_spectrogram
 from models.tacotron import Tacotron
 from layers.losses import L1LossMasked
@@ -46,7 +47,11 @@ def setup_loader(is_val=False):
             batch_group_size=0 if is_val else 8 * c.batch_size,
             min_seq_len=0 if is_val else c.min_seq_len,
             max_seq_len=float("inf") if is_val else c.max_seq_len,
-            cached=False if c.dataset != "tts_cache" else True)
+            cached=False if c.dataset != "tts_cache" else True,
+            phoneme_cache_path=c.phoneme_cache_path,
+            use_phonemes=c.use_phonemes,
+            phoneme_language=c.phoneme_language
+            )
         loader = DataLoader(
             dataset,
             batch_size=c.eval_batch_size if is_val else c.batch_size,
@@ -121,8 +126,8 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st,
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets)
         mel_loss = criterion(mel_output, mel_input, mel_lengths)
-        linear_loss = 0.5 * criterion(linear_output, linear_input, mel_lengths)\
-            + 0.5 * criterion(linear_output[:, :, :n_priority_freq],
+        linear_loss = (1 - c.loss_weight) * criterion(linear_output, linear_input, mel_lengths)\
+            + c.loss_weight * criterion(linear_output[:, :, :n_priority_freq],
                               linear_input[:, :, :n_priority_freq],
                               mel_lengths)
         loss = mel_loss + linear_loss
@@ -351,7 +356,8 @@ def evaluate(model, criterion, criterion_st, ap, current_step):
 
 
 def main(args):
-    model = Tacotron(c.embedding_size, ap.num_freq, ap.num_mels, c.r)
+    num_chars = len(phonemes) if c.use_phonemes else len(symbols)
+    model = Tacotron(num_chars, c.embedding_size, ap.num_freq, ap.num_mels, c.r, c.memory_size)
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
     optimizer = optim.Adam(model.parameters(), lr=c.lr, weight_decay=0)
@@ -361,28 +367,39 @@ def main(args):
     criterion = L1LossMasked()
     criterion_st = nn.BCELoss()
 
+    partial_init_flag = False
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
         try:
             model.load_state_dict(checkpoint['model'])
         except:
             print(" > Partial model initialization.")
+            partial_init_flag = True
             model_dict = model.state_dict()
             # Partial initialization: if there is a mismatch with new and old layer, it is skipped.
             # 1. filter out unnecessary keys
             pretrained_dict = {
                 k: v
-                for k, v in checkpoint['model'].items() if k in model_dict
+                for k, v in checkpoint['model'].items() if k in model_dict 
             }
-            # 2. overwrite entries in the existing state dict
+            # 2. filter out different size layers
+            pretrained_dict = {
+                k: v
+                for k, v in checkpoint['model'].items() if v.numel() == model_dict[k].numel()
+            }
+            # 3. overwrite entries in the existing state dict
             model_dict.update(pretrained_dict)
-            # 3. load the new state dict
+            # 4. load the new state dict
             model.load_state_dict(model_dict)
+            print(" | > {} / {} layers are initialized".format(len(pretrained_dict), len(model_dict)))
         if use_cuda:
             model = model.cuda()
             criterion.cuda()
             criterion_st.cuda()
-        optimizer.load_state_dict(checkpoint['optimizer'])
+        if not partial_init_flag:
+            optimizer.load_state_dict(checkpoint['optimizer'])
+        for group in optimizer.param_groups:
+                group['lr'] = c.lr
         print(
             " > Model restored from step %d" % checkpoint['step'], flush=True)
         start_epoch = checkpoint['epoch']
@@ -423,7 +440,10 @@ def main(args):
             " | > Train Loss: {:.5f}   Validation Loss: {:.5f}".format(
                 train_loss, val_loss),
             flush=True)
-        best_loss = save_best_model(model, optimizer, train_loss, best_loss,
+        target_loss = train_loss
+        if c.run_eval:
+            target_loss = val_loss
+        best_loss = save_best_model(model, optimizer, target_loss, best_loss,
                                     OUT_PATH, current_step, epoch)
 
 
