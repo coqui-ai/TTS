@@ -1,15 +1,70 @@
 # -*- coding: utf-8 -*-
 
 import re
+import phonemizer
+from phonemizer.phonemize import phonemize
 from utils.text import cleaners
-from utils.text.symbols import symbols
+from utils.text.symbols import symbols, phonemes, _phoneme_punctuations
 
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
 _id_to_symbol = {i: s for i, s in enumerate(symbols)}
 
+_phonemes_to_id = {s: i for i, s in enumerate(phonemes)}
+_id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
+
 # Regular expression matching text enclosed in curly braces:
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
+
+# Regular expression matchinf punctuations, ignoring empty space
+pat = r'['+_phoneme_punctuations[:-1]+']+'
+
+
+def text2phone(text, language):
+    '''
+    Convert graphemes to phonemes.
+    '''
+    seperator = phonemizer.separator.Separator(' |', '', '|')
+    #try:
+    punctuations = re.findall(pat, text)
+    ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
+    # Replace \n with matching punctuations.
+    if len(punctuations) > 0:
+        for punct in punctuations[:-1]:
+             ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+        try:
+             ph = ph[:-1] + punctuations[-1]
+        except:
+             print(text)
+    return ph
+
+
+def phoneme_to_sequence(text, cleaner_names, language):
+    '''
+    TODO: This ignores punctuations
+    '''
+    sequence = []
+    clean_text = _clean_text(text, cleaner_names)
+    phonemes = text2phone(clean_text, language)
+#     print(phonemes.replace('|', ''))
+    if phonemes is None:
+        print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
+    for phoneme in phonemes.split('|'):
+        # print(word, ' -- ', phonemes_text)
+        sequence += _phoneme_to_sequence(phoneme)
+    # Aeepnd EOS char
+    sequence.append(_phonemes_to_id['~'])
+    return sequence
+
+
+def sequence_to_phoneme(sequence):
+    '''Converts a sequence of IDs back to a string'''
+    result = ''
+    for symbol_id in sequence:
+        if symbol_id in _id_to_phonemes:
+            s = _id_to_phonemes[symbol_id]
+            result += s
+    return result.replace('}{', ' ')
 
 
 def text_to_sequence(text, cleaner_names):
@@ -69,9 +124,17 @@ def _symbols_to_sequence(symbols):
     return [_symbol_to_id[s] for s in symbols if _should_keep_symbol(s)]
 
 
+def _phoneme_to_sequence(phonemes):
+    return [_phonemes_to_id[s] for s in list(phonemes) if _should_keep_phoneme(s)]
+
+
 def _arpabet_to_sequence(text):
     return _symbols_to_sequence(['@' + s for s in text.split()])
 
 
 def _should_keep_symbol(s):
     return s in _symbol_to_id and s is not '_' and s is not '~'
+
+
+def _should_keep_phoneme(p):
+    return p in _phonemes_to_id and p is not '_' and p is not '~'

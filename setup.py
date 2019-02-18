@@ -82,6 +82,10 @@ setup(
         "flask",
         # "lws",
         "tqdm",
+        "phonemizer",
+    ],
+    dependency_links=[
+        'http://github.com/bootphon/phonemizer/tarball/master#egg=phonemizer'
     ],
     extras_require={
         "bin": [
