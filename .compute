@@ -1,5 +1,5 @@
 #!/bin/bash
-source ../tmp/venv/bin/activate
-# python extract_features.py --data_path ${DATA_ROOT}/shared/data/keithito/LJSpeech-1.1/ --cache_path ~/tts_cache/ --config config.json --num_proc 12 --dataset ljspeech --meta_file metadata.csv --val_split 1000 --process_audio true
-# python train.py --config_path config.json --data_path ~/tts_cache/ --debug true
-python train.py --config_path config.json  --data_path ${DATA_ROOT}/shared/data/Blizzard/Nancy/ --debug true
+pip3 install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
+yes | apt-get install espeak 
+python3 setup.py develop
+python3 train.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/Blizzard/Nancy/ --debug true
