@@ -1,0 +1,60 @@
+{
+    "model_name": "tts-master",
+    "model_description": "tts master cluster test",
+
+    "audio":{
+        "audio_processor": "audio",     // to use dictate different audio processors, if available.
+        // Audio processing parameters
+        "num_mels": 80,         // size of the mel spec frame. 
+        "num_freq": 1025,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 22050,   // wav sample-rate. If different than the original data, it is resampled.
+        "frame_length_ms": 50,  // stft window length in ms.
+        "frame_shift_ms": 12.5, // stft window hop-lengh in ms.
+        "preemphasis": 0.98,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100,   // normalization range
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        // Normalization parameters
+        "signal_norm": true,    // normalize the spec values in range [0, 1]
+        "symmetric_norm": false, // move normalization to range [-1, 1]
+        "max_norm": 1,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true,      // clip normalized values into the range.
+        "mel_fmin": null,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": null,        // maximum freq level for mel-spec. Tune for dataset!!
+        "do_trim_silence": true  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+    },
+
+    "embedding_size": 256,  // Character embedding vector length. You don't need to change it in general.
+    "text_cleaner": "phoneme_cleaners",
+    "epochs": 1000,         // total number of epochs to train.
+    "lr": 0.0001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_decay": false,      // if true, Noam learning rate decaying is applied through training.
+    "loss_weight": 0.0,     // loss weight to emphasize lower frequencies. Lower frequencies are in general more important for speech signals.
+    "warmup_steps": 4000,   // Noam decay steps to increase the learning rate from 0 to "lr"
+    "windowing": false,      // Enables attention windowing. Used only in eval mode.
+    "memory_size": 5,       // memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
+
+    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
+    "eval_batch_size":32,   
+    "r": 5,                 // Number of frames to predict for step.
+    "wd": 0.00001,         // Weight decay weight.
+    "checkpoint": true,     // If true, it saves checkpoints per "save_step"
+    "save_step": 5000,      // Number of training steps expected to save traning stats and checkpoints.
+    "print_step": 50,       // Number of steps to log traning on console.
+    "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
+
+    "run_eval": true,
+    "data_path": "/media/erogol/data_ssd/Data/LJSpeech-1.1",  // DATASET-RELATED: can overwritten from command argument
+    "meta_file_train": "prompts_train.data",      // DATASET-RELATED: metafile for training dataloader.
+    "meta_file_val": "prompts_val.data",    // DATASET-RELATED: metafile for evaluation dataloader.
+    "dataset": "nancy",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
+    "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
+    "max_seq_len": 300,     // DATASET-RELATED: maximum text length
+    "output_path": "models/",      // DATASET-RELATED: output path for all training outputs.
+    "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_val_loader_workers": 4,    // number of evaluation data loader processes.
+    "phoneme_cache_path": "phonemes_cache",  // phoneme computation is slow, therefore, it caches results in the given folder.
+    "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
+    "phoneme_language": "en-us"     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
+}
