@@ -70,11 +70,11 @@ setup(
         'build_py': build_py,
         'develop': develop,
     },
-    setup_requires=["numpy==1.14.3"],
+    setup_requires=["numpy==1.15.4"],
     install_requires=[
         "scipy >=0.19.0",
         "torch >= 0.4.1",
-        "librosa==0.5.1",
+        "librosa==0.6.2",
         "unidecode==0.4.20",
         "tensorboardX",
         "matplotlib==2.0.2",
