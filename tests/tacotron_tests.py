@@ -35,8 +35,8 @@ class TacotronTrainTest(unittest.TestCase):
 
         criterion = L1LossMasked().to(device)
         criterion_st = nn.BCELoss().to(device)
-        model = Tacotron(c.embedding_size, c.audio['num_freq'], c.audio['num_mels'],
-                         c.r).to(device)
+        model = Tacotron(32, c.embedding_size, c.audio['num_freq'], c.audio['num_mels'],
+                         c.r, c.memory_size).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0

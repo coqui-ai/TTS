@@ -32,6 +32,7 @@
     "mk": 1.0,
     "priority_freq": false,
     "num_loader_workers": 4,
+    "memory_size": 5,
 
     "save_step": 200,
     "data_path": "/home/erogol/Data/LJSpeech-1.1/",
