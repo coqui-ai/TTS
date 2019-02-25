@@ -61,7 +61,7 @@ class MyDataset(Dataset):
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
-        if not os.path.isdir(phoneme_cache_path):
+        if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path)
         print(" > DataLoader initialization")
         print(" | > Data path: {}".format(root_path))
