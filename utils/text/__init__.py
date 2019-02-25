@@ -52,7 +52,7 @@ def phoneme_to_sequence(text, cleaner_names, language):
     for phoneme in phonemes.split('|'):
         # print(word, ' -- ', phonemes_text)
         sequence += _phoneme_to_sequence(phoneme)
-    # Aeepnd EOS char
+    # Append EOS char
     sequence.append(_phonemes_to_id['~'])
     return sequence
 
