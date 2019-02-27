@@ -21,7 +21,6 @@ class Tacotron(nn.Module):
         self.linear_dim = linear_dim
         self.embedding = nn.Embedding(
             num_chars, embedding_dim, padding_idx=padding_idx)
-        print(" | > Number of characters : {}".format(num_chars))
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(256, mel_dim, r, memory_size, attn_windowing)

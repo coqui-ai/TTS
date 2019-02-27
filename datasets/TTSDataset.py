@@ -25,7 +25,8 @@ class MyDataset(Dataset):
                  cached=False,
                  use_phonemes=True,
                  phoneme_cache_path=None,
-                 phoneme_language="en-us"):
+                 phoneme_language="en-us",
+                 verbose=False):
         """
         Args:
             root_path (str): root path for the data folder.
@@ -47,6 +48,7 @@ class MyDataset(Dataset):
             phoneme_cache_path (str): path to cache phoneme features. 
             phoneme_language (str): one the languages from 
                 https://github.com/bootphon/phonemizer#languages
+            verbose (bool): print diagnostic information.
         """
         self.root_path = root_path
         self.batch_group_size = batch_group_size
@@ -61,16 +63,17 @@ class MyDataset(Dataset):
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
+        self.verbose = verbose
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path)
-        print(" > DataLoader initialization")
-        print(" | > Data path: {}".format(root_path))
-        print(" | > Use phonemes: {}".format(self.use_phonemes))
-        if use_phonemes:
-            print("   | > phoneme language: {}".format(phoneme_language))
-        print(" | > Cached dataset: {}".format(self.cached))
-        print(" | > Number of instances : {}".format(len(self.items)))
-        
+        if self.verbose:
+            print("\n > DataLoader initialization")
+            print(" | > Data path: {}".format(root_path))
+            print(" | > Use phonemes: {}".format(self.use_phonemes))
+            if use_phonemes:
+                print("   | > phoneme language: {}".format(phoneme_language))
+            print(" | > Cached dataset: {}".format(self.cached))
+            print(" | > Number of instances : {}".format(len(self.items)))
         self.sort_items()
 
     def load_wav(self, filename):
@@ -125,11 +128,7 @@ class MyDataset(Dataset):
     def sort_items(self):
         r"""Sort instances based on text length in ascending order"""
         lengths = np.array([len(ins[0]) for ins in self.items])
-
-        print(" | > Max length sequence: {}".format(np.max(lengths)))
-        print(" | > Min length sequence: {}".format(np.min(lengths)))
-        print(" | > Avg length sequence: {}".format(np.mean(lengths)))
-
+       
         idxs = np.argsort(lengths)
         new_items = []
         ignored = []
@@ -139,11 +138,8 @@ class MyDataset(Dataset):
                 ignored.append(idx)
             else:
                 new_items.append(self.items[idx])
-        print(" | > {} instances are ignored ({})".format(
-            len(ignored), self.min_seq_len))
         # shuffle batch groups
         if self.batch_group_size > 0:
-            print(" | > Batch group shuffling is active.")
             for i in range(len(new_items) // self.batch_group_size):
                 offset = i * self.batch_group_size
                 end_offset = offset + self.batch_group_size
@@ -152,6 +148,14 @@ class MyDataset(Dataset):
                 new_items[offset : end_offset] = temp_items
         self.items = new_items
 
+        if self.verbose:
+            print(" | > Max length sequence: {}".format(np.max(lengths)))
+            print(" | > Min length sequence: {}".format(np.min(lengths)))
+            print(" | > Avg length sequence: {}".format(np.mean(lengths)))
+            print(" | > Num. instances discarded by max-min seq limits: {}".format(
+                len(ignored), self.min_seq_len))
+            print(" | > Batch group size: {}.".format(self.batch_group_size))
+        
     def __len__(self):
         return len(self.items)
 

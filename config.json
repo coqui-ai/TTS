@@ -3,7 +3,6 @@
     "model_description": "Queue memory and change lower r incrementatlly",
 
     "audio":{
-        "audio_processor": "audio",     // to use dictate different audio processors, if available.
         // Audio processing parameters
         "num_mels": 80,         // size of the mel spec frame. 
         "num_freq": 1025,       // number of stft frequency levels. Size of the linear spectogram frame.
@@ -25,6 +24,11 @@
         "do_trim_silence": true  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
     },
 
+    "distributed":{
+        "backend": "nccl",
+        "url": "tcp:\/\/localhost:54321"
+    },
+
     "embedding_size": 256,  // Character embedding vector length. You don't need to change it in general.
     "text_cleaner": "phoneme_cleaners",
     "epochs": 1000,         // total number of epochs to train.
@@ -37,14 +41,16 @@
 
     "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":32,   
-    "r": 2,                 // Number of frames to predict for step.
-    "wd": 0.00001,         // Weight decay weight.
+    "r": 5,                 // Number of frames to predict for step.
+    "wd": 0.00001,          // Weight decay weight.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
     "save_step": 5000,      // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 50,       // Number of steps to log traning on console.
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
+    "batch_group_size": 8,  //Number of batches to shuffle after bucketing.
 
     "run_eval": true,
+    "test_delay_epochs": 100,  //Until attention is aligned, testing only wastes computation time.
     "data_path": "/media/erogol/data_ssd/Data/LJSpeech-1.1",  // DATASET-RELATED: can overwritten from command argument
     "meta_file_train": "metadata_train.csv",      // DATASET-RELATED: metafile for training dataloader.
     "meta_file_val": "metadata_val.csv",    // DATASET-RELATED: metafile for evaluation dataloader.

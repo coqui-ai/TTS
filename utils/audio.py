@@ -50,10 +50,9 @@ class AudioProcessor(object):
         self.clip_norm = clip_norm
         self.do_trim_silence = do_trim_silence
         self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
-        print(" | > Audio Processor attributes.")
         members = vars(self)
         for key, value in members.items():
-            print("   | > {}:{}".format(key, value))
+            print(" | > {}:{}".format(key, value))
 
     def save_wav(self, wav, path):
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
@@ -118,8 +117,6 @@ class AudioProcessor(object):
         n_fft = (self.num_freq - 1) * 2
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
         win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
-        print(" | > fft size: {}, hop length: {}, win length: {}".format(
-            n_fft, hop_length, win_length))
         return n_fft, hop_length, win_length
 
     def _amp_to_db(self, x):
