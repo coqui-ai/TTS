@@ -123,7 +123,7 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
         best_loss = model_loss
         bestmodel_path = 'best_model.pth.tar'
         bestmodel_path = os.path.join(out_path, bestmodel_path)
-        print(" | > Best model saving with loss {0:.5f} : {1:}".format(
+        print("\n > BEST MODEL ({0:.5f}) : {1:}".format(
             model_loss, bestmodel_path))
         torch.save(state, bestmodel_path)
     return best_loss
@@ -146,6 +146,17 @@ def lr_decay(init_lr, global_step, warmup_steps):
     lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5,
                                                   step**-0.5)
     return lr
+
+
+def weight_decay(optimizer, wd):
+    """
+    Custom weight decay operation, not effecting grad values.
+    """
+    for group in optimizer.param_groups:
+        for param in group['params']:
+            current_lr = group['lr']
+            param.data = param.data.add(-wd * group['lr'], param.data)
+    return optimizer, current_lr
 
 
 class NoamLR(torch.optim.lr_scheduler._LRScheduler):
