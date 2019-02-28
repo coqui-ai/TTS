@@ -65,7 +65,7 @@ class MyDataset(Dataset):
         self.phoneme_language = phoneme_language
         self.verbose = verbose
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
-            os.makedirs(phoneme_cache_path)
+            os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
             print("\n > DataLoader initialization")
             print(" | > Data path: {}".format(root_path))
@@ -91,7 +91,15 @@ class MyDataset(Dataset):
         file_name = os.path.basename(wav_file).split('.')[0]
         tmp_path = os.path.join(self.phoneme_cache_path, file_name+'_phoneme.npy')
         if os.path.isfile(tmp_path):
-            text = np.load(tmp_path)
+            try:
+                text = np.load(tmp_path)
+            except:
+                print(" > ERROR: phoneme connot be loaded for {}. Recomputing.".format(wav_file))
+                text = np.asarray(
+                    phoneme_to_sequence(
+                        text, [self.cleaners], language=self.phoneme_language),
+                    dtype=np.int32)
+                np.save(tmp_path, text)
         else:
             text = np.asarray(
                 phoneme_to_sequence(text, [self.cleaners], language=self.phoneme_language), dtype=np.int32)
