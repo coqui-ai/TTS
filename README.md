@@ -98,9 +98,9 @@ To fine-tune a model, use ```--restore_path```.
 
 ```train.py --config_path config.json --restore_path /path/to/your/model.pth.tar```
 
-If you like to use a specific set of GPUs, you need to set an environment variable. The code uses automatically all the available GPUs for data parallel training. If you don't specify the GPUs, it uses them all.
+For multi-GPU training use ```distribute.py```. It enables process based multi-GPU training where each process uses a single GPU.
 
-```CUDA_VISIBLE_DEVICES="0,1,4" train.py --config_path config.json```
+```CUDA_VISIBLE_DEVICES="0,1,4" distribute.py --config_path config.json```
 
 Each run creates a new output folder and ```config.json``` is copied under this folder.
 
