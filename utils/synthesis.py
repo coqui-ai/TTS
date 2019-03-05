@@ -20,7 +20,7 @@ def synthesis(m, s, CONFIG, use_cuda, ap):
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
         chars_var = chars_var.cuda()
-    mel_spec, linear_spec, alignments, stop_tokens = m.forward(
+    mel_spec, linear_spec, alignments, stop_tokens = m.inference(
         chars_var.long())
     linear_spec = linear_spec[0].data.cpu().numpy()
     mel_spec = mel_spec[0].data.cpu().numpy()

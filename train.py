@@ -390,7 +390,6 @@ def main(args):
     num_chars = len(phonemes) if c.use_phonemes else len(symbols)
     model = Tacotron(
         num_chars=num_chars,
-        embedding_dim=c.embedding_size,
         linear_dim=ap.num_freq,
         mel_dim=ap.num_mels,
         r=c.r,
