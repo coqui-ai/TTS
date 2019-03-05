@@ -29,7 +29,6 @@
         "url": "tcp:\/\/localhost:54321"
     },
 
-    "embedding_size": 256,  // Character embedding vector length. You don't need to change it in general.
     "text_cleaner": "phoneme_cleaners",
     "epochs": 1000,         // total number of epochs to train.
     "lr": 0.0001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
