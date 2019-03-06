@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from math import sqrt
 from layers.tacotron import Prenet, Encoder, Decoder, PostCBHG
+from utils.generic_utils import sequence_mask
 
 
 class Tacotron(nn.Module):
@@ -27,15 +28,13 @@ class Tacotron(nn.Module):
             nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),
             nn.Sigmoid())
 
-    def forward(self, characters, mel_specs=None, mask=None):
+    def forward(self, characters, text_lengths, mel_specs=None):
         B = characters.size(0)
+        mask = sequence_mask(text_lengths).to(characters.device)
         inputs = self.embedding(characters)
-        # batch x time x dim
         encoder_outputs = self.encoder(inputs)
-        # batch x time x dim*r
         mel_outputs, alignments, stop_tokens = self.decoder(
             encoder_outputs, mel_specs, mask)
-        # batch x time x dim
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
@@ -44,12 +43,9 @@ class Tacotron(nn.Module):
     def inference(self, characters):
         B = characters.size(0)
         inputs = self.embedding(characters)
-        # batch x time x dim
         encoder_outputs = self.encoder(inputs)
-        # batch x time x dim*r
         mel_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs)
-        # batch x time x dim
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
