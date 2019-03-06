@@ -21,6 +21,7 @@ c = load_config(os.path.join(file_path, 'test_config.json'))
 class TacotronTrainTest(unittest.TestCase):
     def test_train_step(self):
         input = torch.randint(0, 24, (8, 128)).long().to(device)
+        input_lengths = torch.randint(100, 129, (8, )).long().to(device)
         mel_spec = torch.rand(8, 30, c.audio['num_mels']).to(device)
         linear_spec = torch.rand(8, 30, c.audio['num_freq']).to(device)
         mel_lengths = torch.randint(20, 30, (8, )).long().to(device)
@@ -35,8 +36,8 @@ class TacotronTrainTest(unittest.TestCase):
 
         criterion = L1LossMasked().to(device)
         criterion_st = nn.BCELoss().to(device)
-        model = Tacotron(32, c.embedding_size, c.audio['num_freq'], c.audio['num_mels'],
-                         c.r, c.memory_size).to(device)
+        model = Tacotron(32, c.audio['num_freq'], c.audio['num_mels'],
+                         c.r, memory_size=c.memory_size).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0
@@ -47,7 +48,7 @@ class TacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             mel_out, linear_out, align, stop_tokens = model.forward(
-                input, mel_spec)
+                input, input_lengths, mel_spec)
             assert stop_tokens.data.max() <= 1.0
             assert stop_tokens.data.min() >= 0.0
             optimizer.zero_grad()
