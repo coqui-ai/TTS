@@ -43,7 +43,7 @@ def phoneme_to_sequence(text, cleaner_names, language):
     '''
     TODO: This ignores punctuations
     '''
-    sequence = []
+    sequence = [_phonemes_to_id['^']]
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text, language)
 #     print(phonemes.replace('|', ''))
@@ -81,7 +81,7 @@ def text_to_sequence(text, cleaner_names):
         List of integers corresponding to the symbols in the text
     '''
     sequence = []
-
+    sequence = [_phonemes_to_id['^']]
     # Check for curly braces and treat their contents as ARPAbet:
     while len(text):
         m = _curly_re.match(text)
