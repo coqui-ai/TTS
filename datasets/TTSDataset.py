@@ -89,7 +89,8 @@ class MyDataset(Dataset):
 
     def load_phoneme_sequence(self, wav_file, text):
         file_name = os.path.basename(wav_file).split('.')[0]
-        tmp_path = os.path.join(self.phoneme_cache_path, file_name+'_phoneme.npy')
+        tmp_path = os.path.join(self.phoneme_cache_path,
+                                file_name + '_phoneme.npy')
         if os.path.isfile(tmp_path):
             try:
                 text = np.load(tmp_path)
@@ -102,7 +103,9 @@ class MyDataset(Dataset):
                 np.save(tmp_path, text)
         else:
             text = np.asarray(
-                phoneme_to_sequence(text, [self.cleaners], language=self.phoneme_language), dtype=np.int32)
+                phoneme_to_sequence(
+                    text, [self.cleaners], language=self.phoneme_language),
+                dtype=np.int32)
             np.save(tmp_path, text)
         return text
 
@@ -112,7 +115,7 @@ class MyDataset(Dataset):
             mel_name = self.items[idx][2]
             linear_name = self.items[idx][3]
             text = self.items[idx][0]
-            
+
             if wav_name.split('.')[-1] == 'npy':
                 wav = self.load_np(wav_name)
             else:
@@ -124,13 +127,19 @@ class MyDataset(Dataset):
             wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
             mel = None
             linear = None
-        
+
         if self.use_phonemes:
             text = self.load_phoneme_sequence(wav_file, text)
-        else: 
+        else:
             text = np.asarray(
                 text_to_sequence(text, [self.cleaners]), dtype=np.int32)
-        sample = {'text': text, 'wav': wav, 'item_idx': self.items[idx][1], 'mel':mel, 'linear': linear}
+        sample = {
+            'text': text,
+            'wav': wav,
+            'item_idx': self.items[idx][1],
+            'mel': mel,
+            'linear': linear
+        }
         return sample
 
     def sort_items(self):
@@ -151,9 +160,9 @@ class MyDataset(Dataset):
             for i in range(len(new_items) // self.batch_group_size):
                 offset = i * self.batch_group_size
                 end_offset = offset + self.batch_group_size
-                temp_items = new_items[offset : end_offset]
+                temp_items = new_items[offset:end_offset]
                 random.shuffle(temp_items)
-                new_items[offset : end_offset] = temp_items
+                new_items[offset:end_offset] = temp_items
         self.items = new_items
 
         if self.verbose:
@@ -181,19 +190,25 @@ class MyDataset(Dataset):
 
         # Puts each data field into a tensor with outer dimension batch size
         if isinstance(batch[0], collections.Mapping):
-            keys = list()
 
-            wav = [d['wav'] for d in batch]
-            item_idxs = [d['item_idx'] for d in batch]
-            text = [d['text'] for d in batch]
+            text_lenghts = np.array([len(d["text"]) for d in batch])
+            text_lenghts, ids_sorted_decreasing = torch.sort(
+                torch.LongTensor(text_lenghts), dim=0, descending=True)
 
-            text_lenghts = np.array([len(x) for x in text])
-            max_text_len = np.max(text_lenghts)
+            wav = [batch[idx]['wav'] for idx in ids_sorted_decreasing]
+            item_idxs = [
+                batch[idx]['item_idx'] for idx in ids_sorted_decreasing
+            ]
+            text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
 
             # if specs are not computed, compute them.
             if batch[0]['mel'] is None and batch[0]['linear'] is None:
-                mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
-                linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
+                mel = [
+                    self.ap.melspectrogram(w).astype('float32') for w in wav
+                ]
+                linear = [
+                    self.ap.spectrogram(w).astype('float32') for w in wav
+                ]
             else:
                 mel = [d['mel'] for d in batch]
                 linear = [d['linear'] for d in batch]
