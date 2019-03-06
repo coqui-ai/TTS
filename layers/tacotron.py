@@ -376,12 +376,12 @@ class Decoder(nn.Module):
         self.attention = inputs.data.new(B, T).zero_()
         self.attention_cum = inputs.data.new(B, T).zero_()
 
-    def _parse_outputs(self, outputs, stop_tokens, attentions):
+    def _parse_outputs(self, outputs, attentions, stop_tokens):
         # Back to batch first
         attentions = torch.stack(attentions).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
-        stop_tokens = torch.stack(stop_tokens).transpose(0, 1)
-        return outputs, stop_tokens, attentions
+        stop_tokens = torch.stack(stop_tokens).transpose(0, 1).squeeze(-1)
+        return outputs, attentions, stop_tokens
 
     def decode(self,
                inputs,
