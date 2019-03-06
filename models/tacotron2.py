@@ -28,7 +28,7 @@ class Tacotron2(nn.Module):
 
     def forward(self, text, text_lengths, mel_specs=None):
         # compute mask for padding
-        mask = sequence_mask(text_lengths).to(characters.device)
+        mask = sequence_mask(text_lengths).to(text.device)
         embedded_inputs = self.embedding(text).transpose(1, 2)
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
         mel_outputs, stop_tokens, alignments = self.decoder(

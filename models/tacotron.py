@@ -28,7 +28,7 @@ class Tacotron(nn.Module):
             nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),
             nn.Sigmoid())
 
-    def forward(self, characters, text_lengths, mel_specs=None):
+    def forward(self, characters, text_lengths, mel_specs):
         B = characters.size(0)
         mask = sequence_mask(text_lengths).to(characters.device)
         inputs = self.embedding(characters)
