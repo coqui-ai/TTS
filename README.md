@@ -140,8 +140,8 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - [x] Generate human-like speech on LJSpeech dataset.
 - [x] Generate human-like speech on a different dataset (Nancy) (TWEB).
 - [x] Train TTS with r=1 successfully.
-- [ ] Enable process based distributed training. Similar [to] (https://github.com/fastai/imagenet-fast/).
-- [ ] Adapting Neural Vocoder. The most active work is [here] (https://github.com/erogol/WaveRNN)
+- [x] Enable process based distributed training. Similar to (https://github.com/fastai/imagenet-fast/).
+- [x] Adapting Neural Vocoder. The most active work is (https://github.com/erogol/WaveRNN)
 - [ ] Multi-speaker embedding.
 
 ## References
