@@ -425,7 +425,7 @@ def main(args):
         print(
             " > Model restored from step %d" % checkpoint['step'], flush=True)
         start_epoch = checkpoint['epoch']
-        best_loss = checkpoint['postnet_loss']
+        # best_loss = checkpoint['postnet_loss']
         args.restore_step = checkpoint['step']
     else:
         args.restore_step = 0
