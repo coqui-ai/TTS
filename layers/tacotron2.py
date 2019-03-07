@@ -355,7 +355,7 @@ class Decoder(nn.Module):
             alignments += [alignment]
 
             stop_flags[0] = stop_flags[0] or gate_output > 0.5
-            stop_flags[1] = stop_flags[1] or alignment[0, -3:].sum() > 0.5
+            stop_flags[1] = stop_flags[1] or alignment[0, -2:].sum() > 0.5
             if all(stop_flags):
                 break
             elif len(outputs) == self.max_decoder_steps:
