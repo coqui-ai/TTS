@@ -1,6 +1,6 @@
 {
-    "run_name": "queue",
-    "run_description": "Queue memory and change lower r incrementatlly",
+    "run_name": "bos",
+    "run_description": "bos character added to get away with the first char miss",
 
     "audio":{
         // Audio processing parameters
@@ -29,7 +29,7 @@
         "url": "tcp:\/\/localhost:54321"
     },
 
-    "model": "Tacotron",    // one of the model in models/. For now "Tacotron" or "Tacotron2" are available models.  
+    "model": "Tacotron2",   // one of the model in models/    
     "grad_clip": 0.02,      // upper limit for gradients for clipping.
     "epochs": 1000,         // total number of epochs to train.
     "lr": 0.0001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
@@ -37,12 +37,11 @@
     "warmup_steps": 4000,   // Noam decay steps to increase the learning rate from 0 to "lr"
     "windowing": false,      // Enables attention windowing. Used only in eval mode.
     "memory_size": 5,       // TO BE IMPLEMENTED -- memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
-    "batch_group_size": 3,
 
     "batch_size": 16,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
     "r": 1,                 // Number of frames to predict for step.
-    "wd": 0.000005,         // Weight decay weight.
+    "wd": 0.000002,         // Weight decay weight.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
     "save_step": 1000,      // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 10,       // Number of steps to log traning on console.

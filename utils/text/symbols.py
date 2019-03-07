@@ -9,6 +9,7 @@ from utils.text import cmudict
 
 _pad = '_'
 _eos = '~'
+_bos = '^'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _punctuations = '!\'(),-.:;? '
 _phoneme_punctuations = '.!;:,?'
@@ -24,8 +25,8 @@ _phonemes = sorted(list(set(_phonemes)))
 _arpabet = ['@' + s for s in _phonemes]
 
 # Export all symbols:
-symbols = [_pad, _eos] + list(_characters) + _arpabet
-phonemes = [_pad, _eos] + list(_phonemes) + list(_punctuations)
+symbols = [_pad, _eos, _bos] + list(_characters) + _arpabet
+phonemes = [_pad, _eos, _bos] + list(_phonemes) + list(_punctuations)
 
 if __name__ == '__main__':
     print(" > TTS symbols ")
