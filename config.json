@@ -29,7 +29,7 @@
         "url": "tcp:\/\/localhost:54321"
     },
 
-    "model": "Tacotron",   // one of the model in models/    
+    "model": "Tacotron",    // one of the model in models/. For now "Tacotron" or "Tacotron2" are available models.  
     "grad_clip": 0.02,      // upper limit for gradients for clipping.
     "epochs": 1000,         // total number of epochs to train.
     "lr": 0.0001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
