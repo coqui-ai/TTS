@@ -3,9 +3,9 @@
 
 This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality. To begin with, you can hear a sample generated voice from [here](https://soundcloud.com/user-565970875/commonvoice-loc-sens-attn).
 
-The model architecture is highly inspired by Tacotron: [A Fully End-to-End Text-To-Speech Synthesis Model](https://arxiv.org/abs/1703.10135). However, it has many important updates that make training faster and computationally very efficient. Feel free to experiment with new ideas and propose changes.
+TTS includes two different model implementations which are based on [Tacotron](https://arxiv.org/abs/1703.10135) and [Tacotron2](https://arxiv.org/abs/1712.05884). Tacotron is smaller, efficient and easier to train but Tacotron2 provides better results, especially when it is combined with a Neural vocoder. Therefore, choose depending on your project requirements.
 
-You can find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief note about TTS architectures and their comparisons.
+If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief post about TTS architectures and their comparisons.
 
 ## Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
@@ -90,7 +90,7 @@ head -n 12000 metadata_shuf.csv > metadata_train.csv
 tail -n 1100 metadata_shuf.csv > metadata_val.csv
 ```
 
-To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below.
+To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below. You also set the model architecture in  ```config.json```.
 
 ```train.py --config_path config.json```
 
