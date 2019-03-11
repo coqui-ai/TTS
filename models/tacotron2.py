@@ -49,3 +49,17 @@ class Tacotron2(nn.Module):
         mel_outputs, mel_outputs_postnet, alignments = self.shape_outputs(
             mel_outputs, mel_outputs_postnet, alignments)
         return mel_outputs, mel_outputs_postnet, alignments, stop_tokens
+
+
+    def inference_truncated(self, text):
+        """
+        Preserve model states for continuous inference
+        """
+        embedded_inputs = self.embedding(text).transpose(1, 2)
+        encoder_outputs = self.encoder.inference_truncated(embedded_inputs)
+        mel_outputs, stop_tokens, alignments = self.decoder.inference_truncated(encoder_outputs)
+        mel_outputs_postnet = self.postnet(mel_outputs)
+        mel_outputs_postnet = mel_outputs + mel_outputs_postnet
+        mel_outputs, mel_outputs_postnet, alignments = self.shape_outputs(
+            mel_outputs, mel_outputs_postnet, alignments)
+        return mel_outputs, mel_outputs_postnet, alignments, stop_tokens

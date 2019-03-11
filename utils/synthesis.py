@@ -8,19 +8,35 @@ from .visual import visualize
 from matplotlib import pylab as plt
 
 
-def synthesis(m, s, CONFIG, use_cuda, ap):
+def synthesis(model, text, CONFIG, use_cuda, ap, truncated=False):
+    """Synthesize voice for the given text.
+
+        Args:
+            model (TTS.models): model to synthesize.
+            text (str): target text
+            CONFIG (dict): config dictionary to be loaded from config.json.
+            use_cuda (bool): enable cuda.
+            ap (TTS.utils.audio.AudioProcessor): audio processor to process
+                model outputs.
+            truncated (bool): keep model states after inference. It can be used
+                for continuous inference at long texts.
+    """
     text_cleaner = [CONFIG.text_cleaner]
     if CONFIG.use_phonemes:
         seq = np.asarray(
-            phoneme_to_sequence(s, text_cleaner, CONFIG.phoneme_language),
+            phoneme_to_sequence(text, text_cleaner, CONFIG.phoneme_language),
             dtype=np.int32)
     else:
-        seq = np.asarray(text_to_sequence(s, text_cleaner), dtype=np.int32)
+        seq = np.asarray(text_to_sequence(text, text_cleaner), dtype=np.int32)
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
         chars_var = chars_var.cuda()
-    decoder_output, postnet_output, alignments, stop_tokens = m.inference(
-        chars_var.long())
+    if truncated:
+        decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
+            chars_var.long())
+    else:
+        decoder_output, postnet_output, alignments, stop_tokens = model.inference(
+            chars_var.long())
     postnet_output = postnet_output[0].data.cpu().numpy()
     decoder_output = decoder_output[0].data.cpu().numpy()
     alignment = alignments[0].cpu().data.numpy()
