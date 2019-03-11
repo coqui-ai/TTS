@@ -44,9 +44,11 @@ class LinearBN(nn.Module):
 
     def forward(self, x):
         out = self.linear_layer(x)
-        out = out.transpose(0, 1).transpose(1, 2)
+        if len(out.shape)==3:
+            out = out.permute(1, 2, 0)
         out = self.bn(out)
-        out = out.transpose(1, 2).transpose(0, 1)
+        if len(out.shape) == 3:
+            out = out.permute(2, 0, 1)
         return out
 
 
