@@ -202,6 +202,7 @@ class Encoder(nn.Module):
             num_layers=1,
             batch_first=True,
             bidirectional=True)
+        self.rnn_state = None
 
     def forward(self, x, input_lengths):
         x = self.convolutions(x)
@@ -222,6 +223,16 @@ class Encoder(nn.Module):
         x = x.transpose(1, 2)
         self.lstm.flatten_parameters()
         outputs, _ = self.lstm(x)
+        return outputs
+
+    def inference_truncated(self, x):
+        """
+        Preserve encoder state for continuous inference
+        """
+        x = self.convolutions(x)
+        x = x.transpose(1, 2)
+        self.lstm.flatten_parameters()
+        outputs, self.rnn_state = self.lstm(x, self.rnn_state)
         return outputs
 
 # adapted from https://github.com/NVIDIA/tacotron2/
@@ -264,31 +275,34 @@ class Decoder(nn.Module):
         self.attention_rnn_init = nn.Embedding(1, self.attention_rnn_dim)
         self.go_frame_init = nn.Embedding(1, self.mel_channels * r)
         self.decoder_rnn_inits = nn.Embedding(1, self.decoder_rnn_dim)
+        self.memory_truncated = None
 
     def get_go_frame(self, inputs):
         B = inputs.size(0)
         memory = self.go_frame_init(inputs.data.new_zeros(B).long())
         return memory
 
-    def _init_states(self, inputs, mask):
+    def _init_states(self, inputs, mask, keep_states=False):
         B = inputs.size(0)
         T = inputs.size(1)
 
-        self.attention_hidden = self.attention_rnn_init(
-            inputs.data.new_zeros(B).long())
-        self.attention_cell = Variable(
-            inputs.data.new(B, self.attention_rnn_dim).zero_())
+        if not keep_states:
+            self.attention_hidden = self.attention_rnn_init(
+                inputs.data.new_zeros(B).long())
+            self.attention_cell = Variable(
+                inputs.data.new(B, self.attention_rnn_dim).zero_())
 
-        self.decoder_hidden = self.decoder_rnn_inits(
-            inputs.data.new_zeros(B).long())
-        self.decoder_cell = Variable(
-            inputs.data.new(B, self.decoder_rnn_dim).zero_())
+            self.decoder_hidden = self.decoder_rnn_inits(
+                inputs.data.new_zeros(B).long())
+            self.decoder_cell = Variable(
+                inputs.data.new(B, self.decoder_rnn_dim).zero_())
+            
+            self.context = Variable(
+            inputs.data.new(B, self.encoder_embedding_dim).zero_())
 
         self.attention_weights = Variable(inputs.data.new(B, T).zero_())
         self.attention_weights_cum = Variable(inputs.data.new(B, T).zero_())
-        self.context = Variable(
-            inputs.data.new(B, self.encoder_embedding_dim).zero_())
-
+        
         self.inputs = inputs
         self.processed_inputs = self.attention_layer.inputs_layer(inputs)
         self.mask = mask
@@ -398,6 +412,44 @@ class Decoder(nn.Module):
             outputs, stop_tokens, alignments)
 
         return outputs, stop_tokens, alignments
+
+    def inference_truncated(self, inputs):
+        """
+        Preserve decoder states for continuous inference
+        """
+        if self.memory_truncated is None:
+            self.memory_truncated = self.get_go_frame(inputs)
+            self._init_states(inputs, mask=None, keep_states=False)
+        else:
+            self._init_states(inputs, mask=None, keep_states=True)
+
+        self.attention_layer.init_win_idx()
+        outputs, gate_outputs, alignments, t = [], [], [], 0
+        stop_flags = [False, False]
+        while True:
+            memory = self.prenet(self.memory_truncated)
+            mel_output, gate_output, alignment = self.decode(memory)
+            gate_output = torch.sigmoid(gate_output.data)
+            outputs += [mel_output.squeeze(1)]
+            gate_outputs += [gate_output]
+            alignments += [alignment]
+
+            stop_flags[0] = stop_flags[0] or gate_output > 0.5
+            stop_flags[1] = stop_flags[1] or alignment[0, -2:].sum() > 0.5
+            if all(stop_flags):
+                break
+            elif len(outputs) == self.max_decoder_steps:
+                print("   | > Decoder stopped with 'max_decoder_steps")
+                break
+
+            self.memory_truncated = mel_output
+            t += 1
+
+        outputs, gate_outputs, alignments = self._parse_outputs(
+            outputs, gate_outputs, alignments)
+
+        return outputs, gate_outputs, alignments
+
 
     def inference_step(self, inputs, t, memory=None):
         """
