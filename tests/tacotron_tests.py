@@ -22,6 +22,7 @@ class TacotronTrainTest(unittest.TestCase):
     def test_train_step(self):
         input = torch.randint(0, 24, (8, 128)).long().to(device)
         input_lengths = torch.randint(100, 129, (8, )).long().to(device)
+        input_lengths[-1] = 128
         mel_spec = torch.rand(8, 30, c.audio['num_mels']).to(device)
         linear_spec = torch.rand(8, 30, c.audio['num_freq']).to(device)
         mel_lengths = torch.randint(20, 30, (8, )).long().to(device)
