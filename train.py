@@ -81,7 +81,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
     avg_stop_loss = 0
     avg_step_time = 0
     print("\n > Epoch {}/{}".format(epoch, c.epochs), flush=True)
-    batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
+    batch_n_iter = int(len(data_loader.dataset) / (c.batch_size * num_gpus))
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -249,8 +249,6 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
         "I'm sorry Dave. I'm afraid I can't do that.",
         "This cake is great. It's so delicious and moist."
     ]
-    n_priority_freq = int(
-        3000 / (c.audio['sample_rate'] * 0.5) * c.audio['num_freq'])
     with torch.no_grad():
         if data_loader is not None:
             for num_iter, data in enumerate(data_loader):
