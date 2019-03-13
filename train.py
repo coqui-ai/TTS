@@ -407,7 +407,7 @@ def main(args):
         checkpoint = torch.load(args.restore_path)
         try:
             model.load_state_dict(checkpoint['model'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            # optimizer.load_state_dict(checkpoint['optimizer'])
         except:
             print(" > Partial model initialization.")
             partial_init_flag = True
