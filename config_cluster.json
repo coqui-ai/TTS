@@ -46,7 +46,7 @@
     "save_step": 1000,      // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 10,       // Number of steps to log traning on console.
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
-    "batch_group_size": 8,  //Number of batches to shuffle after bucketing.
+    "batch_group_size": 4,  //Number of batches to shuffle after bucketing.
 
     "run_eval": true,
     "test_delay_epochs": 100,  //Until attention is aligned, testing only wastes computation time.
