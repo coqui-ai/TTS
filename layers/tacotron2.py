@@ -118,7 +118,7 @@ class Attention(nn.Module):
             attention_rnn_dim, attention_dim, bias=False, init_gain='tanh')
         self.inputs_layer = Linear(
             embedding_dim, attention_dim, bias=False, init_gain='tanh')
-        self.v = Linear(attention_dim, 1, bias=False)
+        self.v = Linear(attention_dim, 1, bias=True)
         self.location_layer = LocationLayer(attention_location_n_filters,
                                             attention_location_kernel_size,
                                             attention_dim)
