@@ -1,6 +1,6 @@
 {
     "run_name": "nancy-bn",
-    "run_description": "Nancy tacotron2 from scratch BN",
+    "run_description": "Finetune 4378. No ending character ^.",
 
     "audio":{
         // Audio processing parameters
