@@ -31,6 +31,7 @@ def synthesis(model, text, CONFIG, use_cuda, ap, truncated=False):
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
         chars_var = chars_var.cuda()
+    # chars_var = chars_var[:-1]
     if truncated:
         decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
             chars_var.long())

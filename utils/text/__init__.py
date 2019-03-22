@@ -44,8 +44,7 @@ def phoneme_to_sequence(text, cleaner_names, language):
     '''
     TODO: This ignores punctuations
     '''
-    # sequence = [_phonemes_to_id['^']]
-    sequence = []
+    sequence = [_phonemes_to_id['^']]
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text, language)
 #     print(phonemes.replace('|', ''))
@@ -54,7 +53,7 @@ def phoneme_to_sequence(text, cleaner_names, language):
     for phoneme in phonemes.split('|'):
         sequence += _phoneme_to_sequence(phoneme)
     # Append EOS char
-    sequence.append(_phonemes_to_id['~'])
+    # sequence.append(_phonemes_to_id['~'])
     return sequence
 
 
@@ -82,7 +81,7 @@ def text_to_sequence(text, cleaner_names):
         List of integers corresponding to the symbols in the text
     '''
     sequence = []
-    # sequence = [_phonemes_to_id['^']]
+    sequence = [_phonemes_to_id['^']]
     # Check for curly braces and treat their contents as ARPAbet:
     while len(text):
         m = _curly_re.match(text)
@@ -95,7 +94,7 @@ def text_to_sequence(text, cleaner_names):
         text = m.group(3)
 
     # Append EOS token
-    sequence.append(_symbol_to_id['~'])
+    # sequence.append(_symbol_to_id['~'])
     return sequence
 
 
