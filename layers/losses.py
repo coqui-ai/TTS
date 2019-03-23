@@ -23,6 +23,7 @@ class L1LossMasked(nn.Module):
             loss: An average loss value masked by the length.
         """
         # mask: (batch, max_len, 1)
+        target.requires_grad = False
         mask = sequence_mask(
             sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
         mask = mask.expand_as(input)
@@ -51,6 +52,7 @@ class MSELossMasked(nn.Module):
             loss: An average loss value masked by the length.
         """
         # mask: (batch, max_len, 1)
+        target.requires_grad = False
         mask = sequence_mask(
             sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
         mask = mask.expand_as(input)
