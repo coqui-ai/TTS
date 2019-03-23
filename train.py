@@ -22,7 +22,8 @@ from utils.generic_utils import (NoamLR, check_update, count_parameters,
                                  create_experiment_folder, get_commit_hash,
                                  load_config, lr_decay,
                                  remove_experiment_folder, save_best_model,
-                                 save_checkpoint, sequence_mask, weight_decay)
+                                 save_checkpoint, sequence_mask, weight_decay,
+                                 set_init_dict)
 from utils.logger import Logger
 from utils.synthesis import synthesis
 from utils.text.symbols import phonemes, symbols
@@ -396,24 +397,9 @@ def main(args):
             print(" > Partial model initialization.")
             partial_init_flag = True
             model_dict = model.state_dict()
-            # Partial initialization: if there is a mismatch with new and old layer, it is skipped.
-            # 1. filter out unnecessary keys
-            pretrained_dict = {
-                k: v
-                for k, v in checkpoint['model'].items() if k in model_dict
-            }
-            # 2. filter out different size layers
-            pretrained_dict = {
-                k: v
-                for k, v in pretrained_dict.items()
-                if v.numel() == model_dict[k].numel()
-            }
-            # 3. overwrite entries in the existing state dict
-            model_dict.update(pretrained_dict)
-            # 4. load the new state dict
+            model_dict = set_init_dict(model_dict, checkpoint, c)
             model.load_state_dict(model_dict)
-            print(" | > {} / {} layers are initialized".format(
-                len(pretrained_dict), len(model_dict)))
+            del model_dict
         if use_cuda:
             model = model.cuda()
             criterion.cuda()
