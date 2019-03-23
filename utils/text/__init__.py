@@ -17,7 +17,7 @@ _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 # Regular expression matchinf punctuations, ignoring empty space
-pat = r'['+_phoneme_punctuations[:-1]+']+'
+pat = r'['+_phoneme_punctuations+']+'
 
 
 def text2phone(text, language):
