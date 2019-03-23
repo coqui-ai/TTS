@@ -195,3 +195,30 @@ def sequence_mask(sequence_length, max_len=None):
                          .expand_as(seq_range_expand))
     # B x T_max
     return seq_range_expand < seq_length_expand
+
+
+def set_init_dict(model_dict, checkpoint, c):
+    # Partial initialization: if there is a mismatch with new and old layer, it is skipped.
+    # 1. filter out unnecessary keys
+    pretrained_dict = {
+        k: v
+        for k, v in checkpoint['model'].items() if k in model_dict
+    }
+    # 2. filter out different size layers
+    pretrained_dict = {
+        k: v
+        for k, v in pretrained_dict.items()
+        if v.numel() == model_dict[k].numel()
+    }
+    # 3. skip reinit layers
+    if c.reinit_layers is not None:
+        for reinit_layer_name in c.reinit_layers:
+            pretrained_dict = {
+                k: v
+                for k, v in pretrained_dict.items()
+                if reinit_layer_name not in k
+            }
+    # 4. overwrite entries in the existing state dict
+    model_dict.update(pretrained_dict)
+    print(" | > {} / {} layers are initialized".format(len(pretrained_dict), len(model_dict)))
+    return model_dict
