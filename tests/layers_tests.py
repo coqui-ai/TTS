@@ -48,8 +48,6 @@ class DecoderTests(unittest.TestCase):
         assert output.shape[1] == 1, "size not {}".format(output.shape[1])
         assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
         assert stop_tokens.shape[0] == 4
-        assert stop_tokens.max() <= 1.0
-        assert stop_tokens.min() >= 0
 
 
 class EncoderTests(unittest.TestCase):
