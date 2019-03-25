@@ -100,7 +100,7 @@ class LocationSensitiveAttention(nn.Module):
 
 
 class AttentionRNNCell(nn.Module):
-    def __init__(self, out_dim, rnn_dim, annot_dim, memory_dim, align_model, windowing=False):
+    def __init__(self, out_dim, rnn_dim, annot_dim, memory_dim, align_model, windowing=False, norm="sigmoid"):
         r"""
         General Attention RNN wrapper
 
@@ -112,6 +112,7 @@ class AttentionRNNCell(nn.Module):
             align_model (str): 'b' for Bahdanau, 'ls' Location Sensitive alignment.
             windowing (bool): attention windowing forcing monotonic attention.
                 It is only active in eval mode.
+            norm (str): norm method to compute alignment weights.
         """
         super(AttentionRNNCell, self).__init__()
         self.align_model = align_model
@@ -121,7 +122,7 @@ class AttentionRNNCell(nn.Module):
             self.win_back = 3
             self.win_front = 6
             self.win_idx = None
-        # pick bahdanau or location sensitive attention
+        self.norm = norm
         if align_model == 'b':
             self.alignment_model = BahdanauAttention(annot_dim, rnn_dim,
                                                      out_dim)
@@ -164,7 +165,12 @@ class AttentionRNNCell(nn.Module):
                 alignment[:, front_win:] = -float("inf")
             # Update the window
             self.win_idx = torch.argmax(alignment,1).long()[0].item()
-        alignment = torch.sigmoid(alignment) / torch.sigmoid(alignment).sum(dim=1).unsqueeze(1)
+        if self.norm == "softmax":
+            alignment = torch.softmax(alignment, dim=-1)
+        elif self.norm == "sigmoid":
+            alignment = torch.sigmoid(alignment) / torch.sigmoid(alignment).sum(dim=1).unsqueeze(1)
+        else:
+            raise RuntimeError("Unknown value for attention norm type")
         context = torch.bmm(alignment.unsqueeze(1), annots)
         context = context.squeeze(1)
         return rnn_output, context, alignment
