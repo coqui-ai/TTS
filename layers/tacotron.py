@@ -302,7 +302,7 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, in_features, memory_dim, r, memory_size,
-                 attn_windowing):
+                 attn_windowing, attn_norm):
         super(Decoder, self).__init__()
         self.r = r
         self.in_features = in_features
@@ -319,7 +319,8 @@ class Decoder(nn.Module):
             annot_dim=in_features,
             memory_dim=128,
             align_model='ls',
-            windowing=attn_windowing)
+            windowing=attn_windowing,
+            norm=attn_norm)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state

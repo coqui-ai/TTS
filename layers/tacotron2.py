@@ -112,7 +112,7 @@ class LocationLayer(nn.Module):
 class Attention(nn.Module):
     def __init__(self, attention_rnn_dim, embedding_dim, attention_dim,
                  attention_location_n_filters, attention_location_kernel_size,
-                 windowing):
+                 windowing, norm):
         super(Attention, self).__init__()
         self.query_layer = Linear(
             attention_rnn_dim, attention_dim, bias=False, init_gain='tanh')
@@ -128,6 +128,7 @@ class Attention(nn.Module):
             self.win_back = 1
             self.win_front = 3
             self.win_idx = None
+        self.norm = norm
 
     def init_win_idx(self):
         self.win_idx = -1
@@ -163,8 +164,13 @@ class Attention(nn.Module):
                 attention[:, 0] = attention.max()
             # Update the window
             self.win_idx = torch.argmax(attention, 1).long()[0].item()
-        alignment = torch.sigmoid(attention) / torch.sigmoid(
-            attention).sum(dim=1).unsqueeze(1)
+        if self.norm == "softmax":
+            alignment = torch.softmax(attention, dim=-1)
+        elif self.norm == "sigmoid":
+            alignment = torch.sigmoid(attention) / torch.sigmoid(
+                    attention).sum(dim=1).unsqueeze(1)
+        else:
+            raise RuntimeError("Unknown value for attention norm type")
         context = torch.bmm(alignment.unsqueeze(1), inputs)
         context = context.squeeze(1)
         return context, alignment
@@ -237,7 +243,7 @@ class Encoder(nn.Module):
 
 # adapted from https://github.com/NVIDIA/tacotron2/
 class Decoder(nn.Module):
-    def __init__(self, in_features, inputs_dim, r, attn_win):
+    def __init__(self, in_features, inputs_dim, r, attn_win, attn_norm):
         super(Decoder, self).__init__()
         self.mel_channels = inputs_dim
         self.r = r
@@ -257,7 +263,7 @@ class Decoder(nn.Module):
                                          self.attention_rnn_dim)
 
         self.attention_layer = Attention(self.attention_rnn_dim, in_features,
-                                         128, 32, 31, attn_win)
+                                         128, 32, 31, attn_win, attn_norm)
 
         self.decoder_rnn = nn.LSTMCell(self.attention_rnn_dim + in_features,
                                        self.decoder_rnn_dim, 1)
