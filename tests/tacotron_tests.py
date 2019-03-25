@@ -33,10 +33,10 @@ class TacotronTrainTest(unittest.TestCase):
 
         stop_targets = stop_targets.view(input.shape[0],
                                          stop_targets.size(1) // c.r, -1)
-        stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float()
+        stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
 
         criterion = L1LossMasked().to(device)
-        criterion_st = nn.BCELoss().to(device)
+        criterion_st = nn.BCEWithLogitsLoss().to(device)
         model = Tacotron(32, c.audio['num_freq'], c.audio['num_mels'],
                          c.r, memory_size=c.memory_size).to(device)
         model.train()
@@ -50,8 +50,6 @@ class TacotronTrainTest(unittest.TestCase):
         for i in range(5):
             mel_out, linear_out, align, stop_tokens = model.forward(
                 input, input_lengths, mel_spec)
-            assert stop_tokens.data.max() <= 1.0
-            assert stop_tokens.data.min() >= 0.0
             optimizer.zero_grad()
             loss = criterion(mel_out, mel_spec, mel_lengths)
             stop_loss = criterion_st(stop_tokens, stop_targets)
