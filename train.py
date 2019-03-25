@@ -375,7 +375,7 @@ def main(args):
         init_distributed(args.rank, num_gpus, args.group_id,
                          c.distributed["backend"], c.distributed["url"])
     num_chars = len(phonemes) if c.use_phonemes else len(symbols)
-    model = MyModel(num_chars=num_chars, r=c.r, attention_norm=c.attention_norm)
+    model = MyModel(num_chars=num_chars, r=c.r, attn_norm=c.attention_norm)
 
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 

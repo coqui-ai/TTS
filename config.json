@@ -39,6 +39,7 @@
     "warmup_steps": 4000,   // Noam decay steps to increase the learning rate from 0 to "lr"
     "windowing": false,      // Enables attention windowing. Used only in eval mode.
     "memory_size": 5,       // TO BE IMPLEMENTED -- memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
+    "attention_norm": "softmax",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
 
     "batch_size": 16,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
