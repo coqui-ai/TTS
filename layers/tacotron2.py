@@ -125,8 +125,8 @@ class Attention(nn.Module):
         self._mask_value = -float("inf")
         self.windowing = windowing
         if self.windowing:
-            self.win_back = 1
-            self.win_front = 3
+            self.win_back = 3
+            self.win_front = 6
             self.win_idx = None
         self.norm = norm
 

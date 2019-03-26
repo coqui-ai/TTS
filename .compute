@@ -3,5 +3,5 @@ ls ${SHARED_DIR}/data/
 pip3 install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
 yes | apt-get install espeak 
 python3 setup.py develop
-python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/Blizzard/Nancy/  --restore_path ${USER_DIR}/checkpoint_187000_4378.pth.tar
+python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/Blizzard/Nancy/  --restore_path ${USER_DIR}/checkpoint_266000_4400.pth.tar
 # python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/Blizzard/Nancy/

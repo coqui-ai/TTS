@@ -29,7 +29,7 @@
         "url": "tcp:\/\/localhost:54321"
     },
 
-    "reinit_layers": ["model.decoder.attention_layer"],
+    "reinit_layers": [],
 
     "model": "Tacotron2",   // one of the model in models/    
     "grad_clip": 1,      // upper limit for gradients for clipping.

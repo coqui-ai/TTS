@@ -37,7 +37,7 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
         num_plot = 3
 
     label_fontsize = 16
-    plt.figure(figsize=(16, 48))
+    plt.figure(figsize=(8, 24))
 
     plt.subplot(num_plot, 1, 1)
     plt.imshow(alignment.T, aspect="auto", origin="lower", interpolation=None)
