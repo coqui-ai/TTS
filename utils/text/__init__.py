@@ -28,7 +28,7 @@ def text2phone(text, language):
     #try:
     punctuations = re.findall(pat, text)
     ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
-    ph = ph[:-2] # skip the last empty character
+    ph = ph[:-1] # skip the last empty character
     # Replace \n with matching punctuations.
     if len(punctuations) > 0:
         for punct in punctuations[:-1]:
@@ -47,10 +47,10 @@ def phoneme_to_sequence(text, cleaner_names, language):
     sequence = [_phonemes_to_id['^']]
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text, language)
-#     print(phonemes.replace('|', ''))
     if phonemes is None:
         print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
-    for phoneme in phonemes.split('|'):
+    # iterate by skipping empty strings
+    for phoneme in filter(None, phonemes.split('|')):
         sequence += _phoneme_to_sequence(phoneme)
     # Append EOS char
     # sequence.append(_phonemes_to_id['~'])
