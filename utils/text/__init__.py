@@ -49,7 +49,7 @@ def phoneme_to_sequence(text, cleaner_names, language):
     phonemes = text2phone(clean_text, language)
     if phonemes is None:
         print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
-    # iterate by skipping empty strings
+    # iterate by skipping empty strings - NOTE: might be useful to keep it to have a better intonation.
     for phoneme in filter(None, phonemes.split('|')):
         sequence += _phoneme_to_sequence(phoneme)
     # Append EOS char
