@@ -56,7 +56,7 @@ def lowercase(text):
 
 
 def collapse_whitespace(text):
-    return re.sub(_whitespace_re, ' ', text)
+    return re.sub(_whitespace_re, ' ', text).strip()
 
 
 def convert_to_ascii(text):

@@ -12,6 +12,42 @@ def test_phoneme_to_sequence():
     gt = "^ɹiːsənt ɹɪsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪnkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹɪspɑːnsəbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjuːleɪʃən ænd lɜːnɪŋ!"
     assert text_hat == gt
 
+    # multiple punctuations
+    text = "Be a voice, not an! echo?"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ?"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == gt
+
+    # not ending with punctuation
+    text = "Be a voice, not an! echo"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == gt
+
+    # original
+    text = "Be a voice, not an echo!"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    gt = "^biː ɐ vɔɪs, nɑːt ɐn ɛkoʊ!"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == gt
+
+    # extra space after the sentence
+    text = "Be a voice, not an! echo.  "
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ."
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == gt
+
 
 def test_text2phone():
     text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
