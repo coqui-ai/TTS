@@ -19,11 +19,11 @@ from distribute import (DistributedSampler, apply_gradient_allreduce,
 from layers.losses import L1LossMasked, MSELossMasked
 from utils.audio import AudioProcessor
 from utils.generic_utils import (NoamLR, check_update, count_parameters,
-                                 create_experiment_folder, get_commit_hash,
+                                 create_experiment_folder, get_git_branch,
                                  load_config, lr_decay,
                                  remove_experiment_folder, save_best_model,
                                  save_checkpoint, sequence_mask, weight_decay,
-                                 set_init_dict)
+                                 set_init_dict, copy_config_file)
 from utils.logger import Logger
 from utils.synthesis import synthesis
 from utils.text.symbols import phonemes, symbols
@@ -511,8 +511,11 @@ if __name__ == '__main__':
 
     if args.rank == 0:
         os.makedirs(AUDIO_PATH, exist_ok=True)
-        shutil.copyfile(args.config_path, os.path.join(OUT_PATH,
-                                                       'config.json'))
+        new_fields = {}
+        if args.restore_path:
+            new_fields["restore_path"] = args.restore_path
+        new_fields["github_branch"] = get_git_branch()
+        copy_config_file(args.config_path, os.path.join(OUT_PATH, 'config.json'), new_fields)
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 

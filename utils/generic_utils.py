@@ -31,6 +31,12 @@ def load_config(config_path):
     return config
 
 
+def get_git_branch():
+    out = subprocess.check_output(["git", "branch"]).decode("utf8")
+    current = next(line for line in out.split("\n") if line.startswith("*"))
+    return current.replace("* ", "")
+
+
 def get_commit_hash():
     """https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script"""
     # try:
@@ -71,10 +77,19 @@ def remove_experiment_folder(experiment_path):
         print(" ! Run is kept in {}".format(experiment_path))
 
 
-def copy_config_file(config_file, path):
+def copy_config_file(config_file, out_path, new_fields):
     config_name = os.path.basename(config_file)
-    out_path = os.path.join(path, config_name)
-    shutil.copyfile(config_file, out_path)
+    config_lines = open(config_file, "r").readlines()
+    # add extra information fields
+    for key, value in new_fields.items():
+        if type(value) == str:
+            new_line = '"{}":"{}",\n'.format(key, value)
+        else:
+            new_line = '"{}":{},\n'.format(key, value)
+        config_lines.insert(1, new_line)
+    config_out_file = open(out_path, "w")
+    config_out_file.writelines(config_lines)
+    config_out_file.close()
 
 
 def _trim_model_state_dict(state_dict):
