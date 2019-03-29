@@ -31,19 +31,21 @@ def text2phone(text, language):
     ph = ph[:-1] # skip the last empty character
     # Replace \n with matching punctuations.
     if len(punctuations) > 0:
-        for punct in punctuations[:-1]:
-             ph = ph.replace('| |\n', '|'+punct+'| |', 1)
-        try:
-             ph = ph[:-1] + punctuations[-1]
-        except:
-             print(text)
+        # if text ends with a punctuation.
+        if text[-1] == punctuations[-1]:
+            for punct in punctuations[:-1]:
+                ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+            try:
+                ph = ph + punctuations[-1]
+            except:
+                print(text)
+        else:
+            for punct in punctuations:
+                ph = ph.replace('| |\n', '|'+punct+'| |', 1)
     return ph
 
 
 def phoneme_to_sequence(text, cleaner_names, language):
-    '''
-    TODO: This ignores punctuations
-    '''
     sequence = [_phonemes_to_id['^']]
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text, language)
@@ -80,7 +82,7 @@ def text_to_sequence(text, cleaner_names):
       Returns:
         List of integers corresponding to the symbols in the text
     '''
-    sequence = []
+    # sequence = []
     sequence = [_phonemes_to_id['^']]
     # Check for curly braces and treat their contents as ARPAbet:
     while len(text):
