@@ -392,6 +392,8 @@ def main(args):
             # TODO: fix optimizer init, model.cuda() needs to be called before
             # optimizer restore
             # optimizer.load_state_dict(checkpoint['optimizer'])
+            if len(c.reinit_layers) > 0:
+                raise RuntimeError
             model.load_state_dict(checkpoint['model'])
         except:
             print(" > Partial model initialization.")
