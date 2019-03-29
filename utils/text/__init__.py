@@ -28,7 +28,7 @@ def text2phone(text, language):
     #try:
     punctuations = re.findall(pat, text)
     ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
-    ph = ph[:-1] # skip the last empty character
+    ph = ph[:-1].strip() # skip the last empty character
     # Replace \n with matching punctuations.
     if len(punctuations) > 0:
         # if text ends with a punctuation.
