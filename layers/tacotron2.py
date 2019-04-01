@@ -409,7 +409,7 @@ class Decoder(nn.Module):
             stop_flags[2] = t > inputs.shape[1] * 2
             if all(stop_flags):
                 stop_count += 1
-                if stop_count > 10:
+                if stop_count > 20:
                     break
             elif len(outputs) == self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")
