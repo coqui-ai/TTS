@@ -1,6 +1,6 @@
 {
     "run_name": "nancy-bn",
-    "run_description": "Finetune 4378. No ending character ^.",
+    "run_description": "Finetune 4467. No ending character ^. and no starting character",
 
     "audio":{
         // Audio processing parameters
@@ -41,7 +41,7 @@
     "memory_size": 5,       // TO BE IMPLEMENTED -- memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
     "attention_norm": "softmax",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
 
-    "batch_size": 16,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
+    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
     "r": 1,                 // Number of frames to predict for step.
     "wd": 0.000001,         // Weight decay weight.
