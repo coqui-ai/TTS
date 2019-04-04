@@ -45,5 +45,5 @@ def synthesis(model, text, CONFIG, use_cuda, ap, truncated=False):
         wav = ap.inv_spectrogram(postnet_output.T)
     else:
         wav = ap.inv_mel_spectrogram(postnet_output.T)
-    wav = wav[:ap.find_endpoint(wav)]
+    # wav = wav[:ap.find_endpoint(wav)]
     return wav, alignment, decoder_output, postnet_output, stop_tokens
