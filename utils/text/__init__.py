@@ -46,7 +46,8 @@ def text2phone(text, language):
 
 
 def phoneme_to_sequence(text, cleaner_names, language):
-    sequence = [_phonemes_to_id['^']]
+    # sequence = [_phonemes_to_id['^']]
+    sequence = []
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text, language)
     if phonemes is None:
@@ -82,8 +83,8 @@ def text_to_sequence(text, cleaner_names):
       Returns:
         List of integers corresponding to the symbols in the text
     '''
-    # sequence = []
-    sequence = [_phonemes_to_id['^']]
+    sequence = []
+    # sequence = [_phonemes_to_id['^']]
     # Check for curly braces and treat their contents as ARPAbet:
     while len(text):
         m = _curly_re.match(text)
