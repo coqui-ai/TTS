@@ -53,17 +53,27 @@ class LinearBN(nn.Module):
 
 
 class Prenet(nn.Module):
-    def __init__(self, in_features, out_features=[256, 256]):
+    def __init__(self, in_features, prenet_type, out_features=[256, 256]):
         super(Prenet, self).__init__()
+        self.prenet_type = prenet_type
         in_features = [in_features] + out_features[:-1]
-        self.layers = nn.ModuleList([
-            LinearBN(in_size, out_size, bias=False)
-            for (in_size, out_size) in zip(in_features, out_features)
-        ])
+        if prenet_type == "original":
+            self.layers = nn.ModuleList([
+                LinearBN(in_size, out_size, bias=False)
+                for (in_size, out_size) in zip(in_features, out_features)
+            ])
+        elif prenet_type == "bn":
+            self.layers = nn.ModuleList(
+                [Linear(in_size, out_size, bias=False)
+                for (in_size, out_size) in zip(in_features, out_features)
+            ])
 
     def forward(self, x):
         for linear in self.layers:
-            x = F.relu(linear(x))
+            if self.prenet_type == "original":
+                x = F.relu(linear(x))
+            elif self.prenet_type == "bn":
+                x = F.dropout(F.relu(linear(x)), p=0.5, training=self.training)
         return x
         
 
@@ -112,7 +122,7 @@ class LocationLayer(nn.Module):
 class Attention(nn.Module):
     def __init__(self, attention_rnn_dim, embedding_dim, attention_dim,
                  attention_location_n_filters, attention_location_kernel_size,
-                 windowing, norm):
+                 windowing, norm, forward_attn):
         super(Attention, self).__init__()
         self.query_layer = Linear(
             attention_rnn_dim, attention_dim, bias=False, init_gain='tanh')
@@ -126,11 +136,21 @@ class Attention(nn.Module):
         self.windowing = windowing
         self.win_idx = None
         self.norm = norm
+        self.forward_attn = forward_attn
 
     def init_win_idx(self):
         self.win_idx = -1
         self.win_back = 1
         self.win_front = 3
+    
+    def init_forward_attn_state(self, inputs):
+        """
+        Init forward attention states
+        """
+        B = inputs.shape[0]
+        T = inputs.shape[1]
+        self.alpha = torch.cat([torch.ones([B, 1]), torch.zeros([B, T])[:, :-1]], dim=1).to(inputs.device)
+        self.u = (0.5 * torch.ones([B, 1])).to(inputs.device)
 
     def get_attention(self, query, processed_inputs, attention_cat):
         processed_query = self.query_layer(query.unsqueeze(1))
@@ -170,9 +190,19 @@ class Attention(nn.Module):
                     attention).sum(dim=1).unsqueeze(1)
         else:
             raise RuntimeError("Unknown value for attention norm type")
-        context = torch.bmm(alignment.unsqueeze(1), inputs)
-        context = context.squeeze(1)
-        return context, alignment
+        if self.forward_attn:
+            # forward attention
+            prev_alpha = F.pad(self.alpha[:, :-1].clone(), (1, 0, 0, 0)).to(inputs.device)
+            self.alpha = (((1-self.u) * self.alpha.clone().to(inputs.device) + self.u * prev_alpha) + 1e-7) * alignment
+            alpha_norm = self.alpha / self.alpha.sum(dim=1).unsqueeze(1)
+            # compute context
+            context = torch.bmm(alpha_norm.unsqueeze(1), inputs)
+            context = context.squeeze(1)
+            return context, alpha_norm, alignment
+        else:
+            context = torch.bmm(alignment.unsqueeze(1), inputs)
+            context = context.squeeze(1)
+            return context, alignment, alignment
 
 
 class Postnet(nn.Module):
@@ -242,7 +272,7 @@ class Encoder(nn.Module):
 
 # adapted from https://github.com/NVIDIA/tacotron2/
 class Decoder(nn.Module):
-    def __init__(self, in_features, inputs_dim, r, attn_win, attn_norm):
+    def __init__(self, in_features, inputs_dim, r, attn_win, attn_norm, prenet_type, forward_attn):
         super(Decoder, self).__init__()
         self.mel_channels = inputs_dim
         self.r = r
@@ -255,14 +285,14 @@ class Decoder(nn.Module):
         self.p_attention_dropout = 0.1
         self.p_decoder_dropout = 0.1
 
-        self.prenet = Prenet(self.mel_channels * r,
+        self.prenet = Prenet(self.mel_channels * r, prenet_type,
                              [self.prenet_dim, self.prenet_dim])
 
         self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
                                          self.attention_rnn_dim)
 
         self.attention_layer = Attention(self.attention_rnn_dim, in_features,
-                                         128, 32, 31, attn_win, attn_norm)
+                                         128, 32, 31, attn_win, attn_norm, forward_attn)
 
         self.decoder_rnn = nn.LSTMCell(self.attention_rnn_dim + in_features,
                                        self.decoder_rnn_dim, 1)
@@ -340,11 +370,11 @@ class Decoder(nn.Module):
         attention_cat = torch.cat((self.attention_weights.unsqueeze(1),
                                    self.attention_weights_cum.unsqueeze(1)),
                                   dim=1)
-        self.context, self.attention_weights = self.attention_layer(
+        self.context, self.attention_weights, alignments = self.attention_layer(
             self.attention_hidden, self.inputs, self.processed_inputs,
             attention_cat, self.mask)
 
-        self.attention_weights_cum += self.attention_weights
+        self.attention_weights_cum += alignments
         memory = torch.cat(
             (self.attention_hidden, self.context), -1)
         self.decoder_hidden, self.decoder_cell = self.decoder_rnn(
@@ -372,6 +402,8 @@ class Decoder(nn.Module):
         memories = self.prenet(memories)
 
         self._init_states(inputs, mask=mask)
+        if self.attention_layer.forward_attn:
+            self.attention_layer.init_forward_attn_state(inputs)
 
         outputs, stop_tokens, alignments = [], [], []
         while len(outputs) < memories.size(0) - 1:
@@ -392,6 +424,9 @@ class Decoder(nn.Module):
         self._init_states(inputs, mask=None)
 
         self.attention_layer.init_win_idx()
+        if self.attention_layer.forward_attn:
+            self.attention_layer.init_forward_attn_state(inputs)
+
         outputs, stop_tokens, alignments, t = [], [], [], 0
         stop_flags = [True, False, False]
         stop_count = 0
@@ -433,8 +468,9 @@ class Decoder(nn.Module):
             self._init_states(inputs, mask=None, keep_states=True)
 
         self.attention_layer.init_win_idx()
+        self.attention_layer.init_forward_attn_state()
         outputs, gate_outputs, alignments, t = [], [], [], 0
-        stop_flags = [False, False]
+        stop_flags = [False, False, False]
         stop_count = 0
         while True:
             memory = self.prenet(self.memory_truncated)
@@ -454,6 +490,7 @@ class Decoder(nn.Module):
             elif len(outputs) == self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")
                 break
+
             self.memory_truncated = mel_output
             t += 1
 
