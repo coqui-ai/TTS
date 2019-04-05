@@ -124,14 +124,13 @@ class Attention(nn.Module):
                                             attention_dim)
         self._mask_value = -float("inf")
         self.windowing = windowing
-        if self.windowing:
-            self.win_back = 1
-            self.win_front = 3
-            self.win_idx = None
+        self.win_idx = None
         self.norm = norm
 
     def init_win_idx(self):
         self.win_idx = -1
+        self.win_back = 1
+        self.win_front = 3
 
     def get_attention(self, query, processed_inputs, attention_cat):
         processed_query = self.query_layer(query.unsqueeze(1))
