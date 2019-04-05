@@ -8,6 +8,7 @@ import datetime
 import json
 import torch
 import subprocess
+import importlib
 import numpy as np
 from collections import OrderedDict
 from torch.autograd import Variable
@@ -237,3 +238,14 @@ def set_init_dict(model_dict, checkpoint, c):
     model_dict.update(pretrained_dict)
     print(" | > {} / {} layers are initialized".format(len(pretrained_dict), len(model_dict)))
     return model_dict
+
+
+def setup_model(num_chars, c):
+    print(" > Using model: {}".format(c.model))
+    MyModel = importlib.import_module('models.'+c.model.lower())
+    MyModel = getattr(MyModel, c.model)
+    if c.model.lower() == "tacotron":
+        model = MyModel(num_chars=num_chars, r=c.r, attn_norm=c.attention_norm, memory_size=c.memory_size)
+    elif c.model.lower() == "tacotron2":
+        model = MyModel(num_chars=num_chars, r=c.r, attn_norm=c.attention_norm, prenet_type=c.prenet_type, forward_attn=c.use_forward_attn)
+    return model

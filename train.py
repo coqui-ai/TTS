@@ -23,7 +23,7 @@ from utils.generic_utils import (NoamLR, check_update, count_parameters,
                                  load_config, lr_decay,
                                  remove_experiment_folder, save_best_model,
                                  save_checkpoint, sequence_mask, weight_decay,
-                                 set_init_dict, copy_config_file)
+                                 set_init_dict, copy_config_file, setup_model)
 from utils.logger import Logger
 from utils.synthesis import synthesis
 from utils.text.symbols import phonemes, symbols
@@ -375,7 +375,7 @@ def main(args):
         init_distributed(args.rank, num_gpus, args.group_id,
                          c.distributed["backend"], c.distributed["url"])
     num_chars = len(phonemes) if c.use_phonemes else len(symbols)
-    model = MyModel(num_chars=num_chars, r=c.r, attn_norm=c.attention_norm)
+    model = setup_model(num_chars, c)
 
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
@@ -528,9 +528,6 @@ if __name__ == '__main__':
     # Conditional imports
     preprocessor = importlib.import_module('datasets.preprocess')
     preprocessor = getattr(preprocessor, c.dataset.lower())
-    print(" > Using model: {}".format(c.model))
-    MyModel = importlib.import_module('models.'+c.model.lower())
-    MyModel = getattr(MyModel, c.model)
 
     # Audio processor
     ap = AudioProcessor(**c.audio)
