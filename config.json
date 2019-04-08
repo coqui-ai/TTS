@@ -60,7 +60,7 @@
     "meta_file_val": "prompts_val.data",    // DATASET-RELATED: metafile for evaluation dataloader.
     "dataset": "nancy",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
     "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
-    "max_seq_len": 120,     // DATASET-RELATED: maximum text length
+    "max_seq_len": 150,     // DATASET-RELATED: maximum text length
     "output_path": "/media/erogol/data_ssd/Data/models/ljspeech_models/",      // DATASET-RELATED: output path for all training outputs.
     "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
