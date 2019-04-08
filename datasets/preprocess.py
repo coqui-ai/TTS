@@ -45,11 +45,10 @@ def tweb(root_path, meta_file):
 def mozilla(root_path, meta_files):
         """Normalizes Mozilla meta data files to TTS format"""
         import glob
-        meta_files = glob.glob(root_path + "**/batch*.txt", recursive=True)
+        meta_files = glob.glob(root_path + "/**/batch*.txt", recursive=True)
         folders = [os.path.dirname(f.strip()) for f in meta_files]
         items = []
         for idx, meta_file in enumerate(meta_files):
-                print(" | > {}".format(meta_file))
                 folder = folders[idx]
                 txt_file = os.path.join(root_path, meta_file)
                 with open(txt_file, 'r') as ttf:
