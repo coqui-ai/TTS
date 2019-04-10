@@ -41,7 +41,9 @@
     "memory_size": 5,       //  ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
     "attention_norm": "softmax",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "prenet_type": "bn",    // ONLY TACOTRON2 - "original" or "bn".
-    "use_forward_attn": false,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
+    "use_forward_attn": true,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
+    "transition_agent": true,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
+    "loss_masking": false,       // enable / disable loss masking against the sequence padding.
 
     "batch_size": 16,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
