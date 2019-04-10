@@ -125,11 +125,18 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets)
-        decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
-        if c.model == "Tacotron":
-            postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
+        if c.loss_masking:
+            decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
+            if c.model == "Tacotron":
+                postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
+            else:
+                postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
         else:
-            postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
+            decoder_loss = criterion(decoder_output, mel_input)
+            if c.model == "Tacotron":
+                postnet_loss = criterion(postnet_output, linear_input)
+            else:
+                postnet_loss = criterion(postnet_output, mel_input)
         loss = decoder_loss + postnet_loss
 
         # backpass and check the grad norm for spec losses
@@ -283,11 +290,18 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
 
                 # loss computation
                 stop_loss = criterion_st(stop_tokens, stop_targets)
-                decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
-                if c.model == "Tacotron":
-                    postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
+                if c.loss_masking:
+                    decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
+                    if c.model == "Tacotron":
+                        postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
+                    else:
+                        postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
                 else:
-                    postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
+                    decoder_loss = criterion(decoder_output, mel_input)
+                    if c.model == "Tacotron":
+                        postnet_loss = criterion(postnet_output, linear_input)
+                    else:
+                        postnet_loss = criterion(postnet_output, mel_input)
                 loss = decoder_loss + postnet_loss + stop_loss
 
                 step_time = time.time() - start_time
@@ -383,7 +397,10 @@ def main(args):
     optimizer_st = optim.Adam(
         model.decoder.stopnet.parameters(), lr=c.lr, weight_decay=0)
 
-    criterion = L1LossMasked() if c.model == "Tacotron" else MSELossMasked()
+    if c.loss_masking:
+        criterion = L1LossMasked() if c.model == "Tacotron" else MSELossMasked()
+    else:
+        criterion = nn.L1Loss() if c.model == "Tacotron" else nn.MSELoss()
     criterion_st = nn.BCEWithLogitsLoss()
 
     if args.restore_path:
