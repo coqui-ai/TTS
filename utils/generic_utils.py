@@ -56,7 +56,7 @@ def create_experiment_folder(root_path, model_name, debug):
     """ Create a folder with the current date and time """
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
     # if debug:
-        # commit_hash = 'debug'
+    # commit_hash = 'debug'
     # else:
     commit_hash = get_commit_hash()
     output_folder = os.path.join(
@@ -207,8 +207,8 @@ def sequence_mask(sequence_length, max_len=None):
     seq_range_expand = seq_range.unsqueeze(0).expand(batch_size, max_len)
     if sequence_length.is_cuda:
         seq_range_expand = seq_range_expand.cuda()
-    seq_length_expand = (sequence_length.unsqueeze(1)
-                         .expand_as(seq_range_expand))
+    seq_length_expand = (
+        sequence_length.unsqueeze(1).expand_as(seq_range_expand))
     # B x T_max
     return seq_range_expand < seq_length_expand
 
@@ -239,16 +239,27 @@ def set_init_dict(model_dict, checkpoint, c):
             }
     # 4. overwrite entries in the existing state dict
     model_dict.update(pretrained_dict)
-    print(" | > {} / {} layers are restored.".format(len(pretrained_dict), len(model_dict)))
+    print(" | > {} / {} layers are restored.".format(
+        len(pretrained_dict), len(model_dict)))
     return model_dict
 
 
 def setup_model(num_chars, c):
     print(" > Using model: {}".format(c.model))
-    MyModel = importlib.import_module('models.'+c.model.lower())
+    MyModel = importlib.import_module('models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
     if c.model.lower() == "tacotron":
-        model = MyModel(num_chars=num_chars, r=c.r, attn_norm=c.attention_norm, memory_size=c.memory_size)
+        model = MyModel(
+            num_chars=num_chars,
+            r=c.r,
+            attn_norm=c.attention_norm,
+            memory_size=c.memory_size)
     elif c.model.lower() == "tacotron2":
-        model = MyModel(num_chars=num_chars, r=c.r, attn_norm=c.attention_norm, prenet_type=c.prenet_type, forward_attn=c.use_forward_attn)
+        model = MyModel(
+            num_chars=num_chars,
+            r=c.r,
+            attn_norm=c.attention_norm,
+            prenet_type=c.prenet_type,
+            forward_attn=c.use_forward_attn,
+            trans_agent=c.transition_agent)
     return model
