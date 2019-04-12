@@ -44,6 +44,8 @@
     "use_forward_attn": true,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
     "transition_agent": true,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
     "loss_masking": false,       // enable / disable loss masking against the sequence padding.
+    "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
+
 
     "batch_size": 16,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   

@@ -1,6 +1,6 @@
 {
     "run_name": "mozilla-fattn",
-    "run_description": "Mozilla with 0 batch group size and fattn",
+    "run_description": "Finetune 4583, Mozilla with 0 batch group size and fattn",
 
     "audio":{
         // Audio processing parameters
@@ -42,8 +42,9 @@
     "attention_norm": "softmax",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "prenet_type": "original",    // ONLY TACOTRON2 - "original" or "bn".
     "use_forward_attn": true,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
-    "transition_agent": true,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
+    "transition_agent": false,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
     "loss_masking": false,       // enable / disable loss masking against the sequence padding.
+    "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
 
     "batch_size": 16,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
