@@ -130,12 +130,6 @@ One common question is to ask why we don't use Tacotron2 architecture. According
 
 Please feel free to offer new changes and pull things off. We are happy to discuss and make things better.
 
-## Problems waiting to be solved.
-- Punctuations at the end of a sentence sometimes affect the pronunciation of the last word. Because punctuation sign is attended by the attention module, that forces the network to create a voice signal or at least modify the voice signal being generated for neighboring frames.
-- ~~Simpler stop-token prediction. Right now we use RNN to keep the history of the previous frames. However, we never tested, if something simpler would work as well.~~ Yet RNN based model gives more stable predictions.
-- Train for better mel-specs. Mel-spectrograms are not good enough to be fed Neural Vocoder. Easy solution to this problem is to train the model with r=1. However, in this case, model struggles to align the attention.
-- irregular words: "minute", "focus", "aren't" etc. Even though ~~it might be solved~~ (Use a better dataset like Nancy or train phonemes enabled.)
-
 ## Major TODOs
 - [x] Implement the model.
 - [x] Generate human-like speech on LJSpeech dataset.
