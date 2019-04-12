@@ -83,7 +83,7 @@ class MyDataset(Dataset):
         try:
             audio = self.ap.load_wav(filename)
             return audio
-        except RuntimeError as e:
+        except:
             print(" !! Cannot read file : {}".format(filename))
 
     def load_np(self, filename):
