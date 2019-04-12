@@ -26,6 +26,7 @@ class MyDataset(Dataset):
                  use_phonemes=True,
                  phoneme_cache_path=None,
                  phoneme_language="en-us",
+                 enable_eos_bos=False,
                  verbose=False):
         """
         Args:
@@ -48,6 +49,7 @@ class MyDataset(Dataset):
             phoneme_cache_path (str): path to cache phoneme features. 
             phoneme_language (str): one the languages from 
                 https://github.com/bootphon/phonemizer#languages
+            enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
             verbose (bool): print diagnostic information.
         """
         self.root_path = root_path
@@ -63,6 +65,7 @@ class MyDataset(Dataset):
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
+        self.enable_eos_bos = enable_eos_bos
         self.verbose = verbose
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
@@ -98,13 +101,13 @@ class MyDataset(Dataset):
                 print(" > ERROR: phoneme connot be loaded for {}. Recomputing.".format(wav_file))
                 text = np.asarray(
                     phoneme_to_sequence(
-                        text, [self.cleaners], language=self.phoneme_language),
+                        text, [self.cleaners], language=self.phoneme_language, enable_eos_bos=self.enable_eos_bos),
                     dtype=np.int32)
                 np.save(tmp_path, text)
         else:
             text = np.asarray(
                 phoneme_to_sequence(
-                    text, [self.cleaners], language=self.phoneme_language),
+                    text, [self.cleaners], language=self.phoneme_language, enable_eos_bos=self.enable_eos_bos),
                 dtype=np.int32)
             np.save(tmp_path, text)
         return text
