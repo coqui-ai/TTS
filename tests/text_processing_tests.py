@@ -9,14 +9,14 @@ def test_phoneme_to_sequence():
     lang = "en-us"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    gt = "^ɹiːsənt ɹɪsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪnkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹɪspɑːnsəbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjuːleɪʃən ænd lɜːnɪŋ!"
+    gt = "ɹiːsənt ɹɪsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪnkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹɪspɑːnsəbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjuːleɪʃən ænd lɜːnɪŋ!"
     assert text_hat == gt
 
     # multiple punctuations
     text = "Be a voice, not an! echo?"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ?"
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ?"
     print(text_hat)
     print(len(sequence))
     assert text_hat == gt
@@ -25,7 +25,7 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an! echo"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
     print(text_hat)
     print(len(sequence))
     assert text_hat == gt
@@ -34,7 +34,7 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an echo!"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    gt = "^biː ɐ vɔɪs, nɑːt ɐn ɛkoʊ!"
+    gt = "biː ɐ vɔɪs, nɑːt ɐn ɛkoʊ!"
     print(text_hat)
     print(len(sequence))
     assert text_hat == gt
@@ -43,7 +43,16 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an! echo.  "
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ."
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ."
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == gt
+
+    # extra space after the sentence
+    text = "Be a voice, not an! echo.  "
+    sequence = phoneme_to_sequence(text, text_cleaner, lang, True)
+    text_hat = sequence_to_phoneme(sequence)
+    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ.~"
     print(text_hat)
     print(len(sequence))
     assert text_hat == gt
