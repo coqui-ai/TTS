@@ -28,6 +28,10 @@ _arpabet = ['@' + s for s in _phonemes]
 symbols = [_pad, _eos, _bos] + list(_characters) + _arpabet
 phonemes = [_pad, _eos, _bos] + list(_phonemes) + list(_punctuations)
 
+# Generate ALIEN language
+# from random import shuffle
+# shuffle(phonemes)
+
 if __name__ == '__main__':
     print(" > TTS symbols ")
     print(symbols)

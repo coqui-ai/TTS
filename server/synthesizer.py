@@ -10,6 +10,14 @@ from utils.audio import AudioProcessor
 from utils.generic_utils import load_config, setup_model
 from utils.text import phoneme_to_sequence, phonemes, symbols, text_to_sequence, sequence_to_phoneme
 
+import re
+alphabets= "([A-Za-z])"
+prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
+suffixes = "(Inc|Ltd|Jr|Sr|Co)"
+starters = "(Mr|Mrs|Ms|Dr|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
+acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
+websites = "[.](com|net|org|io|gov)"
+
 
 class Synthesizer(object):
     def __init__(self, config):
@@ -48,6 +56,7 @@ class Synthesizer(object):
         if use_cuda:
             self.tts_model.cuda()
         self.tts_model.eval()
+        self.tts_model.decoder.max_decoder_steps = 3000
 
     def load_wavernn(self, lib_path, model_path, model_file, model_config, use_cuda):
         sys.path.append(lib_path) # set this if TTS is not installed globally
@@ -83,14 +92,42 @@ class Synthesizer(object):
         wav = np.array(wav)
         self.ap.save_wav(wav, path)
 
+    def split_into_sentences(self, text):
+        text = " " + text + "  "
+        text = text.replace("\n"," ")
+        text = re.sub(prefixes,"\\1<prd>",text)
+        text = re.sub(websites,"<prd>\\1",text)
+        if "Ph.D" in text: text = text.replace("Ph.D.","Ph<prd>D<prd>")
+        text = re.sub("\s" + alphabets + "[.] "," \\1<prd> ",text)
+        text = re.sub(acronyms+" "+starters,"\\1<stop> \\2",text)
+        text = re.sub(alphabets + "[.]" + alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>\\3<prd>",text)
+        text = re.sub(alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>",text)
+        text = re.sub(" "+suffixes+"[.] "+starters," \\1<stop> \\2",text)
+        text = re.sub(" "+suffixes+"[.]"," \\1<prd>",text)
+        text = re.sub(" " + alphabets + "[.]"," \\1<prd>",text)
+        if "”" in text: text = text.replace(".”","”.")
+        if "\"" in text: text = text.replace(".\"","\".")
+        if "!" in text: text = text.replace("!\"","\"!")
+        if "?" in text: text = text.replace("?\"","\"?")
+        text = text.replace(".",".<stop>")
+        text = text.replace("?","?<stop>")
+        text = text.replace("!","!<stop>")
+        text = text.replace("<prd>",".")
+        sentences = text.split("<stop>")
+        sentences = sentences[:-1]
+        sentences = [s.strip() for s in sentences]
+        return sentences
+
     def tts(self, text):
         wavs = []
-        for sen in text.split('.'):
+        sens = self.split_into_sentences(text)
+        if len(sens) == 0:
+            sens = [text+'.']
+        for sen in sens:
             if len(sen) < 3:
                 continue
             sen = sen.strip()
             print(sen)
-            sen = sen.strip()
 
             seq = np.array(self.input_adapter(sen))
             text_hat = sequence_to_phoneme(seq)

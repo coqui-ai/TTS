@@ -8,5 +8,6 @@
     "wavernn_config":"config.json", // wavernn config file
     "is_wavernn_batched":true, 
     "port": 5002,
-    "use_cuda": true
+    "use_cuda": true,
+    "debug": true
 }
