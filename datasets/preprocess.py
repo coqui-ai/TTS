@@ -59,7 +59,7 @@ def mozilla(root_path, meta_files):
                                         text = cols[0].strip()
                                         items.append([text, wav_file])
                                 else: 
-                                        print(" > Error: {}", line)
+                                        print(" > Error: {}".format(cols))
                                         continue
         random.shuffle(items)
         return items
