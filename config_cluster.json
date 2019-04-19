@@ -46,7 +46,7 @@
     "loss_masking": false,       // enable / disable loss masking against the sequence padding.
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
 
-    "batch_size": 2,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
+    "batch_size": 24,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
     "r": 1,                 // Number of frames to predict for step.
     "wd": 0.000001,         // Weight decay weight.
