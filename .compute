@@ -1,11 +1,12 @@
 #!/bin/bash
-# ls ${USER_DIR}/MozillaDataset/Mozilla/batch1/wavs_no_processing
+ls ${SHARED_DIR}/data/mozilla/Judy/
 yes | apt-get install sox
-soxi /data/rw/home/MozillaDataset/Mozilla/batch18/wavs_no_processing/18_167.wav
+yes | apt-get install ffmpeg
+soxi /data/ro/shared/data/mozilla/Judy/batch6/wavs_no_processing/6_126.wav
 pip3 install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
 yes | apt-get install espeak 
 python3 setup.py develop
 # wget https://www.dropbox.com/s/evaouukiwb7krz8/MozillaDataset.tar.gz?dl=0 -O ${USER_DIR}/MozillaDataset.tar.gz
 # tar -xzvf ${USER_DIR}/MozillaDataset.tar.gz --no-same-owner -C ${USER_DIR}
 # python3 distribute.py --config_path config_cluster.json  --data_path ${USER_DIR}/MozillaDataset/Mozilla/  --restore_path ${USER_DIR}/best_model_4583.pth.tar
-python3 distribute.py --config_path config_cluster.json  --data_path ${USER_DIR}/MozillaDataset/Mozilla/
+python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/mozilla/Judy/
