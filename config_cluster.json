@@ -1,6 +1,6 @@
 {
-    "run_name": "mozilla-fattn",
-    "run_description": "Finetune 4583, Mozilla with 4 batch group size and fattn, batch size 16->24",
+    "run_name": "mozilla-nomask-fattn-bn",
+    "run_description": "Finetune 4700 orignal -> bn prenet - Mozilla with prenet bn, no mask, forward attn, batch group size 0",
 
     "audio":{
         // Audio processing parameters
@@ -54,7 +54,7 @@
     "save_step": 1000,      // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 10,       // Number of steps to log traning on console.
     "tb_model_param_stats": true,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
-    "batch_group_size": 4,  //Number of batches to shuffle after bucketing.
+    "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
 
     "run_eval": false,
     "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
@@ -65,8 +65,8 @@
     "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
     "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
-    "num_loader_workers": 0,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
-    "num_val_loader_workers": 0,    // number of evaluation data loader processes.
+    "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_val_loader_workers": 4,    // number of evaluation data loader processes.
     "phoneme_cache_path": "mozilla_us_phonemes",  // phoneme computation is slow, therefore, it caches results in the given folder.
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
