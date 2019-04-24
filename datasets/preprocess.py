@@ -50,16 +50,18 @@ def mozilla(root_path, meta_files):
         items = []
         for idx, meta_file in enumerate(meta_files):
                 folder = folders[idx]
-                txt_file = os.path.join(root_path, meta_file)
+                # txt_file = os.path.join(root_path, meta_file)
+                txt_file = meta_file
                 with open(txt_file, 'r') as ttf:
                         for line in ttf:
                                 cols = line.split('|')
-                                wav_file = os.path.join(root_path, folder, 'wavs_no_processing', cols[1].strip())
+                                # wav_file = os.path.join(root_path, folder, 'wavs_no_processing', cols[1].strip())
+                                wav_file = os.path.join(folder, 'wavs_no_processing', cols[1].strip())
                                 if os.path.isfile(wav_file):
                                         text = cols[0].strip()
                                         items.append([text, wav_file])
                                 else: 
-                                        print(" > Error: {}".format(cols))
+                                        print(" > Error: {}".format(wav_file))
                                         continue
         random.shuffle(items)
         return items
