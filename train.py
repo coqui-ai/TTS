@@ -499,6 +499,12 @@ if __name__ == '__main__':
         type=str,
         help='path for training outputs.',
         default='')
+    parser.add_argument(
+        '--output_folder',
+        type=str,
+        default='',
+        help='folder name for traning outputs.'
+    )
 
     # DISTRUBUTED
     parser.add_argument(
@@ -524,8 +530,10 @@ if __name__ == '__main__':
     else:
         OUT_PATH = args.output_path
 
-    if args.group_id == '':
+    if args.group_id == '' and args.output_folder == '':
         OUT_PATH = create_experiment_folder(OUT_PATH, c.run_name, args.debug)
+    else:
+        OUT_PATH = os.path.join(OUT_PATH, args.output_folder)
 
     AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
 
