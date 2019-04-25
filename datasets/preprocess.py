@@ -1,5 +1,4 @@
 import os
-import random
 
 
 def tts_cache(root_path, meta_file):
@@ -9,9 +8,9 @@ def tts_cache(root_path, meta_file):
     with open(txt_file, 'r', encoding='utf8') as f:
         for line in f:
             cols = line.split('| ')
-            items.append(cols)  # text, wav_full_path, mel_name, linear_name, wav_len, mel_len
-    random.shuffle(items)
-    return items            
+            # text, wav_full_path, mel_name, linear_name, wav_len, mel_len
+            items.append(cols)
+    return items
 
 
 def tweb(root_path, meta_file):
@@ -23,12 +22,11 @@ def tweb(root_path, meta_file):
     with open(txt_file, 'r') as ttf:
         for line in ttf:
             cols = line.split('\t')
-            wav_file = os.path.join(root_path, cols[0]+'.wav')
+            wav_file = os.path.join(root_path, cols[0] + '.wav')
             text = cols[1]
             items.append([text, wav_file])
-    random.shuffle(items)
     return items
-    
+
 
 # def kusal(root_path, meta_file):
 #     txt_file = os.path.join(root_path, meta_file)
@@ -44,48 +42,48 @@ def tweb(root_path, meta_file):
 
 
 def mozilla(root_path, meta_files):
-        """Normalizes Mozilla meta data files to TTS format"""
-        import glob
-        meta_files = glob.glob(root_path + "/**/batch*.txt", recursive=True)
-        folders = [os.path.dirname(f.strip()) for f in meta_files]
-        items = []
-        for idx, meta_file in enumerate(meta_files):
-                folder = folders[idx]
-                txt_file = os.path.join(root_path, meta_file)
-                with open(txt_file, 'r') as ttf:
-                        for line in ttf:
-                                cols = line.split('|')
-                                wav_file = os.path.join(root_path, folder, 'wavs_no_processing', cols[1].strip())
-                                if os.path.isfile(wav_file):
-                                        text = cols[0].strip()
-                                        items.append([text, wav_file])
-                                else: 
-                                        print(" > Error: {}".format(cols))
-                                        continue
-        random.shuffle(items)
-        return items
+    """Normalizes Mozilla meta data files to TTS format"""
+    import glob
+    meta_files = glob.glob(root_path + "/**/batch*.txt", recursive=True)
+    folders = [os.path.dirname(f.strip()) for f in meta_files]
+    items = []
+    for idx, meta_file in enumerate(meta_files):
+        folder = folders[idx]
+        txt_file = os.path.join(root_path, meta_file)
+        with open(txt_file, 'r') as ttf:
+            for line in ttf:
+                cols = line.split('|')
+                wav_file = os.path.join(root_path, folder, 'wavs_no_processing',
+                                        cols[1].strip())
+                if os.path.isfile(wav_file):
+                    text = cols[0].strip()
+                    items.append([text, wav_file])
+                else:
+                    print(" > Error: {}".format(cols))
+                    continue
+    return items
 
 
 def mailabs(root_path, meta_files):
-        """Normalizes M-AI-Labs meta data files to TTS format"""
-        folders = [os.path.dirname(f.strip()) for f in meta_files.split(",")]
-        meta_files = [f.strip() for f in meta_files.split(",")]
-        items = []
-        for idx, meta_file in enumerate(meta_files):
-                print(" | > {}".format(meta_file))
-                folder = folders[idx]
-                txt_file = os.path.join(root_path, meta_file)
-                with open(txt_file, 'r') as ttf:
-                        for line in ttf:
-                                cols = line.split('|')
-                                wav_file = os.path.join(root_path, folder, 'wavs', cols[0]+'.wav')
-                                if os.path.isfile(wav_file):
-                                        text = cols[1]
-                                        items.append([text, wav_file])
-                                else: 
-                                        continue
-        random.shuffle(items)
-        return items
+    """Normalizes M-AI-Labs meta data files to TTS format"""
+    folders = [os.path.dirname(f.strip()) for f in meta_files.split(",")]
+    meta_files = [f.strip() for f in meta_files.split(",")]
+    items = []
+    for idx, meta_file in enumerate(meta_files):
+        print(" | > {}".format(meta_file))
+        folder = folders[idx]
+        txt_file = os.path.join(root_path, meta_file)
+        with open(txt_file, 'r') as ttf:
+            for line in ttf:
+                cols = line.split('|')
+                wav_file = os.path.join(root_path, folder, 'wavs',
+                                        cols[0] + '.wav')
+                if os.path.isfile(wav_file):
+                    text = cols[1]
+                    items.append([text, wav_file])
+                else:
+                    continue
+    return items
 
 
 def ljspeech(root_path, meta_file):
@@ -95,10 +93,9 @@ def ljspeech(root_path, meta_file):
     with open(txt_file, 'r') as ttf:
         for line in ttf:
             cols = line.split('|')
-            wav_file = os.path.join(root_path, 'wavs', cols[0]+'.wav')
+            wav_file = os.path.join(root_path, 'wavs', cols[0] + '.wav')
             text = cols[1]
             items.append([text, wav_file])
-    random.shuffle(items)
     return items
 
 
@@ -109,10 +106,9 @@ def nancy(root_path, meta_file):
     with open(txt_file, 'r') as ttf:
         for line in ttf:
             id = line.split()[1]
-            text = line[line.find('"')+1:line.rfind('"')-1]
+            text = line[line.find('"') + 1:line.rfind('"') - 1]
             wav_file = os.path.join(root_path, "wavn", id + ".wav")
             items.append([text, wav_file])
-    random.shuffle(items)    
     return items
 
 
@@ -126,7 +122,6 @@ def common_voice(root_path, meta_file):
                 continue
             cols = line.split("\t")
             text = cols[2]
-            # Files need to be first converted to wav...
             wav_file = os.path.join(root_path, "clips", cols[1] + ".wav")
             items.append([text, wav_file])
     return items
