@@ -50,6 +50,7 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
         sequence = [_phonemes_to_id['^']]
     else:
         sequence = []
+    text = text.replace(":", "")
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text, language)
     if phonemes is None:

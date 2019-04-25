@@ -27,4 +27,4 @@ def tts():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=config.port)
+    app.run(debug=config.debug, host='0.0.0.0', port=config.port)
