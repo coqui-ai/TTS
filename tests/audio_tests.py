@@ -2,21 +2,23 @@ import os
 import unittest
 import numpy as np
 import torch as T
+
+from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from utils.audio import AudioProcessor
 from utils.generic_utils import load_config
 
-file_path = os.path.dirname(os.path.realpath(__file__))
-INPUTPATH = os.path.join(file_path, 'inputs')
-OUTPATH = os.path.join(file_path, "outputs/audio_tests")
-os.makedirs(OUTPATH, exist_ok=True)
+TESTS_PATH = get_tests_path()
+OUT_PATH = os.path.join(get_tests_output_path(), "audio_tests")
+WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
-c = load_config(os.path.join(file_path, 'test_config.json'))
+os.makedirs(OUT_PATH, exist_ok=True)
+conf = load_config(os.path.join(TESTS_PATH, 'test_config.json'))
 
 
 class TestAudio(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestAudio, self).__init__(*args, **kwargs)
-        self.ap = AudioProcessor(**c.audio)
+        self.ap = AudioProcessor(**conf.audio)
 
     def test_audio_synthesis(self):
         """ 1. load wav
@@ -31,13 +33,13 @@ class TestAudio(unittest.TestCase):
             self.ap.signal_norm = signal_norm
             self.ap.symmetric_norm = symmetric_norm
             self.ap.clip_norm = clip_norm
-            wav = self.ap.load_wav(INPUTPATH + "/example_1.wav")
+            wav = self.ap.load_wav(WAV_FILE)
             mel = self.ap.melspectrogram(wav)
             wav_ = self.ap.inv_mel_spectrogram(mel)
             file_name = "/audio_test-melspec_max_norm_{}-signal_norm_{}-symmetric_{}-clip_norm_{}.wav"\
                 .format(max_norm, signal_norm, symmetric_norm, clip_norm)
             print(" | > Creating wav file at : ", file_name)
-            self.ap.save_wav(wav_, OUTPATH + file_name)
+            self.ap.save_wav(wav_, OUT_PATH + file_name)
 
         # maxnorm = 1.0
         _test(1., False, False, False)
@@ -55,7 +57,7 @@ class TestAudio(unittest.TestCase):
     def test_normalize(self):
         """Check normalization and denormalization for range values and consistency """
         print(" > Testing normalization and denormalization.")
-        wav = self.ap.load_wav(INPUTPATH + "/example_1.wav")
+        wav = self.ap.load_wav(WAV_FILE)
         self.ap.signal_norm = False
         x = self.ap.melspectrogram(wav)
         x_old = x
