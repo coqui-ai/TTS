@@ -1,5 +1,4 @@
 numpy==1.14.3
-lws
 torch>=0.4.1
 librosa==0.5.1
 Unidecode==0.4.20
