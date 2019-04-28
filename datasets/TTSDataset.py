@@ -80,11 +80,8 @@ class MyDataset(Dataset):
         self.sort_items()
 
     def load_wav(self, filename):
-        try:
-            audio = self.ap.load_wav(filename)
-            return audio
-        except:
-            print(" !! Cannot read file : {}".format(filename))
+        audio = self.ap.load_wav(filename)
+        return audio
 
     def load_np(self, filename):
         data = np.load(filename).astype('float32')
