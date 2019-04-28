@@ -41,29 +41,18 @@ def tweb(root_path, meta_file):
 #     return  {'text': texts, 'wavs': wavs}
 
 
-def mozilla(root_path, meta_files):
+def mozilla(root_path, meta_file):
     """Normalizes Mozilla meta data files to TTS format"""
-    import glob
-    meta_files = glob.glob(root_path + "/**/batch*.txt", recursive=True)
-    folders = [os.path.dirname(f.strip()) for f in meta_files]
+    txt_file = os.path.join(root_path, meta_file)
     items = []
-    for idx, meta_file in enumerate(meta_files):
-        folder = folders[idx]
-        # txt_file = os.path.join(root_path, meta_file)
-        txt_file = meta_file
-        with open(txt_file, 'r') as ttf:
-            for line in ttf:
-                cols = line.split('|')
-                # wav_file = os.path.join(root_path, folder,
-                # 'wavs_no_processing', cols[1].strip())
-                wav_file = os.path.join(folder, 'wavs_no_processing',
-                                        cols[1].strip())
-                if os.path.isfile(wav_file):
-                    text = cols[0].strip()
-                    items.append([text, wav_file])
-                else:
-                    print(" > Error: {}".format(wav_file))
-                    continue
+    with open(txt_file, 'r') as ttf:
+        for line in ttf:
+            cols = line.split('|')
+            batch_no = int(cols[1].strip().split("_")[0])
+            wav_folder = "batch{}".format(batch_no)
+            wav_file = os.path.join(root_path, wav_folder, "wavs_no_processing", cols[1].strip())
+            text = cols[0].strip()
+            items.append([text, wav_file])
     return items
 
 
