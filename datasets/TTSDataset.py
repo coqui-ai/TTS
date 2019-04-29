@@ -113,8 +113,6 @@ class MyDataset(Dataset):
     def load_data(self, idx):
         text, wav_file = self.items[idx]
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
-        mel = None
-        linear = None
 
         if self.use_phonemes:
             text = self.load_phoneme_sequence(wav_file, text)
@@ -128,9 +126,7 @@ class MyDataset(Dataset):
         sample = {
             'text': text,
             'wav': wav,
-            'item_idx': self.items[idx][1],
-            'mel': mel,
-            'linear': linear
+            'item_idx': self.items[idx][1]
         }
         return sample
 
@@ -193,17 +189,9 @@ class MyDataset(Dataset):
             ]
             text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
 
-            # if specs are not computed, compute them.
-            if batch[0]['mel'] is None and batch[0]['linear'] is None:
-                mel = [
-                    self.ap.melspectrogram(w).astype('float32') for w in wav
-                ]
-                linear = [
-                    self.ap.spectrogram(w).astype('float32') for w in wav
-                ]
-            else:
-                mel = [d['mel'] for d in batch]
-                linear = [d['linear'] for d in batch]
+            mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
+            linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
+
             mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
 
             # compute 'stop token' targets
