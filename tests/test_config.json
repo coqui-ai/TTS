@@ -36,7 +36,6 @@
 
     "save_step": 200,
     "data_path": "/home/erogol/Data/LJSpeech-1.1/",
-    "data_path_cache": "/media/erogol/data_ssd/Data/Nancy/tts_cache/",
     "output_path": "result",
     "min_seq_len": 0,
     "max_seq_len": 300,
