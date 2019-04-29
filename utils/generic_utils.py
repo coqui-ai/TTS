@@ -263,5 +263,6 @@ def setup_model(num_chars, c):
             attn_norm=c.attention_norm,
             prenet_type=c.prenet_type,
             forward_attn=c.use_forward_attn,
-            trans_agent=c.transition_agent)
+            trans_agent=c.transition_agent,
+            location_attn=c.location_attn)
     return model
