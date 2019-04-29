@@ -22,7 +22,6 @@ class MyDataset(Dataset):
                  batch_group_size=0,
                  min_seq_len=0,
                  max_seq_len=float("inf"),
-                 cached=False,
                  use_phonemes=True,
                  phoneme_cache_path=None,
                  phoneme_language="en-us",
@@ -61,7 +60,6 @@ class MyDataset(Dataset):
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
-        self.cached = cached
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
@@ -113,23 +111,10 @@ class MyDataset(Dataset):
         return text
 
     def load_data(self, idx):
-        if self.cached:
-            wav_name = self.items[idx][1]
-            mel_name = self.items[idx][2]
-            linear_name = self.items[idx][3]
-            text = self.items[idx][0]
-
-            if wav_name.split('.')[-1] == 'npy':
-                wav = self.load_np(wav_name)
-            else:
-                wav = np.asarray(self.load_wav(wav_name), dtype=np.float32)
-            mel = self.load_np(mel_name)
-            linear = self.load_np(linear_name)
-        else:
-            text, wav_file = self.items[idx]
-            wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
-            mel = None
-            linear = None
+        text, wav_file = self.items[idx]
+        wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
+        mel = None
+        linear = None
 
         if self.use_phonemes:
             text = self.load_phoneme_sequence(wav_file, text)
