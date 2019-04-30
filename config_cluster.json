@@ -1,6 +1,6 @@
 {
     "run_name": "mozilla-fattn-agent-masking",
-    "run_description": "Original prenet,fattn and fattn agent with loss masking.",
+    "run_description": "finetune 4706 with prenet BN. Loss masking, fattn.",
 
     "audio":{
         // Audio processing parameters
@@ -42,8 +42,8 @@
     "attention_norm": "softmax",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "prenet_type": "original",    // ONLY TACOTRON2 - "original" or "bn".
     "use_forward_attn": true,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
-    "transition_agent": true,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
-    "location_attn": false,      // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+    "transition_agent": false,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
+    "location_attn": true,      // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "loss_masking": true,       // enable / disable loss masking against the sequence padding.
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
 
@@ -66,7 +66,7 @@
     "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
     "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
-    "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
     "phoneme_cache_path": "mozilla_us_phonemes",  // phoneme computation is slow, therefore, it caches results in the given folder.
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
