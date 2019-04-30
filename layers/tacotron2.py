@@ -251,6 +251,7 @@ class Attention(nn.Module):
         else:
             context = torch.bmm(alignment.unsqueeze(1), inputs)
             context = context.squeeze(1)
+            self.attention_weights = alignment
         return context
 
 
