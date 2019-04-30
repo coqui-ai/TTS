@@ -8,9 +8,9 @@ TTS includes two different model implementations which are based on [Tacotron](h
 If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief post about TTS architectures and their comparisons.
 
 ## TTS Performance 
-<p align="center"><img src="https://raw.githubusercontent.com/mozilla/TTS/master/assets/tacotron_wavernn.png"/></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/1402048/56998082-36d43500-6baa-11e9-8ca3-6c91d3a747bf.png"/></p>
 
-[More Details...](https://github.com/mozilla/TTS/issues/186)
+[Details...](https://github.com/mozilla/TTS/issues/186)
 
 ## Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
