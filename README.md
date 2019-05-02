@@ -118,12 +118,11 @@ You can also enjoy Tensorboard,  if you point the Tensorboard argument```--logdi
 Best way to test your network is to use Notebooks under ```notebooks``` folder.
 
 ## Contact/Getting Help
-- [Wiki](https://github.com/mozilla/TTS/wiki) - We have a list of common questions, and their answers, in our FAQ. When just getting started, it's best to first check the FAQ to see if your question is addressed.
+- [Wiki](https://github.com/mozilla/TTS/wiki)
 
-- [Discourse Forums](https://discourse.mozilla.org/c/tts) - If your question is not addressed in the FAQ, the Discourse Forums is the next place to look. They contain conversations on General Topics, Using Deep Speech, and Deep Speech Development.
+- [Discourse Forums](https://discourse.mozilla.org/c/tts) - If your question is not addressed in the Wiki, the Discourse Forums is the next place to look. They contain conversations on General Topics, Using TTS, and TTS Development.
 
 - [Issues](https://github.com/mozilla/TTS/issues) - Finally, if all else fails, you can open an issue in our repo.
-
 
 ## What is new with TTS
 If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character-based methods up to our knowledge. Out implementation is also quite robust against long sentences.
