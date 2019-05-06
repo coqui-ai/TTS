@@ -1,5 +1,5 @@
 {
-    "run_name": "mozilla-fattn-stopnet",
+    "run_name": "mozilla-fattn-no_loc",
     "run_description": "Finetune 4761 with BN",
 
     "audio":{
