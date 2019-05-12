@@ -53,9 +53,10 @@ class LinearBN(nn.Module):
 
 
 class Prenet(nn.Module):
-    def __init__(self, in_features, prenet_type, out_features=[256, 256]):
+    def __init__(self, in_features, prenet_type, prenet_dropout, out_features=[256, 256]):
         super(Prenet, self).__init__()
         self.prenet_type = prenet_type
+        self.prenet_dropout = prenet_dropout
         in_features = [in_features] + out_features[:-1]
         if prenet_type == "bn":
             self.layers = nn.ModuleList([
@@ -70,9 +71,9 @@ class Prenet(nn.Module):
 
     def forward(self, x):
         for linear in self.layers:
-            if self.prenet_type == "original":
+            if self.prenet_dropout:
                 x = F.dropout(F.relu(linear(x)), p=0.5, training=self.training)
-            elif self.prenet_type == "bn":
+            else:
                 x = F.relu(linear(x))
         return x
         
