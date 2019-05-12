@@ -9,7 +9,7 @@ from utils.generic_utils import sequence_mask
 
 # TODO: match function arguments with tacotron
 class Tacotron2(nn.Module):
-    def __init__(self, num_chars, r, attn_win=False, attn_norm="softmax", prenet_type="original", forward_attn=False, trans_agent=False, location_attn=True):
+    def __init__(self, num_chars, r, attn_win=False, attn_norm="softmax", prenet_type="original", prenet_dropout=True, forward_attn=False, trans_agent=False, location_attn=True):
         super(Tacotron2, self).__init__()
         self.n_mel_channels = 80
         self.n_frames_per_step = r
@@ -18,7 +18,7 @@ class Tacotron2(nn.Module):
         val = sqrt(3.0) * std  # uniform bounds for std
         self.embedding.weight.data.uniform_(-val, val)
         self.encoder = Encoder(512)
-        self.decoder = Decoder(512, self.n_mel_channels, r, attn_win, attn_norm, prenet_type, forward_attn, trans_agent, location_attn)
+        self.decoder = Decoder(512, self.n_mel_channels, r, attn_win, attn_norm, prenet_type, prenet_dropout, forward_attn, trans_agent, location_attn)
         self.postnet = Postnet(self.n_mel_channels)
 
     def shape_outputs(self, mel_outputs, mel_outputs_postnet, alignments):
