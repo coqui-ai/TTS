@@ -323,7 +323,7 @@ class Encoder(nn.Module):
 
 # adapted from https://github.com/NVIDIA/tacotron2/
 class Decoder(nn.Module):
-    def __init__(self, in_features, inputs_dim, r, attn_win, attn_norm, prenet_type, forward_attn, trans_agent, location_attn):
+    def __init__(self, in_features, inputs_dim, r, attn_win, attn_norm, prenet_type, prenet_dropout, forward_attn, trans_agent, location_attn):
         super(Decoder, self).__init__()
         self.mel_channels = inputs_dim
         self.r = r
@@ -336,7 +336,7 @@ class Decoder(nn.Module):
         self.p_attention_dropout = 0.1
         self.p_decoder_dropout = 0.1
 
-        self.prenet = Prenet(self.mel_channels * r, prenet_type,
+        self.prenet = Prenet(self.mel_channels * r, prenet_type, prenet_dropout,
                              [self.prenet_dim, self.prenet_dim])
 
         self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
@@ -485,7 +485,7 @@ class Decoder(nn.Module):
             stop_flags[2] = t > inputs.shape[1] * 2
             if all(stop_flags):
                 stop_count += 1
-                if stop_count > 2:
+                if stop_count > 5:
                     break
             elif len(outputs) == self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")
