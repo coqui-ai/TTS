@@ -1,6 +1,6 @@
 {
-    "run_name": "mozilla-nomask-fattn-bn",
-    "run_description": "Finetune 4702 orignal -> bn prenet - Mozilla with prenet bn, no mask, batch group size 0",
+    "run_name": "mozilla-fattn",
+    "run_description": "Finetune 4761 with BN + Dropout. It is to compare to 4780 and see how dropout behaves with BN.",
 
     "audio":{
         // Audio processing parameters
@@ -41,12 +41,14 @@
     "memory_size": 5,       //  ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
     "attention_norm": "softmax",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "prenet_type": "bn",    // ONLY TACOTRON2 - "original" or "bn".
-    "use_forward_attn": false,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
+    "prenet_dropout": true, // ONLY TACOTRON2 - enable/disable dropout at prenet. 
+    "use_forward_attn": true,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
     "transition_agent": false,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
+    "location_attn": false,      // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "loss_masking": false,       // enable / disable loss masking against the sequence padding.
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
 
-    "batch_size": 24,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
+    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
     "r": 1,                 // Number of frames to predict for step.
     "wd": 0.000001,         // Weight decay weight.
@@ -59,13 +61,13 @@
     "run_eval": true,
     "test_delay_epochs": 1,  //Until attention is aligned, testing only wastes computation time.
     "data_path": "/media/erogol/data_ssd/Data/LJSpeech-1.1",  // DATASET-RELATED: can overwritten from command argument
-    "meta_file_train": "metadata.txt",      // DATASET-RELATED: metafile for training dataloader.
+    "meta_file_train": "metadata_train.txt",      // DATASET-RELATED: metafile for training dataloader.
     "meta_file_val": "metadata_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.
     "dataset": "mozilla",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
     "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
     "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
-    "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
     "phoneme_cache_path": "mozilla_us_phonemes",  // phoneme computation is slow, therefore, it caches results in the given folder.
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
