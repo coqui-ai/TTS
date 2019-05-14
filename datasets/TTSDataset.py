@@ -22,7 +22,6 @@ class MyDataset(Dataset):
                  batch_group_size=0,
                  min_seq_len=0,
                  max_seq_len=float("inf"),
-                 cached=False,
                  use_phonemes=True,
                  phoneme_cache_path=None,
                  phoneme_language="en-us",
@@ -61,7 +60,6 @@ class MyDataset(Dataset):
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
-        self.cached = cached
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
@@ -110,23 +108,8 @@ class MyDataset(Dataset):
         return text
 
     def load_data(self, idx):
-        if self.cached:
-            wav_name = self.items[idx][1]
-            mel_name = self.items[idx][2]
-            linear_name = self.items[idx][3]
-            text = self.items[idx][0]
-
-            if wav_name.split('.')[-1] == 'npy':
-                wav = self.load_np(wav_name)
-            else:
-                wav = np.asarray(self.load_wav(wav_name), dtype=np.float32)
-            mel = self.load_np(mel_name)
-            linear = self.load_np(linear_name)
-        else:
-            text, wav_file = self.items[idx]
-            wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
-            mel = None
-            linear = None
+        text, wav_file = self.items[idx]
+        wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
         if self.use_phonemes:
             text = self.load_phoneme_sequence(wav_file, text)
@@ -140,9 +123,7 @@ class MyDataset(Dataset):
         sample = {
             'text': text,
             'wav': wav,
-            'item_idx': self.items[idx][1],
-            'mel': mel,
-            'linear': linear
+            'item_idx': self.items[idx][1]
         }
         return sample
 
@@ -205,17 +186,9 @@ class MyDataset(Dataset):
             ]
             text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
 
-            # if specs are not computed, compute them.
-            if batch[0]['mel'] is None and batch[0]['linear'] is None:
-                mel = [
-                    self.ap.melspectrogram(w).astype('float32') for w in wav
-                ]
-                linear = [
-                    self.ap.spectrogram(w).astype('float32') for w in wav
-                ]
-            else:
-                mel = [d['mel'] for d in batch]
-                linear = [d['linear'] for d in batch]
+            mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
+            linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
+
             mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
 
             # compute 'stop token' targets
