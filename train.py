@@ -329,7 +329,8 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 if num_gpus > 1:
                     postnet_loss = reduce_tensor(postnet_loss.data, num_gpus)
                     decoder_loss = reduce_tensor(decoder_loss.data, num_gpus)
-                    stop_loss = reduce_tensor(stop_loss.data, num_gpus)
+                    if c.stopnet:
+                        stop_loss = reduce_tensor(stop_loss.data, num_gpus)
 
                 avg_postnet_loss += float(postnet_loss.item())
                 avg_decoder_loss += float(decoder_loss.item())
