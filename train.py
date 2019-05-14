@@ -465,10 +465,9 @@ def main(args):
         best_loss = float('inf')
 
     for epoch in range(0, c.epochs):
-        # train_loss, current_step = train(model, criterion, criterion_st,
-        #                                  optimizer, optimizer_st, scheduler,
-        #                                  ap, epoch)
-        train_loss, current_step = 0, 0
+        train_loss, current_step = train(model, criterion, criterion_st,
+                                         optimizer, optimizer_st, scheduler,
+                                         ap, epoch)
         val_loss = evaluate(model, criterion, criterion_st, ap, current_step, epoch)
         print(
             " | > Training Loss: {:.5f}   Validation Loss: {:.5f}".format(
