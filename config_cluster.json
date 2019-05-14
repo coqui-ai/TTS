@@ -48,7 +48,7 @@
     "loss_masking": false,         // enable / disable loss masking against the sequence padding.
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
     "stopnet": false,              // Train stopnet predicting the end of synthesis. 
-    "separate_stopnet": false,     // train stopnet seperately. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
+    "separate_stopnet": false,     // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
 
     "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
