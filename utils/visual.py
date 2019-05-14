@@ -46,6 +46,7 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
     if CONFIG.use_phonemes:
         seq = phoneme_to_sequence(text, [CONFIG.text_cleaner], CONFIG.phoneme_language, CONFIG.enable_eos_bos_chars)
         text = sequence_to_phoneme(seq)
+        print(text)
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
     
@@ -73,3 +74,4 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
     if output_path:
         print(output_path)
         fig.savefig(output_path)
+        plt.close()
