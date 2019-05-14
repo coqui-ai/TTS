@@ -178,7 +178,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             postnet_loss = reduce_tensor(postnet_loss.data, num_gpus)
             decoder_loss = reduce_tensor(decoder_loss.data, num_gpus)
             loss = reduce_tensor(loss.data, num_gpus)
-            stop_loss = reduce_tensor(stop_loss.data, num_gpus)
+            stop_loss = reduce_tensor(stop_loss.data, num_gpus) if c.stopnet else stop_loss
 
         if args.rank == 0:
             avg_postnet_loss += float(postnet_loss.item())
