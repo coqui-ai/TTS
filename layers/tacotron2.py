@@ -509,6 +509,7 @@ class Decoder(nn.Module):
         else:
             self._init_states(inputs, mask=None, keep_states=True)
 
+        self.attention_layer.init_win_idx()
         self.attention_layer.init_states(inputs)
         outputs, stop_tokens, alignments, t = [], [], [], 0
         stop_flags = [False, False, False]
