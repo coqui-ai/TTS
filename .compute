@@ -9,6 +9,6 @@ pip3 install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m
 wget https://www.dropbox.com/s/wqn5v3wkktw9lmo/install.sh?dl=0 -O install.sh
 sudo sh install.sh
 python3 setup.py develop
-python3 distribute.py --config_path config_cluster.json  --data_path ${USER_DIR}/MozillaAll2/Mozilla/  --restore_path ${USER_DIR}/checkpoint_123000_4761.pth.tar
+python3 distribute.py --config_path config_cluster.json  --data_path ${USER_DIR}/MozillaAll2/Mozilla/
 # python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/mozilla/Judy/
 # while true; do sleep 1000000; done

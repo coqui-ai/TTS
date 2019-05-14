@@ -1,6 +1,6 @@
 {
-    "run_name": "mozilla-fattn",
-    "run_description": "Finetune 4761 with BN + Dropout. It is to compare to 4780 and see how dropout behaves with BN.",
+    "run_name": "mozilla-no-loc",
+    "run_description": "using Bahdenau attention, with original prenet.",
 
     "audio":{
         // Audio processing parameters
@@ -31,22 +31,24 @@
 
     "reinit_layers": [],
 
-    "model": "Tacotron2",   // one of the model in models/    
-    "grad_clip": 1,      // upper limit for gradients for clipping.
-    "epochs": 1000,         // total number of epochs to train.
-    "lr": 0.0001,            // Initial learning rate. If Noam decay is active, maximum learning rate.
-    "lr_decay": false,      // if true, Noam learning rate decaying is applied through training.
-    "warmup_steps": 4000,   // Noam decay steps to increase the learning rate from 0 to "lr"
-    "windowing": false,      // Enables attention windowing. Used only in eval mode.
-    "memory_size": 5,       //  ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
+    "model": "Tacotron2",          // one of the model in models/    
+    "grad_clip": 1,                // upper limit for gradients for clipping.
+    "epochs": 1000,                // total number of epochs to train.
+    "lr": 0.0002,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_decay": false,             // if true, Noam learning rate decaying is applied through training.
+    "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
+    "windowing": false,            // Enables attention windowing. Used only in eval mode.
+    "memory_size": 5,              // ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
     "attention_norm": "softmax",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
-    "prenet_type": "bn",    // ONLY TACOTRON2 - "original" or "bn".
-    "prenet_dropout": true, // ONLY TACOTRON2 - enable/disable dropout at prenet. 
-    "use_forward_attn": true,    // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
-    "transition_agent": false,    // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
-    "location_attn": false,      // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
-    "loss_masking": false,       // enable / disable loss masking against the sequence padding.
+    "prenet_type": "original",     // ONLY TACOTRON2 - "original" or "bn".
+    "prenet_dropout": true,        // ONLY TACOTRON2 - enable/disable dropout at prenet. 
+    "use_forward_attn": false,     // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
+    "transition_agent": false,     // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
+    "location_attn": false,        // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+    "loss_masking": false,         // enable / disable loss masking against the sequence padding.
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
+    "stopnet": false,              // Train stopnet predicting the end of synthesis. 
+    "separate_stopnet": false,     // train stopnet seperately. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
 
     "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
     "eval_batch_size":16,   
