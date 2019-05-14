@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from utils.generic_utils import load_config
 from utils.audio import AudioProcessor
 from datasets import TTSDataset
-from datasets.preprocess import ljspeech, tts_cache
+from datasets.preprocess import ljspeech
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(file_path, "outputs/loader_tests/")
@@ -16,15 +16,11 @@ c = load_config(os.path.join(file_path, 'test_config.json'))
 ok_ljspeech = os.path.exists(c.data_path)
 
 DATA_EXIST = True
-CACHE_EXIST = True
-if not os.path.exists(c.data_path_cache):
-    CACHE_EXIST = False
-
 if not os.path.exists(c.data_path):
     DATA_EXIST = False
 
 print(" > Dynamic data loader test: {}".format(DATA_EXIST))
-print(" > Cache data loader test: {}".format(CACHE_EXIST))
+
 
 class TestTTSDataset(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -126,8 +122,9 @@ class TestTTSDataset(unittest.TestCase):
                 wav = self.ap.load_wav(item_idx[0])
                 mel = self.ap.melspectrogram(wav)
                 mel_dl = mel_input[0].cpu().numpy()
-                assert (
-                    abs(mel.T).astype("float32") - abs(mel_dl[:-1])).sum() == 0
+                assert (abs(mel.T).astype("float32")
+                        - abs(mel_dl[:-1])
+                        ).sum() == 0
 
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()
@@ -139,7 +136,8 @@ class TestTTSDataset(unittest.TestCase):
                 linear_spec = linear_input[0].cpu().numpy()
                 wav = self.ap.inv_spectrogram(linear_spec.T)
                 self.ap.save_wav(wav, OUTPATH + '/linear_inv_dataloader.wav')
-                shutil.copy(item_idx[0], OUTPATH + '/linear_target_dataloader.wav')
+                shutil.copy(item_idx[0],
+                            OUTPATH + '/linear_target_dataloader.wav')
 
                 # check the last time step to be zero padded
                 assert linear_input[0, -1].sum() == 0
