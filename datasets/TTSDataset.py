@@ -42,8 +42,6 @@ class MyDataset(Dataset):
             min_seq_len (int): (0) minimum sequence length to be processed 
                 by the loader.
             max_seq_len (int): (float("inf")) maximum sequence length.
-            cached (bool): (false) true if the given data path is created 
-                by extract_features.py.
             use_phonemes (bool): (true) if true, text converted to phonemes.
             phoneme_cache_path (str): path to cache phoneme features. 
             phoneme_language (str): one the languages from 
@@ -73,7 +71,6 @@ class MyDataset(Dataset):
             print(" | > Use phonemes: {}".format(self.use_phonemes))
             if use_phonemes:
                 print("   | > phoneme language: {}".format(phoneme_language))
-            print(" | > Cached dataset: {}".format(self.cached))
             print(" | > Number of instances : {}".format(len(self.items)))
         self.sort_items()
 
