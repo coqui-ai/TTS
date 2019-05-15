@@ -115,7 +115,6 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
     state = {
         'model': new_state_dict,
         'optimizer': optimizer.state_dict(),
-        'optimizer_st': optimizer_st.state_dict(),
         'step': current_step,
         'epoch': epoch,
         'linear_loss': model_loss,
