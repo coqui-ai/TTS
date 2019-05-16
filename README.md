@@ -76,7 +76,7 @@ Example datasets, we successfully applied TTS, are linked below.
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
-- [TWEB](http://https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)
+- [TWEB](https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)
 - [M-AI-Labs](http://www.caito.de/2019/01/the-m-ailabs-speech-dataset/)
 
 ## Training and Fine-tuning LJ-Speech
