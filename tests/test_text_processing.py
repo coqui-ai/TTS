@@ -57,6 +57,15 @@ def test_phoneme_to_sequence():
     print(len(sequence))
     assert text_hat == gt
 
+    # padding char
+    text = "_Be a _voice, not an! echo_"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == gt
+
 
 def test_text2phone():
     text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"

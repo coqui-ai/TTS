@@ -302,13 +302,14 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, in_features, memory_dim, r, memory_size,
-                 attn_windowing, attn_norm):
+                 attn_windowing, attn_norm, separate_stopnet):
         super(Decoder, self).__init__()
         self.r = r
         self.in_features = in_features
         self.max_decoder_steps = 500
         self.memory_size = memory_size if memory_size > 0 else r
         self.memory_dim = memory_dim
+        self.separate_stopnet = separate_stopnet
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(
             memory_dim * self.memory_size, out_features=[256, 128])
@@ -415,7 +416,10 @@ class Decoder(nn.Module):
         # predict stop token
         stopnet_input = torch.cat([decoder_output, output], -1)
         del decoder_output
-        stop_token = self.stopnet(stopnet_input)
+        if self.separate_stopnet:
+            stop_token = self.stopnet(stopnet_input.detach())
+        else:
+            stop_token = self.stopnet(stopnet_input)
         return output, stop_token, self.attention
 
     def _update_memory_queue(self, new_memory):

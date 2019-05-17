@@ -253,7 +253,8 @@ def setup_model(num_chars, c):
             r=c.r,
             attn_win=c.windowing,
             attn_norm=c.attention_norm,
-            memory_size=c.memory_size)
+            memory_size=c.memory_size,
+            separate_stopnet=c.separate_stopnet)
     elif c.model.lower() == "tacotron2":
         model = MyModel(
             num_chars=num_chars,
@@ -264,5 +265,6 @@ def setup_model(num_chars, c):
             prenet_dropout=c.prenet_dropout,
             forward_attn=c.use_forward_attn,
             trans_agent=c.transition_agent,
-            location_attn=c.location_attn)
+            location_attn=c.location_attn,
+            separate_stopnet=c.separate_stopnet)
     return model
