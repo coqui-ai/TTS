@@ -136,8 +136,8 @@ def _arpabet_to_sequence(text):
 
 
 def _should_keep_symbol(s):
-    return s in _symbol_to_id and s is not '_' and s is not '~'
+    return s in _symbol_to_id and s not in ['~', '^', '_']
 
 
 def _should_keep_phoneme(p):
-    return p in _phonemes_to_id and p is not '_' and p is not '~'
+    return p in _phonemes_to_id and p not in ['~', '^', '_']

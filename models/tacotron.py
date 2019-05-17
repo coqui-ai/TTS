@@ -15,7 +15,8 @@ class Tacotron(nn.Module):
                  padding_idx=None,
                  memory_size=5,
                  attn_win=False,
-                 attn_norm="sigmoid"):
+                 attn_norm="sigmoid",
+                 separate_stopnet=True):
         super(Tacotron, self).__init__()
         self.r = r
         self.mel_dim = mel_dim
@@ -23,7 +24,8 @@ class Tacotron(nn.Module):
         self.embedding = nn.Embedding(num_chars, 256, padding_idx=padding_idx)
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(256)
-        self.decoder = Decoder(256, mel_dim, r, memory_size, attn_win, attn_norm)
+        self.decoder = Decoder(256, mel_dim, r, memory_size, attn_win,
+                               attn_norm, separate_stopnet)
         self.postnet = PostCBHG(mel_dim)
         self.last_linear = nn.Sequential(
             nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),

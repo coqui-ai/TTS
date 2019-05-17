@@ -141,11 +141,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         if not c.separate_stopnet and c.stopnet:
             loss += stop_loss
 
-        # backpass and check the grad norm for spec losses
-        if c.separate_stopnet:
-            loss.backward(retain_graph=True)
-        else:
-            loss.backward()
+        loss.backward()
         optimizer, current_lr = weight_decay(optimizer, c.wd)
         grad_norm, _ = check_update(model, c.grad_clip)
         optimizer.step()
