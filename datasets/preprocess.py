@@ -29,7 +29,7 @@ def tweb(root_path, meta_file):
 #     return  {'text': texts, 'wavs': wavs}
 
 
-def mozilla(root_path, meta_file):
+def mozilla_old(root_path, meta_file):
     """Normalizes Mozilla meta data files to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -40,6 +40,20 @@ def mozilla(root_path, meta_file):
             wav_folder = "batch{}".format(batch_no)
             wav_file = os.path.join(root_path, wav_folder, "wavs_no_processing", cols[1].strip())
             text = cols[0].strip()
+            items.append([text, wav_file])
+    return items
+
+
+def mozilla(root_path, meta_file):
+    """Normalizes Mozilla meta data files to TTS format"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    with open(txt_file, 'r') as ttf:
+        for line in ttf:
+            cols = line.split('|')
+            wav_file = cols[1].strip()
+            text = cols[0].strip()
+            wav_file = os.path.join(root_path, "wavs", wav_file)
             items.append([text, wav_file])
     return items
 
