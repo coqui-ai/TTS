@@ -4,12 +4,12 @@ yes | apt-get install ffmpeg
 yes | apt-get install espeak 
 yes | apt-get install tmux
 yes | apt-get install zsh
-pip3 install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
+pip3 install https://download.pytorch.org/whl/cu100/torch-1.1.0-cp37-cp37m-linux_x86_64.whl
 # wget https://www.dropbox.com/s/m8waow6b3ydpf6h/MozillaDataset.tar.gz?dl=0 -O /data/rw/home/mozilla.tar
 wget https://www.dropbox.com/s/wqn5v3wkktw9lmo/install.sh?dl=0 -O install.sh
 sudo sh install.sh
 python3 setup.py develop
-cp ${USER_DIR}/Mozilla_22050
-python3 distribute.py --config_path config_cluster.json  --data_path ${USER_DIR}/MozillaAll2/Mozilla/
+cp -R ${USER_DIR}/Mozilla_22050 ../tmp/
+python3 distribute.py --config_path config_cluster.json  --data_path ../tmp/Mozilla_22050
 # python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/mozilla/Judy/
-# while true; do sleep 1000000; done
+while true; do sleep 1000000; done
