@@ -62,10 +62,10 @@
     
         "run_eval": true,
         "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
-        "data_path": "/media/erogol/data_ssd/Data/LJSpeech-1.1",  // DATASET-RELATED: can overwritten from command argument
-        "meta_file_train": "metadata_train.csv",      // DATASET-RELATED: metafile for training dataloader.
-        "meta_file_val": "metadata_val.csv",    // DATASET-RELATED: metafile for evaluation dataloader.
-        "dataset": "ljspeech",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
+        "data_path": "/media/erogol/data_ssd/Data/Mozilla/",  // DATASET-RELATED: can overwritten from command argument
+        "meta_file_train": "metadata_train.txt",      // DATASET-RELATED: metafile for training dataloader.
+        "meta_file_val": "metadata_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.
+        "dataset": "mozilla",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
         "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
         "max_seq_len": 150,     // DATASET-RELATED: maximum text length
         "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
