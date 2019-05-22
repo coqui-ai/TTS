@@ -83,6 +83,7 @@ setup(
         # "lws",
         "tqdm",
         "phonemizer",
+        "soundfile",
     ],
     dependency_links=[
         'http://github.com/bootphon/phonemizer/tarball/master#egg=phonemizer'
