@@ -222,7 +222,11 @@ class Attention(nn.Module):
         # force incremental alignment
         if not self.training:
             val, n = prev_alpha.max(1)
-            alignment[:, n+2 :] = 0
+            if alignment.shape[0] == 1:
+                alignment[:, n+2:] = 0
+            else:
+                for b in range(alignment.shape[0]):
+                    alignment[b, n[b]+2:]
         alpha = (((1 - self.u) * self.alpha.clone().to(inputs.device) +
                   self.u * prev_alpha) + 1e-8) * alignment
         self.alpha = alpha / alpha.sum(dim=1).unsqueeze(1)
