@@ -2,38 +2,39 @@
 import torch
 from torch import nn
 from .attention import AttentionRNNCell
+from .common_layers import Prenet
 
 
-class Prenet(nn.Module):
-    r""" Prenet as explained at https://arxiv.org/abs/1703.10135.
-    It creates as many layers as given by 'out_features'
+# class Prenet(nn.Module):
+#     r""" Prenet as explained at https://arxiv.org/abs/1703.10135.
+#     It creates as many layers as given by 'out_features'
 
-    Args:
-        in_features (int): size of the input vector
-        out_features (int or list): size of each output sample.
-            If it is a list, for each value, there is created a new layer.
-    """
+#     Args:
+#         in_features (int): size of the input vector
+#         out_features (int or list): size of each output sample.
+#             If it is a list, for each value, there is created a new layer.
+#     """
 
-    def __init__(self, in_features, out_features=[256, 128]):
-        super(Prenet, self).__init__()
-        in_features = [in_features] + out_features[:-1]
-        self.layers = nn.ModuleList([
-            nn.Linear(in_size, out_size)
-            for (in_size, out_size) in zip(in_features, out_features)
-        ])
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
-        # self.init_layers()
+#     def __init__(self, in_features, out_features=[256, 128]):
+#         super(Prenet, self).__init__()
+#         in_features = [in_features] + out_features[:-1]
+#         self.layers = nn.ModuleList([
+#             nn.Linear(in_size, out_size)
+#             for (in_size, out_size) in zip(in_features, out_features)
+#         ])
+#         self.relu = nn.ReLU()
+#         self.dropout = nn.Dropout(0.5)
+#         # self.init_layers()
 
-    def init_layers(self):
-        for layer in self.layers:
-            torch.nn.init.xavier_uniform_(
-                layer.weight, gain=torch.nn.init.calculate_gain('relu'))
+#     def init_layers(self):
+#         for layer in self.layers:
+#             torch.nn.init.xavier_uniform_(
+#                 layer.weight, gain=torch.nn.init.calculate_gain('relu'))
 
-    def forward(self, inputs):
-        for linear in self.layers:
-            inputs = self.dropout(self.relu(linear(inputs)))
-        return inputs
+#     def forward(self, inputs):
+#         for linear in self.layers:
+#             inputs = self.dropout(self.relu(linear(inputs)))
+#         return inputs
 
 
 class BatchNormConv1d(nn.Module):
@@ -301,8 +302,9 @@ class Decoder(nn.Module):
         memory_size (int): size of the past window. if <= 0 memory_size = r
     """
 
-    def __init__(self, in_features, memory_dim, r, memory_size,
-                 attn_windowing, attn_norm, separate_stopnet):
+    def __init__(self, in_features, memory_dim, r, memory_size, attn_windowing,
+                 attn_norm, prenet_type, prenet_dropout, forward_attn,
+                 trans_agent, location_attn, separate_stopnet):
         super(Decoder, self).__init__()
         self.r = r
         self.in_features = in_features
@@ -312,7 +314,10 @@ class Decoder(nn.Module):
         self.separate_stopnet = separate_stopnet
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(
-            memory_dim * self.memory_size, out_features=[256, 128])
+            memory_dim * self.memory_size,
+            prenet_type,
+            prenet_dropout,
+            out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
         self.attention_rnn = AttentionRNNCell(
             out_dim=128,
@@ -385,23 +390,22 @@ class Decoder(nn.Module):
         stop_tokens = torch.stack(stop_tokens).transpose(0, 1).squeeze(-1)
         return outputs, attentions, stop_tokens
 
-    def decode(self,
-               inputs,
-               t, 
-               mask=None):
+    def decode(self, inputs, t, mask=None):
         # Prenet
         processed_memory = self.prenet(self.memory_input)
         # Attention RNN
         attention_cat = torch.cat(
-            (self.attention.unsqueeze(1), self.attention_cum.unsqueeze(1)), dim=1)
+            (self.attention.unsqueeze(1), self.attention_cum.unsqueeze(1)),
+            dim=1)
         self.attention_rnn_hidden, self.current_context_vec, self.attention = self.attention_rnn(
-            processed_memory, self.current_context_vec, self.attention_rnn_hidden,
-            inputs, attention_cat, mask, t)
+            processed_memory, self.current_context_vec,
+            self.attention_rnn_hidden, inputs, attention_cat, mask, t)
         del attention_cat
         self.attention_cum += self.attention
         # Concat RNN output and attention context vector
         decoder_input = self.project_to_decoder_in(
-            torch.cat((self.attention_rnn_hidden, self.current_context_vec), -1))
+            torch.cat((self.attention_rnn_hidden, self.current_context_vec),
+                      -1))
         # Pass through the decoder RNNs
         for idx in range(len(self.decoder_rnns)):
             self.decoder_rnn_hiddens[idx] = self.decoder_rnns[idx](
@@ -427,7 +431,8 @@ class Decoder(nn.Module):
             self.memory_input = torch.cat([
                 self.memory_input[:, self.r * self.memory_dim:].clone(),
                 new_memory
-            ], dim=-1)
+            ],
+                                          dim=-1)
         else:
             self.memory_input = new_memory
 

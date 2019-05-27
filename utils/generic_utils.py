@@ -251,9 +251,16 @@ def setup_model(num_chars, c):
         model = MyModel(
             num_chars=num_chars,
             r=c.r,
+            linear_dim=1025,
+            mel_dim=80,
+            memory_size=c.memory_size,
             attn_win=c.windowing,
             attn_norm=c.attention_norm,
-            memory_size=c.memory_size,
+            prenet_type=c.prenet_type,
+            prenet_dropout=c.prenet_dropout,
+            forward_attn=c.use_forward_attn,
+            trans_agent=c.transition_agent,
+            location_attn=c.location_attn,
             separate_stopnet=c.separate_stopnet)
     elif c.model.lower() == "tacotron2":
         model = MyModel(

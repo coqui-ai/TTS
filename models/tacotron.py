@@ -9,23 +9,29 @@ from utils.generic_utils import sequence_mask
 class Tacotron(nn.Module):
     def __init__(self,
                  num_chars,
+                 r=5,
                  linear_dim=1025,
                  mel_dim=80,
-                 r=5,
-                 padding_idx=None,
                  memory_size=5,
                  attn_win=False,
                  attn_norm="sigmoid",
+                 prenet_type="original",
+                 prenet_dropout=True,
+                 forward_attn=False,
+                 trans_agent=False,
+                 location_attn=True,
                  separate_stopnet=True):
         super(Tacotron, self).__init__()
         self.r = r
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
-        self.embedding = nn.Embedding(num_chars, 256, padding_idx=padding_idx)
+        self.embedding = nn.Embedding(num_chars, 256)
         self.embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(256)
         self.decoder = Decoder(256, mel_dim, r, memory_size, attn_win,
-                               attn_norm, separate_stopnet)
+                               attn_norm, prenet_type, prenet_dropout,
+                               forward_attn, trans_agent, location_attn,
+                               separate_stopnet)
         self.postnet = PostCBHG(mel_dim)
         self.last_linear = nn.Sequential(
             nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),
