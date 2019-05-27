@@ -18,6 +18,11 @@ file_path = os.path.dirname(os.path.realpath(__file__))
 c = load_config(os.path.join(file_path, 'test_config.json'))
 
 
+def count_parameters(model):
+    r"""Count number of trainable parameters in a network"""
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 class TacotronTrainTest(unittest.TestCase):
     def test_train_step(self):
         input = torch.randint(0, 24, (8, 128)).long().to(device)
@@ -33,13 +38,19 @@ class TacotronTrainTest(unittest.TestCase):
 
         stop_targets = stop_targets.view(input.shape[0],
                                          stop_targets.size(1) // c.r, -1)
-        stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
+        stop_targets = (stop_targets.sum(2) >
+                        0.0).unsqueeze(2).float().squeeze()
 
         criterion = L1LossMasked().to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron(32, c.audio['num_freq'], c.audio['num_mels'],
-                         c.r, memory_size=c.memory_size).to(device)
+        model = Tacotron(
+            32,
+            linear_dim=c.audio['num_freq'],
+            mel_dim=c.audio['num_mels'],
+            r=c.r,
+            memory_size=c.memory_size).to(device)
         model.train()
+        print(" > Num parameters for Tacotron model:%s"%(count_parameters(model)))
         model_ref = copy.deepcopy(model)
         count = 0
         for param, param_ref in zip(model.parameters(),
