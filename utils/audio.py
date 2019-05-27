@@ -173,6 +173,14 @@ class AudioProcessor(object):
         else:
             return self._griffin_lim(S**self.power)
 
+    def out_linear_to_mel(self, linear_spec):
+        S = self._denormalize(linear_spec)
+        S = self._db_to_amp(S + self.ref_level_db)  
+        S = self._linear_to_mel(np.abs(S))
+        S = self._amp_to_db(S) - self.ref_level_db
+        mel = self._normalize(S)
+        return mel
+
     def _griffin_lim(self, S):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
         S_complex = np.abs(S).astype(np.complex)
