@@ -52,31 +52,34 @@ Check out [here](https://mycroft.ai/blog/available-voices/#the-human-voice-is-th
 |[Tacotron2-iter-260K](https://drive.google.com/open?id=1FJRjGDAqWIyZRX4CsppaIPEW8UWXCWzF)|LJSpeech|[824c091](https://github.com/mozilla/TTS/tree/824c091)|[soundcloud](https://soundcloud.com/user-565970875/ljspeech-logistic-wavernn)|[link](https://github.com/mozilla/TTS/issues/153)|
 
 ## Example Model Outputs
-Below you see model state after 16K iterations with batch-size 32.
+Below you see Tacotron model state after 16K iterations with batch-size 32 with LJSpeech dataset.
 
 > "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase the grey matter in the parts of the brain responsible for emotional regulation and learning."
 
-Audio output: [https://soundcloud.com/user-565970875/iter16k-f48c3b](https://soundcloud.com/user-565970875/iter16k-f48c3b)
+Audio examples: [https://soundcloud.com/user-565970875](https://soundcloud.com/user-565970875)
 
 ![example_model_output](images/example_model_output.png?raw=true)
 
 ## Runtime
-The most time-consuming part is the vocoder algorithm (Griffin-Lim) which runs on CPU. By setting its number of iterations, you might have faster execution with a small loss of quality. Some of the experimental values are below.
+The most time-consuming part is the vocoder algorithm (Griffin-Lim) which runs on CPU. By setting its number of iterations lower, you might have faster execution with a small loss of quality. Some of the experimental values are below.
 
 Sentence: "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent."
 
 Audio length is approximately 6 secs.
 
-| Time (secs) | System | # GL iters |
-| ---- |:-------|:-----------|
-|2.00|GTX1080Ti|30|
-|3.01|GTX1080Ti|60|
+| Time (secs) | System | # GL iters | Model
+| ---- |:-------|:-----------| ---- |
+|2.00|GTX1080Ti|30|Tacotron|
+|3.01|GTX1080Ti|60|Tacotron|
+|3.57|CPU|60|Tacotron|
+|5.27|GTX1080Ti|60|Tacotron2|
+|6.50|CPU|60|Tacotron2|
 
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloder easy to use for new datasets. You need to write an adaptor to format and that's all you need.Check ```datasets/preprocess.py``` to see example adaptors. After you wrote an adaptor, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields.  
+TTS provides a generic dataloder easy to use for new datasets. You need to write an preprocessor function to integrade your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.  
 
-Example datasets, we successfully applied TTS, are linked below.
+Some of the open-sourced datasets that we successfully applied TTS, are linked below.
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
@@ -84,9 +87,9 @@ Example datasets, we successfully applied TTS, are linked below.
 - [M-AI-Labs](http://www.caito.de/2019/01/the-m-ailabs-speech-dataset/)
 
 ## Training and Fine-tuning LJ-Speech
-[Click Here](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) for hands-on **Notebook example**, training LJSpeech.
+Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below. 
 
-Split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that having a validation split does not work well as oppose to other ML problems since at the validation time model generates spectrogram slices without "Teacher-Forcing" and that leads misalignment between the ground-truth and the prediction. Therefore, validation loss does not really show the model performance. Rather, you might use all data for training and check the model performance by relying on human inspection.
+To start with, split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that for text-to-speech, validation performance might be misleading since the loss value does not directly measure the voice quality to the human ear and it also does not measure the attention module performance. Therefore, running the model with new sentences and listenning the results is the best way to go. 
 
 ```
 shuf metadata.csv > metadata_shuf.csv
@@ -110,7 +113,7 @@ Each run creates a new output folder and ```config.json``` is copied under this 
 
 In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
-You can also enjoy Tensorboard,  if you point the Tensorboard argument```--logdir``` to the experiment folder.
+You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Testing
 Best way to test your network is to use Notebooks under ```notebooks``` folder.
@@ -122,9 +125,8 @@ Best way to test your network is to use Notebooks under ```notebooks``` folder.
 
 - [Issues](https://github.com/mozilla/TTS/issues) - Finally, if all else fails, you can open an issue in our repo.
 
-## What is new with TTS
+<!--## What is new with TTS
 If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character-based methods up to our knowledge. Out implementation is also quite robust against long sentences.
-
 - Location sensitive attention ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention is a vital part of text2speech models. Therefore, it is important to use an attention mechanism that suits the diagonal nature of the problem where the output strictly aligns with the text monotonically. Location sensitive attention performs better by looking into the previous alignment vectors and learns diagonal attention more easily. Yet, I believe there is a good space for research at this front to find a better solution.
 - Attention smoothing with sigmoid ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention weights are computed by normalized sigmoid values instead of softmax for sharper values. That enables the model to pick multiple highly scored inputs for alignments while reducing the noise.
 - Weight decay ([ref](http://www.fast.ai/2018/07/02/adam-weight-decay/)). After a certain point of the training, you might observe the model over-fitting. That is, the model is able to pronounce words probably better but the quality of the speech quality gets lower and sometimes attention alignment gets disoriented.
@@ -133,12 +135,11 @@ If you train TTS with LJSpeech dataset, you start to hear reasonable results aft
 - Phoneme based training is enabled for easier learning and robust pronunciation. It also makes easier to adapt TTS to the most languages without worrying about language specific characters.
 - Configurable attention windowing at inference-time for robust alignment. It enforces network to only consider a certain window of encoder steps per iteration.
 - Detailed Tensorboard stats for activation, weight and gradient values per layer. It is useful to detect defects and compare networks.
-- Constant history window. Instead of using only the last frame of predictions, define a constant history queue. It enables training with gradually decreasing prediction frame (r=5 --> r=1) by only changing the last layer. For instance, you can train the model with r=5 and then fine-tune it with r=1 without any performance loss. It also solves well-known PreNet problem [#50](https://github.com/mozilla/TTS/issues/50). 
+- Constant history window. Instead of using only the last frame of predictions, define a constant history queue. It enables training with gradually decreasing prediction frame (r=5 -> r=1) by only changing the last layer. For instance, you can train the model with r=5 and then fine-tune it with r=1 without any performance loss. It also solves well-known PreNet problem [#50](https://github.com/mozilla/TTS/issues/50). 
 - Initialization of hidden decoder states with Embedding layers instead of zero initialization. 
-
 One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the performance, given the increase in the model size.
-
 Please feel free to offer new changes and pull things off. We are happy to discuss and make things better.
+-->
 
 ## Major TODOs
 - [x] Implement the model.
@@ -148,8 +149,9 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - [x] Enable process based distributed training. Similar to (https://github.com/fastai/imagenet-fast/).
 - [x] Adapting Neural Vocoder. TTS works with (https://github.com/erogol/WaveRNN)
 - [ ] Multi-speaker embedding.
+- [ ] Model optimization (model export, prunning etc.)
 
-## References
+<!--## References
 - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1802.08435.pdf)
 - [Attention-Based models for speech recognition](https://arxiv.org/pdf/1506.07503.pdf)
 - [Generating Sequences With Recurrent Neural Networks](https://arxiv.org/pdf/1308.0850.pdf)
@@ -158,6 +160,7 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - [WaveRNN](https://arxiv.org/pdf/1802.08435.pdf)
 - [Faster WaveNet](https://arxiv.org/abs/1611.09482)
 - [Parallel WaveNet](https://arxiv.org/abs/1711.10433)
+-->
 
 ### Precursor implementations
 - https://github.com/keithito/tacotron (Dataset and Test processing)
