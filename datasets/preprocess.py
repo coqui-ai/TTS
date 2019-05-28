@@ -60,8 +60,8 @@ def mozilla(root_path, meta_file):
 
 def mailabs(root_path, meta_files):
     """Normalizes M-AI-Labs meta data files to TTS format"""
-    folders = [os.path.dirname(f.strip()) for f in meta_files.split(",")]
-    meta_files = [f.strip() for f in meta_files.split(",")]
+    folders = [os.path.dirname(f.strip()) for f in meta_files]
+    # meta_files = [f.strip() for f in meta_files.split(",")]
     items = []
     for idx, meta_file in enumerate(meta_files):
         print(" | > {}".format(meta_file))
