@@ -61,6 +61,7 @@
         "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
     
         "run_eval": false,
+        "test_sentences_file": "de_sentences.txt",  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
         "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
         "data_path": "/media/erogol/data_ssd/Data/Mozilla/",  // DATASET-RELATED: can overwritten from command argument
         "meta_file_train": [

@@ -62,6 +62,7 @@
     
         "run_eval": true,
         "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
+        "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
         "data_path": "/media/erogol/data_ssd/Data/Mozilla/",  // DATASET-RELATED: can overwritten from command argument
         "meta_file_train": "metadata_train.txt",      // DATASET-RELATED: metafile for training dataloader.
         "meta_file_val": "metadata_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.
