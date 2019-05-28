@@ -113,7 +113,7 @@ class Decoder(nn.Module):
 
         self.prenet = Prenet(self.mel_channels * r, prenet_type,
                              prenet_dropout,
-                             [self.prenet_dim, self.prenet_dim])
+                             [self.prenet_dim, self.prenet_dim], bias=False)
 
         self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
                                          self.attention_rnn_dim)

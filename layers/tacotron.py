@@ -454,7 +454,7 @@ class Decoder(nn.Module):
             if t > 0:
                 new_memory = outputs[-1]
                 self._update_memory_queue(new_memory)
-            output, stop_token, attention = self.decode(inputs, t, None)
+            output, stop_token, attention = self.decode(inputs, None)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [output]
             attentions += [attention]
