@@ -1,7 +1,13 @@
 {
-    "model_path":"/home/erogol/projects/runs/2579/keep/November-04-2018_06+19PM-TTS-master-_tmp-debug/",
-    "model_name":"best_model.pth.tar",
-    "model_config":"config.json",
+    "tts_path":"/media/erogol/data_ssd/Data/models/ljspeech_models/ljspeech-April-08-2019_07+32PM-8a47b46/",  // tts model root folder
+    "tts_file":"checkpoint_261000.pth.tar",     // tts checkpoint file
+    "tts_config":"config.json",     // tts config.json file
+    "wavernn_lib_path": "/home/erogol/projects/",   // Rootpath to wavernn project folder to be important. If this is none, model uses GL for speech synthesis.
+    "wavernn_path":"/media/erogol/data_ssd/Data/models/wavernn/ljspeech/mold_ljspeech_best_model/",  // wavernn model root path
+    "wavernn_file":"checkpoint_433000.pth.tar", // wavernn checkpoint file name
+    "wavernn_config":"config.json", // wavernn config file
+    "is_wavernn_batched":true, 
     "port": 5002,
-    "use_cuda": true
+    "use_cuda": true,
+    "debug": true
 }

@@ -30,22 +30,23 @@ def plot_spectrogram(linear_output, audio):
     return fig
 
 
-def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CONFIG, spectrogram=None):
+def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CONFIG, spectrogram=None, output_path=None):
     if spectrogram is not None:
         num_plot = 4
     else:
         num_plot = 3
 
     label_fontsize = 16
-    plt.figure(figsize=(16, 48))
+    fig = plt.figure(figsize=(8, 24))
 
     plt.subplot(num_plot, 1, 1)
     plt.imshow(alignment.T, aspect="auto", origin="lower", interpolation=None)
     plt.xlabel("Decoder timestamp", fontsize=label_fontsize)
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
     if CONFIG.use_phonemes:
-        seq = phoneme_to_sequence(text, [CONFIG.text_cleaner], CONFIG.phoneme_language)
+        seq = phoneme_to_sequence(text, [CONFIG.text_cleaner], CONFIG.phoneme_language, CONFIG.enable_eos_bos_chars)
         text = sequence_to_phoneme(seq)
+        print(text)
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
     
@@ -69,3 +70,8 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
         plt.ylabel("Hz", fontsize=label_fontsize)
         plt.tight_layout()
         plt.colorbar()
+    
+    if output_path:
+        print(output_path)
+        fig.savefig(output_path)
+        plt.close()

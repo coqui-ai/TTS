@@ -23,6 +23,7 @@ class L1LossMasked(nn.Module):
             loss: An average loss value masked by the length.
         """
         # mask: (batch, max_len, 1)
+        target.requires_grad = False
         mask = sequence_mask(
             sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
         mask = mask.expand_as(input)
@@ -50,22 +51,13 @@ class MSELossMasked(nn.Module):
         Returns:
             loss: An average loss value masked by the length.
         """
-        input = input.contiguous()
-        target = target.contiguous()
-
-        # logits_flat: (batch * max_len, dim)
-        input = input.view(-1, input.shape[-1])
-        # target_flat: (batch * max_len, dim)
-        target_flat = target.view(-1, target.shape[-1])
-        # losses_flat: (batch * max_len, dim)
-        losses_flat = functional.mse_loss(
-            input, target_flat, size_average=False, reduce=False)
-        # losses: (batch, max_len, dim)
-        losses = losses_flat.view(*target.size())
-
         # mask: (batch, max_len, 1)
+        target.requires_grad = False
         mask = sequence_mask(
-            sequence_length=length, max_len=target.size(1)).unsqueeze(2)
-        losses = losses * mask.float()
-        loss = losses.sum() / (length.float().sum() * float(target.shape[2]))
+            sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
+        mask = mask.expand_as(input)
+        loss = functional.mse_loss(
+            input * mask, target * mask, reduction="sum")
+        loss = loss / mask.sum()
         return loss
+

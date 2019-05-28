@@ -131,7 +131,7 @@ def main(args):
     Call train.py as a new process and pass command arguments
     """
     CONFIG = load_config(args.config_path)
-    OUT_PATH = create_experiment_folder(CONFIG.output_path, CONFIG.model_name,
+    OUT_PATH = create_experiment_folder(CONFIG.output_path, CONFIG.run_name,
                                         True)
     stdout_path = os.path.join(OUT_PATH, "process_stdout/")
 

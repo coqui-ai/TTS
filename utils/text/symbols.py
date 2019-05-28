@@ -8,6 +8,7 @@ through Unidecode. For other data, you can modify _characters. See TRAINING_DATA
 
 _pad = '_'
 _eos = '~'
+_bos = '^'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _punctuations = '!\'(),-.:;? '
 _phoneme_punctuations = '.!;:,?'
@@ -25,8 +26,12 @@ _phonemes = sorted(list(_vowels + _non_pulmonic_consonants + _pulmonic_consonant
 _arpabet = ['@' + s for s in _phonemes]
 
 # Export all symbols:
-symbols = [_pad, _eos] + list(_characters) + _arpabet
-phonemes = [_pad, _eos] + _phonemes + list(_punctuations)
+symbols = [_pad, _eos, _bos] + list(_characters) + _arpabet
+phonemes = [_pad, _eos, _bos] + list(_phonemes) + list(_punctuations)
+
+# Generate ALIEN language
+# from random import shuffle
+# shuffle(phonemes)
 
 if __name__ == '__main__':
     print(" > TTS symbols {}".format(len(symbols)))
