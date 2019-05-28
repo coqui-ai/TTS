@@ -8,6 +8,5 @@ matplotlib==2.0.2
 Pillow
 flask
 scipy==0.19.0
-lws
 tqdm
 git+git://github.com/bootphon/phonemizer@master
