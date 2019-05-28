@@ -1,7 +1,16 @@
 #!/bin/bash
-ls ${SHARED_DIR}/data/keithito
-pip3 install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
+yes | apt-get install sox
+yes | apt-get install ffmpeg
 yes | apt-get install espeak 
+yes | apt-get install tmux
+yes | apt-get install zsh
+pip3 install https://download.pytorch.org/whl/cu100/torch-1.1.0-cp37-cp37m-linux_x86_64.whl
+# wget https://www.dropbox.com/s/m8waow6b3ydpf6h/MozillaDataset.tar.gz?dl=0 -O /data/rw/home/mozilla.tar
+wget https://www.dropbox.com/s/wqn5v3wkktw9lmo/install.sh?dl=0 -O install.sh
+sudo sh install.sh
 python3 setup.py develop
-# python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/keithito/LJSpeech-1.1/  --restore_path ${USER_DIR}/best_model.pth.tar
-python3 train.py --config_path config.json  --data_path ${SHARED_DIR}/data/keithito/LJSpeech-1.1/ --output_path ../keep/  --restore_path ${USER_DIR}/best_model_by_tilman.pth.tar
+# cp -R ${USER_DIR}/Mozilla_22050 ../tmp/
+cp -R ${USER_DIR}/GermanData ../tmp/
+python3 distribute.py --config_path config_tacotron.json  --data_path ../tmp/GermanData/karlsson/
+# python3 distribute.py --config_path config_cluster.json  --data_path ${SHARED_DIR}/data/mozilla/Judy/
+while true; do sleep 1000000; done

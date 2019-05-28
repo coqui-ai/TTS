@@ -8,6 +8,7 @@ import datetime
 import json
 import torch
 import subprocess
+import importlib
 import numpy as np
 from collections import OrderedDict
 from torch.autograd import Variable
@@ -31,6 +32,12 @@ def load_config(config_path):
     return config
 
 
+def get_git_branch():
+    out = subprocess.check_output(["git", "branch"]).decode("utf8")
+    current = next(line for line in out.split("\n") if line.startswith("*"))
+    return current.replace("* ", "")
+
+
 def get_commit_hash():
     """https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script"""
     # try:
@@ -48,10 +55,10 @@ def get_commit_hash():
 def create_experiment_folder(root_path, model_name, debug):
     """ Create a folder with the current date and time """
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
-    if debug:
-        commit_hash = 'debug'
-    else:
-        commit_hash = get_commit_hash()
+    # if debug:
+    # commit_hash = 'debug'
+    # else:
+    commit_hash = get_commit_hash()
     output_folder = os.path.join(
         root_path, model_name + '-' + date_str + '-' + commit_hash)
     os.makedirs(output_folder, exist_ok=True)
@@ -71,10 +78,19 @@ def remove_experiment_folder(experiment_path):
         print(" ! Run is kept in {}".format(experiment_path))
 
 
-def copy_config_file(config_file, path):
+def copy_config_file(config_file, out_path, new_fields):
     config_name = os.path.basename(config_file)
-    out_path = os.path.join(path, config_name)
-    shutil.copyfile(config_file, out_path)
+    config_lines = open(config_file, "r").readlines()
+    # add extra information fields
+    for key, value in new_fields.items():
+        if type(value) == str:
+            new_line = '"{}":"{}",\n'.format(key, value)
+        else:
+            new_line = '"{}":{},\n'.format(key, value)
+        config_lines.insert(1, new_line)
+    config_out_file = open(out_path, "w")
+    config_out_file.writelines(config_lines)
+    config_out_file.close()
 
 
 def _trim_model_state_dict(state_dict):
@@ -99,7 +115,6 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
     state = {
         'model': new_state_dict,
         'optimizer': optimizer.state_dict(),
-        'optimizer_st': optimizer_st.state_dict(),
         'step': current_step,
         'epoch': epoch,
         'linear_loss': model_loss,
@@ -191,7 +206,72 @@ def sequence_mask(sequence_length, max_len=None):
     seq_range_expand = seq_range.unsqueeze(0).expand(batch_size, max_len)
     if sequence_length.is_cuda:
         seq_range_expand = seq_range_expand.cuda()
-    seq_length_expand = (sequence_length.unsqueeze(1)
-                         .expand_as(seq_range_expand))
+    seq_length_expand = (
+        sequence_length.unsqueeze(1).expand_as(seq_range_expand))
     # B x T_max
     return seq_range_expand < seq_length_expand
+
+
+def set_init_dict(model_dict, checkpoint, c):
+    # Partial initialization: if there is a mismatch with new and old layer, it is skipped.
+    for k, v in checkpoint['model'].items():
+        if k not in model_dict:
+            print(" | > Layer missing in the model definition: {}".format(k))
+    # 1. filter out unnecessary keys
+    pretrained_dict = {
+        k: v
+        for k, v in checkpoint['model'].items() if k in model_dict
+    }
+    # 2. filter out different size layers
+    pretrained_dict = {
+        k: v
+        for k, v in pretrained_dict.items()
+        if v.numel() == model_dict[k].numel()
+    }
+    # 3. skip reinit layers
+    if c.reinit_layers is not None:
+        for reinit_layer_name in c.reinit_layers:
+            pretrained_dict = {
+                k: v
+                for k, v in pretrained_dict.items()
+                if reinit_layer_name not in k
+            }
+    # 4. overwrite entries in the existing state dict
+    model_dict.update(pretrained_dict)
+    print(" | > {} / {} layers are restored.".format(
+        len(pretrained_dict), len(model_dict)))
+    return model_dict
+
+
+def setup_model(num_chars, c):
+    print(" > Using model: {}".format(c.model))
+    MyModel = importlib.import_module('models.' + c.model.lower())
+    MyModel = getattr(MyModel, c.model)
+    if c.model.lower() == "tacotron":
+        model = MyModel(
+            num_chars=num_chars,
+            r=c.r,
+            linear_dim=1025,
+            mel_dim=80,
+            memory_size=c.memory_size,
+            attn_win=c.windowing,
+            attn_norm=c.attention_norm,
+            prenet_type=c.prenet_type,
+            prenet_dropout=c.prenet_dropout,
+            forward_attn=c.use_forward_attn,
+            trans_agent=c.transition_agent,
+            location_attn=c.location_attn,
+            separate_stopnet=c.separate_stopnet)
+    elif c.model.lower() == "tacotron2":
+        model = MyModel(
+            num_chars=num_chars,
+            r=c.r,
+            attn_win=c.windowing,
+            attn_norm=c.attention_norm,
+            prenet_type=c.prenet_type,
+            prenet_dropout=c.prenet_dropout,
+            forward_attn=c.use_forward_attn,
+            trans_agent=c.transition_agent,
+            location_attn=c.location_attn,
+            separate_stopnet=c.separate_stopnet)
+    return model

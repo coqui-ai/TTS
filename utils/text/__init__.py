@@ -17,7 +17,7 @@ _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 # Regular expression matchinf punctuations, ignoring empty space
-pat = r'['+_phoneme_punctuations[:-1]+']+'
+pat = r'['+_phoneme_punctuations+']+'
 
 
 def text2phone(text, language):
@@ -28,32 +28,39 @@ def text2phone(text, language):
     #try:
     punctuations = re.findall(pat, text)
     ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
+    ph = ph[:-1].strip() # skip the last empty character
     # Replace \n with matching punctuations.
     if len(punctuations) > 0:
-        for punct in punctuations[:-1]:
-             ph = ph.replace('| |\n', '|'+punct+'| |', 1)
-        try:
-             ph = ph[:-1] + punctuations[-1]
-        except:
-             print(text)
+        # if text ends with a punctuation.
+        if text[-1] == punctuations[-1]:
+            for punct in punctuations[:-1]:
+                ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+            try:
+                ph = ph + punctuations[-1]
+            except:
+                print(text)
+        else:
+            for punct in punctuations:
+                ph = ph.replace('| |\n', '|'+punct+'| |', 1)
     return ph
 
 
-def phoneme_to_sequence(text, cleaner_names, language):
-    '''
-    TODO: This ignores punctuations
-    '''
-    sequence = []
+def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
+    if enable_eos_bos:
+        sequence = [_phonemes_to_id['^']]
+    else:
+        sequence = []
+    text = text.replace(":", "")
     clean_text = _clean_text(text, cleaner_names)
     phonemes = text2phone(clean_text, language)
-#     print(phonemes.replace('|', ''))
     if phonemes is None:
         print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
-    for phoneme in phonemes.split('|'):
-        # print(word, ' -- ', phonemes_text)
+    # iterate by skipping empty strings - NOTE: might be useful to keep it to have a better intonation.
+    for phoneme in filter(None, phonemes.split('|')):
         sequence += _phoneme_to_sequence(phoneme)
     # Append EOS char
-    sequence.append(_phonemes_to_id['~'])
+    if enable_eos_bos:
+        sequence.append(_phonemes_to_id['~'])
     return sequence
 
 
@@ -81,7 +88,6 @@ def text_to_sequence(text, cleaner_names):
         List of integers corresponding to the symbols in the text
     '''
     sequence = []
-
     # Check for curly braces and treat their contents as ARPAbet:
     while len(text):
         m = _curly_re.match(text)
@@ -92,9 +98,6 @@ def text_to_sequence(text, cleaner_names):
             _clean_text(m.group(1), cleaner_names))
         sequence += _arpabet_to_sequence(m.group(2))
         text = m.group(3)
-
-    # Append EOS token
-    sequence.append(_symbol_to_id['~'])
     return sequence
 
 
@@ -133,8 +136,8 @@ def _arpabet_to_sequence(text):
 
 
 def _should_keep_symbol(s):
-    return s in _symbol_to_id and s is not '_' and s is not '~'
+    return s in _symbol_to_id and s not in ['~', '^', '_']
 
 
 def _should_keep_phoneme(p):
-    return p in _phonemes_to_id and p is not '_' and p is not '~'
+    return p in _phonemes_to_id and p not in ['~', '^', '_']

@@ -38,18 +38,16 @@ class CBHGTests(unittest.TestCase):
 
 class DecoderTests(unittest.TestCase):
     def test_in_out(self):
-        layer = Decoder(in_features=256, memory_dim=80, r=2, memory_size=4, attn_windowing=False)
+        layer = Decoder(in_features=256, memory_dim=80, r=2, memory_size=4, attn_windowing=False, attn_norm="sigmoid")
         dummy_input = T.rand(4, 8, 256)
         dummy_memory = T.rand(4, 2, 80)
 
-        output, alignment, stop_tokens = layer(dummy_input, dummy_memory)
+        output, alignment, stop_tokens = layer(dummy_input, dummy_memory, mask=None)
 
         assert output.shape[0] == 4
         assert output.shape[1] == 1, "size not {}".format(output.shape[1])
         assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
         assert stop_tokens.shape[0] == 4
-        assert stop_tokens.max() <= 1.0
-        assert stop_tokens.min() >= 0
 
 
 class EncoderTests(unittest.TestCase):

@@ -22,10 +22,10 @@ class MyDataset(Dataset):
                  batch_group_size=0,
                  min_seq_len=0,
                  max_seq_len=float("inf"),
-                 cached=False,
                  use_phonemes=True,
                  phoneme_cache_path=None,
                  phoneme_language="en-us",
+                 enable_eos_bos=False,
                  verbose=False):
         """
         Args:
@@ -42,12 +42,11 @@ class MyDataset(Dataset):
             min_seq_len (int): (0) minimum sequence length to be processed 
                 by the loader.
             max_seq_len (int): (float("inf")) maximum sequence length.
-            cached (bool): (false) true if the given data path is created 
-                by extract_features.py.
             use_phonemes (bool): (true) if true, text converted to phonemes.
             phoneme_cache_path (str): path to cache phoneme features. 
             phoneme_language (str): one the languages from 
                 https://github.com/bootphon/phonemizer#languages
+            enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
             verbose (bool): print diagnostic information.
         """
         self.root_path = root_path
@@ -59,10 +58,10 @@ class MyDataset(Dataset):
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
-        self.cached = cached
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
+        self.enable_eos_bos = enable_eos_bos
         self.verbose = verbose
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
@@ -72,16 +71,12 @@ class MyDataset(Dataset):
             print(" | > Use phonemes: {}".format(self.use_phonemes))
             if use_phonemes:
                 print("   | > phoneme language: {}".format(phoneme_language))
-            print(" | > Cached dataset: {}".format(self.cached))
             print(" | > Number of instances : {}".format(len(self.items)))
         self.sort_items()
 
     def load_wav(self, filename):
-        try:
-            audio = self.ap.load_wav(filename)
-            return audio
-        except RuntimeError as e:
-            print(" !! Cannot read file : {}".format(filename))
+        audio = self.ap.load_wav(filename)
+        return audio
 
     def load_np(self, filename):
         data = np.load(filename).astype('float32')
@@ -89,7 +84,8 @@ class MyDataset(Dataset):
 
     def load_phoneme_sequence(self, wav_file, text):
         file_name = os.path.basename(wav_file).split('.')[0]
-        tmp_path = os.path.join(self.phoneme_cache_path, file_name+'_phoneme.npy')
+        tmp_path = os.path.join(self.phoneme_cache_path,
+                                file_name + '_phoneme.npy')
         if os.path.isfile(tmp_path):
             try:
                 text = np.load(tmp_path)
@@ -97,40 +93,35 @@ class MyDataset(Dataset):
                 print(" > ERROR: phoneme connot be loaded for {}. Recomputing.".format(wav_file))
                 text = np.asarray(
                     phoneme_to_sequence(
-                        text, [self.cleaners], language=self.phoneme_language),
+                        text, [self.cleaners], language=self.phoneme_language, enable_eos_bos=self.enable_eos_bos),
                     dtype=np.int32)
                 np.save(tmp_path, text)
         else:
             text = np.asarray(
-                phoneme_to_sequence(text, [self.cleaners], language=self.phoneme_language), dtype=np.int32)
+                phoneme_to_sequence(
+                    text, [self.cleaners], language=self.phoneme_language, enable_eos_bos=self.enable_eos_bos),
+                dtype=np.int32)
             np.save(tmp_path, text)
         return text
 
     def load_data(self, idx):
-        if self.cached:
-            wav_name = self.items[idx][1]
-            mel_name = self.items[idx][2]
-            linear_name = self.items[idx][3]
-            text = self.items[idx][0]
-            
-            if wav_name.split('.')[-1] == 'npy':
-                wav = self.load_np(wav_name)
-            else:
-                wav = np.asarray(self.load_wav(wav_name), dtype=np.float32)
-            mel = self.load_np(mel_name)
-            linear = self.load_np(linear_name)
-        else:
-            text, wav_file = self.items[idx]
-            wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
-            mel = None
-            linear = None
-        
+        text, wav_file = self.items[idx]
+        wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
+
         if self.use_phonemes:
             text = self.load_phoneme_sequence(wav_file, text)
-        else: 
+        else:
             text = np.asarray(
                 text_to_sequence(text, [self.cleaners]), dtype=np.int32)
-        sample = {'text': text, 'wav': wav, 'item_idx': self.items[idx][1], 'mel':mel, 'linear': linear}
+
+        assert text.size > 0, self.items[idx][1]
+        assert wav.size > 0, self.items[idx][1]
+
+        sample = {
+            'text': text,
+            'wav': wav,
+            'item_idx': self.items[idx][1]
+        }
         return sample
 
     def sort_items(self):
@@ -151,9 +142,9 @@ class MyDataset(Dataset):
             for i in range(len(new_items) // self.batch_group_size):
                 offset = i * self.batch_group_size
                 end_offset = offset + self.batch_group_size
-                temp_items = new_items[offset : end_offset]
+                temp_items = new_items[offset:end_offset]
                 random.shuffle(temp_items)
-                new_items[offset : end_offset] = temp_items
+                new_items[offset:end_offset] = temp_items
         self.items = new_items
 
         if self.verbose:
@@ -181,22 +172,20 @@ class MyDataset(Dataset):
 
         # Puts each data field into a tensor with outer dimension batch size
         if isinstance(batch[0], collections.Mapping):
-            keys = list()
 
-            wav = [d['wav'] for d in batch]
-            item_idxs = [d['item_idx'] for d in batch]
-            text = [d['text'] for d in batch]
+            text_lenghts = np.array([len(d["text"]) for d in batch])
+            text_lenghts, ids_sorted_decreasing = torch.sort(
+                torch.LongTensor(text_lenghts), dim=0, descending=True)
 
-            text_lenghts = np.array([len(x) for x in text])
-            max_text_len = np.max(text_lenghts)
+            wav = [batch[idx]['wav'] for idx in ids_sorted_decreasing]
+            item_idxs = [
+                batch[idx]['item_idx'] for idx in ids_sorted_decreasing
+            ]
+            text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
 
-            # if specs are not computed, compute them.
-            if batch[0]['mel'] is None and batch[0]['linear'] is None:
-                mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
-                linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
-            else:
-                mel = [d['mel'] for d in batch]
-                linear = [d['linear'] for d in batch]
+            mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
+            linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
+
             mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
 
             # compute 'stop token' targets

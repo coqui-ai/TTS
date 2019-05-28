@@ -1,12 +1,12 @@
 {
-        "run_name": "mozilla-no-loc-fattn-stopnet-sigmoid-loss_masking",
-        "run_description": "using forward attention, with original prenet, loss masking,separate stopnet, sigmoid. Compare this with 4817. Pytorch DPP",
+        "run_name": "german-tacotron-tagent",
+        "run_description": "using forward attention with transition agent, with original prenet, loss masking, separate stopnet, sigmoid norm. First run German data.",
     
         "audio":{
             // Audio processing parameters
             "num_mels": 80,         // size of the mel spec frame. 
             "num_freq": 1025,       // number of stft frequency levels. Size of the linear spectogram frame.
-            "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+            "sample_rate": 16000,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
             "frame_length_ms": 50,  // stft window length in ms.
             "frame_shift_ms": 12.5, // stft window hop-lengh in ms.
             "preemphasis": 0.98,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
@@ -31,7 +31,7 @@
     
         "reinit_layers": [],
     
-        "model": "Tacotron2",          // one of the model in models/    
+        "model": "Tacotron",          // one of the model in models/    
         "grad_clip": 1,                // upper limit for gradients for clipping.
         "epochs": 1000,                // total number of epochs to train.
         "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
@@ -53,28 +53,42 @@
         
         "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
         "eval_batch_size":16,   
-        "r": 1,                 // Number of frames to predict for step.
+        "r": 5,                 // Number of frames to predict for step.
         "wd": 0.000001,         // Weight decay weight.
         "checkpoint": true,     // If true, it saves checkpoints per "save_step"
         "save_step": 1000,      // Number of training steps expected to save traning stats and checkpoints.
         "print_step": 10,       // Number of steps to log traning on console.
         "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
     
-        "run_eval": true,
+        "run_eval": false,
+        "test_sentences_file": "de_sentences.txt",  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
         "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
-        "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
         "data_path": "/media/erogol/data_ssd/Data/Mozilla/",  // DATASET-RELATED: can overwritten from command argument
-        "meta_file_train": "metadata_train.txt",      // DATASET-RELATED: metafile for training dataloader.
+        "meta_file_train": [
+                            "kleinzaches/metadata.csv",
+                            "spiegel_kaetzchen/metadata.csv",
+                            "herrnarnesschatz/metadata.csv",
+                            "maedchen_von_moorhof/metadata.csv",
+                            "koenigsgaukler/metadata.csv",
+                            "altehous/metadata.csv",
+                            "odysseus/metadata.csv",
+                            "undine/metadata.csv",
+                            "reise_tilsit/metadata.csv",
+                            "schmied_seines_glueckes/metadata.csv",
+                            "kammmacher/metadata.csv",
+                            "unterm_birnbaum/metadata.csv",
+                            "liebesbriefe/metadata.csv",
+                            "sandmann/metadata.csv"],      // DATASET-RELATED: metafile for training dataloader.
         "meta_file_val": "metadata_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.
-        "dataset": "mozilla",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
+        "dataset": "mailabs",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
         "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
         "max_seq_len": 150,     // DATASET-RELATED: maximum text length
         "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
         "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
         "num_val_loader_workers": 4,    // number of evaluation data loader processes.
-        "phoneme_cache_path": "mozilla_us_phonemes",  // phoneme computation is slow, therefore, it caches results in the given folder.
+        "phoneme_cache_path": "phoneme_cache",  // phoneme computation is slow, therefore, it caches results in the given folder.
         "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
-        "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
+        "phoneme_language": "de",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
         "text_cleaner": "phoneme_cleaners"
     }
     

@@ -11,10 +11,7 @@ args = parser.parse_args()
 
 config = load_config(args.config_path)
 app = Flask(__name__)
-synthesizer = Synthesizer()
-synthesizer.load_model(config.model_path, config.model_name,
-                       config.model_config, config.use_cuda)
-
+synthesizer = Synthesizer(config)
 
 @app.route('/')
 def index():
@@ -30,4 +27,4 @@ def tts():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=config.port)
+    app.run(debug=config.debug, host='0.0.0.0', port=config.port)
