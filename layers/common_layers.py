@@ -207,7 +207,6 @@ class Attention(nn.Module):
         if not self.training and self.forward_attn_mask:
             _, n = prev_alpha.max(1)
             val, n2 = alpha.max(1)
-            print(True)
             for b in range(alignment.shape[0]):
                 alpha[b, n[b] + 2:] = 0
                 alpha[b, :(n[b] - 1)] = 0  # ignore all previous states to prevent repetition.
