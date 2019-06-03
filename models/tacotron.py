@@ -19,6 +19,7 @@ class Tacotron(nn.Module):
                  prenet_dropout=True,
                  forward_attn=False,
                  trans_agent=False,
+                 forward_attn_mask=False,
                  location_attn=True,
                  separate_stopnet=True):
         super(Tacotron, self).__init__()
@@ -30,8 +31,8 @@ class Tacotron(nn.Module):
         self.encoder = Encoder(256)
         self.decoder = Decoder(256, mel_dim, r, memory_size, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
-                               forward_attn, trans_agent, location_attn,
-                               separate_stopnet)
+                               forward_attn, trans_agent, forward_attn_mask,
+                               location_attn, separate_stopnet)
         self.postnet = PostCBHG(mel_dim)
         self.last_linear = nn.Sequential(
             nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),

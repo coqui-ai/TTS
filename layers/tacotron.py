@@ -271,7 +271,7 @@ class Decoder(nn.Module):
 
     def __init__(self, in_features, memory_dim, r, memory_size, attn_windowing,
                  attn_norm, prenet_type, prenet_dropout, forward_attn,
-                 trans_agent, location_attn, separate_stopnet):
+                 trans_agent, forward_attn_mask, location_attn, separate_stopnet):
         super(Decoder, self).__init__()
         self.r = r
         self.in_features = in_features
@@ -296,7 +296,8 @@ class Decoder(nn.Module):
                                        windowing=attn_windowing,
                                        norm=attn_norm,
                                        forward_attn=forward_attn,
-                                       trans_agent=trans_agent)
+                                       trans_agent=trans_agent,
+                                       forward_attn_mask=forward_attn_mask)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state

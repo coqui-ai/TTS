@@ -37,7 +37,6 @@
         "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
         "lr_decay": false,             // if true, Noam learning rate decaying is applied through training.
         "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
-        "windowing": false,            // Enables attention windowing. Used only in eval mode.
         "memory_size": 5,              // ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
         "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
         "prenet_type": "original",     // ONLY TACOTRON2 - "original" or "bn".
@@ -45,11 +44,14 @@
         "use_forward_attn": true,      // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
         "transition_agent": false,     // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
         "location_attn": false,        // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
-        "loss_masking": true,         // enable / disable loss masking against the sequence padding.
+        "loss_masking": true,          // enable / disable loss masking against the sequence padding.
         "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
         "stopnet": true,               // Train stopnet predicting the end of synthesis. 
-        "separate_stopnet": true,     // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
+        "separate_stopnet": true,      // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
         "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
+
+        "windowing": false,             // Enables attention windowing. Used only in eval mode.
+        "forward_attn_masking": false,  // Enable forward attention masking which improves attention stability. Use it if network does not work as you like when it is off.        
         
         "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
         "eval_batch_size":16,   
