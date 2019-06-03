@@ -1,6 +1,6 @@
 {
-        "run_name": "mozilla-tacotron-tagent",
-        "run_description": "using forward attention with transition agent, with original prenet, loss masking, separate stopnet, sigmoid norm. Compare this with 4841",
+        "run_name": "mozilla-tacotron-tagent-bn",
+        "run_description": "finetune 4845 with bn prenet.",
     
         "audio":{
             // Audio processing parameters
@@ -40,7 +40,7 @@
         "windowing": false,            // Enables attention windowing. Used only in eval mode.
         "memory_size": 5,              // ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
         "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
-        "prenet_type": "original",     // ONLY TACOTRON2 - "original" or "bn".
+        "prenet_type": "bn",     // ONLY TACOTRON2 - "original" or "bn".
         "prenet_dropout": true,        // ONLY TACOTRON2 - enable/disable dropout at prenet. 
         "use_forward_attn": true,      // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
         "transition_agent": true,     // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
@@ -62,6 +62,7 @@
     
         "run_eval": true,
         "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
+        "test_sentences_file": null, 
         "data_path": "/media/erogol/data_ssd/Data/Mozilla/",  // DATASET-RELATED: can overwritten from command argument
         "meta_file_train": "metadata_train.txt",      // DATASET-RELATED: metafile for training dataloader.
         "meta_file_val": "metadata_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.

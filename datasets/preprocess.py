@@ -1,4 +1,5 @@
 import os
+from glob import glob
 
 
 def tweb(root_path, meta_file):
@@ -60,6 +61,8 @@ def mozilla(root_path, meta_file):
 
 def mailabs(root_path, meta_files):
     """Normalizes M-AI-Labs meta data files to TTS format"""
+    if meta_files is None:
+        meta_files = glob(root_path+"/**/metadata.csv", recursive=True)
     folders = [os.path.dirname(f.strip()) for f in meta_files]
     # meta_files = [f.strip() for f in meta_files.split(",")]
     items = []

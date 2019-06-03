@@ -1,6 +1,6 @@
 {
-        "run_name": "german-tacotron-tagent",
-        "run_description": "using forward attention with transition agent, with original prenet, loss masking, separate stopnet, sigmoid norm. First run German data.",
+        "run_name": "german-tacotron-tagent-bn",
+        "run_description": "train german",
     
         "audio":{
             // Audio processing parameters
@@ -65,25 +65,16 @@
         "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
         "data_path": "/media/erogol/data_ssd/Data/Mozilla/",  // DATASET-RELATED: can overwritten from command argument
         "meta_file_train": [
-                            "kleinzaches/metadata.csv",
-                            "spiegel_kaetzchen/metadata.csv",
-                            "herrnarnesschatz/metadata.csv",
-                            "maedchen_von_moorhof/metadata.csv",
-                            "koenigsgaukler/metadata.csv",
-                            "altehous/metadata.csv",
-                            "odysseus/metadata.csv",
-                            "undine/metadata.csv",
-                            "reise_tilsit/metadata.csv",
-                            "schmied_seines_glueckes/metadata.csv",
-                            "kammmacher/metadata.csv",
-                            "unterm_birnbaum/metadata.csv",
-                            "liebesbriefe/metadata.csv",
-                            "sandmann/metadata.csv"],      // DATASET-RELATED: metafile for training dataloader.
+                            "grune_haus/metadata.csv",
+                            "kleine_lord/metadata.csv",
+                            "toten_seelen/metadata.csv",
+                            "werde_die_du_bist/metadata.csv"
+                            ],      // DATASET-RELATED: metafile for training dataloader.
         "meta_file_val": "metadata_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.
         "dataset": "mailabs",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
         "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
-        "max_seq_len": 150,     // DATASET-RELATED: maximum text length
-        "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
+        "max_seq_len": 200,     // DATASET-RELATED: maximum text length
+        "output_path": "/media/erogol/data_ssd/Data/models/german/",      // DATASET-RELATED: output path for all training outputs.
         "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
         "num_val_loader_workers": 4,    // number of evaluation data loader processes.
         "phoneme_cache_path": "phoneme_cache",  // phoneme computation is slow, therefore, it caches results in the given folder.
