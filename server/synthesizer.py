@@ -138,16 +138,10 @@ class Synthesizer(object):
                 continue
             sen = sen.strip()
             print(sen)
-<<<<<<< HEAD
-            sen = sen.strip()
-
-            seq = np.array(self.input_adapter(sen))
-=======
 
             seq = np.array(self.input_adapter(sen))
             text_hat = sequence_to_phoneme(seq)
             print(text_hat)
->>>>>>> dev-tacotron2
 
             chars_var = torch.from_numpy(seq).unsqueeze(0).long()
 
@@ -155,10 +149,6 @@ class Synthesizer(object):
                 chars_var = chars_var.cuda()
             decoder_out, postnet_out, alignments, stop_tokens = self.tts_model.inference(
                 chars_var)
-<<<<<<< HEAD
-            linear_out = linear_out[0].data.cpu().numpy()
-            wav = self.ap.inv_spectrogram(linear_out.T)
-=======
             postnet_out = postnet_out[0].data.cpu().numpy()
             if self.tts_config.model == "Tacotron":
                 wav = self.ap.inv_spectrogram(postnet_out.T)
@@ -167,7 +157,6 @@ class Synthesizer(object):
                     wav = self.wavernn.generate(torch.FloatTensor(postnet_out.T).unsqueeze(0).cuda(), batched=self.config.is_wavernn_batched, target=11000, overlap=550)
                 else:
                     wav = self.ap.inv_mel_spectrogram(postnet_out.T)
->>>>>>> dev-tacotron2
             wavs += list(wav)
             wavs += [0] * 10000
 
