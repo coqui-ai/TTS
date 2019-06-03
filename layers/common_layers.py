@@ -108,7 +108,7 @@ class Attention(nn.Module):
     def __init__(self, attention_rnn_dim, embedding_dim, attention_dim,
                  location_attention, attention_location_n_filters,
                  attention_location_kernel_size, windowing, norm, forward_attn,
-                 trans_agent):
+                 trans_agent, forward_attn_mask):
         super(Attention, self).__init__()
         self.query_layer = Linear(
             attention_rnn_dim, attention_dim, bias=False, init_gain='tanh')
@@ -128,6 +128,7 @@ class Attention(nn.Module):
         self.norm = norm
         self.forward_attn = forward_attn
         self.trans_agent = trans_agent
+        self.forward_attn_mask = forward_attn_mask
         self.location_attention = location_attention
 
     def init_win_idx(self):
@@ -203,9 +204,10 @@ class Attention(nn.Module):
         alpha = (((1 - self.u) * self.alpha.clone().to(inputs.device) +
                   self.u * prev_alpha) + 1e-8) * alignment
         # force incremental alignment - TODO: make configurable
-        if not self.training:
+        if not self.training and self.forward_attn_mask:
             _, n = prev_alpha.max(1)
             val, n2 = alpha.max(1)
+            print(True)
             for b in range(alignment.shape[0]):
                 alpha[b, n[b] + 2:] = 0
                 alpha[b, :(n[b] - 1)] = 0  # ignore all previous states to prevent repetition.

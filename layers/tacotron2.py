@@ -97,7 +97,7 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, in_features, inputs_dim, r, attn_win, attn_norm,
                  prenet_type, prenet_dropout, forward_attn, trans_agent,
-                 location_attn, separate_stopnet):
+                 forward_attn_mask, location_attn, separate_stopnet):
         super(Decoder, self).__init__()
         self.mel_channels = inputs_dim
         self.r = r
@@ -118,9 +118,17 @@ class Decoder(nn.Module):
         self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
                                          self.attention_rnn_dim)
 
-        self.attention_layer = Attention(self.attention_rnn_dim, in_features,
-                                         128, location_attn, 32, 31, attn_win,
-                                         attn_norm, forward_attn, trans_agent)
+        self.attention_layer = Attention(attention_rnn_dim=self.attention_rnn_dim, 
+                                         embedding_dim=in_features,
+                                         attention_dim=128, 
+                                         location_attention=location_attn, 
+                                         attention_location_n_filters=32,
+                                         attention_location_kernel_size=31,
+                                         windowing=attn_win,
+                                         norm=attn_norm, 
+                                         forward_attn=forward_attn, 
+                                         trans_agent=trans_agent,
+                                         forward_attn_mask=forward_attn_mask)
 
         self.decoder_rnn = nn.LSTMCell(self.attention_rnn_dim + in_features,
                                        self.decoder_rnn_dim, 1)
