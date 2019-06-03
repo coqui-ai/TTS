@@ -243,7 +243,7 @@ class AudioProcessor(object):
         if self.do_trim_silence:
             x = self.trim_silence(x)
         # sr, x = io.wavfile.read(filename)
-        assert self.sample_rate == sr
+        assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
         return x
 
     def encode_16bits(self, x):
