@@ -260,6 +260,7 @@ def setup_model(num_chars, c):
             prenet_dropout=c.prenet_dropout,
             forward_attn=c.use_forward_attn,
             trans_agent=c.transition_agent,
+            forward_attn_mask=c.forward_attn_mask,
             location_attn=c.location_attn,
             separate_stopnet=c.separate_stopnet)
     elif c.model.lower() == "tacotron2":
@@ -272,6 +273,7 @@ def setup_model(num_chars, c):
             prenet_dropout=c.prenet_dropout,
             forward_attn=c.use_forward_attn,
             trans_agent=c.transition_agent,
+            forward_attn_mask=c.forward_attn_mask,
             location_attn=c.location_attn,
             separate_stopnet=c.separate_stopnet)
     return model
