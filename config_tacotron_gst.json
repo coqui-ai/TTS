@@ -1,6 +1,6 @@
 {
         "run_name": "mozilla-tacotron-gst",
-        "run_description": "",
+        "run_description": "GST with single speaker",
     
         "audio":{
             // Audio processing parameters
