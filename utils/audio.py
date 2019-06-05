@@ -10,7 +10,6 @@ from scipy import signal, io
 
 class AudioProcessor(object):
     def __init__(self,
-                 bits=None,
                  sample_rate=None,
                  num_mels=None,
                  min_level_db=None,
@@ -32,7 +31,6 @@ class AudioProcessor(object):
 
         print(" > Setting up Audio Processor...")
 
-        self.bits = bits
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db
@@ -218,25 +216,29 @@ class AudioProcessor(object):
         return librosa.effects.trim(
             wav, top_db=40, frame_length=1024, hop_length=256)[0]
 
-    # WaveRNN repo specific functions
-    # def mulaw_encode(self, wav, qc):
-    #     mu = qc - 1
-    #     wav_abs = np.minimum(np.abs(wav), 1.0)
-    #     magnitude = np.log(1 + mu * wav_abs) / np.log(1. + mu)
-    #     signal = np.sign(wav) * magnitude
-    #     # Quantize signal to the specified number of levels.
-    #     signal = (signal + 1) / 2 * mu + 0.5
-    #     return signal.astype(np.int32)
+    def mulaw_encode(self, wav, qc):
+        mu = 2 ** qc - 1
+        # wav_abs = np.minimum(np.abs(wav), 1.0)
+        signal = np.sign(wav) * np.log(1 + mu * np.abs(wav)) / np.log(1. + mu)
+        # Quantize signal to the specified number of levels.
+        signal = (signal + 1) / 2 * mu + 0.5
+        return np.floor(signal,)
 
-    # def mulaw_decode(self, wav, qc):
-    #     """Recovers waveform from quantized values."""
-    #     mu = qc - 1
-    #     # Map values back to [-1, 1].
-    #     casted = wav.astype(np.float32)
-    #     signal = 2 * (casted / mu) - 1
-    #     # Perform inverse of mu-law transformation.
-    #     magnitude = (1 / mu) * ((1 + mu) ** abs(signal) - 1)
-    #     return np.sign(signal) * magnitude
+    @staticmethod
+    def mulaw_decode(wav, qc):
+        """Recovers waveform from quantized values."""
+        # from IPython.core.debugger import set_trace
+        # set_trace()
+        mu = 2 ** qc - 1
+        x = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
+        return x
+        # mu = 2 ** qc - 1.
+        # # Map values back to [-1, 1].
+        # # casted = wav.astype(np.float32)
+        # # signal = 2 * casted / mu - 1
+        # # Perform inverse of mu-law transformation.
+        # magnitude = (1 / mu) * ((1 + mu) ** abs(wav) - 1)
+        # return np.sign(wav) * magnitude
 
     def load_wav(self, filename, encode=False):
         x, sr = sf.read(filename)
@@ -249,8 +251,8 @@ class AudioProcessor(object):
     def encode_16bits(self, x):
         return np.clip(x * 2**15, -2**15, 2**15 - 1).astype(np.int16)
 
-    def quantize(self, x):
-        return (x + 1.) * (2**self.bits - 1) / 2
+    def quantize(self, x, bits):
+        return (x + 1.) * (2**bits - 1) / 2
 
-    def dequantize(self, x):
-        return 2 * x / (2**self.bits - 1) - 1
+    def dequantize(self, x, bits):
+        return 2 * x / (2**bits - 1) - 1

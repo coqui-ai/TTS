@@ -247,7 +247,7 @@ def setup_model(num_chars, c):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
-    if c.model.lower() == "tacotron":
+    if c.model.lower() in ["tacotron", "tacotrongst"]:
         model = MyModel(
             num_chars=num_chars,
             r=c.r,
