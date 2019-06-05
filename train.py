@@ -89,7 +89,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         # setup input data
         text_input = data[0]
         text_lengths = data[1]
-        linear_input = data[2] if c.model == "Tacotron" else None
+        linear_input = data[2] if c.model in ["Tacotron", "TacotronGST"] else None
         mel_input = data[3]
         mel_lengths = data[4]
         stop_targets = data[5]
@@ -116,7 +116,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             text_lengths = text_lengths.cuda(non_blocking=True)
             mel_input = mel_input.cuda(non_blocking=True)
             mel_lengths = mel_lengths.cuda(non_blocking=True)
-            linear_input = linear_input.cuda(non_blocking=True) if c.model == "Tacotron" else None
+            linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron", "TacotronGST"] else None
             stop_targets = stop_targets.cuda(non_blocking=True)
 
         # forward pass model
@@ -127,13 +127,13 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
         if c.loss_masking:
             decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
-            if c.model == "Tacotron":
+            if c.model in ["Tacotron", "TacotronGST"]:
                 postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
             else:
                 postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
         else:
             decoder_loss = criterion(decoder_output, mel_input)
-            if c.model == "Tacotron":
+            if c.model in ["Tacotron", "TacotronGST"]:
                 postnet_loss = criterion(postnet_output, linear_input)
             else:
                 postnet_loss = criterion(postnet_output, mel_input)
@@ -199,7 +199,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
                 # Diagnostic visualizations
                 const_spec = postnet_output[0].data.cpu().numpy()
-                gt_spec =  linear_input[0].data.cpu().numpy() if c.model == "Tacotron" else  mel_input[0].data.cpu().numpy()
+                gt_spec =  linear_input[0].data.cpu().numpy() if c.model in ["Tacotron", "TacotronGST"] else  mel_input[0].data.cpu().numpy()
                 align_img = alignments[0].data.cpu().numpy()
 
                 figures = {
@@ -210,7 +210,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                 tb_logger.tb_train_figures(current_step, figures)
 
                 # Sample audio
-                if c.model == "Tacotron":
+                if c.model in ["Tacotron", "TacotronGST"]:
                     train_audio = ap.inv_spectrogram(const_spec.T)
                 else:
                     train_audio = ap.inv_mel_spectrogram(const_spec.T)
@@ -273,7 +273,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 # setup input data
                 text_input = data[0]
                 text_lengths = data[1]
-                linear_input = data[2] if c.model == "Tacotron" else None
+                linear_input = data[2] if c.model in ["Tacotron", "TacotronGST"] else None
                 mel_input = data[3]
                 mel_lengths = data[4]
                 stop_targets = data[5]
@@ -289,7 +289,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                     text_input = text_input.cuda()
                     mel_input = mel_input.cuda()
                     mel_lengths = mel_lengths.cuda()
-                    linear_input = linear_input.cuda() if c.model == "Tacotron" else None
+                    linear_input = linear_input.cuda() if c.model in ["Tacotron", "TacotronGST"] else None
                     stop_targets = stop_targets.cuda()
 
                 # forward pass
@@ -300,13 +300,13 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
                 if c.loss_masking:
                     decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
-                    if c.model == "Tacotron":
+                    if c.model in ["Tacotron", "TacotronGST"]:
                         postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
                     else:
                         postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
                 else:
                     decoder_loss = criterion(decoder_output, mel_input)
-                    if c.model == "Tacotron":
+                    if c.model in ["Tacotron", "TacotronGST"]:
                         postnet_loss = criterion(postnet_output, linear_input)
                     else:
                         postnet_loss = criterion(postnet_output, mel_input)
@@ -339,7 +339,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 # Diagnostic visualizations
                 idx = np.random.randint(mel_input.shape[0])
                 const_spec = postnet_output[idx].data.cpu().numpy()
-                gt_spec = linear_input[idx].data.cpu().numpy() if c.model == "Tacotron" else  mel_input[idx].data.cpu().numpy()
+                gt_spec = linear_input[idx].data.cpu().numpy() if c.model in ["Tacotron", "TacotronGST"] else  mel_input[idx].data.cpu().numpy()
                 align_img = alignments[idx].data.cpu().numpy()
 
                 eval_figures = {
@@ -350,7 +350,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 tb_logger.tb_eval_figures(current_step, eval_figures)
 
                 # Sample audio
-                if c.model == "Tacotron":
+                if c.model in ["Tacotron", "TacotronGST"]:
                     eval_audio = ap.inv_spectrogram(const_spec.T)
                 else:
                     eval_audio = ap.inv_mel_spectrogram(const_spec.T)
@@ -410,9 +410,9 @@ def main(args):
         optimizer_st = None
 
     if c.loss_masking:
-        criterion = L1LossMasked() if c.model == "Tacotron" else MSELossMasked()
+        criterion = L1LossMasked() if c.model in ["Tacotron", "TacotronGST"] else MSELossMasked()
     else:
-        criterion = nn.L1Loss() if c.model == "Tacotron" else nn.MSELoss()
+        criterion = nn.L1Loss() if c.model in ["Tacotron", "TacotronGST"] else nn.MSELoss()
     criterion_st = nn.BCEWithLogitsLoss() if c.stopnet else None
 
     if args.restore_path:
