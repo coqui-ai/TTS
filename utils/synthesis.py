@@ -46,7 +46,7 @@ def synthesis(model, text, CONFIG, use_cuda, ap, truncated=False, enable_eos_bos
     decoder_output = decoder_output[0].data.cpu().numpy()
     alignment = alignments[0].cpu().data.numpy()
     # plot results
-    if CONFIG.model == "Tacotron":
+    if CONFIG.model in ["Tacotron", "TacotronGST"]:
         wav = ap.inv_spectrogram(postnet_output.T)
     else:
         wav = ap.inv_mel_spectrogram(postnet_output.T)
