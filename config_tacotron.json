@@ -1,6 +1,6 @@
 {
         "run_name": "mozilla-tacotron-tagent-bn",
-        "run_description": "finetune 4845 with bn prenet.",
+        "run_description": "compare the attention with gst model which does not align with the same config",
     
         "audio":{
             // Audio processing parameters
