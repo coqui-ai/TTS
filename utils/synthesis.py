@@ -8,7 +8,38 @@ from .visual import visualize
 from matplotlib import pylab as plt
 
 
-def synthesis(model, text, CONFIG, use_cuda, ap, truncated=False, enable_eos_bos_chars=False, trim_silence=False):
+def text_to_seqvec(text, CONFIG, use_cuda):
+    text_cleaner = [CONFIG.text_cleaner]
+    if CONFIG.use_phonemes:
+        seq = np.asarray(
+            phoneme_to_sequence(text, text_cleaner, CONFIG.phoneme_language, enable_eos_bos_chars),
+            dtype=np.int32)
+    else:
+        seq = np.asarray(text_to_sequence(text, text_cleaner), dtype=np.int32)
+    chars_var = torch.from_numpy(seq).unsqueeze(0)
+    if use_cuda:
+        chars_var = chars_var.cuda()
+    return chars_var.long()
+
+
+def compute_style_mel(style_wav, ap):
+    style_mel = torch.FloatTensor(ap.melspectrogram(ap.load_wav(style_wav))).unsqueeze(0)
+    return style_mel
+
+
+def run_model():
+    pass
+
+
+def parse_outputs():
+    pass
+
+
+def trim_silence():
+    pass
+
+
+def synthesis(model, text, CONFIG, use_cuda, ap, style_wav=None, truncated=False, enable_eos_bos_chars=False, trim_silence=False):
     """Synthesize voice for the given text.
 
         Args:
