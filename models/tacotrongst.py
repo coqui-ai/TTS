@@ -55,10 +55,14 @@ class TacotronGST(nn.Module):
         linear_outputs = self.last_linear(linear_outputs)
         return mel_outputs, linear_outputs, alignments, stop_tokens
 
-    def inference(self, characters):
+    def inference(self, characters, style_mel=None):
         B = characters.size(0)
         inputs = self.embedding(characters)
         encoder_outputs = self.encoder(inputs)
+        if style_mel is not None:
+            gst_outputs = self.gst(style_mel)
+            gst_outputs = gst_outputs.expand(-1, encoder_outputs.size(1), -1)
+            encoder_outputs = encoder_outputs + gst_outputs
         mel_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs)
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
