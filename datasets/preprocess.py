@@ -63,7 +63,9 @@ def mailabs(root_path, meta_files):
     """Normalizes M-AI-Labs meta data files to TTS format"""
     if meta_files is None:
         meta_files = glob(root_path+"/**/metadata.csv", recursive=True)
-    folders = [os.path.dirname(f.strip()) for f in meta_files]
+        folders = [f.strip().split("/")[-2] for f in meta_files]
+    else:
+        folders = [f.strip().split("by_book")[1][1:] for f in meta_files]
     # meta_files = [f.strip() for f in meta_files.split(",")]
     items = []
     for idx, meta_file in enumerate(meta_files):
@@ -73,13 +75,12 @@ def mailabs(root_path, meta_files):
         with open(txt_file, 'r') as ttf:
             for line in ttf:
                 cols = line.split('|')
-                wav_file = os.path.join(root_path, folder, 'wavs',
-                                        cols[0] + '.wav')
+                wav_file = os.path.join(root_path, folder.replace("metadata.csv", ""), 'wavs', cols[0] + '.wav')
                 if os.path.isfile(wav_file):
-                    text = cols[1]
+                    text = cols[1].strip()
                     items.append([text, wav_file])
                 else:
-                    continue
+                    raise RuntimeError("> File %s is not exist!"%(wav_file))
     return items
 
 

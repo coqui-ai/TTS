@@ -216,32 +216,23 @@ class AudioProcessor(object):
         return librosa.effects.trim(
             wav, top_db=40, frame_length=1024, hop_length=256)[0]
 
-    def mulaw_encode(self, wav, qc):
+    @staticmethod
+    def mulaw_encode(wav, qc):
         mu = 2 ** qc - 1
-        # wav_abs = np.minimum(np.abs(wav), 1.0)
         signal = np.sign(wav) * np.log(1 + mu * np.abs(wav)) / np.log(1. + mu)
-        # Quantize signal to the specified number of levels.
         signal = (signal + 1) / 2 * mu + 0.5
-        return np.floor(signal,)
+        return np.floor(signal)
 
     @staticmethod
     def mulaw_decode(wav, qc):
         """Recovers waveform from quantized values."""
-        # from IPython.core.debugger import set_trace
-        # set_trace()
         mu = 2 ** qc - 1
         x = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
         return x
-        # mu = 2 ** qc - 1.
-        # # Map values back to [-1, 1].
-        # # casted = wav.astype(np.float32)
-        # # signal = 2 * casted / mu - 1
-        # # Perform inverse of mu-law transformation.
-        # magnitude = (1 / mu) * ((1 + mu) ** abs(wav) - 1)
-        # return np.sign(wav) * magnitude
 
     def load_wav(self, filename, encode=False):
         x, sr = sf.read(filename)
+        # x, sr = librosa.load(filename, sr=self.sample_rate)
         if self.do_trim_silence:
             x = self.trim_silence(x)
         # sr, x = io.wavfile.read(filename)

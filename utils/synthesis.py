@@ -10,36 +10,73 @@ from matplotlib import pylab as plt
 
 def text_to_seqvec(text, CONFIG, use_cuda):
     text_cleaner = [CONFIG.text_cleaner]
+    # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
         seq = np.asarray(
-            phoneme_to_sequence(text, text_cleaner, CONFIG.phoneme_language, enable_eos_bos_chars),
+            phoneme_to_sequence(text, text_cleaner, CONFIG.phoneme_language,
+                                CONFIG.enable_eos_bos_chars),
             dtype=np.int32)
     else:
         seq = np.asarray(text_to_sequence(text, text_cleaner), dtype=np.int32)
+    # torch tensor
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
         chars_var = chars_var.cuda()
     return chars_var.long()
 
 
-def compute_style_mel(style_wav, ap):
-    style_mel = torch.FloatTensor(ap.melspectrogram(ap.load_wav(style_wav))).unsqueeze(0)
-    return style_mel
+def compute_style_mel(style_wav, ap, use_cuda):
+    print(style_wav)
+    style_mel = torch.FloatTensor(ap.melspectrogram(
+        ap.load_wav(style_wav))).unsqueeze(0)
+    if use_cuda:
+        return style_mel.cuda()
+    else:
+        return style_mel
 
 
-def run_model():
-    pass
+def run_model(model, inputs, CONFIG, truncated, style_mel=None):
+    if CONFIG.model == "TacotronGST" and style_mel is not None:
+        decoder_output, postnet_output, alignments, stop_tokens = model.inference(
+            inputs, style_mel)
+    else:
+        if truncated:
+            decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
+                inputs)
+        else:
+            decoder_output, postnet_output, alignments, stop_tokens = model.inference(
+                inputs)
+    return decoder_output, postnet_output, alignments, stop_tokens
 
 
-def parse_outputs():
-    pass
+def parse_outputs(postnet_output, decoder_output, alignments):
+    postnet_output = postnet_output[0].data.cpu().numpy()
+    decoder_output = decoder_output[0].data.cpu().numpy()
+    alignment = alignments[0].cpu().data.numpy()
+    return postnet_output, decoder_output, alignment
 
 
-def trim_silence():
-    pass
+def trim_silence(wav):
+    return wav[:ap.find_endpoint(wav)]
 
 
-def synthesis(model, text, CONFIG, use_cuda, ap, style_wav=None, truncated=False, enable_eos_bos_chars=False, trim_silence=False):
+def inv_spectrogram(postnet_output, ap, CONFIG):
+    if CONFIG.model in ["Tacotron", "TacotronGST"]:
+        wav = ap.inv_spectrogram(postnet_output.T)
+    else:
+        wav = ap.inv_mel_spectrogram(postnet_output.T)
+    return wav
+
+
+def synthesis(model,
+              text,
+              CONFIG,
+              use_cuda,
+              ap,
+              style_wav=None,
+              truncated=False,
+              enable_eos_bos_chars=False,
+              trim_silence=False):
     """Synthesize voice for the given text.
 
         Args:
@@ -57,38 +94,18 @@ def synthesis(model, text, CONFIG, use_cuda, ap, style_wav=None, truncated=False
     """
     # GST processing
     if CONFIG.model == "TacotronGST" and style_wav is not None:
-        style_mel = compute_style_mel(style_wav, ap)
-
+        style_mel = compute_style_mel(style_wav, ap, use_cuda)
     # preprocess the given text
-    text_cleaner = [CONFIG.text_cleaner]
-    if CONFIG.use_phonemes:
-        seq = np.asarray(
-            phoneme_to_sequence(text, text_cleaner, CONFIG.phoneme_language, enable_eos_bos_chars),
-            dtype=np.int32)
-    else:
-        seq = np.asarray(text_to_sequence(text, text_cleaner), dtype=np.int32)
-    chars_var = torch.from_numpy(seq).unsqueeze(0)
+    inputs = text_to_seqvec(text, CONFIG, use_cuda)
     # synthesize voice
-    if CONFIG.model == "TacotronGST" and style_wav is not None:
-        decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-            chars_var.long(), style_mel)
-    else:
-        if truncated:
-            decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
-                chars_var.long())
-        else:
-            decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-                chars_var.long())
+    decoder_output, postnet_output, alignments, stop_tokens = run_model(
+        model, inputs, CONFIG, truncated, style_mel)
     # convert outputs to numpy
-    postnet_output = postnet_output[0].data.cpu().numpy()
-    decoder_output = decoder_output[0].data.cpu().numpy()
-    alignment = alignments[0].cpu().data.numpy()
+    postnet_output, decoder_output, alignment = parse_outputs(
+        postnet_output, decoder_output, alignments)
     # plot results
-    if CONFIG.model in ["Tacotron", "TacotronGST"]:
-        wav = ap.inv_spectrogram(postnet_output.T)
-    else:
-        wav = ap.inv_mel_spectrogram(postnet_output.T)
+    wav = inv_spectrogram(postnet_output, ap, CONFIG)
     # trim silence
     if trim_silence:
-        wav = wav[:ap.find_endpoint(wav)]
+        wav = trim_silence(wav)
     return wav, alignment, decoder_output, postnet_output, stop_tokens
