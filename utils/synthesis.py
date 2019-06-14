@@ -93,6 +93,7 @@ def synthesis(model,
             trim_silence (bool): trim silence after synthesis.
     """
     # GST processing
+    style_mel = None
     if CONFIG.model == "TacotronGST" and style_wav is not None:
         style_mel = compute_style_mel(style_wav, ap, use_cuda)
     # preprocess the given text
