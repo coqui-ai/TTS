@@ -62,20 +62,24 @@ def mozilla(root_path, meta_file):
 def mailabs(root_path, meta_files):
     """Normalizes M-AI-Labs meta data files to TTS format"""
     if meta_files is None:
-        meta_files = glob(root_path+"/**/metadata.csv", recursive=True)
-        folders = [f.strip().split("/")[-2] for f in meta_files]
+        csv_files = glob(root_path+"/**/metadata.csv", recursive=True)
+        folders = [os.path.dirname(f) for f in csv_files]
     else:
-        folders = [f.strip().split("by_book")[1][1:] for f in meta_files]
+        csv_files = meta_files
+        folders = [f.strip().split("by_book")[1][1:] for f in csv_file]
     # meta_files = [f.strip() for f in meta_files.split(",")]
     items = []
-    for idx, meta_file in enumerate(meta_files):
-        print(" | > {}".format(meta_file))
+    for idx, csv_file in enumerate(csv_files):
+        print(" | > {}".format(csv_file))
         folder = folders[idx]
-        txt_file = os.path.join(root_path, meta_file)
+        txt_file = os.path.join(root_path, csv_file)
         with open(txt_file, 'r') as ttf:
             for line in ttf:
                 cols = line.split('|')
-                wav_file = os.path.join(root_path, folder.replace("metadata.csv", ""), 'wavs', cols[0] + '.wav')
+                if meta_files is None:
+                    wav_file = os.path.join(folder, 'wavs', cols[0] + '.wav')
+                else:
+                    wav_file = os.path.join(root_path, folder.replace("metadata.csv", ""), 'wavs', cols[0] + '.wav')
                 if os.path.isfile(wav_file):
                     text = cols[1].strip()
                     items.append([text, wav_file])

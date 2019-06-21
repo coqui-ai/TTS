@@ -1,7 +1,6 @@
 {
-    "github_branch":"tacotron-gst",
-                "run_name": "german-karlsson-tacotron-loc_attn",
-                "run_description": "train german with all of the german dataset",
+                "run_name": "german-all-tacotrongst",
+                "run_description": "train with all the german dataset using gst",
             
                 "audio":{
                     // Audio processing parameters
@@ -32,7 +31,7 @@
             
                 "reinit_layers": [],
             
-                "model": "Tacotron",          // one of the model in models/    
+                "model": "TacotronGST",          // one of the model in models/    
                 "grad_clip": 1,                // upper limit for gradients for clipping.
                 "epochs": 10000,                // total number of epochs to train.
                 "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
@@ -43,9 +42,9 @@
                 "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
                 "prenet_type": "original",     // ONLY TACOTRON2 - "original" or "bn".
                 "prenet_dropout": true,        // ONLY TACOTRON2 - enable/disable dropout at prenet. 
-                "use_forward_attn": true,      // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
+                "use_forward_attn": false,      // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
                 "transition_agent": false,     // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
-                "forward_attn_mask": true,      
+                "forward_attn_mask": false,      
                 "location_attn": true,        // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
                 "loss_masking": true,         // enable / disable loss masking against the sequence padding.
                 "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
@@ -66,51 +65,16 @@
                 "test_sentences_file": "de_sentences.txt",  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
                 "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
                 "data_path": "/home/erogol/Data/m-ai-labs/de_DE/by_book/" ,  // DATASET-RELATED: can overwritten from command argument
-                "meta_file_train": [
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/mix/erzaehlungen_poe/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/mix/auf_zwei_planeten/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/kleinzaches/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/spiegel_kaetzchen/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/herrnarnesschatz/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/maedchen_von_moorhof/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/koenigsgaukler/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/altehous/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/odysseus/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/undine/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/reise_tilsit/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/schmied_seines_glueckes/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/kammmacher/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/unterm_birnbaum/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/liebesbriefe/metadata.csv",
-                    "/home/erogol/Data/m-ai-labs/de_DE/by_book/male/karlsson/sandmann/metadata.csv"
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/eva_k/kleine_lord/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/eva_k/toten_seelen/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/eva_k/werde_die_du_bist/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/eva_k/grune_haus/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/rebecca_braunert_plunkett/das_letzte_marchen/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/rebecca_braunert_plunkett/ferien_vom_ich/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/rebecca_braunert_plunkett/maerchen/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/rebecca_braunert_plunkett/mein_weg_als_deutscher_und_jude/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/caspar/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/sterben/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/weihnachtsabend/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/frankenstein/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/tschun/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/menschenhasser/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/grune_gesicht/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/tom_sawyer/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/ramona_deininger/alter_afrikaner/metadata.csv",
-                    // "/home/erogol/Data/m-ai-labs/de_DE/by_book/female/angela_merkel/merkel_alone/metadata.csv"
-                    ],      // DATASET-RELATED: metafile for training dataloader.
+                "meta_file_train": null,      // DATASET-RELATED: metafile for training dataloader.
                 "meta_file_val": null,    // DATASET-RELATED: metafile for evaluation dataloader.
                 "dataset": "mailabs",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
                 "min_seq_len": 15,       // DATASET-RELATED: minimum text length to use in training
                 "max_seq_len": 200,     // DATASET-RELATED: maximum text length
-                "output_path": "/media/erogol/data_ssd/Data/models/mozilla_models/",      // DATASET-RELATED: output path for all training outputs.
+                "output_path": "/home/erogol/Models/mozilla_models/",      // DATASET-RELATED: output path for all training outputs.
                 "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
                 "num_val_loader_workers": 4,    // number of evaluation data loader processes.
                 "phoneme_cache_path": "phoneme_cache",  // phoneme computation is slow, therefore, it caches results in the given folder.
-                "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
+                "use_phonemes": false,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
                 "phoneme_language": "de",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
                 "text_cleaner": "phoneme_cleaners"
             }
