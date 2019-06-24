@@ -81,7 +81,6 @@ if __name__ == "__main__":
 
     if args.vocoder_path != "":
         assert args.use_cuda, " [!] Enable cuda for vocoder."
-
     # load the config
     C = load_config(args.config_path)
     C.forward_attn_mask = True
