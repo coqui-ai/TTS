@@ -35,17 +35,17 @@ def compute_style_mel(style_wav, ap, use_cuda):
         return style_mel
 
 
-def run_model(model, inputs, CONFIG, truncated, style_mel=None):
+def run_model(model, inputs, speaker_id, CONFIG, truncated, style_mel=None):
     if CONFIG.model == "TacotronGST" and style_mel is not None:
         decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-            inputs, style_mel)
+            inputs, style_mel, speaker_id)
     else:
         if truncated:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
-                inputs)
+                inputs, speaker_id)
         else:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-                inputs)
+                inputs, speaker_id)
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
@@ -100,12 +100,13 @@ def synthesis(model,
         style_mel = compute_style_mel(style_wav, ap, use_cuda)
     # preprocess the given text
     inputs = text_to_seqvec(text, CONFIG, use_cuda)
-    speaker_id = speaker_id_var = torch.from_numpy(speaker_id).unsqueeze(0)
+    speaker_id = np.asarray(speaker_id)
+    speaker_id = torch.from_numpy(speaker_id).unsqueeze(0)
     if use_cuda:
         speaker_id.cuda()
     # synthesize voice
     decoder_output, postnet_output, alignments, stop_tokens = run_model(
-        model, inputs, CONFIG, truncated, style_mel)
+        model, inputs, speaker_id, CONFIG, truncated, style_mel)
     # convert outputs to numpy
     postnet_output, decoder_output, alignment = parse_outputs(
         postnet_output, decoder_output, alignments)
