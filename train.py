@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import json
 import os
 import shutil
 import sys
@@ -25,6 +26,8 @@ from utils.generic_utils import (NoamLR, check_update, count_parameters,
                                  save_checkpoint, sequence_mask, weight_decay,
                                  set_init_dict, copy_config_file, setup_model)
 from utils.logger import Logger
+from utils.speakers import load_speaker_mapping, save_speaker_mapping, \
+    copy_speaker_mapping
 from utils.synthesis import synthesis
 from utils.text.symbols import phonemes, symbols
 from utils.visual import plot_alignment, plot_spectrogram
@@ -75,6 +78,7 @@ def setup_loader(is_val=False, verbose=False):
 def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
           ap, epoch):
     data_loader = setup_loader(is_val=False, verbose=(epoch==0))
+    speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.train()
     epoch_time = 0
     avg_postnet_loss = 0
@@ -89,12 +93,20 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         # setup input data
         text_input = data[0]
         text_lengths = data[1]
-        linear_input = data[2] if c.model in ["Tacotron", "TacotronGST"] else None
-        mel_input = data[3]
-        mel_lengths = data[4]
-        stop_targets = data[5]
+        speaker_names = data[2]
+        linear_input = data[3] if c.model in ["Tacotron", "TacotronGST"] else None
+        mel_input = data[4]
+        mel_lengths = data[5]
+        stop_targets = data[6]
         avg_text_length = torch.mean(text_lengths.float())
         avg_spec_length = torch.mean(mel_lengths.float())
+
+        speaker_ids = []
+        for speaker_name in speaker_names:
+            if speaker_name not in speaker_mapping:
+                speaker_mapping[speaker_name] = len(speaker_mapping)
+            speaker_ids.append(speaker_mapping[speaker_name])
+        speaker_ids = torch.LongTensor(speaker_ids)
 
         # set stop targets view, we predict a single stop token per r frames prediction
         stop_targets = stop_targets.view(text_input.shape[0],
@@ -118,10 +130,11 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             mel_lengths = mel_lengths.cuda(non_blocking=True)
             linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron", "TacotronGST"] else None
             stop_targets = stop_targets.cuda(non_blocking=True)
+            speaker_ids = speaker_ids.cuda(non_blocking=True)
 
         # forward pass model
         decoder_output, postnet_output, alignments, stop_tokens = model(
-            text_input, text_lengths,  mel_input)
+            text_input, speaker_ids, text_lengths,  mel_input)
 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
@@ -178,7 +191,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         if args.rank == 0:
             avg_postnet_loss += float(postnet_loss.item())
             avg_decoder_loss += float(decoder_loss.item())
-            avg_stop_loss +=  stop_loss if type(stop_loss) is float else float(stop_loss.item())
+            avg_stop_loss += stop_loss if type(stop_loss) is float else float(stop_loss.item())
             avg_step_time += step_time
 
             # Plot Training Iter Stats
@@ -243,12 +256,16 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                     "epoch_time": epoch_time}
         tb_logger.tb_train_epoch_stats(current_step, epoch_stats)
         if c.tb_model_param_stats:
-            tb_logger.tb_model_weights(model, current_step) 
+            tb_logger.tb_model_weights(model, current_step)
+
+    # save speaker mapping
+    save_speaker_mapping(OUT_PATH, speaker_mapping)
     return avg_postnet_loss, current_step
 
 
 def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
     data_loader = setup_loader(is_val=True)
+    speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
     epoch_time = 0
     avg_postnet_loss = 0
@@ -273,10 +290,15 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 # setup input data
                 text_input = data[0]
                 text_lengths = data[1]
-                linear_input = data[2] if c.model in ["Tacotron", "TacotronGST"] else None
-                mel_input = data[3]
-                mel_lengths = data[4]
-                stop_targets = data[5]
+                speaker_names = data[2]
+                linear_input = data[3] if c.model in ["Tacotron", "TacotronGST"] else None
+                mel_input = data[4]
+                mel_lengths = data[5]
+                stop_targets = data[6]
+
+                speaker_ids = [speaker_mapping[speaker_name]
+                               for speaker_name in speaker_names]
+                speaker_ids = torch.LongTensor(speaker_ids)
 
                 # set stop targets view, we predict a single stop token per r frames prediction
                 stop_targets = stop_targets.view(text_input.shape[0],
@@ -291,10 +313,12 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                     mel_lengths = mel_lengths.cuda()
                     linear_input = linear_input.cuda() if c.model in ["Tacotron", "TacotronGST"] else None
                     stop_targets = stop_targets.cuda()
+                    speaker_ids = speaker_ids.cuda()
 
                 # forward pass
                 decoder_output, postnet_output, alignments, stop_tokens =\
-                    model.forward(text_input, text_lengths, mel_input)
+                    model.forward(text_input, speaker_ids,
+                                  text_lengths, mel_input)
 
                 # loss computation
                 stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
@@ -372,10 +396,11 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
+        speaker_id = 0
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens = synthesis(
-                    model, test_sentence, c, use_cuda, ap)
+                    model, test_sentence, speaker_id, c, use_cuda, ap)
                 file_path = os.path.join(AUDIO_PATH, str(current_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
@@ -437,6 +462,9 @@ def main(args):
             " > Model restored from step %d" % checkpoint['step'], flush=True)
         start_epoch = checkpoint['epoch']
         args.restore_step = checkpoint['step']
+        # copying speakers.json
+        prev_out_path = os.path.dirname(args.restore_path)
+        copy_speaker_mapping(prev_out_path, OUT_PATH)
     else:
         args.restore_step = 0
 
