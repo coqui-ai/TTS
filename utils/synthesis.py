@@ -70,6 +70,7 @@ def inv_spectrogram(postnet_output, ap, CONFIG):
 
 def synthesis(model,
               text,
+              speaker_id,
               CONFIG,
               use_cuda,
               ap,
@@ -82,6 +83,7 @@ def synthesis(model,
         Args:
             model (TTS.models): model to synthesize.
             text (str): target text
+            speaker_id (int): id of speaker
             CONFIG (dict): config dictionary to be loaded from config.json.
             use_cuda (bool): enable cuda.
             ap (TTS.utils.audio.AudioProcessor): audio processor to process
@@ -98,6 +100,9 @@ def synthesis(model,
         style_mel = compute_style_mel(style_wav, ap, use_cuda)
     # preprocess the given text
     inputs = text_to_seqvec(text, CONFIG, use_cuda)
+    speaker_id = speaker_id_var = torch.from_numpy(speaker_id).unsqueeze(0)
+    if use_cuda:
+        speaker_id.cuda()
     # synthesize voice
     decoder_output, postnet_output, alignments, stop_tokens = run_model(
         model, inputs, CONFIG, truncated, style_mel)

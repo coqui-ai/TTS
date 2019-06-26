@@ -33,9 +33,13 @@ def load_config(config_path):
 
 
 def get_git_branch():
-    out = subprocess.check_output(["git", "branch"]).decode("utf8")
-    current = next(line for line in out.split("\n") if line.startswith("*"))
-    return current.replace("* ", "")
+    try:
+        out = subprocess.check_output(["git", "branch"]).decode("utf8")
+        current = next(line for line in out.split("\n") if line.startswith("*"))
+        current.replace("* ", "")
+    except subprocess.CalledProcessError:
+        current = "inside_docker"
+    return current
 
 
 def get_commit_hash():
@@ -46,8 +50,12 @@ def get_commit_hash():
     # except:
     #     raise RuntimeError(
     #         " !! Commit before training to get the commit hash.")
-    commit = subprocess.check_output(['git', 'rev-parse', '--short',
-                                      'HEAD']).decode().strip()
+    try:
+        commit = subprocess.check_output(['git', 'rev-parse', '--short',
+                                          'HEAD']).decode().strip()
+    # Not copying .git folder into docker container
+    except subprocess.CalledProcessError:
+        commit = "0000000"
     print(' > Git Hash: {}'.format(commit))
     return commit
 
@@ -250,6 +258,7 @@ def setup_model(num_chars, c):
     if c.model.lower() in ["tacotron", "tacotrongst"]:
         model = MyModel(
             num_chars=num_chars,
+            num_speakers=c.num_speakers,
             r=c.r,
             linear_dim=1025,
             mel_dim=80,
@@ -266,6 +275,7 @@ def setup_model(num_chars, c):
     elif c.model.lower() == "tacotron2":
         model = MyModel(
             num_chars=num_chars,
+            num_speakers=c.num_speakers,
             r=c.r,
             attn_win=c.windowing,
             attn_norm=c.attention_norm,
