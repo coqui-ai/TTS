@@ -230,12 +230,13 @@ class AudioProcessor(object):
         x = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
         return x
 
-    def load_wav(self, filename, encode=False):
-        x, sr = sf.read(filename)
-        # x, sr = librosa.load(filename, sr=self.sample_rate)
+    def load_wav(self, filename, sr=None):
+        if sr is None:
+            x, sr = sf.read(filename)
+        else:
+            x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
             x = self.trim_silence(x)
-        # sr, x = io.wavfile.read(filename)
         assert self.sample_rate == sr, "Expected sampling rate {} but file " \
                                        "{} has {}.".format(self.sample_rate,
                                                            filename,
