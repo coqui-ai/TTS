@@ -78,7 +78,8 @@ def setup_loader(is_val=False, verbose=False):
 def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
           ap, epoch):
     data_loader = setup_loader(is_val=False, verbose=(epoch==0))
-    speaker_mapping = load_speaker_mapping(OUT_PATH)
+    if c.num_speakers > 0:
+        speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.train()
     epoch_time = 0
     avg_postnet_loss = 0
@@ -101,19 +102,23 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         avg_text_length = torch.mean(text_lengths.float())
         avg_spec_length = torch.mean(mel_lengths.float())
 
-        speaker_ids = []
-        for speaker_name in speaker_names:
-            if speaker_name not in speaker_mapping:
-                speaker_mapping[speaker_name] = len(speaker_mapping)
-            speaker_ids.append(speaker_mapping[speaker_name])
-        speaker_ids = torch.LongTensor(speaker_ids)
+        if c.num_speakers > 0:
+            speaker_ids = []
+            for speaker_name in speaker_names:
+                if speaker_name not in speaker_mapping:
+                    speaker_mapping[speaker_name] = len(speaker_mapping)
+                speaker_ids.append(speaker_mapping[speaker_name])
+            speaker_ids = torch.LongTensor(speaker_ids)
 
-        if len(speaker_mapping) > c.num_speakers:
-            raise ValueError("It seems there are at least {} speakers in "
-                             "your dataset, while 'num_speakers' is set to {}. "
-                             "Found the following speakers: {}".format(len(speaker_mapping),
-                                                                       c.num_speakers,
-                                                                       list(speaker_mapping)))
+            if len(speaker_mapping) > c.num_speakers:
+                raise ValueError("It seems there are at least {} speakers in "
+                                 "your dataset, while 'num_speakers' is set to "
+                                 "{}. Found the following speakers: {}".format(
+                                    len(speaker_mapping),
+                                    c.num_speakers,
+                                    list(speaker_mapping)))
+        else:
+            speaker_ids = None
 
         # set stop targets view, we predict a single stop token per r frames prediction
         stop_targets = stop_targets.view(text_input.shape[0],
@@ -137,11 +142,12 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             mel_lengths = mel_lengths.cuda(non_blocking=True)
             linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron", "TacotronGST"] else None
             stop_targets = stop_targets.cuda(non_blocking=True)
-            speaker_ids = speaker_ids.cuda(non_blocking=True)
+            if speaker_ids is not None:
+                speaker_ids = speaker_ids.cuda(non_blocking=True)
 
         # forward pass model
         decoder_output, postnet_output, alignments, stop_tokens = model(
-            text_input, speaker_ids, text_lengths,  mel_input)
+            text_input, text_lengths,  mel_input, speaker_ids=speaker_ids)
 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
@@ -266,13 +272,15 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             tb_logger.tb_model_weights(model, current_step)
 
     # save speaker mapping
-    save_speaker_mapping(OUT_PATH, speaker_mapping)
+    if c.num_speakers > 0:
+        save_speaker_mapping(OUT_PATH, speaker_mapping)
     return avg_postnet_loss, current_step
 
 
 def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
     data_loader = setup_loader(is_val=True)
-    speaker_mapping = load_speaker_mapping(OUT_PATH)
+    if c.num_speakers > 0:
+        speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
     epoch_time = 0
     avg_postnet_loss = 0
@@ -303,9 +311,12 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 mel_lengths = data[5]
                 stop_targets = data[6]
 
-                speaker_ids = [speaker_mapping[speaker_name]
-                               for speaker_name in speaker_names]
-                speaker_ids = torch.LongTensor(speaker_ids)
+                if c.num_speakers > 0:
+                    speaker_ids = [speaker_mapping[speaker_name]
+                                   for speaker_name in speaker_names]
+                    speaker_ids = torch.LongTensor(speaker_ids)
+                else:
+                    speaker_ids = None
 
                 # set stop targets view, we predict a single stop token per r frames prediction
                 stop_targets = stop_targets.view(text_input.shape[0],
@@ -320,12 +331,13 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                     mel_lengths = mel_lengths.cuda()
                     linear_input = linear_input.cuda() if c.model in ["Tacotron", "TacotronGST"] else None
                     stop_targets = stop_targets.cuda()
-                    speaker_ids = speaker_ids.cuda()
+                    if speaker_ids is not None:
+                        speaker_ids = speaker_ids.cuda()
 
                 # forward pass
                 decoder_output, postnet_output, alignments, stop_tokens =\
-                    model.forward(text_input, speaker_ids,
-                                  text_lengths, mel_input)
+                    model.forward(text_input, text_lengths, mel_input,
+                                  speaker_ids=speaker_ids)
 
                 # loss computation
                 stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
@@ -403,11 +415,12 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
-        speaker_id = 0
+        speaker_id = 0 if c.num_speakers > 0 else None
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens = synthesis(
-                    model, test_sentence, speaker_id, c, use_cuda, ap)
+                    model, test_sentence, c, use_cuda, ap,
+                    speaker_id=speaker_id)
                 file_path = os.path.join(AUDIO_PATH, str(current_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
@@ -471,7 +484,8 @@ def main(args):
         args.restore_step = checkpoint['step']
         # copying speakers.json
         prev_out_path = os.path.dirname(args.restore_path)
-        copy_speaker_mapping(prev_out_path, OUT_PATH)
+        if c.num_speakers > 0:
+            copy_speaker_mapping(prev_out_path, OUT_PATH)
     else:
         args.restore_step = 0
 
