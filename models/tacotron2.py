@@ -96,5 +96,5 @@ class Tacotron2(nn.Module):
             speaker_embeddings = speaker_embeddings.expand(encoder_outputs.size(0),
                                                            encoder_outputs.size(1),
                                                            -1)
-            encoder_outputs += speaker_embeddings
+            encoder_outputs = encoder_outputs + speaker_embeddings
         return encoder_outputs
