@@ -76,6 +76,6 @@
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
     "text_cleaner": "phoneme_cleaners",
-    "num_speakers": 10 // should just be bigger than the actual number of speakers
+    "num_speakers": 10 // should just be bigger than the actual number of speakers, 0 disables speaker embeddings
 }
 
