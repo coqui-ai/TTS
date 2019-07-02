@@ -68,6 +68,13 @@ def inv_spectrogram(postnet_output, ap, CONFIG):
     return wav
 
 
+def id_to_torch(speaker_id):
+    if speaker_id is not None:
+        speaker_id = np.asarray(speaker_id)
+        speaker_id = torch.from_numpy(speaker_id).unsqueeze(0)
+    return speaker_id
+
+
 def synthesis(model,
               text,
               CONFIG,
@@ -100,9 +107,7 @@ def synthesis(model,
         style_mel = compute_style_mel(style_wav, ap, use_cuda)
     # preprocess the given text
     inputs = text_to_seqvec(text, CONFIG, use_cuda)
-    if speaker_id is not None:
-        speaker_id = np.asarray(speaker_id)
-        speaker_id = torch.from_numpy(speaker_id).unsqueeze(0)
+    speaker_id = id_to_torch(speaker_id)
     if use_cuda:
         speaker_id.cuda()
     # synthesize voice
