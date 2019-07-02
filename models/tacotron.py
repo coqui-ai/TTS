@@ -29,7 +29,7 @@ class Tacotron(nn.Module):
         self.linear_dim = linear_dim
         self.embedding = nn.Embedding(num_chars, 256)
         self.embedding.weight.data.normal_(0, 0.3)
-        if num_speakers > 0:
+        if num_speakers > 1:
             self.speaker_embedding = nn.Embedding(num_speakers, 256)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(256)

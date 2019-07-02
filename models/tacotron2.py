@@ -29,7 +29,7 @@ class Tacotron2(nn.Module):
         std = sqrt(2.0 / (num_chars + 512))
         val = sqrt(3.0) * std  # uniform bounds for std
         self.embedding.weight.data.uniform_(-val, val)
-        if num_speakers > 0:
+        if num_speakers > 1:
             self.speaker_embedding = nn.Embedding(num_speakers, 512)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(512)
