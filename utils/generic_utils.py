@@ -251,14 +251,14 @@ def set_init_dict(model_dict, checkpoint, c):
     return model_dict
 
 
-def setup_model(num_chars, c):
+def setup_model(num_chars, num_speakers, c):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
     if c.model.lower() in ["tacotron", "tacotrongst"]:
         model = MyModel(
             num_chars=num_chars,
-            num_speakers=c.num_speakers,
+            num_speakers=num_speakers,
             r=c.r,
             linear_dim=1025,
             mel_dim=80,
