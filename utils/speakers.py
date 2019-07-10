@@ -1,6 +1,8 @@
 import os
 import json
 
+from datasets.preprocess import get_preprocessor_by_name
+
 
 def make_speakers_json_path(out_path):
     """Returns conventional speakers.json location."""
@@ -23,8 +25,9 @@ def save_speaker_mapping(out_path, speaker_mapping):
         json.dump(speaker_mapping, f, indent=4)
 
 
-def copy_speaker_mapping(out_path_a, out_path_b):
-    """Copies a speaker mapping when restoring a model from a previous path."""
-    speaker_mapping = load_speaker_mapping(out_path_a)
-    if speaker_mapping is not None:
-        save_speaker_mapping(out_path_b, speaker_mapping)
+def get_speakers(data_root, meta_file, dataset_type):
+    """Returns a sorted, unique list of speakers in a given dataset."""
+    preprocessor = get_preprocessor_by_name(dataset_type)
+    items = preprocessor(data_root, meta_file)
+    speakers = {e[2] for e in items}
+    return sorted(speakers)

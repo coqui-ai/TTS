@@ -1,6 +1,13 @@
 import os
 from glob import glob
 import re
+import sys
+
+
+def get_preprocessor_by_name(name):
+    """Returns the respective preprocessing function."""
+    thismodule = sys.modules[__name__]
+    return getattr(thismodule, name.lower())
 
 
 def tweb(root_path, meta_file):
