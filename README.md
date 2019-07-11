@@ -85,6 +85,7 @@ Some of the open-sourced datasets that we successfully applied TTS, are linked b
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
 - [TWEB](https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)
 - [M-AI-Labs](http://www.caito.de/2019/01/the-m-ailabs-speech-dataset/)
+- [LibriTTS](https://openslr.org/60/)
 
 ## Training and Fine-tuning LJ-Speech
 Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below. 
@@ -162,6 +163,6 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - [Parallel WaveNet](https://arxiv.org/abs/1711.10433)
 -->
 
-### Precursor implementations
-- https://github.com/keithito/tacotron (Dataset and Test processing)
+### References
+- https://github.com/keithito/tacotron (Dataset pre-processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
