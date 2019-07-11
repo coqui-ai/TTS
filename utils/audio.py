@@ -236,11 +236,11 @@ class AudioProcessor(object):
         else:
             x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
-            x = self.trim_silence(x)
-        assert self.sample_rate == sr, "Expected sampling rate {} but file " \
-                                       "{} has {}.".format(self.sample_rate,
-                                                           filename,
-                                                           sr)
+            try:
+                x = self.trim_silence(x)
+            except ValueError as e:
+                print(f' [!] File cannot be trimmed for silence - {filename}')
+        assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
         return x
 
     def encode_16bits(self, x):
