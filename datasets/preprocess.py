@@ -144,3 +144,24 @@ def common_voice(root_path, meta_file):
             wav_file = os.path.join(root_path, "clips", cols[1] + ".wav")
             items.append([text, wav_file, speaker_name])
     return items
+
+
+def libri_tts(root_path, meta_files=None):
+    """https://ai.google/tools/datasets/libri-tts/"""
+    items = []
+    if meta_files is None:
+        meta_files = glob(f"{root_path}/**/*trans.tsv", recursive=True)
+    for meta_file in meta_files:
+        _meta_file = os.path.basename(meta_file).split('.')[0]
+        speaker_name = _meta_file.split('_')[0]
+        chapter_id = _meta_file.split('_')[1]
+        _root_path = os.path.join(root_path, f"{speaker_name}/{chapter_id}")
+        with open(meta_file, 'r') as ttf:
+            for line in ttf:
+                cols = line.split('\t')
+                wav_file = os.path.join(_root_path, cols[0] + '.wav')
+                text = cols[1]
+                items.append([text, wav_file, speaker_name])
+    for item in items:
+        assert os.path.exists(item[1]), f" [!] wav file is not exist - {item[1]}"
+    return items
