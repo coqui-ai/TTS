@@ -37,6 +37,8 @@ class MyDataset(Dataset):
             ap (TTS.utils.AudioProcessor): audio processor object.
             preprocessor (dataset.preprocess.Class): preprocessor for the dataset. 
                 Create your own if you need to run a new dataset.
+            speaker_id_cache_path (str): path where the speaker name to id
+                mapping is stored
             batch_group_size (int): (0) range of batch randomization after sorting 
                 sequences by length. 
             min_seq_len (int): (0) minimum sequence length to be processed 
@@ -105,7 +107,7 @@ class MyDataset(Dataset):
         return text
 
     def load_data(self, idx):
-        text, wav_file = self.items[idx]
+        text, wav_file, speaker_name = self.items[idx]
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
         if self.use_phonemes:
@@ -120,7 +122,8 @@ class MyDataset(Dataset):
         sample = {
             'text': text,
             'wav': wav,
-            'item_idx': self.items[idx][1]
+            'item_idx': self.items[idx][1],
+            'speaker_name': speaker_name
         }
         return sample
 
@@ -182,6 +185,8 @@ class MyDataset(Dataset):
                 batch[idx]['item_idx'] for idx in ids_sorted_decreasing
             ]
             text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
+            speaker_name = [batch[idx]['speaker_name']
+                       for idx in ids_sorted_decreasing]
 
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
             linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
@@ -219,7 +224,8 @@ class MyDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            return text, text_lenghts, linear, mel, mel_lengths, stop_targets, item_idxs
+            return text, text_lenghts, speaker_name, linear, mel, mel_lengths, \
+                   stop_targets, item_idxs
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}".format(type(batch[0]))))
