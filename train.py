@@ -1,7 +1,5 @@
 import argparse
-import importlib
 import os
-import shutil
 import sys
 import time
 import traceback
@@ -25,9 +23,12 @@ from utils.generic_utils import (NoamLR, check_update, count_parameters,
                                  save_checkpoint, sequence_mask, weight_decay,
                                  set_init_dict, copy_config_file, setup_model)
 from utils.logger import Logger
+from utils.speakers import load_speaker_mapping, save_speaker_mapping, \
+    get_speakers
 from utils.synthesis import synthesis
 from utils.text.symbols import phonemes, symbols
 from utils.visual import plot_alignment, plot_spectrogram
+from datasets.preprocess import get_preprocessor_by_name
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = False
@@ -48,7 +49,7 @@ def setup_loader(is_val=False, verbose=False):
             c.meta_file_val if is_val else c.meta_file_train,
             c.r,
             c.text_cleaner,
-            preprocessor=preprocessor,
+            preprocessor=get_preprocessor_by_name(c.dataset),
             ap=ap,
             batch_group_size=0 if is_val else c.batch_group_size * c.batch_size,
             min_seq_len=0 if is_val else c.min_seq_len,
@@ -75,6 +76,8 @@ def setup_loader(is_val=False, verbose=False):
 def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
           ap, epoch):
     data_loader = setup_loader(is_val=False, verbose=(epoch==0))
+    if c.use_speaker_embedding:
+        speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.train()
     epoch_time = 0
     avg_postnet_loss = 0
@@ -89,12 +92,20 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         # setup input data
         text_input = data[0]
         text_lengths = data[1]
-        linear_input = data[2] if c.model == "Tacotron" else None
-        mel_input = data[3]
-        mel_lengths = data[4]
-        stop_targets = data[5]
+        speaker_names = data[2]
+        linear_input = data[3] if c.model in ["Tacotron", "TacotronGST"] else None
+        mel_input = data[4]
+        mel_lengths = data[5]
+        stop_targets = data[6]
         avg_text_length = torch.mean(text_lengths.float())
         avg_spec_length = torch.mean(mel_lengths.float())
+
+        if c.use_speaker_embedding:
+            speaker_ids = [speaker_mapping[speaker_name]
+                           for speaker_name in speaker_names]
+            speaker_ids = torch.LongTensor(speaker_ids)
+        else:
+            speaker_ids = None
 
         # set stop targets view, we predict a single stop token per r frames prediction
         stop_targets = stop_targets.view(text_input.shape[0],
@@ -116,24 +127,26 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             text_lengths = text_lengths.cuda(non_blocking=True)
             mel_input = mel_input.cuda(non_blocking=True)
             mel_lengths = mel_lengths.cuda(non_blocking=True)
-            linear_input = linear_input.cuda(non_blocking=True) if c.model == "Tacotron" else None
+            linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron", "TacotronGST"] else None
             stop_targets = stop_targets.cuda(non_blocking=True)
+            if speaker_ids is not None:
+                speaker_ids = speaker_ids.cuda(non_blocking=True)
 
         # forward pass model
         decoder_output, postnet_output, alignments, stop_tokens = model(
-            text_input, text_lengths,  mel_input)
+            text_input, text_lengths,  mel_input, speaker_ids=speaker_ids)
 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
         if c.loss_masking:
             decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
-            if c.model == "Tacotron":
+            if c.model in ["Tacotron", "TacotronGST"]:
                 postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
             else:
                 postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
         else:
             decoder_loss = criterion(decoder_output, mel_input)
-            if c.model == "Tacotron":
+            if c.model in ["Tacotron", "TacotronGST"]:
                 postnet_loss = criterion(postnet_output, linear_input)
             else:
                 postnet_loss = criterion(postnet_output, mel_input)
@@ -178,7 +191,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         if args.rank == 0:
             avg_postnet_loss += float(postnet_loss.item())
             avg_decoder_loss += float(decoder_loss.item())
-            avg_stop_loss +=  stop_loss if type(stop_loss) is float else float(stop_loss.item())
+            avg_stop_loss += stop_loss if type(stop_loss) is float else float(stop_loss.item())
             avg_step_time += step_time
 
             # Plot Training Iter Stats
@@ -199,7 +212,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
                 # Diagnostic visualizations
                 const_spec = postnet_output[0].data.cpu().numpy()
-                gt_spec =  linear_input[0].data.cpu().numpy() if c.model == "Tacotron" else  mel_input[0].data.cpu().numpy()
+                gt_spec =  linear_input[0].data.cpu().numpy() if c.model in ["Tacotron", "TacotronGST"] else  mel_input[0].data.cpu().numpy()
                 align_img = alignments[0].data.cpu().numpy()
 
                 figures = {
@@ -210,7 +223,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                 tb_logger.tb_train_figures(current_step, figures)
 
                 # Sample audio
-                if c.model == "Tacotron":
+                if c.model in ["Tacotron", "TacotronGST"]:
                     train_audio = ap.inv_spectrogram(const_spec.T)
                 else:
                     train_audio = ap.inv_mel_spectrogram(const_spec.T)
@@ -243,12 +256,15 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                     "epoch_time": epoch_time}
         tb_logger.tb_train_epoch_stats(current_step, epoch_stats)
         if c.tb_model_param_stats:
-            tb_logger.tb_model_weights(model, current_step) 
+            tb_logger.tb_model_weights(model, current_step)
+
     return avg_postnet_loss, current_step
 
 
 def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
     data_loader = setup_loader(is_val=True)
+    if c.use_speaker_embedding:
+        speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
     epoch_time = 0
     avg_postnet_loss = 0
@@ -273,10 +289,18 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 # setup input data
                 text_input = data[0]
                 text_lengths = data[1]
-                linear_input = data[2] if c.model == "Tacotron" else None
-                mel_input = data[3]
-                mel_lengths = data[4]
-                stop_targets = data[5]
+                speaker_names = data[2]
+                linear_input = data[3] if c.model in ["Tacotron", "TacotronGST"] else None
+                mel_input = data[4]
+                mel_lengths = data[5]
+                stop_targets = data[6]
+
+                if c.use_speaker_embedding:
+                    speaker_ids = [speaker_mapping[speaker_name]
+                                   for speaker_name in speaker_names]
+                    speaker_ids = torch.LongTensor(speaker_ids)
+                else:
+                    speaker_ids = None
 
                 # set stop targets view, we predict a single stop token per r frames prediction
                 stop_targets = stop_targets.view(text_input.shape[0],
@@ -289,24 +313,27 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                     text_input = text_input.cuda()
                     mel_input = mel_input.cuda()
                     mel_lengths = mel_lengths.cuda()
-                    linear_input = linear_input.cuda() if c.model == "Tacotron" else None
+                    linear_input = linear_input.cuda() if c.model in ["Tacotron", "TacotronGST"] else None
                     stop_targets = stop_targets.cuda()
+                    if speaker_ids is not None:
+                        speaker_ids = speaker_ids.cuda()
 
                 # forward pass
                 decoder_output, postnet_output, alignments, stop_tokens =\
-                    model.forward(text_input, text_lengths, mel_input)
+                    model.forward(text_input, text_lengths, mel_input,
+                                  speaker_ids=speaker_ids)
 
                 # loss computation
                 stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
                 if c.loss_masking:
                     decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
-                    if c.model == "Tacotron":
+                    if c.model in ["Tacotron", "TacotronGST"]:
                         postnet_loss = criterion(postnet_output, linear_input, mel_lengths)
                     else:
                         postnet_loss = criterion(postnet_output, mel_input, mel_lengths)
                 else:
                     decoder_loss = criterion(decoder_output, mel_input)
-                    if c.model == "Tacotron":
+                    if c.model in ["Tacotron", "TacotronGST"]:
                         postnet_loss = criterion(postnet_output, linear_input)
                     else:
                         postnet_loss = criterion(postnet_output, mel_input)
@@ -339,7 +366,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 # Diagnostic visualizations
                 idx = np.random.randint(mel_input.shape[0])
                 const_spec = postnet_output[idx].data.cpu().numpy()
-                gt_spec = linear_input[idx].data.cpu().numpy() if c.model == "Tacotron" else  mel_input[idx].data.cpu().numpy()
+                gt_spec = linear_input[idx].data.cpu().numpy() if c.model in ["Tacotron", "TacotronGST"] else  mel_input[idx].data.cpu().numpy()
                 align_img = alignments[idx].data.cpu().numpy()
 
                 eval_figures = {
@@ -350,7 +377,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 tb_logger.tb_eval_figures(current_step, eval_figures)
 
                 # Sample audio
-                if c.model == "Tacotron":
+                if c.model in ["Tacotron", "TacotronGST"]:
                     eval_audio = ap.inv_spectrogram(const_spec.T)
                 else:
                     eval_audio = ap.inv_mel_spectrogram(const_spec.T)
@@ -372,10 +399,12 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
+        speaker_id = 0 if c.num_speakers > 1 else None
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens = synthesis(
-                    model, test_sentence, c, use_cuda, ap)
+                    model, test_sentence, c, use_cuda, ap,
+                    speaker_id=speaker_id)
                 file_path = os.path.join(AUDIO_PATH, str(current_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
@@ -398,7 +427,27 @@ def main(args):
         init_distributed(args.rank, num_gpus, args.group_id,
                          c.distributed["backend"], c.distributed["url"])
     num_chars = len(phonemes) if c.use_phonemes else len(symbols)
-    model = setup_model(num_chars, c)
+
+    if c.use_speaker_embedding:
+        speakers = get_speakers(c.data_path, c.meta_file_train, c.dataset)
+        if args.restore_path:
+            prev_out_path = os.path.dirname(args.restore_path)
+            speaker_mapping = load_speaker_mapping(prev_out_path)
+            assert all([speaker in speaker_mapping
+                        for speaker in speakers]), "As of now you, you cannot " \
+                                                   "introduce new speakers to " \
+                                                   "a previously trained model."
+        else:
+            speaker_mapping = {name: i
+                               for i, name in enumerate(speakers)}
+        save_speaker_mapping(OUT_PATH, speaker_mapping)
+        num_speakers = len(speaker_mapping)
+        print("Training with {} speakers: {}".format(num_speakers,
+                                                     ", ".join(speakers)))
+    else:
+        num_speakers = 0
+
+    model = setup_model(num_chars, num_speakers, c)
 
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
@@ -410,9 +459,9 @@ def main(args):
         optimizer_st = None
 
     if c.loss_masking:
-        criterion = L1LossMasked() if c.model == "Tacotron" else MSELossMasked()
+        criterion = L1LossMasked() if c.model in ["Tacotron", "TacotronGST"] else MSELossMasked()
     else:
-        criterion = nn.L1Loss() if c.model == "Tacotron" else nn.MSELoss()
+        criterion = nn.L1Loss() if c.model in ["Tacotron", "TacotronGST"] else nn.MSELoss()
     criterion_st = nn.BCEWithLogitsLoss() if c.stopnet else None
 
     if args.restore_path:
@@ -557,10 +606,6 @@ if __name__ == '__main__':
     if args.rank==0:
         LOG_DIR = OUT_PATH
         tb_logger = Logger(LOG_DIR)
-
-    # Conditional imports
-    preprocessor = importlib.import_module('datasets.preprocess')
-    preprocessor = getattr(preprocessor, c.dataset.lower())
 
     # Audio processor
     ap = AudioProcessor(**c.audio)

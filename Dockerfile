@@ -1,23 +1,17 @@
-FROM nvidia/cuda:9.0-base-ubuntu16.04 as base
+FROM pytorch/pytorch:1.0.1-cuda10.0-cudnn7-runtime
 
 WORKDIR /srv/app
 
 RUN apt-get update && \
-	apt-get install -y git software-properties-common wget vim build-essential libsndfile1 && \
-	add-apt-repository ppa:deadsnakes/ppa && \
-	apt-get update && \
-	apt-get install -y python3.6 python3.6-dev python3.6-tk && \
-	# Install pip manually
-	wget https://bootstrap.pypa.io/get-pip.py && \
-	python3.6 get-pip.py && \
-	rm get-pip.py && \
-	# Used by the server in server/synthesizer.py
-	pip install soundfile
+	apt-get install -y libsndfile1 espeak && \
+	apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ADD . /srv/app
+# Copy Source later to enable dependency caching
+COPY requirements.txt /srv/app/
+RUN pip install -r requirements.txt
 
-# Setup for development
-RUN python3.6 setup.py develop
+COPY . /srv/app
 
 # http://bugs.python.org/issue19846
 # > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.

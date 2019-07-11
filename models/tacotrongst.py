@@ -3,10 +3,11 @@ import torch
 from torch import nn
 from math import sqrt
 from layers.tacotron import Prenet, Encoder, Decoder, PostCBHG
+from layers.gst_layers import GST
 from utils.generic_utils import sequence_mask
 
 
-class Tacotron(nn.Module):
+class TacotronGST(nn.Module):
     def __init__(self,
                  num_chars,
                  num_speakers,
@@ -23,7 +24,7 @@ class Tacotron(nn.Module):
                  forward_attn_mask=False,
                  location_attn=True,
                  separate_stopnet=True):
-        super(Tacotron, self).__init__()
+        super(TacotronGST, self).__init__()
         self.r = r
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
@@ -33,6 +34,7 @@ class Tacotron(nn.Module):
             self.speaker_embedding = nn.Embedding(num_speakers, 256)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
         self.encoder = Encoder(256)
+        self.gst = GST(num_mel=80, num_heads=4, num_style_tokens=10, embedding_dim=256)
         self.decoder = Decoder(256, mel_dim, r, memory_size, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
                                forward_attn, trans_agent, forward_attn_mask,
@@ -49,6 +51,9 @@ class Tacotron(nn.Module):
         encoder_outputs = self.encoder(inputs)
         encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                       speaker_ids)
+        gst_outputs = self.gst(mel_specs)
+        gst_outputs = gst_outputs.expand(-1, encoder_outputs.size(1), -1)
+        encoder_outputs = encoder_outputs + gst_outputs
         mel_outputs, alignments, stop_tokens = self.decoder(
             encoder_outputs, mel_specs, mask)
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
@@ -56,12 +61,16 @@ class Tacotron(nn.Module):
         linear_outputs = self.last_linear(linear_outputs)
         return mel_outputs, linear_outputs, alignments, stop_tokens
 
-    def inference(self, characters, speaker_ids=None):
+    def inference(self, characters, speaker_ids=None, style_mel=None):
         B = characters.size(0)
         inputs = self.embedding(characters)
         encoder_outputs = self.encoder(inputs)
         encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                       speaker_ids)
+        if style_mel is not None:
+            gst_outputs = self.gst(style_mel)
+            gst_outputs = gst_outputs.expand(-1, encoder_outputs.size(1), -1)
+            encoder_outputs = encoder_outputs + gst_outputs
         mel_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs)
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)

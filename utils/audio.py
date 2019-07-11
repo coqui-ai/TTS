@@ -10,7 +10,6 @@ from scipy import signal, io
 
 class AudioProcessor(object):
     def __init__(self,
-                 bits=None,
                  sample_rate=None,
                  num_mels=None,
                  min_level_db=None,
@@ -32,7 +31,6 @@ class AudioProcessor(object):
 
         print(" > Setting up Audio Processor...")
 
-        self.bits = bits
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db
@@ -231,23 +229,27 @@ class AudioProcessor(object):
     def mulaw_decode(wav, qc):
         """Recovers waveform from quantized values."""
         mu = 2 ** qc - 1
-        mu = mu - 1
-        signal = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
-        return signal
+        x = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
+        return x
 
-    def load_wav(self, filename, encode=False):
-        x, sr = sf.read(filename)
+    def load_wav(self, filename, sr=None):
+        if sr is None:
+            x, sr = sf.read(filename)
+        else:
+            x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
-            x = self.trim_silence(x)
-        # sr, x = io.wavfile.read(filename)
+            try:
+                x = self.trim_silence(x)
+            except ValueError as e:
+                print(f' [!] File cannot be trimmed for silence - {filename}')
         assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
         return x
 
     def encode_16bits(self, x):
         return np.clip(x * 2**15, -2**15, 2**15 - 1).astype(np.int16)
 
-    def quantize(self, x):
-        return (x + 1.) * (2**self.bits - 1) / 2
+    def quantize(self, x, bits):
+        return (x + 1.) * (2**bits - 1) / 2
 
-    def dequantize(self, x):
-        return 2 * x / (2**self.bits - 1) - 1
+    def dequantize(self, x, bits):
+        return 2 * x / (2**bits - 1) - 1
