@@ -1,10 +1,8 @@
 import io
 import os
-#<<<<<<< HEAD
 
 import numpy as np
 import torch
-#=======
 import sys
 
 import numpy as np
@@ -22,7 +20,6 @@ suffixes = "(Inc|Ltd|Jr|Sr|Co)"
 starters = "(Mr|Mrs|Ms|Dr|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
 acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
 websites = "[.](com|net|org|io|gov)"
-#>>>>>>> dev-tacotron2
 
 from models.tacotron import Tacotron
 from utils.audio import AudioProcessor
