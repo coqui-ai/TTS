@@ -399,7 +399,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
-        speaker_id = 0 if c.num_speakers > 1 else None
+        speaker_id = 0 if c.use_speaker_embedding else None
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens = synthesis(
