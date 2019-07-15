@@ -14,11 +14,10 @@ from utils.data import (prepare_data, pad_per_step, prepare_tensor,
 class MyDataset(Dataset):
     def __init__(self,
                  root_path,
-                 meta_file,
                  outputs_per_step,
                  text_cleaner,
                  ap,
-                 preprocessor,
+                 meta_data,
                  batch_group_size=0,
                  min_seq_len=0,
                  max_seq_len=float("inf"),
@@ -30,13 +29,10 @@ class MyDataset(Dataset):
         """
         Args:
             root_path (str): root path for the data folder.
-            meta_file (str): name for dataset file including audio transcripts 
-                and file names (or paths in cached mode).
             outputs_per_step (int): number of time frames predicted per step.
             text_cleaner (str): text cleaner used for the dataset.
             ap (TTS.utils.AudioProcessor): audio processor object.
-            preprocessor (dataset.preprocess.Class): preprocessor for the dataset. 
-                Create your own if you need to run a new dataset.
+            meta_data (list): list of dataset instances.
             speaker_id_cache_path (str): path where the speaker name to id
                 mapping is stored
             batch_group_size (int): (0) range of batch randomization after sorting 
@@ -53,7 +49,7 @@ class MyDataset(Dataset):
         """
         self.root_path = root_path
         self.batch_group_size = batch_group_size
-        self.items = preprocessor(root_path, meta_file)
+        self.items = meta_data
         self.outputs_per_step = outputs_per_step
         self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner

@@ -146,7 +146,7 @@ def common_voice(root_path, meta_file):
     return items
 
 
-def libri_tts(root_path, meta_files=None):
+def libri_tts(root_path, meta_files=None, is_eval=False):
     """https://ai.google/tools/datasets/libri-tts/"""
     items = []
     if meta_files is None:
@@ -164,4 +164,6 @@ def libri_tts(root_path, meta_files=None):
                 items.append([text, wav_file, speaker_name])
     for item in items:
         assert os.path.exists(item[1]), f" [!] wav file is not exist - {item[1]}"
+    if meta_files is None:
+        return items[:500] if is_eval else items[500:]
     return items
