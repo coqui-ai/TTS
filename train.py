@@ -41,15 +41,26 @@ print(" > Number of GPUs: ", num_gpus)
 
 def setup_loader(is_val=False, verbose=False):
     global ap
+    global meta_data_train
+    global meta_data_eval
+    if "meta_data_train" not in globals():
+        if c.meta_file_train:
+            meta_data_train = get_preprocessor_by_name(c.dataset)(c.data_path, c.meta_file_train)
+        else:
+            meta_data_train = get_preprocessor_by_name(c.dataset)(c.data_path, is_eval=False)
+    if "meta_data_eval" not in globals():
+        if c.meta_file_val:
+            meta_data_eval = get_preprocessor_by_name(c.dataset)(c.data_path, c.meta_file_val)
+        else:
+            meta_data_eval = get_preprocessor_by_name(c.dataset)(c.data_path, is_eval=True)
     if is_val and not c.run_eval:
         loader = None
     else:
         dataset = MyDataset(
             c.data_path,
-            c.meta_file_val if is_val else c.meta_file_train,
             c.r,
             c.text_cleaner,
-            preprocessor=get_preprocessor_by_name(c.dataset),
+            meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             batch_group_size=0 if is_val else c.batch_group_size * c.batch_size,
             min_seq_len=0 if is_val else c.min_seq_len,
