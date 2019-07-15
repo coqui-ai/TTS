@@ -10,7 +10,7 @@ wget https://www.dropbox.com/s/wqn5v3wkktw9lmo/install.sh?dl=0 -O install.sh
 sudo sh install.sh
 python3 setup.py develop
 # cp -R ${USER_DIR}/GermanData ../tmp/
-python3 distribute.py --config_path config_tacotron_de.json  --data_path /data/rw/home/de_DE/ 
+python3 distribute.py --config_path config_libritts.json  --data_path /data/rw/home/LibriTTS/train-clean-360/
 # cp -R ${USER_DIR}/Mozilla_22050 ../tmp/
 # python3 distribute.py --config_path config_tacotron_gst.json  --data_path ../tmp/Mozilla_22050/
 while true; do sleep 1000000; done
