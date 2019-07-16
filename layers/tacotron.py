@@ -268,6 +268,7 @@ class Decoder(nn.Module):
         memory_dim (int): memory vector (prev. time-step output) sample size.
         r (int): number of outputs per time step.
         memory_size (int): size of the past window. if <= 0 memory_size = r
+        TODO: arguments
     """
 
     def __init__(self, in_features, memory_dim, r, memory_size, attn_windowing,
