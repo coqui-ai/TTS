@@ -67,6 +67,7 @@ class BatchNormConv1d(nn.Module):
 
 
 class Highway(nn.Module):
+    # TODO: Try GLU layer
     def __init__(self, in_size, out_size):
         super(Highway, self).__init__()
         self.H = nn.Linear(in_size, out_size)
