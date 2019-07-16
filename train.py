@@ -21,7 +21,8 @@ from utils.generic_utils import (NoamLR, check_update, count_parameters,
                                  load_config, lr_decay,
                                  remove_experiment_folder, save_best_model,
                                  save_checkpoint, sequence_mask, weight_decay,
-                                 set_init_dict, copy_config_file, setup_model)
+                                 set_init_dict, copy_config_file, setup_model,
+                                 split_dataset)
 from utils.logger import Logger
 from utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
@@ -44,15 +45,15 @@ def setup_loader(is_val=False, verbose=False):
     global meta_data_train
     global meta_data_eval
     if "meta_data_train" not in globals():
-        if c.meta_file_train:
+        if c.meta_file_train is not None:
             meta_data_train = get_preprocessor_by_name(c.dataset)(c.data_path, c.meta_file_train)
         else:
-            meta_data_train = get_preprocessor_by_name(c.dataset)(c.data_path, is_eval=False)
-    if "meta_data_eval" not in globals():
-        if c.meta_file_val:
+            meta_data_train = get_preprocessor_by_name(c.dataset)(c.data_path)
+    if "meta_data_eval" not in globals() and c.run_eval:
+        if c.meta_file_val is not None:
             meta_data_eval = get_preprocessor_by_name(c.dataset)(c.data_path, c.meta_file_val)
         else:
-            meta_data_eval = get_preprocessor_by_name(c.dataset)(c.data_path, is_eval=True)
+            meta_data_eval, meta_data_train = split_dataset(meta_data_train)
     if is_val and not c.run_eval:
         loader = None
     else:

@@ -10,7 +10,7 @@ import torch
 import subprocess
 import importlib
 import numpy as np
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from torch.autograd import Variable
 from utils.text import text_to_sequence
 
@@ -287,3 +287,26 @@ def setup_model(num_chars, num_speakers, c):
             location_attn=c.location_attn,
             separate_stopnet=c.separate_stopnet)
     return model
+
+
+def split_dataset(items):
+    is_multi_speaker = False
+    speakers = [item[-1] for item in items]
+    is_multi_speaker = len(set(speakers)) > 1
+    eval_split_size = 500 if 500 < len(items) * 0.01 else int(len(items) * 0.01)
+    np.random.seed(0)
+    np.random.shuffle(items)
+    if is_multi_speaker:
+        items_eval = []
+        # most stupid code ever -- Fix it !
+        while len(items_eval) < eval_split_size:
+            speakers = [item[-1] for item in items]
+            speaker_counter = Counter(speakers) 
+            item_idx = np.random.randint(0, len(items))
+            if speaker_counter[items[item_idx][-1]] > 1:
+                items_eval.append(items[item_idx])
+                del items[item_idx]
+        return items_eval, items
+    else:
+        return items[:eval_split_size], items[eval_split_size:]
+
