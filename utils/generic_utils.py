@@ -275,7 +275,7 @@ def setup_model(num_chars, num_speakers, c):
     elif c.model.lower() == "tacotron2":
         model = MyModel(
             num_chars=num_chars,
-            num_speakers=c.num_speakers,
+            num_speakers=num_speakers,
             r=c.r,
             attn_win=c.windowing,
             attn_norm=c.attention_norm,
