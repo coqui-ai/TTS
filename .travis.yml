@@ -1,0 +1,17 @@
+language: python
+
+cache: pip
+before_cache:
+  - rm ~/.cache/pip/log/debug.log
+
+python:
+  - "3.6"
+
+install:
+  - pip install --upgrade cardboardlint pylint
+
+script:
+  # Run cardboardlinter, in case of pull requests
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+      cardboardlinter --refspec $TRAVIS_BRANCH -n auto;
+    fi
