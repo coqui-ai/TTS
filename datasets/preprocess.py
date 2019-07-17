@@ -70,7 +70,7 @@ def mozilla(root_path, meta_file):
     return items
 
 
-def mailabs(root_path, meta_files):
+def mailabs(root_path, meta_files=None):
     """Normalizes M-AI-Labs meta data files to TTS format"""
     speaker_regex = re.compile("by_book/(male|female|mix)/(?P<speaker_name>[^/]+)/")
     if meta_files is None:
