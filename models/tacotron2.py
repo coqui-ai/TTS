@@ -88,8 +88,8 @@ class Tacotron2(nn.Module):
 
     def _add_speaker_embedding(self, encoder_outputs, speaker_ids):
         if hasattr(self, "speaker_embedding") and speaker_ids is None:
-            raise RuntimeError(" [!] Model has speaker embedding layer but speaker_id is not provided")            
-        elif hasattr(self, "speaker_embedding") and speaker_ids is not None:
+            raise RuntimeError(" [!] Model has speaker embedding layer but speaker_id is not provided")
+        if hasattr(self, "speaker_embedding") and speaker_ids is not None:
             speaker_embeddings = self.speaker_embedding(speaker_ids)
 
             speaker_embeddings.unsqueeze_(1)
