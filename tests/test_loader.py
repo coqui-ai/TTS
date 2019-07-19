@@ -8,6 +8,8 @@ from utils.audio import AudioProcessor
 from datasets import TTSDataset
 from datasets.preprocess import ljspeech
 
+#pylint: disable=unused-variable
+
 file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(file_path, "outputs/loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)

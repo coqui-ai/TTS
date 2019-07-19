@@ -9,6 +9,8 @@ from utils.generic_utils import load_config
 from layers.losses import L1LossMasked
 from models.tacotron import Tacotron
 
+#pylint: disable=unused-variable
+
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -45,7 +47,7 @@ class TacotronTrainTest(unittest.TestCase):
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         model = Tacotron(
             32,
-            5, 
+            5,
             linear_dim=c.audio['num_freq'],
             mel_dim=c.audio['num_mels'],
             r=c.r,

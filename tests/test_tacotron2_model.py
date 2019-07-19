@@ -10,6 +10,8 @@ from utils.generic_utils import load_config
 from layers.losses import MSELossMasked
 from models.tacotron2 import Tacotron2
 
+#pylint: disable=unused-variable
+
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
