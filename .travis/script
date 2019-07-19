@@ -1,9 +1,12 @@
 #!/bin/bash
 set -ex
 
+git remote set-branches --add origin $TRAVIS_BRANCH
+git fetch
+
 if [[ ( "$TRAVIS_PULL_REQUEST" != "false" ) && ( "$TEST_SUITE" == "lint" ) ]]; then
   # Run cardboardlinter, in case of pull requests
-  cardboardlinter --refspec $TRAVIS_BRANCH -n auto
+  cardboardlinter --refspec origin/$TRAVIS_BRANCH -n auto
 fi
 
 if [[ "$TEST_SUITE" == "unittest" ]]; then
