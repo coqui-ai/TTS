@@ -99,7 +99,7 @@ class MyDataset(Dataset):
             print(" > ERROR: failed loading phonemes for {}. "
                   "Recomputing.".format(wav_file))
             phonemes = self._generate_and_cache_phoneme_sequence(text,
-                                                                cache_path)
+                                                                 cache_path)
         if self.enable_eos_bos:
             phonemes = pad_with_eos_bos(phonemes)
 
