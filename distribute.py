@@ -1,6 +1,5 @@
 # edited from https://github.com/fastai/imagenet-fast/blob/master/imagenet_nv/distributed.py
 import os
-import sys
 import math
 import time
 import subprocess
@@ -19,6 +18,7 @@ class DistributedSampler(Sampler):
     """
 
     def __init__(self, dataset, num_replicas=None, rank=None):
+        super(DistributedSampler, self).__init__(dataset)
         if num_replicas is None:
             if not dist.is_available():
                 raise RuntimeError("Requires distributed package to be available")
@@ -54,12 +54,6 @@ class DistributedSampler(Sampler):
         self.epoch = epoch
 
 
-def reduce_tensor(tensor, n_gpus):
-	    rt = tensor.clone()
-	    dist.all_reduce(rt, op=dist.reduce_op.SUM)
-	    rt /= n_gpus
-	    return rt
-
 def reduce_tensor(tensor, num_gpus):
     rt = tensor.clone()
     dist.all_reduce(rt, op=dist.reduce_op.SUM)
@@ -91,7 +85,7 @@ def apply_gradient_allreduce(module):
         dist.broadcast(p, 0)
 
     def allreduce_params():
-        if (module.needs_reduction):
+        if module.needs_reduction:
             module.needs_reduction = False
             # bucketing params based on value types
             buckets = {}
@@ -113,23 +107,39 @@ def apply_gradient_allreduce(module):
 
     for param in list(module.parameters()):
 
-        def allreduce_hook(*unused):
+        def allreduce_hook(*_):
             Variable._execution_engine.queue_callback(allreduce_params)
 
         if param.requires_grad:
             param.register_hook(allreduce_hook)
 
-    def set_needs_reduction(self, input, output):
+    def set_needs_reduction(self, *_):
         self.needs_reduction = True
 
     module.register_forward_hook(set_needs_reduction)
     return module
 
 
-def main(args):
+def main():
     """
     Call train.py as a new process and pass command arguments
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--restore_path',
+        type=str,
+        help='Folder path to checkpoints',
+        default='')
+    parser.add_argument(
+        '--config_path',
+        type=str,
+        help='path to config file for training',
+    )
+    parser.add_argument(
+        '--data_path', type=str, help='dataset path.', default='')
+
+    args = parser.parse_args()
+
     CONFIG = load_config(args.config_path)
     OUT_PATH = create_experiment_folder(CONFIG.output_path, CONFIG.run_name,
                                         True)
@@ -150,7 +160,7 @@ def main(args):
     if not os.path.isdir(stdout_path):
         os.makedirs(stdout_path)
         os.chmod(stdout_path, 0o775)
-   
+
     # run processes
     processes = []
     for i in range(num_gpus):
@@ -159,7 +169,7 @@ def main(args):
         command[6] = '--rank={}'.format(i)
         stdout = None if i == 0 else open(
             os.path.join(stdout_path, "process_{}.log".format(i)), "w")
-        p = subprocess.Popen(['python3'.format(i)] + command, stdout=stdout, env=my_env)
+        p = subprocess.Popen(['python3'] + command, stdout=stdout, env=my_env)
         processes.append(p)
         print(command)
 
@@ -168,19 +178,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--restore_path',
-        type=str,
-        help='Folder path to checkpoints',
-        default='')
-    parser.add_argument(
-        '--config_path',
-        type=str,
-        help='path to config file for training',
-    )
-    parser.add_argument(
-        '--data_path', type=str, help='dataset path.', default='')
-
-    args = parser.parse_args()
-    main(args)
+    main()

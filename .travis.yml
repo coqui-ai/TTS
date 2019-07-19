@@ -1,0 +1,21 @@
+language: python
+
+git:
+  quiet: true
+
+cache: pip
+before_cache:
+  - rm ~/.cache/pip/log/debug.log
+
+matrix:
+  include:
+  - name: "Lint check"
+    python: "3.6"
+    install: pip install --quiet --upgrade cardboardlint pylint
+    env: TEST_SUITE="lint"
+  - name: "Unit tests"
+    python: "3.6"
+    install: pip install --quiet -r requirements.txt
+    env: TEST_SUITE="unittest"
+
+script: ./.travis/script

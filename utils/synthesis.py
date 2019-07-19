@@ -1,11 +1,6 @@
-import io
-import time
-import librosa
 import torch
 import numpy as np
-from .text import text_to_sequence, phoneme_to_sequence, sequence_to_phoneme
-from .visual import visualize
-from matplotlib import pylab as plt
+from .text import text_to_sequence, phoneme_to_sequence
 
 
 def text_to_seqvec(text, CONFIG, use_cuda):
@@ -31,8 +26,7 @@ def compute_style_mel(style_wav, ap, use_cuda):
         ap.load_wav(style_wav))).unsqueeze(0)
     if use_cuda:
         return style_mel.cuda()
-    else:
-        return style_mel
+    return style_mel
 
 
 def run_model(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None):
@@ -83,8 +77,8 @@ def synthesis(model,
               speaker_id=None,
               style_wav=None,
               truncated=False,
-              enable_eos_bos_chars=False,
-              trim_silence=False):
+              enable_eos_bos_chars=False, #pylint: disable=unused-argument
+              do_trim_silence=False):
     """Synthesize voice for the given text.
 
         Args:
@@ -99,7 +93,7 @@ def synthesis(model,
             truncated (bool): keep model states after inference. It can be used
                 for continuous inference at long texts.
             enable_eos_bos_chars (bool): enable special chars for end of sentence and start of sentence.
-            trim_silence (bool): trim silence after synthesis.
+            do_trim_silence (bool): trim silence after synthesis.
     """
     # GST processing
     style_mel = None
@@ -119,6 +113,6 @@ def synthesis(model,
     # plot results
     wav = inv_spectrogram(postnet_output, ap, CONFIG)
     # trim silence
-    if trim_silence:
+    if do_trim_silence:
         wav = trim_silence(wav)
     return wav, alignment, decoder_output, postnet_output, stop_tokens

@@ -5,6 +5,7 @@ from layers.tacotron import Prenet, CBHG, Decoder, Encoder
 from layers.losses import L1LossMasked
 from utils.generic_utils import sequence_mask
 
+#pylint: disable=unused-variable
 
 class PrenetTests(unittest.TestCase):
     def test_in_out(self):
@@ -19,6 +20,7 @@ class PrenetTests(unittest.TestCase):
 
 class CBHGTests(unittest.TestCase):
     def test_in_out(self):
+        #pylint: disable=attribute-defined-outside-init
         layer = self.cbhg = CBHG(
             128,
             K=8,
@@ -37,7 +39,8 @@ class CBHGTests(unittest.TestCase):
 
 
 class DecoderTests(unittest.TestCase):
-    def test_in_out(self):
+    @staticmethod
+    def test_in_out():
         layer = Decoder(
             in_features=256,
             memory_dim=80,

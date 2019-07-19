@@ -1,4 +1,3 @@
-import numpy as np
 import librosa
 import matplotlib
 matplotlib.use('Agg')
@@ -49,7 +48,7 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
         print(text)
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
-    
+
     stop_tokens = stop_tokens.squeeze().detach().to('cpu').numpy()
     plt.subplot(num_plot, 1, 2)
     plt.plot(range(len(stop_tokens)), list(stop_tokens))
@@ -65,12 +64,12 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
     if spectrogram is not None:
         plt.subplot(num_plot, 1, 4)
         librosa.display.specshow(spectrogram.T, sr=CONFIG.audio['sample_rate'],
-                                hop_length=hop_length, x_axis="time", y_axis="linear")
+                                 hop_length=hop_length, x_axis="time", y_axis="linear")
         plt.xlabel("Time", fontsize=label_fontsize)
         plt.ylabel("Hz", fontsize=label_fontsize)
         plt.tight_layout()
         plt.colorbar()
-    
+
     if output_path:
         print(output_path)
         fig.savefig(output_path)

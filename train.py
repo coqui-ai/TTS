@@ -7,7 +7,6 @@ import traceback
 import numpy as np
 import torch
 import torch.nn as nn
-from tensorboardX import SummaryWriter
 from torch import optim
 from torch.utils.data import DataLoader
 
@@ -18,9 +17,8 @@ from layers.losses import L1LossMasked, MSELossMasked
 from utils.audio import AudioProcessor
 from utils.generic_utils import (NoamLR, check_update, count_parameters,
                                  create_experiment_folder, get_git_branch,
-                                 load_config, lr_decay,
-                                 remove_experiment_folder, save_best_model,
-                                 save_checkpoint, sequence_mask, weight_decay,
+                                 load_config, remove_experiment_folder,
+                                 save_best_model, save_checkpoint, weight_decay,
                                  set_init_dict, copy_config_file, setup_model,
                                  split_dataset)
 from utils.logger import Logger
@@ -40,8 +38,7 @@ print(" > Using CUDA: ", use_cuda)
 print(" > Number of GPUs: ", num_gpus)
 
 
-def setup_loader(is_val=False, verbose=False):
-    global ap
+def setup_loader(ap, is_val=False, verbose=False):
     global meta_data_train
     global meta_data_eval
     if "meta_data_train" not in globals():
@@ -86,7 +83,7 @@ def setup_loader(is_val=False, verbose=False):
 
 def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
           ap, epoch):
-    data_loader = setup_loader(is_val=False, verbose=(epoch==0))
+    data_loader = setup_loader(ap, is_val=False, verbose=(epoch == 0))
     if c.use_speaker_embedding:
         speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.train()
@@ -130,7 +127,8 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         if c.lr_decay:
             scheduler.step()
         optimizer.zero_grad()
-        if optimizer_st: optimizer_st.zero_grad();
+        if optimizer_st:
+            optimizer_st.zero_grad()
 
         # dispatch data to GPU
         if use_cuda:
@@ -145,7 +143,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
         # forward pass model
         decoder_output, postnet_output, alignments, stop_tokens = model(
-            text_input, text_lengths,  mel_input, speaker_ids=speaker_ids)
+            text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
 
         # loss computation
         stop_loss = criterion_st(stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
@@ -202,16 +200,16 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         if args.rank == 0:
             avg_postnet_loss += float(postnet_loss.item())
             avg_decoder_loss += float(decoder_loss.item())
-            avg_stop_loss += stop_loss if type(stop_loss) is float else float(stop_loss.item())
+            avg_stop_loss += stop_loss if isinstance(stop_loss, float) else float(stop_loss.item())
             avg_step_time += step_time
 
             # Plot Training Iter Stats
             iter_stats = {"loss_posnet": postnet_loss.item(),
-                        "loss_decoder": decoder_loss.item(),
-                        "lr": current_lr,
-                        "grad_norm": grad_norm,
-                        "grad_norm_st": grad_norm_st,
-                        "step_time": step_time}
+                          "loss_decoder": decoder_loss.item(),
+                          "lr": current_lr,
+                          "grad_norm": grad_norm,
+                          "grad_norm_st": grad_norm_st,
+                          "step_time": step_time}
             tb_logger.tb_train_iter_stats(current_step, iter_stats)
 
             if current_step % c.save_step == 0:
@@ -223,7 +221,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
                 # Diagnostic visualizations
                 const_spec = postnet_output[0].data.cpu().numpy()
-                gt_spec =  linear_input[0].data.cpu().numpy() if c.model in ["Tacotron", "TacotronGST"] else  mel_input[0].data.cpu().numpy()
+                gt_spec = linear_input[0].data.cpu().numpy() if c.model in ["Tacotron", "TacotronGST"] else  mel_input[0].data.cpu().numpy()
                 align_img = alignments[0].data.cpu().numpy()
 
                 figures = {
@@ -238,9 +236,9 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                     train_audio = ap.inv_spectrogram(const_spec.T)
                 else:
                     train_audio = ap.inv_mel_spectrogram(const_spec.T)
-                tb_logger.tb_train_audios(current_step, 
-                                            {'TrainAudio': train_audio},
-                                            c.audio["sample_rate"])
+                tb_logger.tb_train_audios(current_step,
+                                          {'TrainAudio': train_audio},
+                                          c.audio["sample_rate"])
 
     avg_postnet_loss /= (num_iter + 1)
     avg_decoder_loss /= (num_iter + 1)
@@ -262,9 +260,9 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
     if args.rank == 0:
         # Plot Training Epoch Stats
         epoch_stats = {"loss_postnet": avg_postnet_loss,
-                    "loss_decoder": avg_decoder_loss,
-                    "stop_loss": avg_stop_loss,
-                    "epoch_time": epoch_time}
+                       "loss_decoder": avg_decoder_loss,
+                       "stop_loss": avg_stop_loss,
+                       "epoch_time": epoch_time}
         tb_logger.tb_train_epoch_stats(current_step, epoch_stats)
         if c.tb_model_param_stats:
             tb_logger.tb_model_weights(model, current_step)
@@ -273,7 +271,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
 
 def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
-    data_loader = setup_loader(is_val=True)
+    data_loader = setup_loader(ap, is_val=True)
     if c.use_speaker_embedding:
         speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
@@ -401,8 +399,8 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
 
                 # Plot Validation Stats
                 epoch_stats = {"loss_postnet": avg_postnet_loss,
-                            "loss_decoder": avg_decoder_loss,
-                            "stop_loss": avg_stop_loss}
+                               "loss_decoder": avg_decoder_loss,
+                               "stop_loss": avg_stop_loss}
                 tb_logger.tb_eval_stats(current_step, epoch_stats)
 
     if args.rank == 0 and epoch > c.test_delay_epochs:
@@ -419,7 +417,7 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
                 file_path = os.path.join(AUDIO_PATH, str(current_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
-                                        "TestSentence_{}.wav".format(idx))
+                                         "TestSentence_{}.wav".format(idx))
                 ap.save_wav(wav, file_path)
                 test_audios['{}-audio'.format(idx)] = wav
                 test_figures['{}-prediction'.format(idx)] = plot_spectrogram(postnet_output, ap)
@@ -432,7 +430,11 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
     return avg_postnet_loss
 
 
-def main(args):
+#FIXME: move args definition/parsing inside of main?
+def main(args): #pylint: disable=redefined-outer-name
+    # Audio processor
+    ap = AudioProcessor(**c.audio)
+
     # DISTRUBUTED
     if num_gpus > 1:
         init_distributed(args.rank, num_gpus, args.group_id,
@@ -481,12 +483,11 @@ def main(args):
             # TODO: fix optimizer init, model.cuda() needs to be called before
             # optimizer restore
             # optimizer.load_state_dict(checkpoint['optimizer'])
-            if len(c.reinit_layers) > 0:
+            if c.reinit_layers:
                 raise RuntimeError
             model.load_state_dict(checkpoint['model'])
         except:
             print(" > Partial model initialization.")
-            partial_init_flag = True
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint, c)
             model.load_state_dict(model_dict)
@@ -495,7 +496,6 @@ def main(args):
             group['lr'] = c.lr
         print(
             " > Model restored from step %d" % checkpoint['step'], flush=True)
-        start_epoch = checkpoint['epoch']
         args.restore_step = checkpoint['step']
     else:
         args.restore_step = 0
@@ -503,7 +503,8 @@ def main(args):
     if use_cuda:
         model = model.cuda()
         criterion.cuda()
-        if criterion_st: criterion_st.cuda();
+        if criterion_st:
+            criterion_st.cuda()
 
     # DISTRUBUTED
     if num_gpus > 1:
@@ -614,12 +615,9 @@ if __name__ == '__main__':
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 
-    if args.rank==0:
+    if args.rank == 0:
         LOG_DIR = OUT_PATH
         tb_logger = Logger(LOG_DIR)
-
-    # Audio processor
-    ap = AudioProcessor(**c.audio)
 
     try:
         main(args)
@@ -628,8 +626,8 @@ if __name__ == '__main__':
         try:
             sys.exit(0)
         except SystemExit:
-            os._exit(0)
-    except Exception:
+            os._exit(0) #pylint: disable=protected-access
+    except Exception: #pylint: disable=broad-except
         remove_experiment_folder(OUT_PATH)
         traceback.print_exc()
         sys.exit(1)

@@ -1,13 +1,14 @@
 import os
 import unittest
 import shutil
-import numpy as np
 
 from torch.utils.data import DataLoader
 from utils.generic_utils import load_config
 from utils.audio import AudioProcessor
 from datasets import TTSDataset
 from datasets.preprocess import ljspeech
+
+#pylint: disable=unused-variable
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(file_path, "outputs/loader_tests/")
@@ -135,7 +136,7 @@ class TestTTSDataset(unittest.TestCase):
                 self.ap.save_wav(wav, OUTPATH + '/mel_inv_dataloader.wav')
                 shutil.copy(item_idx[0], OUTPATH + '/mel_target_dataloader.wav')
 
-                # check linear-spec 
+                # check linear-spec
                 linear_spec = linear_input[0].cpu().numpy()
                 wav = self.ap.inv_spectrogram(linear_spec.T)
                 self.ap.save_wav(wav, OUTPATH + '/linear_inv_dataloader.wav')

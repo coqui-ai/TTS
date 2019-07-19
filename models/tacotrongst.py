@@ -1,8 +1,6 @@
 # coding: utf-8
-import torch
 from torch import nn
-from math import sqrt
-from layers.tacotron import Prenet, Encoder, Decoder, PostCBHG
+from layers.tacotron import Encoder, Decoder, PostCBHG
 from layers.gst_layers import GST
 from utils.generic_utils import sequence_mask
 
