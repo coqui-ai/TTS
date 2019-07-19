@@ -5,7 +5,7 @@ import torch
 import random
 from torch.utils.data import Dataset
 
-from utils.text import text_to_sequence, phoneme_to_sequence
+from utils.text import text_to_sequence, phoneme_to_sequence, pad_with_eos_bos
 from utils.data import prepare_data, prepare_tensor, prepare_stop_target
 
 
@@ -73,34 +73,44 @@ class MyDataset(Dataset):
         data = np.load(filename).astype('float32')
         return data
 
-    def load_phoneme_sequence(self, wav_file, text):
+    def _generate_and_cache_phoneme_sequence(self, text, cache_path):
+        """generate a phoneme sequence from text.
+
+        since the usage is for subsequent caching, we never add bos and
+        eos chars here. Instead we add those dynamically later; based on the
+        config option."""
+        phonemes = phoneme_to_sequence(text, [self.cleaners],
+                                       language=self.phoneme_language,
+                                       enable_eos_bos=False)
+        phonemes = np.asarray(phonemes, dtype=np.int32)
+        np.save(cache_path, phonemes)
+        return phonemes
+
+    def _load_or_generate_phoneme_sequence(self, wav_file, text):
         file_name = os.path.basename(wav_file).split('.')[0]
-        tmp_path = os.path.join(self.phoneme_cache_path,
-                                file_name + '_phoneme.npy')
-        if os.path.isfile(tmp_path):
-            try:
-                text = np.load(tmp_path)
-            except (IOError, ValueError):
-                print(" > ERROR: phoneme connot be loaded for {}. Recomputing.".format(wav_file))
-                text = np.asarray(
-                    phoneme_to_sequence(
-                        text, [self.cleaners], language=self.phoneme_language, enable_eos_bos=self.enable_eos_bos),
-                    dtype=np.int32)
-                np.save(tmp_path, text)
-        else:
-            text = np.asarray(
-                phoneme_to_sequence(
-                    text, [self.cleaners], language=self.phoneme_language, enable_eos_bos=self.enable_eos_bos),
-                dtype=np.int32)
-            np.save(tmp_path, text)
-        return text
+        cache_path = os.path.join(self.phoneme_cache_path,
+                                  file_name + '_phoneme.npy')
+        try:
+            phonemes = np.load(cache_path)
+        except FileNotFoundError:
+            phonemes = self._generate_and_cache_phoneme_sequence(text,
+                                                                 cache_path)
+        except (ValueError, IOError):
+            print(" > ERROR: failed loading phonemes for {}. "
+                  "Recomputing.".format(wav_file))
+            phonemes = self._generate_and_cache_phoneme_sequence(text,
+                                                                cache_path)
+        if self.enable_eos_bos:
+            phonemes = pad_with_eos_bos(phonemes)
+
+        return phonemes
 
     def load_data(self, idx):
         text, wav_file, speaker_name = self.items[idx]
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
         if self.use_phonemes:
-            text = self.load_phoneme_sequence(wav_file, text)
+            text = self._load_or_generate_phoneme_sequence(wav_file, text)
         else:
             text = np.asarray(
                 text_to_sequence(text, [self.cleaners]), dtype=np.int32)
