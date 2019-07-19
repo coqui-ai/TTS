@@ -66,14 +66,13 @@ def _expand_dollars(m):
         dollar_unit = 'dollar' if dollars == 1 else 'dollars'
         cent_unit = 'cent' if cents == 1 else 'cents'
         return '%s %s, %s %s' % (dollars, dollar_unit, cents, cent_unit)
-    elif dollars:
+    if dollars:
         dollar_unit = 'dollar' if dollars == 1 else 'dollars'
         return '%s %s' % (dollars, dollar_unit)
-    elif cents:
+    if cents:
         cent_unit = 'cent' if cents == 1 else 'cents'
         return '%s %s' % (cents, cent_unit)
-    else:
-        return 'zero dollars'
+    return 'zero dollars'
 
 
 def _standard_number_to_words(n, digit_group):
@@ -99,12 +98,11 @@ def _number_to_words(n):
     # Handle special cases first, then go to the standard case:
     if n >= 1000000000000000000:
         return str(n)  # Too large, just return the digits
-    elif n == 0:
+    if n == 0:
         return 'zero'
-    elif n % 100 == 0 and n % 1000 != 0 and n < 3000:
+    if n % 100 == 0 and n % 1000 != 0 and n < 3000:
         return _standard_number_to_words(n // 100, 0) + ' hundred'
-    else:
-        return _standard_number_to_words(n, 0)
+    return _standard_number_to_words(n, 0)
 
 
 def _expand_number(m):

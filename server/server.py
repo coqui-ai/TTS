@@ -2,7 +2,7 @@
 import argparse
 from synthesizer import Synthesizer
 from utils.generic_utils import load_config
-from flask import Flask, Response, request, render_template, send_file
+from flask import Flask, request, render_template, send_file
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

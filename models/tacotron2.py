@@ -1,8 +1,5 @@
 from math import sqrt
-import torch
-from torch.autograd import Variable
 from torch import nn
-from torch.nn import functional as F
 from layers.tacotron2 import Encoder, Decoder, Postnet
 from utils.generic_utils import sequence_mask
 
@@ -39,7 +36,8 @@ class Tacotron2(nn.Module):
                                location_attn, separate_stopnet)
         self.postnet = Postnet(self.n_mel_channels)
 
-    def shape_outputs(self, mel_outputs, mel_outputs_postnet, alignments):
+    @staticmethod
+    def shape_outputs(mel_outputs, mel_outputs_postnet, alignments):
         mel_outputs = mel_outputs.transpose(1, 2)
         mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
         return mel_outputs, mel_outputs_postnet, alignments

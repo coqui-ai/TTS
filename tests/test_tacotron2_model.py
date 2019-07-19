@@ -37,7 +37,7 @@ class TacotronTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked().to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(24, c.r).to(device)
+        model = Tacotron2(24, c.r).to(device) #FIXME: missing num_speakers parameter to Tacotron2 ctor
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0

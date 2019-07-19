@@ -2,7 +2,6 @@ import os
 import copy
 import torch
 import unittest
-import numpy as np
 
 from torch import optim
 from torch import nn
@@ -48,7 +47,7 @@ class TacotronTrainTest(unittest.TestCase):
             linear_dim=c.audio['num_freq'],
             mel_dim=c.audio['num_mels'],
             r=c.r,
-            memory_size=c.memory_size).to(device)
+            memory_size=c.memory_size).to(device) #FIXME: missing num_speakers parameter to Tacotron ctor
         model.train()
         print(" > Num parameters for Tacotron model:%s"%(count_parameters(model)))
         model_ref = copy.deepcopy(model)
@@ -58,7 +57,7 @@ class TacotronTrainTest(unittest.TestCase):
             assert (param - param_ref).sum() == 0, param
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
-        for i in range(5):
+        for _ in range(5):
             mel_out, linear_out, align, stop_tokens = model.forward(
                 input, input_lengths, mel_spec)
             optimizer.zero_grad()

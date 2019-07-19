@@ -2,16 +2,16 @@
 
 import re
 
-# valid_symbols = [
-#     'AA', 'AA0', 'AA1', 'AA2', 'AE', 'AE0', 'AE1', 'AE2', 'AH', 'AH0', 'AH1',
-#     'AH2', 'AO', 'AO0', 'AO1', 'AO2', 'AW', 'AW0', 'AW1', 'AW2', 'AY', 'AY0',
-#     'AY1', 'AY2', 'B', 'CH', 'D', 'DH', 'EH', 'EH0', 'EH1', 'EH2', 'ER', 'ER0',
-#     'ER1', 'ER2', 'EY', 'EY0', 'EY1', 'EY2', 'F', 'G', 'HH', 'IH', 'IH0',
-#     'IH1', 'IH2', 'IY', 'IY0', 'IY1', 'IY2', 'JH', 'K', 'L', 'M', 'N', 'NG',
-#     'OW', 'OW0', 'OW1', 'OW2', 'OY', 'OY0', 'OY1', 'OY2', 'P', 'R', 'S', 'SH',
-#     'T', 'TH', 'UH', 'UH0', 'UH1', 'UH2', 'UW', 'UW0', 'UW1', 'UW2', 'V', 'W',
-#     'Y', 'Z', 'ZH'
-# ]
+VALID_SYMBOLS = [
+    'AA', 'AA0', 'AA1', 'AA2', 'AE', 'AE0', 'AE1', 'AE2', 'AH', 'AH0', 'AH1',
+    'AH2', 'AO', 'AO0', 'AO1', 'AO2', 'AW', 'AW0', 'AW1', 'AW2', 'AY', 'AY0',
+    'AY1', 'AY2', 'B', 'CH', 'D', 'DH', 'EH', 'EH0', 'EH1', 'EH2', 'ER', 'ER0',
+    'ER1', 'ER2', 'EY', 'EY0', 'EY1', 'EY2', 'F', 'G', 'HH', 'IH', 'IH0',
+    'IH1', 'IH2', 'IY', 'IY0', 'IY1', 'IY2', 'JH', 'K', 'L', 'M', 'N', 'NG',
+    'OW', 'OW0', 'OW1', 'OW2', 'OY', 'OY0', 'OY1', 'OY2', 'P', 'R', 'S', 'SH',
+    'T', 'TH', 'UH', 'UH0', 'UH1', 'UH2', 'UW', 'UW0', 'UW1', 'UW2', 'V', 'W',
+    'Y', 'Z', 'ZH'
+]
 
 
 class CMUDict:
@@ -37,19 +37,19 @@ class CMUDict:
         '''Returns list of ARPAbet pronunciations of the given word.'''
         return self._entries.get(word.upper())
 
-    def get_arpabet(self, word, cmudict, punctuation_symbols):
+    @staticmethod
+    def get_arpabet(word, cmudict, punctuation_symbols):
         first_symbol, last_symbol = '', ''
-        if len(word) > 0 and word[0] in punctuation_symbols:
+        if word and word[0] in punctuation_symbols:
             first_symbol = word[0]
             word = word[1:]
-        if len(word) > 0 and word[-1] in punctuation_symbols:
+        if word and word[-1] in punctuation_symbols:
             last_symbol = word[-1]
             word = word[:-1]
         arpabet = cmudict.lookup(word)
         if arpabet is not None:
             return first_symbol + '{%s}' % arpabet[0] + last_symbol
-        else:
-            return first_symbol + word + last_symbol
+        return first_symbol + word + last_symbol
 
 
 _alt_re = re.compile(r'\([0-9]+\)')
@@ -58,7 +58,7 @@ _alt_re = re.compile(r'\([0-9]+\)')
 def _parse_cmudict(file):
     cmudict = {}
     for line in file:
-        if len(line) and (line[0] >= 'A' and line[0] <= 'Z' or line[0] == "'"):
+        if line and (line[0] >= 'A' and line[0] <= 'Z' or line[0] == "'"):
             parts = line.split('  ')
             word = re.sub(_alt_re, '', parts[0])
             pronunciation = _get_pronunciation(parts[1])
@@ -73,6 +73,6 @@ def _parse_cmudict(file):
 def _get_pronunciation(s):
     parts = s.strip().split(' ')
     for part in parts:
-        if part not in _valid_symbol_set:
+        if part not in VALID_SYMBOLS:
             return None
     return ' '.join(parts)

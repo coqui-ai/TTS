@@ -1,8 +1,6 @@
 import os
 import re
-import sys
 import glob
-import time
 import shutil
 import datetime
 import json
@@ -11,8 +9,6 @@ import subprocess
 import importlib
 import numpy as np
 from collections import OrderedDict, Counter
-from torch.autograd import Variable
-from utils.text import text_to_sequence
 
 
 class AttrDict(dict):
@@ -78,7 +74,7 @@ def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
 
     checkpoint_files = glob.glob(experiment_path + "/*.pth.tar")
-    if len(checkpoint_files) < 1:
+    if not checkpoint_files:
         if os.path.exists(experiment_path):
             shutil.rmtree(experiment_path)
             print(" ! Run is removed from {}".format(experiment_path))
@@ -87,7 +83,6 @@ def remove_experiment_folder(experiment_path):
 
 
 def copy_config_file(config_file, out_path, new_fields):
-    config_name = os.path.basename(config_file)
     config_lines = open(config_file, "r").readlines()
     # add extra information fields
     for key, value in new_fields.items():

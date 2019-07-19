@@ -77,10 +77,11 @@ class ReferenceEncoder(nn.Module):
 
         return out.squeeze(0)
 
-    def calculate_post_conv_height(self, height, kernel_size, stride, pad,
+    @staticmethod
+    def calculate_post_conv_height(height, kernel_size, stride, pad,
                                    n_convs):
         """Height of spec after n convolutions with fixed kernel/stride/pad."""
-        for i in range(n_convs):
+        for _ in range(n_convs):
             height = (height - kernel_size + 2 * pad) // stride + 1
         return height
 

@@ -177,7 +177,7 @@ class CBHG(nn.Module):
         # (B, in_features, T_in)
         if x.size(-1) == self.in_features:
             x = x.transpose(1, 2)
-        T = x.size(-1)
+        # T = x.size(-1)
         # (B, hid_features*K, T_in)
         # Concat conv1d bank outputs
         outs = []
@@ -261,7 +261,7 @@ class PostCBHG(nn.Module):
 
 
 class Decoder(nn.Module):
-    r"""Decoder module.
+    """Decoder module.
 
     Args:
         in_features (int): input vector (encoder output) sample size.
@@ -270,6 +270,8 @@ class Decoder(nn.Module):
         memory_size (int): size of the past window. if <= 0 memory_size = r
         TODO: arguments
     """
+    # Pylint gets confused by PyTorch conventions here
+    #pylint: disable=attribute-defined-outside-init
 
     def __init__(self, in_features, memory_dim, r, memory_size, attn_windowing,
                  attn_norm, prenet_type, prenet_dropout, forward_attn,
@@ -290,16 +292,16 @@ class Decoder(nn.Module):
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
         self.attention_rnn = nn.GRUCell(in_features + 128, 256)
         self.attention_layer = Attention(attention_rnn_dim=256,
-                                       embedding_dim=in_features,
-                                       attention_dim=128,
-                                       location_attention=location_attn,
-                                       attention_location_n_filters=32,
-                                       attention_location_kernel_size=31,
-                                       windowing=attn_windowing,
-                                       norm=attn_norm,
-                                       forward_attn=forward_attn,
-                                       trans_agent=trans_agent,
-                                       forward_attn_mask=forward_attn_mask)
+                                         embedding_dim=in_features,
+                                         attention_dim=128,
+                                         location_attention=location_attn,
+                                         attention_location_n_filters=32,
+                                         attention_location_kernel_size=31,
+                                         windowing=attn_windowing,
+                                         norm=attn_norm,
+                                         forward_attn=forward_attn,
+                                         trans_agent=trans_agent,
+                                         forward_attn_mask=forward_attn_mask)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state

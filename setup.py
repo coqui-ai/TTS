@@ -5,7 +5,6 @@ import setuptools.command.develop
 import setuptools.command.build_py
 import os
 import subprocess
-from os.path import exists
 
 version = '0.0.1'
 
@@ -31,7 +30,6 @@ class build_py(setuptools.command.build_py.build_py):
 
     @staticmethod
     def create_version_file():
-        global version, cwd
         print('-- Building version ' + version)
         version_path = os.path.join(cwd, 'version.py')
         with open(version_path, 'w') as f:
@@ -45,7 +43,6 @@ class develop(setuptools.command.develop.develop):
 
 
 def create_readme_rst():
-    global cwd
     try:
         subprocess.check_call(
             [
