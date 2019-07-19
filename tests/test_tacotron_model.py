@@ -32,6 +32,7 @@ class TacotronTrainTest(unittest.TestCase):
         linear_spec = torch.rand(8, 30, c.audio['num_freq']).to(device)
         mel_lengths = torch.randint(20, 30, (8, )).long().to(device)
         stop_targets = torch.zeros(8, 30, 1).float().to(device)
+        speaker_ids = torch.randint(0, 5, (8, )).long().to(device)
 
         for idx in mel_lengths:
             stop_targets[:, int(idx.item()):, 0] = 1.0
@@ -45,6 +46,7 @@ class TacotronTrainTest(unittest.TestCase):
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         model = Tacotron(
             32,
+            5, 
             linear_dim=c.audio['num_freq'],
             mel_dim=c.audio['num_mels'],
             r=c.r,
@@ -60,7 +62,7 @@ class TacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             mel_out, linear_out, align, stop_tokens = model.forward(
-                input, input_lengths, mel_spec)
+                input, input_lengths, mel_spec, speaker_ids)
             optimizer.zero_grad()
             loss = criterion(mel_out, mel_spec, mel_lengths)
             stop_loss = criterion_st(stop_tokens, stop_targets)
