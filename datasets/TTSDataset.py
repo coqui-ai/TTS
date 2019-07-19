@@ -11,7 +11,6 @@ from utils.data import prepare_data, prepare_tensor, prepare_stop_target
 
 class MyDataset(Dataset):
     def __init__(self,
-                 root_path,
                  outputs_per_step,
                  text_cleaner,
                  ap,
@@ -26,13 +25,10 @@ class MyDataset(Dataset):
                  verbose=False):
         """
         Args:
-            root_path (str): root path for the data folder.
             outputs_per_step (int): number of time frames predicted per step.
             text_cleaner (str): text cleaner used for the dataset.
             ap (TTS.utils.AudioProcessor): audio processor object.
             meta_data (list): list of dataset instances.
-            speaker_id_cache_path (str): path where the speaker name to id
-                mapping is stored
             batch_group_size (int): (0) range of batch randomization after sorting
                 sequences by length.
             min_seq_len (int): (0) minimum sequence length to be processed
@@ -45,7 +41,6 @@ class MyDataset(Dataset):
             enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
             verbose (bool): print diagnostic information.
         """
-        self.root_path = root_path
         self.batch_group_size = batch_group_size
         self.items = meta_data
         self.outputs_per_step = outputs_per_step
@@ -63,7 +58,6 @@ class MyDataset(Dataset):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
             print("\n > DataLoader initialization")
-            print(" | > Data path: {}".format(root_path))
             print(" | > Use phonemes: {}".format(self.use_phonemes))
             if use_phonemes:
                 print("   | > phoneme language: {}".format(phoneme_language))

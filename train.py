@@ -55,7 +55,6 @@ def setup_loader(ap, is_val=False, verbose=False):
         loader = None
     else:
         dataset = MyDataset(
-            c.data_path,
             c.r,
             c.text_cleaner,
             meta_data=meta_data_eval if is_val else meta_data_train,
