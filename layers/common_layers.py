@@ -1,7 +1,6 @@
-from math import sqrt
 import torch
-from torch.autograd import Variable
 from torch import nn
+from torch.autograd import Variable
 from torch.nn import functional as F
 
 
@@ -107,6 +106,8 @@ class LocationLayer(nn.Module):
 
 
 class Attention(nn.Module):
+    # Pylint gets confused by PyTorch conventions here
+    #pylint: disable=attribute-defined-outside-init
     def __init__(self, attention_rnn_dim, embedding_dim, attention_dim,
                  location_attention, attention_location_n_filters,
                  attention_location_kernel_size, windowing, norm, forward_attn,

@@ -1,12 +1,10 @@
-# visualisation tools for mimic2 
+# visualisation tools for mimic2
 import matplotlib.pyplot as plt
 from statistics import stdev, mode, mean, median
 from statistics import StatisticsError
 import argparse
-import glob
 import os
 import csv
-import copy
 import seaborn as sns
 import random
 from text.cmudict import CMUDict
@@ -32,7 +30,7 @@ def append_data_statistics(meta_data):
             std = stdev(
                 d["audio_len"] for d in data
             )
-        except:
+        except StatisticsError:
             std = 0
 
         meta_data[char_cnt]["mean"] = mean_audio_len
@@ -114,7 +112,7 @@ def plot(meta_data, save_path=None):
     y_mode = graph_data['y_mode']
     y_median = graph_data['y_median']
     y_num_samples = graph_data['y_num_samples']
-   
+
     plt.figure()
     plt.plot(x, y_avg, 'ro')
     plt.xlabel("character lengths", fontsize=30)
@@ -122,7 +120,7 @@ def plot(meta_data, save_path=None):
     if save:
         name = "char_len_vs_avg_secs"
         plt.savefig(os.path.join(save_path, name))
-    
+
     plt.figure()
     plt.plot(x, y_mode, 'ro')
     plt.xlabel("character lengths", fontsize=30)
@@ -182,12 +180,12 @@ def plot_phonemes(train_path, cmu_dict_path, save_path):
     for key in phonemes:
         x.append(key)
         y.append(phonemes[key])
-    
+
     plt.figure()
     plt.rcParams["figure.figsize"] = (50, 20)
-    plot = sns.barplot(x, y)
+    barplot = sns.barplot(x, y)
     if save_path:
-        fig = plot.get_figure()
+        fig = barplot.get_figure()
         fig.savefig(os.path.join(save_path, "phoneme_dist"))
 
 
@@ -201,7 +199,7 @@ def main():
         '--save_to', help='path to save charts of data to'
     )
     parser.add_argument(
-        '--cmu_dict_path', help='give cmudict-0.7b to see phoneme distribution' 
+        '--cmu_dict_path', help='give cmudict-0.7b to see phoneme distribution'
     )
     args = parser.parse_args()
     meta_data = process_meta_data(args.train_file_path)
@@ -210,7 +208,7 @@ def main():
     if args.cmu_dict_path:
         plt.rcParams["figure.figsize"] = (30, 10)
         plot_phonemes(args.train_file_path, args.cmu_dict_path, args.save_to)
-    
+
     plt.show()
 
 if __name__ == '__main__':

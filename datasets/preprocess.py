@@ -11,7 +11,7 @@ def get_preprocessor_by_name(name):
 
 
 def tweb(root_path, meta_file):
-    """Normalize TWEB dataset. 
+    """Normalize TWEB dataset.
     https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset
     """
     txt_file = os.path.join(root_path, meta_file)
@@ -123,9 +123,9 @@ def nancy(root_path, meta_file):
     speaker_name = "nancy"
     with open(txt_file, 'r') as ttf:
         for line in ttf:
-            id = line.split()[1]
+            utt_id = line.split()[1]
             text = line[line.find('"') + 1:line.rfind('"') - 1]
-            wav_file = os.path.join(root_path, "wavn", id + ".wav")
+            wav_file = os.path.join(root_path, "wavn", utt_id + ".wav")
             items.append([text, wav_file, speaker_name])
     return items
 

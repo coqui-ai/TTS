@@ -1,0 +1,2 @@
+linters:
+- pylint:

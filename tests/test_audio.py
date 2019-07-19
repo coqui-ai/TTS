@@ -1,7 +1,5 @@
 import os
 import unittest
-import numpy as np
-import torch as T
 
 from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from utils.audio import AudioProcessor

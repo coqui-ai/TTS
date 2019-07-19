@@ -1,14 +1,12 @@
 import os
 import numpy as np
 import collections
-import librosa
 import torch
 import random
 from torch.utils.data import Dataset
 
 from utils.text import text_to_sequence, phoneme_to_sequence
-from utils.data import (prepare_data, pad_per_step, prepare_tensor,
-                        prepare_stop_target)
+from utils.data import prepare_data, prepare_tensor, prepare_stop_target
 
 
 class MyDataset(Dataset):
@@ -31,14 +29,14 @@ class MyDataset(Dataset):
             text_cleaner (str): text cleaner used for the dataset.
             ap (TTS.utils.AudioProcessor): audio processor object.
             meta_data (list): list of dataset instances.
-            batch_group_size (int): (0) range of batch randomization after sorting 
-                sequences by length. 
-            min_seq_len (int): (0) minimum sequence length to be processed 
+            batch_group_size (int): (0) range of batch randomization after sorting
+                sequences by length.
+            min_seq_len (int): (0) minimum sequence length to be processed
                 by the loader.
             max_seq_len (int): (float("inf")) maximum sequence length.
             use_phonemes (bool): (true) if true, text converted to phonemes.
-            phoneme_cache_path (str): path to cache phoneme features. 
-            phoneme_language (str): one the languages from 
+            phoneme_cache_path (str): path to cache phoneme features.
+            phoneme_language (str): one the languages from
                 https://github.com/bootphon/phonemizer#languages
             enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
             verbose (bool): print diagnostic information.
@@ -70,7 +68,8 @@ class MyDataset(Dataset):
         audio = self.ap.load_wav(filename)
         return audio
 
-    def load_np(self, filename):
+    @staticmethod
+    def load_np(filename):
         data = np.load(filename).astype('float32')
         return data
 
@@ -81,7 +80,7 @@ class MyDataset(Dataset):
         if os.path.isfile(tmp_path):
             try:
                 text = np.load(tmp_path)
-            except:
+            except (IOError, ValueError):
                 print(" > ERROR: phoneme connot be loaded for {}. Recomputing.".format(wav_file))
                 text = np.asarray(
                     phoneme_to_sequence(
@@ -120,7 +119,7 @@ class MyDataset(Dataset):
     def sort_items(self):
         r"""Sort instances based on text length in ascending order"""
         lengths = np.array([len(ins[0]) for ins in self.items])
-       
+
         idxs = np.argsort(lengths)
         new_items = []
         ignored = []
@@ -144,10 +143,10 @@ class MyDataset(Dataset):
             print(" | > Max length sequence: {}".format(np.max(lengths)))
             print(" | > Min length sequence: {}".format(np.min(lengths)))
             print(" | > Avg length sequence: {}".format(np.mean(lengths)))
-            print(" | > Num. instances discarded by max-min seq limits: {}".format(
-                len(ignored), self.min_seq_len))
+            print(" | > Num. instances discarded by max-min (max={}, min={}) seq limits: {}".format(
+                self.max_seq_len, self.min_seq_len, len(ignored)))
             print(" | > Batch group size: {}.".format(self.batch_group_size))
-        
+
     def __len__(self):
         return len(self.items)
 
@@ -176,7 +175,7 @@ class MyDataset(Dataset):
             ]
             text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
             speaker_name = [batch[idx]['speaker_name']
-                       for idx in ids_sorted_decreasing]
+                            for idx in ids_sorted_decreasing]
 
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
             linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
