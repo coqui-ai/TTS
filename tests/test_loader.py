@@ -28,13 +28,12 @@ class TestTTSDataset(unittest.TestCase):
         self.ap = AudioProcessor(**c.audio)
 
     def _create_dataloader(self, batch_size, r, bgs):
+        items = ljspeech(c.data_path,'metadata.csv')
         dataset = TTSDataset.MyDataset(
-            c.data_path,
-            'metadata.csv',
             r,
             c.text_cleaner,
-            preprocessor=ljspeech,
             ap=self.ap,
+            meta_data=items, 
             batch_group_size=bgs,
             min_seq_len=c.min_seq_len,
             max_seq_len=float("inf"),
@@ -57,17 +56,19 @@ class TestTTSDataset(unittest.TestCase):
                     break
                 text_input = data[0]
                 text_lengths = data[1]
-                linear_input = data[2]
-                mel_input = data[3]
-                mel_lengths = data[4]
-                stop_target = data[5]
-                item_idx = data[6]
+                speaker_name = data[2]
+                linear_input = data[3]
+                mel_input = data[4]
+                mel_lengths = data[5]
+                stop_target = data[6]
+                item_idx = data[7]
 
                 neg_values = text_input[text_input < 0]
                 check_count = len(neg_values)
                 assert check_count == 0, \
                     " !! Negative values in text_input: {}".format(check_count)
                 # TODO: more assertion here
+                assert type(speaker_name[0]) is str
                 assert linear_input.shape[0] == c.batch_size
                 assert linear_input.shape[2] == self.ap.num_freq
                 assert mel_input.shape[0] == c.batch_size
@@ -91,11 +92,12 @@ class TestTTSDataset(unittest.TestCase):
                     break
                 text_input = data[0]
                 text_lengths = data[1]
-                linear_input = data[2]
-                mel_input = data[3]
-                mel_lengths = data[4]
-                stop_target = data[5]
-                item_idx = data[6]
+                speaker_name = data[2]
+                linear_input = data[3]
+                mel_input = data[4]
+                mel_lengths = data[5]
+                stop_target = data[6]
+                item_idx = data[7]
 
                 avg_length = mel_lengths.numpy().mean()
                 assert avg_length >= last_length
@@ -111,11 +113,12 @@ class TestTTSDataset(unittest.TestCase):
                     break
                 text_input = data[0]
                 text_lengths = data[1]
-                linear_input = data[2]
-                mel_input = data[3]
-                mel_lengths = data[4]
-                stop_target = data[5]
-                item_idx = data[6]
+                speaker_name = data[2]
+                linear_input = data[3]
+                mel_input = data[4]
+                mel_lengths = data[5]
+                stop_target = data[6]
+                item_idx = data[7]
 
                 # check mel_spec consistency
                 wav = self.ap.load_wav(item_idx[0])
@@ -158,11 +161,12 @@ class TestTTSDataset(unittest.TestCase):
                     break
                 text_input = data[0]
                 text_lengths = data[1]
-                linear_input = data[2]
-                mel_input = data[3]
-                mel_lengths = data[4]
-                stop_target = data[5]
-                item_idx = data[6]
+                speaker_name = data[2]
+                linear_input = data[3]
+                mel_input = data[4]
+                mel_lengths = data[5]
+                stop_target = data[6]
+                item_idx = data[7]
 
                 if mel_lengths[0] > mel_lengths[1]:
                     idx = 0
