@@ -19,6 +19,7 @@ class PrenetTests(unittest.TestCase):
 
 class CBHGTests(unittest.TestCase):
     def test_in_out(self):
+        #pylint: disable=attribute-defined-outside-init
         layer = self.cbhg = CBHG(
             128,
             K=8,
@@ -38,7 +39,7 @@ class CBHGTests(unittest.TestCase):
 
 class DecoderTests(unittest.TestCase):
     def test_in_out(self):
-        layer = Decoder(in_features=256, memory_dim=80, r=2, memory_size=4, attn_windowing=False, attn_norm="sigmoid")
+        layer = Decoder(in_features=256, memory_dim=80, r=2, memory_size=4, attn_windowing=False, attn_norm="sigmoid") #FIXME: several missing required parameters for Decoder ctor
         dummy_input = T.rand(4, 8, 256)
         dummy_memory = T.rand(4, 2, 80)
 

@@ -1,17 +1,13 @@
-import torch
-from torch.nn import functional
 from torch import nn
+from torch.nn import functional
 from utils.generic_utils import sequence_mask
 
 
 class L1LossMasked(nn.Module):
-    def __init__(self):
-        super(L1LossMasked, self).__init__()
-
-    def forward(self, input, target, length):
+    def forward(self, x, target, length):
         """
         Args:
-            input: A Variable containing a FloatTensor of size
+            x: A Variable containing a FloatTensor of size
                 (batch, max_len, dim) which contains the
                 unnormalized probability for each class.
             target: A Variable containing a LongTensor of size
@@ -26,21 +22,18 @@ class L1LossMasked(nn.Module):
         target.requires_grad = False
         mask = sequence_mask(
             sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
-        mask = mask.expand_as(input)
+        mask = mask.expand_as(x)
         loss = functional.l1_loss(
-            input * mask, target * mask, reduction="sum")
+            x * mask, target * mask, reduction="sum")
         loss = loss / mask.sum()
         return loss
 
 
 class MSELossMasked(nn.Module):
-    def __init__(self):
-        super(MSELossMasked, self).__init__()
-
-    def forward(self, input, target, length):
+    def forward(self, x, target, length):
         """
         Args:
-            input: A Variable containing a FloatTensor of size
+            x: A Variable containing a FloatTensor of size
                 (batch, max_len, dim) which contains the
                 unnormalized probability for each class.
             target: A Variable containing a LongTensor of size
@@ -55,9 +48,8 @@ class MSELossMasked(nn.Module):
         target.requires_grad = False
         mask = sequence_mask(
             sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
-        mask = mask.expand_as(input)
+        mask = mask.expand_as(x)
         loss = functional.mse_loss(
-            input * mask, target * mask, reduction="sum")
+            x * mask, target * mask, reduction="sum")
         loss = loss / mask.sum()
         return loss
-

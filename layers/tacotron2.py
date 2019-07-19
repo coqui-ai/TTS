@@ -1,9 +1,8 @@
-from math import sqrt
 import torch
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
-from .common_layers import Attention, Prenet, Linear, LinearBN
+from .common_layers import Attention, Prenet, Linear
 
 
 class ConvBNBlock(nn.Module):
@@ -33,7 +32,7 @@ class Postnet(nn.Module):
         self.convolutions = nn.ModuleList()
         self.convolutions.append(
             ConvBNBlock(mel_dim, 512, kernel_size=5, nonlinear='tanh'))
-        for i in range(1, num_convs - 1):
+        for _ in range(1, num_convs - 1):
             self.convolutions.append(
                 ConvBNBlock(512, 512, kernel_size=5, nonlinear='tanh'))
         self.convolutions.append(
@@ -95,6 +94,8 @@ class Encoder(nn.Module):
 
 # adapted from https://github.com/NVIDIA/tacotron2/
 class Decoder(nn.Module):
+    # Pylint gets confused by PyTorch conventions here
+    #pylint: disable=attribute-defined-outside-init
     def __init__(self, in_features, inputs_dim, r, attn_win, attn_norm,
                  prenet_type, prenet_dropout, forward_attn, trans_agent,
                  forward_attn_mask, location_attn, separate_stopnet):
@@ -118,15 +119,15 @@ class Decoder(nn.Module):
         self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
                                          self.attention_rnn_dim)
 
-        self.attention_layer = Attention(attention_rnn_dim=self.attention_rnn_dim, 
+        self.attention_layer = Attention(attention_rnn_dim=self.attention_rnn_dim,
                                          embedding_dim=in_features,
-                                         attention_dim=128, 
-                                         location_attention=location_attn, 
+                                         attention_dim=128,
+                                         location_attention=location_attn,
                                          attention_location_n_filters=32,
                                          attention_location_kernel_size=31,
                                          windowing=attn_win,
-                                         norm=attn_norm, 
-                                         forward_attn=forward_attn, 
+                                         norm=attn_norm,
+                                         forward_attn=forward_attn,
                                          trans_agent=trans_agent,
                                          forward_attn_mask=forward_attn_mask)
 
@@ -156,7 +157,7 @@ class Decoder(nn.Module):
 
     def _init_states(self, inputs, mask, keep_states=False):
         B = inputs.size(0)
-        T = inputs.size(1)
+        # T = inputs.size(1)
 
         if not keep_states:
             self.attention_hidden = self.attention_rnn_init(
