@@ -30,7 +30,7 @@ class AudioProcessor(object):
 
         self.sample_rate = sample_rate
         self.num_mels = num_mels
-        self.min_level_db = min_level_db
+        self.min_level_db = min_level_db or 0
         self.frame_shift_ms = frame_shift_ms
         self.frame_length_ms = frame_length_ms
         self.ref_level_db = ref_level_db
@@ -40,7 +40,7 @@ class AudioProcessor(object):
         self.griffin_lim_iters = griffin_lim_iters
         self.signal_norm = signal_norm
         self.symmetric_norm = symmetric_norm
-        self.mel_fmin = 0 if mel_fmin is None else mel_fmin
+        self.mel_fmin = mel_fmin or 0
         self.mel_fmax = mel_fmax
         self.max_norm = 1.0 if max_norm is None else float(max_norm)
         self.clip_norm = clip_norm

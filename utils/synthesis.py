@@ -77,7 +77,7 @@ def synthesis(model,
               speaker_id=None,
               style_wav=None,
               truncated=False,
-              enable_eos_bos_chars=False,
+              enable_eos_bos_chars=False, #pylint: disable=unused-argument
               do_trim_silence=False):
     """Synthesize voice for the given text.
 

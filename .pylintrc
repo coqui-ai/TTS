@@ -62,6 +62,7 @@ confidence=
 # --disable=W".
 disable=missing-docstring,
         line-too-long,
+        fixme,
         wrong-import-order,
         ungrouped-imports,
         wrong-import-position,

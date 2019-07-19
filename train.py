@@ -38,8 +38,7 @@ print(" > Using CUDA: ", use_cuda)
 print(" > Number of GPUs: ", num_gpus)
 
 
-def setup_loader(is_val=False, verbose=False):
-    global ap
+def setup_loader(ap, is_val=False, verbose=False):
     global meta_data_train
     global meta_data_eval
     if "meta_data_train" not in globals():
@@ -85,7 +84,7 @@ def setup_loader(is_val=False, verbose=False):
 
 def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
           ap, epoch):
-    data_loader = setup_loader(is_val=False, verbose=(epoch == 0))
+    data_loader = setup_loader(ap, is_val=False, verbose=(epoch == 0))
     if c.use_speaker_embedding:
         speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.train()
@@ -273,7 +272,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
 
 def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
-    data_loader = setup_loader(is_val=True)
+    data_loader = setup_loader(ap, is_val=True)
     if c.use_speaker_embedding:
         speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
@@ -432,7 +431,11 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
     return avg_postnet_loss
 
 
-def main(args):
+#FIXME: move args definition/parsing inside of main?
+def main(args): #pylint: disable=redefined-outer-name
+    # Audio processor
+    ap = AudioProcessor(**c.audio)
+
     # DISTRUBUTED
     if num_gpus > 1:
         init_distributed(args.rank, num_gpus, args.group_id,
@@ -616,9 +619,6 @@ if __name__ == '__main__':
     if args.rank == 0:
         LOG_DIR = OUT_PATH
         tb_logger = Logger(LOG_DIR)
-
-    # Audio processor
-    ap = AudioProcessor(**c.audio)
 
     try:
         main(args)
