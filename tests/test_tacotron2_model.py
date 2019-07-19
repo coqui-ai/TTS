@@ -38,7 +38,7 @@ class TacotronTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked().to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(24, c.r, 5).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0

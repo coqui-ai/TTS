@@ -45,8 +45,8 @@ class TacotronTrainTest(unittest.TestCase):
         criterion = L1LossMasked().to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         model = Tacotron(
-            32,
-            5, 
+            num_chars=32,
+            num_speakers=5, 
             linear_dim=c.audio['num_freq'],
             mel_dim=c.audio['num_mels'],
             r=c.r,
