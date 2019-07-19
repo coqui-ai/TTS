@@ -30,14 +30,13 @@
     "batch_size": 2,
     "r": 5,
     "mk": 1.0,
-    "priority_freq": false,
     "num_loader_workers": 4,
     "memory_size": 5,
 
     "save_step": 200,
-    "data_path": "/home/erogol/Data/LJSpeech-1.1/",
+    "data_path": "tests/data/ljspeech/",
     "output_path": "result",
     "min_seq_len": 0,
     "max_seq_len": 300,
-    "log_dir": "/home/erogol/projects/TTS/logs/"
+    "log_dir": "tests/outputs/"
     }
