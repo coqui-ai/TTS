@@ -1,0 +1,12 @@
+#!/bin/bash
+set -ex
+
+if [[ ( "$TRAVIS_PULL_REQUEST" != "false" ) && ( "$TEST_SUITE" == "lint" ) ]]; then
+  # Run cardboardlinter, in case of pull requests
+  cardboardlinter --refspec $TRAVIS_BRANCH -n auto
+fi
+
+if [[ "$TEST_SUITE" == "unittest" ]]; then
+  # Run tests on all pushes
+  python -m unittest
+fi
