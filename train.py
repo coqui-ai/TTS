@@ -81,6 +81,20 @@ def setup_loader(ap, is_val=False, verbose=False):
     return loader
 
 
+def gradual_training_scheduler(global_step):
+    if global_step < 10000:
+        r, batch_size = 7, 32
+    elif global_step < 50000:
+        r, batch_size = 5, 32
+    elif global_step < 130000:
+        r, batch_size = 3, 32
+    elif global_step < 290000:
+        r, batch_size = 2, 16
+    else:
+        r, batch_size = 1, 16 
+    return r, batch_size
+    
+
 def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
           ap, epoch):
     data_loader = setup_loader(ap, is_val=False, verbose=(epoch == 0))
@@ -524,7 +538,14 @@ def main(args): #pylint: disable=redefined-outer-name
     if 'best_loss' not in locals():
         best_loss = float('inf')
 
+    current_step = 0
     for epoch in range(0, c.epochs):
+        # set gradual training
+        r, c.batch_size = gradual_training_scheduler(current_step)
+        c.r = r
+        model.decoder._set_r(r)
+        print(" > Number of outputs per iteration:", model.decoder.r)
+
         train_loss, current_step = train(model, criterion, criterion_st,
                                          optimizer, optimizer_st, scheduler,
                                          ap, epoch)

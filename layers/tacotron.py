@@ -270,12 +270,14 @@ class Decoder(nn.Module):
         memory_size (int): size of the past window. if <= 0 memory_size = r
         TODO: arguments
     """
+
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
 
     def __init__(self, in_features, memory_dim, r, memory_size, attn_windowing,
                  attn_norm, prenet_type, prenet_dropout, forward_attn,
-                 trans_agent, forward_attn_mask, location_attn, separate_stopnet):
+                 trans_agent, forward_attn_mask, location_attn,
+                 separate_stopnet):
         super(Decoder, self).__init__()
         self.r = r
         self.in_features = in_features
@@ -291,17 +293,18 @@ class Decoder(nn.Module):
             out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
         self.attention_rnn = nn.GRUCell(in_features + 128, 256)
-        self.attention_layer = Attention(attention_rnn_dim=256,
-                                         embedding_dim=in_features,
-                                         attention_dim=128,
-                                         location_attention=location_attn,
-                                         attention_location_n_filters=32,
-                                         attention_location_kernel_size=31,
-                                         windowing=attn_windowing,
-                                         norm=attn_norm,
-                                         forward_attn=forward_attn,
-                                         trans_agent=trans_agent,
-                                         forward_attn_mask=forward_attn_mask)
+        self.attention_layer = Attention(
+            attention_rnn_dim=256,
+            embedding_dim=in_features,
+            attention_dim=128,
+            location_attention=location_attn,
+            attention_location_n_filters=32,
+            attention_location_kernel_size=31,
+            windowing=attn_windowing,
+            norm=attn_norm,
+            forward_attn=forward_attn,
+            trans_agent=trans_agent,
+            forward_attn_mask=forward_attn_mask)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state
@@ -323,6 +326,9 @@ class Decoder(nn.Module):
         torch.nn.init.xavier_uniform_(
             self.proj_to_mel.weight,
             gain=torch.nn.init.calculate_gain('linear'))
+
+    def _set_r(self, new_r):
+        self.r = new_r
 
     def _reshape_memory(self, memory):
         """
@@ -371,8 +377,11 @@ class Decoder(nn.Module):
         # Prenet
         processed_memory = self.prenet(self.memory_input)
         # Attention RNN
-        self.attention_rnn_hidden = self.attention_rnn(torch.cat((processed_memory, self.current_context_vec), -1), self.attention_rnn_hidden)
-        self.current_context_vec = self.attention_layer(self.attention_rnn_hidden, inputs, self.processed_inputs, mask)
+        self.attention_rnn_hidden = self.attention_rnn(
+            torch.cat((processed_memory, self.current_context_vec), -1),
+            self.attention_rnn_hidden)
+        self.current_context_vec = self.attention_layer(
+            self.attention_rnn_hidden, inputs, self.processed_inputs, mask)
         # Concat RNN output and attention context vector
         decoder_input = self.project_to_decoder_in(
             torch.cat((self.attention_rnn_hidden, self.current_context_vec),
@@ -395,17 +404,14 @@ class Decoder(nn.Module):
             stop_token = self.stopnet(stopnet_input.detach())
         else:
             stop_token = self.stopnet(stopnet_input)
+        output = output[:, : self.r * self.memory_dim]
         return output, stop_token, self.attention_layer.attention_weights
 
     def _update_memory_queue(self, new_memory):
-        if self.memory_size > 0 and new_memory.shape[-1] < self.memory_size:
-            self.memory_input = torch.cat([
-                self.memory_input[:, self.r * self.memory_dim:].clone(),
-                new_memory
-            ],
-                                          dim=-1)
-        else:
-            self.memory_input = new_memory
+        self.memory_input = torch.cat([
+            self.memory_input[:, self.r * self.memory_dim:].clone(), new_memory
+        ],
+                                      dim=-1)
 
     def forward(self, inputs, memory, mask):
         """
