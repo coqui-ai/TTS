@@ -104,7 +104,12 @@ class TestTTSDataset(unittest.TestCase):
                 avg_length = mel_lengths.numpy().mean()
                 assert avg_length >= last_length
             dataloader.dataset.sort_items()
-            assert frames[0] != dataloader.dataset.items[0]
+            is_items_reordered = False
+            for idx, item in enumerate(dataloader.dataset.items):
+                if item != frames[idx]:
+                    is_items_reordered = True
+                    break
+            assert is_items_reordered
 
     def test_padding_and_spec(self):
         if ok_ljspeech:
