@@ -8,6 +8,7 @@ import sys
 from utils.audio import AudioProcessor
 from utils.generic_utils import load_config, setup_model
 from utils.text import phoneme_to_sequence, phonemes, symbols, text_to_sequence, sequence_to_phoneme
+from utils.speakers import load_speaker_mapping
 
 import re
 alphabets = r"([A-Za-z])"
@@ -44,7 +45,13 @@ class Synthesizer(object):
         else:
             self.input_size = len(symbols)
             self.input_adapter = lambda sen: text_to_sequence(sen, [self.tts_config.text_cleaner])
-        self.tts_model = setup_model(self.input_size, c=self.tts_config) #FIXME: missing num_speakers argument to setup_model
+        # load speakers
+        if self.config.tts_speakers is not None:
+            self.tts_speakers = load_speaker_mapping(os.path.join(model_path, self.config.tts_speakers))
+            num_speakers = len(self.tts_speakers)
+        else:
+            num_speakers = 0
+        self.tts_model = setup_model(self.input_size, num_speakers=num_speakers , c=self.tts_config) 
         # load model state
         if use_cuda:
             cp = torch.load(self.model_file)
@@ -58,6 +65,7 @@ class Synthesizer(object):
         self.tts_model.decoder.max_decoder_steps = 3000
 
     def load_wavernn(self, lib_path, model_path, model_file, model_config, use_cuda):
+        # TODO: set a function in wavernn code base for model setup and call it here.
         sys.path.append(lib_path) # set this if TTS is not installed globally
         from WaveRNN.models.wavernn import Model
         wavernn_config = os.path.join(model_path, model_config)
@@ -70,8 +78,11 @@ class Synthesizer(object):
             rnn_dims=512,
             fc_dims=512,
             mode=self.wavernn_config.mode,
-            pad=2,
-            upsample_factors=self.wavernn_config.upsample_factors,  # set this depending on dataset
+            mulaw=self.wavernn_config.mulaw,
+            pad=self.wavernn_config.pad,
+            use_aux_net=self.wavernn_config.use_aux_net,
+            use_upsample_net = self.wavernn_config.use_upsample_net,
+            upsample_factors=self.wavernn_config.upsample_factors,
             feat_dims=80,
             compute_dims=128,
             res_out_dims=128,
