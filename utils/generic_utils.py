@@ -305,3 +305,10 @@ def split_dataset(items):
     else:
         return items[:eval_split_size], items[eval_split_size:]
 
+
+def gradual_training_scheduler(global_step, config):
+    new_values = None
+    for values in config.gradual_training:
+        if global_step >= values[0]:
+            new_values = values
+    return new_values[1], new_values[2]
