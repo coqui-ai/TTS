@@ -135,9 +135,6 @@ class CBHG(nn.Module):
         ])
         # max pooling of conv bank, with padding
         # TODO: try average pooling OR larger kernel size
-        self.max_pool1d = nn.Sequential(
-            nn.ConstantPad1d([0, 1], value=0),
-            nn.MaxPool1d(kernel_size=2, stride=1, padding=0))
         out_features = [K * conv_bank_features] + conv_projections[:-1]
         activations = [self.relu] * (len(conv_projections) - 1)
         activations += [None]
@@ -186,7 +183,6 @@ class CBHG(nn.Module):
             outs.append(out)
         x = torch.cat(outs, dim=1)
         assert x.size(1) == self.conv_bank_features * len(self.conv1d_banks)
-        x = self.max_pool1d(x)
         for conv1d in self.conv1d_projections:
             x = conv1d(x)
         # (B, T_in, hid_feature)
@@ -387,7 +383,7 @@ class Decoder(nn.Module):
         del decoder_input
         # predict mel vectors from decoder vectors
         output = self.proj_to_mel(decoder_output)
-        output = torch.sigmoid(output)
+        # output = torch.sigmoid(output)
         # predict stop token
         stopnet_input = torch.cat([decoder_output, output], -1)
         del decoder_output
@@ -403,15 +399,15 @@ class Decoder(nn.Module):
             if self.memory_size > self.r:
                 # memory queue size is larger than number of frames per decoder iter
                 self.memory_input = torch.cat([
-                    self.memory_input[:, self.r * self.memory_dim:].clone(), new_memory
+                    new_memory, self.memory_input[:, :(self.memory_size - self.r) * self.memory_dim].clone()
                 ],
                                             dim=-1)
             else:
                 # memory queue size smaller than number of frames per decoder iter
-                self.memory_input = new_memory[:, (self.r - self.memory_size)*self.memory_dim:]
+                self.memory_input = new_memory[:, :self.memory_size * self.memory_dim]
         else:
             # use only the last frame prediction
-            self.memory_input = new_memory[:, (self.r-1) * self.memory_dim:]
+            self.memory_input = new_memory[:, :self.memory_dim]
 
     def forward(self, inputs, memory, mask):
         """
