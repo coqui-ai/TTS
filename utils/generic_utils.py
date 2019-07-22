@@ -117,7 +117,7 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
     new_state_dict = model.state_dict()
     state = {
         'model': new_state_dict,
-        'optimizer': optimizer.state_dict(),
+        'optimizer': optimizer.state_dict() if optimizer is not None else None,
         'step': current_step,
         'epoch': epoch,
         'linear_loss': model_loss,
