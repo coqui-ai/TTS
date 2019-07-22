@@ -11,7 +11,7 @@ from utils.generic_utils import load_config, save_checkpoint, setup_model
 
 class DemoServerTest(unittest.TestCase):
     def _create_random_model(self):
-        config = load_config('config.json')
+        config = load_config(os.path.join(get_tests_output_path(), 'dummy_model_config.json'))
         num_chars = len(phonemes) if config.use_phonemes else len(symbols)
         model = setup_model(num_chars, 0, config)
         output_path = os.path.join(get_tests_output_path())
