@@ -1,6 +1,6 @@
 {
     "run_name": "ljspeech",
-    "run_description": "gradual training with prenet frame size 1. Comparing to memory queue in gradual training. ",
+    "run_description": "gradual training with prenet frame size 1 + no maxout for cbhg + symmetric norm.",
 
     "audio":{
         // Audio processing parameters
@@ -16,8 +16,8 @@
         "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
         // Normalization parameters
         "signal_norm": true,    // normalize the spec values in range [0, 1]
-        "symmetric_norm": false, // move normalization to range [-1, 1]
-        "max_norm": 1,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
@@ -71,7 +71,7 @@
     "dataset": "ljspeech",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
     "min_seq_len": 6,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
-    "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
+    "output_path": "/media/erogol/data_ssd/Models/libri_tts/",      // DATASET-RELATED: output path for all training outputs.
     "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
     "phoneme_cache_path": "mozilla_us_phonemes",  // phoneme computation is slow, therefore, it caches results in the given folder.
