@@ -121,6 +121,15 @@ pip install pylint cardboardlint
 cardboardlinter --refspec master
 ```
 
+## Collaborative Experimentation Guide
+If you like to use TTS to try a new idea and like to share your experiments with the community, we urge you to use the following guideline for a better collaboration. 
+(If you have an idea for better collaboration, let us know)
+- Create a new branch.
+- Open an issue pointing your branch. 
+- Explain your experiment.
+- Share your results as you proceed. (Tensorboard log files, audio results, visuals etc.)
+- Use LJSpeech dataset (for English) if you like to compare results with the released models. (It is the most open scalable dataset for quick experimentation)
+
 ## Contact/Getting Help
 - [Wiki](https://github.com/mozilla/TTS/wiki)
 
