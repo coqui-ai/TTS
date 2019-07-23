@@ -79,7 +79,7 @@ def mailabs(root_path, meta_files=None):
         csv_files = meta_files
     # meta_files = [f.strip() for f in meta_files.split(",")]
     items = []
-    for idx, csv_file in enumerate(csv_files):
+    for csv_file in csv_files:
         txt_file = os.path.join(root_path, csv_file)
         folder = os.path.dirname(txt_file)
         # determine speaker based on folder structure...
