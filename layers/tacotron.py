@@ -355,9 +355,6 @@ class Decoder(nn.Module):
             for idx in range(len(self.decoder_rnns))
         ]
         self.context_vec = inputs.data.new(B, self.in_features).zero_()
-        # attention states
-        self.attention = inputs.data.new(B, T).zero_()
-        self.attention_cum = inputs.data.new(B, T).zero_()
         # cache attention inputs
         self.processed_inputs = self.attention.inputs_layer(inputs)
 
