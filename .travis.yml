@@ -3,10 +3,6 @@ language: python
 git:
   quiet: true
 
-cache: pip
-before_cache:
-  - rm ~/.cache/pip/log/debug.log
-
 matrix:
   include:
   - name: "Lint check"
