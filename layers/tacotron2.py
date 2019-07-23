@@ -104,7 +104,7 @@ class Decoder(nn.Module):
         self.r = r
         self.encoder_embedding_dim = in_features
         self.separate_stopnet = separate_stopnet
-        self.attention_rnn_dim = 1024
+        self.query_dim = 1024
         self.decoder_rnn_dim = 1024
         self.prenet_dim = 256
         self.max_decoder_steps = 1000
@@ -116,22 +116,22 @@ class Decoder(nn.Module):
                              prenet_dropout,
                              [self.prenet_dim, self.prenet_dim], bias=False)
 
-        self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
-                                         self.attention_rnn_dim)
+        self.query_rnn = nn.LSTMCell(self.prenet_dim + in_features,
+                                     self.query_dim)
 
-        self.attention_layer = Attention(attention_rnn_dim=self.attention_rnn_dim,
-                                         embedding_dim=in_features,
-                                         attention_dim=128,
-                                         location_attention=location_attn,
-                                         attention_location_n_filters=32,
-                                         attention_location_kernel_size=31,
-                                         windowing=attn_win,
-                                         norm=attn_norm,
-                                         forward_attn=forward_attn,
-                                         trans_agent=trans_agent,
-                                         forward_attn_mask=forward_attn_mask)
+        self.attention = Attention(query_dim=self.query_dim,
+                                   embedding_dim=in_features,
+                                   attention_dim=128,
+                                   location_attention=location_attn,
+                                   attention_location_n_filters=32,
+                                   attention_location_kernel_size=31,
+                                   windowing=attn_win,
+                                   norm=attn_norm,
+                                   forward_attn=forward_attn,
+                                   trans_agent=trans_agent,
+                                   forward_attn_mask=forward_attn_mask)
 
-        self.decoder_rnn = nn.LSTMCell(self.attention_rnn_dim + in_features,
+        self.decoder_rnn = nn.LSTMCell(self.query_dim + in_features,
                                        self.decoder_rnn_dim, 1)
 
         self.linear_projection = Linear(self.decoder_rnn_dim + in_features,
@@ -145,7 +145,7 @@ class Decoder(nn.Module):
                 bias=True,
                 init_gain='sigmoid'))
 
-        self.attention_rnn_init = nn.Embedding(1, self.attention_rnn_dim)
+        self.query_rnn_init = nn.Embedding(1, self.query_dim)
         self.go_frame_init = nn.Embedding(1, self.mel_channels * r)
         self.decoder_rnn_inits = nn.Embedding(1, self.decoder_rnn_dim)
         self.memory_truncated = None
@@ -160,10 +160,10 @@ class Decoder(nn.Module):
         # T = inputs.size(1)
 
         if not keep_states:
-            self.attention_hidden = self.attention_rnn_init(
+            self.query = self.query_rnn_init(
                 inputs.data.new_zeros(B).long())
-            self.attention_cell = Variable(
-                inputs.data.new(B, self.attention_rnn_dim).zero_())
+            self.query_rnn_cell_state = Variable(
+                inputs.data.new(B, self.query_dim).zero_())
 
             self.decoder_hidden = self.decoder_rnn_inits(
                 inputs.data.new_zeros(B).long())
@@ -174,7 +174,7 @@ class Decoder(nn.Module):
                 inputs.data.new(B, self.encoder_embedding_dim).zero_())
 
         self.inputs = inputs
-        self.processed_inputs = self.attention_layer.inputs_layer(inputs)
+        self.processed_inputs = self.attention.inputs_layer(inputs)
         self.mask = mask
 
     def _reshape_memory(self, memories):
@@ -193,18 +193,18 @@ class Decoder(nn.Module):
         return outputs, stop_tokens, alignments
 
     def decode(self, memory):
-        cell_input = torch.cat((memory, self.context), -1)
-        self.attention_hidden, self.attention_cell = self.attention_rnn(
-            cell_input, (self.attention_hidden, self.attention_cell))
-        self.attention_hidden = F.dropout(
-            self.attention_hidden, self.p_attention_dropout, self.training)
-        self.attention_cell = F.dropout(
-            self.attention_cell, self.p_attention_dropout, self.training)
+        query_input = torch.cat((memory, self.context), -1)
+        self.query, self.query_rnn_cell_state = self.query_rnn(
+            query_input, (self.query, self.query_rnn_cell_state))
+        self.query = F.dropout(
+            self.query, self.p_attention_dropout, self.training)
+        self.query_rnn_cell_state = F.dropout(
+            self.query_rnn_cell_state, self.p_attention_dropout, self.training)
 
-        self.context = self.attention_layer(self.attention_hidden, self.inputs,
-                                            self.processed_inputs, self.mask)
+        self.context = self.attention(self.query, self.inputs,
+                                      self.processed_inputs, self.mask)
 
-        memory = torch.cat((self.attention_hidden, self.context), -1)
+        memory = torch.cat((self.query, self.context), -1)
         self.decoder_hidden, self.decoder_cell = self.decoder_rnn(
             memory, (self.decoder_hidden, self.decoder_cell))
         self.decoder_hidden = F.dropout(self.decoder_hidden,
@@ -223,7 +223,7 @@ class Decoder(nn.Module):
             stop_token = self.stopnet(stopnet_input.detach())
         else:
             stop_token = self.stopnet(stopnet_input)
-        return decoder_output, stop_token, self.attention_layer.attention_weights
+        return decoder_output, stop_token, self.attention.attention_weights
 
     def forward(self, inputs, memories, mask):
         memory = self.get_go_frame(inputs).unsqueeze(0)
@@ -232,7 +232,7 @@ class Decoder(nn.Module):
         memories = self.prenet(memories)
 
         self._init_states(inputs, mask=mask)
-        self.attention_layer.init_states(inputs)
+        self.attention.init_states(inputs)
 
         outputs, stop_tokens, alignments = [], [], []
         while len(outputs) < memories.size(0) - 1:
@@ -251,8 +251,8 @@ class Decoder(nn.Module):
         memory = self.get_go_frame(inputs)
         self._init_states(inputs, mask=None)
 
-        self.attention_layer.init_win_idx()
-        self.attention_layer.init_states(inputs)
+        self.attention.init_win_idx()
+        self.attention.init_states(inputs)
 
         outputs, stop_tokens, alignments, t = [], [], [], 0
         stop_flags = [True, False, False]
@@ -295,8 +295,8 @@ class Decoder(nn.Module):
         else:
             self._init_states(inputs, mask=None, keep_states=True)
 
-        self.attention_layer.init_win_idx()
-        self.attention_layer.init_states(inputs)
+        self.attention.init_win_idx()
+        self.attention.init_states(inputs)
         outputs, stop_tokens, alignments, t = [], [], [], 0
         stop_flags = [True, False, False]
         stop_count = 0

@@ -108,19 +108,19 @@ class LocationLayer(nn.Module):
 class Attention(nn.Module):
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
-    def __init__(self, attention_rnn_dim, embedding_dim, attention_dim,
+    def __init__(self, query_dim, embedding_dim, attention_dim,
                  location_attention, attention_location_n_filters,
                  attention_location_kernel_size, windowing, norm, forward_attn,
                  trans_agent, forward_attn_mask):
         super(Attention, self).__init__()
         self.query_layer = Linear(
-            attention_rnn_dim, attention_dim, bias=False, init_gain='tanh')
+            query_dim, attention_dim, bias=False, init_gain='tanh')
         self.inputs_layer = Linear(
             embedding_dim, attention_dim, bias=False, init_gain='tanh')
         self.v = Linear(attention_dim, 1, bias=True)
         if trans_agent:
             self.ta = nn.Linear(
-                attention_rnn_dim + embedding_dim, 1, bias=True)
+                query_dim + embedding_dim, 1, bias=True)
         if location_attention:
             self.location_layer = LocationLayer(
                 attention_dim,
@@ -203,11 +203,12 @@ class Attention(nn.Module):
 
     def apply_forward_attention(self, inputs, alignment, query):
         # forward attention
-        prev_alpha = F.pad(self.alpha[:, :-1].clone(),
-                           (1, 0, 0, 0)).to(inputs.device)
+        prev_alpha = F.pad(self.alpha[:, :-1].clone().to(inputs.device),
+                           (1, 0, 0, 0))
         # compute transition potentials
-        alpha = (((1 - self.u) * self.alpha.clone().to(inputs.device) +
-                  self.u * prev_alpha) + 1e-8) * alignment
+        alpha = ((1 - self.u) * self.alpha
+                 + self.u * prev_alpha
+                 + 1e-8) * alignment
         # force incremental alignment
         if not self.training and self.forward_attn_mask:
             _, n = prev_alpha.max(1)
@@ -231,19 +232,20 @@ class Attention(nn.Module):
             self.u = torch.sigmoid(self.ta(ta_input))
         return context, self.alpha
 
-    def forward(self, attention_hidden_state, inputs, processed_inputs, mask):
+    def forward(self, query, inputs, processed_inputs, mask):
         if self.location_attention:
             attention, processed_query = self.get_location_attention(
-                attention_hidden_state, processed_inputs)
+                query, processed_inputs)
         else:
             attention, processed_query = self.get_attention(
-                attention_hidden_state, processed_inputs)
+                query, processed_inputs)
         # apply masking
         if mask is not None:
             attention.data.masked_fill_(1 - mask, self._mask_value)
         # apply windowing - only in eval mode
         if not self.training and self.windowing:
             attention = self.apply_windowing(attention, inputs)
+
         # normalize attention values
         if self.norm == "softmax":
             alignment = torch.softmax(attention, dim=-1)
@@ -258,7 +260,7 @@ class Attention(nn.Module):
         # apply forward attention if enabled
         if self.forward_attn:
             context, self.attention_weights = self.apply_forward_attention(
-                inputs, alignment, attention_hidden_state)
+                inputs, alignment, query)
         else:
             context = torch.bmm(alignment.unsqueeze(1), inputs)
             context = context.squeeze(1)
