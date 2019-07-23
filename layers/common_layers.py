@@ -234,10 +234,10 @@ class Attention(nn.Module):
 
     def forward(self, query, inputs, processed_inputs, mask):
         if self.location_attention:
-            attention, processed_query = self.get_location_attention(
+            attention, _ = self.get_location_attention(
                 query, processed_inputs)
         else:
-            attention, processed_query = self.get_attention(
+            attention, _ = self.get_attention(
                 query, processed_inputs)
         # apply masking
         if mask is not None:
