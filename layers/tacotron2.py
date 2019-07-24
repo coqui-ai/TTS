@@ -116,8 +116,8 @@ class Decoder(nn.Module):
                              prenet_dropout,
                              [self.prenet_dim, self.prenet_dim], bias=False)
 
-        self.query_rnn = nn.LSTMCell(self.prenet_dim + in_features,
-                                     self.query_dim)
+        self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
+                                         self.query_dim)
 
         self.attention = Attention(query_dim=self.query_dim,
                                    embedding_dim=in_features,
@@ -145,7 +145,7 @@ class Decoder(nn.Module):
                 bias=True,
                 init_gain='sigmoid'))
 
-        self.query_rnn_init = nn.Embedding(1, self.query_dim)
+        self.attention_rnn_init = nn.Embedding(1, self.query_dim)
         self.go_frame_init = nn.Embedding(1, self.mel_channels * r)
         self.decoder_rnn_inits = nn.Embedding(1, self.decoder_rnn_dim)
         self.memory_truncated = None
@@ -160,9 +160,9 @@ class Decoder(nn.Module):
         # T = inputs.size(1)
 
         if not keep_states:
-            self.query = self.query_rnn_init(
+            self.query = self.attention_rnn_init(
                 inputs.data.new_zeros(B).long())
-            self.query_rnn_cell_state = Variable(
+            self.attention_rnn_cell_state = Variable(
                 inputs.data.new(B, self.query_dim).zero_())
 
             self.decoder_hidden = self.decoder_rnn_inits(
@@ -194,12 +194,12 @@ class Decoder(nn.Module):
 
     def decode(self, memory):
         query_input = torch.cat((memory, self.context), -1)
-        self.query, self.query_rnn_cell_state = self.query_rnn(
-            query_input, (self.query, self.query_rnn_cell_state))
+        self.query, self.attention_rnn_cell_state = self.attention_rnn(
+            query_input, (self.query, self.attention_rnn_cell_state))
         self.query = F.dropout(
             self.query, self.p_attention_dropout, self.training)
-        self.query_rnn_cell_state = F.dropout(
-            self.query_rnn_cell_state, self.p_attention_dropout, self.training)
+        self.attention_rnn_cell_state = F.dropout(
+            self.attention_rnn_cell_state, self.p_attention_dropout, self.training)
 
         self.context = self.attention(self.query, self.inputs,
                                       self.processed_inputs, self.mask)
