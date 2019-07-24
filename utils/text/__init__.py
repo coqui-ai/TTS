@@ -4,7 +4,8 @@ import re
 import phonemizer
 from phonemizer.phonemize import phonemize
 from utils.text import cleaners
-from utils.text.symbols import symbols, phonemes, _phoneme_punctuations
+from utils.text.symbols import symbols, phonemes, _phoneme_punctuations, _bos, \
+    _eos
 
 # Mappings from symbol to numeric ID and vice versa:
 _SYMBOL_TO_ID = {s: i for i, s in enumerate(symbols)}
@@ -45,11 +46,12 @@ def text2phone(text, language):
     return ph
 
 
+def pad_with_eos_bos(phoneme_sequence):
+    return [_PHONEMES_TO_ID[_bos]] + phoneme_sequence + [_PHONEMES_TO_ID[_eos]]
+
+
 def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
-    if enable_eos_bos:
-        sequence = [_PHONEMES_TO_ID['^']]
-    else:
-        sequence = []
+    sequence = []
     text = text.replace(":", "")
     clean_text = _clean_text(text, cleaner_names)
     to_phonemes = text2phone(clean_text, language)
@@ -60,7 +62,7 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
         sequence += _phoneme_to_sequence(phoneme)
     # Append EOS char
     if enable_eos_bos:
-        sequence.append(_PHONEMES_TO_ID['~'])
+        sequence = pad_with_eos_bos(sequence)
     return sequence
 
 
