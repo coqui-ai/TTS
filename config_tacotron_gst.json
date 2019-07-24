@@ -77,6 +77,7 @@
         "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
         "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
         "text_cleaner": "phoneme_cleaners",
-        "use_speaker_embedding": false // whether to use additional embeddings for separate speakers
+        "use_speaker_embedding": false, // whether to use additional embeddings for separate speakers
+        "style_wav_for_test": null // path to wav for styling the inference tests when using GST
     }
     
