@@ -291,7 +291,9 @@ class Decoder(nn.Module):
             prenet_dropout,
             out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
-        self.query_rnn = nn.GRUCell(in_features + 128, self.query_dim)
+        # attention_rnn generates queries for the attention mechanism
+        self.attention_rnn = nn.GRUCell(in_features + 128, self.query_dim)
+
         self.attention = Attention(query_dim=self.query_dim,
                                    embedding_dim=in_features,
                                    attention_dim=128,
@@ -311,7 +313,7 @@ class Decoder(nn.Module):
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * r)
         # learn init values instead of zero init.
-        self.query_rnn_init = nn.Embedding(1, 256)
+        self.attention_rnn_init = nn.Embedding(1, 256)
         self.memory_init = nn.Embedding(1, self.memory_size * memory_dim)
         self.decoder_rnn_inits = nn.Embedding(2, 256)
         self.stopnet = StopNet(256 + memory_dim * r)
@@ -348,7 +350,7 @@ class Decoder(nn.Module):
         self.memory_input = self.memory_init(inputs.data.new_zeros(B).long())
 
         # decoder states
-        self.query = self.query_rnn_init(
+        self.query = self.attention_rnn_init(
             inputs.data.new_zeros(B).long())
         self.decoder_rnn_hiddens = [
             self.decoder_rnn_inits(inputs.data.new_tensor([idx] * B).long())
@@ -369,8 +371,8 @@ class Decoder(nn.Module):
         # Prenet
         processed_memory = self.prenet(self.memory_input)
 
-        # Attention RNN
-        self.query = self.query_rnn(torch.cat((processed_memory, self.context_vec), -1), self.query)
+        # Attention
+        self.query = self.attention_rnn(torch.cat((processed_memory, self.context_vec), -1), self.query)
         self.context_vec = self.attention(self.query, inputs, self.processed_inputs, mask)
 
         # Concat query and attention context vector
