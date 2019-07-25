@@ -409,11 +409,13 @@ def evaluate(model, criterion, criterion_st, ap, current_step, epoch):
         test_figures = {}
         print(" | > Synthesizing test sentences")
         speaker_id = 0 if c.use_speaker_embedding else None
+        style_wav = c.get("style_wav_for_test")
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens = synthesis(
                     model, test_sentence, c, use_cuda, ap,
-                    speaker_id=speaker_id)
+                    speaker_id=speaker_id,
+                    style_wav=style_wav)
                 file_path = os.path.join(AUDIO_PATH, str(current_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
