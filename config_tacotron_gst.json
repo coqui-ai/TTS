@@ -42,8 +42,8 @@
         "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
         "prenet_type": "original",           // "original" or "bn".
         "prenet_dropout": true,        // enable/disable dropout at prenet. 
-        "use_forward_attn": true,      // if it uses forward attention. In general, it aligns faster.
-        "forward_attn_mask": false,    // Apply forward attention mask af inference to prevent bad modes. Try it if your model does not align well.
+        "use_forward_attn": true,      // enable/disable forward attention. In general, it aligns faster.
+        "forward_attn_mask": false,    // Apply forward attention mask at inference to prevent bad modes. Try it if your model does not align well.
         "transition_agent": false,     // enable/disable transition agent of forward attention.
         "location_attn": false,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
         "loss_masking": true,         // enable / disable loss masking against the sequence padding.
