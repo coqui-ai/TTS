@@ -248,13 +248,14 @@ class Attention(nn.Module):
                     dim=1, keepdim=True)
         else:
             raise ValueError("Unknown value for attention norm type")
+
+        if self.location_attention:
+            self.update_location_attention(alignment)
+
         # apply forward attention if enabled
         if self.forward_attn:
             alignment = self.apply_forward_attention(alignment)
             self.alpha = alignment
-
-        if self.location_attention:
-            self.update_location_attention(alignment)
 
         context = torch.bmm(alignment.unsqueeze(1), inputs)
         context = context.squeeze(1)
