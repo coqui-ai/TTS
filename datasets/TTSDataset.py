@@ -102,6 +102,7 @@ class MyDataset(Dataset):
                                                                  cache_path)
         if self.enable_eos_bos:
             phonemes = pad_with_eos_bos(phonemes)
+            phonemes = np.asarray(phonemes, dtype=np.int32)
 
         return phonemes
 
