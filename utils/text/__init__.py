@@ -47,7 +47,7 @@ def text2phone(text, language):
 
 
 def pad_with_eos_bos(phoneme_sequence):
-    return [_PHONEMES_TO_ID[_bos]] + phoneme_sequence + [_PHONEMES_TO_ID[_eos]]
+    return [_PHONEMES_TO_ID[_bos]] + list(phoneme_sequence) + [_PHONEMES_TO_ID[_eos]]
 
 
 def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
