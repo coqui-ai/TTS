@@ -283,6 +283,7 @@ class Decoder(nn.Module):
         self.memory_size = memory_size if memory_size > 0 else r
         self.memory_dim = memory_dim
         self.separate_stopnet = separate_stopnet
+        self.query_dim = 256
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(
             memory_dim * self.memory_size,
@@ -290,18 +291,20 @@ class Decoder(nn.Module):
             prenet_dropout,
             out_features=[256, 128])
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
-        self.attention_rnn = nn.GRUCell(in_features + 128, 256)
-        self.attention_layer = Attention(attention_rnn_dim=256,
-                                         embedding_dim=in_features,
-                                         attention_dim=128,
-                                         location_attention=location_attn,
-                                         attention_location_n_filters=32,
-                                         attention_location_kernel_size=31,
-                                         windowing=attn_windowing,
-                                         norm=attn_norm,
-                                         forward_attn=forward_attn,
-                                         trans_agent=trans_agent,
-                                         forward_attn_mask=forward_attn_mask)
+        # attention_rnn generates queries for the attention mechanism
+        self.attention_rnn = nn.GRUCell(in_features + 128, self.query_dim)
+
+        self.attention = Attention(query_dim=self.query_dim,
+                                   embedding_dim=in_features,
+                                   attention_dim=128,
+                                   location_attention=location_attn,
+                                   attention_location_n_filters=32,
+                                   attention_location_kernel_size=31,
+                                   windowing=attn_windowing,
+                                   norm=attn_norm,
+                                   forward_attn=forward_attn,
+                                   trans_agent=trans_agent,
+                                   forward_attn_mask=forward_attn_mask)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state
@@ -347,18 +350,15 @@ class Decoder(nn.Module):
         self.memory_input = self.memory_init(inputs.data.new_zeros(B).long())
 
         # decoder states
-        self.attention_rnn_hidden = self.attention_rnn_init(
+        self.query = self.attention_rnn_init(
             inputs.data.new_zeros(B).long())
         self.decoder_rnn_hiddens = [
             self.decoder_rnn_inits(inputs.data.new_tensor([idx] * B).long())
             for idx in range(len(self.decoder_rnns))
         ]
-        self.current_context_vec = inputs.data.new(B, self.in_features).zero_()
-        # attention states
-        self.attention = inputs.data.new(B, T).zero_()
-        self.attention_cum = inputs.data.new(B, T).zero_()
+        self.context_vec = inputs.data.new(B, self.in_features).zero_()
         # cache attention inputs
-        self.processed_inputs = self.attention_layer.inputs_layer(inputs)
+        self.processed_inputs = self.attention.inputs_layer(inputs)
 
     def _parse_outputs(self, outputs, attentions, stop_tokens):
         # Back to batch first
@@ -370,13 +370,15 @@ class Decoder(nn.Module):
     def decode(self, inputs, mask=None):
         # Prenet
         processed_memory = self.prenet(self.memory_input)
-        # Attention RNN
-        self.attention_rnn_hidden = self.attention_rnn(torch.cat((processed_memory, self.current_context_vec), -1), self.attention_rnn_hidden)
-        self.current_context_vec = self.attention_layer(self.attention_rnn_hidden, inputs, self.processed_inputs, mask)
-        # Concat RNN output and attention context vector
+
+        # Attention
+        self.query = self.attention_rnn(torch.cat((processed_memory, self.context_vec), -1), self.query)
+        self.context_vec = self.attention(self.query, inputs, self.processed_inputs, mask)
+
+        # Concat query and attention context vector
         decoder_input = self.project_to_decoder_in(
-            torch.cat((self.attention_rnn_hidden, self.current_context_vec),
-                      -1))
+            torch.cat((self.query, self.context_vec), -1))
+
         # Pass through the decoder RNNs
         for idx in range(len(self.decoder_rnns)):
             self.decoder_rnn_hiddens[idx] = self.decoder_rnns[idx](
@@ -384,18 +386,18 @@ class Decoder(nn.Module):
             # Residual connection
             decoder_input = self.decoder_rnn_hiddens[idx] + decoder_input
         decoder_output = decoder_input
-        del decoder_input
+
         # predict mel vectors from decoder vectors
         output = self.proj_to_mel(decoder_output)
         output = torch.sigmoid(output)
+
         # predict stop token
         stopnet_input = torch.cat([decoder_output, output], -1)
-        del decoder_output
         if self.separate_stopnet:
             stop_token = self.stopnet(stopnet_input.detach())
         else:
             stop_token = self.stopnet(stopnet_input)
-        return output, stop_token, self.attention_layer.attention_weights
+        return output, stop_token, self.attention.attention_weights
 
     def _update_memory_queue(self, new_memory):
         if self.memory_size > 0 and new_memory.shape[-1] < self.memory_size:
@@ -427,7 +429,7 @@ class Decoder(nn.Module):
         stop_tokens = []
         t = 0
         self._init_states(inputs)
-        self.attention_layer.init_states(inputs)
+        self.attention.init_states(inputs)
         while len(outputs) < memory.size(0):
             if t > 0:
                 new_memory = memory[t - 1]
@@ -453,8 +455,8 @@ class Decoder(nn.Module):
         stop_tokens = []
         t = 0
         self._init_states(inputs)
-        self.attention_layer.init_win_idx()
-        self.attention_layer.init_states(inputs)
+        self.attention.init_win_idx()
+        self.attention.init_states(inputs)
         while True:
             if t > 0:
                 new_memory = outputs[-1]
