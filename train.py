@@ -258,7 +258,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         "   | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  "
         "AvgPostnetLoss:{:.5f}  AvgDecoderLoss:{:.5f}  "
         "AvgStopLoss:{:.5f}  EpochTime:{:.2f}  "
-        "AvgStepTime:{:.2f}".format(global_step, avg_total_loss,
+        "AvgStepTime:{:.2f}  AvgLoaderTime:{:.2f}".format(global_step, avg_total_loss,
                                     avg_postnet_loss, avg_decoder_loss,
                                     avg_stop_loss, epoch_time, avg_step_time,
                                     avg_loader_time),
