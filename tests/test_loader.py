@@ -1,6 +1,7 @@
 import os
 import unittest
 import shutil
+import torch
 
 from torch.utils.data import DataLoader
 from utils.generic_utils import load_config
@@ -130,10 +131,11 @@ class TestTTSDataset(unittest.TestCase):
                 # check mel_spec consistency
                 wav = self.ap.load_wav(item_idx[0])
                 mel = self.ap.melspectrogram(wav)
-                mel_dl = mel_input[0].cpu().numpy()
-                assert (abs(mel.T).astype("float32")
+                mel = torch.FloatTensor(mel)
+                mel_dl = mel_input[0]
+                assert (abs(mel.T)
                         - abs(mel_dl[:-1])
-                        ).sum() == 0
+                        ).sum() == 0, (abs(mel.T)- abs(mel_dl[:-1])).sum()
 
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()

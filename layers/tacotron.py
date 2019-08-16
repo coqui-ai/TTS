@@ -364,13 +364,13 @@ class Decoder(nn.Module):
         processed_memory = self.prenet(self.memory_input)
         # Attention RNN
         self.attention_rnn_hidden = self.attention_rnn(
-            torch.cat((processed_memory, self.current_context_vec), -1),
+            torch.cat((processed_memory, self.context_vec), -1),
             self.attention_rnn_hidden)
-        self.context_vec = self.attention_layer(
+        self.context_vec = self.attention(
             self.attention_rnn_hidden, inputs, self.processed_inputs, mask)
         # Concat RNN output and attention context vector
         decoder_input = self.project_to_decoder_in(
-            torch.cat((self.query, self.context_vec), -1))
+            torch.cat((self.attention_rnn_hidden, self.context_vec), -1))
 
         # Pass through the decoder RNNs
         for idx in range(len(self.decoder_rnns)):
@@ -390,7 +390,7 @@ class Decoder(nn.Module):
         else:
             stop_token = self.stopnet(stopnet_input)
         output = output[:, : self.r * self.memory_dim]
-        return output, stop_token, self.attention_layer.attention_weights
+        return output, stop_token, self.attention.attention_weights
 
     def _update_memory_input(self, new_memory):
         if self.use_memory_queue:
