@@ -190,7 +190,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                 "LoaderTime:{:.2f}  LR:{:.6f}".format(
                     num_iter, batch_n_iter, global_step, loss.item(),
                     postnet_loss.item(), decoder_loss.item(), stop_loss.item(),
-                    grad_norm, grad_norm_st, avg_text_length, avg_spec_length, step_time, 
+                    grad_norm, grad_norm_st, avg_text_length, avg_spec_length, step_time,
                     loader_time, current_lr),
                 flush=True)
 
@@ -259,9 +259,9 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         "AvgPostnetLoss:{:.5f}  AvgDecoderLoss:{:.5f}  "
         "AvgStopLoss:{:.5f}  EpochTime:{:.2f}  "
         "AvgStepTime:{:.2f}  AvgLoaderTime:{:.2f}".format(global_step, avg_total_loss,
-                                    avg_postnet_loss, avg_decoder_loss,
-                                    avg_stop_loss, epoch_time, avg_step_time,
-                                    avg_loader_time),
+                                                          avg_postnet_loss, avg_decoder_loss,
+                                                          avg_stop_loss, epoch_time, avg_step_time,
+                                                          avg_loader_time),
         flush=True)
 
     # Plot Epoch Stats
@@ -539,12 +539,12 @@ def main(args): #pylint: disable=redefined-outer-name
         if c.gradual_training is not None:
             r, c.batch_size = gradual_training_scheduler(global_step, c)
             c.r = r
-            model.decoder._set_r(r)
+            model.decoder.set_r(r)
         print(" > Number of outputs per iteration:", model.decoder.r)
 
         train_loss, global_step = train(model, criterion, criterion_st,
-                                         optimizer, optimizer_st, scheduler,
-                                         ap, global_step, epoch)
+                                        optimizer, optimizer_st, scheduler,
+                                        ap, global_step, epoch)
         val_loss = evaluate(model, criterion, criterion_st, ap, global_step, epoch)
         print(
             " | > Training Loss: {:.5f}   Validation Loss: {:.5f}".format(

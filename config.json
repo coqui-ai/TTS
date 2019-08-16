@@ -78,6 +78,7 @@
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
     "text_cleaner": "phoneme_cleaners",
-    "use_speaker_embedding": false
+    "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
+    "style_wav_for_test": null          // path to style wav file to be used in TacotronGST inference.
 }
 
