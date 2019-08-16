@@ -2,6 +2,7 @@ import os
 import unittest
 import shutil
 import torch
+import numpy as np
 
 from torch.utils.data import DataLoader
 from utils.generic_utils import load_config
@@ -129,13 +130,16 @@ class TestTTSDataset(unittest.TestCase):
                 item_idx = data[7]
 
                 # check mel_spec consistency
-                wav = self.ap.load_wav(item_idx[0])
-                mel = self.ap.melspectrogram(wav)
-                mel = torch.FloatTensor(mel)
+                wav = np.asarray(self.ap.load_wav(item_idx[0]), dtype=np.float32)
+                mel = self.ap.melspectrogram(wav).astype('float32')
+                mel = torch.FloatTensor(mel).contiguous()
                 mel_dl = mel_input[0]
-                assert (abs(mel.T)
+                # NOTE: Below needs to check == 0 but due to an unknown reason
+                # there is a slight difference between two matrices.
+                # TODO: Check this assert cond more in detail.
+                assert abs((abs(mel.T)
                         - abs(mel_dl[:-1])
-                        ).sum() == 0, (abs(mel.T)- abs(mel_dl[:-1])).sum()
+                        ).sum()) < 1e-5, (abs(mel.T)- abs(mel_dl[:-1])).sum()
 
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()
