@@ -36,10 +36,8 @@ class Tacotron(nn.Module):
                                forward_attn, trans_agent, forward_attn_mask,
                                location_attn, separate_stopnet)
         self.postnet = PostCBHG(mel_dim)
-        self.last_linear = nn.Sequential(
-            nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),
-            nn.Sigmoid())
-
+        self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim)
+        
     def forward(self, characters, text_lengths, mel_specs, speaker_ids=None):
         B = characters.size(0)
         mask = sequence_mask(text_lengths).to(characters.device)

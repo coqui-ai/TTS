@@ -135,9 +135,6 @@ class CBHG(nn.Module):
         ])
         # max pooling of conv bank, with padding
         # TODO: try average pooling OR larger kernel size
-        self.max_pool1d = nn.Sequential(
-            nn.ConstantPad1d([0, 1], value=0),
-            nn.MaxPool1d(kernel_size=2, stride=1, padding=0))
         out_features = [K * conv_bank_features] + conv_projections[:-1]
         activations = [self.relu] * (len(conv_projections) - 1)
         activations += [None]
@@ -186,7 +183,6 @@ class CBHG(nn.Module):
             outs.append(out)
         x = torch.cat(outs, dim=1)
         assert x.size(1) == self.conv_bank_features * len(self.conv1d_banks)
-        x = self.max_pool1d(x)
         for conv1d in self.conv1d_projections:
             x = conv1d(x)
         # (B, T_in, hid_feature)
@@ -270,23 +266,27 @@ class Decoder(nn.Module):
         memory_size (int): size of the past window. if <= 0 memory_size = r
         TODO: arguments
     """
+
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
 
     def __init__(self, in_features, memory_dim, r, memory_size, attn_windowing,
                  attn_norm, prenet_type, prenet_dropout, forward_attn,
-                 trans_agent, forward_attn_mask, location_attn, separate_stopnet):
+                 trans_agent, forward_attn_mask, location_attn,
+                 separate_stopnet):
         super(Decoder, self).__init__()
+        self.r_init = r
         self.r = r
         self.in_features = in_features
         self.max_decoder_steps = 500
+        self.use_memory_queue = memory_size > 0
         self.memory_size = memory_size if memory_size > 0 else r
         self.memory_dim = memory_dim
         self.separate_stopnet = separate_stopnet
         self.query_dim = 256
         # memory -> |Prenet| -> processed_memory
         self.prenet = Prenet(
-            memory_dim * self.memory_size,
+            memory_dim * self.memory_size if self.use_memory_queue else memory_dim,
             prenet_type,
             prenet_dropout,
             out_features=[256, 128])
@@ -311,21 +311,12 @@ class Decoder(nn.Module):
         self.decoder_rnns = nn.ModuleList(
             [nn.GRUCell(256, 256) for _ in range(2)])
         # RNN_state -> |Linear| -> mel_spec
-        self.proj_to_mel = nn.Linear(256, memory_dim * r)
+        self.proj_to_mel = nn.Linear(256, memory_dim * self.r_init)
         # learn init values instead of zero init.
-        self.attention_rnn_init = nn.Embedding(1, 256)
-        self.memory_init = nn.Embedding(1, self.memory_size * memory_dim)
-        self.decoder_rnn_inits = nn.Embedding(2, 256)
-        self.stopnet = StopNet(256 + memory_dim * r)
-        # self.init_layers()
+        self.stopnet = StopNet(256 + memory_dim * self.r_init)
 
-    def init_layers(self):
-        torch.nn.init.xavier_uniform_(
-            self.project_to_decoder_in.weight,
-            gain=torch.nn.init.calculate_gain('linear'))
-        torch.nn.init.xavier_uniform_(
-            self.proj_to_mel.weight,
-            gain=torch.nn.init.calculate_gain('linear'))
+    def _set_r(self, new_r):
+        self.r = new_r
 
     def _reshape_memory(self, memory):
         """
@@ -347,13 +338,14 @@ class Decoder(nn.Module):
         B = inputs.size(0)
         T = inputs.size(1)
         # go frame as zeros matrix
-        self.memory_input = self.memory_init(inputs.data.new_zeros(B).long())
-
+        if self.use_memory_queue:
+            self.memory_input = torch.zeros(B, self.memory_dim * self.memory_size, device=inputs.device)
+        else:
+            self.memory_input = torch.zeros(B, self.memory_dim, device=inputs.device)
         # decoder states
-        self.query = self.attention_rnn_init(
-            inputs.data.new_zeros(B).long())
+        self.attention_rnn_hidden = torch.zeros(B, 256, device=inputs.device)
         self.decoder_rnn_hiddens = [
-            self.decoder_rnn_inits(inputs.data.new_tensor([idx] * B).long())
+            torch.zeros(B, 256, device=inputs.device)
             for idx in range(len(self.decoder_rnns))
         ]
         self.context_vec = inputs.data.new(B, self.in_features).zero_()
@@ -370,12 +362,13 @@ class Decoder(nn.Module):
     def decode(self, inputs, mask=None):
         # Prenet
         processed_memory = self.prenet(self.memory_input)
-
-        # Attention
-        self.query = self.attention_rnn(torch.cat((processed_memory, self.context_vec), -1), self.query)
-        self.context_vec = self.attention(self.query, inputs, self.processed_inputs, mask)
-
-        # Concat query and attention context vector
+        # Attention RNN
+        self.attention_rnn_hidden = self.attention_rnn(
+            torch.cat((processed_memory, self.current_context_vec), -1),
+            self.attention_rnn_hidden)
+        self.context_vec = self.attention_layer(
+            self.attention_rnn_hidden, inputs, self.processed_inputs, mask)
+        # Concat RNN output and attention context vector
         decoder_input = self.project_to_decoder_in(
             torch.cat((self.query, self.context_vec), -1))
 
@@ -389,25 +382,30 @@ class Decoder(nn.Module):
 
         # predict mel vectors from decoder vectors
         output = self.proj_to_mel(decoder_output)
-        output = torch.sigmoid(output)
-
+        # output = torch.sigmoid(output)
         # predict stop token
         stopnet_input = torch.cat([decoder_output, output], -1)
         if self.separate_stopnet:
             stop_token = self.stopnet(stopnet_input.detach())
         else:
             stop_token = self.stopnet(stopnet_input)
-        return output, stop_token, self.attention.attention_weights
+        output = output[:, : self.r * self.memory_dim]
+        return output, stop_token, self.attention_layer.attention_weights
 
-    def _update_memory_queue(self, new_memory):
-        if self.memory_size > 0 and new_memory.shape[-1] < self.memory_size:
-            self.memory_input = torch.cat([
-                self.memory_input[:, self.r * self.memory_dim:].clone(),
-                new_memory
-            ],
-                                          dim=-1)
+    def _update_memory_input(self, new_memory):
+        if self.use_memory_queue:
+            if self.memory_size > self.r:
+                # memory queue size is larger than number of frames per decoder iter
+                self.memory_input = torch.cat([
+                    new_memory, self.memory_input[:, :(self.memory_size - self.r) * self.memory_dim].clone()
+                ],
+                                            dim=-1)
+            else:
+                # memory queue size smaller than number of frames per decoder iter
+                self.memory_input = new_memory[:, :self.memory_size * self.memory_dim]
         else:
-            self.memory_input = new_memory
+            # use only the last frame prediction
+            self.memory_input = new_memory[:, :self.memory_dim]
 
     def forward(self, inputs, memory, mask):
         """
@@ -433,7 +431,7 @@ class Decoder(nn.Module):
         while len(outputs) < memory.size(0):
             if t > 0:
                 new_memory = memory[t - 1]
-                self._update_memory_queue(new_memory)
+                self._update_memory_input(new_memory)
             output, stop_token, attention = self.decode(inputs, mask)
             outputs += [output]
             attentions += [attention]
@@ -460,7 +458,7 @@ class Decoder(nn.Module):
         while True:
             if t > 0:
                 new_memory = outputs[-1]
-                self._update_memory_queue(new_memory)
+                self._update_memory_input(new_memory)
             output, stop_token, attention = self.decode(inputs, None)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [output]
