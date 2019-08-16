@@ -1,9 +1,8 @@
 import unittest
 
 from utils.text import phonemes
-from collections import Counter
 
 class SymbolsTest(unittest.TestCase):
-    def test_uniqueness(self):
+    def test_uniqueness(self):  #pylint: disable=no-self-use
         assert sorted(phonemes) == sorted(list(set(phonemes))), " {} vs {} ".format(len(phonemes), len(set(phonemes)))
         
