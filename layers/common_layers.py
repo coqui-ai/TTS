@@ -234,7 +234,7 @@ class Attention(nn.Module):
                 query, processed_inputs)
         # apply masking
         if mask is not None:
-            attention.data.masked_fill_(1 - mask, self._mask_value)
+            attention.data.masked_fill_(torch.bitwise_not(mask), self._mask_value)
         # apply windowing - only in eval mode
         if not self.training and self.windowing:
             attention = self.apply_windowing(attention, inputs)
