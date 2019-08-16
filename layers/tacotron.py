@@ -397,9 +397,10 @@ class Decoder(nn.Module):
             if self.memory_size > self.r:
                 # memory queue size is larger than number of frames per decoder iter
                 self.memory_input = torch.cat([
-                    new_memory, self.memory_input[:, :(self.memory_size - self.r) * self.memory_dim].clone()
+                    new_memory, self.memory_input[:, :(
+                        self.memory_size - self.r) * self.memory_dim].clone()
                 ],
-                                            dim=-1)
+                    dim=-1)
             else:
                 # memory queue size smaller than number of frames per decoder iter
                 self.memory_input = new_memory[:, :self.memory_size * self.memory_dim]
