@@ -315,7 +315,7 @@ class Decoder(nn.Module):
         # learn init values instead of zero init.
         self.stopnet = StopNet(256 + memory_dim * self.r_init)
 
-    def _set_r(self, new_r):
+    def set_r(self, new_r):
         self.r = new_r
 
     def _reshape_memory(self, memory):
