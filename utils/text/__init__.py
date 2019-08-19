@@ -17,7 +17,7 @@ _ID_TO_PHONEMES = {i: s for i, s in enumerate(phonemes)}
 # Regular expression matching text enclosed in curly braces:
 _CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
-# Regular expression matchinf punctuations, ignoring empty space
+# Regular expression matching punctuations, ignoring empty space
 PHONEME_PUNCTUATION_PATTERN = r'['+_phoneme_punctuations+']+'
 
 

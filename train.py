@@ -94,7 +94,10 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
     avg_step_time = 0
     avg_loader_time = 0
     print("\n > Epoch {}/{}".format(epoch, c.epochs), flush=True)
-    batch_n_iter = int(len(data_loader.dataset) / (c.batch_size * num_gpus))
+    if use_cuda:
+        batch_n_iter = int(len(data_loader.dataset) / (c.batch_size * num_gpus))
+    else:
+        batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
     end_time = time.time()
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
@@ -423,7 +426,7 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                     model, test_sentence, c, use_cuda, ap,
                     speaker_id=speaker_id,
                     style_wav=style_wav)
-                file_path = os.path.join(AUDIO_PATH, str(current_step))
+                file_path = os.path.join(AUDIO_PATH, str(global_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
                                          "TestSentence_{}.wav".format(idx))
