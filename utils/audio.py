@@ -113,8 +113,10 @@ class AudioProcessor(object):
     def _stft_parameters(self, ):
         """Compute necessary stft parameters with given time values"""
         n_fft = (self.num_freq - 1) * 2
+        factor = self.frame_length_ms / self.frame_shift_ms
+        assert (factor).is_integer(), " [!] frame_shift_ms should divide frame_length_ms"
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
-        win_length = int(self.frame_length_ms / 1000.0 * self.sample_rate)
+        win_length = int(hop_length * factor)
         return n_fft, hop_length, win_length
 
     def _amp_to_db(self, x):
