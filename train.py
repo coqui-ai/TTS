@@ -27,6 +27,7 @@ from utils.speakers import load_speaker_mapping, save_speaker_mapping, \
 from utils.synthesis import synthesis
 from utils.text.symbols import phonemes, symbols
 from utils.visual import plot_alignment, plot_spectrogram
+from utils.radam import RAdam
 from datasets.preprocess import get_preprocessor_by_name
 
 torch.backends.cudnn.enabled = True
@@ -476,9 +477,9 @@ def main(args): #pylint: disable=redefined-outer-name
 
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
-    optimizer = optim.Adam(model.parameters(), lr=c.lr, weight_decay=0)
+    optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0)
     if c.stopnet and c.separate_stopnet:
-        optimizer_st = optim.Adam(
+        optimizer_st = RAdam(
             model.decoder.stopnet.parameters(), lr=c.lr, weight_decay=0)
     else:
         optimizer_st = None
