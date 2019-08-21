@@ -145,9 +145,11 @@ class Synthesizer(object):
             print(sen)
 
             seq = np.array(self.input_adapter(sen))
-            text_hat = sequence_to_phoneme(seq)
-            print(text_hat)
-
+            
+            if self.use_phonemes:
+                text_hat = sequence_to_phoneme(seq)
+                print(text_hat)
+            
             chars_var = torch.from_numpy(seq).unsqueeze(0).long()
 
             if self.use_cuda:
