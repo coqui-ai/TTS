@@ -62,7 +62,8 @@ setup(
     version=version,
     url='https://github.com/mozilla/TTS',
     description='Text to Speech with Deep Learning',
-    packages=find_packages(),
+    package_dir={'TTS': '.'},
+    packages=['TTS'] + ['TTS.' + pkg for pkg in find_packages()],
     cmdclass={
         'build_py': build_py,
         'develop': develop,
@@ -79,14 +80,9 @@ setup(
         "flask",
         # "lws",
         "tqdm",
-        "phonemizer",
         "soundfile",
     ],
     dependency_links=[
         'http://github.com/bootphon/phonemizer/tarball/master#egg=phonemizer'
     ],
-    extras_require={
-        "bin": [
-            "requests",
-        ],
-    })
+)
