@@ -1,12 +1,12 @@
 {
-    "tts_path":"/media/erogol/data_ssd/Models/libri_tts/ljspeech-July-22-2019_10+45AM-ee706b5/",  // tts model root folder
+    "tts_path":"/media/erogol/data_ssd/Models/libri_tts/5049/",  // tts model root folder
     "tts_file":"best_model.pth.tar",     // tts checkpoint file
     "tts_config":"config.json",     // tts config.json file
     "tts_speakers": null,           // json file listing speaker ids. null if no speaker embedding.
-    "wavernn_lib_path": "/home/erogol/projects/",   // Rootpath to wavernn project folder to be imported. If this is null, model uses GL for speech synthesis.
-    "wavernn_path":"/media/erogol/data_ssd/Models/wavernn/universal/4910/",  // wavernn model root path
-    "wavernn_file":"best_model_16K.pth.tar", // wavernn checkpoint file name
-    "wavernn_config":"config_16K.json", // wavernn config file
+    "wavernn_lib_path": null,   // Rootpath to wavernn project folder to be imported. If this is null, model uses GL for speech synthesis.
+    "wavernn_path":null,  // wavernn model root path
+    "wavernn_file":null, // wavernn checkpoint file name
+    "wavernn_config": null, // wavernn config file
     "is_wavernn_batched":true, 
     "port": 5002,
     "use_cuda": true,

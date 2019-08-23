@@ -59,7 +59,7 @@ class Synthesizer(object):
             self.tts_model.cuda()
         self.tts_model.eval()
         self.tts_model.decoder.max_decoder_steps = 3000
-        if 'r' in cp:
+        if 'r' in cp and self.tts_config.model in ["Tacotron", "TacotronGST"]:
             self.tts_model.decoder.set_r(cp['r'])
 
     def load_wavernn(self, lib_path, model_path, model_file, model_config, use_cuda):
