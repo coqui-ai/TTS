@@ -7,7 +7,7 @@ import sys
 
 from utils.audio import AudioProcessor
 from utils.generic_utils import load_config, setup_model
-from utils.text import phoneme_to_sequence, phonemes, symbols, text_to_sequence, sequence_to_phoneme
+from utils.text import phonemes, symbols
 from utils.speakers import load_speaker_mapping
 from utils.synthesis import *
 
@@ -139,12 +139,12 @@ class Synthesizer(object):
             sens = [text+'.']
         for sen in sens:
             # preprocess the given text
-            inputs = text_to_seqvec(text, self.tts_config, self.use_cuda)
+            inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
             # synthesize voice
-            decoder_output, postnet_output, alignments, stop_tokens = run_model(
+            decoder_output, postnet_output, alignments, _ = run_model(
                 self.tts_model, inputs, self.tts_config, False, None, None)
             # convert outputs to numpy
-            postnet_output, decoder_output, alignment = parse_outputs(
+            postnet_output, decoder_output, _ = parse_outputs(
                 postnet_output, decoder_output, alignments)
 
             if self.wavernn:
