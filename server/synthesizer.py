@@ -9,6 +9,7 @@ from utils.audio import AudioProcessor
 from utils.generic_utils import load_config, setup_model
 from utils.text import phoneme_to_sequence, phonemes, symbols, text_to_sequence, sequence_to_phoneme
 from utils.speakers import load_speaker_mapping
+from utils.synthesis import *
 
 import re
 alphabets = r"([A-Za-z])"
@@ -41,28 +42,25 @@ class Synthesizer(object):
         self.ap = AudioProcessor(**self.tts_config.audio)
         if self.use_phonemes:
             self.input_size = len(phonemes)
-            self.input_adapter = lambda sen: phoneme_to_sequence(sen, [self.tts_config.text_cleaner], self.tts_config.phoneme_language, self.tts_config.enable_eos_bos_chars)
         else:
             self.input_size = len(symbols)
-            self.input_adapter = lambda sen: text_to_sequence(sen, [self.tts_config.text_cleaner])
         # load speakers
         if self.config.tts_speakers is not None:
             self.tts_speakers = load_speaker_mapping(os.path.join(model_path, self.config.tts_speakers))
             num_speakers = len(self.tts_speakers)
         else:
             num_speakers = 0
-        self.tts_model = setup_model(self.input_size, num_speakers=num_speakers , c=self.tts_config) 
+        self.tts_model = setup_model(self.input_size, num_speakers=num_speakers, c=self.tts_config) 
         # load model state
-        if use_cuda:
-            cp = torch.load(self.model_file)
-        else:
-            cp = torch.load(self.model_file, map_location=lambda storage, loc: storage)
+        cp = torch.load(self.model_file)
         # load the model
         self.tts_model.load_state_dict(cp['model'])
         if use_cuda:
             self.tts_model.cuda()
         self.tts_model.eval()
         self.tts_model.decoder.max_decoder_steps = 3000
+        if 'r' in cp:
+            self.tts_model.decoder.set_r(cp['r'])
 
     def load_wavernn(self, lib_path, model_path, model_file, model_config, use_cuda):
         # TODO: set a function in wavernn code base for model setup and call it here.
@@ -136,33 +134,27 @@ class Synthesizer(object):
     def tts(self, text):
         wavs = []
         sens = self.split_into_sentences(text)
+        print(sens)
         if not sens:
             sens = [text+'.']
         for sen in sens:
-            if len(sen) < 3:
-                continue
-            sen = sen.strip()
-            print(sen)
+            # preprocess the given text
+            inputs = text_to_seqvec(text, self.tts_config, self.use_cuda)
+            # synthesize voice
+            decoder_output, postnet_output, alignments, stop_tokens = run_model(
+                self.tts_model, inputs, self.tts_config, False, None, None)
+            # convert outputs to numpy
+            postnet_output, decoder_output, alignment = parse_outputs(
+                postnet_output, decoder_output, alignments)
 
-            seq = np.array(self.input_adapter(sen))
-            if self.use_phonemes:
-                text_hat = sequence_to_phoneme(seq)
-                print(text_hat)
-            
-            chars_var = torch.from_numpy(seq).unsqueeze(0).long()
+            if self.wavernn:
+                postnet_output = postnet_output[0].data.cpu().numpy()
+                wav = self.wavernn.generate(torch.FloatTensor(postnet_output.T).unsqueeze(0).cuda(), batched=self.config.is_wavernn_batched, target=11000, overlap=550)
+            else:
+                wav = inv_spectrogram(postnet_output, self.ap, self.tts_config)
+            # trim silence
+            wav = trim_silence(wav, self.ap)
 
-            if self.use_cuda:
-                chars_var = chars_var.cuda()
-            decoder_out, postnet_out, alignments, stop_tokens = self.tts_model.inference(
-                chars_var)
-            postnet_out = postnet_out[0].data.cpu().numpy()
-            if self.tts_config.model == "Tacotron":
-                wav = self.ap.inv_spectrogram(postnet_out.T)
-            elif self.tts_config.model == "Tacotron2":
-                if self.wavernn:
-                    wav = self.wavernn.generate(torch.FloatTensor(postnet_out.T).unsqueeze(0).cuda(), batched=self.config.is_wavernn_batched, target=11000, overlap=550)
-                else:
-                    wav = self.ap.inv_mel_spectrogram(postnet_out.T)
             wavs += list(wav)
             wavs += [0] * 10000
 
