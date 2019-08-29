@@ -3,8 +3,8 @@
 import re
 import phonemizer
 from phonemizer.phonemize import phonemize
-from utils.text import cleaners
-from utils.text.symbols import symbols, phonemes, _phoneme_punctuations, _bos, \
+from TTS.utils.text import cleaners
+from TTS.utils.text.symbols import symbols, phonemes, _phoneme_punctuations, _bos, \
     _eos
 
 # Mappings from symbol to numeric ID and vice versa:
