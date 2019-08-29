@@ -2,7 +2,7 @@ import librosa
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from utils.text import phoneme_to_sequence, sequence_to_phoneme
+from TTS.utils.text import phoneme_to_sequence, sequence_to_phoneme
 
 
 def plot_alignment(alignment, info=None):

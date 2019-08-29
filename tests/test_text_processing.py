@@ -1,7 +1,7 @@
 import unittest
 import torch as T
 
-from utils.text import *
+from TTS.utils.text import *
 
 def test_phoneme_to_sequence():
     text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"

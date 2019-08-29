@@ -1,7 +1,7 @@
 from math import sqrt
 from torch import nn
-from layers.tacotron2 import Encoder, Decoder, Postnet
-from utils.generic_utils import sequence_mask
+from TTS.layers.tacotron2 import Encoder, Decoder, Postnet
+from TTS.utils.generic_utils import sequence_mask
 
 
 # TODO: match function arguments with tacotron
