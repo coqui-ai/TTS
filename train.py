@@ -10,24 +10,24 @@ import torch.nn as nn
 from torch import optim
 from torch.utils.data import DataLoader
 
-from datasets.TTSDataset import MyDataset
+from TTS.datasets.TTSDataset import MyDataset
 from distribute import (DistributedSampler, apply_gradient_allreduce,
                         init_distributed, reduce_tensor)
-from layers.losses import L1LossMasked, MSELossMasked
-from utils.audio import AudioProcessor
-from utils.generic_utils import (NoamLR, check_update, count_parameters,
-                                 create_experiment_folder, get_git_branch,
-                                 load_config, remove_experiment_folder,
-                                 save_best_model, save_checkpoint, weight_decay,
-                                 set_init_dict, copy_config_file, setup_model,
-                                 split_dataset, gradual_training_scheduler)
-from utils.logger import Logger
-from utils.speakers import load_speaker_mapping, save_speaker_mapping, \
+from TTS.layers.losses import L1LossMasked, MSELossMasked
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.generic_utils import (NoamLR, check_update, count_parameters,
+                                     create_experiment_folder, get_git_branch,
+                                     load_config, remove_experiment_folder,
+                                     save_best_model, save_checkpoint, weight_decay,
+                                     set_init_dict, copy_config_file, setup_model,
+                                     split_dataset, gradual_training_scheduler)
+from TTS.utils.logger import Logger
+from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
-from utils.synthesis import synthesis
-from utils.text.symbols import phonemes, symbols
-from utils.visual import plot_alignment, plot_spectrogram
-from datasets.preprocess import get_preprocessor_by_name
+from TTS.utils.synthesis import synthesis
+from TTS.utils.text.symbols import phonemes, symbols
+from TTS.utils.visual import plot_alignment, plot_spectrogram
+from TTS.datasets.preprocess import get_preprocessor_by_name
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = False
