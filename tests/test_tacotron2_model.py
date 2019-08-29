@@ -6,9 +6,9 @@ import numpy as np
 
 from torch import optim
 from torch import nn
-from utils.generic_utils import load_config
-from layers.losses import MSELossMasked
-from models.tacotron2 import Tacotron2
+from TTS.utils.generic_utils import load_config
+from TTS.layers.losses import MSELossMasked
+from TTS.models.tacotron2 import Tacotron2
 
 #pylint: disable=unused-variable
 

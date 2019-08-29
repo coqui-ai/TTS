@@ -62,8 +62,8 @@ setup(
     version=version,
     url='https://github.com/mozilla/TTS',
     description='Text to Speech with Deep Learning',
-    package_dir={'TTS': '.'},
-    packages=['TTS'] + ['TTS.' + pkg for pkg in find_packages()],
+    package_dir={'': 'tts_namespace'},
+    packages=find_packages('tts_namespace'),
     cmdclass={
         'build_py': build_py,
         'develop': develop,
