@@ -11,5 +11,7 @@ fi
 
 if [[ "$TEST_SUITE" == "unittest" ]]; then
   # Run tests on all pushes
+  pushd tts_namespace
   python -m unittest
+  popd
 fi

@@ -4,10 +4,10 @@ import argparse
 import torch
 import string
 
-from utils.synthesis import synthesis
-from utils.generic_utils import load_config, setup_model
-from utils.text.symbols import symbols, phonemes
-from utils.audio import AudioProcessor
+from TTS.utils.synthesis import synthesis
+from TTS.utils.generic_utils import load_config, setup_model
+from TTS.utils.text.symbols import symbols, phonemes
+from TTS.utils.audio import AudioProcessor
 
 
 def tts(model,

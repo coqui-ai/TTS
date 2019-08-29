@@ -5,9 +5,9 @@ import unittest
 
 from torch import optim
 from torch import nn
-from utils.generic_utils import load_config
-from layers.losses import L1LossMasked
-from models.tacotron import Tacotron
+from TTS.utils.generic_utils import load_config
+from TTS.layers.losses import L1LossMasked
+from TTS.models.tacotron import Tacotron
 
 #pylint: disable=unused-variable
 
