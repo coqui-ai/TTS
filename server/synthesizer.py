@@ -5,11 +5,11 @@ import numpy as np
 import torch
 import sys
 
-from utils.audio import AudioProcessor
-from utils.generic_utils import load_config, setup_model
-from utils.text import phonemes, symbols
-from utils.speakers import load_speaker_mapping
-from utils.synthesis import *
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.generic_utils import load_config, setup_model
+from TTS.utils.text import phonemes, symbols
+from TTS.utils.speakers import load_speaker_mapping
+from TTS.utils.synthesis import *
 
 import re
 alphabets = r"([A-Za-z])"

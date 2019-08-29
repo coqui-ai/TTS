@@ -1,8 +1,8 @@
 # coding: utf-8
 from torch import nn
-from layers.tacotron import Encoder, Decoder, PostCBHG
-from layers.gst_layers import GST
-from utils.generic_utils import sequence_mask
+from TTS.layers.tacotron import Encoder, Decoder, PostCBHG
+from TTS.layers.gst_layers import GST
+from TTS.utils.generic_utils import sequence_mask
 
 
 class TacotronGST(nn.Module):
