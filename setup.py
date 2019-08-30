@@ -66,11 +66,11 @@ setup(
     package_dir={'': 'tts_namespace'},
     packages=find_packages('tts_namespace'),
     project_urls={
-              'Documentation': 'https://github.com/mozilla/TTS/wiki',
-              'Tracker': 'https://github.com/mozilla/TTS/issues',
-              'Repository': 'https://github.com/mozilla/TTS',
-              'Discussions': 'https://discourse.mozilla.org/c/tts',
-          },
+        'Documentation': 'https://github.com/mozilla/TTS/wiki',
+        'Tracker': 'https://github.com/mozilla/TTS/issues',
+        'Repository': 'https://github.com/mozilla/TTS',
+        'Discussions': 'https://discourse.mozilla.org/c/tts',
+    },
     cmdclass={
         'build_py': build_py,
         'develop': develop,
