@@ -28,6 +28,8 @@ from TTS.utils.synthesis import synthesis
 from TTS.utils.text.symbols import phonemes, symbols
 from TTS.utils.visual import plot_alignment, plot_spectrogram
 from TTS.datasets.preprocess import get_preprocessor_by_name
+from TTS.utils.radam import RAdam
+
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = False
@@ -478,9 +480,9 @@ def main(args): #pylint: disable=redefined-outer-name
 
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
-    optimizer = optim.Adam(model.parameters(), lr=c.lr, weight_decay=0)
+    optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0)
     if c.stopnet and c.separate_stopnet:
-        optimizer_st = optim.Adam(
+        optimizer_st = RAdam(
             model.decoder.stopnet.parameters(), lr=c.lr, weight_decay=0)
     else:
         optimizer_st = None
