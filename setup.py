@@ -90,4 +90,7 @@ setup(
         "soundfile",
         "phonemizer @ https://github.com/bootphon/phonemizer/tarball/master",
     ],
+    dependency_links=[
+        "http://github.com/bootphon/phonemizer/tarball/master#egg=phonemizer-1.0.1"
+    ]
 )
