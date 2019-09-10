@@ -5,8 +5,8 @@ import torch
 import random
 from torch.utils.data import Dataset
 
-from utils.text import text_to_sequence, phoneme_to_sequence, pad_with_eos_bos
-from utils.data import prepare_data, prepare_tensor, prepare_stop_target
+from TTS.utils.text import text_to_sequence, phoneme_to_sequence, pad_with_eos_bos
+from TTS.utils.data import prepare_data, prepare_tensor, prepare_stop_target
 
 
 class MyDataset(Dataset):
@@ -102,7 +102,7 @@ class MyDataset(Dataset):
                                                                  cache_path)
         if self.enable_eos_bos:
             phonemes = pad_with_eos_bos(phonemes)
-
+            phonemes = np.asarray(phonemes, dtype=np.int32)
         return phonemes
 
     def load_data(self, idx):

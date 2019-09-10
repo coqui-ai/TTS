@@ -3,8 +3,8 @@
 import re
 import phonemizer
 from phonemizer.phonemize import phonemize
-from utils.text import cleaners
-from utils.text.symbols import symbols, phonemes, _phoneme_punctuations, _bos, \
+from TTS.utils.text import cleaners
+from TTS.utils.text.symbols import symbols, phonemes, _phoneme_punctuations, _bos, \
     _eos
 
 # Mappings from symbol to numeric ID and vice versa:
@@ -17,7 +17,7 @@ _ID_TO_PHONEMES = {i: s for i, s in enumerate(phonemes)}
 # Regular expression matching text enclosed in curly braces:
 _CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
-# Regular expression matchinf punctuations, ignoring empty space
+# Regular expression matching punctuations, ignoring empty space
 PHONEME_PUNCTUATION_PATTERN = r'['+_phoneme_punctuations+']+'
 
 
@@ -47,7 +47,7 @@ def text2phone(text, language):
 
 
 def pad_with_eos_bos(phoneme_sequence):
-    return [_PHONEMES_TO_ID[_bos]] + phoneme_sequence + [_PHONEMES_TO_ID[_eos]]
+    return [_PHONEMES_TO_ID[_bos]] + list(phoneme_sequence) + [_PHONEMES_TO_ID[_eos]]
 
 
 def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
