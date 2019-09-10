@@ -50,7 +50,7 @@ Below you see Tacotron model state after 16K iterations with batch-size 32 with 
 
 Audio examples: [https://soundcloud.com/user-565970875](https://soundcloud.com/user-565970875)
 
-![example_model_output](images/example_model_output.png?raw=true)
+<img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
 
 ## Runtime
 The most time-consuming part is the vocoder algorithm (Griffin-Lim) which runs on CPU. By setting its number of iterations lower, you might have faster execution with a small loss of quality. Some of the experimental values are below.
