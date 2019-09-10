@@ -1,8 +1,8 @@
 # coding: utf-8
 from torch import nn
-from layers.tacotron import Encoder, Decoder, PostCBHG
-from layers.gst_layers import GST
-from utils.generic_utils import sequence_mask
+from TTS.layers.tacotron import Encoder, Decoder, PostCBHG
+from TTS.layers.gst_layers import GST
+from TTS.utils.generic_utils import sequence_mask
 
 
 class TacotronGST(nn.Module):
@@ -38,9 +38,8 @@ class TacotronGST(nn.Module):
                                forward_attn, trans_agent, forward_attn_mask,
                                location_attn, separate_stopnet)
         self.postnet = PostCBHG(mel_dim)
-        self.last_linear = nn.Sequential(
-            nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim),
-            nn.Sigmoid())
+        self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim)
+        
 
     def forward(self, characters, text_lengths, mel_specs, speaker_ids=None):
         B = characters.size(0)

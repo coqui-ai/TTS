@@ -1,6 +1,6 @@
 {
-    "run_name": "mozilla-no-loc-fattn-stopnet-sigmoid-loss_masking",
-    "run_description": "using forward attention, with original prenet, loss masking,separate stopnet, sigmoid. Compare this with 4817. Pytorch DPP",
+    "run_name": "ljspeech",
+    "run_description": "gradual training with prenet frame size 1 + no maxout for cbhg + symmetric norm.",
 
     "audio":{
         // Audio processing parameters
@@ -16,8 +16,8 @@
         "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
         // Normalization parameters
         "signal_norm": true,    // normalize the spec values in range [0, 1]
-        "symmetric_norm": false, // move normalization to range [-1, 1]
-        "max_norm": 1,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
@@ -31,44 +31,45 @@
 
     "reinit_layers": [],
 
-    "model": "Tacotron2",          // one of the model in models/    
+    "model": "Tacotron",          // one of the model in models/    
     "grad_clip": 1,                // upper limit for gradients for clipping.
     "epochs": 1000,                // total number of epochs to train.
     "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
     "lr_decay": false,             // if true, Noam learning rate decaying is applied through training.
     "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
-    "windowing": false,            // Enables attention windowing. Used only in eval mode.
-    "memory_size": 5,              // ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
+    "memory_size": -1,              // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame. 
     "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
-    "prenet_type": "original",     // ONLY TACOTRON2 - "original" or "bn".
-    "prenet_dropout": true,        // ONLY TACOTRON2 - enable/disable dropout at prenet. 
-    "use_forward_attn": true,      // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
+    "prenet_type": "original",     // "original" or "bn".
+    "prenet_dropout": true,        // enable/disable dropout at prenet. 
+    "windowing": false,            // Enables attention windowing. Used only in eval mode.
+    "use_forward_attn": false,      // if it uses forward attention. In general, it aligns faster.
     "forward_attn_mask": false, 
-    "transition_agent": false,     // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
-    "location_attn": false,        // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+    "transition_agent": false,     // enable/disable transition agent of forward attention.
+    "location_attn": true,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
     "stopnet": true,               // Train stopnet predicting the end of synthesis. 
     "separate_stopnet": true,     // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
     
-    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention.
+    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
     "eval_batch_size":16,   
-    "r": 1,                 // Number of frames to predict for step.
+    "r": 7,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.  
+    "gradual_training": [[0, 7, 32], [10000, 5, 32], [50000, 3, 32], [130000, 2, 16], [290000, 1, 8]], // ONLY TACOTRON - set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled.  
     "wd": 0.000001,         // Weight decay weight.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
-    "save_step": 1000,      // Number of training steps expected to save traning stats and checkpoints.
-    "print_step": 10,       // Number of steps to log traning on console.
+    "save_step": 10000,      // Number of training steps expected to save traning stats and checkpoints.
+    "print_step": 25,       // Number of steps to log traning on console.
     "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
 
     "run_eval": true,
     "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
-    "data_path": "/media/erogol/data_ssd/Data/Mozilla/",  // DATASET-RELATED: can overwritten from command argument
-    "meta_file_train": "metadata_train.txt",      // DATASET-RELATED: metafile for training dataloader.
-    "meta_file_val": "metadata_val.txt",    // DATASET-RELATED: metafile for evaluation dataloader.
-    "dataset": "mozilla",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
-    "min_seq_len": 0,       // DATASET-RELATED: minimum text length to use in training
+    "data_path": "/home/erogol/Data/LJSpeech-1.1/",  // DATASET-RELATED: can overwritten from command argument
+    "meta_file_train": "metadata_train.csv",      // DATASET-RELATED: metafile for training dataloader.
+    "meta_file_val": "metadata_val.csv",    // DATASET-RELATED: metafile for evaluation dataloader.
+    "dataset": "ljspeech",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
+    "min_seq_len": 6,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
     "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
     "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
@@ -77,6 +78,7 @@
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
     "text_cleaner": "phoneme_cleaners",
-    "use_speaker_embedding": false // whether to use additional embeddings for separate speakers
+    "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
+    "style_wav_for_test": null          // path to style wav file to be used in TacotronGST inference.
 }
 

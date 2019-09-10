@@ -1,6 +1,6 @@
 from torch import nn
 from torch.nn import functional
-from utils.generic_utils import sequence_mask
+from TTS.utils.generic_utils import sequence_mask
 
 
 class L1LossMasked(nn.Module):

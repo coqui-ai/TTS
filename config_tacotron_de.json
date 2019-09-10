@@ -40,12 +40,12 @@
                 "windowing": false,            // Enables attention windowing. Used only in eval mode.
                 "memory_size": 5,              // ONLY TACOTRON - memory queue size used to queue network predictions to feed autoregressive connection. Useful if r < 5. 
                 "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
-                "prenet_type": "original",     // ONLY TACOTRON2 - "original" or "bn".
-                "prenet_dropout": true,        // ONLY TACOTRON2 - enable/disable dropout at prenet. 
-                "use_forward_attn": false,      // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
-                "transition_agent": false,     // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
-                "forward_attn_mask": false,      
-                "location_attn": true,        // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+                "prenet_type": "original",     // "original" or "bn".
+                "prenet_dropout": true,        // enable/disable dropout at prenet.
+                "use_forward_attn": false,      // enable/disable forward attention. In general, it aligns faster.
+                "transition_agent": false,     // enable/disable transition agent of forward attention.
+                "forward_attn_mask": false,    // Apply forward attention mask at inference to prevent bad modes. Try it if your model does not align well.
+                "location_attn": true,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
                 "loss_masking": true,         // enable / disable loss masking against the sequence padding.
                 "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
                 "stopnet": true,               // Train stopnet predicting the end of synthesis. 

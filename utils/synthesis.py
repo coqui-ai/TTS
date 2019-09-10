@@ -50,7 +50,7 @@ def parse_outputs(postnet_output, decoder_output, alignments):
     return postnet_output, decoder_output, alignment
 
 
-def trim_silence(wav):
+def trim_silence(wav, ap):
     return wav[:ap.find_endpoint(wav)]
 
 
@@ -114,5 +114,5 @@ def synthesis(model,
     wav = inv_spectrogram(postnet_output, ap, CONFIG)
     # trim silence
     if do_trim_silence:
-        wav = trim_silence(wav)
+        wav = trim_silence(wav, ap)
     return wav, alignment, decoder_output, postnet_output, stop_tokens

@@ -121,7 +121,8 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
         'step': current_step,
         'epoch': epoch,
         'linear_loss': model_loss,
-        'date': datetime.date.today().strftime("%B %d, %Y")
+        'date': datetime.date.today().strftime("%B %d, %Y"),
+        'r': model.decoder.r
     }
     torch.save(state, checkpoint_path)
 
@@ -136,7 +137,8 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
             'step': current_step,
             'epoch': epoch,
             'linear_loss': model_loss,
-            'date': datetime.date.today().strftime("%B %d, %Y")
+            'date': datetime.date.today().strftime("%B %d, %Y"),
+            'r': model.decoder.r
         }
         best_loss = model_loss
         bestmodel_path = 'best_model.pth.tar'
@@ -248,7 +250,7 @@ def set_init_dict(model_dict, checkpoint, c):
 
 def setup_model(num_chars, num_speakers, c):
     print(" > Using model: {}".format(c.model))
-    MyModel = importlib.import_module('models.' + c.model.lower())
+    MyModel = importlib.import_module('TTS.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
     if c.model.lower() in ["tacotron", "tacotrongst"]:
         model = MyModel(
@@ -305,3 +307,10 @@ def split_dataset(items):
     else:
         return items[:eval_split_size], items[eval_split_size:]
 
+
+def gradual_training_scheduler(global_step, config):
+    new_values = None
+    for values in config.gradual_training:
+        if global_step >= values[0]:
+            new_values = values
+    return new_values[1], new_values[2]
