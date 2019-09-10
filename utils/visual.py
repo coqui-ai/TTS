@@ -32,7 +32,7 @@ def plot_spectrogram(linear_output, audio, fig_size=(16, 10)):
         linear_output_ = linear_output.detach().cpu().numpy().squeeze()
     else:
         linear_output_ = linear_output
-    spectrogram = audio._denormalize(linear_output_)
+    spectrogram = audio._denormalize(linear_output_)  # pylint: disable=protected-access
     fig = plt.figure(figsize=fig_size)
     plt.imshow(spectrogram.T, aspect="auto", origin="lower")
     plt.colorbar()

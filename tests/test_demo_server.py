@@ -20,5 +20,6 @@ class DemoServerTest(unittest.TestCase):
     def test_in_out(self):
         self._create_random_model()
         config = load_config(os.path.join(get_tests_input_path(), 'server_config.json'))
+        config['tts_path'] = get_tests_output_path()
         synthesizer = Synthesizer(config)
         synthesizer.tts("Better this test works!!")
