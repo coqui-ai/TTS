@@ -1,6 +1,3 @@
-import torch
-import numpy as np
-
 
 def alignment_diagonal_score(alignments):
     """
@@ -12,8 +9,3 @@ def alignment_diagonal_score(alignments):
         alignments : batch x decoder_steps x encoder_steps
     """
     return alignments.max(dim=1)[0].mean(dim=1).mean(dim=0)
-
-
-
-
-

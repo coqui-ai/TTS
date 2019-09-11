@@ -31,7 +31,8 @@ def load_config(config_path):
 def get_git_branch():
     try:
         out = subprocess.check_output(["git", "branch"]).decode("utf8")
-        current = next(line for line in out.split("\n") if line.startswith("*"))
+        current = next(line for line in out.split(
+            "\n") if line.startswith("*"))
         current.replace("* ", "")
     except subprocess.CalledProcessError:
         current = "inside_docker"
@@ -298,7 +299,7 @@ def split_dataset(items):
         # most stupid code ever -- Fix it !
         while len(items_eval) < eval_split_size:
             speakers = [item[-1] for item in items]
-            speaker_counter = Counter(speakers) 
+            speaker_counter = Counter(speakers)
             item_idx = np.random.randint(0, len(items))
             if speaker_counter[items[item_idx][-1]] > 1:
                 items_eval.append(items[item_idx])
@@ -323,20 +324,21 @@ class KeepAverage():
 
     def __getitem__(self, key):
         return self.avg_values[key]
-    
+
     def add_value(self, name, init_val=0, init_iter=0):
         self.avg_values[name] = init_val
         self.iters[name] = init_iter
-    
+
     def update_value(self, name, value, weighted_avg=False):
         if weighted_avg:
             self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
             self.iters[name] += 1
         else:
-            self.avg_values[name] = self.avg_values[name] * self.iters[name] + value 
+            self.avg_values[name] = self.avg_values[name] * \
+                self.iters[name] + value
             self.iters[name] += 1
             self.avg_values[name] /= self.iters[name]
-    
+
     def add_values(self, name_dict):
         for key, value in name_dict.items():
             self.add_value(key, init_val=value)
@@ -344,4 +346,3 @@ class KeepAverage():
     def update_values(self, value_dict):
         for key, value in value_dict.items():
             self.update_value(key, value)
-    
