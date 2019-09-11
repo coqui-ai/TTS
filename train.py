@@ -190,7 +190,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         grad_norm, _ = check_update(model, c.grad_clip)
         optimizer.step()
 
-        # compute alignment score  
+        # compute alignment score
         align_score = alignment_diagonal_score(alignments)
         keep_avg.update_value('avg_align_score', align_score)
 
@@ -281,7 +281,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         "AvgPostnetLoss:{:.5f}  AvgDecoderLoss:{:.5f}  "
         "AvgStopLoss:{:.5f}  EpochTime:{:.2f}  "
         "AvgStepTime:{:.2f}  AvgLoaderTime:{:.2f}".format(global_step, keep_avg['avg_postnet_loss'], keep_avg['avg_decoder_loss'],
-                                                          keep_avg['avg_stop_loss'], keep_avg['avg_align_score'], 
+                                                          keep_avg['avg_stop_loss'], keep_avg['avg_align_score'],
                                                           epoch_time, keep_avg['avg_step_time'], keep_avg['avg_loader_time']),
         flush=True)
 
@@ -305,11 +305,11 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
         speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
     epoch_time = 0
-    eval_values_dict = {'avg_postnet_loss' : 0,
-                        'avg_decoder_loss' : 0,
-                        'avg_stop_loss' : 0,
+    eval_values_dict = {'avg_postnet_loss': 0,
+                        'avg_decoder_loss': 0,
+                        'avg_stop_loss': 0,
                         'avg_align_score': 0}
-    keep_avg = KeepAverage() 
+    keep_avg = KeepAverage()
     keep_avg.add_values(eval_values_dict)
     print("\n > Validation")
     if c.test_sentences_file is None:
@@ -401,18 +401,19 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                     if c.stopnet:
                         stop_loss = reduce_tensor(stop_loss.data, num_gpus)
 
-                keep_avg.update_values({'avg_postnet_loss' : float(postnet_loss.item()),
-                                        'avg_decoder_loss' : float(decoder_loss.item()),
-                                        'avg_stop_loss' : float(stop_loss.item())})
+                keep_avg.update_values({'avg_postnet_loss': float(postnet_loss.item()),
+                                        'avg_decoder_loss': float(decoder_loss.item()),
+                                        'avg_stop_loss': float(stop_loss.item())})
 
                 if num_iter % c.print_step == 0:
                     print(
                         "   | > TotalLoss: {:.5f}   PostnetLoss: {:.5f} - {:.5f}  DecoderLoss:{:.5f} - {:.5f} "
-                        "StopLoss: {:.5f} - {:.5f}  AlignScore: {:.4f} : {:.4f}".format(loss.item(),
-                                                    postnet_loss.item(), keep_avg['avg_postnet_loss'],
-                                                    decoder_loss.item(), keep_avg['avg_decoder_loss'],
-                                                    stop_loss.item(), keep_avg['avg_stop_loss'],
-                                                    align_score.item(), keep_avg['avg_align_score']),
+                        "StopLoss: {:.5f} - {:.5f}  AlignScore: {:.4f} : {:.4f}".format(
+                            loss.item(),
+                            postnet_loss.item(), keep_avg['avg_postnet_loss'],
+                            decoder_loss.item(), keep_avg['avg_decoder_loss'],
+                            stop_loss.item(), keep_avg['avg_stop_loss'],
+                            align_score.item(), keep_avg['avg_align_score']),
                         flush=True)
 
             if args.rank == 0:
