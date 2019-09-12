@@ -44,7 +44,7 @@ class Tacotron(nn.Module):
         self.postnet = PostCBHG(mel_dim)
         self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim)
 
-    def __init_states(self):
+    def _init_states(self):
         self.speaker_embeddings = None 
         self.speaker_embeddings_projected = None
 
@@ -59,7 +59,7 @@ class Tacotron(nn.Module):
         B = characters.size(0)
         mask = sequence_mask(text_lengths).to(characters.device)
         inputs = self.embedding(characters)
-        self.__init_states()
+        self._init_states()
         self.compute_speaker_embedding(speaker_ids)
         if self.num_speakers > 1:
             inputs = self._concat_speaker_embedding(inputs,
@@ -78,7 +78,7 @@ class Tacotron(nn.Module):
     def inference(self, characters, speaker_ids=None):
         B = characters.size(0)
         inputs = self.embedding(characters)
-        self.__init_states()
+        self._init_states()
         self.compute_speaker_embedding(speaker_ids)
         if self.num_speakers > 1:
             inputs = self._concat_speaker_embedding(inputs,
@@ -98,10 +98,16 @@ class Tacotron(nn.Module):
         speaker_embeddings = self.speaker_embedding(speaker_ids)
         return speaker_embeddings.unsqueeze_(1)
 
-    def _concat_speaker_embedding(self, outputs, speaker_embeddings):
+    def _add_speaker_embedding(self, outputs, speaker_embeddings):
         speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0),
-                                                      outputs.size(1),
-                                                      -1)
-        outputs = torch.cat([outputs, speaker_embeddings_], dim=-1)
+                                                       outputs.size(1),
+                                                       -1)
+        outputs = outputs + speaker_embeddings_
         return outputs
 
+    def _concat_speaker_embedding(self, outputs, speaker_embeddings):
+        speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0),
+                                                        outputs.size(1),
+                                                        -1)
+        outputs = torch.cat([outputs, speaker_embeddings_], dim=-1)
+        return outputs
