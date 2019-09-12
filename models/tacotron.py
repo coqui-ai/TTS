@@ -1,4 +1,5 @@
 # coding: utf-8
+import torch
 from torch import nn
 from TTS.layers.tacotron import Encoder, Decoder, PostCBHG
 from TTS.utils.generic_utils import sequence_mask
@@ -25,28 +26,50 @@ class Tacotron(nn.Module):
         self.r = r
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
+        self.num_speakers = num_speakers
         self.embedding = nn.Embedding(num_chars, 256)
         self.embedding.weight.data.normal_(0, 0.3)
+        decoder_dim = 512 if num_speakers > 1 else 256
+        encoder_dim = 512 if num_speakers > 1 else 256
+        proj_speaker_dim = 80 if num_speakers > 1 else 0
         if num_speakers > 1:
             self.speaker_embedding = nn.Embedding(num_speakers, 256)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
-        self.encoder = Encoder(256)
-        self.decoder = Decoder(256, mel_dim, r, memory_size, attn_win,
+            self.speaker_project_mel = nn.Sequential(nn.Linear(256, proj_speaker_dim), nn.Tanh())
+        self.encoder = Encoder(encoder_dim)
+        self.decoder = Decoder(decoder_dim, mel_dim, r, memory_size, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
                                forward_attn, trans_agent, forward_attn_mask,
-                               location_attn, separate_stopnet)
+                               location_attn, separate_stopnet, proj_speaker_dim)
         self.postnet = PostCBHG(mel_dim)
         self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, linear_dim)
-        
+
+    def __init_states(self):
+        self.speaker_embeddings = None 
+        self.speaker_embeddings_projected = None
+
+    def compute_speaker_embedding(self, speaker_ids):
+        if hasattr(self, "speaker_embedding") and speaker_ids is None:
+            raise RuntimeError(" [!] Model has speaker embedding layer but speaker_id is not provided")
+        if hasattr(self, "speaker_embedding") and speaker_ids is not None:
+            self.speaker_embeddings = self._compute_speaker_embedding(speaker_ids)
+            self.speaker_embeddings_projected = self.speaker_project_mel(self.speaker_embeddings).squeeze(1)
+    
     def forward(self, characters, text_lengths, mel_specs, speaker_ids=None):
         B = characters.size(0)
         mask = sequence_mask(text_lengths).to(characters.device)
         inputs = self.embedding(characters)
+        self.__init_states()
+        self.compute_speaker_embedding(speaker_ids)
+        if self.num_speakers > 1:
+            inputs = self._concat_speaker_embedding(inputs,
+                                                self.speaker_embeddings)
         encoder_outputs = self.encoder(inputs)
-        encoder_outputs = self._add_speaker_embedding(encoder_outputs,
-                                                      speaker_ids)
+        if self.num_speakers > 1:
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs,
+                                                        self.speaker_embeddings)
         mel_outputs, alignments, stop_tokens = self.decoder(
-            encoder_outputs, mel_specs, mask)
+            encoder_outputs, mel_specs, mask, self.speaker_embeddings_projected)
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
@@ -55,25 +78,30 @@ class Tacotron(nn.Module):
     def inference(self, characters, speaker_ids=None):
         B = characters.size(0)
         inputs = self.embedding(characters)
+        self.__init_states()
+        self.compute_speaker_embedding(speaker_ids)
+        if self.num_speakers > 1:
+            inputs = self._concat_speaker_embedding(inputs,
+                                                self.speaker_embeddings)
         encoder_outputs = self.encoder(inputs)
-        encoder_outputs = self._add_speaker_embedding(encoder_outputs,
-                                                      speaker_ids)
+        if self.num_speakers > 1:
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs,
+                                                        self.speaker_embeddings)
         mel_outputs, alignments, stop_tokens = self.decoder.inference(
-            encoder_outputs)
+            encoder_outputs, self.speaker_embeddings_projected)
         mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
         linear_outputs = self.postnet(mel_outputs)
         linear_outputs = self.last_linear(linear_outputs)
         return mel_outputs, linear_outputs, alignments, stop_tokens
 
-    def _add_speaker_embedding(self, encoder_outputs, speaker_ids):
-        if hasattr(self, "speaker_embedding") and speaker_ids is None:
-            raise RuntimeError(" [!] Model has speaker embedding layer but speaker_id is not provided")
-        if hasattr(self, "speaker_embedding") and speaker_ids is not None:
-            speaker_embeddings = self.speaker_embedding(speaker_ids)
+    def _compute_speaker_embedding(self, speaker_ids):
+        speaker_embeddings = self.speaker_embedding(speaker_ids)
+        return speaker_embeddings.unsqueeze_(1)
 
-            speaker_embeddings.unsqueeze_(1)
-            speaker_embeddings = speaker_embeddings.expand(encoder_outputs.size(0),
-                                                           encoder_outputs.size(1),
-                                                           -1)
-            encoder_outputs = encoder_outputs + speaker_embeddings
-        return encoder_outputs
+    def _concat_speaker_embedding(self, outputs, speaker_embeddings):
+        speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0),
+                                                      outputs.size(1),
+                                                      -1)
+        outputs = torch.cat([outputs, speaker_embeddings_], dim=-1)
+        return outputs
+

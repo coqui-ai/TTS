@@ -273,7 +273,7 @@ class Decoder(nn.Module):
     def __init__(self, in_features, memory_dim, r, memory_size, attn_windowing,
                  attn_norm, prenet_type, prenet_dropout, forward_attn,
                  trans_agent, forward_attn_mask, location_attn,
-                 separate_stopnet):
+                 separate_stopnet, speaker_embedding_dim):
         super(Decoder, self).__init__()
         self.r_init = r
         self.r = r
@@ -285,8 +285,9 @@ class Decoder(nn.Module):
         self.separate_stopnet = separate_stopnet
         self.query_dim = 256
         # memory -> |Prenet| -> processed_memory
+        prenet_dim = memory_dim * self.memory_size + speaker_embedding_dim if self.use_memory_queue else memory_dim + speaker_embedding_dim
         self.prenet = Prenet(
-            memory_dim * self.memory_size if self.use_memory_queue else memory_dim,
+            prenet_dim,
             prenet_type,
             prenet_dropout,
             out_features=[256, 128])
@@ -407,7 +408,7 @@ class Decoder(nn.Module):
             # use only the last frame prediction
             self.memory_input = new_memory[:, :self.memory_dim]
 
-    def forward(self, inputs, memory, mask):
+    def forward(self, inputs, memory, mask, speaker_embeddings=None):
         """
         Args:
             inputs: Encoder outputs.
@@ -432,6 +433,8 @@ class Decoder(nn.Module):
             if t > 0:
                 new_memory = memory[t - 1]
                 self._update_memory_input(new_memory)
+            if speaker_embeddings is not None:
+                self.memory_input = torch.cat([self.memory_input, speaker_embeddings], dim=-1)
             output, stop_token, attention = self.decode(inputs, mask)
             outputs += [output]
             attentions += [attention]
@@ -440,13 +443,15 @@ class Decoder(nn.Module):
 
         return self._parse_outputs(outputs, attentions, stop_tokens)
 
-    def inference(self, inputs):
+    def inference(self, inputs, speaker_embeddings=None):
         """
         Args:
-            inputs: Encoder outputs.
+            inputs: encoder outputs.
+            speaker_embeddings: speaker vectors.
 
         Shapes:
             - inputs: batch x time x encoder_out_dim
+            - speaker_embeddings: batch x embed_dim
         """
         outputs = []
         attentions = []
@@ -459,6 +464,8 @@ class Decoder(nn.Module):
             if t > 0:
                 new_memory = outputs[-1]
                 self._update_memory_input(new_memory)
+            if speaker_embeddings is not None:
+                self.memory_input = torch.cat([self.memory_input, speaker_embeddings], dim=-1)
             output, stop_token, attention = self.decode(inputs, None)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [output]
