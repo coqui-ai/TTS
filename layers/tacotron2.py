@@ -243,6 +243,8 @@ class Decoder(nn.Module):
 
     def inference(self, inputs):
         memory = self.get_go_frame(inputs)
+        memory = self._update_memory(memory)
+
         self._init_states(inputs, mask=None)
 
         self.attention.init_win_idx()
