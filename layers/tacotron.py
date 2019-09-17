@@ -406,7 +406,7 @@ class Decoder(nn.Module):
                 self.memory_input = new_memory[:, :self.memory_size * self.memory_dim]
         else:
             # use only the last frame prediction
-            self.memory_input = new_memory[:, :self.memory_dim]
+            self.memory_input = new_memory[:, self.memory_dim * (self.r - 1):]
 
     def forward(self, inputs, memory, mask, speaker_embeddings=None):
         """
