@@ -62,7 +62,7 @@ def setup_loader(ap, is_val=False, verbose=False):
         dataset = MyDataset(
             c.r,
             c.text_cleaner,
-            meta_data=meta_data_eval if is_val else meta_data_train[:64],
+            meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             batch_group_size=0 if is_val else c.batch_group_size * c.batch_size,
             min_seq_len=c.min_seq_len,
