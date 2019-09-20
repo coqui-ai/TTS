@@ -56,14 +56,14 @@ class TacotronGST(Tacotron):
         self._init_states()
         self.compute_speaker_embedding(speaker_ids)
         if self.num_speakers > 1:
-            inputs = self._concat_speaker_embedding(inputs,
+            inputs = self._add_speaker_embedding(inputs,
                                                 self.speaker_embeddings)
         encoder_outputs = self.encoder(inputs)
         if self.num_speakers > 1:
-            encoder_outputs = self._concat_speaker_embedding(encoder_outputs,
+            encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                         self.speaker_embeddings)
         gst_outputs = self.gst(mel_specs)
-        encoder_outputs = self._concat_speaker_embedding(
+        encoder_outputs = self._add_speaker_embedding(
             encoder_outputs, gst_outputs)
         mel_outputs, alignments, stop_tokens = self.decoder(
             encoder_outputs, mel_specs, mask, self.speaker_embeddings_projected)
@@ -78,16 +78,16 @@ class TacotronGST(Tacotron):
         self._init_states()
         self.compute_speaker_embedding(speaker_ids)
         if self.num_speakers > 1:
-            inputs = self._concat_speaker_embedding(inputs,
+            inputs = self._add_speaker_embedding(inputs,
                                                 self.speaker_embeddings)
         encoder_outputs = self.encoder(inputs)
         if self.num_speakers > 1:
-            encoder_outputs = self._concat_speaker_embedding(encoder_outputs,
+            encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                         self.speaker_embeddings)
         if style_mel is not None:
             gst_outputs = self.gst(style_mel)
             gst_outputs = gst_outputs.expand(-1, encoder_outputs.size(1), -1)
-            encoder_outputs = self._concat_speaker_embedding(encoder_outputs,
+            encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                              gst_outputs)
         mel_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs, self.speaker_embeddings_projected)
