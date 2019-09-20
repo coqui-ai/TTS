@@ -78,6 +78,7 @@ Some of the open-sourced datasets that we successfully applied TTS, are linked b
 - [TWEB](https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)
 - [M-AI-Labs](http://www.caito.de/2019/01/the-m-ailabs-speech-dataset/)
 - [LibriTTS](https://openslr.org/60/)
+- [Spanish](https://drive.google.com/file/d/1Sm_zyBo67XHkiFhcRSQ4YaHPYM0slO_e/view?usp=sharing) - thx! @carlfm01
 
 ## Training and Fine-tuning LJ-Speech
 Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below. 
