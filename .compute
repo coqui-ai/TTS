@@ -13,4 +13,5 @@ python3 setup.py develop
 # python3 distribute.py --config_path config.json  --data_path /data/ro/shared/data/keithito/LJSpeech-1.1/
 # cp -R ${USER_DIR}/Mozilla_22050 ../tmp/
 # python3 distribute.py --config_path config_tacotron_gst.json  --data_path ../tmp/Mozilla_22050/
+python3 distribute.py --config_path config.json  --data_path /data/rw/home/LibriTTS/train-clean-360
 while true; do sleep 1000000; done

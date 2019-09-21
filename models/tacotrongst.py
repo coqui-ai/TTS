@@ -40,7 +40,7 @@ class TacotronGST(Tacotron):
                         location_attn,
                         separate_stopnet)
         gst_embedding_dim = 256
-        decoder_dim = 512 + gst_embedding_dim if num_speakers > 1 else 256 + gst_embedding_dim
+        decoder_dim = 512 if num_speakers > 1 else 256 
         proj_speaker_dim = 80 if num_speakers > 1 else 0
         self.decoder = Decoder(decoder_dim, mel_dim, r, memory_size, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
