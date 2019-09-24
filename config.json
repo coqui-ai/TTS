@@ -79,6 +79,7 @@
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
     "text_cleaner": "phoneme_cleaners",
     "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
-    "style_wav_for_test": null          // path to style wav file to be used in TacotronGST inference.
+    "style_wav_for_test": null,          // path to style wav file to be used in TacotronGST inference.
+    "use_gst": false        // TACOTRON ONLY: use global style tokens
 }
 
