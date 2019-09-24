@@ -253,13 +253,14 @@ def setup_model(num_chars, num_speakers, c):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('TTS.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
-    if c.model.lower() in ["tacotron", "tacotrongst"]:
+    if c.model.lower() in "tacotron":
         model = MyModel(
             num_chars=num_chars,
             num_speakers=num_speakers,
             r=c.r,
             linear_dim=1025,
             mel_dim=80,
+            gst=c.use_gst,
             memory_size=c.memory_size,
             attn_win=c.windowing,
             attn_norm=c.attention_norm,
