@@ -255,7 +255,6 @@ class Decoder(nn.Module):
 
         outputs, stop_tokens, alignments, t = [], [], [], 0
         stop_flags = [True, False, False]
-        stop_count = 0
         while True:
             memory = self.prenet(memory)
             mel_output, stop_token, alignment = self.decode(memory)
@@ -269,9 +268,7 @@ class Decoder(nn.Module):
                                               and t > inputs.shape[1])
             stop_flags[2] = t > inputs.shape[1] * 2
             if all(stop_flags):
-                stop_count += 1
-                if stop_count > 20:
-                    break
+                break
             elif len(outputs) == self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")
                 break
@@ -298,7 +295,6 @@ class Decoder(nn.Module):
         self.attention.init_states(inputs)
         outputs, stop_tokens, alignments, t = [], [], [], 0
         stop_flags = [True, False, False]
-        stop_count = 0
         while True:
             memory = self.prenet(self.memory_truncated)
             mel_output, stop_token, alignment = self.decode(memory)
@@ -312,9 +308,7 @@ class Decoder(nn.Module):
                                               and t > inputs.shape[1])
             stop_flags[2] = t > inputs.shape[1] * 2
             if all(stop_flags):
-                stop_count += 1
-                if stop_count > 20:
-                    break
+                break
             elif len(outputs) == self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")
                 break
