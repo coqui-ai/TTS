@@ -67,7 +67,8 @@ class DecoderTests(unittest.TestCase):
         assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
         assert stop_tokens.shape[0] == 4
 
-    def test_in_out_multispeaker(self):
+    @staticmethod
+    def test_in_out_multispeaker():
         layer = Decoder(
             in_features=256,
             memory_dim=80,
