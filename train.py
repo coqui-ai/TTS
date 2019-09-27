@@ -20,7 +20,8 @@ from TTS.utils.generic_utils import (NoamLR, check_update, count_parameters,
                                      load_config, remove_experiment_folder,
                                      save_best_model, save_checkpoint, weight_decay,
                                      set_init_dict, copy_config_file, setup_model,
-                                     split_dataset, gradual_training_scheduler, KeepAverage)
+                                     split_dataset, gradual_training_scheduler, KeepAverage,
+                                     set_weight_decay)
 from TTS.utils.logger import Logger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
@@ -186,7 +187,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             loss += stop_loss
 
         loss.backward()
-        optimizer, current_lr = weight_decay(optimizer, c.wd)
+        optimizer, current_lr = weight_decay(optimizer)
         grad_norm, _ = check_update(model, c.grad_clip)
         optimizer.step()
 
@@ -197,7 +198,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         # backpass and check the grad norm for stop loss
         if c.separate_stopnet:
             stop_loss.backward()
-            optimizer_st, _ = weight_decay(optimizer_st, c.wd)
+            optimizer_st, _ = weight_decay(optimizer_st)
             grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0)
             optimizer_st.step()
         else:
@@ -511,7 +512,8 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     print(" | > Num output units : {}".format(ap.num_freq), flush=True)
 
-    optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0)
+    params = set_weight_decay(model, c.wd)
+    optimizer = RAdam(params, lr=c.lr, weight_decay=0)
     if c.stopnet and c.separate_stopnet:
         optimizer_st = RAdam(
             model.decoder.stopnet.parameters(), lr=c.lr, weight_decay=0)
