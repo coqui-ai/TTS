@@ -193,7 +193,6 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v"}):
         if not param.requires_grad:
             continue
         if len(param.shape) == 1 or name in skip_list:
-            print(name)
             no_decay.append(param)
         else:
             decay.append(param)
