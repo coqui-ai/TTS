@@ -18,7 +18,7 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (NoamLR, check_update, count_parameters,
                                      create_experiment_folder, get_git_branch,
                                      load_config, remove_experiment_folder,
-                                     save_best_model, save_checkpoint, weight_decay,
+                                     save_best_model, save_checkpoint, adam_weight_decay,
                                      set_init_dict, copy_config_file, setup_model,
                                      split_dataset, gradual_training_scheduler, KeepAverage,
                                      set_weight_decay)
@@ -187,7 +187,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
             loss += stop_loss
 
         loss.backward()
-        optimizer, current_lr = weight_decay(optimizer)
+        optimizer, current_lr = adam_weight_decay(optimizer)
         grad_norm, _ = check_update(model, c.grad_clip)
         optimizer.step()
 
@@ -198,7 +198,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         # backpass and check the grad norm for stop loss
         if c.separate_stopnet:
             stop_loss.backward()
-            optimizer_st, _ = weight_decay(optimizer_st)
+            optimizer_st, _ = adam_weight_decay(optimizer_st)
             grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0)
             optimizer_st.step()
         else:
@@ -526,7 +526,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         criterion = nn.L1Loss() if c.model in [
             "Tacotron", "TacotronGST"] else nn.MSELoss()
-    criterion_st = nn.BCEWithLogitsLoss() if c.stopnet else None
+    criterion_st = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(20.0)) if c.stopnet else None
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
