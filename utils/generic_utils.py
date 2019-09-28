@@ -169,7 +169,7 @@ def lr_decay(init_lr, global_step, warmup_steps):
     return lr
 
 
-def weight_decay(optimizer):
+def adam_weight_decay(optimizer):
     """
     Custom weight decay operation, not effecting grad values.
     """
@@ -181,7 +181,7 @@ def weight_decay(optimizer):
                                         param.data)
     return optimizer, current_lr
 
-
+# pylint: disable=dangerous-default-value
 def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn", "lstm", "gru", "embedding"}):
     """
     Skip biases, BatchNorm parameters, rnns.
@@ -316,7 +316,7 @@ def split_dataset(items):
     is_multi_speaker = False
     speakers = [item[-1] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
-    eval_split_size = 500 if 500 < len(items) * 0.01 else int(
+    eval_split_size = 500 if len(items) * 0.01 > 500 else int(
         len(items) * 0.01)
     np.random.seed(0)
     np.random.shuffle(items)
