@@ -28,7 +28,7 @@ from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
 from TTS.utils.synthesis import synthesis
 from TTS.utils.text.symbols import phonemes, symbols
 from TTS.utils.visual import plot_alignment, plot_spectrogram
-from TTS.datasets.preprocess import get_preprocessor_by_name
+from TTS.datasets.preprocess import load_meta_data
 from TTS.utils.radam import RAdam
 from TTS.utils.measures import alignment_diagonal_score
 
@@ -46,17 +46,7 @@ def setup_loader(ap, is_val=False, verbose=False):
     global meta_data_train
     global meta_data_eval
     if "meta_data_train" not in globals():
-        if c.meta_file_train is not None:
-            meta_data_train = get_preprocessor_by_name(
-                c.dataset)(c.data_path, c.meta_file_train)
-        else:
-            meta_data_train = get_preprocessor_by_name(c.dataset)(c.data_path)
-    if "meta_data_eval" not in globals() and c.run_eval:
-        if c.meta_file_val is not None:
-            meta_data_eval = get_preprocessor_by_name(
-                c.dataset)(c.data_path, c.meta_file_val)
-        else:
-            meta_data_eval, meta_data_train = split_dataset(meta_data_train)
+        meta_data_train, meta_data_eval = load_meta_data(c.datasets)
     if is_val and not c.run_eval:
         loader = None
     else:
