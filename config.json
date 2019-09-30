@@ -65,10 +65,6 @@
     "run_eval": true,
     "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
-    "data_path": "/home/erogol/Data/LJSpeech-1.1/",  // DATASET-RELATED: can overwritten from command argument
-    "meta_file_train": "metadata_train.csv",      // DATASET-RELATED: metafile for training dataloader.
-    "meta_file_val": "metadata_val.csv",    // DATASET-RELATED: metafile for evaluation dataloader.
-    "dataset": "ljspeech",      // DATASET-RELATED: one of TTS.dataset.preprocessors depending on your target dataset. Use "tts_cache" for pre-computed dataset by extract_features.py
     "min_seq_len": 6,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
     "output_path": "../keep/",      // DATASET-RELATED: output path for all training outputs.
@@ -80,6 +76,17 @@
     "text_cleaner": "phoneme_cleaners",
     "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
     "style_wav_for_test": null,          // path to style wav file to be used in TacotronGST inference.
-    "use_gst": false        // TACOTRON ONLY: use global style tokens
+    "use_gst": false,       // TACOTRON ONLY: use global style tokens
+
+    "datasets":   // List of datasets. They all merged and they get different speaker_ids.
+        [
+            {
+                "name": "ljspeech",
+                "path": "/home/erogol/Data/LJSpeech-1.1/",
+                "meta_file_train": "metadata_train.csv",
+                "meta_file_val": "metadata_val.csv"
+            }
+        ]
+
 }
 
