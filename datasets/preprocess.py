@@ -17,7 +17,7 @@ def load_meta_data(datasets):
 
         meta_data_train = preprocessor(root_path, meta_file_train)
         if meta_file_val is None:
-            meta_data_train, meta_data_eval = split_dataset(meta_data_train)
+            meta_data_eval, meta_data_train = split_dataset(meta_data_train)
         else:
             meta_data_eval = preprocessor(root_path, meta_file_val)
         meta_data_train_all += meta_data_train
