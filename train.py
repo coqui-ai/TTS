@@ -204,7 +204,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                 "GradNormST:{:.5f}  AvgTextLen:{:.1f}  AvgSpecLen:{:.1f}  StepTime:{:.2f}  "
                 "LoaderTime:{:.2f}  LR:{:.6f}".format(
                     num_iter, batch_n_iter, global_step,
-                    postnet_loss.item(), decoder_loss.item(), stop_loss.item(), align_score.item(),
+                    postnet_loss.item(), decoder_loss.item(), stop_loss.item(), align_score,
                     grad_norm, grad_norm_st, avg_text_length, avg_spec_length, step_time,
                     loader_time, current_lr),
                 flush=True)
@@ -404,7 +404,7 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                             postnet_loss.item(), keep_avg['avg_postnet_loss'],
                             decoder_loss.item(), keep_avg['avg_decoder_loss'],
                             stop_loss.item(), keep_avg['avg_stop_loss'],
-                            align_score.item(), keep_avg['avg_align_score']),
+                            align_score, keep_avg['avg_align_score']),
                         flush=True)
 
             if args.rank == 0:

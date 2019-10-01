@@ -8,4 +8,4 @@ def alignment_diagonal_score(alignments):
     Shape:
         alignments : batch x decoder_steps x encoder_steps
     """
-    return alignments.max(dim=1)[0].mean(dim=1).mean(dim=0)
+    return alignments.max(dim=1)[0].mean(dim=1).mean(dim=0).item()
