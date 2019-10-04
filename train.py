@@ -43,10 +43,6 @@ print(" > Number of GPUs: ", num_gpus)
 
 
 def setup_loader(ap, is_val=False, verbose=False):
-    global meta_data_train
-    global meta_data_eval
-    if "meta_data_train" not in globals():
-        meta_data_train, meta_data_eval = load_meta_data(c.datasets)
     if is_val and not c.run_eval:
         loader = None
     else:
@@ -470,6 +466,7 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
 
 # FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
+    global meta_data_train, meta_data_eval
     # Audio processor
     ap = AudioProcessor(**c.audio)
 
@@ -479,8 +476,12 @@ def main(args):  # pylint: disable=redefined-outer-name
                          c.distributed["backend"], c.distributed["url"])
     num_chars = len(phonemes) if c.use_phonemes else len(symbols)
 
+    # load data instances
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
+
+    # parse speakers
     if c.use_speaker_embedding:
-        speakers = get_speakers(c.data_path, c.meta_file_train, c.dataset)
+        speakers = get_speakers(meta_data_train)
         if args.restore_path:
             prev_out_path = os.path.dirname(args.restore_path)
             speaker_mapping = load_speaker_mapping(prev_out_path)
