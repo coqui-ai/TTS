@@ -154,28 +154,23 @@ class Decoder(nn.Module):
 
     def get_go_frame(self, inputs):
         B = inputs.size(0)
-        memory = torch.zeros(B,
-                             self.mel_channels * self.r,
-                             device=inputs.device)
+        memory = torch.zeros(1, device=inputs.device).repeat(B,
+                             self.mel_channels * self.r)
         return memory
 
     def _init_states(self, inputs, mask, keep_states=False):
         B = inputs.size(0)
         # T = inputs.size(1)
         if not keep_states:
-            self.query = torch.zeros(B, self.query_dim, device=inputs.device)
-            self.attention_rnn_cell_state = torch.zeros(B,
-                                                        self.query_dim,
-                                                        device=inputs.device)
-            self.decoder_hidden = torch.zeros(B,
-                                              self.decoder_rnn_dim,
-                                              device=inputs.device)
-            self.decoder_cell = torch.zeros(B,
-                                            self.decoder_rnn_dim,
-                                            device=inputs.device)
-            self.context = torch.zeros(B,
-                                       self.encoder_embedding_dim,
-                                       device=inputs.device)
+            self.query = torch.zeros(1, device=inputs.device).repeat(B, self.query_dim)
+            self.attention_rnn_cell_state = torch.zeros(1, device=inputs.device).repeat(B,
+                                                        self.query_dim)
+            self.decoder_hidden = torch.zeros(1, device=inputs.device).repeat(B,
+                                              self.decoder_rnn_dim)
+            self.decoder_cell = torch.zeros(1, device=inputs.device).repeat(B,
+                                            self.decoder_rnn_dim)
+            self.context = torch.zeros(1, device=inputs.device).repeat(B,
+                                       self.encoder_embedding_dim)
         self.inputs = inputs
         self.processed_inputs = self.attention.inputs_layer(inputs)
         self.mask = mask

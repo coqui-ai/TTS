@@ -340,13 +340,13 @@ class Decoder(nn.Module):
         T = inputs.size(1)
         # go frame as zeros matrix
         if self.use_memory_queue:
-            self.memory_input = torch.zeros(B, self.memory_dim * self.memory_size, device=inputs.device)
+            self.memory_input = torch.zeros(1, device=inputs.device).repeat(B, self.memory_dim * self.memory_size)
         else:
-            self.memory_input = torch.zeros(B, self.memory_dim, device=inputs.device)
+            self.memory_input = torch.zeros(1, device=inputs.device).repeat(B, self.memory_dim)
         # decoder states
-        self.attention_rnn_hidden = torch.zeros(B, 256, device=inputs.device)
+        self.attention_rnn_hidden = torch.zeros(1, device=inputs.device).repeat(B, 256)
         self.decoder_rnn_hiddens = [
-            torch.zeros(B, 256, device=inputs.device)
+            torch.zeros(1, device=inputs.device).repeat(B, 256)
             for idx in range(len(self.decoder_rnns))
         ]
         self.context_vec = inputs.data.new(B, self.in_features).zero_()
