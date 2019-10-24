@@ -24,6 +24,7 @@ class AudioProcessor(object):
                  clip_norm=True,
                  griffin_lim_iters=None,
                  do_trim_silence=False,
+                 sound_norm=False,
                  **_):
 
         print(" > Setting up Audio Processor...")
@@ -45,6 +46,7 @@ class AudioProcessor(object):
         self.max_norm = 1.0 if max_norm is None else float(max_norm)
         self.clip_norm = clip_norm
         self.do_trim_silence = do_trim_silence
+        self.sound_norm = sound_norm
         self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
         members = vars(self)
         for key, value in members.items():
@@ -210,11 +212,11 @@ class AudioProcessor(object):
         return len(wav)
 
     def trim_silence(self, wav):
-        """ Trim silent parts with a threshold and 0.1 sec margin """
-        margin = int(self.sample_rate * 0.1)
+        """ Trim silent parts with a threshold and 0.01 sec margin """
+        margin = int(self.sample_rate * 0.01)
         wav = wav[margin:-margin]
         return librosa.effects.trim(
-            wav, top_db=40, frame_length=1024, hop_length=256)[0]
+            wav, top_db=60, frame_length=self.win_length, hop_length=self.hop_length)[0]
 
     @staticmethod
     def mulaw_encode(wav, qc):
@@ -243,6 +245,8 @@ class AudioProcessor(object):
             except ValueError:
                 print(f' [!] File cannot be trimmed for silence - {filename}')
         assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
+        if self.sound_norm:
+            x = x / x.max() * 0.9
         return x
 
     @staticmethod

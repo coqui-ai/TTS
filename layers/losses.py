@@ -1,3 +1,5 @@
+import numpy as np
+import torch
 from torch import nn
 from torch.nn import functional
 from TTS.utils.generic_utils import sequence_mask
@@ -52,4 +54,19 @@ class MSELossMasked(nn.Module):
         loss = functional.mse_loss(
             x * mask, target * mask, reduction="sum")
         loss = loss / mask.sum()
+        return loss
+
+
+class AttentionEntropyLoss(nn.Module):
+    # pylint: disable=R0201
+    def forward(self, align):
+        """
+        Forces attention to be more decisive by penalizing
+        soft attention weights
+
+        TODO: arguments
+        TODO: unit_test
+        """
+        entropy = torch.distributions.Categorical(probs=align).entropy()
+        loss = (entropy / np.log(align.shape[1])).mean()
         return loss

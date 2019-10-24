@@ -54,12 +54,42 @@ class DecoderTests(unittest.TestCase):
             trans_agent=True,
             forward_attn_mask=True,
             location_attn=True,
-            separate_stopnet=True)
+            separate_stopnet=True,
+            speaker_embedding_dim=0)
         dummy_input = T.rand(4, 8, 256)
         dummy_memory = T.rand(4, 2, 80)
 
         output, alignment, stop_tokens = layer(
             dummy_input, dummy_memory, mask=None)
+
+        assert output.shape[0] == 4
+        assert output.shape[1] == 1, "size not {}".format(output.shape[1])
+        assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
+        assert stop_tokens.shape[0] == 4
+
+    @staticmethod
+    def test_in_out_multispeaker():
+        layer = Decoder(
+            in_features=256,
+            memory_dim=80,
+            r=2,
+            memory_size=4,
+            attn_windowing=False,
+            attn_norm="sigmoid",
+            prenet_type='original',
+            prenet_dropout=True,
+            forward_attn=True,
+            trans_agent=True,
+            forward_attn_mask=True,
+            location_attn=True,
+            separate_stopnet=True,
+            speaker_embedding_dim=80)
+        dummy_input = T.rand(4, 8, 256)
+        dummy_memory = T.rand(4, 2, 80)
+        dummy_embed = T.rand(4, 80)
+
+        output, alignment, stop_tokens = layer(
+            dummy_input, dummy_memory, mask=None, speaker_embeddings=dummy_embed)
 
         assert output.shape[0] == 4
         assert output.shape[1] == 1, "size not {}".format(output.shape[1])
