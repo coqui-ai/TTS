@@ -58,7 +58,7 @@ class MSELossMasked(nn.Module):
 
 
 class AttentionEntropyLoss(nn.Module):
-    def forward(self, align):
+    def forward(self, align):   #pylint disable=no-self-use
         """
         Forces attention to be more decisive by penalizing
         soft attention weights
