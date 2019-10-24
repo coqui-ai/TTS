@@ -61,7 +61,7 @@ class AttentionEntropyLoss(nn.Module):
     def forward(self, align):
         """
         Forces attention to be more decisive by penalizing
-        soft attention weights 
+        soft attention weights
 
         TODO: arguments
         TODO: unit_test
