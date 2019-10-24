@@ -2,6 +2,27 @@ import os
 from glob import glob
 import re
 import sys
+from TTS.utils.generic_utils import split_dataset
+
+
+def load_meta_data(datasets):
+    meta_data_train_all = []
+    meta_data_eval_all = []
+    for dataset in datasets:
+        name = dataset['name']
+        root_path = dataset['path']
+        meta_file_train = dataset['meta_file_train']
+        meta_file_val = dataset['meta_file_val']
+        preprocessor = get_preprocessor_by_name(name)
+
+        meta_data_train = preprocessor(root_path, meta_file_train)
+        if meta_file_val is None:
+            meta_data_eval, meta_data_train = split_dataset(meta_data_train)
+        else:
+            meta_data_eval = preprocessor(root_path, meta_file_val)
+        meta_data_train_all += meta_data_train
+        meta_data_eval_all += meta_data_eval
+    return meta_data_train_all, meta_data_eval_all
 
 
 def get_preprocessor_by_name(name):

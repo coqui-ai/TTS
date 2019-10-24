@@ -31,7 +31,8 @@ def load_config(config_path):
 def get_git_branch():
     try:
         out = subprocess.check_output(["git", "branch"]).decode("utf8")
-        current = next(line for line in out.split("\n") if line.startswith("*"))
+        current = next(line for line in out.split("\n")
+                       if line.startswith("*"))
         current.replace("* ", "")
     except subprocess.CalledProcessError:
         current = "inside_docker"
@@ -47,8 +48,8 @@ def get_commit_hash():
     #     raise RuntimeError(
     #         " !! Commit before training to get the commit hash.")
     try:
-        commit = subprocess.check_output(['git', 'rev-parse', '--short',
-                                          'HEAD']).decode().strip()
+        commit = subprocess.check_output(
+            ['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
     # Not copying .git folder into docker container
     except subprocess.CalledProcessError:
         commit = "0000000"
@@ -168,15 +169,41 @@ def lr_decay(init_lr, global_step, warmup_steps):
     return lr
 
 
-def weight_decay(optimizer, wd):
+def adam_weight_decay(optimizer):
     """
     Custom weight decay operation, not effecting grad values.
     """
     for group in optimizer.param_groups:
         for param in group['params']:
             current_lr = group['lr']
-            param.data = param.data.add(-wd * group['lr'], param.data)
+            weight_decay = group['weight_decay']
+            param.data = param.data.add(-weight_decay * group['lr'],
+                                        param.data)
     return optimizer, current_lr
+
+# pylint: disable=dangerous-default-value
+def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn", "lstm", "gru", "embedding"}):
+    """
+    Skip biases, BatchNorm parameters, rnns.
+    and attention projection layer v
+    """
+    decay = []
+    no_decay = []
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+
+        if len(param.shape) == 1 or any([skip_name in name for skip_name in skip_list]):
+            no_decay.append(param)
+        else:
+            decay.append(param)
+    return [{
+        'params': no_decay,
+        'weight_decay': 0.
+    }, {
+        'params': decay,
+        'weight_decay': weight_decay
+    }]
 
 
 class NoamLR(torch.optim.lr_scheduler._LRScheduler):
@@ -187,8 +214,8 @@ class NoamLR(torch.optim.lr_scheduler._LRScheduler):
     def get_lr(self):
         step = max(self.last_epoch, 1)
         return [
-            base_lr * self.warmup_steps**0.5 * min(
-                step * self.warmup_steps**-1.5, step**-0.5)
+            base_lr * self.warmup_steps**0.5 *
+            min(step * self.warmup_steps**-1.5, step**-0.5)
             for base_lr in self.base_lrs
         ]
 
@@ -243,8 +270,8 @@ def set_init_dict(model_dict, checkpoint, c):
             }
     # 4. overwrite entries in the existing state dict
     model_dict.update(pretrained_dict)
-    print(" | > {} / {} layers are restored.".format(
-        len(pretrained_dict), len(model_dict)))
+    print(" | > {} / {} layers are restored.".format(len(pretrained_dict),
+                                                     len(model_dict)))
     return model_dict
 
 
@@ -252,37 +279,36 @@ def setup_model(num_chars, num_speakers, c):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('TTS.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
-    if c.model.lower() in ["tacotron", "tacotrongst"]:
-        model = MyModel(
-            num_chars=num_chars,
-            num_speakers=num_speakers,
-            r=c.r,
-            linear_dim=1025,
-            mel_dim=80,
-            memory_size=c.memory_size,
-            attn_win=c.windowing,
-            attn_norm=c.attention_norm,
-            prenet_type=c.prenet_type,
-            prenet_dropout=c.prenet_dropout,
-            forward_attn=c.use_forward_attn,
-            trans_agent=c.transition_agent,
-            forward_attn_mask=c.forward_attn_mask,
-            location_attn=c.location_attn,
-            separate_stopnet=c.separate_stopnet)
+    if c.model.lower() in "tacotron":
+        model = MyModel(num_chars=num_chars,
+                        num_speakers=num_speakers,
+                        r=c.r,
+                        linear_dim=1025,
+                        mel_dim=80,
+                        gst=c.use_gst,
+                        memory_size=c.memory_size,
+                        attn_win=c.windowing,
+                        attn_norm=c.attention_norm,
+                        prenet_type=c.prenet_type,
+                        prenet_dropout=c.prenet_dropout,
+                        forward_attn=c.use_forward_attn,
+                        trans_agent=c.transition_agent,
+                        forward_attn_mask=c.forward_attn_mask,
+                        location_attn=c.location_attn,
+                        separate_stopnet=c.separate_stopnet)
     elif c.model.lower() == "tacotron2":
-        model = MyModel(
-            num_chars=num_chars,
-            num_speakers=num_speakers,
-            r=c.r,
-            attn_win=c.windowing,
-            attn_norm=c.attention_norm,
-            prenet_type=c.prenet_type,
-            prenet_dropout=c.prenet_dropout,
-            forward_attn=c.use_forward_attn,
-            trans_agent=c.transition_agent,
-            forward_attn_mask=c.forward_attn_mask,
-            location_attn=c.location_attn,
-            separate_stopnet=c.separate_stopnet)
+        model = MyModel(num_chars=num_chars,
+                        num_speakers=num_speakers,
+                        r=c.r,
+                        attn_win=c.windowing,
+                        attn_norm=c.attention_norm,
+                        prenet_type=c.prenet_type,
+                        prenet_dropout=c.prenet_dropout,
+                        forward_attn=c.use_forward_attn,
+                        trans_agent=c.transition_agent,
+                        forward_attn_mask=c.forward_attn_mask,
+                        location_attn=c.location_attn,
+                        separate_stopnet=c.separate_stopnet)
     return model
 
 
@@ -290,7 +316,8 @@ def split_dataset(items):
     is_multi_speaker = False
     speakers = [item[-1] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
-    eval_split_size = 500 if 500 < len(items) * 0.01 else int(len(items) * 0.01)
+    eval_split_size = 500 if len(items) * 0.01 > 500 else int(
+        len(items) * 0.01)
     np.random.seed(0)
     np.random.shuffle(items)
     if is_multi_speaker:
@@ -298,7 +325,7 @@ def split_dataset(items):
         # most stupid code ever -- Fix it !
         while len(items_eval) < eval_split_size:
             speakers = [item[-1] for item in items]
-            speaker_counter = Counter(speakers) 
+            speaker_counter = Counter(speakers)
             item_idx = np.random.randint(0, len(items))
             if speaker_counter[items[item_idx][-1]] > 1:
                 items_eval.append(items[item_idx])
@@ -314,3 +341,34 @@ def gradual_training_scheduler(global_step, config):
         if global_step >= values[0]:
             new_values = values
     return new_values[1], new_values[2]
+
+
+class KeepAverage():
+    def __init__(self):
+        self.avg_values = {}
+        self.iters = {}
+
+    def __getitem__(self, key):
+        return self.avg_values[key]
+
+    def add_value(self, name, init_val=0, init_iter=0):
+        self.avg_values[name] = init_val
+        self.iters[name] = init_iter
+
+    def update_value(self, name, value, weighted_avg=False):
+        if weighted_avg:
+            self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
+            self.iters[name] += 1
+        else:
+            self.avg_values[name] = self.avg_values[name] * \
+                self.iters[name] + value
+            self.iters[name] += 1
+            self.avg_values[name] /= self.iters[name]
+
+    def add_values(self, name_dict):
+        for key, value in name_dict.items():
+            self.add_value(key, init_val=value)
+
+    def update_values(self, value_dict):
+        for key, value in value_dict.items():
+            self.update_value(key, value)

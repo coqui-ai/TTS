@@ -25,9 +25,7 @@ def save_speaker_mapping(out_path, speaker_mapping):
         json.dump(speaker_mapping, f, indent=4)
 
 
-def get_speakers(data_root, meta_file, dataset_type):
+def get_speakers(items):
     """Returns a sorted, unique list of speakers in a given dataset."""
-    preprocessor = get_preprocessor_by_name(dataset_type)
-    items = preprocessor(data_root, meta_file)
     speakers = {e[2] for e in items}
     return sorted(speakers)
