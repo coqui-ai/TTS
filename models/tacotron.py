@@ -1,5 +1,6 @@
 # coding: utf-8
 import torch
+import copy
 from torch import nn
 from TTS.layers.tacotron import Encoder, Decoder, PostCBHG
 from TTS.utils.generic_utils import sequence_mask
@@ -11,8 +12,8 @@ class Tacotron(nn.Module):
                  num_chars,
                  num_speakers,
                  r=5,
-                 linear_dim=1025,
-                 mel_dim=80,
+                 postnet_output_dim=1025,
+                 decoder_output_dim=80,
                  memory_size=5,
                  attn_win=False,
                  gst=False,
@@ -23,28 +24,33 @@ class Tacotron(nn.Module):
                  trans_agent=False,
                  forward_attn_mask=False,
                  location_attn=True,
-                 separate_stopnet=True):
+                 separate_stopnet=True,
+                 bidirectional_decoder=False):
         super(Tacotron, self).__init__()
         self.r = r
-        self.mel_dim = mel_dim
-        self.linear_dim = linear_dim
+        self.decoder_output_dim = decoder_output_dim
+        self.postnet_output_dim = postnet_output_dim
         self.gst = gst
         self.num_speakers = num_speakers
-        self.embedding = nn.Embedding(num_chars, 256)
-        self.embedding.weight.data.normal_(0, 0.3)
+        self.bidirectional_decoder = bidirectional_decoder
         decoder_dim = 512 if num_speakers > 1 else 256
         encoder_dim = 512 if num_speakers > 1 else 256
         proj_speaker_dim = 80 if num_speakers > 1 else 0
+        # embedding layer
+        self.embedding = nn.Embedding(num_chars, 256)
+        self.embedding.weight.data.normal_(0, 0.3)
         # boilerplate model
         self.encoder = Encoder(encoder_dim)
-        self.decoder = Decoder(decoder_dim, mel_dim, r, memory_size, attn_win,
+        self.decoder = Decoder(decoder_dim, decoder_output_dim, r, memory_size, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
                                forward_attn, trans_agent, forward_attn_mask,
                                location_attn, separate_stopnet,
                                proj_speaker_dim)
-        self.postnet = PostCBHG(mel_dim)
+        if self.bidirectional_decoder:
+            self.decoder_backward = copy.deepcopy(self.decoder)
+        self.postnet = PostCBHG(decoder_output_dim)
         self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2,
-                                     linear_dim)
+                                     postnet_output_dim)
         # speaker embedding layers
         if num_speakers > 1:
             self.speaker_embedding = nn.Embedding(num_speakers, 256)
@@ -82,27 +88,48 @@ class Tacotron(nn.Module):
         return inputs
 
     def forward(self, characters, text_lengths, mel_specs, speaker_ids=None):
+        """
+        Shapes:
+            - characters: B x T_in
+            - text_lengths: B
+            - mel_specs: B x T_out x D
+            - speaker_ids: B x 1
+        """
+        self._init_states()
         B = characters.size(0)
         mask = sequence_mask(text_lengths).to(characters.device)
+        # B x T_in x embed_dim
         inputs = self.embedding(characters)
-        self._init_states()
+        # B x speaker_embed_dim
         self.compute_speaker_embedding(speaker_ids)
         if self.num_speakers > 1:
+            # B x T_in x embed_dim + speaker_embed_dim
             inputs = self._concat_speaker_embedding(inputs,
                                                     self.speaker_embeddings)
+        # B x T_in x encoder_dim
         encoder_outputs = self.encoder(inputs)
         if self.gst:
+            # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, mel_specs)
         if self.num_speakers > 1:
             encoder_outputs = self._concat_speaker_embedding(
                 encoder_outputs, self.speaker_embeddings)
-        mel_outputs, alignments, stop_tokens = self.decoder(
+        # decoder_outputs: B x decoder_dim x T_out
+        # alignments: B x T_in x encoder_dim
+        # stop_tokens: B x T_in
+        decoder_outputs, alignments, stop_tokens = self.decoder(
             encoder_outputs, mel_specs, mask,
             self.speaker_embeddings_projected)
-        mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
-        linear_outputs = self.postnet(mel_outputs)
-        linear_outputs = self.last_linear(linear_outputs)
-        return mel_outputs, linear_outputs, alignments, stop_tokens
+        # B x T_out x decoder_dim
+        postnet_outputs = self.postnet(decoder_outputs)
+        # B x T_out x posnet_dim
+        postnet_outputs = self.last_linear(postnet_outputs)
+        # B x T_out x decoder_dim
+        decoder_outputs = decoder_outputs.transpose(1, 2)
+        if self.bidirectional_decoder:
+            decoder_outputs_backward, alignments_backward = self._backward_inference(mel_specs, encoder_outputs, mask)
+            return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
+        return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
     def inference(self, characters, speaker_ids=None, style_mel=None):
         B = characters.size(0)
@@ -118,12 +145,19 @@ class Tacotron(nn.Module):
         if self.num_speakers > 1:
             encoder_outputs = self._concat_speaker_embedding(
                 encoder_outputs, self.speaker_embeddings)
-        mel_outputs, alignments, stop_tokens = self.decoder.inference(
+        decoder_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs, self.speaker_embeddings_projected)
-        mel_outputs = mel_outputs.view(B, -1, self.mel_dim)
-        linear_outputs = self.postnet(mel_outputs)
-        linear_outputs = self.last_linear(linear_outputs)
-        return mel_outputs, linear_outputs, alignments, stop_tokens
+        decoder_outputs = decoder_outputs.view(B, -1, self.decoder_output_dim)
+        postnet_outputs = self.postnet(decoder_outputs)
+        postnet_outputs = self.last_linear(postnet_outputs)
+        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+
+    def _backward_inference(self, mel_specs, encoder_outputs, mask):
+        decoder_outputs_b, alignments_b, _ = self.decoder_backward(
+            encoder_outputs, torch.flip(mel_specs, dims=(1,)), mask,
+            self.speaker_embeddings_projected)
+        decoder_outputs_b = decoder_outputs_b.transpose(1, 2)
+        return decoder_outputs_b, alignments_b
 
     def _compute_speaker_embedding(self, speaker_ids):
         speaker_embeddings = self.speaker_embedding(speaker_ids)

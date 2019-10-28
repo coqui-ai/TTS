@@ -88,6 +88,9 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         'avg_loader_time': 0,
         'avg_alignment_score': 0
     }
+    if c.bidirectional_decoder:
+        train_values['avg_decoder_b_loss'] = 0  # decoder backward loss
+        train_values['avg_decoder_c_loss'] = 0  # decoder consistency loss
     keep_avg = KeepAverage()
     keep_avg.add_values(train_values)
     print("\n > Epoch {}/{}".format(epoch, c.epochs), flush=True)
@@ -150,8 +153,12 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
                 speaker_ids = speaker_ids.cuda(non_blocking=True)
 
         # forward pass model
-        decoder_output, postnet_output, alignments, stop_tokens = model(
-            text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
+        if c.bidirectional_decoder:
+            decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
+                text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
+        else:
+            decoder_output, postnet_output, alignments, stop_tokens = model(
+                text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
 
         # loss computation
         stop_loss = criterion_st(stop_tokens,
@@ -173,6 +180,16 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         loss = decoder_loss + postnet_loss
         if not c.separate_stopnet and c.stopnet:
             loss += stop_loss
+
+        # backward decoder
+        if c.bidirectional_decoder:
+            if c.loss_masking:
+                decoder_backward_loss = criterion(torch.flip(decoder_backward_output, dims=(1, )), mel_input, mel_lengths)
+            else:
+                decoder_backward_loss = criterion(torch.flip(decoder_backward_output, dims=(1, )), mel_input)
+            decoder_c_loss = torch.nn.functional.l1_loss(torch.flip(decoder_backward_output, dims=(1, )), decoder_output)
+            loss = decoder_backward_loss + decoder_c_loss
+            keep_avg.update_values({'avg_decoder_b_loss': decoder_backward_loss.item(), 'avg_decoder_c_loss': decoder_c_loss.item()})
 
         loss.backward()
         optimizer, current_lr = adam_weight_decay(optimizer)
@@ -445,7 +462,6 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                     "ground_truth": plot_spectrogram(gt_spec, ap),
                     "alignment": plot_alignment(align_img)
                 }
-                tb_logger.tb_eval_figures(global_step, eval_figures)
 
                 # Sample audio
                 if c.model in ["Tacotron", "TacotronGST"]:
@@ -461,7 +477,13 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                     "loss_decoder": keep_avg['avg_decoder_loss'],
                     "stop_loss": keep_avg['avg_stop_loss']
                 }
+
+                if c.bidirectional_decoder:
+                    epoch_stats['loss_decoder_backward'] = keep_avg['avg_decoder_backward']
+                    epoch_figures['alignment_backward'] = alignments_backward[idx].data.cpu().numpy()
                 tb_logger.tb_eval_stats(global_step, epoch_stats)
+                tb_logger.tb_eval_figures(global_step, eval_figures)
+
 
     if args.rank == 0 and epoch > c.test_delay_epochs:
         # test sentences
