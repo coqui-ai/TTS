@@ -1,7 +1,7 @@
 # coding: utf-8
 import torch
 from torch import nn
-from .common_layers import Prenet, Attention
+from .common_layers import Prenet, Attention, Linear
 
 
 class BatchNormConv1d(nn.Module):
@@ -125,13 +125,12 @@ class CBHG(nn.Module):
         # list of conv1d bank with filter size k=1...K
         # TODO: try dilational layers instead
         self.conv1d_banks = nn.ModuleList([
-            BatchNormConv1d(
-                in_features,
-                conv_bank_features,
-                kernel_size=k,
-                stride=1,
-                padding=[(k - 1) // 2, k // 2],
-                activation=self.relu) for k in range(1, K + 1)
+            BatchNormConv1d(in_features,
+                            conv_bank_features,
+                            kernel_size=k,
+                            stride=1,
+                            padding=[(k - 1) // 2, k // 2],
+                            activation=self.relu) for k in range(1, K + 1)
         ])
         # max pooling of conv bank, with padding
         # TODO: try average pooling OR larger kernel size
@@ -142,39 +141,33 @@ class CBHG(nn.Module):
         layer_set = []
         for (in_size, out_size, ac) in zip(out_features, conv_projections,
                                            activations):
-            layer = BatchNormConv1d(
-                in_size,
-                out_size,
-                kernel_size=3,
-                stride=1,
-                padding=[1, 1],
-                activation=ac)
+            layer = BatchNormConv1d(in_size,
+                                    out_size,
+                                    kernel_size=3,
+                                    stride=1,
+                                    padding=[1, 1],
+                                    activation=ac)
             layer_set.append(layer)
         self.conv1d_projections = nn.ModuleList(layer_set)
         # setup Highway layers
         if self.highway_features != conv_projections[-1]:
-            self.pre_highway = nn.Linear(
-                conv_projections[-1], highway_features, bias=False)
+            self.pre_highway = nn.Linear(conv_projections[-1],
+                                         highway_features,
+                                         bias=False)
         self.highways = nn.ModuleList([
             Highway(highway_features, highway_features)
             for _ in range(num_highways)
         ])
         # bi-directional GPU layer
-        self.gru = nn.GRU(
-            gru_features,
-            gru_features,
-            1,
-            batch_first=True,
-            bidirectional=True)
+        self.gru = nn.GRU(gru_features,
+                          gru_features,
+                          1,
+                          batch_first=True,
+                          bidirectional=True)
 
     def forward(self, inputs):
-        # (B, T_in, in_features)
-        x = inputs
-        # Needed to perform conv1d on time-axis
         # (B, in_features, T_in)
-        if x.size(-1) == self.in_features:
-            x = x.transpose(1, 2)
-        # T = x.size(-1)
+        x = inputs
         # (B, hid_features*K, T_in)
         # Concat conv1d bank outputs
         outs = []
@@ -185,10 +178,8 @@ class CBHG(nn.Module):
         assert x.size(1) == self.conv_bank_features * len(self.conv1d_banks)
         for conv1d in self.conv1d_projections:
             x = conv1d(x)
-        # (B, T_in, hid_feature)
-        x = x.transpose(1, 2)
-        # Back to the original shape
         x += inputs
+        x = x.transpose(1, 2)
         if self.highway_features != self.conv_projections[-1]:
             x = self.pre_highway(x)
         # Residual connection
@@ -236,8 +227,10 @@ class Encoder(nn.Module):
             - inputs: batch x time x in_features
             - outputs: batch x time x 128*2
         """
-        inputs = self.prenet(inputs)
-        return self.cbhg(inputs)
+        # B x T x prenet_dim
+        outputs = self.prenet(inputs)
+        outputs = self.cbhg(outputs.transpose(1, 2))
+        return outputs
 
 
 class PostCBHG(nn.Module):
@@ -314,7 +307,12 @@ class Decoder(nn.Module):
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * self.r_init)
         # learn init values instead of zero init.
-        self.stopnet = StopNet(256 + memory_dim * self.r_init)
+        self.stopnet = nn.Sequential(
+            nn.Dropout(0.1),
+            Linear(256 + memory_dim * self.r_init,
+                   1,
+                   bias=True,
+                   init_gain='sigmoid'))
 
     def set_r(self, new_r):
         self.r = new_r
@@ -356,8 +354,9 @@ class Decoder(nn.Module):
     def _parse_outputs(self, outputs, attentions, stop_tokens):
         # Back to batch first
         attentions = torch.stack(attentions).transpose(0, 1)
+        stop_tokens = torch.stack(stop_tokens).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
-        stop_tokens = torch.stack(stop_tokens).transpose(0, 1).squeeze(-1)
+        outputs = outputs.view(outputs.size(0), self.memory_dim, -1)
         return outputs, attentions, stop_tokens
 
     def decode(self, inputs, mask=None):
@@ -438,9 +437,8 @@ class Decoder(nn.Module):
             output, stop_token, attention = self.decode(inputs, mask)
             outputs += [output]
             attentions += [attention]
-            stop_tokens += [stop_token]
+            stop_tokens += [stop_token.squeeze(1)]
             t += 1
-
         return self._parse_outputs(outputs, attentions, stop_tokens)
 
     def inference(self, inputs, speaker_embeddings=None):
@@ -481,20 +479,20 @@ class Decoder(nn.Module):
         return self._parse_outputs(outputs, attentions, stop_tokens)
 
 
-class StopNet(nn.Module):
-    r"""
-    Args:
-        in_features (int): feature dimension of input.
-    """
+# class StopNet(nn.Module):
+#     r"""
+#     Args:
+#         in_features (int): feature dimension of input.
+#     """
 
-    def __init__(self, in_features):
-        super(StopNet, self).__init__()
-        self.dropout = nn.Dropout(0.1)
-        self.linear = nn.Linear(in_features, 1)
-        torch.nn.init.xavier_uniform_(
-            self.linear.weight, gain=torch.nn.init.calculate_gain('linear'))
+#     def __init__(self, in_features):
+#         super(StopNet, self).__init__()
+#         self.dropout = nn.Dropout(0.1)
+#         self.linear = nn.Linear(in_features, 1)
+#         torch.nn.init.xavier_uniform_(
+#             self.linear.weight, gain=torch.nn.init.calculate_gain('linear'))
 
-    def forward(self, inputs):
-        outputs = self.dropout(inputs)
-        outputs = self.linear(outputs)
-        return outputs
+#     def forward(self, inputs):
+#         outputs = self.dropout(inputs)
+#         outputs = self.linear(outputs)
+#         return outputs

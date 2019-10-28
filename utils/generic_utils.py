@@ -283,8 +283,8 @@ def setup_model(num_chars, num_speakers, c):
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
                         r=c.r,
-                        linear_dim=1025,
-                        mel_dim=80,
+                        postnet_output_dim=c.audio['num_freq'],
+                        decoder_output_dim=c.audio['num_mels'],
                         gst=c.use_gst,
                         memory_size=c.memory_size,
                         attn_win=c.windowing,
@@ -295,11 +295,14 @@ def setup_model(num_chars, num_speakers, c):
                         trans_agent=c.transition_agent,
                         forward_attn_mask=c.forward_attn_mask,
                         location_attn=c.location_attn,
-                        separate_stopnet=c.separate_stopnet)
+                        separate_stopnet=c.separate_stopnet,
+                        bidirectional_decoder=c.bidirectional_decoder)
     elif c.model.lower() == "tacotron2":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
                         r=c.r,
+                        postnet_output_dim=c.audio['num_mels'],
+                        decoder_output_dim=c.audio['num_mels'],
                         attn_win=c.windowing,
                         attn_norm=c.attention_norm,
                         prenet_type=c.prenet_type,
@@ -308,7 +311,8 @@ def setup_model(num_chars, num_speakers, c):
                         trans_agent=c.transition_agent,
                         forward_attn_mask=c.forward_attn_mask,
                         location_attn=c.location_attn,
-                        separate_stopnet=c.separate_stopnet)
+                        separate_stopnet=c.separate_stopnet,
+                        bidirectional_decoder=c.bidirectional_decoder)
     return model
 
 
