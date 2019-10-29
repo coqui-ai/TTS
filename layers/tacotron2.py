@@ -181,17 +181,23 @@ class Decoder(nn.Module):
         self.processed_inputs = self.attention.inputs_layer(inputs)
         self.mask = mask
 
-    def _reshape_memory(self, memories):
-        memories = memories.view(memories.size(0),
-                                 int(memories.size(1) / self.r), -1)
-        memories = memories.transpose(0, 1)
-        return memories
+    def _reshape_memory(self, memory):
+        """
+        Reshape the spectrograms for given 'r'
+        """
+        # Grouping multiple frames if necessary
+        if memory.size(-1) == self.memory_dim:
+            memory = memory.view(memory.shape[0], memory.size(1) // self.r, -1)
+        # Time first (T_decoder, B, memory_dim)
+        memory = memory.transpose(0, 1)
+        return memory
 
     def _parse_outputs(self, outputs, stop_tokens, alignments):
         alignments = torch.stack(alignments).transpose(0, 1)
         stop_tokens = torch.stack(stop_tokens).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
-        outputs = outputs.view(outputs.size(0), self.memory_dim, -1)
+        outputs = outputs.view(outputs.size(0), -1, self.memory_dim)
+        outputs = outputs.transpose(1, 2)
         return outputs, stop_tokens, alignments
 
     def _update_memory(self, memory):

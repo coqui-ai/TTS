@@ -307,12 +307,7 @@ class Decoder(nn.Module):
         # RNN_state -> |Linear| -> mel_spec
         self.proj_to_mel = nn.Linear(256, memory_dim * self.r_init)
         # learn init values instead of zero init.
-        self.stopnet = nn.Sequential(
-            nn.Dropout(0.1),
-            Linear(256 + memory_dim * self.r_init,
-                   1,
-                   bias=True,
-                   init_gain='sigmoid'))
+        self.stopnet = StopNet(256 + memory_dim * self.r_init)
 
     def set_r(self, new_r):
         self.r = new_r
@@ -321,11 +316,9 @@ class Decoder(nn.Module):
         """
         Reshape the spectrograms for given 'r'
         """
-        B = memory.shape[0]
         # Grouping multiple frames if necessary
         if memory.size(-1) == self.memory_dim:
-            memory = memory.contiguous()
-            memory = memory.view(B, memory.size(1) // self.r, -1)
+            memory = memory.view(memory.shape[0], memory.size(1) // self.r, -1)
         # Time first (T_decoder, B, memory_dim)
         memory = memory.transpose(0, 1)
         return memory
@@ -356,7 +349,9 @@ class Decoder(nn.Module):
         attentions = torch.stack(attentions).transpose(0, 1)
         stop_tokens = torch.stack(stop_tokens).transpose(0, 1)
         outputs = torch.stack(outputs).transpose(0, 1).contiguous()
-        outputs = outputs.view(outputs.size(0), self.memory_dim, -1)
+        outputs = outputs.view(
+            outputs.size(0), -1, self.memory_dim)
+        outputs = outputs.transpose(1, 2)
         return outputs, attentions, stop_tokens
 
     def decode(self, inputs, mask=None):
@@ -405,6 +400,7 @@ class Decoder(nn.Module):
                 self.memory_input = new_memory[:, :self.memory_size * self.memory_dim]
         else:
             # use only the last frame prediction
+            # assert new_memory.shape[-1] == self.r * self.memory_dim
             self.memory_input = new_memory[:, self.memory_dim * (self.r - 1):]
 
     def forward(self, inputs, memory, mask, speaker_embeddings=None):
@@ -479,20 +475,20 @@ class Decoder(nn.Module):
         return self._parse_outputs(outputs, attentions, stop_tokens)
 
 
-# class StopNet(nn.Module):
-#     r"""
-#     Args:
-#         in_features (int): feature dimension of input.
-#     """
+class StopNet(nn.Module):
+    r"""
+    Args:
+        in_features (int): feature dimension of input.
+    """
 
-#     def __init__(self, in_features):
-#         super(StopNet, self).__init__()
-#         self.dropout = nn.Dropout(0.1)
-#         self.linear = nn.Linear(in_features, 1)
-#         torch.nn.init.xavier_uniform_(
-#             self.linear.weight, gain=torch.nn.init.calculate_gain('linear'))
+    def __init__(self, in_features):
+        super(StopNet, self).__init__()
+        self.dropout = nn.Dropout(0.1)
+        self.linear = nn.Linear(in_features, 1)
+        torch.nn.init.xavier_uniform_(
+            self.linear.weight, gain=torch.nn.init.calculate_gain('linear'))
 
-#     def forward(self, inputs):
-#         outputs = self.dropout(inputs)
-#         outputs = self.linear(outputs)
-#         return outputs
+    def forward(self, inputs):
+        outputs = self.dropout(inputs)
+        outputs = self.linear(outputs)
+        return outputs
