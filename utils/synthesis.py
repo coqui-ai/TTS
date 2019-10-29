@@ -34,8 +34,12 @@ def run_model(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None)
         decoder_output, postnet_output, alignments, stop_tokens = model.inference(
             inputs, style_mel=style_mel, speaker_ids=speaker_id)
     else:
-        decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-            inputs, speaker_ids=speaker_id)
+        if truncated:
+            decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
+                inputs, speaker_ids=speaker_id)
+        else:
+            decoder_output, postnet_output, alignments, stop_tokens = model.inference(
+                inputs, speaker_ids=speaker_id)
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
