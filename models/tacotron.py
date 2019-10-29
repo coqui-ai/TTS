@@ -125,7 +125,7 @@ class Tacotron(nn.Module):
         # B x T_out x posnet_dim
         postnet_outputs = self.last_linear(postnet_outputs)
         # B x T_out x decoder_dim
-        decoder_outputs = decoder_outputs.transpose(1, 2)
+        decoder_outputs = decoder_outputs.transpose(1, 2).contiguous()
         if self.bidirectional_decoder:
             decoder_outputs_backward, alignments_backward = self._backward_inference(mel_specs, encoder_outputs, mask)
             return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
@@ -139,7 +139,7 @@ class Tacotron(nn.Module):
         if self.num_speakers > 1:
             inputs = self._concat_speaker_embedding(inputs,
                                                     self.speaker_embeddings)
-        encoder_outputs = self.encoder(inputs)
+        encoder_outputs = self.encoder(inputs)  
         if self.gst and style_mel is not None:
             encoder_outputs = self.compute_gst(encoder_outputs, style_mel)
         if self.num_speakers > 1:
@@ -147,16 +147,16 @@ class Tacotron(nn.Module):
                 encoder_outputs, self.speaker_embeddings)
         decoder_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs, self.speaker_embeddings_projected)
-        decoder_outputs = decoder_outputs.view(B, -1, self.decoder_output_dim)
         postnet_outputs = self.postnet(decoder_outputs)
         postnet_outputs = self.last_linear(postnet_outputs)
+        decoder_outputs = decoder_outputs.transpose(1, 2)
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
     def _backward_inference(self, mel_specs, encoder_outputs, mask):
         decoder_outputs_b, alignments_b, _ = self.decoder_backward(
             encoder_outputs, torch.flip(mel_specs, dims=(1,)), mask,
             self.speaker_embeddings_projected)
-        decoder_outputs_b = decoder_outputs_b.transpose(1, 2)
+        decoder_outputs_b = decoder_outputs_b.transpose(1, 2).contiguous()
         return decoder_outputs_b, alignments_b
 
     def _compute_speaker_embedding(self, speaker_ids):
