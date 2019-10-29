@@ -49,8 +49,8 @@ class TacotronTrainTest(unittest.TestCase):
         model = Tacotron(
             num_chars=32,
             num_speakers=5,
-            linear_dim=c.audio['num_freq'],
-            mel_dim=c.audio['num_mels'],
+            postnet_output_dim=c.audio['num_freq'],
+            decoder_output_dim=c.audio['num_mels'],
             r=c.r,
             memory_size=c.memory_size
         ).to(device)  #FIXME: missing num_speakers parameter to Tacotron ctor
@@ -112,8 +112,8 @@ class TacotronGSTTrainTest(unittest.TestCase):
             num_chars=32,
             num_speakers=5,
             gst=True,
-            linear_dim=c.audio['num_freq'],
-            mel_dim=c.audio['num_mels'],
+            postnet_output_dim=c.audio['num_freq'],
+            decoder_output_dim=c.audio['num_mels'],
             r=c.r,
             memory_size=c.memory_size
         ).to(device)  #FIXME: missing num_speakers parameter to Tacotron ctor
