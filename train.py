@@ -80,8 +80,7 @@ def format_data(data):
     text_input = data[0]
     text_lengths = data[1]
     speaker_names = data[2]
-    linear_input = data[3] if c.model in ["Tacotron", "TacotronGST"
-                                            ] else None
+    linear_input = data[3] if c.model in ["Tacotron", "TacotronGST"] else None
     mel_input = data[4]
     mel_lengths = data[5]
     stop_targets = data[6]
@@ -98,7 +97,7 @@ def format_data(data):
 
     # set stop targets view, we predict a single stop token per r frames prediction
     stop_targets = stop_targets.view(text_input.shape[0],
-                                        stop_targets.size(1) // c.r, -1)
+                                     stop_targets.size(1) // c.r, -1)
     stop_targets = (stop_targets.sum(2) >
                     0.0).unsqueeze(2).float().squeeze(2)
 
@@ -108,9 +107,7 @@ def format_data(data):
         text_lengths = text_lengths.cuda(non_blocking=True)
         mel_input = mel_input.cuda(non_blocking=True)
         mel_lengths = mel_lengths.cuda(non_blocking=True)
-        linear_input = linear_input.cuda(
-            non_blocking=True) if c.model in ["Tacotron", "TacotronGST"
-                                                ] else None
+        linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron", "TacotronGST"] else None
         stop_targets = stop_targets.cuda(non_blocking=True)
         if speaker_ids is not None:
             speaker_ids = speaker_ids.cuda(non_blocking=True)
@@ -352,8 +349,8 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                 start_time = time.time()
 
                 # format data
-                text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, avg_text_length, avg_spec_length = format_data(data)
-                assert mel_input.shape[1] % model.decoder.r == 0 
+                text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, _, _ = format_data(data)
+                assert mel_input.shape[1] % model.decoder.r == 0
 
                 # forward pass model
                 if c.bidirectional_decoder:
@@ -622,7 +619,8 @@ def main(args):  # pylint: disable=redefined-outer-name
             r, c.batch_size = gradual_training_scheduler(global_step, c)
             c.r = r
             model.decoder.set_r(r)
-            if c.bidirectional_decoder: model.decoder_backward.set_r(r)
+            if c.bidirectional_decoder:
+                model.decoder_backward.set_r(r)
         print(" > Number of outputs per iteration:", model.decoder.r)
 
         train_loss, global_step = train(model, criterion, criterion_st,

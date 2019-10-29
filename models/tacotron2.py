@@ -28,8 +28,8 @@ class Tacotron2(nn.Module):
         self.decoder_output_dim = decoder_output_dim
         self.n_frames_per_step = r
         self.bidirectional_decoder = bidirectional_decoder
-        decoder_dim = 512 + 256 if num_speakers > 1 else 512
-        encoder_dim = 512 + 256 if num_speakers > 1 else 512
+        decoder_dim = 512 if num_speakers > 1 else 512
+        encoder_dim = 512 if num_speakers > 1 else 512
         proj_speaker_dim = 80 if num_speakers > 1 else 0
         # embedding layer
         self.embedding = nn.Embedding(num_chars, 512)
@@ -39,6 +39,8 @@ class Tacotron2(nn.Module):
         if num_speakers > 1:
             self.speaker_embedding = nn.Embedding(num_speakers, 512)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
+            self.speaker_embeddings = None
+            self.speaker_embeddings_projected = None
         self.encoder = Encoder(encoder_dim)
         self.decoder = Decoder(decoder_dim, self.decoder_output_dim, r, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
@@ -47,7 +49,7 @@ class Tacotron2(nn.Module):
         if self.bidirectional_decoder:
             self.decoder_backward = copy.deepcopy(self.decoder)
         self.postnet = Postnet(self.decoder_output_dim)
-    
+
     def _init_states(self):
         self.speaker_embeddings = None
         self.speaker_embeddings_projected = None

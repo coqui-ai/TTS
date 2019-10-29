@@ -96,7 +96,6 @@ class Tacotron(nn.Module):
             - speaker_ids: B x 1
         """
         self._init_states()
-        B = characters.size(0)
         mask = sequence_mask(text_lengths).to(characters.device)
         # B x T_in x embed_dim
         inputs = self.embedding(characters)
@@ -132,14 +131,13 @@ class Tacotron(nn.Module):
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
     def inference(self, characters, speaker_ids=None, style_mel=None):
-        B = characters.size(0)
         inputs = self.embedding(characters)
         self._init_states()
         self.compute_speaker_embedding(speaker_ids)
         if self.num_speakers > 1:
             inputs = self._concat_speaker_embedding(inputs,
                                                     self.speaker_embeddings)
-        encoder_outputs = self.encoder(inputs)  
+        encoder_outputs = self.encoder(inputs)
         if self.gst and style_mel is not None:
             encoder_outputs = self.compute_gst(encoder_outputs, style_mel)
         if self.num_speakers > 1:

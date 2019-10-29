@@ -103,8 +103,8 @@ class CBHG(nn.Module):
             num_highways (int): number of highways layers
 
         Shapes:
-            - input: batch x time x dim
-            - output: batch x time x dim*2
+            - input: B x D x T_in
+            - output: B x T_in x D*2
     """
 
     def __init__(self,

@@ -29,7 +29,8 @@ class CBHGTests(unittest.TestCase):
             highway_features=80,
             gru_features=80,
             num_highways=4)
-        dummy_input = T.rand(4, 8, 128)
+        # B x D x T
+        dummy_input = T.rand(4, 128, 8) 
 
         print(layer)
         output = layer(dummy_input)
@@ -63,8 +64,8 @@ class DecoderTests(unittest.TestCase):
             dummy_input, dummy_memory, mask=None)
 
         assert output.shape[0] == 4
-        assert output.shape[1] == 1, "size not {}".format(output.shape[1])
-        assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
+        assert output.shape[1] == 80, "size not {}".format(output.shape[1])
+        assert output.shape[2] == 2, "size not {}".format(output.shape[2])
         assert stop_tokens.shape[0] == 4
 
     @staticmethod
@@ -92,8 +93,8 @@ class DecoderTests(unittest.TestCase):
             dummy_input, dummy_memory, mask=None, speaker_embeddings=dummy_embed)
 
         assert output.shape[0] == 4
-        assert output.shape[1] == 1, "size not {}".format(output.shape[1])
-        assert output.shape[2] == 80 * 2, "size not {}".format(output.shape[2])
+        assert output.shape[1] == 80, "size not {}".format(output.shape[1])
+        assert output.shape[2] == 2, "size not {}".format(output.shape[2])
         assert stop_tokens.shape[0] == 4
 
 

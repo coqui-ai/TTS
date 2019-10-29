@@ -44,6 +44,7 @@
     "prenet_dropout": true,        // ONLY TACOTRON2 - enable/disable dropout at prenet. 
     "use_forward_attn": true,      // ONLY TACOTRON2 - if it uses forward attention. In general, it aligns faster.
     "forward_attn_mask": false, 
+    "bidirectional_decoder": false,
     "transition_agent": false,     // ONLY TACOTRON2 - enable/disable transition agent of forward attention.
     "location_attn": false,        // ONLY TACOTRON2 - enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.

@@ -100,7 +100,7 @@ class Decoder(nn.Module):
     #pylint: disable=attribute-defined-outside-init
     def __init__(self, in_features, memory_dim, r, attn_win, attn_norm,
                  prenet_type, prenet_dropout, forward_attn, trans_agent,
-                 forward_attn_mask, location_attn, separate_stopnet, 
+                 forward_attn_mask, location_attn, separate_stopnet,
                  speaker_embedding_dim):
         super(Decoder, self).__init__()
         self.memory_dim = memory_dim
@@ -117,7 +117,7 @@ class Decoder(nn.Module):
         self.p_decoder_dropout = 0.1
 
         # memory -> |Prenet| -> processed_memory
-        prenet_dim = self.memory_dim + speaker_embedding_dim
+        prenet_dim = self.memory_dim
         self.prenet = Prenet(
             prenet_dim,
             prenet_type,
@@ -244,7 +244,10 @@ class Decoder(nn.Module):
         memory = self.get_go_frame(inputs).unsqueeze(0)
         memories = self._reshape_memory(memories)
         memories = torch.cat((memory, memories), dim=0)
-        memories = self.prenet(self._update_memory(memories))
+        memories = self._update_memory(memories)
+        if speaker_embeddings is not None:
+                memories = torch.cat([memories, speaker_embeddings], dim=-1)
+        memories = self.prenet(memories)
 
         self._init_states(inputs, mask=mask)
         self.attention.init_states(inputs)
@@ -252,8 +255,6 @@ class Decoder(nn.Module):
         outputs, stop_tokens, alignments = [], [], []
         while len(outputs) < memories.size(0) - 1:
             memory = memories[len(outputs)]
-            if speaker_embeddings is not None:
-                memory = torch.cat([memory, speaker_embeddings], dim=-1)
             mel_output, attention_weights, stop_token = self.decode(memory)
             outputs += [mel_output.squeeze(1)]
             stop_tokens += [stop_token.squeeze(1)]
@@ -277,7 +278,7 @@ class Decoder(nn.Module):
         while True:
             memory = self.prenet(memory)
             if speaker_embeddings is not None:
-               memory = torch.cat([memory, speaker_embeddings], dim=-1)
+                memory = torch.cat([memory, speaker_embeddings], dim=-1)
             mel_output, alignment, stop_token = self.decode(memory)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [mel_output.squeeze(1)]
