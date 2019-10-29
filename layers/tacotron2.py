@@ -238,7 +238,7 @@ class Decoder(nn.Module):
         else:
             stop_token = self.stopnet(stopnet_input)
         decoder_output = decoder_output[:, :self.r * self.memory_dim]
-        return decoder_output, stop_token, self.attention.attention_weights
+        return decoder_output, self.attention.attention_weights, stop_token
 
     def forward(self, inputs, memories, mask, speaker_embeddings=None):
         memory = self.get_go_frame(inputs).unsqueeze(0)
@@ -254,15 +254,14 @@ class Decoder(nn.Module):
             memory = memories[len(outputs)]
             if speaker_embeddings is not None:
                 memory = torch.cat([memory, speaker_embeddings], dim=-1)
-            mel_output, stop_token, attention_weights = self.decode(memory)
+            mel_output, attention_weights, stop_token = self.decode(memory)
             outputs += [mel_output.squeeze(1)]
             stop_tokens += [stop_token.squeeze(1)]
             alignments += [attention_weights]
 
         outputs, stop_tokens, alignments = self._parse_outputs(
             outputs, stop_tokens, alignments)
-
-        return outputs, stop_tokens, alignments
+        return outputs, alignments, stop_tokens
 
     def inference(self, inputs, speaker_embeddings=None):
         memory = self.get_go_frame(inputs)
@@ -279,7 +278,7 @@ class Decoder(nn.Module):
             memory = self.prenet(memory)
             if speaker_embeddings is not None:
                memory = torch.cat([memory, speaker_embeddings], dim=-1)
-            mel_output, stop_token, alignment = self.decode(memory)
+            mel_output, alignment, stop_token = self.decode(memory)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [mel_output.squeeze(1)]
             stop_tokens += [stop_token]
@@ -301,7 +300,7 @@ class Decoder(nn.Module):
         outputs, stop_tokens, alignments = self._parse_outputs(
             outputs, stop_tokens, alignments)
 
-        return outputs, stop_tokens, alignments
+        return outputs, alignments, stop_tokens
 
     def inference_truncated(self, inputs):
         """
@@ -319,7 +318,7 @@ class Decoder(nn.Module):
         stop_flags = [True, False, False]
         while True:
             memory = self.prenet(self.memory_truncated)
-            mel_output, stop_token, alignment = self.decode(memory)
+            mel_output, alignment, stop_token = self.decode(memory)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [mel_output.squeeze(1)]
             stop_tokens += [stop_token]
@@ -341,7 +340,7 @@ class Decoder(nn.Module):
         outputs, stop_tokens, alignments = self._parse_outputs(
             outputs, stop_tokens, alignments)
 
-        return outputs, stop_tokens, alignments
+        return outputs, alignments, stop_tokens
 
     def inference_step(self, inputs, t, memory=None):
         """

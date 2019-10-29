@@ -66,7 +66,7 @@ class Tacotron2(nn.Module):
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
         encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                       speaker_ids)
-        decoder_outputs, stop_tokens, alignments = self.decoder(
+        decoder_outputs, alignments, stop_tokens = self.decoder(
             encoder_outputs, mel_specs, mask)
         postnet_outputs = self.postnet(decoder_outputs)
         postnet_outputs = decoder_outputs + postnet_outputs
