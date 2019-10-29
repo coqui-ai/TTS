@@ -84,7 +84,7 @@ class Tacotron2(nn.Module):
         encoder_outputs = self.encoder.inference(embedded_inputs)
         encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                       speaker_ids)
-        mel_outputs, stop_tokens, alignments = self.decoder.inference(
+        mel_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs)
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
@@ -100,7 +100,7 @@ class Tacotron2(nn.Module):
         encoder_outputs = self.encoder.inference_truncated(embedded_inputs)
         encoder_outputs = self._add_speaker_embedding(encoder_outputs,
                                                       speaker_ids)
-        mel_outputs, stop_tokens, alignments = self.decoder.inference_truncated(
+        mel_outputs, alignments, stop_tokens = self.decoder.inference_truncated(
             encoder_outputs)
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
