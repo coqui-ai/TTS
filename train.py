@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import glob
 import time
 import traceback
 
@@ -644,10 +645,15 @@ def main(args):  # pylint: disable=redefined-outer-name
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '--continue_path',
+        type=str,
+        help='Training output folder to conitnue training. Use to continue a training.',
+        default='')
+    parser.add_argument(
         '--restore_path',
         type=str,
-        help='Path to model outputs (checkpoint, tensorboard etc.).',
-        default=0)
+        help='Model file to be restored. Use to finetune a model.',
+        default='')
     parser.add_argument(
         '--config_path',
         type=str,
@@ -657,19 +663,6 @@ if __name__ == '__main__':
                         type=bool,
                         default=True,
                         help='Do not verify commit integrity to run training.')
-    parser.add_argument(
-        '--data_path',
-        type=str,
-        default='',
-        help='Defines the data path. It overwrites config.json.')
-    parser.add_argument('--output_path',
-                        type=str,
-                        help='path for training outputs.',
-                        default='')
-    parser.add_argument('--output_folder',
-                        type=str,
-                        default='',
-                        help='folder name for training outputs.')
 
     # DISTRUBUTED
     parser.add_argument(
@@ -683,21 +676,22 @@ if __name__ == '__main__':
                         help='DISTRIBUTED: process group id.')
     args = parser.parse_args()
 
-    # setup output paths and read configs
+    if args.continue_path != '':
+        args.output_path = args.continue_path
+        args.config_path = os.path.join(args.continue_path, 'config.json')
+        list_of_files = glob.glob(args.continue_path + "/*.pth.tar") # * means all if need specific format then *.csv
+        latest_model_file = max(list_of_files, key=os.path.getctime)
+        args.restore_path = latest_model_file
+        print(f" > Training continues for {args.restore_path}")
+
+     # setup output paths and read configs
     c = load_config(args.config_path)
     _ = os.path.dirname(os.path.realpath(__file__))
-    if args.data_path != '':
-        c.data_path = args.data_path
 
-    if args.output_path == '':
-        OUT_PATH = os.path.join(_, c.output_path)
+    if args.continue_path != '':
+        OUT_PATH = create_experiment_folder(args.continue_path, c.run_name, args.debug)
     else:
-        OUT_PATH = args.output_path
-
-    if args.group_id == '' and args.output_folder == '':
-        OUT_PATH = create_experiment_folder(OUT_PATH, c.run_name, args.debug)
-    else:
-        OUT_PATH = os.path.join(OUT_PATH, args.output_folder)
+        OUT_PATH = create_experiment_folder(c.output_path, c.run_name, args.debug)
 
     AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
 
