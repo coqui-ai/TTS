@@ -1,6 +1,6 @@
 {
-    "run_name": "ljspeech",
-    "run_description": "t bidirectional decoder test train",
+    "run_name": "ljspeech-w/o-bd",
+    "run_description": "tacotron2 without bidirectional decoder",
 
     "audio":{
         // Audio processing parameters
@@ -46,7 +46,7 @@
     "forward_attn_mask": false, 
     "transition_agent": false,     // enable/disable transition agent of forward attention.
     "location_attn": true,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
-    "bidirectional_decoder": true,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
+    "bidirectional_decoder": false,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
     "stopnet": true,               // Train stopnet predicting the end of synthesis. 
