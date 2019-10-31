@@ -128,8 +128,9 @@ def main():
     parser.add_argument(
         '--continue_path',
         type=str,
-        help='Training output folder to conitnue training. Use to continue a training.',
-        default='')
+        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
+        default='',
+        required=True)
     parser.add_argument(
         '--restore_path',
         type=str,
@@ -138,7 +139,8 @@ def main():
     parser.add_argument(
         '--config_path',
         type=str,
-        help='path to config file for training',
+        help='Path to config file for training.',
+        required='--continue_path' not in sys.argv
     )
     args = parser.parse_args()
 
