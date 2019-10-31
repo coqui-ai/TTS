@@ -226,6 +226,13 @@ class Attention(nn.Module):
         return alpha
 
     def forward(self, query, inputs, processed_inputs, mask):
+        """
+        shapes:
+            query: B x D_attn_rnn
+            inputs: B x T_en x D_en
+            processed_inputs:: B x T_en x D_attn
+            mask: B x T_en
+        """
         if self.location_attention:
             attention, _ = self.get_location_attention(
                 query, processed_inputs)

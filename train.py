@@ -649,7 +649,7 @@ if __name__ == '__main__':
         type=str,
         help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
         default='',
-        required=True)
+        required='--config_path' not in sys.argv)
     parser.add_argument(
         '--restore_path',
         type=str,

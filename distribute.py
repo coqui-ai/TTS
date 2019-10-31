@@ -1,5 +1,5 @@
 # edited from https://github.com/fastai/imagenet-fast/blob/master/imagenet_nv/distributed.py
-import os
+import os, sys
 import math
 import time
 import subprocess
@@ -130,7 +130,7 @@ def main():
         type=str,
         help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
         default='',
-        required=True)
+        required='--config_path' not in sys.argv)
     parser.add_argument(
         '--restore_path',
         type=str,
