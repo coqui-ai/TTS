@@ -134,11 +134,12 @@ class GravesAttention(nn.Module):
     def preprocess_inputs(self, inputs):
         return None
 
-    def forward(self, query, inputs, mask):
+    def forward(self, query, inputs, processed_inputs, mask):
         """
         shapes:
             query: B x D_attention_rnn
             inputs: B x T_in x D_encoder
+            processed_inputs: place_holder
             mask: B x T_in
         """
         gbk_t = self.N_a(query)
@@ -176,7 +177,6 @@ class GravesAttention(nn.Module):
         context = torch.bmm(alpha_t.unsqueeze(1), inputs).squeeze(1)
         self.attention_weights = alpha_t
         self.mu_prev = mu_t
-        breakpoint()
         return context
 
 
