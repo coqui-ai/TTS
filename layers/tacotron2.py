@@ -2,7 +2,7 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
-from .common_layers import Attention, Prenet, Linear
+from .common_layers import init_attn, Prenet, Linear
 
 
 class ConvBNBlock(nn.Module):
@@ -98,9 +98,9 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
-    def __init__(self, in_features, memory_dim, r, attn_win, attn_norm,
+    def __init__(self, in_features, memory_dim, r, attn_type, attn_win, attn_norm,
                  prenet_type, prenet_dropout, forward_attn, trans_agent,
-                 forward_attn_mask, location_attn, separate_stopnet,
+                 forward_attn_mask, location_attn, attn_K, separate_stopnet,
                  speaker_embedding_dim):
         super(Decoder, self).__init__()
         self.memory_dim = memory_dim
@@ -128,7 +128,8 @@ class Decoder(nn.Module):
         self.attention_rnn = nn.LSTMCell(self.prenet_dim + in_features,
                                          self.query_dim)
 
-        self.attention = Attention(query_dim=self.query_dim,
+        self.attention = init_attn(attn_type=attn_type,
+                                   query_dim=self.query_dim,
                                    embedding_dim=in_features,
                                    attention_dim=128,
                                    location_attention=location_attn,
@@ -138,7 +139,8 @@ class Decoder(nn.Module):
                                    norm=attn_norm,
                                    forward_attn=forward_attn,
                                    trans_agent=trans_agent,
-                                   forward_attn_mask=forward_attn_mask)
+                                   forward_attn_mask=forward_attn_mask,
+                                   attn_K=attn_K)
 
         self.decoder_rnn = nn.LSTMCell(self.query_dim + in_features,
                                        self.decoder_rnn_dim, 1)

@@ -14,6 +14,7 @@ class Tacotron2(nn.Module):
                  r,
                  postnet_output_dim=80,
                  decoder_output_dim=80,
+                 attn_type='original',
                  attn_win=False,
                  attn_norm="softmax",
                  prenet_type="original",
@@ -22,6 +23,7 @@ class Tacotron2(nn.Module):
                  trans_agent=False,
                  forward_attn_mask=False,
                  location_attn=True,
+                 attn_K=5,
                  separate_stopnet=True,
                  bidirectional_decoder=False):
         super(Tacotron2, self).__init__()
@@ -42,10 +44,10 @@ class Tacotron2(nn.Module):
             self.speaker_embeddings = None
             self.speaker_embeddings_projected = None
         self.encoder = Encoder(encoder_dim)
-        self.decoder = Decoder(decoder_dim, self.decoder_output_dim, r, attn_win,
+        self.decoder = Decoder(decoder_dim, self.decoder_output_dim, r, attn_type, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
                                forward_attn, trans_agent, forward_attn_mask,
-                               location_attn, separate_stopnet, proj_speaker_dim)
+                               location_attn, attn_K, separate_stopnet, proj_speaker_dim)
         if self.bidirectional_decoder:
             self.decoder_backward = copy.deepcopy(self.decoder)
         self.postnet = Postnet(self.decoder_output_dim)

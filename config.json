@@ -60,6 +60,8 @@
     "prenet_dropout": true,        // enable/disable dropout at prenet. 
 
     // ATTENTION
+    "attention_type": "original",  // 'original' or 'graves'
+    "attention_heads": 5,          // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "windowing": false,            // Enables attention windowing. Used only in eval mode.
     "use_forward_attn": false,      // if it uses forward attention. In general, it aligns faster.

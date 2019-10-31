@@ -15,6 +15,7 @@ class Tacotron(nn.Module):
                  postnet_output_dim=1025,
                  decoder_output_dim=80,
                  memory_size=5,
+                 attn_type='original',
                  attn_win=False,
                  gst=False,
                  attn_norm="sigmoid",
@@ -24,6 +25,7 @@ class Tacotron(nn.Module):
                  trans_agent=False,
                  forward_attn_mask=False,
                  location_attn=True,
+                 attn_K=5,
                  separate_stopnet=True,
                  bidirectional_decoder=False):
         super(Tacotron, self).__init__()
@@ -41,10 +43,10 @@ class Tacotron(nn.Module):
         self.embedding.weight.data.normal_(0, 0.3)
         # boilerplate model
         self.encoder = Encoder(encoder_dim)
-        self.decoder = Decoder(decoder_dim, decoder_output_dim, r, memory_size, attn_win,
+        self.decoder = Decoder(decoder_dim, decoder_output_dim, r, memory_size, attn_type, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
                                forward_attn, trans_agent, forward_attn_mask,
-                               location_attn, separate_stopnet,
+                               location_attn, attn_K, separate_stopnet,
                                proj_speaker_dim)
         if self.bidirectional_decoder:
             self.decoder_backward = copy.deepcopy(self.decoder)
