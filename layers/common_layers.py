@@ -106,25 +106,33 @@ class LocationLayer(nn.Module):
 
 
 class GravesAttention(nn.Module):
+    """ Graves attention as described here:
+        - https://arxiv.org/abs/1910.10288
+    """
     COEF = 0.3989422917366028  # numpy.sqrt(1/(2*numpy.pi))
 
-    def __init__(self, query_dim, K, attention_alignment=0.05):
+    def __init__(self, query_dim, K):
         super(GravesAttention, self).__init__()
-        self._mask_value = -float("inf")
+        self._mask_value = 0.0
         self.K = K
-        self.attention_alignment = attention_alignment
+        # self.attention_alignment = 0.05
         self.epsilon = 1e-5
         self.J = None
         self.N_a = nn.Sequential(
             nn.Linear(query_dim, query_dim//2),
             nn.Tanh(),
             nn.Linear(query_dim//2, 3*K))
-        self.mu_tm1 = None
-        
+        self.attention_weights = None
+        self.mu_prev = None
+
     def init_states(self, inputs):
         if self.J is None or inputs.shape[1] > self.J.shape[-1]:
             self.J = torch.arange(0, inputs.shape[1]).expand_as(torch.Tensor(inputs.shape[0], self.K, inputs.shape[1])).to(inputs.device)
-        self.mu_tm1 = torch.zeros(inputs.shape[0], self.K).to(inputs.device)
+        self.attention_weights = torch.zeros(inputs.shape[0], inputs.shape[1]).to(inputs.device)
+        self.mu_prev = torch.zeros(inputs.shape[0], self.K).to(inputs.device)
+
+    def preprocess_inputs(self, inputs):
+        return None
 
     def forward(self, query, inputs, mask):
         """
@@ -143,9 +151,12 @@ class GravesAttention(nn.Module):
         k_t = gbk_t[:, 2, :]
 
         # attention GMM parameters
-        g_t = torch.softmax(g_t, dim=-1) + self.epsilon  # distribution weight
-        sig_t = torch.exp(b_t) + self.epsilon  # variance
-        mu_t = self.mu_tm1 + self.attention_alignment * torch.exp(k_t)  # mean
+        # g_t = torch.softmax(g_t, dim=-1) + self.epsilon  # distribution weight
+        # sig_t = torch.exp(b_t) + self.epsilon  # variance
+        # mu_t = self.mu_prev + self.attention_alignment * torch.exp(k_t)  # mean
+        sig_t = torch.pow(torch.nn.functional.softplus(b_t), 2)
+        mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
+        g_t = (torch.softmax(g_t, dim=-1) / sig_t) * self.COEF
 
         g_t = g_t.unsqueeze(2).expand(g_t.size(0),
                                       g_t.size(1),
@@ -156,27 +167,33 @@ class GravesAttention(nn.Module):
 
         # attention weights
         phi_t = g_t * torch.exp(-0.5 * sig_t * (mu_t_ - j)**2)
-        alpha_t = self.COEF * torch.sum(phi_t, 1)
+        alpha_t = torch.sum(phi_t, 1)
 
         # apply masking
-        # if mask is not None:
-        #     alpha_t.data.masked_fill_(~mask, self._mask_value)
-        
+        if mask is not None:
+            alpha_t.data.masked_fill_(~mask, self._mask_value)
+
+        context = torch.bmm(alpha_t.unsqueeze(1), inputs).squeeze(1)
+        self.attention_weights = alpha_t
+        self.mu_prev = mu_t
         breakpoint()
-
-        c_t = torch.bmm(alpha_t.unsqueeze(1), inputs).squeeze(1)
-        self.mu_tm1 = mu_t
-        return c_t, mu_t, alpha_t
+        return context
 
 
-class Attention(nn.Module):
+class OriginalAttention(nn.Module):
+    """Following the methods proposed here:
+        - https://arxiv.org/abs/1712.05884
+        - https://arxiv.org/abs/1807.06736 + state masking at inference
+        - Using sigmoid instead of softmax normalization
+        - Attention windowing at inference time
+    """
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
     def __init__(self, query_dim, embedding_dim, attention_dim,
                  location_attention, attention_location_n_filters,
                  attention_location_kernel_size, windowing, norm, forward_attn,
                  trans_agent, forward_attn_mask):
-        super(Attention, self).__init__()
+        super(OriginalAttention, self).__init__()
         self.query_layer = Linear(
             query_dim, attention_dim, bias=False, init_gain='tanh')
         self.inputs_layer = Linear(
@@ -228,6 +245,9 @@ class Attention(nn.Module):
             self.init_forward_attn(inputs)
         if self.windowing:
             self.init_win_idx()
+
+    def preprocess_inputs(self, inputs):
+        return self.inputs_layer(inputs)
 
     def update_location_attention(self, alignments):
         self.attention_weights_cum += alignments
@@ -337,3 +357,21 @@ class Attention(nn.Module):
             ta_input = torch.cat([context, query.squeeze(1)], dim=-1)
             self.u = torch.sigmoid(self.ta(ta_input))
         return context
+
+
+def init_attn(attn_type, query_dim, embedding_dim, attention_dim,
+              location_attention, attention_location_n_filters,
+              attention_location_kernel_size, windowing, norm, forward_attn,
+              trans_agent, forward_attn_mask, attn_K):
+    if attn_type == "original":
+        return OriginalAttention(query_dim, embedding_dim, attention_dim,
+                                 location_attention,
+                                 attention_location_n_filters,
+                                 attention_location_kernel_size, windowing,
+                                 norm, forward_attn, trans_agent,
+                                 forward_attn_mask)
+    elif attn_type == "graves":
+        return GravesAttention(query_dim, attn_K)
+    else:
+        raise RuntimeError(
+            " [!] Given Attention Type '{attn_type}' is not exist.")
