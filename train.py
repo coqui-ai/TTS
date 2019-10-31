@@ -647,8 +647,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--continue_path',
         type=str,
-        help='Training output folder to conitnue training. Use to continue a training.',
-        default='')
+        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
+        default='',
+        required=True)
     parser.add_argument(
         '--restore_path',
         type=str,
@@ -658,6 +659,7 @@ if __name__ == '__main__':
         '--config_path',
         type=str,
         help='Path to config file for training.',
+        required='--continue_path' not in sys.argv
     )
     parser.add_argument('--debug',
                         type=bool,
@@ -688,9 +690,8 @@ if __name__ == '__main__':
     c = load_config(args.config_path)
     _ = os.path.dirname(os.path.realpath(__file__))
 
-    if args.continue_path != '':
-        OUT_PATH = create_experiment_folder(args.continue_path, c.run_name, args.debug)
-    else:
+    OUT_PATH = args.continue_path
+    if args.continue_path == '':
         OUT_PATH = create_experiment_folder(c.output_path, c.run_name, args.debug)
 
     AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
