@@ -105,6 +105,70 @@ class LocationLayer(nn.Module):
         return processed_attention
 
 
+class GravesAttention(nn.Module):
+    COEF = 0.3989422917366028  # numpy.sqrt(1/(2*numpy.pi))
+
+    def __init__(self, query_dim, K, attention_alignment=0.05):
+        super(GravesAttention, self).__init__()
+        self._mask_value = -float("inf")
+        self.K = K
+        self.attention_alignment = attention_alignment
+        self.epsilon = 1e-5
+        self.J = None
+        self.N_a = nn.Sequential(
+            nn.Linear(query_dim, query_dim//2),
+            nn.Tanh(),
+            nn.Linear(query_dim//2, 3*K))
+        self.mu_tm1 = None
+        
+    def init_states(self, inputs):
+        if self.J is None or inputs.shape[1] > self.J.shape[-1]:
+            self.J = torch.arange(0, inputs.shape[1]).expand_as(torch.Tensor(inputs.shape[0], self.K, inputs.shape[1])).to(inputs.device)
+        self.mu_tm1 = torch.zeros(inputs.shape[0], self.K).to(inputs.device)
+
+    def forward(self, query, inputs, mask):
+        """
+        shapes:
+            query: B x D_attention_rnn
+            inputs: B x T_in x D_encoder
+            mask: B x T_in
+        """
+        gbk_t = self.N_a(query)
+        gbk_t = gbk_t.view(gbk_t.size(0), -1, self.K)
+
+        # attention model parameters
+        # each B x K
+        g_t = gbk_t[:, 0, :]
+        b_t = gbk_t[:, 1, :]
+        k_t = gbk_t[:, 2, :]
+
+        # attention GMM parameters
+        g_t = torch.softmax(g_t, dim=-1) + self.epsilon  # distribution weight
+        sig_t = torch.exp(b_t) + self.epsilon  # variance
+        mu_t = self.mu_tm1 + self.attention_alignment * torch.exp(k_t)  # mean
+
+        g_t = g_t.unsqueeze(2).expand(g_t.size(0),
+                                      g_t.size(1),
+                                      inputs.size(1))
+        sig_t = sig_t.unsqueeze(2).expand_as(g_t)
+        mu_t_ = mu_t.unsqueeze(2).expand_as(g_t)
+        j = self.J[:g_t.size(0), :, :inputs.size(1)]
+
+        # attention weights
+        phi_t = g_t * torch.exp(-0.5 * sig_t * (mu_t_ - j)**2)
+        alpha_t = self.COEF * torch.sum(phi_t, 1)
+
+        # apply masking
+        # if mask is not None:
+        #     alpha_t.data.masked_fill_(~mask, self._mask_value)
+        
+        breakpoint()
+
+        c_t = torch.bmm(alpha_t.unsqueeze(1), inputs).squeeze(1)
+        self.mu_tm1 = mu_t
+        return c_t, mu_t, alpha_t
+
+
 class Attention(nn.Module):
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init

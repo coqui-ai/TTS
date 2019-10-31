@@ -1,7 +1,7 @@
 # coding: utf-8
 import torch
 from torch import nn
-from .common_layers import Prenet, Attention, Linear
+from .common_layers import Prenet, Attention, Linear, GravesAttention
 
 
 class BatchNormConv1d(nn.Module):
@@ -288,17 +288,18 @@ class Decoder(nn.Module):
         # attention_rnn generates queries for the attention mechanism
         self.attention_rnn = nn.GRUCell(in_features + 128, self.query_dim)
 
-        self.attention = Attention(query_dim=self.query_dim,
-                                   embedding_dim=in_features,
-                                   attention_dim=128,
-                                   location_attention=location_attn,
-                                   attention_location_n_filters=32,
-                                   attention_location_kernel_size=31,
-                                   windowing=attn_windowing,
-                                   norm=attn_norm,
-                                   forward_attn=forward_attn,
-                                   trans_agent=trans_agent,
-                                   forward_attn_mask=forward_attn_mask)
+        # self.attention = Attention(query_dim=self.query_dim,
+        #                            embedding_dim=in_features,
+        #                            attention_dim=128,
+        #                            location_attention=location_attn,
+        #                            attention_location_n_filters=32,
+        #                            attention_location_kernel_size=31,
+        #                            windowing=attn_windowing,
+        #                            norm=attn_norm,
+        #                            forward_attn=forward_attn,
+        #                            trans_agent=trans_agent,
+        #                            forward_attn_mask=forward_attn_mask)
+        self.attention = GravesAttention(self.query_dim, 5)
         # (processed_memory | attention context) -> |Linear| -> decoder_RNN_input
         self.project_to_decoder_in = nn.Linear(256 + in_features, 256)
         # decoder_RNN_input -> |RNN| -> RNN_state
@@ -342,7 +343,7 @@ class Decoder(nn.Module):
         ]
         self.context_vec = inputs.data.new(B, self.in_features).zero_()
         # cache attention inputs
-        self.processed_inputs = self.attention.inputs_layer(inputs)
+        # self.processed_inputs = self.attention.inputs_layer(inputs)
 
     def _parse_outputs(self, outputs, attentions, stop_tokens):
         # Back to batch first
@@ -362,7 +363,7 @@ class Decoder(nn.Module):
             torch.cat((processed_memory, self.context_vec), -1),
             self.attention_rnn_hidden)
         self.context_vec = self.attention(
-            self.attention_rnn_hidden, inputs, self.processed_inputs, mask)
+            self.attention_rnn_hidden, inputs, mask)
         # Concat RNN output and attention context vector
         decoder_input = self.project_to_decoder_in(
             torch.cat((self.attention_rnn_hidden, self.context_vec), -1))
