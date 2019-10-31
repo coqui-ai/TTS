@@ -180,7 +180,7 @@ class Decoder(nn.Module):
             self.context = torch.zeros(1, device=inputs.device).repeat(
                 B, self.encoder_embedding_dim)
         self.inputs = inputs
-        self.processed_inputs = self.attention.inputs_layer(inputs)
+        self.processed_inputs = self.attention.preprocess_inputs(inputs)
         self.mask = mask
 
     def _reshape_memory(self, memory):
