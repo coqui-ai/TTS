@@ -4,6 +4,8 @@ This is an implementation of https://arxiv.org/abs/1710.10467. This model can be
 
 ![](https://user-images.githubusercontent.com/1402048/64603079-7fa5c100-d3c8-11e9-88e7-88a00d0e37d1.png)
 
+Download a pretrained model from [Released Models](https://github.com/mozilla/TTS/wiki/Released-Models) page.
+
 To run the code, you need to follow the same flow as in TTS. 
 
 - Define 'config.json' for your needs. Note that, audio parameters should match your TTS model.
