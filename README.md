@@ -50,7 +50,7 @@ Below you see Tacotron model state after 16K iterations with batch-size 32 with 
 
 Audio examples: [https://soundcloud.com/user-565970875](https://soundcloud.com/user-565970875)
 
-![example_model_output](images/example_model_output.png?raw=true)
+<img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
 
 ## Runtime
 The most time-consuming part is the vocoder algorithm (Griffin-Lim) which runs on CPU. By setting its number of iterations lower, you might have faster execution with a small loss of quality. Some of the experimental values are below.
@@ -69,7 +69,7 @@ Audio length is approximately 6 secs.
 
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloder easy to use for new datasets. You need to write an preprocessor function to integrade your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.  
+TTS provides a generic dataloder easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.  
 
 Some of the open-sourced datasets that we successfully applied TTS, are linked below.
 
@@ -78,11 +78,12 @@ Some of the open-sourced datasets that we successfully applied TTS, are linked b
 - [TWEB](https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset)
 - [M-AI-Labs](http://www.caito.de/2019/01/the-m-ailabs-speech-dataset/)
 - [LibriTTS](https://openslr.org/60/)
+- [Spanish](https://drive.google.com/file/d/1Sm_zyBo67XHkiFhcRSQ4YaHPYM0slO_e/view?usp=sharing) - thx! @carlfm01
 
 ## Training and Fine-tuning LJ-Speech
 Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below. 
 
-To start with, split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that for text-to-speech, validation performance might be misleading since the loss value does not directly measure the voice quality to the human ear and it also does not measure the attention module performance. Therefore, running the model with new sentences and listenning the results is the best way to go. 
+To start with, split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that for text-to-speech, validation performance might be misleading since the loss value does not directly measure the voice quality to the human ear and it also does not measure the attention module performance. Therefore, running the model with new sentences and listening to the results is the best way to go. 
 
 ```
 shuf metadata.csv > metadata_shuf.csv
