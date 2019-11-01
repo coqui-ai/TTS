@@ -1,0 +1,58 @@
+{
+    "run_name": "libritts_360-half",
+    "run_description": "train speaker encoder for libritts 360",
+    "audio": {
+        // Audio processing parameters
+        "num_mels": 40, // size of the mel spec frame. 
+        "num_freq": 1025, // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 16000, // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "frame_length_ms": 50, // stft window length in ms.
+        "frame_shift_ms": 12.5, // stft window hop-lengh in ms.
+        "preemphasis": 0.98, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100, // normalization range
+        "ref_level_db": 20, // reference level db, theoretically 20db is the sound of air.
+        // Normalization parameters
+        "signal_norm": true, // normalize the spec values in range [0, 1]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4, // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true, // clip normalized values into the range.
+        "mel_fmin": 0.0, // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 8000.0, // maximum freq level for mel-spec. Tune for dataset!!
+        "do_trim_silence": false // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+    },
+    "reinit_layers": [],
+    "grad_clip": 3.0, // upper limit for gradients for clipping.
+    "epochs": 1000, // total number of epochs to train.
+    "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_decay": false, // if true, Noam learning rate decaying is applied through training.
+    "warmup_steps": 4000, // Noam decay steps to increase the learning rate from 0 to "lr"
+    "tb_model_param_stats": false, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
+    "steps_plot_stats": 10, // number of steps to plot embeddings.
+    "num_speakers_in_batch": 32, // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "wd": 0.000001, // Weight decay weight.
+    "checkpoint": true, // If true, it saves checkpoints per "save_step"
+    "save_step": 1000, // Number of training steps expected to save traning stats and checkpoints.
+    "print_step": 1, // Number of steps to log traning on console.
+    "output_path": "/media/erogol/data_ssd/Models/libri_tts/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
+    "model": {
+        "input_dim": 40,
+        "proj_dim": 128,
+        "lstm_dim": 384,
+        "num_lstm_layers": 3
+    },
+    "datasets": 
+        [
+            {
+                "name": "libri_tts",
+                "path": "/home/erogol/Data/Libri-TTS/train-clean-360/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "libri_tts",
+                "path": "/home/erogol/Data/Libri-TTS/train-clean-100/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            }
+        ]
+}
