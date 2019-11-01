@@ -82,7 +82,7 @@ setup(
         "librosa==0.6.2",
         "unidecode==0.4.20",
         "tensorboardX",
-        "matplotlib==2.0.2",
+        "matplotlib",
         "Pillow",
         "flask",
         # "lws",

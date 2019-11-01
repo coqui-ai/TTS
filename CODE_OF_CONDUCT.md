@@ -1,3 +1,7 @@
+# Ethical Notice
+
+Please consider possible consequences and be mindful of any adversarial use cases of this project. In this regard, please contact us if you have any concerns. 
+
 # Community Participation Guidelines
 
 This repository is governed by Mozilla's code of conduct and etiquette guidelines. 
