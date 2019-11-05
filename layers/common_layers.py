@@ -119,11 +119,16 @@ class GravesAttention(nn.Module):
         self.epsilon = 1e-5
         self.J = None
         self.N_a = nn.Sequential(
-            nn.Linear(query_dim, query_dim),
+            nn.Linear(query_dim, query_dim, bias=True),
             nn.Tanh(),
-            nn.Linear(query_dim, 3*K))
+            nn.Linear(query_dim, 3*K, bias=True))
         self.attention_weights = None
         self.mu_prev = None
+        self.init_layers()
+
+    def init_layers(self):
+        torch.nn.init.constant_(self.N_a[2].bias[10:15], 0.5)
+        torch.nn.init.constant_(self.N_a[2].bias[5:10], 10)
 
     def init_states(self, inputs):
         if self.J is None or inputs.shape[1] > self.J.shape[-1]:
