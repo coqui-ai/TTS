@@ -49,7 +49,7 @@
     // OPTIMIZER
     "grad_clip": 1,                // upper limit for gradients for clipping.
     "epochs": 1000,                // total number of epochs to train.
-    "lr": 0.001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
     "lr_decay": false,             // if true, Noam learning rate decaying is applied through training.
     "wd": 0.000001,         // Weight decay weight.
     "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
