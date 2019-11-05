@@ -198,7 +198,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
         loss.backward()
         optimizer, current_lr = adam_weight_decay(optimizer)
-        grad_norm, _ = check_update(model, c.grad_clip)
+        grad_norm, _ = check_update(model.decoder, c.grad_clip)
         optimizer.step()
 
         # compute alignment score
