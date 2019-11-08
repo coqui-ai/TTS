@@ -11,22 +11,27 @@ class Logger(object):
     def tb_model_weights(self, model, step):
         layer_num = 1
         for name, param in model.named_parameters():
-            self.writer.add_scalar(
-                "layer{}-{}/max".format(layer_num, name),
+            if param.numel() == 1:
+                self.writer.add_scalar(
+                "layer{}-{}/value".format(layer_num, name),
                 param.max(), step)
-            self.writer.add_scalar(
-                "layer{}-{}/min".format(layer_num, name),
-                param.min(), step)
-            self.writer.add_scalar(
-                "layer{}-{}/mean".format(layer_num, name),
-                param.mean(), step)
-            self.writer.add_scalar(
-                "layer{}-{}/std".format(layer_num, name),
-                param.std(), step)
-            self.writer.add_histogram(
-                "layer{}-{}/param".format(layer_num, name), param, step)
-            self.writer.add_histogram(
-                "layer{}-{}/grad".format(layer_num, name), param.grad, step)
+            else:
+                self.writer.add_scalar(
+                    "layer{}-{}/max".format(layer_num, name),
+                    param.max(), step)
+                self.writer.add_scalar(
+                    "layer{}-{}/min".format(layer_num, name),
+                    param.min(), step)
+                self.writer.add_scalar(
+                    "layer{}-{}/mean".format(layer_num, name),
+                    param.mean(), step)
+                self.writer.add_scalar(
+                    "layer{}-{}/std".format(layer_num, name),
+                    param.std(), step)
+                self.writer.add_histogram(
+                    "layer{}-{}/param".format(layer_num, name), param, step)
+                self.writer.add_histogram(
+                    "layer{}-{}/grad".format(layer_num, name), param.grad, step)
             layer_num += 1
 
     def dict_to_tb_scalar(self, scope_name, stats, step):

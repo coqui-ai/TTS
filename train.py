@@ -198,7 +198,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
         loss.backward()
         optimizer, current_lr = adam_weight_decay(optimizer)
-        grad_norm, _ = check_update(model.decoder, c.grad_clip)
+        grad_norm, grad_flag = check_update(model, c.grad_clip, ignore_stopnet=True)
         optimizer.step()
 
         # compute alignment score
@@ -302,16 +302,15 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         end_time = time.time()
 
     # print epoch stats
-    print("   | > EPOCH END -- GlobalStep:{}  AvgTotalLoss:{:.5f}  "
+    print("   | > EPOCH END -- GlobalStep:{}  "
           "AvgPostnetLoss:{:.5f}  AvgDecoderLoss:{:.5f}  "
-          "AvgStopLoss:{:.5f}  EpochTime:{:.2f}  "
+          "AvgStopLoss:{:.5f}  AvgAlignScore:{:3f}  EpochTime:{:.2f}  "
           "AvgStepTime:{:.2f}  AvgLoaderTime:{:.2f}".format(
               global_step, keep_avg['avg_postnet_loss'],
               keep_avg['avg_decoder_loss'], keep_avg['avg_stop_loss'],
               keep_avg['avg_align_score'], epoch_time,
               keep_avg['avg_step_time'], keep_avg['avg_loader_time']),
           flush=True)
-
     # Plot Epoch Stats
     if args.rank == 0:
         # Plot Training Epoch Stats
@@ -568,7 +567,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         criterion = nn.L1Loss() if c.model in ["Tacotron", "TacotronGST"
                                                ] else nn.MSELoss()
     criterion_st = nn.BCEWithLogitsLoss(
-        pos_weight=torch.tensor(20.0)) if c.stopnet else None
+        pos_weight=torch.tensor(10)) if c.stopnet else None
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
