@@ -120,7 +120,7 @@ class GravesAttention(nn.Module):
         self.J = None
         self.N_a = nn.Sequential(
             nn.Linear(query_dim, query_dim, bias=True),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(query_dim, 3*K, bias=True))
         self.attention_weights = None
         self.mu_prev = None
@@ -163,7 +163,7 @@ class GravesAttention(nn.Module):
         sig_t = torch.pow(torch.nn.functional.softplus(b_t), 2)
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
         # TODO try sigmoid here
-        g_t = (torch.softmax(g_t, dim=-1) / sig_t) * self.COEF
+        g_t = (torch.softmax(g_t, dim=-1) / sig_t) 
 
         # each B x K x T_in
         g_t = g_t.unsqueeze(2).expand(g_t.size(0),
@@ -175,7 +175,7 @@ class GravesAttention(nn.Module):
 
         # attention weights
         phi_t = g_t * torch.exp(-0.5 * sig_t * (mu_t_ - j)**2)
-        alpha_t = torch.sum(phi_t, 1)
+        alpha_t = self.COEF * torch.sum(phi_t, 1)
 
         # apply masking
         if mask is not None:
