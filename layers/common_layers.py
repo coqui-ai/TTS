@@ -116,7 +116,7 @@ class GravesAttention(nn.Module):
         self._mask_value = 0.0
         self.K = K
         # self.attention_alignment = 0.05
-        self.epsilon = 1e-5
+        self.eps = 1e-5
         self.J = None
         self.N_a = nn.Sequential(
             nn.Linear(query_dim, query_dim, bias=True),
@@ -157,25 +157,24 @@ class GravesAttention(nn.Module):
         k_t = gbk_t[:, 2, :]
 
         # attention GMM parameters
-        # g_t = torch.softmax(g_t, dim=-1) + self.epsilon  # distribution weight
-        # sig_t = torch.exp(b_t) + self.epsilon  # variance
-        # mu_t = self.mu_prev + self.attention_alignment * torch.exp(k_t)  # mean
-        sig_t = torch.pow(torch.nn.functional.softplus(b_t), 2)
+        inv_sig_t = torch.exp(-torch.clamp(b_t, min=-7, max=9))  # variance
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
-        # TODO try sigmoid here
-        g_t = (torch.softmax(g_t, dim=-1) / sig_t) 
+        g_t = torch.softmax(g_t, dim=-1) * inv_sig_t + self.eps
 
         # each B x K x T_in
         g_t = g_t.unsqueeze(2).expand(g_t.size(0),
                                       g_t.size(1),
                                       inputs.size(1))
-        sig_t = sig_t.unsqueeze(2).expand_as(g_t)
+        inv_sig_t = inv_sig_t.unsqueeze(2).expand_as(g_t)
         mu_t_ = mu_t.unsqueeze(2).expand_as(g_t)
         j = self.J[:g_t.size(0), :, :inputs.size(1)]
 
         # attention weights
-        phi_t = g_t * torch.exp(-0.5 * sig_t * (mu_t_ - j)**2)
+        phi_t = g_t * torch.exp(-0.5 * inv_sig_t * (mu_t_ - j)**2)
         alpha_t = self.COEF * torch.sum(phi_t, 1)
+
+        if alpha_t.max() > 1e+2:
+            breakpoint()
 
         # apply masking
         if mask is not None:
