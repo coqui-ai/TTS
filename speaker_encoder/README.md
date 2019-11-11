@@ -1,6 +1,10 @@
 ### Speaker embedding (Experimental)
 
-This is an implementation of https://arxiv.org/abs/1710.10467. This model can be used for voice and speaker embedding. So you can generate d-vectors for multi-speaker TTS or prune bad samples from your TTS dataset. Below is an example showing embedding results of various speakers. You can generate the same plot with the provided notebook. 
+This is an implementation of https://arxiv.org/abs/1710.10467. This model can be used for voice and speaker embedding.
+
+With the code here you can generate d-vectors for both multi-speaker and single-speaker TTS datasets, then visualise and explore them along with the associated audio files in an interactive chart.
+
+Below is an example showing embedding results of various speakers. You can generate the same plot with the provided notebook as demonstrated in [this video](https://youtu.be/KW3oO7JVa7Q). 
 
 ![](https://user-images.githubusercontent.com/1402048/64603079-7fa5c100-d3c8-11e9-88e7-88a00d0e37d1.png)
 
