@@ -48,6 +48,7 @@ class AudioProcessor(object):
         self.do_trim_silence = do_trim_silence
         self.sound_norm = sound_norm
         self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
+        assert min_level_db ~= 0.0, " [!] min_level_db is 0"
         members = vars(self)
         for key, value in members.items():
             print(" | > {}:{}".format(key, value))
