@@ -6,7 +6,7 @@ With the code here you can generate d-vectors for both multi-speaker and single-
 
 Below is an example showing embedding results of various speakers. You can generate the same plot with the provided notebook as demonstrated in [this video](https://youtu.be/KW3oO7JVa7Q). 
 
-![](https://user-images.githubusercontent.com/1402048/64603079-7fa5c100-d3c8-11e9-88e7-88a00d0e37d1.png)
+![](umap.png)
 
 Download a pretrained model from [Released Models](https://github.com/mozilla/TTS/wiki/Released-Models) page.
 
