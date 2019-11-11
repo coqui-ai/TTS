@@ -157,7 +157,7 @@ class GravesAttention(nn.Module):
         k_t = gbk_t[:, 2, :]
 
         # attention GMM parameters
-        inv_sig_t = torch.exp(-torch.clamp(b_t, min=-7, max=9))  # variance
+        inv_sig_t = torch.exp(-torch.clamp(b_t, min=-6, max=9))  # variance
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
         g_t = torch.softmax(g_t, dim=-1) * inv_sig_t + self.eps
 
@@ -173,7 +173,7 @@ class GravesAttention(nn.Module):
         phi_t = g_t * torch.exp(-0.5 * inv_sig_t * (mu_t_ - j)**2)
         alpha_t = self.COEF * torch.sum(phi_t, 1)
 
-        if alpha_t.max() > 1e+2:
+        if alpha_t.max() > 1e+3:
             breakpoint()
 
         # apply masking
