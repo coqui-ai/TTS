@@ -175,9 +175,6 @@ class GravesAttention(nn.Module):
         phi_t = g_t * torch.exp(-0.5 * inv_sig_t * (mu_t_ - j)**2)
         alpha_t = self.COEF * torch.sum(phi_t, 1)
 
-        if alpha_t.max() > 1e+3:
-            breakpoint()
-
         # apply masking
         if mask is not None:
             alpha_t.data.masked_fill_(~mask, self._mask_value)
