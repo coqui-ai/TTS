@@ -11,7 +11,7 @@ from TTS.speaker_encoder.dataset import MyDataset
 from TTS.speaker_encoder.loss import GE2ELoss
 from TTS.speaker_encoder.model import SpeakerEncoder
 from TTS.speaker_encoder.visual import plot_embeddings
-from TTS.speaker_encoder.generic_utils import save_best_model, save_checkpoint
+from TTS.speaker_encoder.generic_utils import save_best_model
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (NoamLR, check_update, copy_config_file,
                                      count_parameters,

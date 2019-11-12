@@ -254,7 +254,7 @@ class Decoder(nn.Module):
         memories = torch.cat((memory, memories), dim=0)
         memories = self._update_memory(memories)
         if speaker_embeddings is not None:
-                memories = torch.cat([memories, speaker_embeddings], dim=-1)
+            memories = torch.cat([memories, speaker_embeddings], dim=-1)
         memories = self.prenet(memories)
 
         self._init_states(inputs, mask=mask)
