@@ -160,7 +160,7 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - [x] Generate human-like speech on a different dataset (Nancy) (TWEB).
 - [x] Train TTS with r=1 successfully.
 - [x] Enable process based distributed training. Similar to (https://github.com/fastai/imagenet-fast/).
-- [x] Adapting Neural Vocoder. TTS works with (https://github.com/erogol/WaveRNN)
+- [x] Adapting Neural Vocoder. TTS works with WaveRNN and ParallelWaveGAN (https://github.com/erogol/WaveRNN and https://github.com/erogol/ParallelWaveGAN)
 - [ ] Multi-speaker embedding.
 - [ ] Model optimization (model export, prunning etc.)
 
