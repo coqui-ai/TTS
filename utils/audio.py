@@ -15,7 +15,7 @@ class AudioProcessor(object):
                  ref_level_db=None,
                  num_freq=None,
                  power=None,
-                 preemphasis=None,
+                 preemphasis=0.0,
                  signal_norm=None,
                  symmetric_norm=None,
                  max_norm=None,
@@ -48,7 +48,7 @@ class AudioProcessor(object):
         self.do_trim_silence = do_trim_silence
         self.sound_norm = sound_norm
         self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
-        assert min_level_db ~= 0.0, " [!] min_level_db is 0"
+        assert min_level_db != 0.0, " [!] min_level_db is 0"
         members = vars(self)
         for key, value in members.items():
             print(" | > {}:{}".format(key, value))
@@ -132,12 +132,12 @@ class AudioProcessor(object):
 
     def apply_preemphasis(self, x):
         if self.preemphasis == 0:
-            raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
+            raise RuntimeError(" [!] Preemphasis is set 0.0.")
         return scipy.signal.lfilter([1, -self.preemphasis], [1], x)
 
     def apply_inv_preemphasis(self, x):
         if self.preemphasis == 0:
-            raise RuntimeError(" !! Preemphasis is applied with factor 0.0. ")
+            raise RuntimeError(" [!] Preemphasis is set 0.0.")
         return scipy.signal.lfilter([1], [1, -self.preemphasis], x)
 
     def spectrogram(self, y):

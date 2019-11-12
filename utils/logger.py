@@ -13,8 +13,8 @@ class Logger(object):
         for name, param in model.named_parameters():
             if param.numel() == 1:
                 self.writer.add_scalar(
-                "layer{}-{}/value".format(layer_num, name),
-                param.max(), step)
+                    "layer{}-{}/value".format(layer_num, name),
+                    param.max(), step)
             else:
                 self.writer.add_scalar(
                     "layer{}-{}/max".format(layer_num, name),

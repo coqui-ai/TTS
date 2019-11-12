@@ -10,10 +10,10 @@ class LSTMWithProjection(nn.Module):
         self.proj_size = proj_size
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
         self.linear = nn.Linear(hidden_size, proj_size, bias=False)
-   
+
     def forward(self, x):
         self.lstm.flatten_parameters()
-        o, (h, c) = self.lstm(x)
+        o, (_, _) = self.lstm(x)
         return self.linear(o)
 
 
@@ -22,16 +22,16 @@ class SpeakerEncoder(nn.Module):
         super().__init__()
         layers = []
         layers.append(LSTMWithProjection(input_dim, lstm_dim, proj_dim))
-        for _ in range(num_lstm_layers-1):
+        for _ in range(num_lstm_layers - 1):
             layers.append(LSTMWithProjection(proj_dim, lstm_dim, proj_dim))
         self.layers = nn.Sequential(*layers)
         self._init_layers()
 
     def _init_layers(self):
         for name, param in self.layers.named_parameters():
-            if 'bias' in name:
+            if "bias" in name:
                 nn.init.constant_(param, 0.0)
-            elif 'weight' in name:
+            elif "weight" in name:
                 nn.init.xavier_normal_(param)
 
     def forward(self, x):
@@ -81,7 +81,8 @@ class SpeakerEncoder(nn.Module):
             if embed is None:
                 embed = self.inference(frames)
             else:
-                embed[cur_iter <= num_iters, :] += self.inference(frames[cur_iter <= num_iters, :, :])
+                embed[cur_iter <= num_iters, :] += self.inference(
+                    frames[cur_iter <= num_iters, :, :]
+                )
         return embed / num_iters
-        
 

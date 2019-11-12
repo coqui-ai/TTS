@@ -5,7 +5,8 @@ from TTS.layers.tacotron import Prenet, CBHG, Decoder, Encoder
 from TTS.layers.losses import L1LossMasked
 from TTS.utils.generic_utils import sequence_mask
 
-#pylint: disable=unused-variable
+# pylint: disable=unused-variable
+
 
 class PrenetTests(unittest.TestCase):
     def test_in_out(self):
@@ -49,6 +50,8 @@ class DecoderTests(unittest.TestCase):
             memory_size=4,
             attn_windowing=False,
             attn_norm="sigmoid",
+            attn_K=5,
+            attn_type="original",
             prenet_type='original',
             prenet_dropout=True,
             forward_attn=True,
@@ -77,6 +80,8 @@ class DecoderTests(unittest.TestCase):
             memory_size=4,
             attn_windowing=False,
             attn_norm="sigmoid",
+            attn_K=5,
+            attn_type="graves",
             prenet_type='original',
             prenet_dropout=True,
             forward_attn=True,

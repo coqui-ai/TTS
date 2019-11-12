@@ -136,6 +136,8 @@ class GravesAttention(nn.Module):
         self.attention_weights = torch.zeros(inputs.shape[0], inputs.shape[1]).to(inputs.device)
         self.mu_prev = torch.zeros(inputs.shape[0], self.K).to(inputs.device)
 
+    # pylint: disable=R0201
+    # pylint: disable=unused-argument
     def preprocess_inputs(self, inputs):
         return None
 
@@ -376,8 +378,7 @@ def init_attn(attn_type, query_dim, embedding_dim, attention_dim,
                                  attention_location_kernel_size, windowing,
                                  norm, forward_attn, trans_agent,
                                  forward_attn_mask)
-    elif attn_type == "graves":
+    if attn_type == "graves":
         return GravesAttention(query_dim, attn_K)
-    else:
-        raise RuntimeError(
-            " [!] Given Attention Type '{attn_type}' is not exist.")
+    raise RuntimeError(
+        " [!] Given Attention Type '{attn_type}' is not exist.")

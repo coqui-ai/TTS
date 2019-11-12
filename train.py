@@ -117,7 +117,8 @@ def format_data(data):
 
 def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
           ap, global_step, epoch):
-    data_loader = setup_loader(ap, model.decoder.r, is_val=False, verbose=(epoch == 0))
+    data_loader = setup_loader(ap, model.decoder.r, is_val=False,
+                               verbose=(epoch == 0))
     model.train()
     epoch_time = 0
     train_values = {
