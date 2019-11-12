@@ -4,22 +4,21 @@ import torch as T
 
 from TTS.speaker_encoder.model import SpeakerEncoder
 from TTS.speaker_encoder.loss import GE2ELoss
-from TTS.speaker_encoder.dataset import MyDataset
-from TTS.utils.audio import AudioProcessor
-from torch.utils.data import DataLoader
-from TTS.datasets.preprocess import libri_tts
 from TTS.utils.generic_utils import load_config
 
 
-file_path = os.path.dirname(os.path.realpath(__file__)) +  "/../tests/"
-c = load_config(os.path.join(file_path, 'test_config.json'))
+file_path = os.path.dirname(os.path.realpath(__file__)) + "/../tests/"
+c = load_config(os.path.join(file_path, "test_config.json"))
 
 
 class SpeakerEncoderTests(unittest.TestCase):
+    # pylint: disable=R0201
     def test_in_out(self):
         dummy_input = T.rand(4, 20, 80)  # B x T x D
         dummy_hidden = [T.rand(2, 4, 128), T.rand(2, 4, 128)]
-        model = SpeakerEncoder(input_dim=80, proj_dim=256, lstm_dim=768, num_lstm_layers=3)
+        model = SpeakerEncoder(
+            input_dim=80, proj_dim=256, lstm_dim=768, num_lstm_layers=3
+        )
         # computing d vectors
         output = model.forward(dummy_input)
         assert output.shape[0] == 4
@@ -35,8 +34,10 @@ class SpeakerEncoderTests(unittest.TestCase):
         # check normalization
         output_norm = T.nn.functional.normalize(output, dim=1, p=2)
         assert_diff = (output_norm - output).sum().item()
-        assert output.type() == 'torch.FloatTensor'
-        assert abs(assert_diff) < 1e-4, f" [!] output_norm has wrong values - {assert_diff}"
+        assert output.type() == "torch.FloatTensor"
+        assert (
+            abs(assert_diff) < 1e-4
+        ), f" [!] output_norm has wrong values - {assert_diff}"
         # compute d for a given batch
         dummy_input = T.rand(1, 240, 80)  # B x T x D
         output = model.compute_embedding(dummy_input, num_frames=160, overlap=0.5)
@@ -45,23 +46,29 @@ class SpeakerEncoderTests(unittest.TestCase):
         assert len(output.shape) == 2
 
 
-
 class GE2ELossTests(unittest.TestCase):
+    # pylint: disable=R0201
     def test_in_out(self):
         # check random input
         dummy_input = T.rand(4, 5, 64)  # num_speaker x num_utterance x dim
-        loss = GE2ELoss(loss_method='softmax')
+        loss = GE2ELoss(loss_method="softmax")
         output = loss.forward(dummy_input)
-        assert output.item() >= 0. 
+        assert output.item() >= 0.0
         # check all zeros
         dummy_input = T.ones(4, 5, 64)  # num_speaker x num_utterance x dim
-        loss = GE2ELoss(loss_method='softmax')
+        loss = GE2ELoss(loss_method="softmax")
         output = loss.forward(dummy_input)
         # check speaker loss with orthogonal d-vectors
         dummy_input = T.empty(3, 64)
         dummy_input = T.nn.init.orthogonal(dummy_input)
-        dummy_input = T.cat([dummy_input[0].repeat(5, 1, 1).transpose(0, 1), dummy_input[1].repeat(5, 1, 1).transpose(0, 1), dummy_input[2].repeat(5, 1, 1).transpose(0, 1)])  # num_speaker x num_utterance x dim
-        loss = GE2ELoss(loss_method='softmax')
+        dummy_input = T.cat(
+            [
+                dummy_input[0].repeat(5, 1, 1).transpose(0, 1),
+                dummy_input[1].repeat(5, 1, 1).transpose(0, 1),
+                dummy_input[2].repeat(5, 1, 1).transpose(0, 1),
+            ]
+        )  # num_speaker x num_utterance x dim
+        loss = GE2ELoss(loss_method="softmax")
         output = loss.forward(dummy_input)
         assert output.item() < 0.005
 

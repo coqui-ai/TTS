@@ -5,24 +5,21 @@ import time
 import traceback
 
 import torch
-from torch import optim
 from torch.utils.data import DataLoader
 from TTS.datasets.preprocess import load_meta_data
 from TTS.speaker_encoder.dataset import MyDataset
-from TTS.speaker_encoder.generic_utils import save_best_model, save_checkpoint
 from TTS.speaker_encoder.loss import GE2ELoss
 from TTS.speaker_encoder.model import SpeakerEncoder
 from TTS.speaker_encoder.visual import plot_embeddings
+from TTS.speaker_encoder.generic_utils import save_best_model, save_checkpoint
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (NoamLR, check_update, copy_config_file,
                                      count_parameters,
                                      create_experiment_folder, get_git_branch,
-                                     gradual_training_scheduler, load_config,
-                                     remove_experiment_folder, set_init_dict,
-                                     setup_model, split_dataset)
+                                     load_config,
+                                     remove_experiment_folder, set_init_dict)
 from TTS.utils.logger import Logger
 from TTS.utils.radam import RAdam
-from TTS.utils.visual import plot_alignment, plot_spectrogram
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
@@ -34,10 +31,6 @@ print(" > Number of GPUs: ", num_gpus)
 
 
 def setup_loader(ap, is_val=False, verbose=False):
-    global meta_data_train
-    global meta_data_eval
-    if "meta_data_train" not in globals():
-        meta_data_train, meta_data_eval = load_meta_data(c.datasets)
     if is_val:
         loader = None
     else:
@@ -63,12 +56,11 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
     best_loss = float('inf')
     avg_loss = 0
     end_time = time.time()
-    for num_iter, data in enumerate(data_loader):
+    for _, data in enumerate(data_loader):
         start_time = time.time()
 
         # setup input data
         inputs = data[0]
-        labels = data[1]
         loader_time = time.time() - end_time
         global_step += 1
 
@@ -132,68 +124,11 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
     return avg_loss, global_step
 
 
-# def evaluate(model, criterion, ap, global_step, epoch):
-#     data_loader = setup_loader(ap, is_val=True)
-#     model.eval()
-#     epoch_time = 0
-#     avg_loss = 0
-#     print("\n > Validation")
-#     with torch.no_grad():
-#         if data_loader is not None:
-#             for num_iter, data in enumerate(data_loader):
-#                 start_time = time.time()
-
-#                 # setup input data
-#                 inputs = data[0]
-#                 labels = data[1]
-
-#                 # dispatch data to GPU
-#                 if use_cuda:
-#                     inputs = inputs.cuda()
-#                     # labels = labels.cuda()
-
-#                 # forward pass
-#                 outputs = model.forward(inputs)
-
-#                 # loss computation
-#                 loss = criterion(outputs.reshape(
-#                     c.num_speakers_in_batch, outputs.shape[0] // c.num_speakers_in_batch, -1))
-#                 step_time = time.time() - start_time
-#                 epoch_time += step_time
-
-#                 if num_iter % c.print_step == 0:
-#                     print(
-#                         "   | > Loss: {:.5f}  ".format(loss.item()),
-#                         flush=True)
-
-#                 avg_loss += float(loss.item())
-
-#             eval_figures = {
-#                 "prediction": plot_spectrogram(const_spec, ap),
-#                 "ground_truth": plot_spectrogram(gt_spec, ap),
-#                 "alignment": plot_alignment(align_img)
-#             }
-#             tb_logger.tb_eval_figures(global_step, eval_figures)
-
-#             # Sample audio
-#             if c.model in ["Tacotron", "TacotronGST"]:
-#                 eval_audio = ap.inv_spectrogram(const_spec.T)
-#             else:
-#                 eval_audio = ap.inv_mel_spectrogram(const_spec.T)
-#             tb_logger.tb_eval_audios(
-#                 global_step, {"ValAudio": eval_audio}, c.audio["sample_rate"])
-
-#             # compute average losses
-#             avg_loss /= (num_iter + 1)
-
-#             # Plot Validation Stats
-#             epoch_stats = {"GE2Eloss": avg_loss}
-#             tb_logger.tb_eval_stats(global_step, epoch_stats)
-#     return avg_loss
-
-
-# FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
+    # pylint: disable=global-variable-undefined
+    global meta_data_train
+    global meta_data_eval
+
     ap = AudioProcessor(**c.audio)
     model = SpeakerEncoder(input_dim=40,
                            proj_dim=128,
@@ -211,7 +146,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.reinit_layers:
                 raise RuntimeError
             model.load_state_dict(checkpoint['model'])
-        except:
+        except KeyError:
             print(" > Partial model initialization.")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint, c)
@@ -238,6 +173,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     num_params = count_parameters(model)
     print("\n > Model has {} parameters".format(num_params), flush=True)
+
+    # pylint: disable=redefined-outer-name
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
     global_step = args.restore_step
     train_loss, global_step = train(model, criterion, optimizer, scheduler, ap,
