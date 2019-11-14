@@ -11,17 +11,26 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import load_config
 
 parser = argparse.ArgumentParser(
-    description="Compute embedding vectors for each wav file in a dataset. "
+    description='Compute embedding vectors for each wav file in a dataset. ')
+parser.add_argument(
+    'model_path',
+    type=str,
+    help='Path to model outputs (checkpoint, tensorboard etc.).')
+parser.add_argument(
+    'config_path',
+    type=str,
+    help='Path to config file for training.',
 )
 parser.add_argument(
     'data_path',
     type=str,
     help='Data path for wav files - directory or CSV file')
 parser.add_argument(
-    "config_path", type=str, help="Path to config file for training.",
-)
+    'output_path',
+    type=str,
+    help='path for training outputs.')
 parser.add_argument(
-    "data_path", type=str, help="Defines the data path. It overwrites config.json."
+    '--use_cuda', type=bool, help='flag to set cuda.', default=False
 )
 parser.add_argument(
     '--separator', type=str, help='Separator used in file if CSV is passed for data_path', default='|'
@@ -30,7 +39,7 @@ args = parser.parse_args()
 
 
 c = load_config(args.config_path)
-ap = AudioProcessor(**c["audio"])
+ap = AudioProcessor(**c['audio'])
 
 data_path = args.data_path
 split_ext = os.path.splitext(data_path)
@@ -65,7 +74,7 @@ for output_file in output_files:
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
 model = SpeakerEncoder(**c.model)
-model.load_state_dict(torch.load(args.model_path)["model"])
+model.load_state_dict(torch.load(args.model_path)['model'])
 model.eval()
 if args.use_cuda:
     model.cuda()
