@@ -11,3 +11,4 @@ scipy==0.19.0
 tqdm
 git+git://github.com/bootphon/phonemizer@master
 soundfile
+bokeh==1.4.0
