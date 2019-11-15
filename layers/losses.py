@@ -18,7 +18,7 @@ class L1LossMasked(nn.Module):
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
         Returns:
-            loss: An average loss value masked by the length.
+            loss: An average loss value in range [0, 1] masked by the length.
         """
         # mask: (batch, max_len, 1)
         target.requires_grad = False
@@ -44,7 +44,7 @@ class MSELossMasked(nn.Module):
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
         Returns:
-            loss: An average loss value masked by the length.
+            loss: An average loss value in range [0, 1] masked by the length.
         """
         # mask: (batch, max_len, 1)
         target.requires_grad = False
