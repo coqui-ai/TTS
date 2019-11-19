@@ -193,22 +193,22 @@ class MyDataset(Dataset):
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
             linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
 
-            mel_lengths = [m.shape[1] + 1 for m in mel]  # +1 for zero-frame
+            mel_lengths = [m.shape[1] for m in mel] 
 
             # compute 'stop token' targets
             stop_targets = [
-                np.array([0.] * (mel_len - 1)) for mel_len in mel_lengths
+                np.array([0.] * (mel_len - 1) + [1.]) for mel_len in mel_lengths
             ]
 
             # PAD stop targets
             stop_targets = prepare_stop_target(stop_targets,
                                                self.outputs_per_step)
 
-            # PAD sequences with largest length of the batch
+            # PAD sequences with longest instance in the batch
             text = prepare_data(text).astype(np.int32)
             wav = prepare_data(wav)
 
-            # PAD features with largest length + a zero frame
+            # PAD features with longest instance
             linear = prepare_tensor(linear, self.outputs_per_step)
             mel = prepare_tensor(mel, self.outputs_per_step)
             assert mel.shape[2] == linear.shape[2]
