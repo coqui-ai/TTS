@@ -212,7 +212,6 @@ class MyDataset(Dataset):
             linear = prepare_tensor(linear, self.outputs_per_step)
             mel = prepare_tensor(mel, self.outputs_per_step)
             assert mel.shape[2] == linear.shape[2]
-            timesteps = mel.shape[2]
 
             # B x D x T --> B x T x D
             linear = linear.transpose(0, 2, 1)
