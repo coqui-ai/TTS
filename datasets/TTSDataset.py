@@ -166,10 +166,10 @@ class MyDataset(Dataset):
     def collate_fn(self, batch):
         r"""
             Perform preprocessing and create a final data batch:
-            1. PAD sequences with the longest sequence in the batch
+            1. Sort batch instances by text-length
             2. Convert Audio signal to Spectrograms.
-            3. PAD sequences that can be divided by r.
-            4. Convert Numpy to Torch tensors.
+            3. PAD sequences wrt r.
+            4. Load to Torch.
         """
 
         # Puts each data field into a tensor with outer dimension batch size
