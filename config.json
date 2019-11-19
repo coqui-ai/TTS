@@ -43,7 +43,7 @@
 
     // VALIDATION
     "run_eval": true,
-    "test_delay_epochs": 5,  //Until attention is aligned, testing only wastes computation time.
+    "test_delay_epochs": 10,  //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
 
     // OPTIMIZER
