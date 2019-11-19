@@ -1,6 +1,6 @@
 {
     "model": "Tacotron2",          // one of the model in models/  
-    "run_name": "ljspeech-w/o-bd",
+    "run_name": "ljspeech",
     "run_description": "tacotron2 without bidirectional decoder",
 
     // AUDIO PARAMETERS
