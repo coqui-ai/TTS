@@ -4,6 +4,7 @@ yes | apt-get install ffmpeg
 yes | apt-get install espeak 
 yes | apt-get install tmux
 yes | apt-get install zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 pip3 install https://download.pytorch.org/whl/cu100/torch-1.3.0%2Bcu100-cp36-cp36m-linux_x86_64.whl
 sudo sh install.sh
 pip install pytorch==1.3.0+cu100
