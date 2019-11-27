@@ -11,7 +11,7 @@ import setuptools.command.develop
 import setuptools.command.build_py
 
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
 parser.add_argument('--checkpoint', type=str, help='Path to checkpoint file to embed in wheel.')
 parser.add_argument('--model_config', type=str, help='Path to model configuration file to embed in wheel.')
 args, unknown_args = parser.parse_known_args()
