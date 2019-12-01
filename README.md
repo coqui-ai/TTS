@@ -161,7 +161,7 @@ Please feel free to offer new changes and pull things off. We are happy to discu
 - [x] Enable process based distributed training. Similar to (https://github.com/fastai/imagenet-fast/).
 - [x] Adapting Neural Vocoder. TTS works with (https://github.com/erogol/WaveRNN)
 - [ ] Multi-speaker embedding.
-- [ ] Model optimization (model export, prunning etc.)
+- [ ] Model optimization (model export, model pruning etc.)
 
 <!--## References
 - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1802.08435.pdf)
