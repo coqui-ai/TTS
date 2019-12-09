@@ -57,6 +57,7 @@
       <div class="row">
         <div class="col-lg-12 text-center">
           <img class="mt-5" src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" alt=></img>
+          <h1 class="mt-5">Mozilla TTS</h1>
           <ul class="list-unstyled">
           </ul>
           <input id="text" placeholder="Type here..." size=45 type="text" name="text"> 
@@ -68,12 +69,10 @@
     </div>
 
     <!-- Bootstrap core JavaScript -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"></script>
     <script>
             function q(selector) {return document.querySelector(selector)}
             q('#text').focus()
-            q('#speak-button').addEventListener('click', function(e) {
+            function do_tts(e) {
                 text = q('#text').value
                 if (text) {
                     q('#message').textContent = 'Synthesizing...'
@@ -83,6 +82,12 @@
                 }
                 e.preventDefault()
                 return false
+            }
+            q('#speak-button').addEventListener('click', do_tts)
+            q('#text').addEventListener('keyup', function(e) {
+              if (e.keyCode == 13) { // enter
+                do_tts(e)
+              }
             })
             function synthesize(text) {
                 fetch('/api/tts?text=' + encodeURIComponent(text), {cache: 'no-cache'})

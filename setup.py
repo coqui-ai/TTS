@@ -1,10 +1,23 @@
 #!/usr/bin/env python
 
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+
 from setuptools import setup, find_packages
 import setuptools.command.develop
 import setuptools.command.build_py
-import os
-import subprocess
+
+
+parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+parser.add_argument('--checkpoint', type=str, help='Path to checkpoint file to embed in wheel.')
+parser.add_argument('--model_config', type=str, help='Path to model configuration file to embed in wheel.')
+args, unknown_args = parser.parse_known_args()
+
+# Remove our arguments from argv so that setuptools doesn't see them
+sys.argv = [sys.argv[0]] + unknown_args
 
 version = '0.0.1'
 
@@ -42,20 +55,17 @@ class develop(setuptools.command.develop.develop):
         setuptools.command.develop.develop.run(self)
 
 
-def create_readme_rst():
-    try:
-        subprocess.check_call(
-            [
-                "pandoc", "--from=markdown", "--to=rst", "--output=README.rst",
-                "README.md"
-            ],
-            cwd=cwd)
-        print("Generated README.rst from README.md using pandoc.")
-    except subprocess.CalledProcessError:
-        pass
-    except OSError:
-        pass
+package_data = ['server/templates/*']
 
+if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
+    print('Embedding model in wheel file...')
+    model_dir = os.path.join('server', 'model')
+    os.makedirs(model_dir, exist_ok=True)
+    embedded_checkpoint_path = os.path.join(model_dir, 'checkpoint.pth.tar')
+    shutil.copy(args.checkpoint, embedded_checkpoint_path)
+    embedded_config_path = os.path.join(model_dir, 'config.json')
+    shutil.copy(args.model_config, embedded_config_path)
+    package_data.extend([embedded_checkpoint_path, embedded_config_path])
 
 setup(
     name='TTS',
@@ -65,6 +75,9 @@ setup(
     license='MPL-2.0',
     package_dir={'': 'tts_namespace'},
     packages=find_packages('tts_namespace'),
+    package_data={
+        'TTS': package_data,
+    },
     project_urls={
         'Documentation': 'https://github.com/mozilla/TTS/wiki',
         'Tracker': 'https://github.com/mozilla/TTS/issues',
@@ -75,12 +88,13 @@ setup(
         'build_py': build_py,
         'develop': develop,
     },
-    setup_requires=["numpy==1.15.4"],
     install_requires=[
-        "scipy >=0.19.0",
-        "torch >= 0.4.1",
+        "scipy>=0.19.0",
+        "torch>=0.4.1",
+        "numpy==1.15.4",
         "librosa==0.6.2",
         "unidecode==0.4.20",
+        "attrdict",
         "tensorboardX",
         "matplotlib",
         "Pillow",
