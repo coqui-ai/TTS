@@ -592,7 +592,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         args.restore_step = 0
 
     if use_cuda:
-        model = model.cuda()
+        model.cuda()
         criterion.cuda()
         if criterion_st:
             criterion_st.cuda()
