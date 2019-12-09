@@ -20,6 +20,8 @@ class DemoServerTest(unittest.TestCase):
     def test_in_out(self):
         self._create_random_model()
         config = load_config(os.path.join(get_tests_input_path(), 'server_config.json'))
-        config['tts_path'] = get_tests_output_path()
+        tts_root_path = get_tests_output_path()
+        config['tts_checkpoint'] = os.path.join(tts_root_path, config['tts_checkpoint'])
+        config['tts_config'] = os.path.join(tts_root_path, config['tts_config'])
         synthesizer = Synthesizer(config)
         synthesizer.tts("Better this test works!!")
