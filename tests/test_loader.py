@@ -138,8 +138,8 @@ class TestTTSDataset(unittest.TestCase):
                 # there is a slight difference between two matrices.
                 # TODO: Check this assert cond more in detail.
                 assert abs((abs(mel.T)
-                            - abs(mel_dl[:-1])
-                            ).sum()) < 1e-5, (abs(mel.T) - abs(mel_dl[:-1])).sum()
+                            - abs(mel_dl)
+                            ).sum()) < 1e-5, (abs(mel.T) - abs(mel_dl)).sum()
 
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()
@@ -155,9 +155,9 @@ class TestTTSDataset(unittest.TestCase):
                             OUTPATH + '/linear_target_dataloader.wav')
 
                 # check the last time step to be zero padded
-                assert linear_input[0, -1].sum() == 0
+                assert linear_input[0, -1].sum() != 0
                 assert linear_input[0, -2].sum() != 0
-                assert mel_input[0, -1].sum() == 0
+                assert mel_input[0, -1].sum() != 0
                 assert mel_input[0, -2].sum() != 0
                 assert stop_target[0, -1] == 1
                 assert stop_target[0, -2] == 0
@@ -187,9 +187,9 @@ class TestTTSDataset(unittest.TestCase):
                     idx = 1
 
                 # check the first item in the batch
-                assert linear_input[idx, -1].sum() == 0
+                assert linear_input[idx, -1].sum() != 0
                 assert linear_input[idx, -2].sum() != 0, linear_input
-                assert mel_input[idx, -1].sum() == 0
+                assert mel_input[idx, -1].sum() != 0
                 assert mel_input[idx, -2].sum() != 0, mel_input
                 assert stop_target[idx, -1] == 1
                 assert stop_target[idx, -2] == 0
@@ -204,6 +204,6 @@ class TestTTSDataset(unittest.TestCase):
                 assert stop_target[1 - idx, -1] == 1
                 assert len(mel_lengths.shape) == 1
 
-                # check batch conditions
-                assert (linear_input * stop_target.unsqueeze(2)).sum() == 0
-                assert (mel_input * stop_target.unsqueeze(2)).sum() == 0
+                # check batch zero-frame conditions (zero-frame disabled)
+                # assert (linear_input * stop_target.unsqueeze(2)).sum() == 0
+                # assert (mel_input * stop_target.unsqueeze(2)).sum() == 0
