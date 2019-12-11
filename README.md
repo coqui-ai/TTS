@@ -14,6 +14,12 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
 
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
+## Utilities under this Project
+- Deep Learning based Text2Speech model.
+- ```dataset_analysis```: Tools to curate a Text2Speech dataset.
+- ```speaker_encoder```: Speaker Encoder model computing embedding vectors for voice files.
+- ```server```: Basic server implementation with packaging. 
+
 ## Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
   * python>=3.6
