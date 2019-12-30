@@ -247,7 +247,7 @@ class AudioProcessor(object):
                 print(f' [!] File cannot be trimmed for silence - {filename}')
         assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
         if self.sound_norm:
-            x = x / x.max() * 0.9
+            x = x / abs(x.max()) * 0.9
         return x
 
     @staticmethod
