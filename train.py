@@ -455,7 +455,8 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                 epoch_stats = {
                     "loss_postnet": keep_avg['avg_postnet_loss'],
                     "loss_decoder": keep_avg['avg_decoder_loss'],
-                    "stop_loss": keep_avg['avg_stop_loss']
+                    "stop_loss": keep_avg['avg_stop_loss'],
+                    "alignment_score": keep_avg['avg_align_score']
                 }
 
                 if c.bidirectional_decoder:
