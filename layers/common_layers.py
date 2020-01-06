@@ -127,8 +127,8 @@ class GravesAttention(nn.Module):
         self.init_layers()
 
     def init_layers(self):
-        torch.nn.init.constant_(self.N_a[2].bias[10:15], 0.5)
-        torch.nn.init.constant_(self.N_a[2].bias[5:10], 10)
+        torch.nn.init.constant_(self.N_a[2].bias[(2*self.K):(3*self.K)], 1.)
+        torch.nn.init.constant_(self.N_a[2].bias[self.K:(2*self.K)], 10)
 
     def init_states(self, inputs):
         if self.J is None or inputs.shape[1] > self.J.shape[-1]:
@@ -159,20 +159,21 @@ class GravesAttention(nn.Module):
         k_t = gbk_t[:, 2, :]
 
         # attention GMM parameters
-        inv_sig_t = torch.exp(-torch.clamp(b_t, min=-6, max=9))  # variance
+        sig_t = torch.nn.functional.softplus(b_t)+self.eps
+
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
-        g_t = torch.softmax(g_t, dim=-1) * inv_sig_t + self.eps
+        g_t = torch.softmax(g_t, dim=-1) / sig_t + self.eps
 
         # each B x K x T_in
         g_t = g_t.unsqueeze(2).expand(g_t.size(0),
                                       g_t.size(1),
                                       inputs.size(1))
-        inv_sig_t = inv_sig_t.unsqueeze(2).expand_as(g_t)
+        sig_t = sig_t.unsqueeze(2).expand_as(g_t)
         mu_t_ = mu_t.unsqueeze(2).expand_as(g_t)
         j = self.J[:g_t.size(0), :, :inputs.size(1)]
 
         # attention weights
-        phi_t = g_t * torch.exp(-0.5 * inv_sig_t * (mu_t_ - j)**2)
+        phi_t = g_t * torch.exp(-0.5 * (mu_t_ - j)**2 / (sig_t**2))
         alpha_t = self.COEF * torch.sum(phi_t, 1)
 
         # apply masking
