@@ -161,7 +161,6 @@ class GravesAttention(nn.Module):
         # attention GMM parameters
         sig_t = torch.nn.functional.softplus(b_t)+self.eps
 
-        #inv_sig_t = torch.exp(-torch.clamp(b_t, min=-6, max=9))  # variance
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
         g_t = torch.softmax(g_t, dim=-1) / sig_t + self.eps
 
