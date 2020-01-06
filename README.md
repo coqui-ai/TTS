@@ -112,6 +112,8 @@ You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir```
 ## Testing
 Best way to test your network is to use Notebooks under ```notebooks``` folder.
 
+There is also a good [CoLab] (https://colab.research.google.com/github/tugstugi/dl-colab-notebooks/blob/master/notebooks/Mozilla_TTS_WaveRNN.ipynb) sample using pre-trained models (by @tugstugi).
+
 ## Contribution guidelines
 This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
 
