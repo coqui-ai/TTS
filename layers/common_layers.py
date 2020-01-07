@@ -159,7 +159,7 @@ class GravesAttention(nn.Module):
         k_t = gbk_t[:, 2, :]
 
         # attention GMM parameters
-        sig_t = torch.nn.functional.softplus(b_t)+self.eps
+        sig_t = torch.nn.functional.softplus(b_t) + self.eps
 
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
         g_t = torch.softmax(g_t, dim=-1) / sig_t + self.eps
