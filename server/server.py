@@ -55,8 +55,11 @@ def tts():
 
 
 if __name__ == '__main__':
-    if not config or not synthesizer:
-        args = create_argparser().parse_args()
+    args = create_argparser().parse_args()
+
+    # Setup synthesizer from CLI args if they're specified or no embedded model
+    # is present.
+    if not config or not synthesizer or args.tts_checkpoint or args.tts_config:
         synthesizer = Synthesizer(args)
 
     app.run(debug=config.debug, host='0.0.0.0', port=config.port)
