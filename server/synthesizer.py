@@ -53,15 +53,14 @@ class Synthesizer(object):
             num_speakers = 0
         self.tts_model = setup_model(self.input_size, num_speakers=num_speakers, c=self.tts_config) 
         # load model state
-        map_location = None if use_cuda else torch.device('cpu')
-        cp = torch.load(tts_checkpoint, map_location=map_location)
+        cp = torch.load(tts_checkpoint, map_location=torch.device('cpu'))
         # load the model
         self.tts_model.load_state_dict(cp['model'])
         if use_cuda:
             self.tts_model.cuda()
         self.tts_model.eval()
         self.tts_model.decoder.max_decoder_steps = 3000
-        if 'r' in cp and self.tts_config.model in ["Tacotron", "TacotronGST"]:
+        if 'r' in cp:
             self.tts_model.decoder.set_r(cp['r'])
 
     def load_wavernn(self, lib_path, model_path, model_file, model_config, use_cuda):
