@@ -12,7 +12,7 @@ def alignment_diagonal_score(alignments, binary=False):
     Shape:
         alignments : batch x decoder_steps x encoder_steps
     """
+    maxs = alignments.max(dim=1)[0]
     if binary:
-        return torch.clamp(alignments.max(dim=1)[0], max=1.0).mean(dim=1).mean(dim=0).item()
-    else:
-        return alignments.max(dim=1)[0].mean(dim=1).mean(dim=0).item()
+        maxs[maxs > 0] = 1
+    return maxs.mean(dim=1).mean(dim=0).item()
