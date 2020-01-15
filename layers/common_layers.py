@@ -113,7 +113,7 @@ class GravesAttention(nn.Module):
 
     def __init__(self, query_dim, K):
         super(GravesAttention, self).__init__()
-        self._mask_value = 0.0
+        self._mask_value = 1e-8
         self.K = K
         # self.attention_alignment = 0.05
         self.eps = 1e-5
@@ -160,12 +160,14 @@ class GravesAttention(nn.Module):
 
         # attention GMM parameters
         sig_t = torch.nn.functional.softplus(b_t) + self.eps
+
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
         g_t = torch.softmax(g_t, dim=-1) / sig_t + self.eps
+
         j = self.J[:inputs.size(1)+1]
 
         # attention weights
-        phi_t = g_t.unsqueeze(-1) * (1 / (1 + torch.exp((mu_t.unsqueeze(-1) - j) / sig_t.unsqueeze(-1))))
+        phi_t = g_t.unsqueeze(-1) * (1 / (1 + torch.sigmoid((mu_t.unsqueeze(-1) - j) / sig_t.unsqueeze(-1))))
 
         # discritize attention weights
         alpha_t = torch.sum(phi_t, 1)
@@ -177,8 +179,6 @@ class GravesAttention(nn.Module):
             alpha_t.data.masked_fill_(~mask, self._mask_value)
 
         context = torch.bmm(alpha_t.unsqueeze(1), inputs).squeeze(1)
-        # for better visualization
-        # self.attention_weights = torch.clamp(alpha_t, min=0)
         self.attention_weights = alpha_t
         self.mu_prev = mu_t
         return context
@@ -351,7 +351,7 @@ class OriginalAttention(nn.Module):
         if self.forward_attn:
             alignment = self.apply_forward_attention(alignment)
             self.alpha = alignment
-        
+
         context = torch.bmm(alignment.unsqueeze(1), inputs)
         context = context.squeeze(1)
         self.attention_weights = alignment
