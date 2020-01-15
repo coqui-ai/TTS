@@ -151,7 +151,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
         global_step += 1
 
         # setup lr
-        if c.lr_decay:
+        if c.noam_schedule:
             scheduler.step()
         optimizer.zero_grad()
         if optimizer_st:
