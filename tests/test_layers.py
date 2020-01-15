@@ -119,7 +119,7 @@ class EncoderTests(unittest.TestCase):
 class L1LossMaskedTests(unittest.TestCase):
     def test_in_out(self):
         # test input == target
-        layer = L1LossMasked()
+        layer = L1LossMasked(seq_len_norm=False)
         dummy_input = T.ones(4, 8, 128).float()
         dummy_target = T.ones(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
