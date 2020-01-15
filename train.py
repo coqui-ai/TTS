@@ -561,8 +561,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         optimizer_st = None
 
     if c.loss_masking:
-        criterion = L1LossMasked() if c.model in ["Tacotron", "TacotronGST"
-                                                  ] else MSELossMasked()
+        criterion = L1LossMasked(c.seq_len_norm) if c.model in ["Tacotron", "TacotronGST"
+                                                  ] else MSELossMasked(c.seq_len_norm)
     else:
         criterion = nn.L1Loss() if c.model in ["Tacotron", "TacotronGST"
                                                ] else nn.MSELoss()
