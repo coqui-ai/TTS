@@ -127,8 +127,8 @@ class GravesAttention(nn.Module):
         self.init_layers()
 
     def init_layers(self):
-        torch.nn.init.constant_(self.N_a[2].bias[(2*self.K):(3*self.K)], 1.)
-        torch.nn.init.constant_(self.N_a[2].bias[self.K:(2*self.K)], 10)
+        torch.nn.init.constant_(self.N_a[2].bias[(2*self.K):(3*self.K)], 1.)  # bias mean
+        torch.nn.init.constant_(self.N_a[2].bias[self.K:(2*self.K)], 10)  # bias std
 
     def init_states(self, inputs):
         if self.J is None or inputs.shape[1]+1 > self.J.shape[-1]:
@@ -162,7 +162,7 @@ class GravesAttention(nn.Module):
         sig_t = torch.nn.functional.softplus(b_t) + self.eps
 
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
-        g_t = torch.softmax(g_t, dim=-1) / sig_t + self.eps
+        g_t = torch.softmax(g_t, dim=-1) + self.eps
 
         j = self.J[:inputs.size(1)+1]
 
