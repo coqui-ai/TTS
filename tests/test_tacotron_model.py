@@ -44,7 +44,7 @@ class TacotronTrainTest(unittest.TestCase):
         stop_targets = (stop_targets.sum(2) >
                         0.0).unsqueeze(2).float().squeeze()
 
-        criterion = L1LossMasked().to(device)
+        criterion = L1LossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         model = Tacotron(
             num_chars=32,
