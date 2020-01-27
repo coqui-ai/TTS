@@ -119,7 +119,7 @@ class EncoderTests(unittest.TestCase):
 class L1LossMaskedTests(unittest.TestCase):
     def test_in_out(self):
         # test input == target
-        layer = L1LossMasked()
+        layer = L1LossMasked(seq_len_norm=False)
         dummy_input = T.ones(4, 8, 128).float()
         dummy_target = T.ones(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
@@ -131,7 +131,7 @@ class L1LossMaskedTests(unittest.TestCase):
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
-        assert output.item() == 1.0, "1.0 vs {}".format(output.data[0])
+        assert output.item() == 1.0, "1.0 vs {}".format(output.item())
 
         # test if padded values of input makes any difference
         dummy_input = T.ones(4, 8, 128).float()
@@ -140,7 +140,7 @@ class L1LossMaskedTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert output.item() == 1.0, "1.0 vs {}".format(output.data[0])
+        assert output.item() == 1.0, "1.0 vs {}".format(output.item())
 
         dummy_input = T.rand(4, 8, 128).float()
         dummy_target = dummy_input.detach()
@@ -148,4 +148,37 @@ class L1LossMaskedTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert output.item() == 0, "0 vs {}".format(output.data[0])
+        assert output.item() == 0, "0 vs {}".format(output.item())
+
+        # seq_len_norm = True
+        # test input == target
+        layer = L1LossMasked(seq_len_norm=True)
+        dummy_input = T.ones(4, 8, 128).float()
+        dummy_target = T.ones(4, 8, 128).float()
+        dummy_length = (T.ones(4) * 8).long()
+        output = layer(dummy_input, dummy_target, dummy_length)
+        assert output.item() == 0.0
+
+        # test input != target
+        dummy_input = T.ones(4, 8, 128).float()
+        dummy_target = T.zeros(4, 8, 128).float()
+        dummy_length = (T.ones(4) * 8).long()
+        output = layer(dummy_input, dummy_target, dummy_length)
+        assert output.item() == 1.0, "1.0 vs {}".format(output.item())
+
+        # test if padded values of input makes any difference
+        dummy_input = T.ones(4, 8, 128).float()
+        dummy_target = T.zeros(4, 8, 128).float()
+        dummy_length = (T.arange(5, 9)).long()
+        mask = (
+            (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
+        output = layer(dummy_input + mask, dummy_target, dummy_length)
+        assert abs(output.item() - 1.0) < 1e-5, "1.0 vs {}".format(output.item())
+
+        dummy_input = T.rand(4, 8, 128).float()
+        dummy_target = dummy_input.detach()
+        dummy_length = (T.arange(5, 9)).long()
+        mask = (
+            (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
+        output = layer(dummy_input + mask, dummy_target, dummy_length)
+        assert output.item() == 0, "0 vs {}".format(output.item())
