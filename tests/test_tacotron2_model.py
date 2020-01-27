@@ -38,7 +38,7 @@ class TacotronTrainTest(unittest.TestCase):
                                          stop_targets.size(1) // c.r, -1)
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
 
-        criterion = MSELossMasked().to(device)
+        criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         model = Tacotron2(num_chars=24, r=c.r, num_speakers=5).to(device)
         model.train()
