@@ -35,7 +35,7 @@ class L1LossMasked(nn.Module):
             mask = mask.expand_as(x)
             loss = functional.l1_loss(
                 x * mask, target * mask, reduction='none')
-            loss = loss.mul(out_weights.cuda()).sum() 
+            loss = loss.mul(out_weights.to(loss.device)).sum()
         else:
             mask = mask.expand_as(x)
             loss = functional.l1_loss(
@@ -74,7 +74,7 @@ class MSELossMasked(nn.Module):
             mask = mask.expand_as(x)
             loss = functional.mse_loss(
                 x * mask, target * mask, reduction='none')
-            loss = loss.mul(out_weights.cuda()).sum() 
+            loss = loss.mul(out_weights.to(loss.device)).sum()
         else:
             mask = mask.expand_as(x)
             loss = functional.mse_loss(
