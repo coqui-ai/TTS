@@ -66,12 +66,11 @@ class AudioProcessor(object):
         return np.maximum(1e-10, np.dot(inv_mel_basis, mel_spec))
 
     def _build_mel_basis(self, ):
-        n_fft = (self.num_freq - 1) * 2
         if self.mel_fmax is not None:
             assert self.mel_fmax <= self.sample_rate // 2
         return librosa.filters.mel(
             self.sample_rate,
-            n_fft,
+            self.n_fft,
             n_mels=self.num_mels,
             fmin=self.mel_fmin,
             fmax=self.mel_fmax)
@@ -197,6 +196,7 @@ class AudioProcessor(object):
             n_fft=self.n_fft,
             hop_length=self.hop_length,
             win_length=self.win_length,
+            pad_mode='constant'
         )
 
     def _istft(self, y):
@@ -217,7 +217,7 @@ class AudioProcessor(object):
         margin = int(self.sample_rate * 0.01)
         wav = wav[margin:-margin]
         return librosa.effects.trim(
-            wav, top_db=60, frame_length=self.win_length, hop_length=self.hop_length)[0]
+            wav, top_db=40, frame_length=self.win_length, hop_length=self.hop_length)[0]
 
     @staticmethod
     def mulaw_encode(wav, qc):
