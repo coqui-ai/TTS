@@ -290,7 +290,7 @@ class Decoder(nn.Module):
             stop_tokens += [stop_token]
             alignments += [alignment]
 
-            if stop_token > 0.7:
+            if stop_token > 0.7 and t > inputs.shape[0] / 2:
                 break
             if len(outputs) == self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")
