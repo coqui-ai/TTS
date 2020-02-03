@@ -24,6 +24,7 @@
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
         "do_trim_silence": true  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
     },
 
     // DISTRIBUTED TRAINING
