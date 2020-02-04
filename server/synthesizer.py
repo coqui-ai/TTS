@@ -1,5 +1,4 @@
 import io
-import os
 import re
 import sys
 
@@ -101,7 +100,6 @@ class Synthesizer(object):
     def load_pwgan(self, lib_path, model_file, model_config, use_cuda):
         sys.path.append(lib_path) # set this if TTS is not installed globally
         from parallel_wavegan.models import ParallelWaveGANGenerator
-        from parallel_wavegan.utils.audio import AudioProcessor as AudioProcessorVocoder
         print(" > Loading PWGAN model ...")
         print(" | > model config: ", model_config)
         print(" | > model file: ", model_file)
