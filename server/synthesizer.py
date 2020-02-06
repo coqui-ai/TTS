@@ -68,12 +68,15 @@ class Synthesizer(object):
 
     def load_wavernn(self, lib_path, model_file, model_config, use_cuda):
         # TODO: set a function in wavernn code base for model setup and call it here.
-        sys.path.append(lib_path) # set this if TTS is not installed globally
+        sys.path.append(lib_path) # set this if WaveRNN is not installed globally
+        #pylint: disable=import-outside-toplevel
         from WaveRNN.models.wavernn import Model
         print(" > Loading WaveRNN model ...")
         print(" | > model config: ", model_config)
         print(" | > model file: ", model_file)
         self.wavernn_config = load_config(model_config)
+        # This is the default architecture we use for our models.
+        # You might need to update it
         self.wavernn = Model(
             rnn_dims=512,
             fc_dims=512,
@@ -98,7 +101,8 @@ class Synthesizer(object):
         self.wavernn.eval()
 
     def load_pwgan(self, lib_path, model_file, model_config, use_cuda):
-        sys.path.append(lib_path) # set this if TTS is not installed globally
+        sys.path.append(lib_path) # set this if ParallelWaveGAN is not installed globally
+        #pylint: disable=import-outside-toplevel
         from parallel_wavegan.models import ParallelWaveGANGenerator
         print(" > Loading PWGAN model ...")
         print(" | > model config: ", model_config)
