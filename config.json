@@ -23,8 +23,8 @@
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
-        "do_trim_silence": true  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
-        "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
+        "do_trim_silence": true,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "trim_db": 60          // threshold for timming silence. Set this according to your dataset.
     },
 
     // DISTRIBUTED TRAINING
@@ -62,14 +62,14 @@
     "prenet_dropout": true,        // enable/disable dropout at prenet. 
 
     // ATTENTION
-    "attention_type": "original",  // 'original' or 'graves'
-    "attention_heads": 5,          // number of attention heads (only for 'graves')
+    "attention_type": "graves",  // 'original' or 'graves'
+    "attention_heads": 4,          // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "windowing": false,            // Enables attention windowing. Used only in eval mode.
     "use_forward_attn": false,      // if it uses forward attention. In general, it aligns faster.
     "forward_attn_mask": false,    // Additional masking forcing monotonicity only in eval mode.
     "transition_agent": false,     // enable/disable transition agent of forward attention.
-    "location_attn": true,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+    "location_attn": false,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "bidirectional_decoder": false,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
 
     // STOPNET
@@ -92,8 +92,8 @@
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
 
     // PATHS
-    "output_path": "/data5/rw/pit/keep/",      // DATASET-RELATED: output path for all training outputs.
-    // "output_path": "/media/erogol/data_ssd/Models/runs/",
+    // "output_path": "/data5/rw/pit/keep/",      // DATASET-RELATED: output path for all training outputs.
+    "output_path": "/home/erogol/Models/LJSpeech/",
  
     // PHONEMES
     "phoneme_cache_path": "mozilla_us_phonemes",  // phoneme computation is slow, therefore, it caches results in the given folder.
@@ -110,10 +110,10 @@
         [
             {
                 "name": "ljspeech",
-                "path": "/root/LJSpeech-1.1/",
+                "path": "/home/erogol/Data/LJSpeech-1.1/",
                 // "path": "/home/erogol/Data/LJSpeech-1.1",
-                "meta_file_train": "metadata_train.csv",
-                "meta_file_val": "metadata_val.csv"
+                "meta_file_train": "metadata.csv",
+                "meta_file_val": null
             }
         ]
 
