@@ -30,9 +30,9 @@ def tts(model,
     if C.model == "Tacotron" and use_vocoder_model:
         postnet_output = ap.out_linear_to_mel(postnet_output.T).T
     # correct if there is a scale difference b/w two models
-    postnet_output = ap._denormalize(postnet_output)
+    postnet_output = ap._denormalize(postnet_output) # pylint: disable=W021
     if use_vocoder_model:
-        postnet_output = ap_vocoder._normalize(postnet_output)
+        postnet_output = ap_vocoder._normalize(postnet_output) # pylint: disable=W021
         vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
         waveform = vocoder_model.generate(
             vocoder_input.cuda() if use_cuda else vocoder_input,
