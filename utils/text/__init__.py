@@ -28,21 +28,34 @@ def text2phone(text, language):
     seperator = phonemizer.separator.Separator(' |', '', '|')
     #try:
     punctuations = re.findall(PHONEME_PUNCTUATION_PATTERN, text)
-    ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
-    ph = ph[:-1].strip() # skip the last empty character
-    # Replace \n with matching punctuations.
-    if punctuations:
-        # if text ends with a punctuation.
-        if text[-1] == punctuations[-1]:
-            for punct in punctuations[:-1]:
-                ph = ph.replace('| |\n', '|'+punct+'| |', 1)
-            try:
-                ph = ph + punctuations[-1]
-            except:
-                print(text)
-        else:
-            for punct in punctuations:
-                ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+    if float(phonemizer.__version__) < 2.1:
+        ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
+        ph = ph[:-1].strip() # skip the last empty character
+        # phonemizer does not tackle punctuations. Here we do.
+        # Replace \n with matching punctuations.
+        if punctuations:
+            # if text ends with a punctuation.
+            if text[-1] == punctuations[-1]:
+                for punct in punctuations[:-1]:
+                    ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+                try:
+                    ph = ph + punctuations[-1]
+                except:
+                    print(text)
+            else:
+                for punct in punctuations:
+                    ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+    elif float(phonemizer.__version__) == 2.1:
+        ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language, preserve_punctuation=True)
+        # this is a simple fix for phonemizer.
+        # https://github.com/bootphon/phonemizer/issues/32
+        if punctuations:
+            for punctuation in punctuations:
+                ph = ph.replace(f"| |{punctuation} ", f"|{punctuation}| |").replace(f"| |{punctuation}", f"|{punctuation}| |")
+            ph = ph[:-3]
+    else:
+        raise RuntimeError(" [!] Use 'phonemizer' version 2.1 or older.")
+
     return ph
 
 
