@@ -132,6 +132,7 @@ class Tacotron(nn.Module):
             return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
+    @torch.no_grad()
     def inference(self, characters, speaker_ids=None, style_mel=None):
         inputs = self.embedding(characters)
         self._init_states()
