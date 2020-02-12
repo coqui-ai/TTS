@@ -12,6 +12,8 @@ class AudioProcessor(object):
                  min_level_db=None,
                  frame_shift_ms=None,
                  frame_length_ms=None,
+                 hop_length=None,
+                 win_length=None,
                  ref_level_db=None,
                  num_freq=None,
                  power=None,
@@ -49,7 +51,12 @@ class AudioProcessor(object):
         self.do_trim_silence = do_trim_silence
         self.trim_db = trim_db
         self.sound_norm = sound_norm
-        self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
+        if hop_length is None:
+            self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
+        else:
+            self.hop_length = hop_length
+            self.win_length = win_length
+            self.n_fft = (self.num_freq - 1) * 2
         assert min_level_db != 0.0, " [!] min_level_db is 0"
         members = vars(self)
         for key, value in members.items():
