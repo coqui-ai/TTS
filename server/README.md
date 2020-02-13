@@ -6,6 +6,10 @@ Instructions below are based on a Ubuntu 18.04 machine, but it should be simple 
 
 #### Development server:
 
+##### Using server.py
+If you have the environment set already for TTS, then you can directly call ```setup.py```.
+
+##### Using .whl
 1. apt-get install -y espeak libsndfile1 python3-venv
 2. python3 -m venv /tmp/venv
 3. source /tmp/venv/bin/activate
