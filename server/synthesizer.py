@@ -121,7 +121,8 @@ class Synthesizer(object):
         wav = np.array(wav)
         self.ap.save_wav(wav, path)
 
-    def split_into_sentences(self, text):
+    @staticmethod
+    def split_into_sentences(text):
         text = " " + text + "  <stop>"
         text = text.replace("\n", " ")
         text = re.sub(prefixes, "\\1<prd>", text)
