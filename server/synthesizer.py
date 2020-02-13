@@ -168,9 +168,16 @@ class Synthesizer(object):
             postnet_output, decoder_output, _ = parse_outputs(
                 postnet_output, decoder_output, alignments)
 
+            if self.pwgan:
+                vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
+                if self.use_cuda:
+                    vocoder_input.cuda()
+                wav = self.pwgan.inference(vocoder_input, hop_size=self.ap.hop_length)
             if self.wavernn:
-                postnet_output = postnet_output[0].data.cpu().numpy()
-                wav = self.wavernn.generate(torch.FloatTensor(postnet_output.T).unsqueeze(0).cuda(), batched=self.config.is_wavernn_batched, target=11000, overlap=550)
+                vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
+                if self.use_cuda:
+                    vocoder_input.cuda()
+                wav = self.wavernn.generate(vocoder_input, batched=self.config.is_wavernn_batched, target=11000, overlap=550)
             else:
                 wav = inv_spectrogram(postnet_output, self.ap, self.tts_config)
             # trim silence
