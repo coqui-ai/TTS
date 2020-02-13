@@ -38,10 +38,7 @@ def text2phone(text, language):
             if text[-1] == punctuations[-1]:
                 for punct in punctuations[:-1]:
                     ph = ph.replace('| |\n', '|'+punct+'| |', 1)
-                try:
                     ph = ph + punctuations[-1]
-                except:
-                    print(text)
             else:
                 for punct in punctuations:
                     ph = ph.replace('| |\n', '|'+punct+'| |', 1)
