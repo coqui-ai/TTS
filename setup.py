@@ -61,10 +61,11 @@ package_data = ['server/templates/*']
 if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
     print('Embedding model in wheel file...')
     model_dir = os.path.join('server', 'model')
-    os.makedirs(model_dir, exist_ok=True)
-    embedded_checkpoint_path = os.path.join(model_dir, 'checkpoint.pth.tar')
+    tts_dir = os.path.join(model_dir, 'tts')
+    os.makedirs(tts_dir, exist_ok=True)
+    embedded_checkpoint_path = os.path.join(tts_dir, 'checkpoint.pth.tar')
     shutil.copy(args.checkpoint, embedded_checkpoint_path)
-    embedded_config_path = os.path.join(model_dir, 'config.json')
+    embedded_config_path = os.path.join(tts_dir, 'config.json')
     shutil.copy(args.model_config, embedded_config_path)
     package_data.extend([embedded_checkpoint_path, embedded_config_path])
 
