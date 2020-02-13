@@ -122,7 +122,7 @@ class Synthesizer(object):
         self.ap.save_wav(wav, path)
 
     def split_into_sentences(self, text):
-        text = " " + text + "  "
+        text = " " + text + "  <stop>"
         text = text.replace("\n", " ")
         text = re.sub(prefixes, "\\1<prd>", text)
         text = re.sub(websites, "<prd>\\1", text)
@@ -149,15 +149,13 @@ class Synthesizer(object):
         text = text.replace("<prd>", ".")
         sentences = text.split("<stop>")
         sentences = sentences[:-1]
-        sentences = [s.strip() for s in sentences]
+        sentences = list(filter(None, [s.strip() for s in sentences])) # remove empty sentences
         return sentences
 
     def tts(self, text):
         wavs = []
         sens = self.split_into_sentences(text)
         print(sens)
-        if not sens:
-            sens = [text+'.']
         for sen in sens:
             # preprocess the given text
             inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
