@@ -20,7 +20,7 @@ from TTS.utils.generic_utils import (
     get_git_branch, load_config, remove_experiment_folder, save_best_model,
     save_checkpoint, adam_weight_decay, set_init_dict, copy_config_file,
     setup_model, gradual_training_scheduler, KeepAverage,
-    set_weight_decay)
+    set_weight_decay, check_config)
 from TTS.utils.logger import Logger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
@@ -687,6 +687,7 @@ if __name__ == '__main__':
 
     # setup output paths and read configs
     c = load_config(args.config_path)
+    check_config(c)
     _ = os.path.dirname(os.path.realpath(__file__))
 
     OUT_PATH = args.continue_path
