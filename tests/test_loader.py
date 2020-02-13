@@ -137,9 +137,7 @@ class TestTTSDataset(unittest.TestCase):
                 # NOTE: Below needs to check == 0 but due to an unknown reason
                 # there is a slight difference between two matrices.
                 # TODO: Check this assert cond more in detail.
-                assert abs((abs(mel.T)
-                            - abs(mel_dl)
-                            ).sum()) < 1e-5, (abs(mel.T) - abs(mel_dl)).sum()
+                assert abs(mel.T - mel_dl).max() < 1e-5, abs(mel.T - mel_dl).max()
 
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()
