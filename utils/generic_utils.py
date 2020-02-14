@@ -402,8 +402,8 @@ def _check_argument(name, c, enum_list=None, max_val=None, min_val=None, restric
         if enum_list:
             assert c[name].lower() in enum_list, f' [!] {name} is not a valid value'
         if val_type:
-            assert type(c[name]) is val_type or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
-    
+            assert isinstance(c[name], val_type) or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
+
 
 def check_config(c):
     _check_argument('model', c, enum_list=['tacotron', 'tacotron2'], restricted=True, val_type=str)
@@ -508,11 +508,3 @@ def check_config(c):
         _check_argument('path', dataset_entry, restricted=True, val_type=str)
         _check_argument('meta_file_train', dataset_entry, restricted=True, val_type=str)
         _check_argument('meta_file_val', dataset_entry, restricted=True, val_type=str)
-
-
-
-
-    
-
-
-
