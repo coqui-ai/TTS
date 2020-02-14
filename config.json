@@ -1,7 +1,7 @@
 {
     "model": "Tacotron2",          // one of the model in models/  
-    "run_name": "ljspeech-gravesv2",
-    "run_description": "tacotron2 wuth graves attention",
+    "run_name": "ljspeech-stf_params",
+    "run_description": "tacotron2 cosntant stf parameters",
 
     // AUDIO PARAMETERS
     "audio":{
