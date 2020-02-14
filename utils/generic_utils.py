@@ -405,7 +405,6 @@ def _check_argument(name, c, enum_list=None, max_val=None, min_val=None, restric
             assert type(c[name]) is val_type or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
     
 
-
 def check_config(c):
     _check_argument('model', c, enum_list=['tacotron', 'tacotron2'], restricted=True, val_type=str)
     _check_argument('run_name', c, restricted=True, val_type=str)
@@ -442,7 +441,7 @@ def check_config(c):
     _check_argument('r', c, restricted=True, val_type=int, min_val=1)
     _check_argument('gradual_training', c, restricted=False, val_type=list)
     _check_argument('loss_masking', c, restricted=True, val_type=bool)
-    _check_argument('grad_accum', c, restricted=True, val_type=int, min_val=1, max_val=100)
+    # _check_argument('grad_accum', c, restricted=True, val_type=int, min_val=1, max_val=100)
 
     # validation parameters
     _check_argument('run_eval', c, restricted=True, val_type=bool)
