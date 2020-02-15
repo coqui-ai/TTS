@@ -172,7 +172,7 @@ class Synthesizer(object):
                 if self.use_cuda:
                     vocoder_input.cuda()
                 wav = self.pwgan.inference(vocoder_input, hop_size=self.ap.hop_length)
-            if self.wavernn:
+            elif self.wavernn:
                 vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
                 if self.use_cuda:
                     vocoder_input.cuda()
