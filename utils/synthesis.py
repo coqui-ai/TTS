@@ -78,6 +78,7 @@ def synthesis(model,
               style_wav=None,
               truncated=False,
               enable_eos_bos_chars=False, #pylint: disable=unused-argument
+              use_griffin_lim=False,
               do_trim_silence=False):
     """Synthesize voice for the given text.
 
@@ -111,8 +112,10 @@ def synthesis(model,
     postnet_output, decoder_output, alignment = parse_outputs(
         postnet_output, decoder_output, alignments)
     # plot results
-    wav = inv_spectrogram(postnet_output, ap, CONFIG)
-    # trim silence
-    if do_trim_silence:
-        wav = trim_silence(wav, ap)
+    wav = None
+    if use_griffin_lim:
+        wav = inv_spectrogram(postnet_output, ap, CONFIG)
+        # trim silence
+        if do_trim_silence:
+            wav = trim_silence(wav, ap)
     return wav, alignment, decoder_output, postnet_output, stop_tokens
