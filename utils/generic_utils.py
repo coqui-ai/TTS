@@ -391,7 +391,9 @@ class KeepAverage():
             self.update_value(key, value)
 
 
-def _check_argument(name, c, enum_list=None, max_val=None, min_val=None, restricted=False, val_type=None):
+def _check_argument(name, c, enum_list=None, max_val=None, min_val=None, restricted=False, val_type=None, alternative=None):
+    if alternative in c.keys() and c[alternative] is not None:
+        return
     if restricted:
         assert name in c.keys(), f' [!] {name} not defined in config.json'
     if name in c.keys():
@@ -417,8 +419,8 @@ def check_config(c):
     _check_argument('num_mels', c['audio'], restricted=True, val_type=int, min_val=10, max_val=2056)
     _check_argument('num_freq', c['audio'], restricted=True, val_type=int, min_val=128, max_val=4058)
     _check_argument('sample_rate', c['audio'], restricted=True, val_type=int, min_val=512, max_val=100000)
-    _check_argument('frame_length_ms', c['audio'], restricted=True, val_type=float, min_val=10, max_val=1000)
-    _check_argument('frame_shift_ms', c['audio'], restricted=True, val_type=float, min_val=1, max_val=1000)
+    _check_argument('frame_length_ms', c['audio'], restricted=True, val_type=float, min_val=10, max_val=1000, alternative='win_length')
+    _check_argument('frame_shift_ms', c['audio'], restricted=True, val_type=float, min_val=1, max_val=1000, alternative='hop_length')
     _check_argument('preemphasis', c['audio'], restricted=True, val_type=float, min_val=0, max_val=1)
     _check_argument('min_level_db', c['audio'], restricted=True, val_type=int, min_val=-1000, max_val=10)
     _check_argument('ref_level_db', c['audio'], restricted=True, val_type=int, min_val=0, max_val=1000)
