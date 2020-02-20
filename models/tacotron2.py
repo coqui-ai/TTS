@@ -35,7 +35,7 @@ class Tacotron2(nn.Module):
         encoder_dim = 512 if num_speakers > 1 else 512
         proj_speaker_dim = 80 if num_speakers > 1 else 0
         # embedding layer
-        self.embedding = nn.Embedding(num_chars, 512)
+        self.embedding = nn.Embedding(num_chars, 512, padding_idx=0)
         std = sqrt(2.0 / (num_chars + 512))
         val = sqrt(3.0) * std  # uniform bounds for std
         self.embedding.weight.data.uniform_(-val, val)
