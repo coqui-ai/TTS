@@ -493,7 +493,12 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                     use_cuda,
                     ap,
                     speaker_id=speaker_id,
-                    style_wav=style_wav)
+                    style_wav=style_wav,
+                    truncated=False,
+                    enable_eos_bos_chars=c.enable_eos_bos_chars, #pylint: disable=unused-argument
+                    use_griffin_lim=True,
+                    do_trim_silence=False)
+
                 file_path = os.path.join(AUDIO_PATH, str(global_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
