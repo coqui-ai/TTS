@@ -64,7 +64,7 @@ def convert_to_ascii(text):
 
 
 def remove_aux_symbols(text):
-    text = re.sub(r'[\<\>\(\)\[\]\"\']+', '', text)
+    text = re.sub(r'[\<\>\(\)\[\]\"]+', '', text)
     return text
 
 
