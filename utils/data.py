@@ -14,7 +14,7 @@ def prepare_data(inputs):
 
 
 def _pad_tensor(x, length):
-    _pad = 0
+    _pad = 0.
     assert x.ndim == 2
     x = np.pad(
         x, [[0, 0], [0, length - x.shape[1]]],
