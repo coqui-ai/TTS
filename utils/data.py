@@ -31,7 +31,7 @@ def prepare_tensor(inputs, out_steps):
 
 
 def _pad_stop_target(x, length):
-    _pad = 1.
+    _pad = 0.
     assert x.ndim == 1
     return np.pad(
         x, (0, length - x.shape[0]), mode='constant', constant_values=_pad)

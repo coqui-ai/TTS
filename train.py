@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from TTS.datasets.TTSDataset import MyDataset
 from distribute import (DistributedSampler, apply_gradient_allreduce,
                         init_distributed, reduce_tensor)
-from TTS.layers.losses import L1LossMasked, MSELossMasked
+from TTS.layers.losses import L1LossMasked, MSELossMasked, BCELossMasked
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (
     NoamLR, check_update, count_parameters, create_experiment_folder,
@@ -167,7 +167,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
         # loss computation
         stop_loss = criterion_st(stop_tokens,
-                                 stop_targets) if c.stopnet else torch.zeros(1)
+                                 stop_targets, mel_lengths) if c.stopnet else torch.zeros(1)
         if c.loss_masking:
             decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
             if c.model in ["Tacotron", "TacotronGST"]:
@@ -365,7 +365,7 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
 
             # loss computation
             stop_loss = criterion_st(
-                stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
+                stop_tokens, stop_targets, mel_lengths) if c.stopnet else torch.zeros(1)
             if c.loss_masking:
                 decoder_loss = criterion(decoder_output, mel_input,
                                          mel_lengths)
@@ -571,7 +571,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         criterion = nn.L1Loss() if c.model in ["Tacotron", "TacotronGST"
                                                ] else nn.MSELoss()
-    criterion_st = nn.BCEWithLogitsLoss(
+    criterion_st = BCELossMasked(
         pos_weight=torch.tensor(10)) if c.stopnet else None
 
     if args.restore_path:
