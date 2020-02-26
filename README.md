@@ -54,7 +54,7 @@ Below you see Tacotron model state after 16K iterations with batch-size 32 with 
 
 > "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase the grey matter in the parts of the brain responsible for emotional regulation and learning."
 
-Audio examples: [https://soundcloud.com/user-565970875](https://soundcloud.com/user-565970875)
+Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
 
 <img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
 
