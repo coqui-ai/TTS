@@ -10,7 +10,7 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import load_config, setup_model
 from TTS.utils.speakers import load_speaker_mapping
 from TTS.utils.synthesis import *
-from TTS.utils.text import phonemes, symbols
+from TTS.utils.text import make_symbols, phonemes, symbols
 
 alphabets = r"([A-Za-z])"
 prefixes = r"(Mr|St|Mrs|Ms|Dr)[.]"
@@ -38,12 +38,19 @@ class Synthesizer(object):
                             self.config.pwgan_config, self.config.use_cuda)
 
     def load_tts(self, tts_checkpoint, tts_config, use_cuda):
+        global symbols, phonemes
+
         print(" > Loading TTS model ...")
         print(" | > model config: ", tts_config)
         print(" | > checkpoint file: ", tts_checkpoint)
+        
         self.tts_config = load_config(tts_config)
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(**self.tts_config.audio)
+
+        if 'text' in self.tts_config.keys():
+            symbols, phonemes =  make_symbols(**self.tts_config.text)
+
         if self.use_phonemes:
             self.input_size = len(phonemes)
         else:

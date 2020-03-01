@@ -4,7 +4,7 @@ import re
 import phonemizer
 from phonemizer.phonemize import phonemize
 from TTS.utils.text import cleaners
-from TTS.utils.text.symbols import symbols, phonemes, _phoneme_punctuations, _bos, \
+from TTS.utils.text.symbols import make_symbols, symbols, phonemes, _phoneme_punctuations, _bos, \
     _eos
 
 # Mappings from symbol to numeric ID and vice versa:
@@ -56,11 +56,23 @@ def text2phone(text, language):
     return ph
 
 
-def pad_with_eos_bos(phoneme_sequence):
+def pad_with_eos_bos(phoneme_sequence, tp=None):
+    global _PHONEMES_TO_ID, _bos, _eos
+    if tp:
+        _bos = tp['bos']
+        _eos = tp['eos']
+        _, phonemes = make_symbols(**tp)
+        _PHONEMES_TO_ID = {s: i for i, s in enumerate(phonemes)}
+        
     return [_PHONEMES_TO_ID[_bos]] + list(phoneme_sequence) + [_PHONEMES_TO_ID[_eos]]
 
 
-def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
+def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None):
+    global _PHONEMES_TO_ID
+    if tp:
+        _, phonemes = make_symbols(**tp)
+        _PHONEMES_TO_ID = {s: i for i, s in enumerate(phonemes)}
+
     sequence = []
     text = text.replace(":", "")
     clean_text = _clean_text(text, cleaner_names)
@@ -72,13 +84,18 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False):
         sequence += _phoneme_to_sequence(phoneme)
     # Append EOS char
     if enable_eos_bos:
-        sequence = pad_with_eos_bos(sequence)
+        sequence = pad_with_eos_bos(sequence, tp=tp)
     return sequence
 
 
-def sequence_to_phoneme(sequence):
+def sequence_to_phoneme(sequence, tp=None):
     '''Converts a sequence of IDs back to a string'''
+    global _ID_TO_PHONEMES
     result = ''
+    if tp:
+        _, phonemes =  make_symbols(**tp)
+        _ID_TO_PHONEMES = {i: s for i, s in enumerate(phonemes)}
+        
     for symbol_id in sequence:
         if symbol_id in _ID_TO_PHONEMES:
             s = _ID_TO_PHONEMES[symbol_id]
@@ -86,7 +103,7 @@ def sequence_to_phoneme(sequence):
     return result.replace('}{', ' ')
 
 
-def text_to_sequence(text, cleaner_names):
+def text_to_sequence(text, cleaner_names, tp=None):
     '''Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
 
       The text can optionally have ARPAbet sequences enclosed in curly braces embedded
@@ -99,6 +116,11 @@ def text_to_sequence(text, cleaner_names):
       Returns:
         List of integers corresponding to the symbols in the text
     '''
+    global _SYMBOL_TO_ID
+    if tp:
+        symbols, _ = make_symbols(**tp)
+        _SYMBOL_TO_ID = {s: i for i, s in enumerate(symbols)}
+
     sequence = []
     # Check for curly braces and treat their contents as ARPAbet:
     while text:
@@ -113,8 +135,13 @@ def text_to_sequence(text, cleaner_names):
     return sequence
 
 
-def sequence_to_text(sequence):
+def sequence_to_text(sequence, tp=None):
     '''Converts a sequence of IDs back to a string'''
+    global _ID_TO_SYMBOL
+    if tp:
+        symbols, _ = make_symbols(**tp)
+        _ID_TO_SYMBOL = {i: s for i, s in enumerate(symbols)}
+
     result = ''
     for symbol_id in sequence:
         if symbol_id in _ID_TO_SYMBOL:

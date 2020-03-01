@@ -9,10 +9,11 @@ def text_to_seqvec(text, CONFIG, use_cuda):
     if CONFIG.use_phonemes:
         seq = np.asarray(
             phoneme_to_sequence(text, text_cleaner, CONFIG.phoneme_language,
-                                CONFIG.enable_eos_bos_chars),
+                                CONFIG.enable_eos_bos_chars,
+                                tp=CONFIG.text if 'text' in CONFIG.keys() else None),
             dtype=np.int32)
     else:
-        seq = np.asarray(text_to_sequence(text, text_cleaner), dtype=np.int32)
+        seq = np.asarray(text_to_sequence(text, text_cleaner, tp=CONFIG.text if 'text' in CONFIG.keys() else None), dtype=np.int32)
     # torch tensor
     chars_var = torch.from_numpy(seq).unsqueeze(0)
     if use_cuda:
