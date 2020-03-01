@@ -54,9 +54,10 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
     plt.xlabel("Decoder timestamp", fontsize=label_fontsize)
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
     if CONFIG.use_phonemes:
-        seq = phoneme_to_sequence(text, [CONFIG.text_cleaner], CONFIG.phoneme_language, CONFIG.enable_eos_bos_chars)
-        text = sequence_to_phoneme(seq)
+        seq = phoneme_to_sequence(text, [CONFIG.text_cleaner], CONFIG.phoneme_language, CONFIG.enable_eos_bos_chars, tp=CONFIG.text if 'text' in CONFIG.keys() else None)
+        text = sequence_to_phoneme(seq, tp=CONFIG.text if 'text' in CONFIG.keys() else None)
         print(text)
+        
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
 

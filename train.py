@@ -25,7 +25,7 @@ from TTS.utils.logger import Logger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
 from TTS.utils.synthesis import synthesis
-from TTS.utils.text.symbols import phonemes, symbols
+from TTS.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.visual import plot_alignment, plot_spectrogram
 from TTS.datasets.preprocess import load_meta_data
 from TTS.utils.radam import RAdam
@@ -49,6 +49,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             c.text_cleaner,
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
+            tp=c.text if 'text' in c.keys() else None,
             batch_group_size=0 if is_val else c.batch_group_size *
             c.batch_size,
             min_seq_len=c.min_seq_len,
@@ -515,9 +516,12 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
 
 # FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
-    global meta_data_train, meta_data_eval
+    global meta_data_train, meta_data_eval, symbols, phonemes
     # Audio processor
     ap = AudioProcessor(**c.audio)
+    
+    if 'text' in c.keys():
+        symbols, phonemes =  make_symbols(**c.text)
 
     # DISTRUBUTED
     if num_gpus > 1:
