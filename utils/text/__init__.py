@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from packaging import version
 import phonemizer
 from phonemizer.phonemize import phonemize
 from TTS.utils.text import cleaners
@@ -28,7 +29,7 @@ def text2phone(text, language):
     seperator = phonemizer.separator.Separator(' |', '', '|')
     #try:
     punctuations = re.findall(PHONEME_PUNCTUATION_PATTERN, text)
-    if float(phonemizer.__version__) < 2.1:
+    if version.parse(phonemizer.__version__) < version.parse('2.1'):
         ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
         ph = ph[:-1].strip() # skip the last empty character
         # phonemizer does not tackle punctuations. Here we do.
@@ -42,7 +43,7 @@ def text2phone(text, language):
             else:
                 for punct in punctuations:
                     ph = ph.replace('| |\n', '|'+punct+'| |', 1)
-    elif float(phonemizer.__version__) == 2.1:
+    elif version.parse(phonemizer.__version__) >= version.parse('2.1'):
         ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language, preserve_punctuation=True)
         # this is a simple fix for phonemizer.
         # https://github.com/bootphon/phonemizer/issues/32
