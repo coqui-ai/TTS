@@ -77,13 +77,12 @@ class MyDataset(Dataset):
 
     def _generate_and_cache_phoneme_sequence(self, text, cache_path):
         """generate a phoneme sequence from text.
-
         since the usage is for subsequent caching, we never add bos and
         eos chars here. Instead we add those dynamically later; based on the
         config option."""
         phonemes = phoneme_to_sequence(text, [self.cleaners],
                                        language=self.phoneme_language,
-                                       enable_eos_bos=False, 
+                                       enable_eos_bos=False,
                                        tp=self.tp)
         phonemes = np.asarray(phonemes, dtype=np.int32)
         np.save(cache_path, phonemes)
