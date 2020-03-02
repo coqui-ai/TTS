@@ -16,7 +16,7 @@ def make_symbols(characters, phnms, punctuations='!\'(),-.:;? ', pad='_', eos='~
     _symbols = [pad, eos, bos] + list(characters) + _arpabet
     _phonemes = [pad, eos, bos] + list(_phonemes_sorted) + list(punctuations)
 
-    return symbols, phonemes
+    return _symbols, _phonemes
 
 _pad = '_'
 _eos = '~'
@@ -34,7 +34,7 @@ _other_symbols = 'ʍwɥʜʢʡɕʑɺɧ'
 _diacrilics = 'ɚ˞ɫ'
 _phonemes = _vowels + _non_pulmonic_consonants + _pulmonic_consonants + _suprasegmentals + _other_symbols + _diacrilics
 
-symbols, phonemes = make_symbols( _characters, _phonemes,_punctuations, _pad, _eos, _bos)
+symbols, phonemes = make_symbols(_characters, _phonemes, _punctuations, _pad, _eos, _bos)
 
 # Generate ALIEN language
 # from random import shuffle

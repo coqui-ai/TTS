@@ -9,7 +9,10 @@ import yaml
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import load_config, setup_model
 from TTS.utils.speakers import load_speaker_mapping
+# pylint: disable=unused-wildcard-import
+# pylint: disable=wildcard-import
 from TTS.utils.synthesis import *
+
 from TTS.utils.text import make_symbols, phonemes, symbols
 
 alphabets = r"([A-Za-z])"
@@ -38,18 +41,19 @@ class Synthesizer(object):
                             self.config.pwgan_config, self.config.use_cuda)
 
     def load_tts(self, tts_checkpoint, tts_config, use_cuda):
+        # pylint: disable=global-statement
         global symbols, phonemes
 
         print(" > Loading TTS model ...")
         print(" | > model config: ", tts_config)
         print(" | > checkpoint file: ", tts_checkpoint)
-        
+
         self.tts_config = load_config(tts_config)
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(**self.tts_config.audio)
 
         if 'text' in self.tts_config.keys():
-            symbols, phonemes =  make_symbols(**self.tts_config.text)
+            symbols, phonemes = make_symbols(**self.tts_config.text)
 
         if self.use_phonemes:
             self.input_size = len(phonemes)
@@ -61,7 +65,7 @@ class Synthesizer(object):
             num_speakers = len(self.tts_speakers)
         else:
             num_speakers = 0
-        self.tts_model = setup_model(self.input_size, num_speakers=num_speakers, c=self.tts_config) 
+        self.tts_model = setup_model(self.input_size, num_speakers=num_speakers, c=self.tts_config)
         # load model state
         cp = torch.load(tts_checkpoint, map_location=torch.device('cpu'))
         # load the model
@@ -91,7 +95,7 @@ class Synthesizer(object):
             mulaw=self.wavernn_config.mulaw,
             pad=self.wavernn_config.pad,
             use_aux_net=self.wavernn_config.use_aux_net,
-            use_upsample_net = self.wavernn_config.use_upsample_net,
+            use_upsample_net=self.wavernn_config.use_upsample_net,
             upsample_factors=self.wavernn_config.upsample_factors,
             feat_dims=80,
             compute_dims=128,

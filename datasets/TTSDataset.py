@@ -195,7 +195,7 @@ class MyDataset(Dataset):
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
             linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
 
-            mel_lengths = [m.shape[1] for m in mel] 
+            mel_lengths = [m.shape[1] for m in mel]
 
             # compute 'stop token' targets
             stop_targets = [
