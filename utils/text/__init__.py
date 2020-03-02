@@ -8,11 +8,11 @@ from TTS.utils.text.symbols import make_symbols, symbols, phonemes, _phoneme_pun
     _eos
 
 # Mappings from symbol to numeric ID and vice versa:
-_SYMBOL_TO_ID = {s: i for i, s in enumerate(symbols)}
-_ID_TO_SYMBOL = {i: s for i, s in enumerate(symbols)}
+_symbol_to_id = {s: i for i, s in enumerate(symbols)}
+_id_to_symbol = {i: s for i, s in enumerate(symbols)}
 
-_PHONEMES_TO_ID = {s: i for i, s in enumerate(phonemes)}
-_ID_TO_PHONEMES = {i: s for i, s in enumerate(phonemes)}
+_phonemes_to_id = {s: i for i, s in enumerate(phonemes)}
+_id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 
 # Regular expression matching text enclosed in curly braces:
 _CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
@@ -57,21 +57,23 @@ def text2phone(text, language):
 
 
 def pad_with_eos_bos(phoneme_sequence, tp=None):
-    global _PHONEMES_TO_ID, _bos, _eos
+    # pylint: disable=global-statement
+    global _phonemes_to_id, _bos, _eos
     if tp:
         _bos = tp['bos']
         _eos = tp['eos']
         _, _phonemes = make_symbols(**tp)
-        _PHONEMES_TO_ID = {s: i for i, s in enumerate(_phonemes)}
-        
-    return [_PHONEMES_TO_ID[_bos]] + list(phoneme_sequence) + [_PHONEMES_TO_ID[_eos]]
+        _phonemes_to_id = {s: i for i, s in enumerate(_phonemes)}
+
+    return [_phonemes_to_id[_bos]] + list(phoneme_sequence) + [_phonemes_to_id[_eos]]
 
 
 def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None):
-    global _PHONEMES_TO_ID
+    # pylint: disable=global-statement
+    global _phonemes_to_id
     if tp:
         _, _phonemes = make_symbols(**tp)
-        _PHONEMES_TO_ID = {s: i for i, s in enumerate(_phonemes)}
+        _phonemes_to_id = {s: i for i, s in enumerate(_phonemes)}
 
     sequence = []
     text = text.replace(":", "")
@@ -89,16 +91,17 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
 
 
 def sequence_to_phoneme(sequence, tp=None):
+    # pylint: disable=global-statement
     '''Converts a sequence of IDs back to a string'''
-    global _ID_TO_PHONEMES
+    global _id_to_phonemes
     result = ''
     if tp:
         _, _phonemes = make_symbols(**tp)
-        _ID_TO_PHONEMES = {i: s for i, s in enumerate(_phonemes)}
-        
+        _id_to_phonemes = {i: s for i, s in enumerate(_phonemes)}
+
     for symbol_id in sequence:
-        if symbol_id in _ID_TO_PHONEMES:
-            s = _ID_TO_PHONEMES[symbol_id]
+        if symbol_id in _id_to_phonemes:
+            s = _id_to_phonemes[symbol_id]
             result += s
     return result.replace('}{', ' ')
 
@@ -116,10 +119,11 @@ def text_to_sequence(text, cleaner_names, tp=None):
       Returns:
         List of integers corresponding to the symbols in the text
     '''
-    global _SYMBOL_TO_ID
+    # pylint: disable=global-statement
+    global _symbol_to_id
     if tp:
         _symbols, _ = make_symbols(**tp)
-        _SYMBOL_TO_ID = {s: i for i, s in enumerate(_symbols)}
+        _symbol_to_id = {s: i for i, s in enumerate(_symbols)}
 
     sequence = []
     # Check for curly braces and treat their contents as ARPAbet:
@@ -137,15 +141,16 @@ def text_to_sequence(text, cleaner_names, tp=None):
 
 def sequence_to_text(sequence, tp=None):
     '''Converts a sequence of IDs back to a string'''
-    global _ID_TO_SYMBOL
+    # pylint: disable=global-statement
+    global _id_to_symbol
     if tp:
         _symbols, _ = make_symbols(**tp)
-        _ID_TO_SYMBOL = {i: s for i, s in enumerate(_symbols)}
+        _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
 
     result = ''
     for symbol_id in sequence:
-        if symbol_id in _ID_TO_SYMBOL:
-            s = _ID_TO_SYMBOL[symbol_id]
+        if symbol_id in _id_to_symbol:
+            s = _id_to_symbol[symbol_id]
             # Enclose ARPAbet back in curly braces:
             if len(s) > 1 and s[0] == '@':
                 s = '{%s}' % s[1:]
@@ -163,11 +168,11 @@ def _clean_text(text, cleaner_names):
 
 
 def _symbols_to_sequence(syms):
-    return [_SYMBOL_TO_ID[s] for s in syms if _should_keep_symbol(s)]
+    return [_symbol_to_id[s] for s in syms if _should_keep_symbol(s)]
 
 
 def _phoneme_to_sequence(phons):
-    return [_PHONEMES_TO_ID[s] for s in list(phons) if _should_keep_phoneme(s)]
+    return [_phonemes_to_id[s] for s in list(phons) if _should_keep_phoneme(s)]
 
 
 def _arpabet_to_sequence(text):
@@ -175,8 +180,8 @@ def _arpabet_to_sequence(text):
 
 
 def _should_keep_symbol(s):
-    return s in _SYMBOL_TO_ID and s not in ['~', '^', '_']
+    return s in _symbol_to_id and s not in ['~', '^', '_']
 
 
 def _should_keep_phoneme(p):
-    return p in _PHONEMES_TO_ID and p not in ['~', '^', '_']
+    return p in _phonemes_to_id and p not in ['~', '^', '_']

@@ -516,6 +516,7 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
 
 # FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
+    # pylint: disable=global-variable-undefined
     global meta_data_train, meta_data_eval, symbols, phonemes
     # Audio processor
     ap = AudioProcessor(**c.audio)

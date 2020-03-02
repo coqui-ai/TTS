@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     # if the vocabulary was passed, replace the default
     if 'text' in C.keys():
-        symbols, phonemes =  make_symbols(**C.text)
+        symbols, phonemes = make_symbols(**C.text)
 
     # load speakers
     if args.speakers_json != '':
