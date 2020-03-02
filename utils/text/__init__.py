@@ -61,8 +61,8 @@ def pad_with_eos_bos(phoneme_sequence, tp=None):
     if tp:
         _bos = tp['bos']
         _eos = tp['eos']
-        _, phonemes = make_symbols(**tp)
-        _PHONEMES_TO_ID = {s: i for i, s in enumerate(phonemes)}
+        _, _phonemes = make_symbols(**tp)
+        _PHONEMES_TO_ID = {s: i for i, s in enumerate(_phonemes)}
         
     return [_PHONEMES_TO_ID[_bos]] + list(phoneme_sequence) + [_PHONEMES_TO_ID[_eos]]
 
@@ -70,8 +70,8 @@ def pad_with_eos_bos(phoneme_sequence, tp=None):
 def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None):
     global _PHONEMES_TO_ID
     if tp:
-        _, phonemes = make_symbols(**tp)
-        _PHONEMES_TO_ID = {s: i for i, s in enumerate(phonemes)}
+        _, _phonemes = make_symbols(**tp)
+        _PHONEMES_TO_ID = {s: i for i, s in enumerate(_phonemes)}
 
     sequence = []
     text = text.replace(":", "")
@@ -93,8 +93,8 @@ def sequence_to_phoneme(sequence, tp=None):
     global _ID_TO_PHONEMES
     result = ''
     if tp:
-        _, phonemes =  make_symbols(**tp)
-        _ID_TO_PHONEMES = {i: s for i, s in enumerate(phonemes)}
+        _, _phonemes = make_symbols(**tp)
+        _ID_TO_PHONEMES = {i: s for i, s in enumerate(_phonemes)}
         
     for symbol_id in sequence:
         if symbol_id in _ID_TO_PHONEMES:
@@ -118,8 +118,8 @@ def text_to_sequence(text, cleaner_names, tp=None):
     '''
     global _SYMBOL_TO_ID
     if tp:
-        symbols, _ = make_symbols(**tp)
-        _SYMBOL_TO_ID = {s: i for i, s in enumerate(symbols)}
+        _symbols, _ = make_symbols(**tp)
+        _SYMBOL_TO_ID = {s: i for i, s in enumerate(_symbols)}
 
     sequence = []
     # Check for curly braces and treat their contents as ARPAbet:
@@ -139,8 +139,8 @@ def sequence_to_text(sequence, tp=None):
     '''Converts a sequence of IDs back to a string'''
     global _ID_TO_SYMBOL
     if tp:
-        symbols, _ = make_symbols(**tp)
-        _ID_TO_SYMBOL = {i: s for i, s in enumerate(symbols)}
+        _symbols, _ = make_symbols(**tp)
+        _ID_TO_SYMBOL = {i: s for i, s in enumerate(_symbols)}
 
     result = ''
     for symbol_id in sequence:

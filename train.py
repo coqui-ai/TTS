@@ -519,9 +519,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     global meta_data_train, meta_data_eval, symbols, phonemes
     # Audio processor
     ap = AudioProcessor(**c.audio)
-    
     if 'text' in c.keys():
-        symbols, phonemes =  make_symbols(**c.text)
+        symbols, phonemes = make_symbols(**c.text)
 
     # DISTRUBUTED
     if num_gpus > 1:
