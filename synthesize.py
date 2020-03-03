@@ -108,8 +108,8 @@ if __name__ == "__main__":
     ap = AudioProcessor(**C.audio)
 
     # if the vocabulary was passed, replace the default
-    if 'text' in C.keys():
-        symbols, phonemes = make_symbols(**C.text)
+    if 'characters' in C.keys():
+        symbols, phonemes = make_symbols(**C.characters)
 
     # load speakers
     if args.speakers_json != '':

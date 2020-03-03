@@ -28,7 +28,7 @@
     },
 
     // VOCABULARY PARAMETERS
-    "text":{
+    "characters":{
         "pad": "_",
         "eos": "~",
         "bos": "^",

@@ -49,7 +49,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             c.text_cleaner,
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
-            tp=c.text if 'text' in c.keys() else None,
+            tp=c.characters if 'characters' in c.keys() else None,
             batch_group_size=0 if is_val else c.batch_group_size *
             c.batch_size,
             min_seq_len=c.min_seq_len,
@@ -520,8 +520,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     global meta_data_train, meta_data_eval, symbols, phonemes
     # Audio processor
     ap = AudioProcessor(**c.audio)
-    if 'text' in c.keys():
-        symbols, phonemes = make_symbols(**c.text)
+    if 'characters' in c.keys():
+        symbols, phonemes = make_symbols(**c.characters)
 
     # DISTRUBUTED
     if num_gpus > 1:
