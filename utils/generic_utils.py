@@ -426,13 +426,13 @@ def check_config(c):
     _check_argument('griffin_lim_iters', c['audio'], restricted=True, val_type=int, min_val=10, max_val=1000)
 
     # vocabulary parameters
-    _check_argument('text', c, restricted=False, val_type=dict)
-    _check_argument('pad', c['text'] if 'text' in c.keys() else {}, restricted='text' in c.keys(), val_type=str)
-    _check_argument('eos', c['text'] if 'text' in c.keys() else {}, restricted='text' in c.keys(), val_type=str)
-    _check_argument('bos', c['text'] if 'text' in c.keys() else {}, restricted='text' in c.keys(), val_type=str)
-    _check_argument('characters', c['text'] if 'text' in c.keys() else {}, restricted='text' in c.keys(), val_type=str)
-    _check_argument('phonemes', c['text'] if 'text' in c.keys() else {}, restricted='text' in c.keys(), val_type=str)
-    _check_argument('punctuations', c['text'] if 'text' in c.keys() else {}, restricted='text' in c.keys(), val_type=str)
+    _check_argument('characters', c, restricted=False, val_type=dict)
+    _check_argument('pad', c['characters'] if 'characters' in c.keys() else {}, restricted='characters' in c.keys(), val_type=str)
+    _check_argument('eos', c['characters'] if 'characters' in c.keys() else {}, restricted='characters' in c.keys(), val_type=str)
+    _check_argument('bos', c['characters'] if 'characters' in c.keys() else {}, restricted='characters' in c.keys(), val_type=str)
+    _check_argument('characters', c['characters'] if 'characters' in c.keys() else {}, restricted='characters' in c.keys(), val_type=str)
+    _check_argument('phonemes', c['characters'] if 'characters' in c.keys() else {}, restricted='characters' in c.keys(), val_type=str)
+    _check_argument('punctuations', c['characters'] if 'characters' in c.keys() else {}, restricted='characters' in c.keys(), val_type=str)
 
     # normalization parameters
     _check_argument('signal_norm', c['audio'], restricted=True, val_type=bool)

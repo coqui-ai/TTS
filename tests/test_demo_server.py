@@ -15,8 +15,8 @@ class DemoServerTest(unittest.TestCase):
         # pylint: disable=global-statement
         global symbols, phonemes
         config = load_config(os.path.join(get_tests_output_path(), 'dummy_model_config.json'))
-        if 'text' in config.keys():
-            symbols, phonemes = make_symbols(**config.text)
+        if 'characters' in config.keys():
+            symbols, phonemes = make_symbols(**config.characters)
 
         num_chars = len(phonemes) if config.use_phonemes else len(symbols)
         model = setup_model(num_chars, 0, config)

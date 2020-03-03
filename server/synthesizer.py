@@ -52,8 +52,8 @@ class Synthesizer(object):
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(**self.tts_config.audio)
 
-        if 'text' in self.tts_config.keys():
-            symbols, phonemes = make_symbols(**self.tts_config.text)
+        if 'characters' in self.tts_config.keys():
+            symbols, phonemes = make_symbols(**self.tts_config.characters)
 
         if self.use_phonemes:
             self.input_size = len(phonemes)
