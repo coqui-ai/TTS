@@ -31,7 +31,7 @@ class AudioProcessor(object):
                  **_):
 
         print(" > Setting up Audio Processor...")
-
+        # setup class attributed
         self.sample_rate = sample_rate
         self.num_mels = num_mels
         self.min_level_db = min_level_db or 0
