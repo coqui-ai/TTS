@@ -33,7 +33,7 @@ class TestAudio(unittest.TestCase):
             self.ap.clip_norm = clip_norm
             wav = self.ap.load_wav(WAV_FILE)
             mel = self.ap.melspectrogram(wav)
-            wav_ = self.ap.inv_mel_spectrogram(mel)
+            wav_ = self.ap.inv_melspectrogram(mel)
             file_name = "/audio_test-melspec_max_norm_{}-signal_norm_{}-symmetric_{}-clip_norm_{}.wav"\
                 .format(max_norm, signal_norm, symmetric_norm, clip_norm)
             print(" | > Creating wav file at : ", file_name)
