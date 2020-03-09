@@ -64,7 +64,6 @@ class Encoder(nn.Module):
     def forward(self, x, input_lengths):
         x = self.convolutions(x)
         x = x.transpose(1, 2)
-        input_lengths = input_lengths.cpu().numpy()
         x = nn.utils.rnn.pack_padded_sequence(x,
                                               input_lengths,
                                               batch_first=True)
