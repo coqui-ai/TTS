@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name, unused-argument
 import os
 import time
 import argparse
@@ -7,7 +8,7 @@ import string
 
 from TTS.utils.synthesis import synthesis
 from TTS.utils.generic_utils import load_config, setup_model
-from TTS.utils.text.symbols import symbols, phonemes
+from TTS.utils.text.symbols import make_symbols, symbols, phonemes
 from TTS.utils.audio import AudioProcessor
 
 
@@ -25,14 +26,16 @@ def tts(model,
     t_1 = time.time()
     use_vocoder_model = vocoder_model is not None
     waveform, alignment, _, postnet_output, stop_tokens = synthesis(
-        model, text, C, use_cuda, ap, speaker_id, False,
-        C.enable_eos_bos_chars)
+        model, text, C, use_cuda, ap, speaker_id, style_wav=False,
+        truncated=False, enable_eos_bos_chars=C.enable_eos_bos_chars,
+        use_griffin_lim=(not use_vocoder_model), do_trim_silence=True)
+
     if C.model == "Tacotron" and use_vocoder_model:
         postnet_output = ap.out_linear_to_mel(postnet_output.T).T
     # correct if there is a scale difference b/w two models
-    postnet_output = ap._denormalize(postnet_output)
-    postnet_output = ap_vocoder._normalize(postnet_output)
     if use_vocoder_model:
+        postnet_output = ap._denormalize(postnet_output)
+        postnet_output = ap_vocoder._normalize(postnet_output)
         vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
         waveform = vocoder_model.generate(
             vocoder_input.cuda() if use_cuda else vocoder_input,
@@ -44,6 +47,8 @@ def tts(model,
 
 
 if __name__ == "__main__":
+
+    global symbols, phonemes
 
     parser = argparse.ArgumentParser()
     parser.add_argument('text', type=str, help='Text to generate speech.')
@@ -58,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument(
         'out_path',
         type=str,
-        help='Path to save final wav file.',
+        help='Path to save final wav file. Wav file will be names as the text given.',
     )
     parser.add_argument('--use_cuda',
                         type=bool,
@@ -101,6 +106,10 @@ if __name__ == "__main__":
 
     # load the audio processor
     ap = AudioProcessor(**C.audio)
+
+    # if the vocabulary was passed, replace the default
+    if 'characters' in C.keys():
+        symbols, phonemes = make_symbols(**C.characters)
 
     # load speakers
     if args.speakers_json != '':
