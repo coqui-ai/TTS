@@ -1,17 +1,20 @@
 import io
-import os
+import re
+import sys
 
 import numpy as np
 import torch
-import sys
+import yaml
 
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import load_config, setup_model
-from TTS.utils.text import phonemes, symbols
 from TTS.utils.speakers import load_speaker_mapping
+# pylint: disable=unused-wildcard-import
+# pylint: disable=wildcard-import
 from TTS.utils.synthesis import *
 
-import re
+from TTS.utils.text import make_symbols, phonemes, symbols
+
 alphabets = r"([A-Za-z])"
 prefixes = r"(Mr|St|Mrs|Ms|Dr)[.]"
 suffixes = r"(Inc|Ltd|Jr|Sr|Co)"
@@ -23,6 +26,7 @@ websites = r"[.](com|net|org|io|gov)"
 class Synthesizer(object):
     def __init__(self, config):
         self.wavernn = None
+        self.pwgan = None
         self.config = config
         self.use_cuda = self.config.use_cuda
         if self.use_cuda:
@@ -30,28 +34,38 @@ class Synthesizer(object):
         self.load_tts(self.config.tts_checkpoint, self.config.tts_config,
                       self.config.use_cuda)
         if self.config.wavernn_lib_path:
-            self.load_wavernn(self.config.wavernn_lib_path, self.config.wavernn_path,
-                              self.config.wavernn_file, self.config.wavernn_config,
-                              self.config.use_cuda)
+            self.load_wavernn(self.config.wavernn_lib_path, self.config.wavernn_file,
+                              self.config.wavernn_config, self.config.use_cuda)
+        if self.config.pwgan_lib_path:
+            self.load_pwgan(self.config.pwgan_lib_path, self.config.pwgan_file,
+                            self.config.pwgan_config, self.config.use_cuda)
 
     def load_tts(self, tts_checkpoint, tts_config, use_cuda):
+        # pylint: disable=global-statement
+        global symbols, phonemes
+
         print(" > Loading TTS model ...")
         print(" | > model config: ", tts_config)
         print(" | > checkpoint file: ", tts_checkpoint)
+
         self.tts_config = load_config(tts_config)
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(**self.tts_config.audio)
+
+        if 'characters' in self.tts_config.keys():
+            symbols, phonemes = make_symbols(**self.tts_config.characters)
+
         if self.use_phonemes:
             self.input_size = len(phonemes)
         else:
             self.input_size = len(symbols)
-        # load speakers
+        # TODO: fix this for multi-speaker model - load speakers
         if self.config.tts_speakers is not None:
-            self.tts_speakers = load_speaker_mapping(os.path.join(model_path, self.config.tts_speakers))
+            self.tts_speakers = load_speaker_mapping(self.config.tts_speakers)
             num_speakers = len(self.tts_speakers)
         else:
             num_speakers = 0
-        self.tts_model = setup_model(self.input_size, num_speakers=num_speakers, c=self.tts_config) 
+        self.tts_model = setup_model(self.input_size, num_speakers=num_speakers, c=self.tts_config)
         # load model state
         cp = torch.load(tts_checkpoint, map_location=torch.device('cpu'))
         # load the model
@@ -63,16 +77,17 @@ class Synthesizer(object):
         if 'r' in cp:
             self.tts_model.decoder.set_r(cp['r'])
 
-    def load_wavernn(self, lib_path, model_path, model_file, model_config, use_cuda):
+    def load_wavernn(self, lib_path, model_file, model_config, use_cuda):
         # TODO: set a function in wavernn code base for model setup and call it here.
-        sys.path.append(lib_path) # set this if TTS is not installed globally
+        sys.path.append(lib_path) # set this if WaveRNN is not installed globally
+        #pylint: disable=import-outside-toplevel
         from WaveRNN.models.wavernn import Model
-        wavernn_config = os.path.join(model_path, model_config)
-        model_file = os.path.join(model_path, model_file)
         print(" > Loading WaveRNN model ...")
-        print(" | > model config: ", wavernn_config)
+        print(" | > model config: ", model_config)
         print(" | > model file: ", model_file)
-        self.wavernn_config = load_config(wavernn_config)
+        self.wavernn_config = load_config(model_config)
+        # This is the default architecture we use for our models.
+        # You might need to update it
         self.wavernn = Model(
             rnn_dims=512,
             fc_dims=512,
@@ -80,7 +95,7 @@ class Synthesizer(object):
             mulaw=self.wavernn_config.mulaw,
             pad=self.wavernn_config.pad,
             use_aux_net=self.wavernn_config.use_aux_net,
-            use_upsample_net = self.wavernn_config.use_upsample_net,
+            use_upsample_net=self.wavernn_config.use_upsample_net,
             upsample_factors=self.wavernn_config.upsample_factors,
             feat_dims=80,
             compute_dims=128,
@@ -90,19 +105,36 @@ class Synthesizer(object):
             sample_rate=self.ap.sample_rate,
         ).cuda()
 
-        check = torch.load(model_file)
+        check = torch.load(model_file, map_location="cpu")
         self.wavernn.load_state_dict(check['model'])
         if use_cuda:
             self.wavernn.cuda()
         self.wavernn.eval()
+
+    def load_pwgan(self, lib_path, model_file, model_config, use_cuda):
+        sys.path.append(lib_path) # set this if ParallelWaveGAN is not installed globally
+        #pylint: disable=import-outside-toplevel
+        from parallel_wavegan.models import ParallelWaveGANGenerator
+        print(" > Loading PWGAN model ...")
+        print(" | > model config: ", model_config)
+        print(" | > model file: ", model_file)
+        with open(model_config) as f:
+            self.pwgan_config = yaml.load(f, Loader=yaml.Loader)
+        self.pwgan = ParallelWaveGANGenerator(**self.pwgan_config["generator_params"])
+        self.pwgan.load_state_dict(torch.load(model_file, map_location="cpu")["model"]["generator"])
+        self.pwgan.remove_weight_norm()
+        if use_cuda:
+            self.pwgan.cuda()
+        self.pwgan.eval()
 
     def save_wav(self, wav, path):
         # wav *= 32767 / max(1e-8, np.max(np.abs(wav)))
         wav = np.array(wav)
         self.ap.save_wav(wav, path)
 
-    def split_into_sentences(self, text):
-        text = " " + text + "  "
+    @staticmethod
+    def split_into_sentences(text):
+        text = " " + text + "  <stop>"
         text = text.replace("\n", " ")
         text = re.sub(prefixes, "\\1<prd>", text)
         text = re.sub(websites, "<prd>\\1", text)
@@ -129,15 +161,13 @@ class Synthesizer(object):
         text = text.replace("<prd>", ".")
         sentences = text.split("<stop>")
         sentences = sentences[:-1]
-        sentences = [s.strip() for s in sentences]
+        sentences = list(filter(None, [s.strip() for s in sentences])) # remove empty sentences
         return sentences
 
     def tts(self, text):
         wavs = []
         sens = self.split_into_sentences(text)
         print(sens)
-        if not sens:
-            sens = [text+'.']
         for sen in sens:
             # preprocess the given text
             inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
@@ -148,9 +178,16 @@ class Synthesizer(object):
             postnet_output, decoder_output, _ = parse_outputs(
                 postnet_output, decoder_output, alignments)
 
-            if self.wavernn:
-                postnet_output = postnet_output[0].data.cpu().numpy()
-                wav = self.wavernn.generate(torch.FloatTensor(postnet_output.T).unsqueeze(0).cuda(), batched=self.config.is_wavernn_batched, target=11000, overlap=550)
+            if self.pwgan:
+                vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
+                if self.use_cuda:
+                    vocoder_input.cuda()
+                wav = self.pwgan.inference(vocoder_input, hop_size=self.ap.hop_length)
+            elif self.wavernn:
+                vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
+                if self.use_cuda:
+                    vocoder_input.cuda()
+                wav = self.wavernn.generate(vocoder_input, batched=self.config.is_wavernn_batched, target=11000, overlap=550)
             else:
                 wav = inv_spectrogram(postnet_output, self.ap, self.tts_config)
             # trim silence
