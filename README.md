@@ -115,10 +115,7 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
-## Testing
-Best way to test your network is to use Notebooks under ```notebooks``` folder.
-
-There is also a good [CoLab](https://colab.research.google.com/github/tugstugi/dl-colab-notebooks/blob/master/notebooks/Mozilla_TTS_WaveRNN.ipynb) sample using pre-trained models (by @tugstugi).
+## [Testing and Examples](https://github.com/mozilla/TTS/wiki/Examples-using-TTS)
 
 ## Contribution guidelines
 This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
@@ -139,28 +136,7 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - Share your results as you proceed. (Tensorboard log files, audio results, visuals etc.)
 - Use LJSpeech dataset (for English) if you like to compare results with the released models. (It is the most open scalable dataset for quick experimentation)
 
-## Contact/Getting Help
-- [Wiki](https://github.com/mozilla/TTS/wiki)
-
-- [Discourse Forums](https://discourse.mozilla.org/c/tts) - If your question is not addressed in the Wiki, the Discourse Forums is the next place to look. They contain conversations on General Topics, Using TTS, and TTS Development.
-
-- [Issues](https://github.com/mozilla/TTS/issues) - Finally, if all else fails, you can open an issue in our repo.
-
-<!--## What is new with TTS
-If you train TTS with LJSpeech dataset, you start to hear reasonable results after 12.5K iterations with batch size 32. This is the fastest training with character-based methods up to our knowledge. Out implementation is also quite robust against long sentences.
-- Location sensitive attention ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention is a vital part of text2speech models. Therefore, it is important to use an attention mechanism that suits the diagonal nature of the problem where the output strictly aligns with the text monotonically. Location sensitive attention performs better by looking into the previous alignment vectors and learns diagonal attention more easily. Yet, I believe there is a good space for research at this front to find a better solution.
-- Attention smoothing with sigmoid ([ref](https://arxiv.org/pdf/1506.07503.pdf)). Attention weights are computed by normalized sigmoid values instead of softmax for sharper values. That enables the model to pick multiple highly scored inputs for alignments while reducing the noise.
-- Weight decay ([ref](http://www.fast.ai/2018/07/02/adam-weight-decay/)). After a certain point of the training, you might observe the model over-fitting. That is, the model is able to pronounce words probably better but the quality of the speech quality gets lower and sometimes attention alignment gets disoriented.
-- Stop token prediction with an additional module. The original Tacotron model does not propose a stop token to stop the decoding process. Therefore, you need to use heuristic measures to stop the decoder. Here, we prefer to use additional layers at the end to decide when to stop.
-- Applying sigmoid to the model outputs. Since the output values are expected to be in the range [0, 1], we apply sigmoid to make things easier to approximate the expected output distribution.
-- Phoneme based training is enabled for easier learning and robust pronunciation. It also makes easier to adapt TTS to the most languages without worrying about language specific characters.
-- Configurable attention windowing at inference-time for robust alignment. It enforces network to only consider a certain window of encoder steps per iteration.
-- Detailed Tensorboard stats for activation, weight and gradient values per layer. It is useful to detect defects and compare networks.
-- Constant history window. Instead of using only the last frame of predictions, define a constant history queue. It enables training with gradually decreasing prediction frame (r=5 -> r=1) by only changing the last layer. For instance, you can train the model with r=5 and then fine-tune it with r=1 without any performance loss. It also solves well-known PreNet problem [#50](https://github.com/mozilla/TTS/issues/50). 
-- Initialization of hidden decoder states with Embedding layers instead of zero initialization. 
-One common question is to ask why we don't use Tacotron2 architecture. According to our ablation experiments, nothing, except Location Sensitive Attention, improves the performance, given the increase in the model size.
-Please feel free to offer new changes and pull things off. We are happy to discuss and make things better.
--->
+## [Contact/Getting Help](https://github.com/mozilla/TTS/wiki/Contact-and-Getting-Help)
 
 ## Major TODOs
 - [x] Implement the model.

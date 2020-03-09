@@ -37,7 +37,8 @@ class TestTTSDataset(unittest.TestCase):
             r,
             c.text_cleaner,
             ap=self.ap,
-            meta_data=items, 
+            meta_data=items,
+            tp=c.characters if 'characters' in c.keys() else None,
             batch_group_size=bgs,
             min_seq_len=c.min_seq_len,
             max_seq_len=float("inf"),
@@ -137,9 +138,7 @@ class TestTTSDataset(unittest.TestCase):
                 # NOTE: Below needs to check == 0 but due to an unknown reason
                 # there is a slight difference between two matrices.
                 # TODO: Check this assert cond more in detail.
-                assert abs((abs(mel.T)
-                            - abs(mel_dl)
-                            ).sum()) < 1e-5, (abs(mel.T) - abs(mel_dl)).sum()
+                assert abs(mel.T - mel_dl).max() < 1e-5, abs(mel.T - mel_dl).max()
 
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()
