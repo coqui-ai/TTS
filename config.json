@@ -1,7 +1,7 @@
 {
     "model": "Tacotron2",          // one of the model in models/  
-    "run_name": "ljspeech-graves",
-    "run_description": "tacotron2 wuth graves attention",
+    "run_name": "ljspeech-stft_params",
+    "run_description": "tacotron2 cosntant stf parameters",
 
     // AUDIO PARAMETERS
     "audio":{
@@ -9,8 +9,10 @@
         "num_mels": 80,         // size of the mel spec frame. 
         "num_freq": 1025,       // number of stft frequency levels. Size of the linear spectogram frame.
         "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
-        "frame_length_ms": 50,  // stft window length in ms.
-        "frame_shift_ms": 12.5, // stft window hop-lengh in ms.
+        "win_length": 1024,     // stft window length in ms.
+        "hop_length": 256,      // stft window hop-lengh in ms.
+        "frame_length_ms": null,  // stft window length in ms.If null, 'win_length' is used.
+        "frame_shift_ms": null,   // stft window hop-lengh in ms. If null, 'hop_length' is used.
         "preemphasis": 0.98,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
         "min_level_db": -100,   // normalization range
         "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
@@ -19,13 +21,26 @@
         // Normalization parameters
         "signal_norm": true,    // normalize the spec values in range [0, 1]
         "symmetric_norm": true, // move normalization to range [-1, 1]
-        "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "max_norm": 4.0,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
-        "do_trim_silence": true  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": true,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "trim_db": 60          // threshold for timming silence. Set this according to your dataset.
     },
 
+    // VOCABULARY PARAMETERS
+    // if custom character set is not defined,
+    // default set in symbols.py is used
+    "characters":{
+        "pad": "_",
+        "eos": "~",
+        "bos": "^",
+        "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? ",
+        "punctuations":"!'(),-.:;? ",
+        "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫ"
+    },
+    
     // DISTRIBUTED TRAINING
     "distributed":{
         "backend": "nccl",
@@ -48,11 +63,12 @@
 
     // OPTIMIZER
     "noam_schedule": false,        // use noam warmup and lr schedule.
-    "grad_clip": 1,                // upper limit for gradients for clipping.
+    "grad_clip": 1.0,                // upper limit for gradients for clipping.
     "epochs": 1000,                // total number of epochs to train.
     "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
     "wd": 0.000001,         // Weight decay weight.
     "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
+    "seq_len_norm": false,	   // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
     
     // TACOTRON PRENET
     "memory_size": -1,              // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame. 
@@ -61,13 +77,13 @@
 
     // ATTENTION
     "attention_type": "original",  // 'original' or 'graves'
-    "attention_heads": 5,          // number of attention heads (only for 'graves')
+    "attention_heads": 4,          // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "windowing": false,            // Enables attention windowing. Used only in eval mode.
     "use_forward_attn": false,      // if it uses forward attention. In general, it aligns faster.
     "forward_attn_mask": false,    // Additional masking forcing monotonicity only in eval mode.
     "transition_agent": false,     // enable/disable transition agent of forward attention.
-    "location_attn": true,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+    "location_attn": false,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "bidirectional_decoder": false,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
 
     // STOPNET
@@ -90,11 +106,10 @@
     "max_seq_len": 150,     // DATASET-RELATED: maximum text length
 
     // PATHS
-    "output_path": "/data5/rw/pit/keep/",      // DATASET-RELATED: output path for all training outputs.
-    // "output_path": "/media/erogol/data_ssd/Models/runs/",
+    "output_path": "/data4/rw/home/Trainings/",
  
     // PHONEMES
-    "phoneme_cache_path": "mozilla_us_phonemes",  // phoneme computation is slow, therefore, it caches results in the given folder.
+    "phoneme_cache_path": "mozilla_us_phonemes_2_1",  // phoneme computation is slow, therefore, it caches results in the given folder.
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
@@ -108,10 +123,9 @@
         [
             {
                 "name": "ljspeech",
-                "path": "/data5/ro/shared/data/keithito/LJSpeech-1.1/",
-                // "path": "/home/erogol/Data/LJSpeech-1.1",
-                "meta_file_train": "metadata_train.csv",
-                "meta_file_val": "metadata_val.csv"
+                "path": "/root/LJSpeech-1.1/",
+                "meta_file_train": "metadata.csv",
+                "meta_file_val": null
             }
         ]
 

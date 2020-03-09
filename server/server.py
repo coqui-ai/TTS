@@ -14,30 +14,52 @@ def create_argparser():
     parser.add_argument('--tts_checkpoint', type=str, help='path to TTS checkpoint file')
     parser.add_argument('--tts_config', type=str, help='path to TTS config.json file')
     parser.add_argument('--tts_speakers', type=str, help='path to JSON file containing speaker ids, if speaker ids are used in the model')
-    parser.add_argument('--wavernn_lib_path', type=str, help='path to WaveRNN project folder to be imported. If this is not passed, model uses Griffin-Lim for synthesis.')
-    parser.add_argument('--wavernn_file', type=str, help='path to WaveRNN checkpoint file.')
-    parser.add_argument('--wavernn_config', type=str, help='path to WaveRNN config file.')
+    parser.add_argument('--wavernn_lib_path', type=str, default=None, help='path to WaveRNN project folder to be imported. If this is not passed, model uses Griffin-Lim for synthesis.')
+    parser.add_argument('--wavernn_file', type=str, default=None, help='path to WaveRNN checkpoint file.')
+    parser.add_argument('--wavernn_config', type=str, default=None, help='path to WaveRNN config file.')
     parser.add_argument('--is_wavernn_batched', type=convert_boolean, default=False, help='true to use batched WaveRNN.')
+    parser.add_argument('--pwgan_lib_path', type=str, default=None, help='path to ParallelWaveGAN project folder to be imported. If this is not passed, model uses Griffin-Lim for synthesis.')
+    parser.add_argument('--pwgan_file', type=str, default=None, help='path to ParallelWaveGAN checkpoint file.')
+    parser.add_argument('--pwgan_config', type=str, default=None, help='path to ParallelWaveGAN config file.')
     parser.add_argument('--port', type=int, default=5002, help='port to listen on.')
     parser.add_argument('--use_cuda', type=convert_boolean, default=False, help='true to use CUDA.')
     parser.add_argument('--debug', type=convert_boolean, default=False, help='true to enable Flask debug mode.')
     return parser
 
 
-config = None
 synthesizer = None
 
-embedded_model_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'model')
-checkpoint_file = os.path.join(embedded_model_folder, 'checkpoint.pth.tar')
-config_file = os.path.join(embedded_model_folder, 'config.json')
+embedded_models_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'model')
 
-if os.path.isfile(checkpoint_file) and os.path.isfile(config_file):
-    # Use default config with embedded model files
-    config = create_argparser().parse_args([])
-    config.tts_checkpoint = checkpoint_file
-    config.tts_config = config_file
-    synthesizer = Synthesizer(config)
+embedded_tts_folder = os.path.join(embedded_models_folder, 'tts')
+tts_checkpoint_file = os.path.join(embedded_tts_folder, 'checkpoint.pth.tar')
+tts_config_file = os.path.join(embedded_tts_folder, 'config.json')
 
+embedded_wavernn_folder = os.path.join(embedded_models_folder, 'wavernn')
+wavernn_checkpoint_file = os.path.join(embedded_wavernn_folder, 'checkpoint.pth.tar')
+wavernn_config_file = os.path.join(embedded_wavernn_folder, 'config.json')
+
+embedded_pwgan_folder = os.path.join(embedded_models_folder, 'pwgan')
+pwgan_checkpoint_file = os.path.join(embedded_pwgan_folder, 'checkpoint.pkl')
+pwgan_config_file = os.path.join(embedded_pwgan_folder, 'config.yml')
+
+args = create_argparser().parse_args()
+
+# If these were not specified in the CLI args, use default values with embedded model files
+if not args.tts_checkpoint and os.path.isfile(tts_checkpoint_file):
+    args.tts_checkpoint = tts_checkpoint_file
+if not args.tts_config and os.path.isfile(tts_config_file):
+    args.tts_config = tts_config_file
+if not args.wavernn_file and os.path.isfile(wavernn_checkpoint_file):
+    args.wavernn_file = wavernn_checkpoint_file
+if not args.wavernn_config and os.path.isfile(wavernn_config_file):
+    args.wavernn_config = wavernn_config_file
+if not args.pwgan_file and os.path.isfile(pwgan_checkpoint_file):
+    args.pwgan_file = pwgan_checkpoint_file
+if not args.pwgan_config and os.path.isfile(pwgan_config_file):
+    args.pwgan_config = pwgan_config_file
+
+synthesizer = Synthesizer(args)
 
 app = Flask(__name__)
 
@@ -55,11 +77,4 @@ def tts():
 
 
 if __name__ == '__main__':
-    args = create_argparser().parse_args()
-
-    # Setup synthesizer from CLI args if they're specified or no embedded model
-    # is present.
-    if not config or not synthesizer or args.tts_checkpoint or args.tts_config:
-        synthesizer = Synthesizer(args)
-
-    app.run(debug=config.debug, host='0.0.0.0', port=config.port)
+    app.run(debug=args.debug, host='0.0.0.0', port=args.port)

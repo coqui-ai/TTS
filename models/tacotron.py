@@ -39,7 +39,7 @@ class Tacotron(nn.Module):
         encoder_dim = 512 if num_speakers > 1 else 256
         proj_speaker_dim = 80 if num_speakers > 1 else 0
         # embedding layer
-        self.embedding = nn.Embedding(num_chars, 256)
+        self.embedding = nn.Embedding(num_chars, 256, padding_idx=0)
         self.embedding.weight.data.normal_(0, 0.3)
         # boilerplate model
         self.encoder = Encoder(encoder_dim)
@@ -132,6 +132,7 @@ class Tacotron(nn.Module):
             return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
+    @torch.no_grad()
     def inference(self, characters, speaker_ids=None, style_mel=None):
         inputs = self.embedding(characters)
         self._init_states()

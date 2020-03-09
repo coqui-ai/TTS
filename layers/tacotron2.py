@@ -64,7 +64,6 @@ class Encoder(nn.Module):
     def forward(self, x, input_lengths):
         x = self.convolutions(x)
         x = x.transpose(1, 2)
-        input_lengths = input_lengths.cpu().numpy()
         x = nn.utils.rnn.pack_padded_sequence(x,
                                               input_lengths,
                                               batch_first=True)
@@ -290,7 +289,7 @@ class Decoder(nn.Module):
             stop_tokens += [stop_token]
             alignments += [alignment]
 
-            if stop_token > 0.7:
+            if stop_token > 0.7 and t > inputs.shape[0] / 2:
                 break
             if len(outputs) == self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")

@@ -13,19 +13,19 @@ from torch.utils.data import DataLoader
 from TTS.datasets.TTSDataset import MyDataset
 from distribute import (DistributedSampler, apply_gradient_allreduce,
                         init_distributed, reduce_tensor)
-from TTS.layers.losses import L1LossMasked, MSELossMasked
+from TTS.layers.losses import L1LossMasked, MSELossMasked, BCELossMasked
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (
     NoamLR, check_update, count_parameters, create_experiment_folder,
     get_git_branch, load_config, remove_experiment_folder, save_best_model,
     save_checkpoint, adam_weight_decay, set_init_dict, copy_config_file,
     setup_model, gradual_training_scheduler, KeepAverage,
-    set_weight_decay)
+    set_weight_decay, check_config)
 from TTS.utils.logger import Logger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
 from TTS.utils.synthesis import synthesis
-from TTS.utils.text.symbols import phonemes, symbols
+from TTS.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.visual import plot_alignment, plot_spectrogram
 from TTS.datasets.preprocess import load_meta_data
 from TTS.utils.radam import RAdam
@@ -49,6 +49,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             c.text_cleaner,
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
+            tp=c.characters if 'characters' in c.keys() else None,
             batch_group_size=0 if is_val else c.batch_group_size *
             c.batch_size,
             min_seq_len=c.min_seq_len,
@@ -167,7 +168,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
 
         # loss computation
         stop_loss = criterion_st(stop_tokens,
-                                 stop_targets) if c.stopnet else torch.zeros(1)
+                                 stop_targets, mel_lengths) if c.stopnet else torch.zeros(1)
         if c.loss_masking:
             decoder_loss = criterion(decoder_output, mel_input, mel_lengths)
             if c.model in ["Tacotron", "TacotronGST"]:
@@ -327,6 +328,7 @@ def train(model, criterion, criterion_st, optimizer, optimizer_st, scheduler,
     return keep_avg['avg_postnet_loss'], global_step
 
 
+@torch.no_grad()
 def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
     data_loader = setup_loader(ap, model.decoder.r, is_val=True)
     if c.use_speaker_embedding:
@@ -346,125 +348,124 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
     keep_avg.add_values(eval_values_dict)
     print("\n > Validation")
 
-    with torch.no_grad():
-        if data_loader is not None:
-            for num_iter, data in enumerate(data_loader):
-                start_time = time.time()
+    if data_loader is not None:
+        for num_iter, data in enumerate(data_loader):
+            start_time = time.time()
 
-                # format data
-                text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, _, _ = format_data(data)
-                assert mel_input.shape[1] % model.decoder.r == 0
+            # format data
+            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, _, _ = format_data(data)
+            assert mel_input.shape[1] % model.decoder.r == 0
 
-                # forward pass model
-                if c.bidirectional_decoder:
-                    decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
-                        text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
-                else:
-                    decoder_output, postnet_output, alignments, stop_tokens = model(
-                        text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
+            # forward pass model
+            if c.bidirectional_decoder:
+                decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
+            else:
+                decoder_output, postnet_output, alignments, stop_tokens = model(
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
 
-                # loss computation
-                stop_loss = criterion_st(
-                    stop_tokens, stop_targets) if c.stopnet else torch.zeros(1)
-                if c.loss_masking:
-                    decoder_loss = criterion(decoder_output, mel_input,
-                                             mel_lengths)
-                    if c.model in ["Tacotron", "TacotronGST"]:
-                        postnet_loss = criterion(postnet_output, linear_input,
-                                                 mel_lengths)
-                    else:
-                        postnet_loss = criterion(postnet_output, mel_input,
-                                                 mel_lengths)
-                else:
-                    decoder_loss = criterion(decoder_output, mel_input)
-                    if c.model in ["Tacotron", "TacotronGST"]:
-                        postnet_loss = criterion(postnet_output, linear_input)
-                    else:
-                        postnet_loss = criterion(postnet_output, mel_input)
-                loss = decoder_loss + postnet_loss + stop_loss
-
-                # backward decoder loss
-                if c.bidirectional_decoder:
-                    if c.loss_masking:
-                        decoder_backward_loss = criterion(torch.flip(decoder_backward_output, dims=(1, )), mel_input, mel_lengths)
-                    else:
-                        decoder_backward_loss = criterion(torch.flip(decoder_backward_output, dims=(1, )), mel_input)
-                    decoder_c_loss = torch.nn.functional.l1_loss(torch.flip(decoder_backward_output, dims=(1, )), decoder_output)
-                    loss += decoder_backward_loss + decoder_c_loss
-                    keep_avg.update_values({'avg_decoder_b_loss': decoder_backward_loss.item(), 'avg_decoder_c_loss': decoder_c_loss.item()})
-
-                step_time = time.time() - start_time
-                epoch_time += step_time
-
-                # compute alignment score
-                align_score = alignment_diagonal_score(alignments)
-                keep_avg.update_value('avg_align_score', align_score)
-
-                # aggregate losses from processes
-                if num_gpus > 1:
-                    postnet_loss = reduce_tensor(postnet_loss.data, num_gpus)
-                    decoder_loss = reduce_tensor(decoder_loss.data, num_gpus)
-                    if c.stopnet:
-                        stop_loss = reduce_tensor(stop_loss.data, num_gpus)
-
-                keep_avg.update_values({
-                    'avg_postnet_loss':
-                    float(postnet_loss.item()),
-                    'avg_decoder_loss':
-                    float(decoder_loss.item()),
-                    'avg_stop_loss':
-                    float(stop_loss.item()),
-                })
-
-                if num_iter % c.print_step == 0:
-                    print(
-                        "   | > TotalLoss: {:.5f}   PostnetLoss: {:.5f} - {:.5f}  DecoderLoss:{:.5f} - {:.5f} "
-                        "StopLoss: {:.5f} - {:.5f}  AlignScore: {:.4f} : {:.4f}"
-                        .format(loss.item(), postnet_loss.item(),
-                                keep_avg['avg_postnet_loss'],
-                                decoder_loss.item(),
-                                keep_avg['avg_decoder_loss'], stop_loss.item(),
-                                keep_avg['avg_stop_loss'], align_score,
-                                keep_avg['avg_align_score']),
-                        flush=True)
-
-            if args.rank == 0:
-                # Diagnostic visualizations
-                idx = np.random.randint(mel_input.shape[0])
-                const_spec = postnet_output[idx].data.cpu().numpy()
-                gt_spec = linear_input[idx].data.cpu().numpy() if c.model in [
-                    "Tacotron", "TacotronGST"
-                ] else mel_input[idx].data.cpu().numpy()
-                align_img = alignments[idx].data.cpu().numpy()
-
-                eval_figures = {
-                    "prediction": plot_spectrogram(const_spec, ap),
-                    "ground_truth": plot_spectrogram(gt_spec, ap),
-                    "alignment": plot_alignment(align_img)
-                }
-
-                # Sample audio
+            # loss computation
+            stop_loss = criterion_st(
+                stop_tokens, stop_targets, mel_lengths) if c.stopnet else torch.zeros(1)
+            if c.loss_masking:
+                decoder_loss = criterion(decoder_output, mel_input,
+                                         mel_lengths)
                 if c.model in ["Tacotron", "TacotronGST"]:
-                    eval_audio = ap.inv_spectrogram(const_spec.T)
+                    postnet_loss = criterion(postnet_output, linear_input,
+                                             mel_lengths)
                 else:
-                    eval_audio = ap.inv_mel_spectrogram(const_spec.T)
-                tb_logger.tb_eval_audios(global_step, {"ValAudio": eval_audio},
-                                         c.audio["sample_rate"])
+                    postnet_loss = criterion(postnet_output, mel_input,
+                                             mel_lengths)
+            else:
+                decoder_loss = criterion(decoder_output, mel_input)
+                if c.model in ["Tacotron", "TacotronGST"]:
+                    postnet_loss = criterion(postnet_output, linear_input)
+                else:
+                    postnet_loss = criterion(postnet_output, mel_input)
+            loss = decoder_loss + postnet_loss + stop_loss
 
-                # Plot Validation Stats
-                epoch_stats = {
-                    "loss_postnet": keep_avg['avg_postnet_loss'],
-                    "loss_decoder": keep_avg['avg_decoder_loss'],
-                    "stop_loss": keep_avg['avg_stop_loss'],
-                    "alignment_score": keep_avg['avg_align_score']
-                }
+            # backward decoder loss
+            if c.bidirectional_decoder:
+                if c.loss_masking:
+                    decoder_backward_loss = criterion(torch.flip(decoder_backward_output, dims=(1, )), mel_input, mel_lengths)
+                else:
+                    decoder_backward_loss = criterion(torch.flip(decoder_backward_output, dims=(1, )), mel_input)
+                decoder_c_loss = torch.nn.functional.l1_loss(torch.flip(decoder_backward_output, dims=(1, )), decoder_output)
+                loss += decoder_backward_loss + decoder_c_loss
+                keep_avg.update_values({'avg_decoder_b_loss': decoder_backward_loss.item(), 'avg_decoder_c_loss': decoder_c_loss.item()})
 
-                if c.bidirectional_decoder:
-                    epoch_stats['loss_decoder_backward'] = keep_avg['avg_decoder_b_loss']
-                    align_b_img = alignments_backward[idx].data.cpu().numpy()
-                    eval_figures['alignment_backward'] = plot_alignment(align_b_img)
-                tb_logger.tb_eval_stats(global_step, epoch_stats)
-                tb_logger.tb_eval_figures(global_step, eval_figures)
+            step_time = time.time() - start_time
+            epoch_time += step_time
+
+            # compute alignment score
+            align_score = alignment_diagonal_score(alignments)
+            keep_avg.update_value('avg_align_score', align_score)
+
+            # aggregate losses from processes
+            if num_gpus > 1:
+                postnet_loss = reduce_tensor(postnet_loss.data, num_gpus)
+                decoder_loss = reduce_tensor(decoder_loss.data, num_gpus)
+                if c.stopnet:
+                    stop_loss = reduce_tensor(stop_loss.data, num_gpus)
+
+            keep_avg.update_values({
+                'avg_postnet_loss':
+                float(postnet_loss.item()),
+                'avg_decoder_loss':
+                float(decoder_loss.item()),
+                'avg_stop_loss':
+                float(stop_loss.item()),
+            })
+
+            if num_iter % c.print_step == 0:
+                print(
+                    "   | > TotalLoss: {:.5f}   PostnetLoss: {:.5f} - {:.5f}  DecoderLoss:{:.5f} - {:.5f} "
+                    "StopLoss: {:.5f} - {:.5f}  AlignScore: {:.4f} : {:.4f}"
+                    .format(loss.item(), postnet_loss.item(),
+                            keep_avg['avg_postnet_loss'],
+                            decoder_loss.item(),
+                            keep_avg['avg_decoder_loss'], stop_loss.item(),
+                            keep_avg['avg_stop_loss'], align_score,
+                            keep_avg['avg_align_score']),
+                    flush=True)
+
+        if args.rank == 0:
+            # Diagnostic visualizations
+            idx = np.random.randint(mel_input.shape[0])
+            const_spec = postnet_output[idx].data.cpu().numpy()
+            gt_spec = linear_input[idx].data.cpu().numpy() if c.model in [
+                "Tacotron", "TacotronGST"
+            ] else mel_input[idx].data.cpu().numpy()
+            align_img = alignments[idx].data.cpu().numpy()
+
+            eval_figures = {
+                "prediction": plot_spectrogram(const_spec, ap),
+                "ground_truth": plot_spectrogram(gt_spec, ap),
+                "alignment": plot_alignment(align_img)
+            }
+
+            # Sample audio
+            if c.model in ["Tacotron", "TacotronGST"]:
+                eval_audio = ap.inv_spectrogram(const_spec.T)
+            else:
+                eval_audio = ap.inv_mel_spectrogram(const_spec.T)
+            tb_logger.tb_eval_audios(global_step, {"ValAudio": eval_audio},
+                                     c.audio["sample_rate"])
+
+            # Plot Validation Stats
+            epoch_stats = {
+                "loss_postnet": keep_avg['avg_postnet_loss'],
+                "loss_decoder": keep_avg['avg_decoder_loss'],
+                "stop_loss": keep_avg['avg_stop_loss'],
+                "alignment_score": keep_avg['avg_align_score']
+            }
+
+            if c.bidirectional_decoder:
+                epoch_stats['loss_decoder_backward'] = keep_avg['avg_decoder_b_loss']
+                align_b_img = alignments_backward[idx].data.cpu().numpy()
+                eval_figures['alignment_backward'] = plot_alignment(align_b_img)
+            tb_logger.tb_eval_stats(global_step, epoch_stats)
+            tb_logger.tb_eval_figures(global_step, eval_figures)
 
     if args.rank == 0 and epoch > c.test_delay_epochs:
         if c.test_sentences_file is None:
@@ -493,7 +494,12 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
                     use_cuda,
                     ap,
                     speaker_id=speaker_id,
-                    style_wav=style_wav)
+                    style_wav=style_wav,
+                    truncated=False,
+                    enable_eos_bos_chars=c.enable_eos_bos_chars, #pylint: disable=unused-argument
+                    use_griffin_lim=True,
+                    do_trim_silence=False)
+
                 file_path = os.path.join(AUDIO_PATH, str(global_step))
                 os.makedirs(file_path, exist_ok=True)
                 file_path = os.path.join(file_path,
@@ -515,9 +521,12 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
 
 # FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
-    global meta_data_train, meta_data_eval
+    # pylint: disable=global-variable-undefined
+    global meta_data_train, meta_data_eval, symbols, phonemes
     # Audio processor
     ap = AudioProcessor(**c.audio)
+    if 'characters' in c.keys():
+        symbols, phonemes = make_symbols(**c.characters)
 
     # DISTRUBUTED
     if num_gpus > 1:
@@ -561,12 +570,12 @@ def main(args):  # pylint: disable=redefined-outer-name
         optimizer_st = None
 
     if c.loss_masking:
-        criterion = L1LossMasked() if c.model in ["Tacotron", "TacotronGST"
-                                                  ] else MSELossMasked()
+        criterion = L1LossMasked(c.seq_len_norm) if c.model in ["Tacotron", "TacotronGST"
+                                                  ] else MSELossMasked(c.seq_len_norm)
     else:
         criterion = nn.L1Loss() if c.model in ["Tacotron", "TacotronGST"
                                                ] else nn.MSELoss()
-    criterion_st = nn.BCEWithLogitsLoss(
+    criterion_st = BCELossMasked(
         pos_weight=torch.tensor(10)) if c.stopnet else None
 
     if args.restore_path:
@@ -687,6 +696,7 @@ if __name__ == '__main__':
 
     # setup output paths and read configs
     c = load_config(args.config_path)
+    check_config(c)
     _ = os.path.dirname(os.path.realpath(__file__))
 
     OUT_PATH = args.continue_path
