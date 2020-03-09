@@ -20,12 +20,12 @@ from TTS.utils.generic_utils import (
     get_git_branch, load_config, remove_experiment_folder, save_best_model,
     save_checkpoint, adam_weight_decay, set_init_dict, copy_config_file,
     setup_model, gradual_training_scheduler, KeepAverage,
-    set_weight_decay)
+    set_weight_decay, check_config)
 from TTS.utils.logger import Logger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
 from TTS.utils.synthesis import synthesis
-from TTS.utils.text.symbols import phonemes, symbols
+from TTS.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.visual import plot_alignment, plot_spectrogram
 from TTS.datasets.preprocess import load_meta_data
 from TTS.utils.radam import RAdam
@@ -49,6 +49,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             c.text_cleaner,
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
+            tp=c.characters if 'characters' in c.keys() else None,
             batch_group_size=0 if is_val else c.batch_group_size *
             c.batch_size,
             min_seq_len=c.min_seq_len,
@@ -515,9 +516,12 @@ def evaluate(model, criterion, criterion_st, ap, global_step, epoch):
 
 # FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
-    global meta_data_train, meta_data_eval
+    # pylint: disable=global-variable-undefined
+    global meta_data_train, meta_data_eval, symbols, phonemes
     # Audio processor
     ap = AudioProcessor(**c.audio)
+    if 'characters' in c.keys():
+        symbols, phonemes = make_symbols(**c.characters)
 
     # DISTRUBUTED
     if num_gpus > 1:
@@ -687,6 +691,7 @@ if __name__ == '__main__':
 
     # setup output paths and read configs
     c = load_config(args.config_path)
+    check_config(c)
     _ = os.path.dirname(os.path.realpath(__file__))
 
     OUT_PATH = args.continue_path

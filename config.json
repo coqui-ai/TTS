@@ -11,6 +11,8 @@
         "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
         "win_length": 1024,     // stft window length in ms.
         "hop_length": 256,      // stft window hop-lengh in ms.
+        "frame_length_ms": null,  // stft window length in ms.If null, 'win_length' is used.
+        "frame_shift_ms": null,   // stft window hop-lengh in ms. If null, 'hop_length' is used.
         "preemphasis": 0.98,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
         "min_level_db": -100,   // normalization range
         "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
@@ -19,7 +21,7 @@
         // Normalization parameters
         "signal_norm": true,    // normalize the spec values in range [0, 1]
         "symmetric_norm": true, // move normalization to range [-1, 1]
-        "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "max_norm": 4.0,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
@@ -27,6 +29,18 @@
         "trim_db": 60          // threshold for timming silence. Set this according to your dataset.
     },
 
+    // VOCABULARY PARAMETERS
+    // if custom character set is not defined,
+    // default set in symbols.py is used
+    "characters":{
+        "pad": "_",
+        "eos": "~",
+        "bos": "^",
+        "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? ",
+        "punctuations":"!'(),-.:;? ",
+        "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫ"
+    },
+    
     // DISTRIBUTED TRAINING
     "distributed":{
         "backend": "nccl",
@@ -36,11 +50,12 @@
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "batch_size": 2,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
     "eval_batch_size":16,   
     "r": 7,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.  
     "gradual_training": [[0, 7, 64], [1, 5, 64], [50000, 3, 32], [130000, 2, 32], [290000, 1, 32]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.
+    "grad_accum": 2,        // if N > 1, enable gradient accumulation for N iterations. It is useful for low memory GPUs. 
 
     // VALIDATION
     "run_eval": true,
@@ -49,7 +64,7 @@
 
     // OPTIMIZER
     "noam_schedule": false,        // use noam warmup and lr schedule.
-    "grad_clip": 1,                // upper limit for gradients for clipping.
+    "grad_clip": 1.0,                // upper limit for gradients for clipping.
     "epochs": 1000,                // total number of epochs to train.
     "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
     "wd": 0.000001,         // Weight decay weight.
