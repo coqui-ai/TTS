@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from TTS.datasets.TTSDataset import MyDataset
 from distribute import (DistributedSampler, apply_gradient_allreduce,
                         init_distributed, reduce_tensor)
-from TTS.layers.losses import L1LossMasked, MSELossMasked, BCELossMasked
+from TTS.layers.losses import TacotronLoss
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (
     NoamLR, check_update, count_parameters, create_experiment_folder,
