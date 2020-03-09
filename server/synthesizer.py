@@ -105,8 +105,8 @@ class Synthesizer(object):
             sample_rate=self.ap.sample_rate,
         ).cuda()
 
-        check = torch.load(model_file)
-        self.wavernn.load_state_dict(check['model'], map_location="cpu")
+        check = torch.load(model_file, map_location="cpu")
+        self.wavernn.load_state_dict(check['model'])
         if use_cuda:
             self.wavernn.cuda()
         self.wavernn.eval()

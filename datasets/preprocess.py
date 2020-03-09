@@ -84,7 +84,7 @@ def mozilla_de(root_path, meta_file):
         for line in ttf:
             cols = line.strip().split('|')
             wav_file = cols[0].strip()
-            text = cols[1].strip()            
+            text = cols[1].strip()
             folder_name = f"BATCH_{wav_file.split('_')[0]}_FINAL"
             wav_file = os.path.join(root_path, folder_name, wav_file)
             items.append([text, wav_file, speaker_name])
