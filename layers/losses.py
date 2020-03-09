@@ -96,3 +96,32 @@ class AttentionEntropyLoss(nn.Module):
         entropy = torch.distributions.Categorical(probs=align).entropy()
         loss = (entropy / np.log(align.shape[1])).mean()
         return loss
+
+
+class BCELossMasked(nn.Module):
+
+    def __init__(self, pos_weight):
+        super(BCELossMasked, self).__init__()
+        self.pos_weight = pos_weight
+
+    def forward(self, x, target, length):
+        """
+        Args:
+            x: A Variable containing a FloatTensor of size
+                (batch, max_len) which contains the
+                unnormalized probability for each class.
+            target: A Variable containing a LongTensor of size
+                (batch, max_len) which contains the index of the true
+                class for each corresponding step.
+            length: A Variable containing a LongTensor of size (batch,)
+                which contains the length of each data in a batch.
+        Returns:
+            loss: An average loss value in range [0, 1] masked by the length.
+        """
+        # mask: (batch, max_len, 1)
+        target.requires_grad = False
+        mask = sequence_mask(sequence_length=length, max_len=target.size(1)).float()
+        loss = functional.binary_cross_entropy_with_logits(
+            x * mask, target * mask, pos_weight=self.pos_weight, reduction='sum')
+        loss = loss / mask.sum()
+        return loss
