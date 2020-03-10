@@ -214,7 +214,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
                 "GradNormST:{:.5f}  AvgTextLen:{:.1f}  AvgSpecLen:{:.1f}  StepTime:{:.2f}  "
                 "LoaderTime:{:.2f}  LR:{:.6f}".format(
                     num_iter, batch_n_iter, global_step, loss_dict['postnet_loss'].item(),
-                    loss_dict['decoder_loss'].item(), loss_dict['stopnet_loss'].item(), 
+                    loss_dict['decoder_loss'].item(), loss_dict['stopnet_loss'].item(),
                     loss_dict['ga_loss'].item(), grad_norm, grad_norm_st, avg_text_length,
                     avg_spec_length, step_time, loader_time, current_lr),
                 flush=True)
@@ -232,7 +232,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
                 'avg_postnet_loss': float(loss_dict['postnet_loss'].item()),
                 'avg_decoder_loss': float(loss_dict['decoder_loss'].item()),
                 'avg_stop_loss': loss_dict['stopnet_loss'].item()
-                if isinstance(loss_dict['stopnet_loss'], float) else float(loss_dict['stopnet_loss'].item()),
+                    if isinstance(loss_dict['stopnet_loss'], float) else float(loss_dict['stopnet_loss'].item()),
                 'avg_step_time': step_time,
                 'avg_loader_time': loader_time
             }
@@ -399,16 +399,16 @@ def evaluate(model, criterion, ap, global_step, epoch):
                     "   | > TotalLoss: {:.5f}   PostnetLoss: {:.5f} - {:.5f}  DecoderLoss:{:.5f} - {:.5f} "
                     "StopLoss: {:.5f} - {:.5f}  GALoss: {:.5f} - {:.5f}  AlignScore: {:.4f} - {:.4f}"
                      .format(loss_dict['loss'].item(),
-                            loss_dict['postnet_loss'].item(),
-                            keep_avg['avg_postnet_loss'],
-                            loss_dict['decoder_loss'].item(),
-                            keep_avg['avg_decoder_loss'],
-                            loss_dict['stopnet_loss'].item(),
-                            keep_avg['avg_stop_loss'],
-                            loss_dict['ga_loss'].item(),
-                            keep_avg['avg_ga_loss'],
-                            align_score, keep_avg['avg_align_score']),
-                    flush=True)
+                             loss_dict['postnet_loss'].item(),
+                             keep_avg['avg_postnet_loss'],
+                             loss_dict['decoder_loss'].item(),
+                             keep_avg['avg_decoder_loss'],
+                             loss_dict['stopnet_loss'].item(),
+                             keep_avg['avg_stop_loss'],
+                             loss_dict['ga_loss'].item(),
+                             keep_avg['avg_ga_loss'],
+                             align_score, keep_avg['avg_align_score']),
+                    flush=Tr ue)
 
         if args.rank == 0:
             # Diagnostic visualizations
