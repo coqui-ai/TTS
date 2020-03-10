@@ -75,3 +75,6 @@ class Logger(object):
 
     def tb_test_figures(self, step, figures):
         self.dict_to_tb_figure("TestFigures", figures, step)
+
+    def tb_add_text(self, title, text, step):
+        self.writer.add_text(title, text, step)
