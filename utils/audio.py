@@ -50,7 +50,7 @@ class AudioProcessor(object):
         self.clip_norm = clip_norm
         self.do_trim_silence = do_trim_silence
         self.trim_db = trim_db
-        self.sound_norm = sound_norm
+        self.do_sound_norm = sound_norm
         # setup stft parameters
         if hop_length is None:
             self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
@@ -232,17 +232,26 @@ class AudioProcessor(object):
         return librosa.effects.trim(
             wav, top_db=self.trim_db, frame_length=self.win_length, hop_length=self.hop_length)[0]
 
-    def sound_norm(self, x):
+    @staticmethod
+    def sound_norm(x):
         return x / abs(x).max() * 0.9
 
-   ### save and load ###
+    ### save and load ###
     def load_wav(self, filename, sr=None):
         if sr is None:
             x, sr = sf.read(filename)
         else:
             x, sr = librosa.load(filename, sr=sr)
+        if self.do_trim_silence:
+            try:
+                x = self.trim_silence(x)
+            except ValueError:
+                print(f' [!] File cannot be trimmed for silence - {filename}')
+        assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
+        if self.do_sound_norm:
+            x = self.sound_norm(x)
         return x
-    
+
     def save_wav(self, wav, path):
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
         scipy.io.wavfile.write(path, self.sample_rate, wav_norm.astype(np.int16))
@@ -263,20 +272,6 @@ class AudioProcessor(object):
         x = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
         return x
 
-    def load_wav(self, filename, sr=None):
-        if sr is None:
-            x, sr = sf.read(filename)
-        else:
-            x, sr = librosa.load(filename, sr=sr)
-        if self.do_trim_silence:
-            try:
-                x = self.trim_silence(x)
-            except ValueError:
-                print(f' [!] File cannot be trimmed for silence - {filename}')
-        assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
-        if self.sound_norm:
-            x = x / abs(x).max() * 0.9
-        return x
 
     @staticmethod
     def encode_16bits(x):

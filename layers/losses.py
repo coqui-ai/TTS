@@ -126,7 +126,7 @@ class BCELossMasked(nn.Module):
         loss = loss / mask.sum()
         return loss
 
-    
+
 class GuidedAttentionLoss(torch.nn.Module):
     def __init__(self, sigma=0.4):
         super(GuidedAttentionLoss, self).__init__()
@@ -179,6 +179,7 @@ class TacotronLoss(torch.nn.Module):
         if c.ga_alpha > 0:
             self.criterion_ga = GuidedAttentionLoss(sigma=ga_sigma)
         # stopnet loss
+        # pylint: disable=not-callable
         self.criterion_st = BCELossMasked(pos_weight=torch.tensor(stopnet_pos_weight)) if c.stopnet else None
 
     def forward(self, postnet_output, decoder_output, mel_input, linear_input,
@@ -213,7 +214,7 @@ class TacotronLoss(torch.nn.Module):
         if not self.config.separate_stopnet and self.config.stopnet:
             loss += stop_loss
         return_dict['stopnet_loss'] = stop_loss
-        
+
         # backward decoder loss (if enabled)
         if self.config.bidirectional_decoder:
             if self.config.loss_masking:
@@ -224,13 +225,13 @@ class TacotronLoss(torch.nn.Module):
             loss += decoder_b_loss + decoder_c_loss
             return_dict['decoder_b_loss'] = decoder_b_loss
             return_dict['decoder_c_loss'] = decoder_c_loss
-        
+
         # guided attention loss (if enabled)
         if self.config.ga_alpha > 0:
             ga_loss = self.criterion_ga(alignments, input_lens, alignment_lens)
             loss += ga_loss * self.ga_alpha
             return_dict['ga_loss'] = ga_loss * self.ga_alpha
-        
+
         return_dict['loss'] = loss
         return return_dict
 
