@@ -1,7 +1,7 @@
 {
     "model": "Tacotron2",          // one of the model in models/  
-    "run_name": "ljspeech-stft_params",
-    "run_description": "tacotron2 cosntant stf parameters",
+    "run_name": "ljspeech",
+    "run_description": "tacotron2 with guided attention and -1 1 normalization and no preemphasis",
 
     // AUDIO PARAMETERS
     "audio":{
