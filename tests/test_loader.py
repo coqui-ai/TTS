@@ -141,7 +141,7 @@ class TestTTSDataset(unittest.TestCase):
 
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()
-                wav = self.ap.inv_mel_spectrogram(mel_spec.T)
+                wav = self.ap.inv_melspectrogram(mel_spec.T)
                 self.ap.save_wav(wav, OUTPATH + '/mel_inv_dataloader.wav')
                 shutil.copy(item_idx[0], OUTPATH + '/mel_target_dataloader.wav')
 
@@ -199,7 +199,8 @@ class TestTTSDataset(unittest.TestCase):
                 # check the second itme in the batch
                 assert linear_input[1 - idx, -1].sum() == 0
                 assert mel_input[1 - idx, -1].sum() == 0
-                assert stop_target[1 - idx, -1] == 1
+                assert stop_target[1, mel_lengths[1]-1] == 1
+                assert stop_target[1, mel_lengths[1]:].sum() == 0
                 assert len(mel_lengths.shape) == 1
 
                 # check batch zero-frame conditions (zero-frame disabled)
