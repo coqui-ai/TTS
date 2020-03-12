@@ -36,6 +36,7 @@ class TestTTSDataset(unittest.TestCase):
         dataset = TTSDataset.MyDataset(
             r,
             c.text_cleaner,
+            compute_linear_spec=True,
             ap=self.ap,
             meta_data=items,
             tp=c.characters if 'characters' in c.keys() else None,
