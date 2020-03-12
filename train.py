@@ -409,7 +409,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
                              loss_dict['ga_loss'].item(),
                              keep_avg['avg_ga_loss'],
                              align_score, keep_avg['avg_align_score']),
-                    flush=Tr ue)
+                    flush=True)
 
         if args.rank == 0:
             # Diagnostic visualizations
