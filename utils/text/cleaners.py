@@ -97,6 +97,7 @@ def basic_turkish_cleaners(text):
     text = text.replace("I", "ı")
     text = lowercase(text)
     text = collapse_whitespace(text)
+    return text
 
 
 def english_cleaners(text):
