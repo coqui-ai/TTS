@@ -113,6 +113,7 @@ class AudioProcessor(object):
                 else:
                     raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
             # range normalization
+            S -= self.ref_level_db  # discard certain range of DB assuming it is air noise
             S_norm = ((S - self.min_level_db) / - self.min_level_db)
             if self.symmetric_norm:
                 S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
@@ -144,13 +145,13 @@ class AudioProcessor(object):
                 if self.clip_norm:
                     S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)
                 S_denorm = ((S_denorm + self.max_norm) * -self.min_level_db / (2 * self.max_norm)) + self.min_level_db
-                return S_denorm
+                return S_denorm + self.ref_level_db
             else:
                 if self.clip_norm:
                     S_denorm = np.clip(S_denorm, 0, self.max_norm)
                 S_denorm = (S_denorm * -self.min_level_db /
                             self.max_norm) + self.min_level_db
-                return S_denorm
+                return S_denorm + self.ref_level_db
         else:
             return S_denorm
 
@@ -208,7 +209,7 @@ class AudioProcessor(object):
             D = self._stft(self.apply_preemphasis(y))
         else:
             D = self._stft(y)
-        S = self._amp_to_db(np.abs(D)) - self.ref_level_db
+        S = self._amp_to_db(np.abs(D))
         return self._normalize(S)
 
     def melspectrogram(self, y):
@@ -216,13 +217,13 @@ class AudioProcessor(object):
             D = self._stft(self.apply_preemphasis(y))
         else:
             D = self._stft(y)
-        S = self._amp_to_db(self._linear_to_mel(np.abs(D))) - self.ref_level_db
+        S = self._amp_to_db(self._linear_to_mel(np.abs(D)))
         return self._normalize(S)
 
     def inv_spectrogram(self, spectrogram):
         """Converts spectrogram to waveform using librosa"""
         S = self._denormalize(spectrogram)
-        S = self._db_to_amp(S + self.ref_level_db)
+        S = self._db_to_amp(S)
         # Reconstruct phase
         if self.preemphasis != 0:
             return self.apply_inv_preemphasis(self._griffin_lim(S**self.power))
@@ -231,7 +232,7 @@ class AudioProcessor(object):
     def inv_melspectrogram(self, mel_spectrogram):
         '''Converts melspectrogram to waveform using librosa'''
         D = self._denormalize(mel_spectrogram)
-        S = self._db_to_amp(D + self.ref_level_db)
+        S = self._db_to_amp(D)
         S = self._mel_to_linear(S)  # Convert back to linear
         if self.preemphasis != 0:
             return self.apply_inv_preemphasis(self._griffin_lim(S**self.power))
@@ -239,9 +240,9 @@ class AudioProcessor(object):
 
     def out_linear_to_mel(self, linear_spec):
         S = self._denormalize(linear_spec)
-        S = self._db_to_amp(S + self.ref_level_db)
+        S = self._db_to_amp(S)
         S = self._linear_to_mel(np.abs(S))
-        S = self._amp_to_db(S) - self.ref_level_db
+        S = self._amp_to_db(S)
         mel = self._normalize(S)
         return mel
 
