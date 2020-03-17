@@ -4,6 +4,8 @@ import numpy as np
 import scipy.io
 import scipy.signal
 
+from TTS.utils.data import StandardScaler
+
 
 class AudioProcessor(object):
     def __init__(self,
@@ -28,6 +30,7 @@ class AudioProcessor(object):
                  do_trim_silence=False,
                  trim_db=60,
                  sound_norm=False,
+                 stats_path=None,
                  **_):
 
         print(" > Setting up Audio Processor...")
@@ -51,6 +54,7 @@ class AudioProcessor(object):
         self.do_trim_silence = do_trim_silence
         self.trim_db = trim_db
         self.do_sound_norm = sound_norm
+        self.stats_path = stats_path
         # setup stft parameters
         if hop_length is None:
             self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
@@ -65,6 +69,14 @@ class AudioProcessor(object):
         # create spectrogram utils
         self.mel_basis = self._build_mel_basis()
         self.inv_mel_basis = np.linalg.pinv(self._build_mel_basis())
+        # setup scaler
+        if stats_path:
+            mel_mean, mel_std, linear_mean, linear_std, _ = self.load_stats(stats_path)
+            self.setup_scaler(mel_mean, mel_std, linear_mean,linear_std)
+            self.signal_norm = True
+            self.max_norm = None
+            self.clip_norm = None
+            self.symmetric_norm = None
 
     ### setting up the parameters ###
     def _build_mel_basis(self, ):
@@ -85,12 +97,22 @@ class AudioProcessor(object):
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
         win_length = int(hop_length * factor)
         return n_fft, hop_length, win_length
-        
+
     ### normalization ###
     def _normalize(self, S):
         """Put values in [0, self.max_norm] or [-self.max_norm, self.max_norm]"""
         #pylint: disable=no-else-return
+        S = S.copy()
         if self.signal_norm:
+            # mean-var scaling
+            if hasattr(self, 'mel_scaler'):
+                if S.shape[0] == self.num_mels:
+                    return self.mel_scaler.transform(S.T).T 
+                elif S.shape[0] == self.n_fft / 2:
+                    return self.linear_scaler.transform(S.T).T
+                else:
+                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
+            # range normalization
             S_norm = ((S - self.min_level_db) / - self.min_level_db)
             if self.symmetric_norm:
                 S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
@@ -108,8 +130,16 @@ class AudioProcessor(object):
     def _denormalize(self, S):
         """denormalize values"""
         #pylint: disable=no-else-return
-        S_denorm = S
+        S_denorm = S.copy()
         if self.signal_norm:
+            # mean-var scaling
+            if hasattr(self, 'mel_scaler'):
+                if S_denorm.shape[0] == self.num_mels:
+                    return self.mel_scaler.inverse_transform(S_denorm.T).T 
+                elif S_denorm.shape[0] == self.n_fft / 2:
+                    return self.linear_scaler.inverse_transform(S_denorm.T).T
+                else:
+                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
             if self.symmetric_norm:
                 if self.clip_norm:
                     S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)
@@ -122,12 +152,35 @@ class AudioProcessor(object):
                             self.max_norm) + self.min_level_db
                 return S_denorm
         else:
-            return S
+            return S_denorm
+
+    ### Mean-STD scaling ###
+    def load_stats(self, stats_path):
+        stats = np.load(stats_path, allow_pickle=True).item()
+        mel_mean = stats['mel_mean']
+        mel_std = stats['mel_std']
+        linear_mean = stats['linear_mean']
+        linear_std = stats['linear_std']
+        stats_config = stats['audio_config']
+        # check all audio parameters used for computing stats
+        skip_parameters = ['griffin_lim_iters', 'stats_path']
+        for key in stats_config.keys():
+            if key in skip_parameters:
+                continue
+            assert stats_config[key] == self.__dict__[
+                    key], f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
+        return mel_mean, mel_std, linear_mean, linear_std, stats_config
+    
+    # pylint: disable=attribute-defined-outside-init
+    def setup_scaler(self, mel_mean, mel_std, linear_mean, linear_std):
+        self.mel_scaler = StandardScaler()
+        self.mel_scaler.set_stats(mel_mean, mel_std)
+        self.linear_scaler = StandardScaler()
+        self.linear_scaler.set_stats(linear_mean, linear_std)
 
     ### DB and AMP conversion ###
     def _amp_to_db(self, x):
-        min_level = np.exp(self.min_level_db / 20 * np.log(10))
-        return 20 * np.log10(np.maximum(min_level, x))
+        return 20 * np.log10(np.maximum(1e-5, x))
 
     def _db_to_amp(self, x):
         return np.power(10.0, x * 0.05)
