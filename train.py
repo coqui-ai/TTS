@@ -692,12 +692,11 @@ if __name__ == '__main__':
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 
-    if args.rank == 0:
         LOG_DIR = OUT_PATH
         tb_logger = Logger(LOG_DIR)
 
-    # write model desc to tensorboard
-    tb_logger.tb_add_text('model-description', c['run_description'], 0)
+        # write model desc to tensorboard
+        tb_logger.tb_add_text('model-description', c['run_description'], 0)
 
     try:
         main(args)
