@@ -56,6 +56,7 @@ class TestAudio(unittest.TestCase):
         """Check normalization and denormalization for range values and consistency """
         print(" > Testing normalization and denormalization.")
         wav = self.ap.load_wav(WAV_FILE)
+        wav = self.ap.sound_norm(wav)  # normalize audio to get abetter normalization range below.
         self.ap.signal_norm = False
         x = self.ap.melspectrogram(wav)
         x_old = x
@@ -65,7 +66,7 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = False
         self.ap.max_norm = 4.0
         x_norm = self.ap._normalize(x)
-        print(x_norm.max(), " -- ", x_norm.min())
+        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm + 1, x_norm.max()
@@ -79,7 +80,9 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = True
         self.ap.max_norm = 4.0
         x_norm = self.ap._normalize(x)
-        print(x_norm.max(), " -- ", x_norm.min())
+        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
+
+
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
@@ -93,7 +96,9 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = False
         self.ap.max_norm = 4.0
         x_norm = self.ap._normalize(x)
-        print(x_norm.max(), " -- ", x_norm.min())
+        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
+
+
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm + 1, x_norm.max()
@@ -108,7 +113,9 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = True
         self.ap.max_norm = 4.0
         x_norm = self.ap._normalize(x)
-        print(x_norm.max(), " -- ", x_norm.min())
+        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
+
+
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
@@ -122,7 +129,9 @@ class TestAudio(unittest.TestCase):
         self.ap.symmetric_norm = False
         self.ap.max_norm = 1.0
         x_norm = self.ap._normalize(x)
-        print(x_norm.max(), " -- ", x_norm.min())
+        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
+
+
         assert (x_old - x).sum() == 0
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
         assert x_norm.min() >= 0, x_norm.min()
@@ -133,7 +142,9 @@ class TestAudio(unittest.TestCase):
         self.ap.symmetric_norm = True
         self.ap.max_norm = 1.0
         x_norm = self.ap._normalize(x)
-        print(x_norm.max(), " -- ", x_norm.min())
+        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
+
+
         assert (x_old - x).sum() == 0
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
         assert x_norm.min() >= -self.ap.max_norm, x_norm.min()
