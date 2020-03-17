@@ -140,3 +140,24 @@ class TestAudio(unittest.TestCase):
         assert x_norm.min() < 0, x_norm.min()
         x_ = self.ap._denormalize(x_norm)
         assert (x - x_).sum() < 1e-3
+
+    def test_scaler(self):
+        scaler_stats_path = os.path.join(get_tests_input_path(), 'scale_stats.npy')
+        conf.audio['stats_path'] = scaler_stats_path
+        conf.audio['preemphasis'] = 0.0
+        conf.audio['do_trim_silence'] = True
+        conf.audio['signal_norm'] = True
+
+        ap = AudioProcessor(**conf.audio)
+        mel_mean, mel_std, linear_mean, linear_std, _ = ap.load_stats(scaler_stats_path)
+        ap.setup_scaler(mel_mean, mel_std, linear_mean, linear_std)
+
+        self.ap.signal_norm = False
+        self.ap.preemphasis = 0.0
+        
+        # test scaler forward and backward transforms
+        wav = self.ap.load_wav(WAV_FILE)
+        mel_reference = self.ap.melspectrogram(wav)
+        mel_norm = ap.melspectrogram(wav)
+        mel_denorm = ap._denormalize(mel_norm)
+        assert abs(mel_reference - mel_denorm).max() < 1e-4
