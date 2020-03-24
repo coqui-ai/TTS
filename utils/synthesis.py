@@ -137,4 +137,4 @@ def synthesis(model,
         # trim silence
         if do_trim_silence:
             wav = trim_silence(wav, ap)
-    return wav, alignment, decoder_output, postnet_output, stop_tokens
+    return wav, alignment, decoder_output, postnet_output, stop_tokens, inputs
