@@ -29,7 +29,7 @@ class AudioProcessor(object):
                  griffin_lim_iters=None,
                  do_trim_silence=False,
                  trim_db=60,
-                 sound_norm=False,
+                 do_sound_norm=False,
                  stats_path=None,
                  **_):
 
@@ -53,7 +53,7 @@ class AudioProcessor(object):
         self.clip_norm = clip_norm
         self.do_trim_silence = do_trim_silence
         self.trim_db = trim_db
-        self.do_sound_norm = sound_norm
+        self.do_sound_norm = do_sound_norm
         self.stats_path = stats_path
         # setup stft parameters
         if hop_length is None:
@@ -164,7 +164,7 @@ class AudioProcessor(object):
         linear_std = stats['linear_std']
         stats_config = stats['audio_config']
         # check all audio parameters used for computing stats
-        skip_parameters = ['griffin_lim_iters', 'stats_path']
+        skip_parameters = ['griffin_lim_iters', 'stats_path', 'do_trim_silence', 'ref_level_db', 'power']
         for key in stats_config.keys():
             if key in skip_parameters:
                 continue
