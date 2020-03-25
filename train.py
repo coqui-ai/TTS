@@ -472,7 +472,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
         style_wav = c.get("style_wav_for_test")
         for idx, test_sentence in enumerate(test_sentences):
             try:
-                wav, alignment, decoder_output, postnet_output, stop_tokens = synthesis(
+                wav, alignment, decoder_output, postnet_output, stop_tokens, inputs = synthesis(
                     model,
                     test_sentence,
                     c,
