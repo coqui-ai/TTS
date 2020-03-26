@@ -114,7 +114,7 @@ class AudioProcessor(object):
                     raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
             # range normalization
             S -= self.ref_level_db  # discard certain range of DB assuming it is air noise
-            S_norm = ((S - self.min_level_db) / - self.min_level_db)
+            S_norm = ((S - self.min_level_db) / (-self.min_level_db))
             if self.symmetric_norm:
                 S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
                 if self.clip_norm:
@@ -269,7 +269,17 @@ class AudioProcessor(object):
             y = self._istft(S_complex * angles)
         return y
 
-    ### Audio Processing ###
+    def compute_stft_paddings(x, fsize, fshift, pad_sides=1):
+        '''compute right padding (final frame) or both sides padding (first and final frames)
+        '''
+        assert pad_sides in (1, 2)
+        # return int(fsize // 2)
+        pad = (x.shape[0] // fshift + 1) * fshift - x.shape[0]
+        if pad_sides == 1:
+            return 0, pad
+        else:
+            return pad // 2, pad // 2 + pad % 2Processing ###
+
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)
         hop_length = int(window_length / 4)
