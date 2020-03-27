@@ -278,8 +278,9 @@ class AudioProcessor(object):
         if pad_sides == 1:
             return 0, pad
         else:
-            return pad // 2, pad // 2 + pad % 2Processing ###
+            return pad // 2, pad // 2 + pad % 2
 
+    ### Audio Processing ###
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)
         hop_length = int(window_length / 4)
