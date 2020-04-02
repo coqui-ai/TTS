@@ -47,7 +47,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
         dataset = MyDataset(
             r,
             c.text_cleaner,
-            compute_linear_spec=True if c.model.lower() is 'tacotron' else False,
+            compute_linear_spec=True if c.model.lower() == 'tacotron' else False,
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             tp=c.characters if 'characters' in c.keys() else None,
