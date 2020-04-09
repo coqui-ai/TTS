@@ -269,7 +269,7 @@ class AudioProcessor(object):
             y = self._istft(S_complex * angles)
         return y
 
-    def compute_stft_paddings(x, pad_sides=1):
+    def compute_stft_paddings(self,x, pad_sides=1):
         '''compute right padding (final frame) or both sides padding (first and final frames)
         '''
         assert pad_sides in (1, 2)

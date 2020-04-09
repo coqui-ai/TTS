@@ -40,8 +40,8 @@ def plot_spectrogram(linear_output, audio, fig_size=(16, 10)):
     return fig
 
 
-def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CONFIG, spectrogram=None, output_path=None, figsize=[8, 24]):
-    if spectrogram is not None:
+def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, decoder_output=None, output_path=None, figsize=[8, 24]):
+    if decoder_output is not None:
         num_plot = 4
     else:
         num_plot = 3
@@ -53,30 +53,35 @@ def visualize(alignment, spectrogram_postnet, stop_tokens, text, hop_length, CON
     plt.imshow(alignment.T, aspect="auto", origin="lower", interpolation=None)
     plt.xlabel("Decoder timestamp", fontsize=label_fontsize)
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
+    # compute phoneme representation and back
     if CONFIG.use_phonemes:
         seq = phoneme_to_sequence(text, [CONFIG.text_cleaner], CONFIG.phoneme_language, CONFIG.enable_eos_bos_chars, tp=CONFIG.characters if 'characters' in CONFIG.keys() else None)
         text = sequence_to_phoneme(seq, tp=CONFIG.characters if 'characters' in CONFIG.keys() else None)
         print(text)
-
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
-
+    # plot stopnet predictions
     stop_tokens = stop_tokens.squeeze().detach().to('cpu').numpy()
     plt.subplot(num_plot, 1, 2)
     plt.plot(range(len(stop_tokens)), list(stop_tokens))
-
+    # plot postnet spectrogram
     plt.subplot(num_plot, 1, 3)
-    librosa.display.specshow(spectrogram_postnet.T, sr=CONFIG.audio['sample_rate'],
-                             hop_length=hop_length, x_axis="time", y_axis="linear")
+    librosa.display.specshow(postnet_output.T, sr=CONFIG.audio['sample_rate'],
+                             hop_length=hop_length, x_axis="time", y_axis="linear",
+                             fmin=CONFIG.audio['mel_fmin'],
+                             fmax=CONFIG.audio['mel_fmax'])
+
     plt.xlabel("Time", fontsize=label_fontsize)
     plt.ylabel("Hz", fontsize=label_fontsize)
     plt.tight_layout()
     plt.colorbar()
 
-    if spectrogram is not None:
+    if decoder_output is not None:
         plt.subplot(num_plot, 1, 4)
-        librosa.display.specshow(spectrogram.T, sr=CONFIG.audio['sample_rate'],
-                                 hop_length=hop_length, x_axis="time", y_axis="linear")
+        librosa.display.specshow(decoder_output.T, sr=CONFIG.audio['sample_rate'],
+                                 hop_length=hop_length, x_axis="time", y_axis="linear",
+                                 fmin=CONFIG.audio['mel_fmin'],
+                                 fmax=CONFIG.audio['mel_fmax'])
         plt.xlabel("Time", fontsize=label_fontsize)
         plt.ylabel("Hz", fontsize=label_fontsize)
         plt.tight_layout()
