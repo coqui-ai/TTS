@@ -113,7 +113,7 @@ def save_checkpoint(model, optimizer, optimizer_st, model_loss, out_path,
                     current_step, epoch):
     checkpoint_path = 'checkpoint_{}.pth.tar'.format(current_step)
     checkpoint_path = os.path.join(out_path, checkpoint_path)
-    print(" | | > Checkpoint saving : {}".format(checkpoint_path))
+    print(" > CHECKPOINT : {}".format(checkpoint_path))
 
     new_state_dict = model.state_dict()
     state = {
