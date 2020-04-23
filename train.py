@@ -20,8 +20,9 @@ from TTS.utils.generic_utils import (
     get_git_branch, load_config, remove_experiment_folder, save_best_model,
     save_checkpoint, adam_weight_decay, set_init_dict, copy_config_file,
     setup_model, gradual_training_scheduler, KeepAverage,
-    set_weight_decay, check_config)
-from TTS.utils.logger import Logger
+    set_weight_decay, check_config, print_train_step)
+from TTS.utils.tensorboard_logger import TensorboardLogger
+from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
     get_speakers
 from TTS.utils.synthesis import synthesis
@@ -125,8 +126,8 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
     train_values = {
         'avg_postnet_loss': 0,
         'avg_decoder_loss': 0,
-        'avg_stop_loss': 0,
-        'avg_align_score': 0,
+        'avg_stopnet_loss': 0,
+        'avg_align_error': 0,
         'avg_step_time': 0,
         'avg_loader_time': 0,
         'avg_alignment_score': 0
@@ -138,13 +139,13 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         train_values['avg_ga_loss'] = 0  # guidede attention loss
     keep_avg = KeepAverage()
     keep_avg.add_values(train_values)
-    print("\n > Epoch {}/{}".format(epoch, c.epochs), flush=True)
     if use_cuda:
         batch_n_iter = int(
             len(data_loader.dataset) / (c.batch_size * num_gpus))
     else:
         batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
     end_time = time.time()
+    c_logger.print_train_start()
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -193,9 +194,10 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         grad_norm, grad_flag = check_update(model, c.grad_clip, ignore_stopnet=True)
         optimizer.step()
 
-        # compute alignment score
-        align_score = alignment_diagonal_score(alignments)
-        keep_avg.update_value('avg_align_score', align_score)
+        # compute alignment error (the lower the better )
+        align_error = 1 - alignment_diagonal_score(alignments)
+        keep_avg.update_value('avg_align_error', align_error)
+        loss_dict['align_error'] = align_error
 
         # backpass and check the grad norm for stop loss
         if c.separate_stopnet:
@@ -209,17 +211,22 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         step_time = time.time() - start_time
         epoch_time += step_time
 
+        # update avg stats
+        update_train_values = {
+            'avg_postnet_loss': float(loss_dict['postnet_loss'].item()),
+            'avg_decoder_loss': float(loss_dict['decoder_loss'].item()),
+            'avg_stopnet_loss': loss_dict['stopnet_loss'].item()
+                if isinstance(loss_dict['stopnet_loss'], float) else float(loss_dict['stopnet_loss'].item()),
+            'avg_step_time': step_time,
+            'avg_loader_time': loader_time
+        }
+        keep_avg.update_values(update_train_values)
+
         if global_step % c.print_step == 0:
-            print(
-                "   | > Step:{}/{}  GlobalStep:{}  PostnetLoss:{:.5f}  "
-                "DecoderLoss:{:.5f}  StopLoss:{:.5f}  GALoss:{:.5f}  GradNorm:{:.5f}  "
-                "GradNormST:{:.5f}  AvgTextLen:{:.1f}  AvgSpecLen:{:.1f}  StepTime:{:.2f}  "
-                "LoaderTime:{:.2f}  LR:{:.6f}".format(
-                    num_iter, batch_n_iter, global_step, loss_dict['postnet_loss'].item(),
-                    loss_dict['decoder_loss'].item(), loss_dict['stopnet_loss'].item(),
-                    loss_dict['ga_loss'].item(), grad_norm, grad_norm_st, avg_text_length,
-                    avg_spec_length, step_time, loader_time, current_lr),
-                flush=True)
+            c_logger.print_train_step(batch_n_iter, num_iter, global_step,
+                                      avg_spec_length, avg_text_length,
+                                      step_time, loader_time, current_lr,
+                                      loss_dict, keep_avg.avg_values)
 
         # aggregate losses from processes
         if num_gpus > 1:
@@ -230,16 +237,6 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
                                       num_gpus) if c.stopnet else loss_dict['stopnet_loss']
 
         if args.rank == 0:
-            update_train_values = {
-                'avg_postnet_loss': float(loss_dict['postnet_loss'].item()),
-                'avg_decoder_loss': float(loss_dict['decoder_loss'].item()),
-                'avg_stop_loss': loss_dict['stopnet_loss'].item()
-                    if isinstance(loss_dict['stopnet_loss'], float) else float(loss_dict['stopnet_loss'].item()),
-                'avg_step_time': step_time,
-                'avg_loader_time': loader_time
-            }
-            keep_avg.update_values(update_train_values)
-
             # Plot Training Iter Stats
             # reduce TB load
             if global_step % 10 == 0:
@@ -289,23 +286,16 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         end_time = time.time()
 
     # print epoch stats
-    print("   | > EPOCH END -- GlobalStep:{}  "
-          "AvgPostnetLoss:{:.5f}  AvgDecoderLoss:{:.5f}  "
-          "AvgStopLoss:{:.5f}  AvgGALoss:{:3f}  EpochTime:{:.2f}  "
-          "AvgStepTime:{:.2f}  AvgLoaderTime:{:.2f}".format(
-              global_step, keep_avg['avg_postnet_loss'],
-              keep_avg['avg_decoder_loss'], keep_avg['avg_stop_loss'],
-              keep_avg['avg_ga_loss'], epoch_time,
-              keep_avg['avg_step_time'], keep_avg['avg_loader_time']),
-          flush=True)
+    c_logger.print_train_epoch_end(global_step, epoch, epoch_time, keep_avg)
+
     # Plot Epoch Stats
     if args.rank == 0:
         # Plot Training Epoch Stats
         epoch_stats = {
             "loss_postnet": keep_avg['avg_postnet_loss'],
             "loss_decoder": keep_avg['avg_decoder_loss'],
-            "stop_loss": keep_avg['avg_stop_loss'],
-            "alignment_score": keep_avg['avg_align_score'],
+            "stopnet_loss": keep_avg['avg_stopnet_loss'],
+            "alignment_score": keep_avg['avg_align_error'],
             "epoch_time": epoch_time
         }
         if c.ga_alpha > 0:
@@ -313,7 +303,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         tb_logger.tb_train_epoch_stats(global_step, epoch_stats)
         if c.tb_model_param_stats:
             tb_logger.tb_model_weights(model, global_step)
-    return keep_avg['avg_postnet_loss'], global_step
+    return keep_avg.avg_values, global_step
 
 
 @torch.no_grad()
@@ -326,8 +316,8 @@ def evaluate(model, criterion, ap, global_step, epoch):
     eval_values_dict = {
         'avg_postnet_loss': 0,
         'avg_decoder_loss': 0,
-        'avg_stop_loss': 0,
-        'avg_align_score': 0
+        'avg_stopnet_loss': 0,
+        'avg_align_error': 0
     }
     if c.bidirectional_decoder:
         eval_values_dict['avg_decoder_b_loss'] = 0  # decoder backward loss
@@ -336,8 +326,8 @@ def evaluate(model, criterion, ap, global_step, epoch):
         eval_values_dict['avg_ga_loss'] = 0  # guidede attention loss
     keep_avg = KeepAverage()
     keep_avg.add_values(eval_values_dict)
-    print("\n > Validation")
 
+    c_logger.print_eval_start()
     if data_loader is not None:
         for num_iter, data in enumerate(data_loader):
             start_time = time.time()
@@ -377,40 +367,27 @@ def evaluate(model, criterion, ap, global_step, epoch):
             epoch_time += step_time
 
             # compute alignment score
-            align_score = alignment_diagonal_score(alignments)
-            keep_avg.update_value('avg_align_score', align_score)
+            align_error = 1 - alignment_diagonal_score(alignments)
+            keep_avg.update_value('avg_align_error', align_error)
 
             # aggregate losses from processes
             if num_gpus > 1:
-                postnet_loss = reduce_tensor(postnet_loss.data, num_gpus)
-                decoder_loss = reduce_tensor(decoder_loss.data, num_gpus)
+                postnet_loss = reduce_tensor(loss_dict['postnet_loss'].data, num_gpus)
+                decoder_loss = reduce_tensor(loss_dict['decoder_loss'].data, num_gpus)
                 if c.stopnet:
-                    stop_loss = reduce_tensor(stop_loss.data, num_gpus)
+                    stopnet_loss = reduce_tensor(loss_dict['stopnet_loss'].data, num_gpus)
 
             keep_avg.update_values({
                 'avg_postnet_loss':
                 float(loss_dict['postnet_loss'].item()),
                 'avg_decoder_loss':
                 float(loss_dict['decoder_loss'].item()),
-                'avg_stop_loss':
+                'avg_stopnet_loss':
                 float(loss_dict['stopnet_loss'].item()),
             })
 
-            if num_iter % c.print_step == 0:
-                print(
-                    "   | > TotalLoss: {:.5f}   PostnetLoss: {:.5f} - {:.5f}  DecoderLoss:{:.5f} - {:.5f} "
-                    "StopLoss: {:.5f} - {:.5f}  GALoss: {:.5f} - {:.5f}  AlignScore: {:.4f} - {:.4f}"
-                     .format(loss_dict['loss'].item(),
-                             loss_dict['postnet_loss'].item(),
-                             keep_avg['avg_postnet_loss'],
-                             loss_dict['decoder_loss'].item(),
-                             keep_avg['avg_decoder_loss'],
-                             loss_dict['stopnet_loss'].item(),
-                             keep_avg['avg_stop_loss'],
-                             loss_dict['ga_loss'].item(),
-                             keep_avg['avg_ga_loss'],
-                             align_score, keep_avg['avg_align_score']),
-                    flush=True)
+            if c.print_eval:
+                c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
 
         if args.rank == 0:
             # Diagnostic visualizations
@@ -439,8 +416,8 @@ def evaluate(model, criterion, ap, global_step, epoch):
             epoch_stats = {
                 "loss_postnet": keep_avg['avg_postnet_loss'],
                 "loss_decoder": keep_avg['avg_decoder_loss'],
-                "stop_loss": keep_avg['avg_stop_loss'],
-                "alignment_score": keep_avg['avg_align_score'],
+                "stopnet_loss": keep_avg['avg_stopnet_loss'],
+                "alignment_score": keep_avg['avg_align_error'],
             }
 
             if c.bidirectional_decoder:
@@ -501,7 +478,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
         tb_logger.tb_test_audios(global_step, test_audios,
                                  c.audio['sample_rate'])
         tb_logger.tb_test_figures(global_step, test_figures)
-    return keep_avg['avg_postnet_loss']
+    return keep_avg.avg_values
 
 
 # FIXME: move args definition/parsing inside of main?
@@ -603,6 +580,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     global_step = args.restore_step
     for epoch in range(0, c.epochs):
+        c_logger.print_epoch_start(epoch, c.epochs)
         # set gradual training
         if c.gradual_training is not None:
             r, c.batch_size = gradual_training_scheduler(global_step, c)
@@ -610,18 +588,16 @@ def main(args):  # pylint: disable=redefined-outer-name
             model.decoder.set_r(r)
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
-        print(" > Number of outputs per iteration:", model.decoder.r)
+        print("\n > Number of output frames:", model.decoder.r)
 
-        train_loss, global_step = train(model, criterion, optimizer,
+        train_avg_loss_dict, global_step = train(model, criterion, optimizer,
                                         optimizer_st, scheduler, ap,
                                         global_step, epoch)
-        val_loss = evaluate(model, criterion, ap, global_step, epoch)
-        print(" | > Training Loss: {:.5f}   Validation Loss: {:.5f}".format(
-            train_loss, val_loss),
-              flush=True)
-        target_loss = train_loss
+        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
+        c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
+        target_loss = train_avg_loss_dict['avg_postnet_loss']
         if c.run_eval:
-            target_loss = val_loss
+            target_loss = eval_avg_loss_dict['avg_postnet_loss']
         best_loss = save_best_model(model, optimizer, target_loss, best_loss,
                                     OUT_PATH, global_step, epoch)
 
@@ -681,6 +657,8 @@ if __name__ == '__main__':
 
     AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
 
+    c_logger = ConsoleLogger()
+
     if args.rank == 0:
         os.makedirs(AUDIO_PATH, exist_ok=True)
         new_fields = {}
@@ -693,7 +671,7 @@ if __name__ == '__main__':
         os.chmod(OUT_PATH, 0o775)
 
         LOG_DIR = OUT_PATH
-        tb_logger = Logger(LOG_DIR)
+        tb_logger = TensorboardLogger(LOG_DIR)
 
         # write model desc to tensorboard
         tb_logger.tb_add_text('model-description', c['run_description'], 0)
