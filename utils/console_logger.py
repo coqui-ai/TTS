@@ -22,6 +22,7 @@ class ConsoleLogger():
         self.old_epoch_loss_dict = None
         self.old_eval_loss_dict = None
 
+    # pylint: disable=no-self-use
     def get_time(self):
         now = datetime.datetime.now()
         return now.strftime("%Y-%m-%d %H:%M:%S")
@@ -47,10 +48,11 @@ class ConsoleLogger():
                 log_text += "{}{}: {:.5f}  ({:.5f})\n".format(indent, key, value, avg_loss_dict[f'avg_{key}'])
             else:
                 log_text += "{}{}: {:.5f} \n".format(indent, key, value)
-        log_text += "{}avg_spec_len: {}\n{}avg_text_len: {}\n{}step_time: {:.2f}\n{}loader_time: {:.2f}\n{}lr: {:.5f}"\
-            .format(indent, avg_spec_length, indent, avg_text_length, indent, step_time, indent, loader_time, indent, lr)
+        log_text += f"{indent}avg_spec_len: {avg_spec_length}\n{indent}avg_text_len: {avg_text_length}\n{indent}\
+            step_time: {step_time:.2f}\n{indent}loader_time: {loader_time:.2f}\n{indent}lr: {lr:.5f}"
         print(log_text, flush=True)
 
+    # pylint: disable=unused-argument
     def print_train_epoch_end(self, global_step, epoch, epoch_time,
                               print_dict):
         indent = "     | > "

@@ -224,7 +224,7 @@ class MyDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            # compute linear spectrogram 
+            # compute linear spectrogram
             if self.compute_linear_spec:
                 linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
                 linear = prepare_tensor(linear, self.outputs_per_step)

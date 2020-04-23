@@ -13,6 +13,7 @@ os.makedirs(OUT_PATH, exist_ok=True)
 conf = load_config(os.path.join(TESTS_PATH, 'test_config.json'))
 
 
+# pylint: disable=protected-access
 class TestAudio(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestAudio, self).__init__(*args, **kwargs)
@@ -165,7 +166,7 @@ class TestAudio(unittest.TestCase):
 
         self.ap.signal_norm = False
         self.ap.preemphasis = 0.0
-        
+
         # test scaler forward and backward transforms
         wav = self.ap.load_wav(WAV_FILE)
         mel_reference = self.ap.melspectrogram(wav)

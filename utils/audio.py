@@ -72,7 +72,7 @@ class AudioProcessor(object):
         # setup scaler
         if stats_path:
             mel_mean, mel_std, linear_mean, linear_std, _ = self.load_stats(stats_path)
-            self.setup_scaler(mel_mean, mel_std, linear_mean,linear_std)
+            self.setup_scaler(mel_mean, mel_std, linear_mean, linear_std)
             self.signal_norm = True
             self.max_norm = None
             self.clip_norm = None
@@ -107,7 +107,7 @@ class AudioProcessor(object):
             # mean-var scaling
             if hasattr(self, 'mel_scaler'):
                 if S.shape[0] == self.num_mels:
-                    return self.mel_scaler.transform(S.T).T 
+                    return self.mel_scaler.transform(S.T).T
                 elif S.shape[0] == self.n_fft / 2:
                     return self.linear_scaler.transform(S.T).T
                 else:
@@ -136,7 +136,7 @@ class AudioProcessor(object):
             # mean-var scaling
             if hasattr(self, 'mel_scaler'):
                 if S_denorm.shape[0] == self.num_mels:
-                    return self.mel_scaler.inverse_transform(S_denorm.T).T 
+                    return self.mel_scaler.inverse_transform(S_denorm.T).T
                 elif S_denorm.shape[0] == self.n_fft / 2:
                     return self.linear_scaler.inverse_transform(S_denorm.T).T
                 else:
@@ -168,10 +168,10 @@ class AudioProcessor(object):
         for key in stats_config.keys():
             if key in skip_parameters:
                 continue
-            assert stats_config[key] == self.__dict__[
-                    key], f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
+            assert stats_config[key] == self.__dict__[key],\
+                f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
         return mel_mean, mel_std, linear_mean, linear_std, stats_config
-    
+
     # pylint: disable=attribute-defined-outside-init
     def setup_scaler(self, mel_mean, mel_std, linear_mean, linear_std):
         self.mel_scaler = StandardScaler()
@@ -180,9 +180,11 @@ class AudioProcessor(object):
         self.linear_scaler.set_stats(linear_mean, linear_std)
 
     ### DB and AMP conversion ###
+    # pylint: disable=no-self-use
     def _amp_to_db(self, x):
         return 20 * np.log10(np.maximum(1e-5, x))
 
+    # pylint: disable=no-self-use
     def _db_to_amp(self, x):
         return np.power(10.0, x * 0.05)
 
@@ -269,15 +271,14 @@ class AudioProcessor(object):
             y = self._istft(S_complex * angles)
         return y
 
-    def compute_stft_paddings(self,x, pad_sides=1):
+    def compute_stft_paddings(self, x, pad_sides=1):
         '''compute right padding (final frame) or both sides padding (first and final frames)
         '''
         assert pad_sides in (1, 2)
         pad = (x.shape[0] // self.hop_length + 1) * self.hop_length - x.shape[0]
         if pad_sides == 1:
             return 0, pad
-        else:
-            return pad // 2, pad // 2 + pad % 2
+        return pad // 2, pad // 2 + pad % 2
 
     ### Audio Processing ###
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):

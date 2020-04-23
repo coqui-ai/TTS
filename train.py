@@ -7,7 +7,6 @@ import traceback
 
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from TTS.datasets.TTSDataset import MyDataset
@@ -20,7 +19,7 @@ from TTS.utils.generic_utils import (
     get_git_branch, load_config, remove_experiment_folder, save_best_model,
     save_checkpoint, adam_weight_decay, set_init_dict, copy_config_file,
     setup_model, gradual_training_scheduler, KeepAverage,
-    set_weight_decay, check_config, print_train_step)
+    set_weight_decay, check_config)
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
@@ -215,7 +214,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         update_train_values = {
             'avg_postnet_loss': float(loss_dict['postnet_loss'].item()),
             'avg_decoder_loss': float(loss_dict['decoder_loss'].item()),
-            'avg_stopnet_loss': loss_dict['stopnet_loss'].item()
+            'avg_stopnet_loss': loss_dict['stopnet_loss'].item() \
                 if isinstance(loss_dict['stopnet_loss'], float) else float(loss_dict['stopnet_loss'].item()),
             'avg_step_time': step_time,
             'avg_loader_time': loader_time
@@ -591,8 +590,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         print("\n > Number of output frames:", model.decoder.r)
 
         train_avg_loss_dict, global_step = train(model, criterion, optimizer,
-                                        optimizer_st, scheduler, ap,
-                                        global_step, epoch)
+                                                 optimizer_st, scheduler, ap,
+                                                 global_step, epoch)
         eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_postnet_loss']

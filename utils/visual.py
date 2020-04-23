@@ -40,7 +40,7 @@ def plot_spectrogram(linear_output, audio, fig_size=(16, 10)):
     return fig
 
 
-def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, decoder_output=None, output_path=None, figsize=[8, 24]):
+def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, decoder_output=None, output_path=None, figsize=(8, 24)):
     if decoder_output is not None:
         num_plot = 4
     else:
