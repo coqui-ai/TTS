@@ -369,7 +369,7 @@ class KeepAverage():
         return self.avg_values[key]
 
     def items(self):
-        return self.avg_values.items() 
+        return self.avg_values.items()
 
     def add_value(self, name, init_val=0, init_iter=0):
         self.avg_values[name] = init_val
@@ -412,7 +412,7 @@ def _check_argument(name, c, enum_list=None, max_val=None, min_val=None, restric
 
 tcolors = AttrDict({
     'OKBLUE': '\033[94m',
-    'HEADER': '\033[95m', 
+    'HEADER': '\033[95m',
     'OKGREEN': '\033[92m',
     'WARNING': '\033[93m',
     'FAIL': '\033[91m',
@@ -428,17 +428,10 @@ def print_train_step(batch_steps, step, global_step, avg_spec_length, avg_text_l
     log_text = "{}   --> STEP: {}/{} -- GLOBAL_STEP: {}{}\n".format(tcolors.BOLD, step, batch_steps, global_step, tcolors.ENDC)
     for key, value in print_dict.items():
         log_text += "{}{}: {:.5f}\n".format(indent, key, value)
-    log_text += "{}avg_spec_len: {}\n{}avg_text_len: {}\n{}step_time: {:.2f}\n{}loader_time: {:.2f}\n{}lr: {:.5f}"\
+    log_text += f"{indent}avg_spec_len: {avg_spec_length}\n{indent}avg_text_len: {avg_text_length}\
+        \n{indent}step_time: {step_time:.2f}\n{indent}loader_time: {loader_time:.2f}\n{indent}lr: {lr:.5f}"\
         .format(indent, avg_spec_length, indent, avg_text_length, indent, step_time, indent, loader_time, indent, lr)
     print(log_text, flush=True)
-    
-
-def print_train_epoch(step, global_step, epoch, loss_dict):
-    pass
-
-
-def print_eval_step():
-    pass
 
 
 def check_config(c):
@@ -530,6 +523,7 @@ def check_config(c):
     _check_argument('tb_model_param_stats', c, restricted=True, val_type=bool)
 
     # dataloading
+    # pylint: disable=import-outside-toplevel
     from TTS.utils.text import cleaners
     _check_argument('text_cleaner', c, restricted=True, val_type=str, enum_list=dir(cleaners))
     _check_argument('enable_eos_bos_chars', c, restricted=True, val_type=bool)
