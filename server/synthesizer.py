@@ -185,8 +185,8 @@ class Synthesizer(object):
                 wav = self.pwgan.inference(vocoder_input, hop_size=self.ap.hop_length)
             elif self.wavernn:
                 vocoder_input = None
-                if self.tts_config.model == "Tacotron" :
-                    vocoder_input = torch.FloatTensor(self.ap.out_linear_to_mel(linear_spec = postnet_output.T).T).T.unsqueeze(0)
+                if self.tts_config.model == "Tacotron":
+                    vocoder_input = torch.FloatTensor(self.ap.out_linear_to_mel(linear_spec=postnet_output.T).T).T.unsqueeze(0)
                 else:
                     vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
 
