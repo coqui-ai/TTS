@@ -184,7 +184,12 @@ class Synthesizer(object):
                     vocoder_input.cuda()
                 wav = self.pwgan.inference(vocoder_input, hop_size=self.ap.hop_length)
             elif self.wavernn:
-                vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
+                vocoder_input = None
+                if self.tts_config.model == "Tacotron":
+                    vocoder_input = torch.FloatTensor(self.ap.out_linear_to_mel(linear_spec=postnet_output.T).T).T.unsqueeze(0)
+                else:
+                    vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
+
                 if self.use_cuda:
                     vocoder_input.cuda()
                 wav = self.wavernn.generate(vocoder_input, batched=self.config.is_wavernn_batched, target=11000, overlap=550)
