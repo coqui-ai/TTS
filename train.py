@@ -586,7 +586,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             model.decoder.set_r(r)
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
-        print("\n > Number of output frames:", model.decoder.r)
+            print("\n > Number of output frames:", model.decoder.r)
 
         train_avg_loss_dict, global_step = train(model, criterion, optimizer,
                                                  optimizer_st, scheduler, ap,
