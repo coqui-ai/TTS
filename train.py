@@ -128,8 +128,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         'avg_stopnet_loss': 0,
         'avg_align_error': 0,
         'avg_step_time': 0,
-        'avg_loader_time': 0,
-        'avg_alignment_score': 0
+        'avg_loader_time': 0
     }
     if c.bidirectional_decoder:
         train_values['avg_decoder_b_loss'] = 0  # decoder backward loss
