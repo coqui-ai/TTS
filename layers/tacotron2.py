@@ -123,7 +123,7 @@ class Decoder(nn.Module):
 
         self.attention_rnn = nn.LSTMCell(self.prenet_dim + input_dim,
                                          self.query_dim,
-                                         bias=False)
+                                         bias=True)
 
         self.attention = init_attn(attn_type=attn_type,
                                    query_dim=self.query_dim,
@@ -141,7 +141,7 @@ class Decoder(nn.Module):
 
         self.decoder_rnn = nn.LSTMCell(self.query_dim + input_dim,
                                        self.decoder_rnn_dim,
-                                       bias=False)
+                                       bias=True)
 
         self.linear_projection = Linear(self.decoder_rnn_dim + input_dim,
                                         self.frame_dim * self.r_init)
