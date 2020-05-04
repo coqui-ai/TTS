@@ -61,7 +61,7 @@ class Encoder(nn.Module):
                             int(output_input_dim / 2),
                             num_layers=1,
                             batch_first=True,
-                            bias=False,
+                            bias=True,
                             bidirectional=True)
         self.rnn_state = None
 
