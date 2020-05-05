@@ -14,7 +14,7 @@ class ConvBNBlock(nn.Module):
                            out_channels,
                            kernel_size,
                            padding=padding)
-        self.batch_normalization = nn.BatchNorm1d(out_channels)
+        self.batch_normalization = nn.BatchNorm1d(out_channels, momentum=0.1, eps=1e-5)
         self.dropout = nn.Dropout(p=0.5)
         if activation == 'relu':
             self.activation = nn.ReLU()
