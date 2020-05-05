@@ -33,7 +33,7 @@ class LinearBN(nn.Module):
         super(LinearBN, self).__init__()
         self.linear_layer = torch.nn.Linear(
             in_features, out_features, bias=bias)
-        self.batch_normalization = nn.BatchNorm1d(out_features)
+        self.batch_normalization = nn.BatchNorm1d(out_features, momentum=0.1, eps=1e-5)
         self._init_w(init_gain)
 
     def _init_w(self, init_gain):
