@@ -61,7 +61,6 @@ def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, 
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
     # plot stopnet predictions
-    stop_tokens = stop_tokens.squeeze().detach().to('cpu').numpy()
     plt.subplot(num_plot, 1, 2)
     plt.plot(range(len(stop_tokens)), list(stop_tokens))
     # plot postnet spectrogram
