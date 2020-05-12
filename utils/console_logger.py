@@ -62,7 +62,7 @@ class ConsoleLogger():
         print(log_text, flush=True)
 
     def print_eval_start(self):
-        print(f"{tcolors.BOLD} > EVALUATION {tcolors.ENDC}")
+        print(f"{tcolors.BOLD} > EVALUATION {tcolors.ENDC}\n")
 
     def print_eval_step(self, step, loss_dict, avg_loss_dict):
         indent = "     | > "
@@ -78,14 +78,18 @@ class ConsoleLogger():
 
     def print_epoch_end(self, epoch, avg_loss_dict):
         indent = "     | > "
-        log_text = "\n  {}--> EVAL PERFORMANCE{}\n".format(
+        log_text = "  {}--> EVAL PERFORMANCE{}\n".format(
             tcolors.BOLD, tcolors.ENDC)
         for key, value in avg_loss_dict.items():
             # print the avg value if given
-            color = tcolors.OKGREEN
+            color = tcolors.FAIL
+            sign = '+'
+            diff = 0
             if self.old_eval_loss_dict is not None:
-                if self.old_eval_loss_dict[key] > value:
-                    color = tcolors.FAIL
-            log_text += "{}{}:{} {:.5f} \n{}".format(indent, key, color, value, tcolors.ENDC)
+                diff = self.old_eval_loss_dict[key] - value
+                if diff > 0:
+                    color = tcolors.OKGREEN
+                    sign = '-'
+            log_text += "{}{}:{} {:.5f} {}({}{:.5f})\n".format(indent, key, color, value, tcolors.ENDC, sign, diff)
         self.old_eval_loss_dict = avg_loss_dict
         print(log_text, flush=True)
