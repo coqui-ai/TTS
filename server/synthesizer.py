@@ -170,8 +170,8 @@ class Synthesizer(object):
         print(sens)
         
         speaker_id = id_to_torch(speaker_id)
-+       if speaker_id is not None and self.use_cuda:
-+           speaker_id = speaker_id.cuda()
+        if speaker_id is not None and self.use_cuda:
+            speaker_id = speaker_id.cuda()
 
         for sen in sens:
             # preprocess the given text
