@@ -164,16 +164,21 @@ class Synthesizer(object):
         sentences = list(filter(None, [s.strip() for s in sentences])) # remove empty sentences
         return sentences
 
-    def tts(self, text):
+    def tts(self, text, speaker_id=None):
         wavs = []
         sens = self.split_into_sentences(text)
         print(sens)
+        
+        speaker_id = id_to_torch(speaker_id)
++       if speaker_id is not None and self.use_cuda:
++           speaker_id = speaker_id.cuda()
+
         for sen in sens:
             # preprocess the given text
             inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
             # synthesize voice
             decoder_output, postnet_output, alignments, _ = run_model(
-                self.tts_model, inputs, self.tts_config, False, None, None)
+                self.tts_model, inputs, self.tts_config, False, speaker_id, None)
             # convert outputs to numpy
             postnet_output, decoder_output, _ = parse_outputs(
                 postnet_output, decoder_output, alignments)
