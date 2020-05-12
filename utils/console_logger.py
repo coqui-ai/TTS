@@ -1,5 +1,5 @@
 import datetime
-from TTS.utils.generic_utils import AttrDict
+from TTS.utils.io import AttrDict
 
 
 tcolors = AttrDict({
