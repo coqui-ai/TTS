@@ -64,7 +64,7 @@ def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=No
         raise NotImplemented(' [!] Truncated inference not implemented for TF')
     # TODO: handle multispeaker case
     decoder_output, postnet_output, alignments, stop_tokens = model(
-        inputs, training=False)
+        inputs)
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
