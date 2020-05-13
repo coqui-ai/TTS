@@ -168,7 +168,6 @@ class Synthesizer(object):
         wavs = []
         sens = self.split_into_sentences(text)
         print(sens)
-        
         speaker_id = id_to_torch(speaker_id)
         if speaker_id is not None and self.use_cuda:
             speaker_id = speaker_id.cuda()
