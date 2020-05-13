@@ -172,7 +172,7 @@ class Synthesizer(object):
         speaker_id = id_to_torch(speaker_id)
         if speaker_id is not None and self.use_cuda:
             speaker_id = speaker_id.cuda()
-
+        
         for sen in sens:
             # preprocess the given text
             inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
