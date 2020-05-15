@@ -34,6 +34,7 @@
     "save_step": 1000, // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 1, // Number of steps to log traning on console.
     "output_path": "/media/erogol/data_ssd/Models/libri_tts/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
+    "num_loader_workers": 0, // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "model": {
         "input_dim": 40,
         "proj_dim": 128,
