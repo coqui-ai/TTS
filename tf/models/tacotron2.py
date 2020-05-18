@@ -1,10 +1,10 @@
-import tensorflow as tf
 from tensorflow import keras
 
 from TTS.tf.layers.tacotron2 import Encoder, Decoder, Postnet
 from TTS.tf.utils.tf_utils import shape_list
 
 
+#pylint: disable=too-many-ancestors
 class Tacotron2(keras.models.Model):
     def __init__(self,
                  num_chars,
@@ -35,16 +35,28 @@ class Tacotron2(keras.models.Model):
         self.embedding = keras.layers.Embedding(num_chars, 512, name='embedding')
         self.encoder = Encoder(512, name='encoder')
         # TODO: most of the decoder args have no use at the momment
-        self.decoder = Decoder(decoder_output_dim, r, attn_type=attn_type, use_attn_win=attn_win, attn_norm=attn_norm, prenet_type=prenet_type,
-                 prenet_dropout=prenet_dropout, use_forward_attn=forward_attn, use_trans_agent=trans_agent, use_forward_attn_mask=forward_attn_mask,
-                 use_location_attn=location_attn, attn_K=attn_K, separate_stopnet=separate_stopnet, speaker_emb_dim=self.speaker_embed_dim)
+        self.decoder = Decoder(decoder_output_dim,
+                               r,
+                               attn_type=attn_type,
+                               use_attn_win=attn_win,
+                               attn_norm=attn_norm,
+                               prenet_type=prenet_type,
+                               prenet_dropout=prenet_dropout,
+                               use_forward_attn=forward_attn,
+                               use_trans_agent=trans_agent,
+                               use_forward_attn_mask=forward_attn_mask,
+                               use_location_attn=location_attn,
+                               attn_K=attn_K,
+                               separate_stopnet=separate_stopnet,
+                               speaker_emb_dim=self.speaker_embed_dim)
         self.postnet = Postnet(postnet_output_dim, 5, name='postnet')
 
     def call(self, characters, text_lengths=None, frames=None, training=None):
-        if training == True:
+        if training:
             return self.training(characters, text_lengths, frames)
-        else:
+        if not training:
             return self.inference(characters)
+        raise RuntimeError(' [!] Set model training mode True or False')
 
     def training(self, characters, text_lengths, frames):
         B, T = shape_list(characters)
@@ -66,7 +78,4 @@ class Tacotron2(keras.models.Model):
         output_frames = decoder_frames + postnet_frames
         print(output_frames.shape)
         return decoder_frames, output_frames, attentions, stop_tokens
-
-
-
 

@@ -11,9 +11,9 @@ class ConvBNBlock(nn.Module):
         assert (kernel_size - 1) % 2 == 0
         padding = (kernel_size - 1) // 2
         self.convolution1d = nn.Conv1d(in_channels,
-                           out_channels,
-                           kernel_size,
-                           padding=padding)
+                                       out_channels,
+                                       kernel_size,
+                                       padding=padding)
         self.batch_normalization = nn.BatchNorm1d(out_channels, momentum=0.1, eps=1e-5)
         self.dropout = nn.Dropout(p=0.5)
         if activation == 'relu':

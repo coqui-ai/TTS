@@ -171,12 +171,12 @@ class Synthesizer(object):
         speaker_id = id_to_torch(speaker_id)
         if speaker_id is not None and self.use_cuda:
             speaker_id = speaker_id.cuda()
-        
+
         for sen in sens:
             # preprocess the given text
             inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
             # synthesize voice
-            decoder_output, postnet_output, alignments, _ = run_model(
+            decoder_output, postnet_output, alignments, _ = run_model_torch(
                 self.tts_model, inputs, self.tts_config, False, speaker_id, None)
             # convert outputs to numpy
             postnet_output, decoder_output, _ = parse_outputs(

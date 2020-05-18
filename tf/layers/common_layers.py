@@ -3,8 +3,6 @@ from tensorflow import keras
 from tensorflow.python.ops import math_ops
 # from tensorflow_addons.seq2seq import BahdanauAttention
 
-from TTS.tf.utils.tf_utils import shape_list
-
 
 class Linear(keras.layers.Layer):
     def __init__(self, units, use_bias, **kwargs):
@@ -12,7 +10,7 @@ class Linear(keras.layers.Layer):
         self.linear_layer = keras.layers.Dense(units, use_bias=use_bias, name='linear_layer')
         self.activation = keras.layers.ReLU()
 
-    def call(self, x, training=None):
+    def call(self, x):
         """
         shapes:
             x: B x T x C
@@ -77,9 +75,9 @@ def _sigmoid_norm(score):
 
 
 class Attention(keras.layers.Layer):
-    """TODO: implement forward_attention"""
-    """TODO: location sensitive attention"""
-    """TODO: implement attention windowing """
+    """TODO: implement forward_attention
+    TODO: location sensitive attention
+    TODO: implement attention windowing """
     def __init__(self, attn_dim, use_loc_attn, loc_attn_n_filters,
                  loc_attn_kernel_size, use_windowing, norm, use_forward_attn,
                  use_trans_agent, use_forward_attn_mask, **kwargs):
@@ -120,6 +118,7 @@ class Attention(keras.layers.Layer):
 
     def process_values(self, values):
         """ cache values for decoder iterations """
+        #pylint: disable=attribute-defined-outside-init
         self.processed_values = self.inputs_layer(values)
         self.values = values
 
@@ -127,8 +126,7 @@ class Attention(keras.layers.Layer):
         """ compute location attention, query layer and
         unnorm. attention weights"""
         attention_cum, attention_old = states
-        attn_cat = tf.stack([attention_old, attention_cum],
-                             axis=2)
+        attn_cat = tf.stack([attention_old, attention_cum], axis=2)
 
         processed_query = self.query_layer(tf.expand_dims(query, 1))
         processed_attn = self.location_dense(self.location_conv1d(attn_cat))
@@ -145,7 +143,7 @@ class Attention(keras.layers.Layer):
         score = tf.squeeze(score, axis=2)
         return score, processed_query
 
-    def apply_score_masking(self, score, mask):
+    def apply_score_masking(self, score, mask):  #pylint: disable=no-self-use
         """ ignore sequence paddings """
         padding_mask = tf.expand_dims(math_ops.logical_not(mask), 2)
         # Bias so padding positions do not contribute to attention distribution.
@@ -158,13 +156,13 @@ class Attention(keras.layers.Layer):
             query: B x D
         """
         if self.use_loc_attn:
-            score, processed_query = self.get_loc_attn(query, states)
+            score, _ = self.get_loc_attn(query, states)
         else:
-            score, processed_query = self.get_attn(query)
+            score, _ = self.get_attn(query)
 
         # TODO: masking
         # if mask is not None:
-            # self.apply_score_masking(score, mask)
+        # self.apply_score_masking(score, mask)
         # attn_weights shape == (batch_size, max_length, 1)
 
         attn_weights = self.norm_func(score)

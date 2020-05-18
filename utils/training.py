@@ -9,7 +9,7 @@ def check_update(model, grad_clip, ignore_stopnet=False):
         grad_norm = torch.nn.utils.clip_grad_norm_([param for name, param in model.named_parameters() if 'stopnet' not in name], grad_clip)
     else:
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-    if torch.isinf(grad_norm):
+    if np.isinf(grad_norm):
         print(" | > Gradient is INF !!")
         skip_flag = True
     return grad_norm, skip_flag
@@ -62,6 +62,7 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
     }]
 
 
+# pylint: disable=protected-access
 class NoamLR(torch.optim.lr_scheduler._LRScheduler):
     def __init__(self, optimizer, warmup_steps=0.1, last_epoch=-1):
         self.warmup_steps = float(warmup_steps)

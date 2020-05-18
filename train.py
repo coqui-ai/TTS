@@ -190,7 +190,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         # backward pass
         loss_dict['loss'].backward()
         optimizer, current_lr = adam_weight_decay(optimizer)
-        grad_norm, grad_flag = check_update(model, c.grad_clip, ignore_stopnet=True)
+        grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True)
         optimizer.step()
 
         # compute alignment error (the lower the better )
@@ -232,8 +232,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
             loss_dict['postnet_loss'] = reduce_tensor(loss_dict['postnet_loss'].data, num_gpus)
             loss_dict['decoder_loss'] = reduce_tensor(loss_dict['decoder_loss'].data, num_gpus)
             loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
-            loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data,
-                                      num_gpus) if c.stopnet else loss_dict['stopnet_loss']
+            loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data, num_gpus) if c.stopnet else loss_dict['stopnet_loss']
 
         if args.rank == 0:
             # Plot Training Iter Stats
@@ -308,8 +307,6 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 @torch.no_grad()
 def evaluate(model, criterion, ap, global_step, epoch):
     data_loader = setup_loader(ap, model.decoder.r, is_val=True)
-    if c.use_speaker_embedding:
-        speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
     epoch_time = 0
     eval_values_dict = {
