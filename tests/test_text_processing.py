@@ -5,7 +5,7 @@ import os
 import unittest
 from TTS.utils.text import *
 from TTS.tests import get_tests_path
-from TTS.utils.generic_utils import load_config
+from TTS.utils.io import load_config
 
 TESTS_PATH = get_tests_path()
 conf = load_config(os.path.join(TESTS_PATH, 'test_config.json'))
