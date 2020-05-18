@@ -1,8 +1,5 @@
 import numpy as np
-import torch
-import re
 import tensorflow as tf
-import tensorflow.keras.backend as K
 
 
 def tf_create_dummy_inputs():
@@ -17,7 +14,7 @@ def tf_create_dummy_inputs():
     input_lengths[-1] = max_input_length
     input_lengths = tf.convert_to_tensor(input_lengths, dtype=tf.int32)
     mel_outputs = tf.random.uniform(shape=[batch_size, max_mel_length + pad, 80])
-    mel_lengths =  np.random.randint(0, high=max_mel_length+1 + pad, size=[batch_size])
+    mel_lengths = np.random.randint(0, high=max_mel_length+1 + pad, size=[batch_size])
     mel_lengths[-1] = max_mel_length
     mel_lengths = tf.convert_to_tensor(mel_lengths, dtype=tf.int32)
     return input_ids, input_lengths, mel_outputs, mel_lengths
@@ -49,7 +46,7 @@ def transfer_weights_torch_to_tf(tf_vars, var_map_dict, state_dict):
         torch_var_name = var_map_dict[tf_var.name]
         print(f' | > {tf_var.name} <-- {torch_var_name}')
         # if tuple, it is a bias variable
-        if type(torch_var_name) is not tuple:
+        if not isinstance(torch_var_name, tuple):
             torch_layer_name = '.'.join(torch_var_name.split('.')[-2:])
             torch_weight = state_dict[torch_var_name]
         if 'convolution1d/kernel' in tf_var.name or 'conv1d/kernel' in tf_var.name:

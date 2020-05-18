@@ -1,5 +1,5 @@
 import pkg_resources
-installed = {pkg.key for pkg in pkg_resources.working_set}
+installed = {pkg.key for pkg in pkg_resources.working_set}  #pylint: disable=not-an-iterable
 if 'tensorflow' in installed or 'tensorflow-gpu' in installed:
     import tensorflow as tf
 import torch
@@ -7,7 +7,7 @@ import numpy as np
 from .text import text_to_sequence, phoneme_to_sequence
 
 
-def text_to_seqvec(text, CONFIG, use_cuda):
+def text_to_seqvec(text, CONFIG):
     text_cleaner = [CONFIG.text_cleaner]
     # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
@@ -37,7 +37,7 @@ def numpy_to_tf(np_array, dtype):
     return tensor
 
 
-def compute_style_mel(style_wav, ap, use_cuda):
+def compute_style_mel(style_wav, ap):
     style_mel = ap.melspectrogram(
         ap.load_wav(style_wav)).expand_dims(0)
     return style_mel
@@ -58,13 +58,13 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
 
 
 def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None):
-    if CONFIG.use_gst:
-        raise NotImplemented(' [!] GST inference not implemented for TF')
+    if CONFIG.use_gst and style_mel is not None:
+        raise NotImplementedError(' [!] GST inference not implemented for TF')
     if truncated:
-        raise NotImplemented(' [!] Truncated inference not implemented for TF')
+        raise NotImplementedError(' [!] Truncated inference not implemented for TF')
     # TODO: handle multispeaker case
     decoder_output, postnet_output, alignments, stop_tokens = model(
-        inputs)
+        inputs, speaker_ids=speaker_id)
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
@@ -153,9 +153,9 @@ def synthesis(model,
     # GST processing
     style_mel = None
     if CONFIG.model == "TacotronGST" and style_wav is not None:
-        style_mel = compute_style_mel(style_wav, ap, use_cuda)
+        style_mel = compute_style_mel(style_wav, ap)
     # preprocess the given text
-    inputs = text_to_seqvec(text, CONFIG, use_cuda)
+    inputs = text_to_seqvec(text, CONFIG)
     # pass tensors to backend
     if backend == 'torch':
         speaker_id = id_to_torch(speaker_id)

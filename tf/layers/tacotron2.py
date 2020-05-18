@@ -55,6 +55,7 @@ class Encoder(keras.layers.Layer):
 
 
 class Decoder(keras.layers.Layer):
+    #pylint: disable=unused-argument
     def __init__(self, frame_dim, r, attn_type, use_attn_win, attn_norm, prenet_type,
                  prenet_dropout, use_forward_attn, use_trans_agent, use_forward_attn_mask,
                  use_location_attn, attn_K, separate_stopnet, speaker_emb_dim, **kwargs):
@@ -135,7 +136,7 @@ class Decoder(keras.layers.Layer):
         return output_frame, stopnet_output, states, attention
 
     def decode(self, memory, states, frames, memory_seq_length=None):
-        B, T, D = shape_list(memory)
+        B, _, _ = shape_list(memory)
         num_iter = shape_list(frames)[1] // self.r
         # init states
         frame_zero = tf.expand_dims(states[0], 1)
@@ -159,25 +160,25 @@ class Decoder(keras.layers.Layer):
             return step + 1, memory, prenet_output, states, outputs, stop_tokens, attentions
         _, memory, _, states, outputs, stop_tokens, attentions = \
                 tf.while_loop(lambda *arg: True,
-                    _body,
-                    loop_vars=(step_count, memory, prenet_output, states, outputs,
-                               stop_tokens, attentions),
-                    parallel_iterations=32,
-                    swap_memory=True,
-                    maximum_iterations=num_iter)
+                              _body,
+                              loop_vars=(step_count, memory, prenet_output,
+                                         states, outputs, stop_tokens, attentions),
+                              parallel_iterations=32,
+                              swap_memory=True,
+                              maximum_iterations=num_iter)
 
         outputs = outputs.stack()
         attentions = attentions.stack()
         stop_tokens = stop_tokens.stack()
         outputs = tf.transpose(outputs, [1, 0, 2])
-        attentions = tf.transpose(attentions, [1, 0 ,2])
+        attentions = tf.transpose(attentions, [1, 0, 2])
         stop_tokens = tf.transpose(stop_tokens, [1, 0, 2])
         stop_tokens = tf.squeeze(stop_tokens, axis=2)
         outputs = tf.reshape(outputs, [B, -1, self.frame_dim])
         return outputs, stop_tokens, attentions
 
     def decode_inference(self, memory, states):
-        B, T, D = shape_list(memory)
+        B, _, _ = shape_list(memory)
         # init states
         outputs = tf.TensorArray(dtype=tf.float32, size=0, clear_after_read=False, dynamic_size=True)
         attentions = tf.TensorArray(dtype=tf.float32, size=0, clear_after_read=False, dynamic_size=True)
@@ -207,12 +208,12 @@ class Decoder(keras.layers.Layer):
         cond = lambda step, m, s, o, st, a, stop_flag: tf.equal(stop_flag, tf.constant(False, dtype=tf.bool))
         _, memory, states, outputs, stop_tokens, attentions, stop_flag = \
                 tf.while_loop(cond,
-                    _body,
-                    loop_vars=(step_count, memory, states, outputs,
-                               stop_tokens, attentions, stop_flag),
-                    parallel_iterations=32,
-                    swap_memory=True,
-                    maximum_iterations=self.max_decoder_steps)
+                              _body,
+                              loop_vars=(step_count, memory, states, outputs,
+                                         stop_tokens, attentions, stop_flag),
+                              parallel_iterations=32,
+                              swap_memory=True,
+                              maximum_iterations=self.max_decoder_steps)
 
         outputs = outputs.stack()
         attentions = attentions.stack()

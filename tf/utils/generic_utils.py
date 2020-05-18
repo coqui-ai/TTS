@@ -1,14 +1,8 @@
 import os
-import re
-import glob
-import shutil
 import datetime
-import json
-import subprocess
 import importlib
 import pickle
 import numpy as np
-from collections import OrderedDict, Counter
 import tensorflow as tf
 
 
@@ -29,7 +23,7 @@ def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder, **k
 
 def load_checkpoint(model, checkpoint_path):
     checkpoint = pickle.load(open(checkpoint_path, 'rb'))
-    chkp_var_dict = dict([(var.name, var.numpy()) for var in checkpoint['model']])
+    chkp_var_dict = {var.name: var.numpy() for var in checkpoint['model']}
     tf_vars = model.weights
     for tf_var in tf_vars:
         layer_name = tf_var.name
@@ -64,7 +58,7 @@ def check_gradient(x, grad_clip):
 def count_parameters(model, c):
     try:
         return model.count_params()
-    except:
+    except RuntimeError:
         input_dummy = tf.convert_to_tensor(np.random.rand(8, 128).astype('int32'))
         input_lengths = np.random.randint(100, 129, (8, ))
         input_lengths[-1] = 128
@@ -74,7 +68,7 @@ def count_parameters(model, c):
         mel_spec = tf.convert_to_tensor(mel_spec)
         speaker_ids = np.random.randint(
             0, 5, (8, )) if c.use_speaker_embedding else None
-        _ = model(input_dummy, input_lengths, mel_spec)
+        _ = model(input_dummy, input_lengths, mel_spec, speaker_ids=speaker_ids)
         return model.count_params()
 
 
@@ -83,23 +77,23 @@ def setup_model(num_chars, num_speakers, c):
     MyModel = importlib.import_module('TTS.tf.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
     if c.model.lower() in "tacotron":
-        raise NotImplemented(' [!] Tacotron model is not ready.')
-    elif c.model.lower() == "tacotron2":
-        model = MyModel(num_chars=num_chars,
-                             num_speakers=num_speakers,
-                             r=c.r,
-                             postnet_output_dim=c.audio['num_mels'],
-                             decoder_output_dim=c.audio['num_mels'],
-                             attn_type=c.attention_type,
-                             attn_win=c.windowing,
-                             attn_norm=c.attention_norm,
-                             prenet_type=c.prenet_type,
-                             prenet_dropout=c.prenet_dropout,
-                             forward_attn=c.use_forward_attn,
-                             trans_agent=c.transition_agent,
-                             forward_attn_mask=c.forward_attn_mask,
-                             location_attn=c.location_attn,
-                             attn_K=c.attention_heads,
-                             separate_stopnet=c.separate_stopnet,
-                             bidirectional_decoder=c.bidirectional_decoder)
+        raise NotImplementedError(' [!] Tacotron model is not ready.')
+    # tacotron2
+    model = MyModel(num_chars=num_chars,
+                    num_speakers=num_speakers,
+                    r=c.r,
+                    postnet_output_dim=c.audio['num_mels'],
+                    decoder_output_dim=c.audio['num_mels'],
+                    attn_type=c.attention_type,
+                    attn_win=c.windowing,
+                    attn_norm=c.attention_norm,
+                    prenet_type=c.prenet_type,
+                    prenet_dropout=c.prenet_dropout,
+                    forward_attn=c.use_forward_attn,
+                    trans_agent=c.transition_agent,
+                    forward_attn_mask=c.forward_attn_mask,
+                    location_attn=c.location_attn,
+                    attn_K=c.attention_heads,
+                    separate_stopnet=c.separate_stopnet,
+                    bidirectional_decoder=c.bidirectional_decoder)
     return model

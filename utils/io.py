@@ -26,7 +26,7 @@ def copy_config_file(config_file, out_path, new_fields):
     config_lines = open(config_file, "r").readlines()
     # add extra information fields
     for key, value in new_fields.items():
-        if type(value) == str:
+        if isinstance(value, str):
             new_line = '"{}":"{}",\n'.format(key, value)
         else:
             new_line = '"{}":{},\n'.format(key, value)
@@ -37,7 +37,7 @@ def copy_config_file(config_file, out_path, new_fields):
 
 
 def load_checkpoint(model, checkpoint_path, use_cuda=False):
-    state =  torch.load(checkpoint_path, map_location=torch.device('cpu'))
+    state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
     model.load_state_dict(state['model'])
     if use_cuda:
         model.cuda()
@@ -55,7 +55,7 @@ def save_model(model, optimizer, current_step, epoch, r, output_path, **kwargs):
         'step': current_step,
         'epoch': epoch,
         'date': datetime.date.today().strftime("%B %d, %Y"),
-        'r': model.decoder.r
+        'r': r
     }
     state.update(kwargs)
     torch.save(state, output_path)
@@ -65,7 +65,7 @@ def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder, **k
     file_name = 'checkpoint_{}.pth.tar'.format(current_step)
     checkpoint_path = os.path.join(output_folder, file_name)
     print(" > CHECKPOINT : {}".format(checkpoint_path))
-    save_model(model, optimizer, current_step, epoch ,r, checkpoint_path, **kwargs)
+    save_model(model, optimizer, current_step, epoch, r, checkpoint_path, **kwargs)
 
 
 def save_best_model(target_loss, best_loss, model, optimizer, current_step, epoch, r, output_folder, **kwargs):
@@ -73,6 +73,6 @@ def save_best_model(target_loss, best_loss, model, optimizer, current_step, epoc
         file_name = 'best_model.pth.tar'
         checkpoint_path = os.path.join(output_folder, file_name)
         print(" > BEST MODEL : {}".format(checkpoint_path))
-        save_model(model, optimizer, current_step, epoch ,r, checkpoint_path, model_loss=target_loss)
+        save_model(model, optimizer, current_step, epoch, r, checkpoint_path, model_loss=target_loss, **kwargs)
         best_loss = target_loss
     return best_loss
