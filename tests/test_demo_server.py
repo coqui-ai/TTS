@@ -6,7 +6,8 @@ import torch as T
 from TTS.server.synthesizer import Synthesizer
 from TTS.tests import get_tests_input_path, get_tests_output_path
 from TTS.utils.text.symbols import make_symbols, phonemes, symbols
-from TTS.utils.generic_utils import load_config, save_checkpoint, setup_model
+from TTS.utils.generic_utils import setup_model
+from TTS.utils.io import load_config, save_checkpoint
 
 
 class DemoServerTest(unittest.TestCase):
