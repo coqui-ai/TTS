@@ -34,7 +34,7 @@
         "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
         "min_level_db": -100,   // lower bound for normalization
         "symmetric_norm": true, // move normalization to range [-1, 1]
-        "max_norm": 1.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
         "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
@@ -74,15 +74,15 @@
 
     // OPTIMIZER
     "noam_schedule": false,        // use noam warmup and lr schedule.
-    "grad_clip": 1.0,                // upper limit for gradients for clipping.
+    "grad_clip": 1.0,              // upper limit for gradients for clipping.
     "epochs": 1000,                // total number of epochs to train.
     "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
-    "wd": 0.000001,         // Weight decay weight.
+    "wd": 0.000001,                // Weight decay weight.
     "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
-    "seq_len_norm": false,	   // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
+    "seq_len_norm": false,         // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
 
     // TACOTRON PRENET
-    "memory_size": -1,              // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.
+    "memory_size": -1,             // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.
     "prenet_type": "original",     // "original" or "bn".
     "prenet_dropout": true,        // enable/disable dropout at prenet.
 
@@ -91,15 +91,15 @@
     "attention_heads": 4,          // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
     "windowing": false,            // Enables attention windowing. Used only in eval mode.
-    "use_forward_attn": false,      // if it uses forward attention. In general, it aligns faster.
+    "use_forward_attn": false,     // if it uses forward attention. In general, it aligns faster.
     "forward_attn_mask": false,    // Additional masking forcing monotonicity only in eval mode.
     "transition_agent": false,     // enable/disable transition agent of forward attention.
-    "location_attn": true,        // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+    "location_attn": true,         // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "bidirectional_decoder": false,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
 
     // STOPNET
     "stopnet": true,               // Train stopnet predicting the end of synthesis.
-    "separate_stopnet": true,     // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
+    "separate_stopnet": true,      // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
 
     // TENSORBOARD and LOGGING
     "print_step": 25,       // Number of steps to log traning on console.
