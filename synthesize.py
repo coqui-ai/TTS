@@ -7,7 +7,8 @@ import json
 import string
 
 from TTS.utils.synthesis import synthesis
-from TTS.utils.generic_utils import load_config, setup_model
+from TTS.utils.generic_utils import setup_model
+from TTS.utils.io import load_config
 from TTS.utils.text.symbols import make_symbols, symbols, phonemes
 from TTS.utils.audio import AudioProcessor
 
