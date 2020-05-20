@@ -1,5 +1,5 @@
 import datetime
-from TTS.utils.generic_utils import AttrDict
+from TTS.utils.io import AttrDict
 
 
 tcolors = AttrDict({
@@ -48,8 +48,8 @@ class ConsoleLogger():
                 log_text += "{}{}: {:.5f}  ({:.5f})\n".format(indent, key, value, avg_loss_dict[f'avg_{key}'])
             else:
                 log_text += "{}{}: {:.5f} \n".format(indent, key, value)
-        log_text += f"{indent}avg_spec_len: {avg_spec_length}\n{indent}avg_text_len: {avg_text_length}\n{indent}\
-            step_time: {step_time:.2f}\n{indent}loader_time: {loader_time:.2f}\n{indent}lr: {lr:.5f}"
+        log_text += f"{indent}avg_spec_len: {avg_spec_length}\n{indent}avg_text_len: {avg_text_length}\n{indent}"\
+            f"step_time: {step_time:.2f}\n{indent}loader_time: {loader_time:.2f}\n{indent}lr: {lr:.5f}"
         print(log_text, flush=True)
 
     # pylint: disable=unused-argument
@@ -66,6 +66,7 @@ class ConsoleLogger():
 
     def print_eval_step(self, step, loss_dict, avg_loss_dict):
         indent = "     | > "
+        print()
         log_text = f"{tcolors.BOLD}   --> STEP: {step}{tcolors.ENDC}\n"
         for key, value in loss_dict.items():
             # print the avg value if given
@@ -81,10 +82,14 @@ class ConsoleLogger():
             tcolors.BOLD, tcolors.ENDC)
         for key, value in avg_loss_dict.items():
             # print the avg value if given
-            color = tcolors.OKGREEN
+            color = tcolors.FAIL
+            sign = '+'
+            diff = 0
             if self.old_eval_loss_dict is not None:
-                if self.old_eval_loss_dict[key] > value:
-                    color = tcolors.FAIL
-            log_text += "{}{}:{} {:.5f} \n{}".format(indent, key, color, value, tcolors.ENDC)
+                diff = value - self.old_eval_loss_dict[key]
+                if diff < 0:
+                    color = tcolors.OKGREEN
+                    sign = ''
+            log_text += "{}{}:{} {:.5f} {}({}{:.5f})\n".format(indent, key, color, value, tcolors.ENDC, sign, diff)
         self.old_eval_loss_dict = avg_loss_dict
         print(log_text, flush=True)

@@ -157,7 +157,7 @@ class AudioProcessor(object):
 
     ### Mean-STD scaling ###
     def load_stats(self, stats_path):
-        stats = np.load(stats_path, allow_pickle=True).item()
+        stats = np.load(stats_path, allow_pickle=True).item()  #pylint: disable=unexpected-keyword-arg
         mel_mean = stats['mel_mean']
         mel_std = stats['mel_std']
         linear_mean = stats['linear_mean']
