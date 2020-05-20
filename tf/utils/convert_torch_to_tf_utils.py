@@ -72,6 +72,7 @@ def transfer_weights_torch_to_tf(tf_vars, var_map_dict, state_dict):
             numpy_weight = torch_weight.detach().cpu().numpy()
         assert np.all(tf_var.shape == numpy_weight.shape), f" [!] weight shapes does not match: {tf_var.name} vs {torch_var_name} --> {tf_var.shape} vs {numpy_weight.shape}"
         tf.keras.backend.set_value(tf_var, numpy_weight)
+    return tf_vars
 
 
 def load_tf_vars(model_tf, tf_vars):
