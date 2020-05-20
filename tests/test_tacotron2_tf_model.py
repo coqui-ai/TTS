@@ -60,4 +60,4 @@ class TacotronTFTrainTest(unittest.TestCase):
         assert output[3].shape[1] == (mel_spec.shape[1] // model.decoder.r)
 
         # inference pass
-        output = model(input, training=False)
+        output = model(chars_seq, training=False)

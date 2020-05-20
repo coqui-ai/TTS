@@ -22,7 +22,7 @@ class DemoServerTest(unittest.TestCase):
         num_chars = len(phonemes) if config.use_phonemes else len(symbols)
         model = setup_model(num_chars, 0, config)
         output_path = os.path.join(get_tests_output_path())
-        save_checkpoint(model, None, None, None, output_path, 10, 10)
+        save_checkpoint(model, None, None, None, 1, output_path)
 
     def test_in_out(self):
         self._create_random_model()

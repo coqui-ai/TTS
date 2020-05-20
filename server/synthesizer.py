@@ -7,7 +7,8 @@ import torch
 import yaml
 
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import load_config, setup_model
+from TTS.utils.io import load_config
+from TTS.utils.generic_utils import setup_model
 from TTS.utils.speakers import load_speaker_mapping
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
