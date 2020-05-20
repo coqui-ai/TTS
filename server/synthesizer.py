@@ -175,13 +175,15 @@ class Synthesizer(object):
 
         for sen in sens:
             # preprocess the given text
-            inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
+            inputs = text_to_seqvec(sen, self.tts_config)
+            inputs = numpy_to_torch(inputs, torch.long, cuda=self.use_cuda)
+            inputs = inputs.unsqueeze(0)
             # synthesize voice
-            decoder_output, postnet_output, alignments, _ = run_model_torch(
+            decoder_output, postnet_output, alignments, stop_tokens = run_model_torch(
                 self.tts_model, inputs, self.tts_config, False, speaker_id, None)
             # convert outputs to numpy
-            postnet_output, decoder_output, _ = parse_outputs(
-                postnet_output, decoder_output, alignments)
+            postnet_output, decoder_output, _, _ = parse_outputs_torch(
+                postnet_output, decoder_output, alignments, stop_tokens)
 
             if self.pwgan:
                 vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
