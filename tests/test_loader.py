@@ -5,7 +5,7 @@ import torch
 import numpy as np
 
 from torch.utils.data import DataLoader
-from TTS.utils.generic_utils import load_config
+from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
 from TTS.datasets import TTSDataset
 from TTS.datasets.preprocess import ljspeech

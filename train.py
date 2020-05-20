@@ -14,12 +14,13 @@ from distribute import (DistributedSampler, apply_gradient_allreduce,
                         init_distributed, reduce_tensor)
 from TTS.layers.losses import TacotronLoss
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import (
-    NoamLR, check_update, count_parameters, create_experiment_folder,
-    get_git_branch, load_config, remove_experiment_folder, save_best_model,
-    save_checkpoint, adam_weight_decay, set_init_dict, copy_config_file,
-    setup_model, gradual_training_scheduler, KeepAverage,
-    set_weight_decay, check_config)
+from TTS.utils.generic_utils import (count_parameters, create_experiment_folder, remove_experiment_folder,
+                                     get_git_branch, set_init_dict,
+                                     setup_model, KeepAverage, check_config)
+from TTS.utils.io import (save_best_model, save_checkpoint,
+                          load_config, copy_config_file)
+from TTS.utils.training import (NoamLR, check_update, adam_weight_decay,
+                                gradual_training_scheduler, set_weight_decay)
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
@@ -128,8 +129,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         'avg_stopnet_loss': 0,
         'avg_align_error': 0,
         'avg_step_time': 0,
-        'avg_loader_time': 0,
-        'avg_alignment_score': 0
+        'avg_loader_time': 0
     }
     if c.bidirectional_decoder:
         train_values['avg_decoder_b_loss'] = 0  # decoder backward loss
@@ -190,7 +190,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         # backward pass
         loss_dict['loss'].backward()
         optimizer, current_lr = adam_weight_decay(optimizer)
-        grad_norm, grad_flag = check_update(model, c.grad_clip, ignore_stopnet=True)
+        grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True)
         optimizer.step()
 
         # compute alignment error (the lower the better )
@@ -232,8 +232,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
             loss_dict['postnet_loss'] = reduce_tensor(loss_dict['postnet_loss'].data, num_gpus)
             loss_dict['decoder_loss'] = reduce_tensor(loss_dict['decoder_loss'].data, num_gpus)
             loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
-            loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data,
-                                      num_gpus) if c.stopnet else loss_dict['stopnet_loss']
+            loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data, num_gpus) if c.stopnet else loss_dict['stopnet_loss']
 
         if args.rank == 0:
             # Plot Training Iter Stats
@@ -252,9 +251,9 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
             if global_step % c.save_step == 0:
                 if c.checkpoint:
                     # save model
-                    save_checkpoint(model, optimizer, optimizer_st,
-                                    loss_dict['postnet_loss'].item(), OUT_PATH, global_step,
-                                    epoch)
+                    save_checkpoint(model, optimizer, global_step, epoch, model.decoder.r, OUT_PATH,
+                                    optimizer_st=optimizer_st,
+                                    model_loss=loss_dict['postnet_loss'].item())
 
                 # Diagnostic visualizations
                 const_spec = postnet_output[0].data.cpu().numpy()
@@ -308,8 +307,6 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 @torch.no_grad()
 def evaluate(model, criterion, ap, global_step, epoch):
     data_loader = setup_loader(ap, model.decoder.r, is_val=True)
-    if c.use_speaker_embedding:
-        speaker_mapping = load_speaker_mapping(OUT_PATH)
     model.eval()
     epoch_time = 0
     eval_values_dict = {
@@ -587,7 +584,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             model.decoder.set_r(r)
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
-        print("\n > Number of output frames:", model.decoder.r)
+            print("\n > Number of output frames:", model.decoder.r)
 
         train_avg_loss_dict, global_step = train(model, criterion, optimizer,
                                                  optimizer_st, scheduler, ap,
@@ -597,8 +594,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         target_loss = train_avg_loss_dict['avg_postnet_loss']
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_postnet_loss']
-        best_loss = save_best_model(model, optimizer, target_loss, best_loss,
-                                    OUT_PATH, global_step, epoch)
+        best_loss = save_best_model(target_loss, best_loss, model, optimizer, global_step, epoch, c.r,
+                                    OUT_PATH)
 
 
 if __name__ == '__main__':
@@ -622,7 +619,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--debug',
                         type=bool,
-                        default=True,
+                        default=False,
                         help='Do not verify commit integrity to run training.')
 
     # DISTRUBUTED
