@@ -1,4 +1,4 @@
-numpy>=1.14.3
+numpy>=1.16.0
 torch>=0.4.1
 tensorflow>=2.2
 librosa>=0.5.1
