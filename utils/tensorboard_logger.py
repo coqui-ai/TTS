@@ -2,7 +2,7 @@ import traceback
 from tensorboardX import SummaryWriter
 
 
-class Logger(object):
+class TensorboardLogger(object):
     def __init__(self, log_dir):
         self.writer = SummaryWriter(log_dir)
         self.train_stats = {}
@@ -75,3 +75,6 @@ class Logger(object):
 
     def tb_test_figures(self, step, figures):
         self.dict_to_tb_figure("TestFigures", figures, step)
+
+    def tb_add_text(self, title, text, step):
+        self.writer.add_text(title, text, step)

@@ -33,7 +33,7 @@ class LinearBN(nn.Module):
         super(LinearBN, self).__init__()
         self.linear_layer = torch.nn.Linear(
             in_features, out_features, bias=bias)
-        self.bn = nn.BatchNorm1d(out_features)
+        self.batch_normalization = nn.BatchNorm1d(out_features, momentum=0.1, eps=1e-5)
         self._init_w(init_gain)
 
     def _init_w(self, init_gain):
@@ -45,7 +45,7 @@ class LinearBN(nn.Module):
         out = self.linear_layer(x)
         if len(out.shape) == 3:
             out = out.permute(1, 2, 0)
-        out = self.bn(out)
+        out = self.batch_normalization(out)
         if len(out.shape) == 3:
             out = out.permute(2, 0, 1)
         return out
@@ -63,18 +63,18 @@ class Prenet(nn.Module):
         self.prenet_dropout = prenet_dropout
         in_features = [in_features] + out_features[:-1]
         if prenet_type == "bn":
-            self.layers = nn.ModuleList([
+            self.linear_layers = nn.ModuleList([
                 LinearBN(in_size, out_size, bias=bias)
                 for (in_size, out_size) in zip(in_features, out_features)
             ])
         elif prenet_type == "original":
-            self.layers = nn.ModuleList([
+            self.linear_layers = nn.ModuleList([
                 Linear(in_size, out_size, bias=bias)
                 for (in_size, out_size) in zip(in_features, out_features)
             ])
 
     def forward(self, x):
-        for linear in self.layers:
+        for linear in self.linear_layers:
             if self.prenet_dropout:
                 x = F.dropout(F.relu(linear(x)), p=0.5, training=self.training)
             else:
@@ -93,7 +93,7 @@ class LocationLayer(nn.Module):
                  attention_n_filters=32,
                  attention_kernel_size=31):
         super(LocationLayer, self).__init__()
-        self.location_conv = nn.Conv1d(
+        self.location_conv1d = nn.Conv1d(
             in_channels=2,
             out_channels=attention_n_filters,
             kernel_size=attention_kernel_size,
@@ -104,7 +104,7 @@ class LocationLayer(nn.Module):
             attention_n_filters, attention_dim, bias=False, init_gain='tanh')
 
     def forward(self, attention_cat):
-        processed_attention = self.location_conv(attention_cat)
+        processed_attention = self.location_conv1d(attention_cat)
         processed_attention = self.location_dense(
             processed_attention.transpose(1, 2))
         return processed_attention
@@ -138,7 +138,7 @@ class GravesAttention(nn.Module):
 
     def init_states(self, inputs):
         if self.J is None or inputs.shape[1]+1 > self.J.shape[-1]:
-            self.J = torch.arange(0, inputs.shape[1]+2).to(inputs.device) + 0.5
+            self.J = torch.arange(0, inputs.shape[1]+2.0).to(inputs.device) + 0.5
         self.attention_weights = torch.zeros(inputs.shape[0], inputs.shape[1]).to(inputs.device)
         self.mu_prev = torch.zeros(inputs.shape[0], self.K).to(inputs.device)
 
@@ -163,6 +163,9 @@ class GravesAttention(nn.Module):
         g_t = gbk_t[:, 0, :]
         b_t = gbk_t[:, 1, :]
         k_t = gbk_t[:, 2, :]
+
+        # dropout to decorrelate attention heads
+        g_t = torch.nn.functional.dropout(g_t, p=0.5, training=self.training)
 
         # attention GMM parameters
         sig_t = torch.nn.functional.softplus(b_t) + self.eps

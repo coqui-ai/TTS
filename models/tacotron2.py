@@ -29,7 +29,7 @@ class Tacotron2(nn.Module):
         super(Tacotron2, self).__init__()
         self.postnet_output_dim = postnet_output_dim
         self.decoder_output_dim = decoder_output_dim
-        self.n_frames_per_step = r
+        self.r = r
         self.bidirectional_decoder = bidirectional_decoder
         decoder_dim = 512 if num_speakers > 1 else 512
         encoder_dim = 512 if num_speakers > 1 else 512
