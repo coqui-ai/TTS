@@ -14,11 +14,18 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
 
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
-## Utilities under this Project
-- Deep Learning based Text2Speech model.
-- ```dataset_analysis```: Tools to curate a Text2Speech dataset.
-- ```speaker_encoder```: Speaker Encoder model computing embedding vectors for voice files.
-- ```server```: Basic server implementation with packaging. 
+## Features
+- High performance Text2Speech models on Torch and Tensorflow 2.0.
+- High performance Speaker Encoder to compute speaker embeddings efficiently. 
+- Integration with various Neural Vocoders (PWGAN, MelGAN, WaveRNN)
+- Released trained models.
+- Efficient training codes for PyTorch. (soon for Tensorflow 2.0)
+- Codes to convert Torch models to Tensorflow 2.0.
+- Detailed training anlaysis on console and Tensorboard.
+- Tools to curate Text2Speech datasets under```dataset_analysis```.
+- Demo server for model testing.
+- Notebooks for extensive model benchmarking.
+- Modular (but not too much) code base enabling easy testing for new ideas.
 
 ## Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
