@@ -619,7 +619,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--debug',
                         type=bool,
-                        default=True,
+                        default=False,
                         help='Do not verify commit integrity to run training.')
 
     # DISTRUBUTED
