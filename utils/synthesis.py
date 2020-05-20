@@ -62,9 +62,11 @@ def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=No
         raise NotImplementedError(' [!] GST inference not implemented for TF')
     if truncated:
         raise NotImplementedError(' [!] Truncated inference not implemented for TF')
+    if speaker_id is not None:
+        raise NotImplementedError(' [!] Multi-Speaker not implemented for TF')
     # TODO: handle multispeaker case
     decoder_output, postnet_output, alignments, stop_tokens = model(
-        inputs, speaker_ids=speaker_id)
+        inputs, training=False)
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
