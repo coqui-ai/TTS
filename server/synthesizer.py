@@ -7,7 +7,8 @@ import torch
 import yaml
 
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import load_config, setup_model
+from TTS.utils.io import load_config
+from TTS.utils.generic_utils import setup_model
 from TTS.utils.speakers import load_speaker_mapping
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
@@ -164,19 +165,25 @@ class Synthesizer(object):
         sentences = list(filter(None, [s.strip() for s in sentences])) # remove empty sentences
         return sentences
 
-    def tts(self, text):
+    def tts(self, text, speaker_id=None):
         wavs = []
         sens = self.split_into_sentences(text)
         print(sens)
+        speaker_id = id_to_torch(speaker_id)
+        if speaker_id is not None and self.use_cuda:
+            speaker_id = speaker_id.cuda()
+
         for sen in sens:
             # preprocess the given text
-            inputs = text_to_seqvec(sen, self.tts_config, self.use_cuda)
+            inputs = text_to_seqvec(sen, self.tts_config)
+            inputs = numpy_to_torch(inputs, torch.long, cuda=self.use_cuda)
+            inputs = inputs.unsqueeze(0)
             # synthesize voice
-            decoder_output, postnet_output, alignments, _ = run_model(
-                self.tts_model, inputs, self.tts_config, False, None, None)
+            decoder_output, postnet_output, alignments, stop_tokens = run_model_torch(
+                self.tts_model, inputs, self.tts_config, False, speaker_id, None)
             # convert outputs to numpy
-            postnet_output, decoder_output, _ = parse_outputs(
-                postnet_output, decoder_output, alignments)
+            postnet_output, decoder_output, _, _ = parse_outputs_torch(
+                postnet_output, decoder_output, alignments, stop_tokens)
 
             if self.pwgan:
                 vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)

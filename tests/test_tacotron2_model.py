@@ -6,7 +6,7 @@ import numpy as np
 
 from torch import optim
 from torch import nn
-from TTS.utils.generic_utils import load_config
+from TTS.utils.io import load_config
 from TTS.layers.losses import MSELossMasked
 from TTS.models.tacotron2 import Tacotron2
 

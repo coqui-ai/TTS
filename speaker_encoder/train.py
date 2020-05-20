@@ -44,7 +44,7 @@ def setup_loader(ap, is_val=False, verbose=False):
         loader = DataLoader(dataset,
                             batch_size=c.num_speakers_in_batch,
                             shuffle=False,
-                            num_workers=0,
+                            num_workers=c.num_loader_workers,
                             collate_fn=dataset.collate_fn)
     return loader
 
