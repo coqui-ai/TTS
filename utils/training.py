@@ -9,9 +9,15 @@ def check_update(model, grad_clip, ignore_stopnet=False):
         grad_norm = torch.nn.utils.clip_grad_norm_([param for name, param in model.named_parameters() if 'stopnet' not in name], grad_clip)
     else:
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-    if torch.isinf(grad_norm):
-        print(" | > Gradient is INF !!")
-        skip_flag = True
+    # compatibility with different torch versions
+    if isinstance(grad_norm, float):
+        if np.isinf(grad_norm):
+            print(" | > Gradient is INF !!")
+            skip_flag = True
+    else:
+        if torch.isinf(grad_norm):
+            print(" | > Gradient is INF !!")
+            skip_flag = True
     return grad_norm, skip_flag
 
 
