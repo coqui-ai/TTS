@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 from TTS.datasets.preprocess import load_meta_data
-from TTS.utils.generic_utils import load_config
+from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
 
 def main():
