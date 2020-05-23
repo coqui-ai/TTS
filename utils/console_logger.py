@@ -87,7 +87,7 @@ class ConsoleLogger():
             diff = 0
             if self.old_eval_loss_dict is not None:
                 diff = value - self.old_eval_loss_dict[key]
-                if diff < 0:
+                if diff <= 0:
                     color = tcolors.OKGREEN
                     sign = ''
             log_text += "{}{}:{} {:.5f} {}({}{:.5f})\n".format(indent, key, color, value, tcolors.ENDC, sign, diff)
