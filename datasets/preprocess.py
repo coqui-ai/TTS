@@ -120,7 +120,7 @@ def mailabs(root_path, meta_files=None):
                     text = cols[1].strip()
                     items.append([text, wav_file, speaker_name])
                 else:
-                    raise RuntimeError("> File %s is not exist!"%(wav_file))
+                    raise RuntimeError("> File %s does not exist!"%(wav_file))
     return items
 
 
@@ -185,7 +185,7 @@ def libri_tts(root_path, meta_files=None):
                 text = cols[1]
                 items.append([text, wav_file, speaker_name])
     for item in items:
-        assert os.path.exists(item[1]), f" [!] wav file is not exist - {item[1]}"
+        assert os.path.exists(item[1]), f" [!] wav files don't exist - {item[1]}"
     return items
 
 
@@ -203,5 +203,5 @@ def custom_turkish(root_path, meta_file):
                 continue
             text = cols[1].strip()
             items.append([text, wav_file, speaker_name])
-    print(f" [!] {len(skipped_files)} files skipped. They are not exist...")
+    print(f" [!] {len(skipped_files)} files skipped. They don't exist...")
     return items
