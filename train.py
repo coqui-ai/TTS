@@ -667,7 +667,7 @@ if __name__ == '__main__':
         os.chmod(OUT_PATH, 0o775)
 
         LOG_DIR = OUT_PATH
-        tb_logger = TensorboardLogger(LOG_DIR)
+        tb_logger = TensorboardLogger(LOG_DIR, model_name='TTS')
 
         # write model desc to tensorboard
         tb_logger.tb_add_text('model-description', c['run_description'], 0)
