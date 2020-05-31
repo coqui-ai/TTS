@@ -53,10 +53,10 @@
     "use_hinge_gan_loss": false,
     "use_feat_match_loss": false,  // use only with melgan discriminators
 
-    "stft_loss_alpha": 1,
-    "mse_gan_loss_alpha": 1,
-    "hinge_gan_loss_alpha": 1,
-    "feat_match_loss_alpha": 10.0,
+    "stft_loss_weight": 1,
+    "mse_gan_loss_weight": 2.5,
+    "hinge_gan_loss_weight": 2.5,
+    "feat_match_loss_weight": 10.0,
 
     "stft_loss_params": {
         "n_ffts": [1024, 2048, 512],
