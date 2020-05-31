@@ -372,11 +372,11 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
             c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
 
     # compute spectrograms
-    figures = plot_results(y_hat, y_G, ap, global_step, 'eval')
+    figures = plot_results(in_fake_D, in_real_D, ap, global_step, 'eval')
     tb_logger.tb_eval_figures(global_step, figures)
 
     # Sample audio
-    sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
+    sample_voice = in_fake_D[0].squeeze(0).detach().cpu().numpy()
     tb_logger.tb_eval_audios(global_step, {'eval/audio': sample_voice},
                              c.audio["sample_rate"])
 
