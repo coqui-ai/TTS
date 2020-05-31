@@ -137,7 +137,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
         if global_step > c.steps_to_start_discriminator:
 
             # run D with or without cond. features
-            if len(signature(model_D).parameters) == 2:
+            if len(signature(model_D.forward).parameters) == 2:
                 D_out_fake = model_D(in_fake_D, c_G)
             else:
                 D_out_fake = model_D(in_fake_D)
@@ -195,7 +195,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
             optimizer_D.zero_grad()
 
             # run D with or without cond. features
-            if len(signature(model_D).parameters) == 2:
+            if len(signature(model_D.forward).parameters) == 2:
                 D_out_fake = model_D(y_hat.detach(), c_D)
                 D_out_real = model_D(y_D, c_D)
             else:
