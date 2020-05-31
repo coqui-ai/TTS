@@ -13,8 +13,8 @@ def plot_results(y_hat, y, ap, global_step, name_prefix):
     y_hat = y_hat[0].squeeze(0).detach().cpu().numpy()
     y = y[0].squeeze(0).detach().cpu().numpy()
 
-    spec_fake = ap.spectrogram(y_hat).T
-    spec_real = ap.spectrogram(y).T
+    spec_fake = ap.melspectrogram(y_hat).T
+    spec_real = ap.melspectrogram(y).T
     spec_diff = np.abs(spec_fake - spec_real)
 
     # plot figure and save it
@@ -98,5 +98,5 @@ def setup_discriminator(c):
     return model
 
 
-# def check_config(c):
-#     pass
+def check_config(c):
+    pass
