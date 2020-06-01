@@ -383,6 +383,7 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
     # synthesize a full voice
     data_loader.return_segments = False
 
+    tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
     return keep_avg.avg_values
 
 
