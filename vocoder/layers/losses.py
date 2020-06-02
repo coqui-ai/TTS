@@ -51,13 +51,13 @@ class STFTLoss(nn.Module):
 
 class MultiScaleSTFTLoss(torch.nn.Module):
     def __init__(self,
-                 n_ffts=[1024, 2048, 512],
-                 hop_lengths=[120, 240, 50],
-                 win_lengths=[600, 1200, 240]):
+                 n_ffts=(1024, 2048, 512),
+                 hop_lengths=(120, 240, 50),
+                 win_lengths=(600, 1200, 240)):
         super(MultiScaleSTFTLoss, self).__init__()
         self.loss_funcs = torch.nn.ModuleList()
-        for idx in range(len(n_ffts)):
-            self.loss_funcs.append(STFTLoss(n_ffts[idx], hop_lengths[idx], win_lengths[idx]))
+        for n_fft, hop_length, win_length in zip(n_ffts, hop_lengths, win_lengths):
+            self.loss_funcs.append(STFTLoss(n_fft, hop_length, win_length))
 
     def forward(self, y_hat, y):
         N = len(self.loss_funcs)
@@ -81,20 +81,14 @@ class MultiScaleSubbandSTFTLoss(MultiScaleSTFTLoss):
 
 class MSEGLoss(nn.Module):
     """ Mean Squared Generator Loss """
-    def __init__(self,):
-        super(MSEGLoss, self).__init__()
-
-    def forward(self, score_fake, ):
+    def forward(self, score_fake):
         loss_fake = torch.mean(torch.sum(torch.pow(score_fake, 2), dim=[1, 2]))
         return loss_fake
 
 
 class HingeGLoss(nn.Module):
     """ Hinge Discriminator Loss """
-    def __init__(self,):
-        super(HingeGLoss, self).__init__()
-
-    def forward(self, score_fake, score_real):
+    def forward(self, score_fake):
         loss_fake = torch.mean(F.relu(1. + score_fake))
         return loss_fake
 
@@ -106,9 +100,6 @@ class HingeGLoss(nn.Module):
 
 class MSEDLoss(nn.Module):
     """ Mean Squared Discriminator Loss """
-    def __init__(self,):
-        super(MSEDLoss, self).__init__()
-
     def forward(self, score_fake, score_real):
         loss_real = torch.mean(torch.sum(torch.pow(score_real - 1.0, 2), dim=[1, 2]))
         loss_fake = torch.mean(torch.sum(torch.pow(score_fake, 2), dim=[1, 2]))
@@ -118,9 +109,6 @@ class MSEDLoss(nn.Module):
 
 class HingeDLoss(nn.Module):
     """ Hinge Discriminator Loss """
-    def __init__(self,):
-        super(HingeDLoss, self).__init__()
-
     def forward(self, score_fake, score_real):
         loss_real = torch.mean(F.relu(1. - score_real))
         loss_fake = torch.mean(F.relu(1. + score_fake))
@@ -129,13 +117,10 @@ class HingeDLoss(nn.Module):
 
 
 class MelganFeatureLoss(nn.Module):
-    def __init__(self, ):
-        super(MelganFeatureLoss, self).__init__()
-
     def forward(self, fake_feats, real_feats):
         loss_feats = 0
         for fake_feat, real_feat in zip(fake_feats, real_feats):
-            loss_feats += hp.model.feat_match * torch.mean(torch.abs(fake_feat - real_feat))
+            loss_feats += torch.mean(torch.abs(fake_feat - real_feat))
         return loss_feats
 
 
@@ -147,7 +132,7 @@ class MelganFeatureLoss(nn.Module):
 class GeneratorLoss(nn.Module):
     def __init__(self, C):
         super(GeneratorLoss, self).__init__()
-        assert C.use_mse_gan_loss and C.use_hinge_gan_loss == False,\
+        assert not(C.use_mse_gan_loss and C.use_hinge_gan_loss),\
             " [!] Cannot use HingeGANLoss and MSEGANLoss together."
 
         self.use_stft_loss = C.use_stft_loss
@@ -228,7 +213,7 @@ class GeneratorLoss(nn.Module):
 class DiscriminatorLoss(nn.Module):
     def __init__(self, C):
         super(DiscriminatorLoss, self).__init__()
-        assert C.use_mse_gan_loss and C.use_hinge_gan_loss == False,\
+        assert not(C.use_mse_gan_loss and C.use_hinge_gan_loss),\
             " [!] Cannot use HingeGANLoss and MSEGANLoss together."
 
         self.use_mse_gan_loss = C.use_mse_gan_loss

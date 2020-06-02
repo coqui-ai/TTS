@@ -1,16 +1,11 @@
 import os
 import torch
-import unittest
 
-import numpy as np
 import soundfile as sf
 from librosa.core import load
 
-from TTS.tests import get_tests_path, get_tests_input_path, get_tests_output_path
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from TTS.tests import get_tests_path, get_tests_input_path
 from TTS.vocoder.layers.pqmf import PQMF
-from TTS.vocoder.layers.pqmf2 import PQMF as PQMF2
 
 
 TESTS_PATH = get_tests_path()
