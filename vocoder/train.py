@@ -17,7 +17,7 @@ from TTS.utils.generic_utils import (KeepAverage, count_parameters,
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
-from TTS.utils.training import NoamLR
+from TTS.utils.training import setup_torch_training_env, NoamLR
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data
 # from distribute import (DistributedSampler, apply_gradient_allreduce,
@@ -29,13 +29,8 @@ from TTS.vocoder.utils.generic_utils import (check_config, plot_results,
                                              setup_discriminator,
                                              setup_generator)
 
-torch.backends.cudnn.enabled = True
-torch.backends.cudnn.benchmark = True
-torch.manual_seed(54321)
-use_cuda = torch.cuda.is_available()
-num_gpus = torch.cuda.device_count()
-print(" > Using CUDA: ", use_cuda)
-print(" > Number of GPUs: ", num_gpus)
+
+use_cuda, num_gpus = setup_torch_training_env(True, True)
 
 
 def setup_loader(ap, is_val=False, verbose=False):
@@ -49,10 +44,11 @@ def setup_loader(ap, is_val=False, verbose=False):
                              pad_short=c.pad_short,
                              conv_pad=c.conv_pad,
                              is_training=not is_val,
-                             return_segments=False if is_val else True,
+                             return_segments=not is_val,
                              use_noise_augment=c.use_noise_augment,
                              use_cache=c.use_cache,
                              verbose=verbose)
+        dataset.shuffle_mapping()
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(dataset,
                             batch_size=1 if is_val else c.batch_size,
@@ -81,11 +77,11 @@ def format_data(data):
         return c_G, x_G, c_D, x_D
 
     # return a whole audio segment
-    c, x = data
+    co, x = data
     if use_cuda:
-        c = c.cuda(non_blocking=True)
+        co = co.cuda(non_blocking=True)
         x = x.cuda(non_blocking=True)
-    return c, x
+    return co, x, None, None
 
 
 def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
@@ -306,7 +302,7 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
         start_time = time.time()
 
         # format data
-        c_G, y_G = format_data(data)
+        c_G, y_G, _, _ = format_data(data)
         loader_time = time.time() - end_time
 
         global_step += 1
@@ -416,7 +412,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             optimizer_gen.load_state_dict(checkpoint['optimizer'])
             model_disc.load_state_dict(checkpoint['model_disc'])
             optimizer_disc.load_state_dict(checkpoint['optimizer_disc'])
-        except:
+        except KeyError:
             print(" > Partial model initialization.")
             model_dict = model_gen.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)

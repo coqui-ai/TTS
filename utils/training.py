@@ -2,6 +2,17 @@ import torch
 import numpy as np
 
 
+def setup_torch_training_env(cudnn_enable, cudnn_benchmark):
+    torch.backends.cudnn.enabled = cudnn_enable
+    torch.backends.cudnn.benchmark = cudnn_benchmark
+    torch.manual_seed(54321)
+    use_cuda = torch.cuda.is_available()
+    num_gpus = torch.cuda.device_count()
+    print(" > Using CUDA: ", use_cuda)
+    print(" > Number of GPUs: ", num_gpus)
+    return use_cuda, num_gpus
+
+
 def check_update(model, grad_clip, ignore_stopnet=False):
     r'''Check model gradient against unexpected jumps and failures'''
     skip_flag = False
