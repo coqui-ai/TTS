@@ -3,6 +3,10 @@ language: python
 git:
   quiet: true
 
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install espeak
+
 matrix:
   include:
   - name: "Lint check"
