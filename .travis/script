@@ -12,7 +12,9 @@ fi
 if [[ "$TEST_SUITE" == "unittest" ]]; then
   # Run tests on all pushes
   pushd tts_namespace
-  python -m unittest
+  nosetests speaker_encoder.tests --nocapture
+  nosetests vocoder.tests --nocapture
+  nosetests tests --nocapture
   popd
   # Test server package
   ./tests/test_server_package.sh
