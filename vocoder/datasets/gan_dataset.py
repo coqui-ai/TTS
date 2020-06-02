@@ -3,27 +3,8 @@ import glob
 import torch
 import random
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from multiprocessing import Manager
-
-
-def create_dataloader(hp, args, train):
-    dataset = MelFromDisk(hp, args, train)
-
-    if train:
-        return DataLoader(dataset=dataset,
-                          batch_size=hp.train.batch_size,
-                          shuffle=True,
-                          num_workers=hp.train.num_workers,
-                          pin_memory=True,
-                          drop_last=True)
-    else:
-        return DataLoader(dataset=dataset,
-                          batch_size=1,
-                          shuffle=False,
-                          num_workers=hp.train.num_workers,
-                          pin_memory=True,
-                          drop_last=False)
 
 
 class GANDataset(Dataset):
@@ -55,26 +36,26 @@ class GANDataset(Dataset):
         self.return_segments = return_segments
         self.use_cache = use_cache
         self.use_noise_augment = use_noise_augment
+        self.verbose = verbose
 
         assert seq_len % hop_len == 0, " [!] seq_len has to be a multiple of hop_len."
         self.feat_frame_len = seq_len // hop_len + (2 * conv_pad)
 
         # map G and D instances
-        self.G_to_D_mappings = [i for i in range(len(self.item_list))]
+        self.G_to_D_mappings = list(range(len(self.item_list)))
         self.shuffle_mapping()
 
         # cache acoustic features
         if use_cache:
             self.create_feature_cache()
 
-
-
     def create_feature_cache(self):
         self.manager = Manager()
         self.cache = self.manager.list()
         self.cache += [None for _ in range(len(self.item_list))]
 
-    def find_wav_files(self, path):
+    @staticmethod
+    def find_wav_files(path):
         return glob.glob(os.path.join(path, '**', '*.wav'), recursive=True)
 
     def __len__(self):
@@ -88,9 +69,8 @@ class GANDataset(Dataset):
             item1 = self.load_item(idx)
             item2 = self.load_item(idx2)
             return item1, item2
-        else:
-            item1 = self.load_item(idx)
-            return item1
+        item1 = self.load_item(idx)
+        return item1
 
     def shuffle_mapping(self):
         random.shuffle(self.G_to_D_mappings)

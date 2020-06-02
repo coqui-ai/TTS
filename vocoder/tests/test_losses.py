@@ -1,5 +1,4 @@
 import os
-import unittest
 import torch
 
 from TTS.vocoder.layers.losses import TorchSTFT, STFTLoss, MultiScaleSTFTLoss
@@ -24,7 +23,7 @@ def test_torch_stft():
     torch_stft = TorchSTFT(ap.n_fft, ap.hop_length, ap.win_length)
     # librosa stft
     wav = ap.load_wav(WAV_FILE)
-    M_librosa = abs(ap._stft(wav))
+    M_librosa = abs(ap._stft(wav)) # pylint: disable=protected-access
     # torch stft
     wav = torch.from_numpy(wav[None, :]).float()
     M_torch = torch_stft(wav)

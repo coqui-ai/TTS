@@ -44,6 +44,9 @@ class PQMF(torch.nn.Module):
 
         self.pad_fn = torch.nn.ConstantPad1d(taps // 2, 0.0)
 
+    def forward(self, x):
+        return self.analysis(x)
+
     def analysis(self, x):
         return F.conv1d(x, self.H, padding=self.taps // 2, stride=self.N)
 
