@@ -49,7 +49,6 @@ class STFTLoss(nn.Module):
         loss_sc = torch.norm(y_M - y_hat_M, p="fro") / torch.norm(y_M, p="fro")
         return loss_mag, loss_sc
 
-
 class MultiScaleSTFTLoss(torch.nn.Module):
     def __init__(self,
                  n_ffts=[1024, 2048, 512],
@@ -71,6 +70,13 @@ class MultiScaleSTFTLoss(torch.nn.Module):
         loss_sc /= N
         loss_mag /= N
         return loss_mag, loss_sc
+
+
+class MultiScaleSubbandSTFTLoss(MultiScaleSTFTLoss):
+    def forward(self, y_hat, y):
+        y_hat = y_hat.view(-1, 1, y_hat.shape[2])
+        y = y.view(-1, 1, y.shape[2])
+        return super().forward(y_hat.squeeze(1), y.squeeze(1))
 
 
 class MSEGLoss(nn.Module):
@@ -145,17 +151,21 @@ class GeneratorLoss(nn.Module):
             " [!] Cannot use HingeGANLoss and MSEGANLoss together."
 
         self.use_stft_loss = C.use_stft_loss
+        self.use_subband_stft_loss = C.use_subband_stft_loss
         self.use_mse_gan_loss = C.use_mse_gan_loss
         self.use_hinge_gan_loss = C.use_hinge_gan_loss
         self.use_feat_match_loss = C.use_feat_match_loss
 
         self.stft_loss_weight = C.stft_loss_weight
+        self.subband_stft_loss_weight = C.subband_stft_loss_weight
         self.mse_gan_loss_weight = C.mse_gan_loss_weight
         self.hinge_gan_loss_weight = C.hinge_gan_loss_weight
         self.feat_match_loss_weight = C.feat_match_loss_weight
 
         if C.use_stft_loss:
             self.stft_loss = MultiScaleSTFTLoss(**C.stft_loss_params)
+        if C.use_subband_stft_loss:
+            self.subband_stft_loss = MultiScaleSubbandSTFTLoss(**C.subband_stft_loss_params)
         if C.use_mse_gan_loss:
             self.mse_loss = MSEGLoss()
         if C.use_hinge_gan_loss:
@@ -163,7 +173,7 @@ class GeneratorLoss(nn.Module):
         if C.use_feat_match_loss:
             self.feat_match_loss = MelganFeatureLoss()
 
-    def forward(self, y_hat=None, y=None, scores_fake=None, feats_fake=None, feats_real=None):
+    def forward(self, y_hat=None, y=None, scores_fake=None, feats_fake=None, feats_real=None, y_hat_sub=None, y_sub=None):
         loss = 0
         return_dict = {}
 
@@ -173,6 +183,13 @@ class GeneratorLoss(nn.Module):
             return_dict['G_stft_loss_mg'] = stft_loss_mg
             return_dict['G_stft_loss_sc'] = stft_loss_sc
             loss += self.stft_loss_weight * (stft_loss_mg + stft_loss_sc)
+
+        # subband STFT Loss
+        if self.use_subband_stft_loss:
+            subband_stft_loss_mg, subband_stft_loss_sc = self.subband_stft_loss(y_hat_sub, y_sub)
+            return_dict['G_subband_stft_loss_mg'] = subband_stft_loss_mg
+            return_dict['G_subband_stft_loss_sc'] = subband_stft_loss_sc
+            loss += self.subband_stft_loss_weight * (subband_stft_loss_mg + subband_stft_loss_sc)
 
         # Fake Losses
         if self.use_mse_gan_loss and scores_fake is not None:

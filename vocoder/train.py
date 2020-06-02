@@ -122,30 +122,27 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
         # generator pass
         optimizer_G.zero_grad()
         y_hat = model_G(c_G)
-
-        in_real_D = y_hat
-        in_fake_D = y_G
+        y_hat_sub = None
+        y_G_sub = None
 
         # PQMF formatting
         if y_hat.shape[1] > 1:
-            in_real_D = y_G
-            in_fake_D = model_G.pqmf_synthesis(y_hat)
-            y_G = model_G.pqmf_analysis(y_G)
-            y_hat = y_hat.view(-1, 1, y_hat.shape[2])
-            y_G = y_G.view(-1, 1, y_G.shape[2])
+            y_hat_sub = y_hat
+            y_hat = model_G.pqmf_synthesis(y_hat)
+            y_G_sub = model_G.pqmf_analysis(y_G)
 
         if global_step > c.steps_to_start_discriminator:
 
             # run D with or without cond. features
             if len(signature(model_D.forward).parameters) == 2:
-                D_out_fake = model_D(in_fake_D, c_G)
+                D_out_fake = model_D(y_hat, c_G)
             else:
-                D_out_fake = model_D(in_fake_D)
+                D_out_fake = model_D(y_hat)
             D_out_real = None
 
             if c.use_feat_match_loss:
                 with torch.no_grad():
-                    D_out_real = model_D(in_real_D)
+                    D_out_real = model_D(y_G)
 
             # format D outputs
             if isinstance(D_out_fake, tuple):
@@ -162,7 +159,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
 
         # compute losses
         loss_G_dict = criterion_G(y_hat, y_G, scores_fake, feats_fake,
-                                  feats_real)
+                                  feats_real, y_hat_sub, y_G_sub)
         loss_G = loss_G_dict['G_loss']
 
         # optimizer generator
@@ -272,12 +269,12 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
                                 model_losses=loss_dict)
 
             # compute spectrograms
-            figures = plot_results(in_fake_D, in_real_D, ap, global_step,
+            figures = plot_results(y_hat, y_G, ap, global_step,
                                    'train')
             tb_logger.tb_train_figures(global_step, figures)
 
             # Sample audio
-            sample_voice = in_fake_D[0].squeeze(0).detach().cpu().numpy()
+            sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
             tb_logger.tb_train_audios(global_step,
                                       {'train/audio': sample_voice},
                                       c.audio["sample_rate"])
@@ -320,23 +317,20 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
 
         # generator pass
         y_hat = model_G(c_G)
-
-        in_real_D = y_hat
-        in_fake_D = y_G
+        y_hat_sub = None
+        y_G_sub = None
 
         # PQMF formatting
         if y_hat.shape[1] > 1:
-            in_real_D = y_G
-            in_fake_D = model_G.pqmf_synthesis(y_hat)
-            y_G = model_G.pqmf_analysis(y_G)
-            y_hat = y_hat.view(-1, 1, y_hat.shape[2])
-            y_G = y_G.view(-1, 1, y_G.shape[2])
+            y_hat_sub = y_hat
+            y_hat = model_G.pqmf_synthesis(y_hat)
+            y_G_sub = model_G.pqmf_analysis(y_G)
 
-        D_out_fake = model_D(in_fake_D)
+        D_out_fake = model_D(y_hat)
         D_out_real = None
         if c.use_feat_match_loss:
             with torch.no_grad():
-                D_out_real = model_D(in_real_D)
+                D_out_real = model_D(y_G)
 
         # format D outputs
         if isinstance(D_out_fake, tuple):
@@ -350,7 +344,7 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
 
         # compute losses
         loss_G_dict = criterion_G(y_hat, y_G, scores_fake, feats_fake,
-                                  feats_real)
+                                  feats_real, y_hat_sub, y_G_sub)
 
         loss_dict = dict()
         for key, value in loss_G_dict.items():
@@ -364,7 +358,7 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
         for key, value in loss_G_dict.items():
             update_eval_values['avg_' + key] = value.item()
         update_eval_values['avg_loader_time'] = loader_time
-        update_eval_values['avg_step_time'] = step_time
+        update_eval_values['avgP_step_time'] = step_time
         keep_avg.update_values(update_eval_values)
 
         # print eval stats
@@ -372,18 +366,19 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
             c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
 
     # compute spectrograms
-    figures = plot_results(in_fake_D, in_real_D, ap, global_step, 'eval')
+    figures = plot_results(y_hat, y_G, ap, global_step, 'eval')
     tb_logger.tb_eval_figures(global_step, figures)
 
     # Sample audio
-    sample_voice = in_fake_D[0].squeeze(0).detach().cpu().numpy()
+    sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
     tb_logger.tb_eval_audios(global_step, {'eval/audio': sample_voice},
                              c.audio["sample_rate"])
 
     # synthesize a full voice
     data_loader.return_segments = False
 
-    tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
+    tb_logger.tb_evals_stats(global_step, keep_avg.avg_values)
+
     return keep_avg.avg_values
 
 
