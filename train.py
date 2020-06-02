@@ -20,7 +20,8 @@ from TTS.utils.generic_utils import (count_parameters, create_experiment_folder,
 from TTS.utils.io import (save_best_model, save_checkpoint,
                           load_config, copy_config_file)
 from TTS.utils.training import (NoamLR, check_update, adam_weight_decay,
-                                gradual_training_scheduler, set_weight_decay)
+                                gradual_training_scheduler, set_weight_decay,
+                                setup_torch_training_env)
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.speakers import load_speaker_mapping, save_speaker_mapping, \
@@ -32,13 +33,8 @@ from TTS.datasets.preprocess import load_meta_data
 from TTS.utils.radam import RAdam
 from TTS.utils.measures import alignment_diagonal_score
 
-torch.backends.cudnn.enabled = True
-torch.backends.cudnn.benchmark = False
-torch.manual_seed(54321)
-use_cuda = torch.cuda.is_available()
-num_gpus = torch.cuda.device_count()
-print(" > Using CUDA: ", use_cuda)
-print(" > Number of GPUs: ", num_gpus)
+
+use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 
 def setup_loader(ap, r, is_val=False, verbose=False):

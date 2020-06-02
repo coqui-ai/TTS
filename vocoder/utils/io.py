@@ -2,7 +2,6 @@ import os
 import torch
 import datetime
 
-
 def save_model(model, optimizer, model_disc, optimizer_disc, current_step,
                epoch, output_path, **kwargs):
     model_state = model.state_dict()

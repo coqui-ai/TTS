@@ -91,7 +91,7 @@ class ConsoleLogger():
                     sign = ''
                 elif diff > 0:
                     color = tcolors.FAIL
-                    sing = '+'
+                    sign = '+'
             log_text += "{}{}:{} {:.5f} {}({}{:.5f})\n".format(indent, key, color, value, tcolors.ENDC, sign, diff)
         self.old_eval_loss_dict = avg_loss_dict
         print(log_text, flush=True)

@@ -1,5 +1,4 @@
 import numpy as np
-import unittest
 import torch
 
 from TTS.vocoder.models.melgan_generator import MelganGenerator

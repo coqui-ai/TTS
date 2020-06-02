@@ -22,7 +22,7 @@ ok_ljspeech = os.path.exists(test_data_path)
 def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_segments, use_noise_augment, use_cache, num_workers):
     ''' run dataloader with given parameters and check conditions '''
     ap = AudioProcessor(**C.audio)
-    eval_items, train_items = load_wav_data(test_data_path, 10)
+    _, train_items = load_wav_data(test_data_path, 10)
     dataset = GANDataset(ap,
                          train_items,
                          seq_len=seq_len,
@@ -44,9 +44,9 @@ def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_segments, us
 
     # return random segments or return the whole audio
     if return_segments:
-        for item1, item2 in loader:
+        for item1, _ in loader:
             feat1, wav1 = item1
-            feat2, wav2 = item2
+            # feat2, wav2 = item2
             expected_feat_shape = (batch_size, ap.num_mels, seq_len // hop_len + conv_pad * 2)
 
             # check shapes
@@ -80,15 +80,15 @@ def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_segments, us
 def test_parametrized_gan_dataset():
     ''' test dataloader with different parameters '''
     params = [
-        [32, C.audio['hop_length'] * 10,  C.audio['hop_length'], 0, True, False, True, 0],
-        [32, C.audio['hop_length'] * 10,  C.audio['hop_length'], 0, True, False, True, 4],
-        [1, C.audio['hop_length'] * 10,  C.audio['hop_length'], 0, True, True, True, 0],
+        [32, C.audio['hop_length'] * 10, C.audio['hop_length'], 0, True, False, True, 0],
+        [32, C.audio['hop_length'] * 10, C.audio['hop_length'], 0, True, False, True, 4],
+        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 0, True, True, True, 0],
         [1, C.audio['hop_length'], C.audio['hop_length'], 0, True, True, True, 0],
-        [1, C.audio['hop_length'] * 10,  C.audio['hop_length'], 2, True, True, True, 0],
-        [1, C.audio['hop_length'] * 10,  C.audio['hop_length'], 0, False, True, True, 0],
-        [1, C.audio['hop_length'] * 10,  C.audio['hop_length'], 0, True, False, True, 0],
-        [1, C.audio['hop_length'] * 10,  C.audio['hop_length'], 0, True, True, False, 0],
-        [1, C.audio['hop_length'] * 10,  C.audio['hop_length'], 0, False, False, False, 0],
+        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 2, True, True, True, 0],
+        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 0, False, True, True, 0],
+        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 0, True, False, True, 0],
+        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 0, True, True, False, 0],
+        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 0, False, False, False, 0],
     ]
     for param in params:
         print(param)

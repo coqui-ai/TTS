@@ -1,7 +1,5 @@
 import numpy as np
-import torch
 from torch import nn
-from torch.nn import functional as F
 from torch.nn.utils import weight_norm
 
 
@@ -32,7 +30,7 @@ class MelganDiscriminator(nn.Module):
 
         # downsampling layers
         layer_in_channels = base_channels
-        for idx, downsample_factor in enumerate(downsample_factors):
+        for downsample_factor in downsample_factors:
             layer_out_channels = min(layer_in_channels * downsample_factor,
                                      max_channels)
             layer_kernel_size = downsample_factor * 10 + 1
