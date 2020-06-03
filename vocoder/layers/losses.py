@@ -77,6 +77,7 @@ class MultiScaleSTFTLoss(torch.nn.Module):
 
 class MultiScaleSubbandSTFTLoss(MultiScaleSTFTLoss):
     """ Multiscale STFT loss for multi band model outputs """
+    # pylint: disable=no-self-use
     def forward(self, y_hat, y):
         y_hat = y_hat.view(-1, 1, y_hat.shape[2])
         y = y.view(-1, 1, y.shape[2])
@@ -85,6 +86,7 @@ class MultiScaleSubbandSTFTLoss(MultiScaleSTFTLoss):
 
 class MSEGLoss(nn.Module):
     """ Mean Squared Generator Loss """
+    # pylint: disable=no-self-use
     def forward(self, score_fake):
         loss_fake = torch.mean(torch.sum(torch.pow(score_fake, 2), dim=[1, 2]))
         return loss_fake
@@ -92,6 +94,7 @@ class MSEGLoss(nn.Module):
 
 class HingeGLoss(nn.Module):
     """ Hinge Discriminator Loss """
+    # pylint: disable=no-self-use
     def forward(self, score_fake):
         loss_fake = torch.mean(F.relu(1. + score_fake))
         return loss_fake
@@ -104,6 +107,7 @@ class HingeGLoss(nn.Module):
 
 class MSEDLoss(nn.Module):
     """ Mean Squared Discriminator Loss """
+    # pylint: disable=no-self-use
     def forward(self, score_fake, score_real):
         loss_real = torch.mean(torch.sum(torch.pow(score_real - 1.0, 2), dim=[1, 2]))
         loss_fake = torch.mean(torch.sum(torch.pow(score_fake, 2), dim=[1, 2]))
@@ -113,6 +117,7 @@ class MSEDLoss(nn.Module):
 
 class HingeDLoss(nn.Module):
     """ Hinge Discriminator Loss """
+    # pylint: disable=no-self-use
     def forward(self, score_fake, score_real):
         loss_real = torch.mean(F.relu(1. - score_real))
         loss_fake = torch.mean(F.relu(1. + score_fake))
@@ -121,6 +126,7 @@ class HingeDLoss(nn.Module):
 
 
 class MelganFeatureLoss(nn.Module):
+    # pylint: disable=no-self-use
     def forward(self, fake_feats, real_feats):
         loss_feats = 0
         for fake_feat, real_feat in zip(fake_feats, real_feats):
