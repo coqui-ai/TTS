@@ -51,7 +51,7 @@ class TacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             mel_out, mel_postnet_out, align, stop_tokens = model.forward(
-                input, input_lengths, mel_spec, speaker_ids)
+                input, input_lengths, mel_spec, mel_lengths, speaker_ids)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
             assert torch.sigmoid(stop_tokens).data.min() >= 0.0
             optimizer.zero_grad()
