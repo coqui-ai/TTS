@@ -318,6 +318,8 @@ def check_config(c):
     _check_argument('transition_agent', c, restricted=True, val_type=bool)
     _check_argument('location_attn', c, restricted=True, val_type=bool)
     _check_argument('bidirectional_decoder', c, restricted=True, val_type=bool)
+    _check_argument('double_decoder_consistency', c, restricted=True, val_type=bool)
+    _check_argument('ddc_r', c, restricted='double_decoder_consistency' in c.keys(), min_val=1, max_val=7, val_type=int)
 
     # stopnet
     _check_argument('stopnet', c, restricted=True, val_type=bool)
