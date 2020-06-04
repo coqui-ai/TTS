@@ -160,13 +160,16 @@ def setup_model(num_chars, num_speakers, c):
                         location_attn=c.location_attn,
                         attn_K=c.attention_heads,
                         separate_stopnet=c.separate_stopnet,
-                        bidirectional_decoder=c.bidirectional_decoder)
+                        bidirectional_decoder=c.bidirectional_decoder,
+                        double_decoder_consistency=c.double_decoder_consistency,
+                        ddc_r=c.ddc_r)
     elif c.model.lower() == "tacotron2":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=c.audio['num_mels'],
                         decoder_output_dim=c.audio['num_mels'],
+                        gst=c.use_gst,
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
                         attn_norm=c.attention_norm,
@@ -178,7 +181,9 @@ def setup_model(num_chars, num_speakers, c):
                         location_attn=c.location_attn,
                         attn_K=c.attention_heads,
                         separate_stopnet=c.separate_stopnet,
-                        bidirectional_decoder=c.bidirectional_decoder)
+                        bidirectional_decoder=c.bidirectional_decoder,
+                        double_decoder_consistency=c.double_decoder_consistency,
+                        ddc_r=c.ddc_r)
     return model
 
 class KeepAverage():
