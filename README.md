@@ -17,9 +17,11 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
 ## Features
-- High performance Text2Speech models on Torch and Tensorflow 2.0.
-- High performance Speaker Encoder to compute speaker embeddings efficiently. 
-- Integration with various Neural Vocoders (PWGAN, MelGAN, WaveRNN)
+- High performance Deep Learning models for Text2Speech related tasks.
+    - Text2Speech models (Tacotron, Tacotron2).
+    - Speaker Encoder to compute speaker embeddings efficiently. 
+    - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS)
+- Ability to convert Torch models to Tensorflow 2.0 for inference.
 - Released trained models.
 - Efficient training codes for PyTorch. (soon for Tensorflow 2.0)
 - Codes to convert Torch models to Tensorflow 2.0.
