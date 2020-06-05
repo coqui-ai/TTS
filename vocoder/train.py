@@ -363,7 +363,7 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
         for key, value in loss_G_dict.items():
             update_eval_values['avg_' + key] = value.item()
         update_eval_values['avg_loader_time'] = loader_time
-        update_eval_values['avgP_step_time'] = step_time
+        update_eval_values['avg_step_time'] = step_time
         keep_avg.update_values(update_eval_values)
 
         # print eval stats
