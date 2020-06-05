@@ -49,21 +49,28 @@
 
     // LOSS PARAMETERS
     "use_stft_loss": true,
+    "use_subband_stft_loss": true,
     "use_mse_gan_loss": true,
     "use_hinge_gan_loss": false,
     "use_feat_match_loss": false,  // use only with melgan discriminators
 
-    "stft_loss_weight": 1,
+    "stft_loss_weight": 0.5,
+    "subband_stft_loss_weight": 0.5,
     "mse_gan_loss_weight": 2.5,
-    "hinge_gan_loss_weight": 1,
-    "feat_match_loss_weight": 10.0,
+    "hinge_gan_loss_weight": 2.5,
+    "feat_match_loss_weight": 25.0,
 
     "stft_loss_params": {
         "n_ffts": [1024, 2048, 512],
         "hop_lengths": [120, 240, 50],
         "win_lengths": [600, 1200, 240]
     },
-    "target_loss": "avg_G_loss",  // loss value to pick the best model
+    "subband_stft_loss_params":{
+        "n_ffts": [384, 683, 171],
+        "hop_lengths": [30, 60, 10],
+        "win_lengths": [150, 300, 60]
+    },
+    "target_loss": "avg_G_loss",
 
     // DISCRIMINATOR
     // "discriminator_model": "melgan_multiscale_discriminator",
@@ -85,7 +92,7 @@
     // GENERATOR
     "generator_model": "multiband_melgan_generator",
     "generator_model_params": {
-        "upsample_factors":[2 ,2, 4, 4],
+        "upsample_factors":[8, 4, 2],
         "num_res_blocks": 4
     },
 
@@ -111,7 +118,7 @@
     "noam_schedule": false,        // use noam warmup and lr schedule.
     "warmup_steps_gen": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
     "warmup_steps_disc": 4000,
-    "epochs": 1000,                // total number of epochs to train.
+    "epochs": 100000,                // total number of epochs to train.
     "wd": 0.000001,                // Weight decay weight.
     "lr_gen": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
     "lr_disc": 0.0001,
@@ -131,6 +138,6 @@
     "eval_split_size": 10,
 
     // PATHS
-    "output_path": "/home/erogol/Models/LJSpeech/"
+    "output_path": "/data/rw/home/Trainings/"
 }
 
