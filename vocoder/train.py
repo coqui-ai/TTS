@@ -52,7 +52,7 @@ def setup_loader(ap, is_val=False, verbose=False):
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(dataset,
                             batch_size=1 if is_val else c.batch_size,
-                            shuffle=False,
+                            shuffle=True,
                             drop_last=False,
                             sampler=None,
                             num_workers=c.num_val_loader_workers
@@ -120,11 +120,13 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
         y_hat = model_G(c_G)
         y_hat_sub = None
         y_G_sub = None
+        y_hat_vis = y_hat  # for visualization
 
         # PQMF formatting
         if y_hat.shape[1] > 1:
             y_hat_sub = y_hat
             y_hat = model_G.pqmf_synthesis(y_hat)
+            y_hat_vis = y_hat
             y_G_sub = model_G.pqmf_analysis(y_G)
 
         if global_step > c.steps_to_start_discriminator:
@@ -171,7 +173,10 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
 
         loss_dict = dict()
         for key, value in loss_G_dict.items():
-            loss_dict[key] = value.item()
+            if isinstance(value, int):
+                loss_dict[key] = value
+            else:
+                loss_dict[key] = value.item()
 
         ##############################
         # DISCRIMINATOR
@@ -265,12 +270,12 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
                                 model_losses=loss_dict)
 
             # compute spectrograms
-            figures = plot_results(y_hat, y_G, ap, global_step,
+            figures = plot_results(y_hat_vis, y_G, ap, global_step,
                                    'train')
             tb_logger.tb_train_figures(global_step, figures)
 
             # Sample audio
-            sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
+            sample_voice = y_hat_vis[0].squeeze(0).detach().cpu().numpy()
             tb_logger.tb_train_audios(global_step,
                                       {'train/audio': sample_voice},
                                       c.audio["sample_rate"])
@@ -322,8 +327,12 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
             y_hat = model_G.pqmf_synthesis(y_hat)
             y_G_sub = model_G.pqmf_analysis(y_G)
 
-        D_out_fake = model_D(y_hat)
+        if len(signature(model_D.forward).parameters) == 2:
+            D_out_fake = model_D(y_hat, c_G)
+        else:
+            D_out_fake = model_D(y_hat)
         D_out_real = None
+
         if c.use_feat_match_loss:
             with torch.no_grad():
                 D_out_real = model_D(y_G)
@@ -354,7 +363,7 @@ def evaluate(model_G, criterion_G, model_D, ap, global_step, epoch):
         for key, value in loss_G_dict.items():
             update_eval_values['avg_' + key] = value.item()
         update_eval_values['avg_loader_time'] = loader_time
-        update_eval_values['avgP_step_time'] = step_time
+        update_eval_values['avg_step_time'] = step_time
         keep_avg.update_values(update_eval_values)
 
         # print eval stats

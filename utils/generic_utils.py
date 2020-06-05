@@ -160,13 +160,16 @@ def setup_model(num_chars, num_speakers, c):
                         location_attn=c.location_attn,
                         attn_K=c.attention_heads,
                         separate_stopnet=c.separate_stopnet,
-                        bidirectional_decoder=c.bidirectional_decoder)
+                        bidirectional_decoder=c.bidirectional_decoder,
+                        double_decoder_consistency=c.double_decoder_consistency,
+                        ddc_r=c.ddc_r)
     elif c.model.lower() == "tacotron2":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=c.audio['num_mels'],
                         decoder_output_dim=c.audio['num_mels'],
+                        gst=c.use_gst,
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
                         attn_norm=c.attention_norm,
@@ -178,7 +181,9 @@ def setup_model(num_chars, num_speakers, c):
                         location_attn=c.location_attn,
                         attn_K=c.attention_heads,
                         separate_stopnet=c.separate_stopnet,
-                        bidirectional_decoder=c.bidirectional_decoder)
+                        bidirectional_decoder=c.bidirectional_decoder,
+                        double_decoder_consistency=c.double_decoder_consistency,
+                        ddc_r=c.ddc_r)
     return model
 
 class KeepAverage():
@@ -313,6 +318,8 @@ def check_config(c):
     _check_argument('transition_agent', c, restricted=True, val_type=bool)
     _check_argument('location_attn', c, restricted=True, val_type=bool)
     _check_argument('bidirectional_decoder', c, restricted=True, val_type=bool)
+    _check_argument('double_decoder_consistency', c, restricted=True, val_type=bool)
+    _check_argument('ddc_r', c, restricted='double_decoder_consistency' in c.keys(), min_val=1, max_val=7, val_type=int)
 
     # stopnet
     _check_argument('stopnet', c, restricted=True, val_type=bool)

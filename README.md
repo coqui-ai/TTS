@@ -11,15 +11,18 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
 
 [![](https://sourcerer.io/fame/erogol/erogol/TTS/images/0)](https://sourcerer.io/fame/erogol/erogol/TTS/links/0)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/1)](https://sourcerer.io/fame/erogol/erogol/TTS/links/1)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/2)](https://sourcerer.io/fame/erogol/erogol/TTS/links/2)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/3)](https://sourcerer.io/fame/erogol/erogol/TTS/links/3)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/4)](https://sourcerer.io/fame/erogol/erogol/TTS/links/4)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/5)](https://sourcerer.io/fame/erogol/erogol/TTS/links/5)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/6)](https://sourcerer.io/fame/erogol/erogol/TTS/links/6)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/7)](https://sourcerer.io/fame/erogol/erogol/TTS/links/7)
 
-## TTS Performance 
+## TTS Performance
 <p align="center"><img src="https://camo.githubusercontent.com/9fa79f977015e55eb9ec7aa32045555f60d093d3/68747470733a2f2f646973636f757273652d706161732d70726f64756374696f6e2d636f6e74656e742e73332e6475616c737461636b2e75732d656173742d312e616d617a6f6e6177732e636f6d2f6f7074696d697a65642f33582f362f342f363432386639383065396563373531633234386535393134363038393566373838316165633063365f325f363930783339342e706e67"/></p>
 
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
 ## Features
-- High performance Text2Speech models on Torch and Tensorflow 2.0.
-- High performance Speaker Encoder to compute speaker embeddings efficiently. 
-- Integration with various Neural Vocoders (PWGAN, MelGAN, WaveRNN)
+- High performance Deep Learning models for Text2Speech related tasks.
+    - Text2Speech models (Tacotron, Tacotron2).
+    - Speaker Encoder to compute speaker embeddings efficiently.
+    - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS)
+- Support for multi-speaker TTS training.
+- Ability to convert Torch models to Tensorflow 2.0 for inference.
 - Released trained models.
 - Efficient training codes for PyTorch. (soon for Tensorflow 2.0)
 - Codes to convert Torch models to Tensorflow 2.0.
@@ -84,7 +87,7 @@ Audio length is approximately 6 secs.
 
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloder easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.  
+TTS provides a generic dataloder easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.
 
 Some of the open-sourced datasets that we successfully applied TTS, are linked below.
 
@@ -96,9 +99,9 @@ Some of the open-sourced datasets that we successfully applied TTS, are linked b
 - [Spanish](https://drive.google.com/file/d/1Sm_zyBo67XHkiFhcRSQ4YaHPYM0slO_e/view?usp=sharing) - thx! @carlfm01
 
 ## Training and Fine-tuning LJ-Speech
-Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below. 
+Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below.
 
-To start with, split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that for text-to-speech, validation performance might be misleading since the loss value does not directly measure the voice quality to the human ear and it also does not measure the attention module performance. Therefore, running the model with new sentences and listening to the results is the best way to go. 
+To start with, split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that for text-to-speech, validation performance might be misleading since the loss value does not directly measure the voice quality to the human ear and it also does not measure the attention module performance. Therefore, running the model with new sentences and listening to the results is the best way to go.
 
 ```
 shuf metadata.csv > metadata_shuf.csv
@@ -137,10 +140,10 @@ cardboardlinter --refspec master
 ```
 
 ## Collaborative Experimentation Guide
-If you like to use TTS to try a new idea and like to share your experiments with the community, we urge you to use the following guideline for a better collaboration. 
+If you like to use TTS to try a new idea and like to share your experiments with the community, we urge you to use the following guideline for a better collaboration.
 (If you have an idea for better collaboration, let us know)
 - Create a new branch.
-- Open an issue pointing your branch. 
+- Open an issue pointing your branch.
 - Explain your experiment.
 - Share your results as you proceed. (Tensorboard log files, audio results, visuals etc.)
 - Use LJSpeech dataset (for English) if you like to compare results with the released models. (It is the most open scalable dataset for quick experimentation)
