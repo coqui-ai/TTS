@@ -173,7 +173,10 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
 
         loss_dict = dict()
         for key, value in loss_G_dict.items():
-            loss_dict[key] = value.item()
+            if isinstance(value, int):
+                loss_dict[key] = value
+            else:
+                loss_dict[key] = value.item()
 
         ##############################
         # DISCRIMINATOR
