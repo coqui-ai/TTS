@@ -199,8 +199,8 @@ class GeneratorLoss(nn.Module):
 
         self.stft_loss_weight = C.stft_loss_weight
         self.subband_stft_loss_weight = C.subband_stft_loss_weight
-        self.mse_gan_loss_weight = C.mse_gan_loss_weight
-        self.hinge_gan_loss_weight = C.hinge_gan_loss_weight
+        self.mse_gan_loss_weight = C.mse_G_loss_weight
+        self.hinge_gan_loss_weight = C.hinge_G_loss_weight
         self.feat_match_loss_weight = C.feat_match_loss_weight
 
         if C.use_stft_loss:
