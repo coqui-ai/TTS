@@ -542,7 +542,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         except:
             print(" > Partial model initialization.")
             model_dict = model.state_dict()
-            model_dict = set_init_dict(model_dict, checkpoint, c)
+            model_dict = set_init_dict(model_dict, checkpoint['model'], c)
             model.load_state_dict(model_dict)
             del model_dict
         for group in optimizer.param_groups:
