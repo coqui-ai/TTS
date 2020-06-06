@@ -75,6 +75,7 @@ def split_dataset(items):
     is_multi_speaker = len(set(speakers)) > 1
     eval_split_size = 500 if len(items) * 0.01 > 500 else int(
         len(items) * 0.01)
+    assert len(eval_split_size) > 0, " [!] You do not have enough samples to train. You need at least 100 samples."
     np.random.seed(0)
     np.random.shuffle(items)
     if is_multi_speaker:
