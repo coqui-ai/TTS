@@ -421,7 +421,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             optimizer_gen.load_state_dict(checkpoint['optimizer'])
             model_disc.load_state_dict(checkpoint['model_disc'])
             optimizer_disc.load_state_dict(checkpoint['optimizer_disc'])
-        except KeyError:
+        except RuntimeError:
             print(" > Partial model initialization.")
             model_dict = model_gen.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)
