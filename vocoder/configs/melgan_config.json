@@ -56,8 +56,8 @@
 
     "stft_loss_weight": 0.5,
     "subband_stft_loss_weight": 0.5,
-    "mse_gan_loss_weight": 2.5,
-    "hinge_gan_loss_weight": 2.5,
+    "mse_G_loss_weight": 2.5,
+    "hinge_G_loss_weight": 2.5,
     "feat_match_loss_weight": 25,
 
     "stft_loss_params": {
