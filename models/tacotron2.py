@@ -130,7 +130,7 @@ class Tacotron2(TacotronAbstract):
             self.compute_speaker_embedding(speaker_ids)
         if self.num_speakers > 1:
             encoder_outputs = self._add_speaker_embedding(encoder_outputs,
-                                                    self.speaker_embeddings)
+                                                          self.speaker_embeddings)
         decoder_outputs, alignments, stop_tokens = self.decoder.inference(
             encoder_outputs)
         postnet_outputs = self.postnet(decoder_outputs)

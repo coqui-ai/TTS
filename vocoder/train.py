@@ -519,7 +519,7 @@ def main(args):  # pylint: disable=redefined-outer-name
                                model_disc, criterion_disc, optimizer_disc,
                                scheduler_gen, scheduler_disc, ap, global_step,
                                epoch)
-        eval_avg_loss_dict = evaluate(model_gen, criterion_gen, model_disc, ap,
+        eval_avg_loss_dict = evaluate(model_gen, criterion_gen, model_disc, criterion_disc, ap,
                                       global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = eval_avg_loss_dict[c.target_loss]
