@@ -350,7 +350,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
             loss_dict = criterion(postnet_output, decoder_output, mel_input,
                                   linear_input, stop_tokens, stop_targets,
                                   mel_lengths, decoder_backward_output,
-                                  alignments, alignment_lengths, alignments_backward, 
+                                  alignments, alignment_lengths, alignments_backward,
                                   text_lengths)
             if c.bidirectional_decoder:
                 keep_avg.update_values({'avg_decoder_b_loss': loss_dict['decoder_b_loss'].item(),
