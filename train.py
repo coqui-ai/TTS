@@ -291,7 +291,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
             "loss_postnet": keep_avg['avg_postnet_loss'],
             "loss_decoder": keep_avg['avg_decoder_loss'],
             "stopnet_loss": keep_avg['avg_stopnet_loss'],
-            "alignment_score": keep_avg['avg_align_error'],
+            "alignment_error": keep_avg['avg_align_error'],
             "epoch_time": epoch_time
         }
         if c.ga_alpha > 0:
@@ -413,7 +413,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
                 "loss_postnet": keep_avg['avg_postnet_loss'],
                 "loss_decoder": keep_avg['avg_decoder_loss'],
                 "stopnet_loss": keep_avg['avg_stopnet_loss'],
-                "alignment_score": keep_avg['avg_align_error'],
+                "alignment_error": keep_avg['avg_align_error'],
             }
 
             if c.bidirectional_decoder:
