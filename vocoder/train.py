@@ -215,7 +215,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
                 torch.nn.utils.clip_grad_norm_(model_D.parameters(),
                                                c.disc_clip_grad)
             optimizer_D.step()
-            if c.scheduler_D is not None:
+            if scheduler_D is not None:
                 scheduler_D.step()
 
             for key, value in loss_D_dict.items():
