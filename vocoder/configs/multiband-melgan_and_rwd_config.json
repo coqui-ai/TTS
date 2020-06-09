@@ -79,7 +79,7 @@
     //     "max_channels":1024,
     //     "downsample_factors":[4, 4, 4, 4]
     // },
-    "steps_to_start_discriminator": 100000,      // steps required to start GAN trainining.1
+    "steps_to_start_discriminator": 200000,      // steps required to start GAN trainining.1
 
     "discriminator_model": "random_window_discriminator",
     "discriminator_model_params":{
