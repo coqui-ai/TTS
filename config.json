@@ -1,7 +1,7 @@
 {
     "model": "Tacotron2",
-    "run_name": "ljspeech",
-    "run_description": "tacotron2",
+    "run_name": "ljspeech-ddc-bn",
+    "run_description": "tacotron2 with ddc and batch-normalization",
 
     // AUDIO PARAMETERS
     "audio":{
@@ -83,8 +83,8 @@
 
     // TACOTRON PRENET
     "memory_size": -1,             // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.
-    "prenet_type": "original",     // "original" or "bn".
-    "prenet_dropout": true,        // enable/disable dropout at prenet.
+    "prenet_type": "bn",     // "original" or "bn".
+    "prenet_dropout": false,        // enable/disable dropout at prenet.
 
     // ATTENTION
     "attention_type": "original",  // 'original' or 'graves'
@@ -124,7 +124,7 @@
 
     // PHONEMES
     "phoneme_cache_path": "/media/erogol/data_ssd2/mozilla_us_phonemes_3",  // phoneme computation is slow, therefore, it caches results in the given folder.
-    "use_phonemes": false,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
+    "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST
