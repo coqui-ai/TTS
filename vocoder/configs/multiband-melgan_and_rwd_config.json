@@ -1,6 +1,6 @@
 {
     "run_name": "multiband-melgan-rwd",
-    "run_description": "multibadn melgan with random window discriminator",
+    "run_description": "multiband melgan with random window discriminator from https://arxiv.org/pdf/1909.11646.pdf",
 
     // AUDIO PARAMETERS
     "audio":{
@@ -54,33 +54,30 @@
     "use_hinge_gan_loss": false,
     "use_feat_match_loss": false,  // use only with melgan discriminators
 
+    // loss weights
     "stft_loss_weight": 0.5,
     "subband_stft_loss_weight": 0.5,
     "mse_G_loss_weight": 2.5,
     "hinge_G_loss_weight": 2.5,
-    "feat_match_loss_weight": 25.0,
+    "feat_match_loss_weight": 25,
 
+    // multiscale stft loss parameters
     "stft_loss_params": {
         "n_ffts": [1024, 2048, 512],
         "hop_lengths": [120, 240, 50],
         "win_lengths": [600, 1200, 240]
     },
+
+    // subband multiscale stft loss parameters
     "subband_stft_loss_params":{
         "n_ffts": [384, 683, 171],
         "hop_lengths": [30, 60, 10],
         "win_lengths": [150, 300, 60]
     },
-    "target_loss": "avg_G_loss",
+
+    "target_loss": "avg_G_loss",  // loss value to pick the best model to save after each epoch
 
     // DISCRIMINATOR
-    // "discriminator_model": "melgan_multiscale_discriminator",
-    // "discriminator_model_params":{
-    //     "base_channels": 16,
-    //     "max_channels":1024,
-    //     "downsample_factors":[4, 4, 4, 4]
-    // },
-    "steps_to_start_discriminator": 200000,      // steps required to start GAN trainining.1
-
     "discriminator_model": "random_window_discriminator",
     "discriminator_model_params":{
         "uncond_disc_donwsample_factors": [8, 4],
@@ -88,6 +85,7 @@
         "cond_disc_out_channels": [[128, 128, 256, 256], [128, 256, 256], [128, 256], [256], [128, 256]],
         "window_sizes": [512, 1024, 2048, 4096, 8192]
     },
+    "steps_to_start_discriminator": 200000,      // steps required to start GAN trainining.1
 
     // GENERATOR
     "generator_model": "multiband_melgan_generator",
@@ -97,11 +95,11 @@
     },
 
     // DATASET
-    "data_path": "/root/LJSpeech-1.1/wavs/",
+    "data_path": "/home/erogol/Data/LJSpeech-1.1/wavs/",
     "seq_len": 16384,
     "pad_short": 2000,
     "conv_pad": 0,
-    "use_noise_augment": true,
+    "use_noise_augment": false,
     "use_cache": true,
 
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
@@ -118,17 +116,27 @@
     "noam_schedule": false,        // use noam warmup and lr schedule.
     "warmup_steps_gen": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
     "warmup_steps_disc": 4000,
-    "epochs": 100000,                // total number of epochs to train.
-    "wd": 0.000001,                // Weight decay weight.
-    "lr_gen": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
-    "lr_disc": 0.0001,
-    "gen_clip_grad": 10.0,
-    "disc_clip_grad": 10.0,
+    "epochs": 10000,                // total number of epochs to train.
+    "wd": 0.0,                // Weight decay weight.
+    "gen_clip_grad": -1,      // Generator gradient clipping threshold. Apply gradient clipping if > 0
+    "disc_clip_grad": -1,     // Discriminator gradient clipping threshold.
+    "lr_scheduler_gen": "MultiStepLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    "lr_scheduler_gen_params": {
+        "gamma": 0.5,
+        "milestones": [100000, 200000, 300000, 400000, 500000, 600000]
+    },
+    "lr_scheduler_disc": "MultiStepLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    "lr_scheduler_disc_params": {
+        "gamma": 0.5,
+        "milestones": [100000, 200000, 300000, 400000, 500000, 600000]
+    },
+    "lr_gen": 1e-4,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_disc": 1e-4,
 
     // TENSORBOARD and LOGGING
     "print_step": 25,       // Number of steps to log traning on console.
-    "print_eval": false,     // If True, it prints intermediate loss values in evalulation.
-    "save_step": 10000,      // Number of training steps expected to save traninpg stats and checkpoints.
+    "print_eval": false,     // If True, it prints loss values for each step in eval run.
+    "save_step": 25000,      // Number of training steps expected to plot training stats on TB and save model checkpoints.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
@@ -138,6 +146,6 @@
     "eval_split_size": 10,
 
     // PATHS
-    "output_path": "/data/rw/home/Trainings/"
+    "output_path": "/home/erogol/Models/LJSpeech/"
 }
 
