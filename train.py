@@ -198,7 +198,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         # detach loss values
         loss_dict_new = dict()
         for key, value in loss_dict.items():
-            if isinstance(value, int) or isinstance(value, float):
+            if isinstance(value, (int, float)):
                 loss_dict_new[key] = value
             else:
                 loss_dict_new[key] = value.item()
@@ -336,7 +336,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
              # detach loss values
             loss_dict_new = dict()
             for key, value in loss_dict.items():
-                if isinstance(value, int) or isinstance(value, float):
+                if isinstance(value, (int, float)):
                     loss_dict_new[key] = value
                 else:
                     loss_dict_new[key] = value.item()
