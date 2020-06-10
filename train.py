@@ -222,15 +222,14 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         if args.rank == 0:
             # Plot Training Iter Stats
             # reduce TB load
-            if global_step % 10 == 0:
+            if global_step % c.tb_plot_step == 0:
                 iter_stats = {
-                    "loss_posnet": loss_dict['postnet_loss'].item(),
-                    "loss_decoder": loss_dict['decoder_loss'].item(),
                     "lr": current_lr,
                     "grad_norm": grad_norm,
                     "grad_norm_st": grad_norm_st,
                     "step_time": step_time
                 }
+                iter_stats.update(loss_dict)
                 tb_logger.tb_train_iter_stats(global_step, iter_stats)
 
             if global_step % c.save_step == 0:
