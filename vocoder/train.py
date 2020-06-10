@@ -17,7 +17,7 @@ from TTS.utils.generic_utils import (KeepAverage, count_parameters,
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
-from TTS.utils.training import setup_torch_training_env, NoamLR
+from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data
 # from distribute import (DistributedSampler, apply_gradient_allreduce,
