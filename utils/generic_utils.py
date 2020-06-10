@@ -328,6 +328,7 @@ def check_config(c):
 
     # tensorboard
     _check_argument('print_step', c, restricted=True, val_type=int, min_val=1)
+    _check_argument('tb_plot_step', c, restricted=True, val_type=int, min_val=1)
     _check_argument('save_step', c, restricted=True, val_type=int, min_val=1)
     _check_argument('checkpoint', c, restricted=True, val_type=bool)
     _check_argument('tb_model_param_stats', c, restricted=True, val_type=bool)
