@@ -20,9 +20,6 @@
         "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
 
-        // Griffin-Lim
-        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
-        "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
 
         // MelSpectrogram parameters
         "num_mels": 80,         // size of the mel spec frame.
