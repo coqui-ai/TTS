@@ -84,7 +84,7 @@ class ConsoleLogger():
             color = ''
             sign = '+'
             diff = 0
-            if self.old_eval_loss_dict is not None:
+            if self.old_eval_loss_dict is not None and key in self.old_eval_loss_dict:
                 diff = value - self.old_eval_loss_dict[key]
                 if diff < 0:
                     color = tcolors.OKGREEN
