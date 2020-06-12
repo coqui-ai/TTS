@@ -19,7 +19,7 @@ from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.gan_dataset import GANDataset
-from TTS.vocoder.datasets.preprocess import load_wav_data
+from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 # from distribute import (DistributedSampler, apply_gradient_allreduce,
 #                         init_distributed, reduce_tensor)
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
@@ -543,8 +543,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         best_loss = save_best_model(target_loss,
                                     best_loss,
                                     model_gen,
-                                    scheduler_gen,
                                     optimizer_gen,
+                                    scheduler_gen,
                                     model_disc,
                                     optimizer_disc,
                                     scheduler_disc,
