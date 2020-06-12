@@ -120,8 +120,8 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
         # PQMF formatting
         if y_hat.shape[1] > 1:
             y_hat_sub = y_hat
-            y_hat_vis = y_hat
             y_hat = model_G.pqmf_synthesis(y_hat)
+            y_hat_vis = y_hat
             y_G_sub = model_G.pqmf_analysis(y_G)
 
         if global_step > c.steps_to_start_discriminator:
