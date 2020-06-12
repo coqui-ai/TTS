@@ -28,6 +28,7 @@ class GANDataset(Dataset):
 
         self.ap = ap
         self.item_list = items
+        self.compute_feat = not isinstance(items[0], (tuple, list))
         self.seq_len = seq_len
         self.hop_len = hop_len
         self.pad_short = pad_short
@@ -77,14 +78,26 @@ class GANDataset(Dataset):
 
     def load_item(self, idx):
         """ load (audio, feat) couple """
-        wavpath = self.item_list[idx]
-        # print(wavpath)
+        if self.compute_feat:
+            # compute features from wav
+            wavpath = self.item_list[idx]
+            # print(wavpath)
 
-        if self.use_cache and self.cache[idx] is not None:
-            audio, mel = self.cache[idx]
+            if self.use_cache and self.cache[idx] is not None:
+                audio, mel = self.cache[idx]
+            else:
+                audio = self.ap.load_wav(wavpath)
+                mel = self.ap.melspectrogram(audio)
         else:
-            audio = self.ap.load_wav(wavpath)
-            mel = self.ap.melspectrogram(audio)
+
+            # load precomputed features
+            wavpath, feat_path = self.item_list[idx]
+
+            if self.use_cache and self.cache[idx] is not None:
+                audio, mel = self.cache[idx]
+            else:
+                audio = self.ap.load_wav(wavpath)
+                mel = np.load(feat_path)
 
         if len(audio) < self.seq_len + self.pad_short:
             audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
