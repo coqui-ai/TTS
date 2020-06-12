@@ -57,8 +57,10 @@ class AudioProcessor(object):
         self.stats_path = stats_path
         # setup stft parameters
         if hop_length is None:
+            # compute stft parameters from given time values
             self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
         else:
+            # use stft parameters from config file
             self.hop_length = hop_length
             self.win_length = win_length
             self.n_fft = (self.num_freq - 1) * 2
