@@ -37,7 +37,7 @@ class Synthesizer(object):
         if self.config.wavernn_lib_path:
             self.load_wavernn(self.config.wavernn_lib_path, self.config.wavernn_file,
                               self.config.wavernn_config, self.config.use_cuda)
-        if self.config.pwgan_lib_path:
+        if self.config.pwgan_file:
             self.load_pwgan(self.config.pwgan_lib_path, self.config.pwgan_file,
                             self.config.pwgan_config, self.config.use_cuda)
 
@@ -113,9 +113,14 @@ class Synthesizer(object):
         self.wavernn.eval()
 
     def load_pwgan(self, lib_path, model_file, model_config, use_cuda):
-        sys.path.append(lib_path) # set this if ParallelWaveGAN is not installed globally
-        #pylint: disable=import-outside-toplevel
-        from parallel_wavegan.models import ParallelWaveGANGenerator
+        if lib_path:
+            # set this if ParallelWaveGAN is not installed globally
+            sys.path.append(lib_path)
+        try:
+            #pylint: disable=import-outside-toplevel
+            from parallel_wavegan.models import ParallelWaveGANGenerator
+        except ImportError as e:
+            raise RuntimeError(f"cannot import parallel-wavegan, either install it or set its directory using the --pwgan_lib_path command line argument: {e}")
         print(" > Loading PWGAN model ...")
         print(" | > model config: ", model_config)
         print(" | > model file: ", model_file)
