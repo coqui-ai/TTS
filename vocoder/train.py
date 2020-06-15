@@ -448,6 +448,9 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         eval_data, train_data = load_wav_data(c.data_path, c.eval_split_size)
 
+    # setup audio processor
+    ap = AudioProcessor(**c.audio)
+
     # DISTRUBUTED
     # if num_gpus > 1:
     # init_distributed(args.rank, num_gpus, args.group_id,
