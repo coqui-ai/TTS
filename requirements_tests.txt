@@ -1,4 +1,5 @@
 numpy>=1.16.0
+numba==0.48
 torch>=0.4.1
 tensorflow>=2.2
 librosa>=0.5.1
