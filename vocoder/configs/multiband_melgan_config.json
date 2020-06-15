@@ -92,6 +92,7 @@
 
     // DATASET
     "data_path": "/home/erogol/Data/LJSpeech-1.1/wavs/",
+    "feature_path": null,
     "seq_len": 16384,
     "pad_short": 2000,
     "conv_pad": 0,
