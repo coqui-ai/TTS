@@ -286,14 +286,20 @@ class DiscriminatorLoss(nn.Module):
         return_dict = {}
 
         if self.use_mse_gan_loss:
-            mse_D_loss, mse_D_real_loss, mse_D_fake_loss = _apply_D_loss(scores_fake=scores_fake, scores_real=scores_real, self.mse_loss)
+            mse_D_loss, mse_D_real_loss, mse_D_fake_loss = _apply_D_loss(
+                scores_fake=scores_fake,
+                scores_real=scores_real,
+                loss_func=self.mse_loss)
             return_dict['D_mse_gan_loss'] = mse_D_loss
             return_dict['D_mse_gan_real_loss'] = mse_D_real_loss
             return_dict['D_mse_gan_fake_loss'] = mse_D_fake_loss
             loss += mse_D_loss
 
         if self.use_hinge_gan_loss:
-            hinge_D_loss, hinge_D_real_loss, hinge_D_fake_loss = _apply_D_loss(scores_fake=scores_fake, scores_real=scores_real, self.hinge_loss)
+            hinge_D_loss, hinge_D_real_loss, hinge_D_fake_loss = _apply_D_loss(
+                scores_fake=scores_fake,
+                scores_real=scores_real,
+                loss_func=self.hinge_loss)
             return_dict['D_hinge_gan_loss'] = hinge_D_loss
             return_dict['D_hinge_gan_real_loss'] = hinge_D_real_loss
             return_dict['D_hinge_gan_fake_loss'] = hinge_D_fake_loss
