@@ -29,9 +29,9 @@ def plot_results(y_hat, y, ap, global_step, name_prefix):
     plt.close()
 
     figures = {
-        name_prefix + "/spectrogram/fake": plot_spectrogram(spec_fake, ap),
-        name_prefix + "spectrogram/real": plot_spectrogram(spec_real, ap),
-        name_prefix + "spectrogram/diff": plot_spectrogram(spec_diff, ap),
+        name_prefix + "spectrogram/fake": plot_spectrogram(spec_fake),
+        name_prefix + "spectrogram/real": plot_spectrogram(spec_real),
+        name_prefix + "spectrogram/diff": plot_spectrogram(spec_diff),
         name_prefix + "speech_comparison": fig_wave,
     }
     return figures
