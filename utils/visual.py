@@ -29,11 +29,11 @@ def plot_alignment(alignment, info=None, fig_size=(16, 10), title=None):
 
 def plot_spectrogram(spectrogram, ap=None, fig_size=(16, 10)):
     if isinstance(spectrogram, torch.Tensor):
-        spectrogram_ = spectrogram.detach().cpu().numpy().squeeze()
+        spectrogram_ = spectrogram.detach().cpu().numpy().squeeze().T
     else:
-        spectrogram_ = spectrogram
+        spectrogram_ = spectrogram.T
     if ap is not None:
-        spectrogram_ = ap._denormalize(spectrogram_.T)  # pylint: disable=protected-access
+        spectrogram_ = ap._denormalize(spectrogram_)  # pylint: disable=protected-access
     fig = plt.figure(figsize=fig_size)
     plt.imshow(spectrogram_, aspect="auto", origin="lower")
     plt.colorbar()
