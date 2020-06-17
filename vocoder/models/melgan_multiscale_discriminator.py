@@ -11,7 +11,7 @@ class MelganMultiscaleDiscriminator(nn.Module):
                  kernel_sizes=(5, 3),
                  base_channels=16,
                  max_channels=1024,
-                 downsample_factors=(4, 4, 4, 4),
+                 downsample_factors=(4, 4, 4),
                  pooling_kernel_size=4,
                  pooling_stride=2,
                  pooling_padding=1):
