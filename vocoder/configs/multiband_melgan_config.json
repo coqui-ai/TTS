@@ -78,8 +78,8 @@
     "discriminator_model": "melgan_multiscale_discriminator",
     "discriminator_model_params":{
         "base_channels": 16,
-        "max_channels":1024,
-        "downsample_factors":[4, 4, 4, 4]
+        "max_channels":512,
+        "downsample_factors":[4, 4, 4]
     },
     "steps_to_start_discriminator": 200000,      // steps required to start GAN trainining.1
 
@@ -110,9 +110,6 @@
     "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
 
     // OPTIMIZER
-    "noam_schedule": false,        // use noam warmup and lr schedule.
-    "warmup_steps_gen": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
-    "warmup_steps_disc": 4000,         // Noam decay steps to increase the learning rate from 0 to "lr"
     "epochs": 10000,                // total number of epochs to train.
     "wd": 0.0,                // Weight decay weight.
     "gen_clip_grad": -1,      // Generator gradient clipping threshold. Apply gradient clipping if > 0
