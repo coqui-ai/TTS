@@ -33,3 +33,6 @@ You can fine-tune a pre-trained model by the following command.
 Restoring a model starts a new training in a different output folder. It only restores model weights with the given checkpoint file. However, continuing a training starts from the same conditions the previous training run left off.
 
 You can also follow your training runs on Tensorboard as you do with our TTS models.
+
+## Acknowledgement
+Thanks to @kan-bayashi for his [repository](https://github.com/kan-bayashi/ParallelWaveGAN) being the start point of our work.
