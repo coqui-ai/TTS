@@ -87,7 +87,7 @@ Audio length is approximately 6 secs.
 
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloder easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.
+TTS provides a generic dataloader easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.
 
 Some of the open-sourced datasets that we successfully applied TTS, are linked below.
 
