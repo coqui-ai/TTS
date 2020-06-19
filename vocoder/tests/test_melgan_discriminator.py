@@ -20,7 +20,7 @@ def test_melgan_multi_scale_discriminator():
     scores, feats = model(dummy_input)
     assert len(scores) == 3
     assert len(scores) == len(feats)
-    assert np.all(scores[0].shape == (4, 1, 16))
+    assert np.all(scores[0].shape == (4, 1, 64))
     assert np.all(feats[0][0].shape == (4, 16, 4096))
     assert np.all(feats[0][1].shape == (4, 64, 1024))
     assert np.all(feats[0][2].shape == (4, 256, 256))

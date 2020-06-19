@@ -28,18 +28,24 @@ class ResidualStack(tf.keras.layers.Layer):
                 tf.keras.layers.LeakyReLU(0.2),
                 ReflectionPad1d(layer_padding),
                 tf.keras.layers.Conv2D(filters=channels,
-                            kernel_size=(kernel_size, 1),
-                            dilation_rate=(layer_dilation, 1),
-                            use_bias=True,
-                            padding='valid',
-                            name=f'blocks.{idx}.{num_layers}'),
+                                       kernel_size=(kernel_size, 1),
+                                       dilation_rate=(layer_dilation, 1),
+                                       use_bias=True,
+                                       padding='valid',
+                                       name=f'blocks.{idx}.{num_layers}'),
                 tf.keras.layers.LeakyReLU(0.2),
-                tf.keras.layers.Conv2D(filters=channels, kernel_size=(1, 1), use_bias=True, name=f'blocks.{idx}.{num_layers + 2}')
+                tf.keras.layers.Conv2D(filters=channels,
+                                       kernel_size=(1, 1),
+                                       use_bias=True,
+                                       name=f'blocks.{idx}.{num_layers + 2}')
             ]
             self.blocks.append(block)
         self.shortcuts = [
-            tf.keras.layers.Conv2D(channels, kernel_size=1, use_bias=True, name=f'shortcuts.{i}')
-                                 for i in range(num_res_blocks)
+            tf.keras.layers.Conv2D(channels,
+                                   kernel_size=1,
+                                   use_bias=True,
+                                   name=f'shortcuts.{i}')
+            for i in range(num_res_blocks)
         ]
 
     def call(self, x):
@@ -47,6 +53,6 @@ class ResidualStack(tf.keras.layers.Layer):
         for block, shortcut in zip(self.blocks, self.shortcuts):
             res = shortcut(x)
             for layer in block:
-                 x = layer(x)
+                x = layer(x)
             x += res
         return x

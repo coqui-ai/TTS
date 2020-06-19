@@ -4,7 +4,7 @@ from TTS.vocoder.tf.models.melgan_generator import MelganGenerator
 from TTS.vocoder.tf.layers.pqmf import PQMF
 
 
-class MultibandMelganGenerator(MelganGenerator):
+class MultibandMelganGenerator(MelganGenerator):  # pylint: disable=too-many-ancestors
     def __init__(self,
                  in_channels=80,
                  out_channels=4,

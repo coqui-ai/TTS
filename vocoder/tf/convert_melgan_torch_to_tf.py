@@ -1,7 +1,5 @@
 import argparse
 import os
-import sys
-from pprint import pprint
 
 import numpy as np
 import tensorflow as tf
@@ -9,8 +7,6 @@ import torch
 from fuzzywuzzy import fuzz
 
 from TTS.utils.io import load_config
-from TTS.vocoder.tf.models.multiband_melgan_generator import \
-    MultibandMelganGenerator
 from TTS.vocoder.tf.utils.convert_torch_to_tf_utils import (
     compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf)
 from TTS.vocoder.tf.utils.generic_utils import \
@@ -55,7 +51,7 @@ model_tf = setup_tf_generator(c)
 common_sufix = '/.ATTRIBUTES/VARIABLE_VALUE'
 # get tf_model graph by passing an input
 # B x D x T
-dummy_input = tf.random.uniform((7, 80, 64))
+dummy_input = tf.random.uniform((7, 80, 64), dtype=tf.float32)
 mel_pred = model_tf(dummy_input, training=False)
 
 # get tf variables
@@ -64,6 +60,7 @@ tf_vars = model_tf.weights
 # match variable names with fuzzy logic
 torch_var_names = list(state_dict.keys())
 tf_var_names = [we.name for we in model_tf.weights]
+var_map = []
 for tf_name in tf_var_names:
     # skip re-mapped layer names
     if tf_name in [name[0] for name in var_map]:

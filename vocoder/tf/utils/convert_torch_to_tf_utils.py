@@ -30,10 +30,7 @@ def transfer_weights_torch_to_tf(tf_vars, var_map_dict, state_dict):
         # if tuple, it is a bias variable
         if 'kernel' in tf_var.name:
             torch_weight = state_dict[torch_var_name]
-            try:
-                numpy_weight = torch_weight.permute([2, 1, 0]).numpy()[:, None, :, :]
-            except:
-                breakpoint()
+            numpy_weight = torch_weight.permute([2, 1, 0]).numpy()[:, None, :, :]
         if 'bias' in tf_var.name:
             torch_weight = state_dict[torch_var_name]
             numpy_weight = torch_weight

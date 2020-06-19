@@ -40,7 +40,7 @@ class PQMF(tf.keras.layers.Layer):
         x : B x 1 x T
         """
         x = tf.transpose(x, perm=[0, 2, 1])
-        x = tf.pad(x, [[0, 0], [self.taps // 2, self.taps // 2], [0, 0]])
+        x = tf.pad(x, [[0, 0], [self.taps // 2, self.taps // 2], [0, 0]], constant_values=0.0)
         x = tf.nn.conv1d(x, self.H, stride=1, padding='VALID')
         x = tf.nn.conv1d(x,
                          self.updown_filter,
@@ -60,7 +60,7 @@ class PQMF(tf.keras.layers.Layer):
             strides=self.N,
             output_shape=(tf.shape(x)[0], tf.shape(x)[1] * self.N,
                           self.N))
-        x = tf.pad(x, [[0, 0], [self.taps // 2, self.taps // 2], [0, 0]])
+        x = tf.pad(x, [[0, 0], [self.taps // 2, self.taps // 2], [0, 0]], constant_values=0.0)
         x = tf.nn.conv1d(x, self.G, stride=1, padding="VALID")
         x = tf.transpose(x, perm=[0, 2, 1])
         return x
