@@ -22,11 +22,11 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
     - Speaker Encoder to compute speaker embeddings efficiently.
     - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS)
 - Support for multi-speaker TTS training.
+- Support for Multi-GPUs training.
 - Ability to convert Torch models to Tensorflow 2.0 for inference.
-- Released trained models.
-- Efficient training codes for PyTorch. (soon for Tensorflow 2.0)
-- Codes to convert Torch models to Tensorflow 2.0.
-- Detailed training anlaysis on console and Tensorboard.
+- Released pre-trained models.
+- Fast and efficient model training.
+- Detailed training logs on console and Tensorboard.
 - Tools to curate Text2Speech datasets under```dataset_analysis```.
 - Demo server for model testing.
 - Notebooks for extensive model benchmarking.
