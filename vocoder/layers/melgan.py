@@ -21,7 +21,7 @@ class ResidualStack(nn.Module):
                     nn.Conv1d(channels,
                               channels,
                               kernel_size=kernel_size,
-                              dilation=layer_padding,
+                              dilation=layer_dilation,
                               bias=True)),
                 nn.LeakyReLU(0.2),
                 weight_norm(
