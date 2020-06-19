@@ -77,16 +77,16 @@ class MelganGenerator(nn.Module):
         ]
         self.layers = nn.Sequential(*layers)
 
-    def forward(self, cond_features):
-        return self.layers(cond_features)
+    def forward(self, c):
+        return self.layers(c)
 
-    def inference(self, cond_features):
-        cond_features = cond_features.to(self.layers[1].weight.device)
-        cond_features = torch.nn.functional.pad(
-            cond_features,
+    def inference(self, c):
+        c = c.to(self.layers[1].weight.device)
+        c = torch.nn.functional.pad(
+            c,
             (self.inference_padding, self.inference_padding),
             'replicate')
-        return self.layers(cond_features)
+        return self.layers(c)
 
     def remove_weight_norm(self):
         for _, layer in enumerate(self.layers):
