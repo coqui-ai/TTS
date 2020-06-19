@@ -50,6 +50,22 @@ Or you can use ```requirements.txt``` to install the requirements only.
 
 ```pip install -r requirements.txt```
 
+### Directory Structure
+```
+|- TTS/
+|   |- train.py         (train your TTS model.)
+|   |- distribute.py    (train your TTS model using Multiple GPUs)
+|   |- config.json      (TTS model configuration file)
+|   |- tf               (Tensorflow 2 utilities and model implementations)
+|   |- layers/          (model layer definitions)
+|   |- models/          (model definitions)
+|   |- notebooks/       (Jupyter Notebooks for model evaluation and parameter selection)
+|   |- data_analysis/   (TTS Dataset analysis tools and notebooks.)
+|   |- utils/           (TTS utilities -io, visualization, data processing etc.-)
+|   |- speaker_encoder/ (Speaker Encoder implementation with the same folder structure.)
+|   |- vocoder/         (Vocoder implementations with the same folder structure.)
+```
+
 ### Docker
 A barebone `Dockerfile` exists at the root of the project, which should let you quickly setup the environment. By default, it will start the server and let you query it. Make sure to use `nvidia-docker` to use your GPUs. Make sure you follow the instructions in the [`server README`](server/README.md) before you build your image so that the server can find the model within the image.
 
