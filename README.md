@@ -20,10 +20,10 @@ Text-to-Spectrogram:
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
 
 Attention Methods:
-- Guided Attention [paper](https://arxiv.org/abs/1710.08969)
-- Forward Backward Decoding [paper](https://arxiv.org/abs/1907.09006)
-- Graves Attention [paper](https://arxiv.org/abs/1907.09006)
-- Double Decoder Consistency [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
+- Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
+- Forward Backward Decoding: [paper](https://arxiv.org/abs/1907.09006)
+- Graves Attention: [paper](https://arxiv.org/abs/1907.09006)
+- Double Decoder Consistency: [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
 
 Speaker Encoder:
 - GE2E: [paper](https://arxiv.org/abs/1710.10467)
