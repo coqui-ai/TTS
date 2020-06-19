@@ -3,9 +3,7 @@
 
 <img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
 
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality. To begin with, you can hear a sample generated voice from [here](https://soundcloud.com/user-565970875/commonvoice-loc-sens-attn).
-
-TTS includes two different model implementations which are based on [Tacotron](https://arxiv.org/abs/1703.10135) and [Tacotron2](https://arxiv.org/abs/1712.05884). Tacotron is smaller, efficient and easier to train but Tacotron2 provides better results, especially when it is combined with a Neural vocoder. Therefore, choose depending on your project requirements.
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality. To begin with, you can hear a sample synthesized voice from [here](https://soundcloud.com/user-565970875/commonvoice-loc-sens-attn).
 
 If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief post about TTS architectures and their comparisons.
 
@@ -15,6 +13,27 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
 <p align="center"><img src="https://camo.githubusercontent.com/9fa79f977015e55eb9ec7aa32045555f60d093d3/68747470733a2f2f646973636f757273652d706161732d70726f64756374696f6e2d636f6e74656e742e73332e6475616c737461636b2e75732d656173742d312e616d617a6f6e6177732e636f6d2f6f7074696d697a65642f33582f362f342f363432386639383065396563373531633234386535393134363038393566373838316165633063365f325f363930783339342e706e67"/></p>
 
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
+
+## Provided Models and Methods
+Text-to-Spectrogram:
+- Tacotron: [paper](https://arxiv.org/abs/1703.10135)
+- Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
+
+Attention Methods:
+- Guided Attention [paper](https://arxiv.org/abs/1710.08969)
+- Forward Backward Decoding [paper](https://arxiv.org/abs/1907.09006)
+- Graves Attention [paper](https://arxiv.org/abs/1907.09006)
+- Double Decoder Consistency [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
+
+Speaker Encoder:
+- GE2E: [paper](https://arxiv.org/abs/1710.10467)
+
+Vocoders:
+- MelGAN: [paper](https://arxiv.org/abs/1710.10467)
+- MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
+- GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
+
+You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
 ## Features
 - High performance Deep Learning models for Text2Speech related tasks.
@@ -56,7 +75,7 @@ Or you can use ```requirements.txt``` to install the requirements only.
 |   |- train.py         (train your TTS model.)
 |   |- distribute.py    (train your TTS model using Multiple GPUs)
 |   |- config.json      (TTS model configuration file)
-|   |- tf               (Tensorflow 2 utilities and model implementations)
+|   |- tf/              (Tensorflow 2 utilities and model implementations)
 |   |- layers/          (model layer definitions)
 |   |- models/          (model definitions)
 |   |- notebooks/       (Jupyter Notebooks for model evaluation and parameter selection)
