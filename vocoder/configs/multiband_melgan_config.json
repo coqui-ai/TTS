@@ -1,11 +1,10 @@
 {
     "run_name": "multiband-melgan",
-    "run_description": "multiband melgan",
+    "run_description": "multiband melgan mean-var scaling",
 
     // AUDIO PARAMETERS
     "audio":{
-        // stft parameters
-        "num_freq": 513,         // number of stft frequency levels. Size of the linear spectogram frame.
+        "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
         "win_length": 1024,      // stft window length in ms.
         "hop_length": 256,       // stft window hop-lengh in ms.
         "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
@@ -14,17 +13,17 @@
         // Audio processing parameters
         "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
         "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
-        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "ref_level_db": 0,     // reference level db, theoretically 20db is the sound of air.
 
         // Silence trimming
         "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
 
-
         // MelSpectrogram parameters
         "num_mels": 80,         // size of the mel spec frame.
-        "mel_fmin": 0.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
-        "mel_fmax": 8000.0,     // maximum freq level for mel-spec. Tune for dataset!!
+        "mel_fmin": 50.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 7600.0,     // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 1.0,         // scaler value appplied after log transform of spectrogram.
 
         // Normalization parameters
         "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
@@ -32,7 +31,7 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": "/home/erogol/Data/LJSpeech-1.1/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
 
     // DISTRIBUTED TRAINING
