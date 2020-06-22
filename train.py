@@ -473,8 +473,6 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     model = setup_model(num_chars, num_speakers, c)
 
-    print(" | > Num output units : {}".format(ap.num_freq), flush=True)
-
     params = set_weight_decay(model, c.wd)
     optimizer = RAdam(params, lr=c.lr, weight_decay=0)
     if c.stopnet and c.separate_stopnet:
@@ -542,7 +540,6 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
             print("\n > Number of output frames:", model.decoder.r)
-
         train_avg_loss_dict, global_step = train(model, criterion, optimizer,
                                                  optimizer_st, scheduler, ap,
                                                  global_step, epoch)

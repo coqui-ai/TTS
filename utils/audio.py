@@ -17,7 +17,7 @@ class AudioProcessor(object):
                  hop_length=None,
                  win_length=None,
                  ref_level_db=None,
-                 num_freq=None,
+                 fft_size=1024,
                  power=None,
                  preemphasis=0.0,
                  signal_norm=None,
@@ -25,6 +25,8 @@ class AudioProcessor(object):
                  max_norm=None,
                  mel_fmin=None,
                  mel_fmax=None,
+                 spec_gain=20,
+                 stft_pad_mode='reflect',
                  clip_norm=True,
                  griffin_lim_iters=None,
                  do_trim_silence=False,
@@ -41,7 +43,7 @@ class AudioProcessor(object):
         self.frame_shift_ms = frame_shift_ms
         self.frame_length_ms = frame_length_ms
         self.ref_level_db = ref_level_db
-        self.num_freq = num_freq
+        self.fft_size = fft_size
         self.power = power
         self.preemphasis = preemphasis
         self.griffin_lim_iters = griffin_lim_iters
@@ -49,6 +51,8 @@ class AudioProcessor(object):
         self.symmetric_norm = symmetric_norm
         self.mel_fmin = mel_fmin or 0
         self.mel_fmax = mel_fmax
+        self.spec_gain = float(spec_gain)
+        self.stft_pad_mode = 'reflect'
         self.max_norm = 1.0 if max_norm is None else float(max_norm)
         self.clip_norm = clip_norm
         self.do_trim_silence = do_trim_silence
@@ -58,12 +62,11 @@ class AudioProcessor(object):
         # setup stft parameters
         if hop_length is None:
             # compute stft parameters from given time values
-            self.n_fft, self.hop_length, self.win_length = self._stft_parameters()
+            self.hop_length, self.win_length = self._stft_parameters()
         else:
             # use stft parameters from config file
             self.hop_length = hop_length
             self.win_length = win_length
-            self.n_fft = (self.num_freq - 1) * 2
         assert min_level_db != 0.0, " [!] min_level_db is 0"
         members = vars(self)
         for key, value in members.items():
@@ -86,19 +89,18 @@ class AudioProcessor(object):
             assert self.mel_fmax <= self.sample_rate // 2
         return librosa.filters.mel(
             self.sample_rate,
-            self.n_fft,
+            self.fft_size,
             n_mels=self.num_mels,
             fmin=self.mel_fmin,
             fmax=self.mel_fmax)
 
     def _stft_parameters(self, ):
         """Compute necessary stft parameters with given time values"""
-        n_fft = (self.num_freq - 1) * 2
         factor = self.frame_length_ms / self.frame_shift_ms
         assert (factor).is_integer(), " [!] frame_shift_ms should divide frame_length_ms"
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
         win_length = int(hop_length * factor)
-        return n_fft, hop_length, win_length
+        return hop_length, win_length
 
     ### normalization ###
     def _normalize(self, S):
@@ -110,7 +112,7 @@ class AudioProcessor(object):
             if hasattr(self, 'mel_scaler'):
                 if S.shape[0] == self.num_mels:
                     return self.mel_scaler.transform(S.T).T
-                elif S.shape[0] == self.n_fft / 2:
+                elif S.shape[0] == self.fft_size / 2:
                     return self.linear_scaler.transform(S.T).T
                 else:
                     raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
@@ -139,7 +141,7 @@ class AudioProcessor(object):
             if hasattr(self, 'mel_scaler'):
                 if S_denorm.shape[0] == self.num_mels:
                     return self.mel_scaler.inverse_transform(S_denorm.T).T
-                elif S_denorm.shape[0] == self.n_fft / 2:
+                elif S_denorm.shape[0] == self.fft_size / 2:
                     return self.linear_scaler.inverse_transform(S_denorm.T).T
                 else:
                     raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
@@ -184,11 +186,11 @@ class AudioProcessor(object):
     ### DB and AMP conversion ###
     # pylint: disable=no-self-use
     def _amp_to_db(self, x):
-        return 20 * np.log10(np.maximum(1e-5, x))
+        return self.spec_gain * np.log10(np.maximum(1e-5, x))
 
     # pylint: disable=no-self-use
     def _db_to_amp(self, x):
-        return np.power(10.0, x * 0.05)
+        return np.power(10.0, x / self.spec_gain)
 
     ### Preemphasis ###
     def apply_preemphasis(self, x):
@@ -254,10 +256,10 @@ class AudioProcessor(object):
     def _stft(self, y):
         return librosa.stft(
             y=y,
-            n_fft=self.n_fft,
+            n_fft=self.fft_size,
             hop_length=self.hop_length,
             win_length=self.win_length,
-            pad_mode='constant'
+            pad_mode=self.stft_pad_mode,
         )
 
     def _istft(self, y):
