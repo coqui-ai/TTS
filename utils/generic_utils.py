@@ -146,7 +146,7 @@ def setup_model(num_chars, num_speakers, c):
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
                         r=c.r,
-                        postnet_output_dim=c.audio['num_freq'],
+                        postnet_output_dim=int(c.audio['fft_size'] / 2 + 1),
                         decoder_output_dim=c.audio['num_mels'],
                         gst=c.use_gst,
                         memory_size=c.memory_size,
@@ -252,7 +252,7 @@ def check_config(c):
 
     # audio processing parameters
     _check_argument('num_mels', c['audio'], restricted=True, val_type=int, min_val=10, max_val=2056)
-    _check_argument('num_freq', c['audio'], restricted=True, val_type=int, min_val=128, max_val=4058)
+    _check_argument('fft_size', c['audio'], restricted=True, val_type=int, min_val=128, max_val=4058)
     _check_argument('sample_rate', c['audio'], restricted=True, val_type=int, min_val=512, max_val=100000)
     _check_argument('frame_length_ms', c['audio'], restricted=True, val_type=float, min_val=10, max_val=1000, alternative='win_length')
     _check_argument('frame_shift_ms', c['audio'], restricted=True, val_type=float, min_val=1, max_val=1000, alternative='hop_length')
@@ -278,6 +278,7 @@ def check_config(c):
     _check_argument('clip_norm', c['audio'], restricted=True, val_type=bool)
     _check_argument('mel_fmin', c['audio'], restricted=True, val_type=float, min_val=0.0, max_val=1000)
     _check_argument('mel_fmax', c['audio'], restricted=True, val_type=float, min_val=500.0)
+    _check_argument('spec_gain', c['audio'], restricted=True, val_type=float, min_val=1, max_val=100)
     _check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
     _check_argument('trim_db', c['audio'], restricted=True, val_type=int)
 
