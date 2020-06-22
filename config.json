@@ -6,7 +6,7 @@
     // AUDIO PARAMETERS
     "audio":{
         // stft parameters
-        "num_freq": 513,         // number of stft frequency levels. Size of the linear spectogram frame.
+        "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
         "win_length": 1024,      // stft window length in ms.
         "hop_length": 256,       // stft window hop-lengh in ms.
         "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
