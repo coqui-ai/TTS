@@ -20,7 +20,7 @@ class TorchSTFT():
                        self.win_length,
                        self.window,
                        center=True,
-                       pad_mode="constant",  # compatible with audio.py
+                       pad_mode="reflect",  # compatible with audio.py
                        normalized=False,
                        onesided=True)
         M = o[:, :, :, 0]
