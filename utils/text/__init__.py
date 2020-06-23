@@ -77,7 +77,6 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
         _phonemes_to_id = {s: i for i, s in enumerate(_phonemes)}
 
     sequence = []
-    text = text.replace(":", "")
     clean_text = _clean_text(text, cleaner_names)
     to_phonemes = text2phone(clean_text, language)
     if to_phonemes is None:
