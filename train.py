@@ -333,7 +333,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
                 if c.stopnet:
                     loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data, num_gpus)
 
-             # detach loss values
+            # detach loss values
             loss_dict_new = dict()
             for key, value in loss_dict.items():
                 if isinstance(value, (int, float)):
@@ -388,7 +388,8 @@ def evaluate(model, criterion, ap, global_step, epoch):
                 "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
                 "Be a voice, not an echo.",
                 "I'm sorry Dave. I'm afraid I can't do that.",
-                "This cake is great. It's so delicious and moist."
+                "This cake is great. It's so delicious and moist.",
+                "Prior to November 22, 1963."
             ]
         else:
             with open(c.test_sentences_file, "r") as f:
