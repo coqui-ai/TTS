@@ -117,7 +117,7 @@ def format_data(data):
 
 
 def train(model, criterion, optimizer, optimizer_st, scheduler,
-          ap, global_step, epoch):
+          ap, global_step, epoch, amp):
     data_loader = setup_loader(ap, model.decoder.r, is_val=False,
                                verbose=(epoch == 0))
     model.train()
@@ -172,7 +172,11 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         # backward pass
         loss_dict['loss'].backward()
         optimizer, current_lr = adam_weight_decay(optimizer)
-        grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True)
+        if amp:
+            amp_opt_params = amp.master_params(optimizer)
+        else:
+            amp_opt_params = None
+        grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True, amp_opt_params=amp_opt_params)
         optimizer.step()
 
         # compute alignment error (the lower the better )
@@ -183,7 +187,11 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         if c.separate_stopnet:
             loss_dict['stopnet_loss'].backward()
             optimizer_st, _ = adam_weight_decay(optimizer_st)
-            grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0)
+            if amp:
+                amp_opt_params = amp.master_params(optimizer)
+            else:
+                amp_opt_params = None
+            grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0, amp_opt_params=amp_opt_params)
             optimizer_st.step()
         else:
             grad_norm_st = 0
@@ -245,7 +253,8 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
                     # save model
                     save_checkpoint(model, optimizer, global_step, epoch, model.decoder.r, OUT_PATH,
                                     optimizer_st=optimizer_st,
-                                    model_loss=loss_dict['postnet_loss'])
+                                    model_loss=loss_dict['postnet_loss'],
+                                    amp_state_dict=amp.state_dict() if amp else None)
 
                 # Diagnostic visualizations
                 const_spec = postnet_output[0].data.cpu().numpy()
@@ -497,6 +506,14 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         optimizer_st = None
 
+    if c.apex_amp_level:
+        # pylint: disable=import-outside-toplevel
+        from apex import amp
+        model.cuda()
+        model, optimizer = amp.initialize(model, optimizer, opt_level=c.apex_amp_level)
+    else:
+        amp = None
+
     # setup criterion
     criterion = TacotronLoss(c, stopnet_pos_weight=10.0, ga_sigma=0.4)
 
@@ -515,6 +532,10 @@ def main(args):  # pylint: disable=redefined-outer-name
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)
             model.load_state_dict(model_dict)
             del model_dict
+
+        if amp and 'amp' in checkpoint:
+            amp.load_state_dict(checkpoint['amp'])
+
         for group in optimizer.param_groups:
             group['lr'] = c.lr
         print(" > Model restored from step %d" % checkpoint['step'],
@@ -564,7 +585,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_postnet_loss']
         best_loss = save_best_model(target_loss, best_loss, model, optimizer, global_step, epoch, c.r,
-                                    OUT_PATH)
+                                    OUT_PATH, amp_state_dict=amp.state_dict() if amp else None)
 
 
 if __name__ == '__main__':
@@ -615,6 +636,9 @@ if __name__ == '__main__':
     c = load_config(args.config_path)
     check_config(c)
     _ = os.path.dirname(os.path.realpath(__file__))
+
+    if c.apex_amp_level:
+        print("   >  apex AMP level: ", c.apex_amp_level)
 
     OUT_PATH = args.continue_path
     if args.continue_path == '':
