@@ -6,6 +6,8 @@ import datetime
 def load_checkpoint(model, checkpoint_path, use_cuda=False):
     state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
     model.load_state_dict(state['model'])
+    if amp and 'amp' in state:
+        amp.load_state_dict(state['amp'])
     if use_cuda:
         model.cuda()
     # set model stepsize
@@ -14,7 +16,7 @@ def load_checkpoint(model, checkpoint_path, use_cuda=False):
     return model, state
 
 
-def save_model(model, optimizer, current_step, epoch, r, output_path, **kwargs):
+def save_model(model, optimizer, current_step, epoch, r, output_path, amp_state_dict=None, **kwargs):
     new_state_dict = model.state_dict()
     state = {
         'model': new_state_dict,
@@ -24,6 +26,8 @@ def save_model(model, optimizer, current_step, epoch, r, output_path, **kwargs):
         'date': datetime.date.today().strftime("%B %d, %Y"),
         'r': r
     }
+    if amp_state_dict:
+        state['amp'] = amp_state_dict
     state.update(kwargs)
     torch.save(state, output_path)
 
