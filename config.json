@@ -1,24 +1,24 @@
 {
     "model": "Tacotron2",
-    "run_name": "ljspeech",
-    "run_description": "tacotron2",
+    "run_name": "ljspeech-ddc-bn",
+    "run_description": "tacotron2 with ddc and batch-normalization",
 
     // AUDIO PARAMETERS
     "audio":{
         // stft parameters
-        "num_freq": 513,         // number of stft frequency levels. Size of the linear spectogram frame.
+        "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
         "win_length": 1024,      // stft window length in ms.
         "hop_length": 256,       // stft window hop-lengh in ms.
         "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
         "frame_shift_ms": null,  // stft window hop-lengh in ms. If null, 'hop_length' is used.
 
         // Audio processing parameters
-        "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate.
         "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
         "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
 
         // Silence trimming
-        "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (true), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
 
         // Griffin-Lim
@@ -83,27 +83,30 @@
 
     // TACOTRON PRENET
     "memory_size": -1,             // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.
-    "prenet_type": "original",     // "original" or "bn".
-    "prenet_dropout": true,        // enable/disable dropout at prenet.
+    "prenet_type": "bn",     // "original" or "bn".
+    "prenet_dropout": false,        // enable/disable dropout at prenet.
 
     // ATTENTION
     "attention_type": "original",  // 'original' or 'graves'
     "attention_heads": 4,          // number of attention heads (only for 'graves')
-    "attention_norm": "sigmoid",   // softmax or sigmoid. Suggested to use softmax for Tacotron2 and sigmoid for Tacotron.
+    "attention_norm": "sigmoid",   // softmax or sigmoid.
     "windowing": false,            // Enables attention windowing. Used only in eval mode.
     "use_forward_attn": false,     // if it uses forward attention. In general, it aligns faster.
     "forward_attn_mask": false,    // Additional masking forcing monotonicity only in eval mode.
     "transition_agent": false,     // enable/disable transition agent of forward attention.
     "location_attn": true,         // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "bidirectional_decoder": false,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
+    "double_decoder_consistency": true,  // use DDC explained here https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency-draft/
+    "ddc_r": 7,                           // reduction rate for coarse decoder.
 
     // STOPNET
     "stopnet": true,               // Train stopnet predicting the end of synthesis.
     "separate_stopnet": true,      // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
 
     // TENSORBOARD and LOGGING
-    "print_step": 25,       // Number of steps to log traning on console.
-    "print_eval": false,     // If True, it prints loss values in evalulation.
+    "print_step": 25,       // Number of steps to log training on console.
+    "tb_plot_step:": 100,    // Number of steps to plot TB training figures.
+    "print_eval": false,     // If True, it prints intermediate loss values in evalulation.
     "save_step": 10000,      // Number of training steps expected to save traninpg stats and checkpoints.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
@@ -122,7 +125,7 @@
 
     // PHONEMES
     "phoneme_cache_path": "/media/erogol/data_ssd2/mozilla_us_phonemes_3",  // phoneme computation is slow, therefore, it caches results in the given folder.
-    "use_phonemes": false,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
+    "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST

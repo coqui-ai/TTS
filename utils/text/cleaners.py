@@ -71,7 +71,7 @@ def remove_aux_symbols(text):
 def replace_symbols(text):
     text = text.replace(';', ',')
     text = text.replace('-', ' ')
-    text = text.replace(':', ' ')
+    text = text.replace(':', ',')
     text = text.replace('&', 'and')
     return text
 

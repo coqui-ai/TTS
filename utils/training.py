@@ -2,6 +2,17 @@ import torch
 import numpy as np
 
 
+def setup_torch_training_env(cudnn_enable, cudnn_benchmark):
+    torch.backends.cudnn.enabled = cudnn_enable
+    torch.backends.cudnn.benchmark = cudnn_benchmark
+    torch.manual_seed(54321)
+    use_cuda = torch.cuda.is_available()
+    num_gpus = torch.cuda.device_count()
+    print(" > Using CUDA: ", use_cuda)
+    print(" > Number of GPUs: ", num_gpus)
+    return use_cuda, num_gpus
+
+
 def check_update(model, grad_clip, ignore_stopnet=False):
     r'''Check model gradient against unexpected jumps and failures'''
     skip_flag = False
@@ -9,9 +20,15 @@ def check_update(model, grad_clip, ignore_stopnet=False):
         grad_norm = torch.nn.utils.clip_grad_norm_([param for name, param in model.named_parameters() if 'stopnet' not in name], grad_clip)
     else:
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-    if torch.isinf(grad_norm):
-        print(" | > Gradient is INF !!")
-        skip_flag = True
+    # compatibility with different torch versions
+    if isinstance(grad_norm, float):
+        if np.isinf(grad_norm):
+            print(" | > Gradient is INF !!")
+            skip_flag = True
+    else:
+        if torch.isinf(grad_norm):
+            print(" | > Gradient is INF !!")
+            skip_flag = True
     return grad_norm, skip_flag
 
 

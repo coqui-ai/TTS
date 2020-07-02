@@ -19,7 +19,7 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.1'
+version = '0.0.3'
 
 # Adapted from https://github.com/pytorch/pytorch
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -75,6 +75,11 @@ setup(
     url='https://github.com/mozilla/TTS',
     description='Text to Speech with Deep Learning',
     license='MPL-2.0',
+    entry_points={
+        'console_scripts': [
+            'tts-server = TTS.server.server:main'
+        ]
+    },
     package_dir={'': 'tts_namespace'},
     packages=find_packages('tts_namespace'),
     package_data={
@@ -92,8 +97,8 @@ setup(
     },
     install_requires=[
         "scipy>=0.19.0",
-        "torch>=0.4.1",
-        "numpy==1.15.4",
+        "torch>=1.5",
+        "numpy>=1.16.0",
         "librosa==0.6.2",
         "unidecode==0.4.20",
         "attrdict",

@@ -3,7 +3,8 @@ from tensorboardX import SummaryWriter
 
 
 class TensorboardLogger(object):
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, model_name):
+        self.model_name = model_name
         self.writer = SummaryWriter(log_dir)
         self.train_stats = {}
         self.eval_stats = {}
@@ -50,31 +51,31 @@ class TensorboardLogger(object):
                 traceback.print_exc()
 
     def tb_train_iter_stats(self, step, stats):
-        self.dict_to_tb_scalar("TrainIterStats", stats, step)
+        self.dict_to_tb_scalar(f"{self.model_name}_TrainIterStats", stats, step)
 
     def tb_train_epoch_stats(self, step, stats):
-        self.dict_to_tb_scalar("TrainEpochStats", stats, step)
+        self.dict_to_tb_scalar(f"{self.model_name}_TrainEpochStats", stats, step)
 
     def tb_train_figures(self, step, figures):
-        self.dict_to_tb_figure("TrainFigures", figures, step)
+        self.dict_to_tb_figure(f"{self.model_name}_TrainFigures", figures, step)
 
     def tb_train_audios(self, step, audios, sample_rate):
-        self.dict_to_tb_audios("TrainAudios", audios, step, sample_rate)
+        self.dict_to_tb_audios(f"{self.model_name}_TrainAudios", audios, step, sample_rate)
 
     def tb_eval_stats(self, step, stats):
-        self.dict_to_tb_scalar("EvalStats", stats, step)
+        self.dict_to_tb_scalar(f"{self.model_name}_EvalStats", stats, step)
 
     def tb_eval_figures(self, step, figures):
-        self.dict_to_tb_figure("EvalFigures", figures, step)
+        self.dict_to_tb_figure(f"{self.model_name}_EvalFigures", figures, step)
 
     def tb_eval_audios(self, step, audios, sample_rate):
-        self.dict_to_tb_audios("EvalAudios", audios, step, sample_rate)
+        self.dict_to_tb_audios(f"{self.model_name}_EvalAudios", audios, step, sample_rate)
 
     def tb_test_audios(self, step, audios, sample_rate):
-        self.dict_to_tb_audios("TestAudios", audios, step, sample_rate)
+        self.dict_to_tb_audios(f"{self.model_name}_TestAudios", audios, step, sample_rate)
 
     def tb_test_figures(self, step, figures):
-        self.dict_to_tb_figure("TestFigures", figures, step)
+        self.dict_to_tb_figure(f"{self.model_name}_TestFigures", figures, step)
 
     def tb_add_text(self, title, text, step):
         self.writer.add_text(title, text, step)
