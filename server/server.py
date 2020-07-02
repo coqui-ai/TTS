@@ -21,6 +21,8 @@ def create_argparser():
     parser.add_argument('--pwgan_lib_path', type=str, default=None, help='path to ParallelWaveGAN project folder to be imported. If this is not passed, model uses Griffin-Lim for synthesis.')
     parser.add_argument('--pwgan_file', type=str, default=None, help='path to ParallelWaveGAN checkpoint file.')
     parser.add_argument('--pwgan_config', type=str, default=None, help='path to ParallelWaveGAN config file.')
+    parser.add_argument('--vocoder_config', type=str, default=None, help='path to TTS.vocoder config file.')
+    parser.add_argument('--vocoder_checkpoint', type=str, default=None, help='path to TTS.vocoder checkpoint file.')
     parser.add_argument('--port', type=int, default=5002, help='port to listen on.')
     parser.add_argument('--use_cuda', type=convert_boolean, default=False, help='true to use CUDA.')
     parser.add_argument('--debug', type=convert_boolean, default=False, help='true to enable Flask debug mode.')
@@ -35,6 +37,11 @@ embedded_tts_folder = os.path.join(embedded_models_folder, 'tts')
 tts_checkpoint_file = os.path.join(embedded_tts_folder, 'checkpoint.pth.tar')
 tts_config_file = os.path.join(embedded_tts_folder, 'config.json')
 
+embedded_vocoder_folder = os.path.join(embedded_models_folder, 'vocoder')
+vocoder_checkpoint_file = os.path.join(embedded_vocoder_folder, 'checkpoint.pth.tar')
+vocoder_config_file = os.path.join(embedded_vocoder_folder, 'config.json')
+
+# These models are soon to be deprecated
 embedded_wavernn_folder = os.path.join(embedded_models_folder, 'wavernn')
 wavernn_checkpoint_file = os.path.join(embedded_wavernn_folder, 'checkpoint.pth.tar')
 wavernn_config_file = os.path.join(embedded_wavernn_folder, 'config.json')
@@ -50,6 +57,11 @@ if not args.tts_checkpoint and os.path.isfile(tts_checkpoint_file):
     args.tts_checkpoint = tts_checkpoint_file
 if not args.tts_config and os.path.isfile(tts_config_file):
     args.tts_config = tts_config_file
+if not args.vocoder_checkpoint and os.path.isfile(tts_checkpoint_file):
+    args.tts_checkpoint = tts_checkpoint_file
+if not args.vocoder_config and os.path.isfile(tts_config_file):
+    args.tts_config = tts_config_file
+
 if not args.wavernn_file and os.path.isfile(wavernn_checkpoint_file):
     args.wavernn_file = wavernn_checkpoint_file
 if not args.wavernn_config and os.path.isfile(wavernn_config_file):
@@ -76,5 +88,9 @@ def tts():
     return send_file(data, mimetype='audio/wav')
 
 
-if __name__ == '__main__':
+def main():
     app.run(debug=args.debug, host='0.0.0.0', port=args.port)
+
+
+if __name__ == '__main__':
+    main()
