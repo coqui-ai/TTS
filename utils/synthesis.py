@@ -91,7 +91,7 @@ def trim_silence(wav, ap):
 
 
 def inv_spectrogram(postnet_output, ap, CONFIG):
-    if CONFIG.model in ["Tacotron", "TacotronGST"]:
+    if CONFIG.model.lower() in ["tacotron"]:
         wav = ap.inv_spectrogram(postnet_output.T)
     else:
         wav = ap.inv_melspectrogram(postnet_output.T)
