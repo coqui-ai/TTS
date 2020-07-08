@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow import keras
 
 from TTS.tf.layers.tacotron2 import Encoder, Decoder, Postnet
@@ -48,9 +49,11 @@ class Tacotron2(keras.models.Model):
                                use_location_attn=location_attn,
                                attn_K=attn_K,
                                separate_stopnet=separate_stopnet,
-                               speaker_emb_dim=self.speaker_embed_dim)
+                               speaker_emb_dim=self.speaker_embed_dim,
+                               name='decoder')
         self.postnet = Postnet(postnet_output_dim, 5, name='postnet')
 
+    @tf.function(experimental_relax_shapes=True)
     def call(self, characters, text_lengths=None, frames=None, training=None):
         if training:
             return self.training(characters, text_lengths, frames)
@@ -78,4 +81,8 @@ class Tacotron2(keras.models.Model):
         output_frames = decoder_frames + postnet_frames
         print(output_frames.shape)
         return decoder_frames, output_frames, attentions, stop_tokens
+
+    def build_inference(self, ):
+        input_ids = tf.random.uniform([1, 4], maxval=10, dtype=tf.int32)
+        self(input_ids)
 

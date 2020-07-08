@@ -26,7 +26,7 @@ parser.add_argument('--config_path',
                     help='Path to config file of torch model.')
 parser.add_argument('--output_path',
                     type=str,
-                    help='path to save TF model weights.')
+                    help='path to output file including file name to save TF model.')
 args = parser.parse_args()
 
 # load model config
@@ -65,18 +65,18 @@ model_tf = Tacotron2(num_chars=num_chars,
 # TODO: set layer names so that we can remove these manual matching
 common_sufix = '/.ATTRIBUTES/VARIABLE_VALUE'
 var_map = [
-    ('tacotron2/embedding/embeddings:0', 'embedding.weight'),
-    ('tacotron2/encoder/lstm/forward_lstm/lstm_cell_1/kernel:0',
+    ('embedding/embeddings:0', 'embedding.weight'),
+    ('encoder/lstm/forward_lstm/lstm_cell_1/kernel:0',
      'encoder.lstm.weight_ih_l0'),
-    ('tacotron2/encoder/lstm/forward_lstm/lstm_cell_1/recurrent_kernel:0',
+    ('encoder/lstm/forward_lstm/lstm_cell_1/recurrent_kernel:0',
      'encoder.lstm.weight_hh_l0'),
-    ('tacotron2/encoder/lstm/backward_lstm/lstm_cell_2/kernel:0',
+    ('encoder/lstm/backward_lstm/lstm_cell_2/kernel:0',
      'encoder.lstm.weight_ih_l0_reverse'),
-    ('tacotron2/encoder/lstm/backward_lstm/lstm_cell_2/recurrent_kernel:0',
+    ('encoder/lstm/backward_lstm/lstm_cell_2/recurrent_kernel:0',
      'encoder.lstm.weight_hh_l0_reverse'),
-    ('tacotron2/encoder/lstm/forward_lstm/lstm_cell_1/bias:0',
+    ('encoder/lstm/forward_lstm/lstm_cell_1/bias:0',
      ('encoder.lstm.bias_ih_l0', 'encoder.lstm.bias_hh_l0')),
-    ('tacotron2/encoder/lstm/backward_lstm/lstm_cell_2/bias:0',
+    ('encoder/lstm/backward_lstm/lstm_cell_2/bias:0',
      ('encoder.lstm.bias_ih_l0_reverse', 'encoder.lstm.bias_hh_l0_reverse')),
     ('attention/v/kernel:0', 'decoder.attention.v.linear_layer.weight'),
     ('decoder/linear_projection/kernel:0',
@@ -86,8 +86,7 @@ var_map = [
 
 # %%
 # get tf_model graph
-input_ids, input_lengths, mel_outputs, mel_lengths = tf_create_dummy_inputs()
-mel_pred = model_tf(input_ids, training=False)
+mel_pred = model_tf.build_inference()
 
 # get tf variables
 tf_vars = model_tf.weights

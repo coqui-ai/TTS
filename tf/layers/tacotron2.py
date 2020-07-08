@@ -79,8 +79,8 @@ class Decoder(keras.layers.Layer):
                              prenet_dropout,
                              [self.prenet_dim, self.prenet_dim],
                              bias=False,
-                             name='prenet')
-        self.attention_rnn = keras.layers.LSTMCell(self.query_dim, use_bias=True, name=f'{self.name}/attention_rnn', )
+                             name=f'prenet')
+        self.attention_rnn = keras.layers.LSTMCell(self.query_dim, use_bias=True, name=f'attention_rnn', )
         self.attention_rnn_dropout = keras.layers.Dropout(0.5)
 
         # TODO: implement other attn options
@@ -94,10 +94,10 @@ class Decoder(keras.layers.Layer):
                                    use_trans_agent=use_trans_agent,
                                    use_forward_attn_mask=use_forward_attn_mask,
                                    name='attention')
-        self.decoder_rnn = keras.layers.LSTMCell(self.decoder_rnn_dim, use_bias=True, name=f'{self.name}/decoder_rnn')
+        self.decoder_rnn = keras.layers.LSTMCell(self.decoder_rnn_dim, use_bias=True, name=f'decoder_rnn')
         self.decoder_rnn_dropout = keras.layers.Dropout(0.5)
-        self.linear_projection = keras.layers.Dense(self.frame_dim * r, name=f'{self.name}/linear_projection/linear_layer')
-        self.stopnet = keras.layers.Dense(1, name=f'{self.name}/stopnet/linear_layer')
+        self.linear_projection = keras.layers.Dense(self.frame_dim * r, name=f'linear_projection/linear_layer')
+        self.stopnet = keras.layers.Dense(1, name=f'stopnet/linear_layer')
 
 
     def set_max_decoder_steps(self, new_max_steps):
