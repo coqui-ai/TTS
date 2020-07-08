@@ -109,12 +109,17 @@ class Attention(keras.layers.Layer):
             raise ValueError("Unknown value for attention norm type")
 
     def init_states(self, batch_size, value_length):
-        states = ()
+        states = []
         if self.use_loc_attn:
             attention_cum = tf.zeros([batch_size, value_length])
             attention_old = tf.zeros([batch_size, value_length])
-            states = (attention_cum, attention_old)
-        return states
+            states = [attention_cum, attention_old]
+        if self.use_forward_attn:
+            alpha = tf.concat(
+            [tf.ones([batch_size, 1]),
+             tf.zeros([batch_size, value_length])[:, :-1] + 1e-7], axis=1)
+            states.append(alpha)
+        return tuple(states)
 
     def process_values(self, values):
         """ cache values for decoder iterations """
@@ -125,7 +130,7 @@ class Attention(keras.layers.Layer):
     def get_loc_attn(self, query, states):
         """ compute location attention, query layer and
         unnorm. attention weights"""
-        attention_cum, attention_old = states
+        attention_cum, attention_old = states[:2]
         attn_cat = tf.stack([attention_old, attention_cum], axis=2)
 
         processed_query = self.query_layer(tf.expand_dims(query, 1))
