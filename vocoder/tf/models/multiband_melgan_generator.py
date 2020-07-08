@@ -37,7 +37,8 @@ class MultibandMelganGenerator(MelganGenerator):  # pylint: disable=too-many-anc
     def inference(self, c):
         c = tf.transpose(c, perm=[0, 2, 1])
         c = tf.expand_dims(c, 2)
-        c = tf.pad(c, [[0, 0], [self.inference_padding, self.inference_padding], [0, 0], [0, 0]], "REFLECT")
+        # FIXME: TF had no replicate padding as in Torch
+        # c = tf.pad(c, [[0, 0], [self.inference_padding, self.inference_padding], [0, 0], [0, 0]], "REFLECT")
         o = c
         for layer in self.model_layers:
             o = layer(o)
