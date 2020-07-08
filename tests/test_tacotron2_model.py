@@ -28,6 +28,7 @@ class TacotronTrainTest(unittest.TestCase):
         mel_spec = torch.rand(8, 30, c.audio['num_mels']).to(device)
         mel_postnet_spec = torch.rand(8, 30, c.audio['num_mels']).to(device)
         mel_lengths = torch.randint(20, 30, (8, )).long().to(device)
+        mel_lengths[0] = 30
         stop_targets = torch.zeros(8, 30, 1).float().to(device)
         speaker_ids = torch.randint(0, 5, (8, )).long().to(device)
 
