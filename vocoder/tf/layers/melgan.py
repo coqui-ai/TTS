@@ -7,7 +7,6 @@ class ReflectionPad1d(tf.keras.layers.Layer):
         self.padding = padding
 
     def call(self, x):
-        print(x.shape)
         return tf.pad(x, [[0, 0], [self.padding, self.padding], [0, 0], [0, 0]], "REFLECT")
 
 
