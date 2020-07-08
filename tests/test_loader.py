@@ -76,7 +76,7 @@ class TestTTSDataset(unittest.TestCase):
                 # TODO: more assertion here
                 assert type(speaker_name[0]) is str
                 assert linear_input.shape[0] == c.batch_size
-                assert linear_input.shape[2] == self.ap.num_freq
+                assert linear_input.shape[2] == self.ap.fft_size // 2 + 1
                 assert mel_input.shape[0] == c.batch_size
                 assert mel_input.shape[2] == c.audio['num_mels']
                 # check normalization ranges
