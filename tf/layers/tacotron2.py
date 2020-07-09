@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 from tensorflow import keras
 from TTS.tf.utils.tf_utils import shape_list
@@ -83,8 +82,8 @@ class Decoder(keras.layers.Layer):
                              prenet_dropout,
                              [self.prenet_dim, self.prenet_dim],
                              bias=False,
-                             name=f'prenet')
-        self.attention_rnn = keras.layers.LSTMCell(self.query_dim, use_bias=True, name=f'attention_rnn', )
+                             name='prenet')
+        self.attention_rnn = keras.layers.LSTMCell(self.query_dim, use_bias=True, name='attention_rnn', )
         self.attention_rnn_dropout = keras.layers.Dropout(0.5)
 
         # TODO: implement other attn options
@@ -98,10 +97,10 @@ class Decoder(keras.layers.Layer):
                                    use_trans_agent=use_trans_agent,
                                    use_forward_attn_mask=use_forward_attn_mask,
                                    name='attention')
-        self.decoder_rnn = keras.layers.LSTMCell(self.decoder_rnn_dim, use_bias=True, name=f'decoder_rnn')
+        self.decoder_rnn = keras.layers.LSTMCell(self.decoder_rnn_dim, use_bias=True, name='decoder_rnn')
         self.decoder_rnn_dropout = keras.layers.Dropout(0.5)
-        self.linear_projection = keras.layers.Dense(self.frame_dim * r, name=f'linear_projection/linear_layer')
-        self.stopnet = keras.layers.Dense(1, name=f'stopnet/linear_layer')
+        self.linear_projection = keras.layers.Dense(self.frame_dim * r, name='linear_projection/linear_layer')
+        self.stopnet = keras.layers.Dense(1, name='stopnet/linear_layer')
 
 
     def set_max_decoder_steps(self, new_max_steps):
@@ -263,9 +262,9 @@ class Decoder(keras.layers.Layer):
             frame_next = states[0]
             prenet_next = self.prenet(frame_next, training=False)
             output, stop_token, states, _ = self.step(prenet_next,
-                                                              states,
-                                                              None,
-                                                              training=False)
+                                                      states,
+                                                      None,
+                                                      training=False)
             stop_token = tf.math.sigmoid(stop_token)
             stop_flag = tf.greater(stop_token, self.stop_thresh)
             stop_flag = tf.reduce_all(stop_flag)
@@ -286,8 +285,8 @@ class Decoder(keras.layers.Layer):
 
 
         outputs = outputs.stack()
-        outputs = tf.gather(outputs, tf.range(step_count))
-        outputs = tf.expand_dims(outputs, [0])
+        outputs = tf.gather(outputs, tf.range(step_count)) # pylint: disable=no-value-for-parameter
+        outputs = tf.expand_dims(outputs, axis=[0])
         outputs = tf.transpose(outputs, [1, 0, 2])
         outputs = tf.reshape(outputs, [1, -1, self.frame_dim])
         return outputs, stop_tokens, attentions

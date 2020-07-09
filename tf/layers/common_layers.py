@@ -115,9 +115,10 @@ class Attention(keras.layers.Layer):
             attention_old = tf.zeros([batch_size, value_length])
             states = [attention_cum, attention_old]
         if self.use_forward_attn:
-            alpha = tf.concat(
-            [tf.ones([batch_size, 1]),
-             tf.zeros([batch_size, value_length])[:, :-1] + 1e-7], axis=1)
+            alpha = tf.concat([
+                tf.ones([batch_size, 1]),
+                tf.zeros([batch_size, value_length])[:, :-1] + 1e-7
+            ], 1)
             states.append(alpha)
         return tuple(states)
 
@@ -155,9 +156,9 @@ class Attention(keras.layers.Layer):
         score -= 1.e9 * math_ops.cast(padding_mask, dtype=tf.float32)
         return score
 
-    def apply_forward_attention(self, alignment, alpha):
+    def apply_forward_attention(self, alignment, alpha):  #pylint: disable=no-self-use
         # forward attention
-        fwd_shifted_alpha = tf.pad(alpha[:, :-1], ((0, 0), (1, 0)))
+        fwd_shifted_alpha = tf.pad(alpha[:, :-1], ((0, 0), (1, 0)), constant_values=0.0)
         # compute transition potentials
         new_alpha = ((1 - 0.5) * alpha + 0.5 * fwd_shifted_alpha + 1e-8) * alignment
         # renormalize attention weights

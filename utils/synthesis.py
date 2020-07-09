@@ -84,7 +84,7 @@ def run_model_tflite(model, inputs, CONFIG, truncated, speaker_id=None, style_me
     model.resize_tensor_input(input_details[0]['index'], inputs.shape)
     model.allocate_tensors()
     detail = input_details[0]
-    input_shape = detail['shape']
+    # input_shape = detail['shape']
     model.set_tensor(detail['index'], inputs)
     # run the model
     model.invoke()

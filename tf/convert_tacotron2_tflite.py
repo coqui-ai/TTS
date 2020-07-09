@@ -1,10 +1,9 @@
 # Convert Tensorflow Tacotron2 model to TF-Lite binary
 
-import tensorflow as tf
 import argparse
 
 from TTS.utils.io import load_config
-from TTS.utils.text.symbols import symbols, phonemes, make_symbols
+from TTS.utils.text.symbols import symbols, phonemes
 from TTS.tf.utils.generic_utils import setup_model
 from TTS.tf.utils.io import load_checkpoint
 from TTS.tf.utils.tflite import convert_tacotron2_to_tflite
@@ -35,10 +34,6 @@ model = load_checkpoint(model, args.tf_model)
 model.decoder.set_max_decoder_steps(1000)
 
 # create tflite model
-tflite_model = convert_tacotron2_to_tflite(model)
-
-# save  tflite binary
-with open(args.output_path, 'wb') as f:
-    f.write(tflite_model)
+tflite_model = convert_tacotron2_to_tflite(model, output_path=args.output_path)
 
 print(f'Tflite Model size is {len(tflite_model) / (1024.0 * 1024.0)} MBs.')
