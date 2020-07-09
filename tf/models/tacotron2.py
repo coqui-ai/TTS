@@ -24,7 +24,8 @@ class Tacotron2(keras.models.Model):
                  forward_attn_mask=False,
                  location_attn=True,
                  separate_stopnet=True,
-                 bidirectional_decoder=False):
+                 bidirectional_decoder=False,
+                 enable_tflite=False):
         super(Tacotron2, self).__init__()
         self.r = r
         self.decoder_output_dim = decoder_output_dim
@@ -32,6 +33,7 @@ class Tacotron2(keras.models.Model):
         self.bidirectional_decoder = bidirectional_decoder
         self.num_speakers = num_speakers
         self.speaker_embed_dim = 256
+        self.enable_tflite = enable_tflite
 
         self.embedding = keras.layers.Embedding(num_chars, 512, name='embedding')
         self.encoder = Encoder(512, name='encoder')
@@ -50,7 +52,8 @@ class Tacotron2(keras.models.Model):
                                attn_K=attn_K,
                                separate_stopnet=separate_stopnet,
                                speaker_emb_dim=self.speaker_embed_dim,
-                               name='decoder')
+                               name='decoder',
+                               enable_tflite=enable_tflite)
         self.postnet = Postnet(postnet_output_dim, 5, name='postnet')
 
     @tf.function(experimental_relax_shapes=True)
@@ -72,6 +75,22 @@ class Tacotron2(keras.models.Model):
         return decoder_frames, output_frames, attentions, stop_tokens
 
     def inference(self, characters):
+        B, T = shape_list(characters)
+        embedding_vectors = self.embedding(characters, training=False)
+        encoder_output = self.encoder(embedding_vectors, training=False)
+        decoder_states = self.decoder.build_decoder_initial_states(B, 512, T)
+        decoder_frames, stop_tokens, attentions = self.decoder(encoder_output, decoder_states, training=False)
+        postnet_frames = self.postnet(decoder_frames, training=False)
+        output_frames = decoder_frames + postnet_frames
+        print(output_frames.shape)
+        return decoder_frames, output_frames, attentions, stop_tokens
+
+    @tf.function(
+        experimental_relax_shapes=True,
+        input_signature=[
+            tf.TensorSpec([1, None], dtype=tf.int32),
+        ],)
+    def inference_tflite(self, characters):
         B, T = shape_list(characters)
         embedding_vectors = self.embedding(characters, training=False)
         encoder_output = self.encoder(embedding_vectors, training=False)
