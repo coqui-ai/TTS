@@ -102,6 +102,7 @@ class Tacotron2(keras.models.Model):
         return decoder_frames, output_frames, attentions, stop_tokens
 
     def build_inference(self, ):
-        input_ids = tf.random.uniform([1, 4], 10, tf.int32)
+        # TODO: issue https://github.com/PyCQA/pylint/issues/3613
+        input_ids = tf.random.uniform(shape=[1, 4], maxval=10, dtype=tf.int32)  #pylint: disable=unexpected-keyword-arg
         self(input_ids)
 
