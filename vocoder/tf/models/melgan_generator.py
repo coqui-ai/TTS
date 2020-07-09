@@ -8,7 +8,9 @@ import tensorflow as tf
 from TTS.vocoder.tf.layers.melgan import ResidualStack, ReflectionPad1d
 
 
-class MelganGenerator(tf.keras.models.Model):  # pylint: disable=too-many-ancestors
+#pylint: disable=too-many-ancestors
+#pylint: disable=abstract-method
+class MelganGenerator(tf.keras.models.Model):
     """ Melgan Generator TF implementation dedicated for inference with no
     weight norm """
     def __init__(self,

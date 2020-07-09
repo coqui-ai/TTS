@@ -102,6 +102,6 @@ class Tacotron2(keras.models.Model):
         return decoder_frames, output_frames, attentions, stop_tokens
 
     def build_inference(self, ):
-        input_ids = tf.random.uniform([1, 4], maxval=10, dtype=tf.int32)
+        input_ids = tf.random.uniform([1, 4], 10, tf.int32)
         self(input_ids)
 
