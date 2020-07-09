@@ -29,6 +29,7 @@
         "num_mels": 80,         // size of the mel spec frame.
         "mel_fmin": 0.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,     // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 20,
 
         // Normalization parameters
         "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
@@ -86,7 +87,7 @@
     "prenet_type": "bn",     // "original" or "bn".
     "prenet_dropout": false,        // enable/disable dropout at prenet.
 
-    // ATTENTION
+    // TACOTRON ATTENTION
     "attention_type": "original",  // 'original' or 'graves'
     "attention_heads": 4,          // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid",   // softmax or sigmoid.

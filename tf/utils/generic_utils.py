@@ -6,9 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder, **kwargs):
-    checkpoint_path = 'tts_tf_checkpoint_{}.pkl'.format(current_step)
-    checkpoint_path = os.path.join(output_folder, checkpoint_path)
+def save_checkpoint(model, optimizer, current_step, epoch, r, output_path, **kwargs):
     state = {
         'model': model.weights,
         'optimizer': optimizer,
@@ -18,7 +16,7 @@ def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder, **k
         'r': r
     }
     state.update(kwargs)
-    pickle.dump(state, open(checkpoint_path, 'wb'))
+    pickle.dump(state, open(output_path, 'wb'))
 
 
 def load_checkpoint(model, checkpoint_path):
@@ -27,7 +25,13 @@ def load_checkpoint(model, checkpoint_path):
     tf_vars = model.weights
     for tf_var in tf_vars:
         layer_name = tf_var.name
-        chkp_var_value = chkp_var_dict[layer_name]
+        try:
+            chkp_var_value = chkp_var_dict[layer_name]
+        except KeyError:
+            class_name = list(chkp_var_dict.keys())[0].split("/")[0]
+            layer_name = f"{class_name}/{layer_name}"
+            chkp_var_value = chkp_var_dict[layer_name]
+
         tf.keras.backend.set_value(tf_var, chkp_var_value)
     if 'r' in checkpoint.keys():
         model.decoder.set_r(checkpoint['r'])
@@ -72,7 +76,7 @@ def count_parameters(model, c):
         return model.count_params()
 
 
-def setup_model(num_chars, num_speakers, c):
+def setup_model(num_chars, num_speakers, c, enable_tflite=False):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('TTS.tf.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
@@ -95,5 +99,6 @@ def setup_model(num_chars, num_speakers, c):
                     location_attn=c.location_attn,
                     attn_K=c.attention_heads,
                     separate_stopnet=c.separate_stopnet,
-                    bidirectional_decoder=c.bidirectional_decoder)
+                    bidirectional_decoder=c.bidirectional_decoder,
+                    enable_tflite=enable_tflite)
     return model

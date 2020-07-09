@@ -70,6 +70,31 @@ def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=No
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
+def run_model_tflite(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None):
+    if CONFIG.use_gst and style_mel is not None:
+        raise NotImplementedError(' [!] GST inference not implemented for TfLite')
+    if truncated:
+        raise NotImplementedError(' [!] Truncated inference not implemented for TfLite')
+    if speaker_id is not None:
+        raise NotImplementedError(' [!] Multi-Speaker not implemented for TfLite')
+    # get input and output details
+    input_details = model.get_input_details()
+    output_details = model.get_output_details()
+    # reshape input tensor for the new input shape
+    model.resize_tensor_input(input_details[0]['index'], inputs.shape)
+    model.allocate_tensors()
+    detail = input_details[0]
+    # input_shape = detail['shape']
+    model.set_tensor(detail['index'], inputs)
+    # run the model
+    model.invoke()
+    # collect outputs
+    decoder_output = model.get_tensor(output_details[0]['index'])
+    postnet_output = model.get_tensor(output_details[1]['index'])
+    # tflite model only returns feature frames
+    return decoder_output, postnet_output, None, None
+
+
 def parse_outputs_torch(postnet_output, decoder_output, alignments, stop_tokens):
     postnet_output = postnet_output[0].data.cpu().numpy()
     decoder_output = decoder_output[0].data.cpu().numpy()
@@ -86,12 +111,18 @@ def parse_outputs_tf(postnet_output, decoder_output, alignments, stop_tokens):
     return postnet_output, decoder_output, alignment, stop_tokens
 
 
+def parse_outputs_tflite(postnet_output, decoder_output):
+    postnet_output = postnet_output[0]
+    decoder_output = decoder_output[0]
+    return postnet_output, decoder_output
+
+
 def trim_silence(wav, ap):
     return wav[:ap.find_endpoint(wav)]
 
 
 def inv_spectrogram(postnet_output, ap, CONFIG):
-    if CONFIG.model in ["Tacotron", "TacotronGST"]:
+    if CONFIG.model.lower() in ["tacotron"]:
         wav = ap.inv_spectrogram(postnet_output.T)
     else:
         wav = ap.inv_melspectrogram(postnet_output.T)
@@ -164,8 +195,12 @@ def synthesis(model,
         style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         inputs = numpy_to_torch(inputs, torch.long, cuda=use_cuda)
         inputs = inputs.unsqueeze(0)
-    else:
+    elif backend == 'tf':
         # TODO: handle speaker id for tf model
+        style_mel = numpy_to_tf(style_mel, tf.float32)
+        inputs = numpy_to_tf(inputs, tf.int32)
+        inputs = tf.expand_dims(inputs, 0)
+    elif backend == 'tflite':
         style_mel = numpy_to_tf(style_mel, tf.float32)
         inputs = numpy_to_tf(inputs, tf.int32)
         inputs = tf.expand_dims(inputs, 0)
@@ -175,11 +210,16 @@ def synthesis(model,
             model, inputs, CONFIG, truncated, speaker_id, style_mel)
         postnet_output, decoder_output, alignment, stop_tokens = parse_outputs_torch(
             postnet_output, decoder_output, alignments, stop_tokens)
-    else:
+    elif backend == 'tf':
         decoder_output, postnet_output, alignments, stop_tokens = run_model_tf(
             model, inputs, CONFIG, truncated, speaker_id, style_mel)
         postnet_output, decoder_output, alignment, stop_tokens = parse_outputs_tf(
             postnet_output, decoder_output, alignments, stop_tokens)
+    elif backend == 'tflite':
+        decoder_output, postnet_output, alignment, stop_tokens = run_model_tflite(
+            model, inputs, CONFIG, truncated, speaker_id, style_mel)
+        postnet_output, decoder_output = parse_outputs_tflite(
+            postnet_output, decoder_output)
     # convert outputs to numpy
     # plot results
     wav = None

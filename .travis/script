@@ -15,6 +15,7 @@ if [[ "$TEST_SUITE" == "unittest" ]]; then
   nosetests TTS.speaker_encoder.tests --nocapture
   nosetests TTS.vocoder.tests --nocapture
   nosetests TTS.tests --nocapture
+  nosetests TTS.tf.tests --nocapture
   popd
   # Test server package
   ./tests/test_server_package.sh
