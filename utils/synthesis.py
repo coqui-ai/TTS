@@ -37,9 +37,11 @@ def numpy_to_tf(np_array, dtype):
     return tensor
 
 
-def compute_style_mel(style_wav, ap):
-    style_mel = ap.melspectrogram(
-        ap.load_wav(style_wav)).expand_dims(0)
+def compute_style_mel(style_wav, ap, cuda=False):
+    style_mel = torch.FloatTensor(ap.melspectrogram(
+        ap.load_wav(style_wav))).unsqueeze(0)
+    if cuda:
+        return style_mel.cuda()
     return style_mel
 
 
@@ -129,10 +131,12 @@ def inv_spectrogram(postnet_output, ap, CONFIG):
     return wav
 
 
-def id_to_torch(speaker_id):
+def id_to_torch(speaker_id, cuda=False):
     if speaker_id is not None:
         speaker_id = np.asarray(speaker_id)
         speaker_id = torch.from_numpy(speaker_id).unsqueeze(0)
+    if cuda:
+        return speaker_id.cuda()
     return speaker_id
 
 
@@ -185,14 +189,19 @@ def synthesis(model,
     """
     # GST processing
     style_mel = None
-    if CONFIG.model == "TacotronGST" and style_wav is not None:
-        style_mel = compute_style_mel(style_wav, ap)
+    if CONFIG.use_gst and style_wav is not None:
+        if isinstance(style_wav, dict):
+            style_mel = style_wav
+        else:
+            style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
     # preprocess the given text
     inputs = text_to_seqvec(text, CONFIG)
     # pass tensors to backend
     if backend == 'torch':
-        speaker_id = id_to_torch(speaker_id)
-        style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
+        if speaker_id is not None:
+            speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
+        if not isinstance(style_mel, dict):
+            style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         inputs = numpy_to_torch(inputs, torch.long, cuda=use_cuda)
         inputs = inputs.unsqueeze(0)
     elif backend == 'tf':

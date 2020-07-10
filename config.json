@@ -131,8 +131,16 @@
 
     // MULTI-SPEAKER and GST
     "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
-    "style_wav_for_test": null,          // path to style wav file to be used in TacotronGST inference.
-    "use_gst": false,       // TACOTRON ONLY: use global style tokens
+    "use_gst": true,       			    // use global style tokens
+    "gst":	{			                // gst parameter if gst is enabled
+        "gst_style_input": null,        // Condition the style input either on a 
+                                        // -> wave file [path to wave] or 
+                                        // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}  
+                                        // with the dictionary being len(dict) == len(gst_style_tokens).
+        "gst_embedding_dim": 512,       
+        "gst_num_heads": 4,
+        "gst_style_tokens": 10
+	},  
 
     // DATASETS
     "datasets":   // List of datasets. They all merged and they get different speaker_ids.
@@ -144,6 +152,5 @@
                 "meta_file_val": null
             }
         ]
-
 }
 
