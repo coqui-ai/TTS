@@ -165,7 +165,6 @@ class TacotronAbstract(ABC, nn.Module):
                 self.speaker_embeddings).squeeze(1)
 
     def compute_gst(self, inputs, style_input):
-        """ Compute global style token """
         device = inputs.device
         if isinstance(style_input, dict):
             query = torch.zeros(1, 1, self.gst_embedding_dim//2).to(device)
@@ -176,11 +175,17 @@ class TacotronAbstract(ABC, nn.Module):
                 gst_outputs_att = self.gst_layer.style_token_layer.attention(query, key)
                 gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
         elif style_input is None:
+            query = torch.zeros(1, 1, self.gst_embedding_dim//2).to(device)
+            _GST = torch.tanh(self.gst_layer.style_token_layer.style_tokens)
             gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
+            for k_token in range(self.gst_style_tokens):
+                key = _GST[int(k_token)].unsqueeze(0).expand(1, -1, -1)
+                gst_outputs_att = self.gst_layer.style_token_layer.attention(query, key)
+                gst_outputs = gst_outputs + gst_outputs_att * 0
         else:
-            gst_outputs = self.gst_layer(style_input) # pylint: disable=not-callable
-        inputs = self._concat_speaker_embedding(inputs, gst_outputs)
-        return inputs
+            gst_outputs = self.gst_layer(style_input)
+        embedded_gst = gst_outputs.repeat(1, inputs.size(1), 1)
+        return inputs, embedded_gst
 
     @staticmethod
     def _add_speaker_embedding(outputs, speaker_embeddings):
