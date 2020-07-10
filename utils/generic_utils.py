@@ -149,6 +149,9 @@ def setup_model(num_chars, num_speakers, c):
                         postnet_output_dim=int(c.audio['fft_size'] / 2 + 1),
                         decoder_output_dim=c.audio['num_mels'],
                         gst=c.use_gst,
+                        gst_embedding_dim=c.gst['gst_embedding_dim'],
+                        gst_num_heads=c.gst['gst_num_heads'],
+                        gst_style_tokens=c.gst['gst_style_tokens'],
                         memory_size=c.memory_size,
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
@@ -171,6 +174,9 @@ def setup_model(num_chars, num_speakers, c):
                         postnet_output_dim=c.audio['num_mels'],
                         decoder_output_dim=c.audio['num_mels'],
                         gst=c.use_gst,
+                        gst_embedding_dim=c.gst['gst_embedding_dim'],
+                        gst_num_heads=c.gst['gst_num_heads'],
+                        gst_style_tokens=c.gst['gst_style_tokens'],
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
                         attn_norm=c.attention_norm,
@@ -348,10 +354,16 @@ def check_config(c):
     # paths
     _check_argument('output_path', c, restricted=True, val_type=str)
 
-    # multi-speaker gst
+    # multi-speaker
     _check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
-    _check_argument('style_wav_for_test', c, restricted=True, val_type=str)
+
+    # GST
     _check_argument('use_gst', c, restricted=True, val_type=bool)
+    _check_argument('gst_style_input', c, restricted=True, val_type=str)
+    _check_argument('gst', c, restricted=True, val_type=dict)
+    _check_argument('gst_embedding_dim', c['gst'], restricted=True, val_type=int, min_val=1)
+    _check_argument('gst_num_heads', c['gst'], restricted=True, val_type=int, min_val=1)
+    _check_argument('gst_style_tokens', c['gst'], restricted=True, val_type=int, min_val=1)
 
     # datasets - checking only the first entry
     _check_argument('datasets', c, restricted=True, val_type=list)
