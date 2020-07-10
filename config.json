@@ -136,7 +136,7 @@
         "gst_style_input": null,        // Condition the style input either on a 
                                         // -> wave file [path to wave] or 
                                         // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}  
-                                        // with the dictionary being len(dict) == len(gst_style_tokens).
+                                        // with the dictionary being len(dict) <= len(gst_style_tokens).
         "gst_embedding_dim": 512,       
         "gst_num_heads": 4,
         "gst_style_tokens": 10
