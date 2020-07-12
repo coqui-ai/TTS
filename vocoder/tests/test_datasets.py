@@ -59,9 +59,9 @@ def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_segments, us
                     audio = wav1[idx].squeeze()
                     feat = feat1[idx]
                     mel = ap.melspectrogram(audio)
-                    # the first 2 and the last frame is skipped due to the padding
-                    # applied in spec. computation.
-                    assert (feat - mel[:, :feat1.shape[-1]])[:, 2:-1].sum() == 0, f' [!] {(feat - mel[:, :feat1.shape[-1]])[:, 2:-1].sum()}'
+                    # the first 2 and the last 2 frames are skipped due to the padding
+                    # differences in stft
+                    assert (feat - mel[:, :feat1.shape[-1]])[:, 2:-2].sum() <= 0, f' [!] {(feat - mel[:, :feat1.shape[-1]])[:, 2:-2].sum()}'
 
             count_iter += 1
             # if count_iter == max_iter:
