@@ -69,6 +69,41 @@ if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
     shutil.copy(args.model_config, embedded_config_path)
     package_data.extend([embedded_checkpoint_path, embedded_config_path])
 
+
+def pip_install(package_name):
+    subprocess.call(
+        [sys.executable, '-m', 'pip', 'install', package_name]
+    )
+
+
+requirements = {
+    'install_requires':[
+        "torch>=1.5",
+        "numpy>=1.16.0",
+        "numba==0.48",
+        "scipy>=0.19.0",
+        "librosa==0.6.2",
+        "unidecode==0.4.20",
+        "attrdict",
+        "tensorboardX",
+        "matplotlib",
+        "Pillow",
+        "flask",
+        "tqdm",
+        "inflect",
+        "bokeh==1.4.0",
+        "soundfile",
+        "phonemizer>=2.2.0",
+        "nose==1.3.7",
+        "cardboardlint==1.3.0",
+        "pylint==2.5.3",
+    ],
+    'pip_install':[
+        'tensorflow>=2.2.0',
+    ]
+}
+
+
 setup(
     name='TTS',
     version=version,
@@ -95,24 +130,23 @@ setup(
         'build_py': build_py,
         'develop': develop,
     },
-    install_requires=[
-        "scipy>=0.19.0",
-        "torch>=1.5",
-        "numpy>=1.16.0",
-        "librosa==0.6.2",
-        "unidecode==0.4.20",
-        "attrdict",
-        "tensorboardX",
-        "matplotlib",
-        "Pillow",
-        "flask",
-        "tqdm",
-        "inflect",
-        "bokeh==1.4.0",
-        "soundfile",
-        "phonemizer @ https://github.com/bootphon/phonemizer/tarball/master",
-    ],
-    dependency_links=[
-        "http://github.com/bootphon/phonemizer/tarball/master#egg=phonemizer-1.0.1"
+    install_requires=requirements['install_requires'],
+    python_requires='>=3.6.0',
+    classifiers=[
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        'Development Status :: 3 - Alpha',
+        "Intended Audience :: Science/Research :: Developers",
+        "Operating System :: POSIX :: Linux",
+        'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
+        "Topic :: Software Development :: Libraries :: Python Modules :: Speech :: Sound/Audio :: Multimedia :: Artificial Intelligence",
     ]
 )
+
+# for some reason having tensorflow in 'install_requires'
+# breaks some of the dependencies.
+for module in requirements['pip_install']:
+    pip_install(module)
