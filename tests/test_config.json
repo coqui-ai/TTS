@@ -60,6 +60,5 @@
         "gst_embedding_dim": 512,       
         "gst_num_heads": 4,
         "gst_style_tokens": 10
-	},  
-
+	}
     }
