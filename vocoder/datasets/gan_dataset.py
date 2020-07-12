@@ -87,6 +87,11 @@ class GANDataset(Dataset):
                 audio, mel = self.cache[idx]
             else:
                 audio = self.ap.load_wav(wavpath)
+
+                if len(audio) < self.seq_len + self.pad_short:
+                    audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
+                            mode='constant', constant_values=0.0)
+
                 mel = self.ap.melspectrogram(audio)
         else:
 
@@ -98,10 +103,6 @@ class GANDataset(Dataset):
             else:
                 audio = self.ap.load_wav(wavpath)
                 mel = np.load(feat_path)
-
-        if len(audio) < self.seq_len + self.pad_short:
-            audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
-                    mode='constant', constant_values=0.0)
 
         # correct the audio length wrt padding applied in stft
         audio = np.pad(audio, (0, self.hop_len), mode="edge")
