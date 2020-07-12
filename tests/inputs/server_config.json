@@ -6,7 +6,7 @@
     "wavernn_file": null, // wavernn checkpoint file name
     "wavernn_config": null, // wavernn config file
     "vocoder_config":null,
-    "vocoder_file": null,
+    "vocoder_checkpoint": null,
     "is_wavernn_batched":true,
     "port": 5002,
     "use_cuda": false,
