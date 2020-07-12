@@ -31,15 +31,16 @@ class Synthesizer(object):
         self.wavernn = None
         self.vocoder_model = None
         self.config = config
+        print(config)
         self.use_cuda = self.config.use_cuda
         if self.use_cuda:
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
         self.load_tts(self.config.tts_checkpoint, self.config.tts_config,
                       self.config.use_cuda)
-        if self.config.vocoder_file:
+        if self.config.vocoder_checkpoint:
             self.load_vocoder(self.config.vocoder_checkpoint, self.config.vocoder_config, self.config.use_cuda)
         if self.config.wavernn_lib_path:
-            self.load_wavernn(self.config.wavernn_lib_path, self.config.wavernn_file,
+            self.load_wavernn(self.config.wavernn_lib_path, self.config.wavernn_checkpoint,
                               self.config.wavernn_config, self.config.use_cuda)
 
     def load_tts(self, tts_checkpoint, tts_config, use_cuda):
