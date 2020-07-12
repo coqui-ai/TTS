@@ -95,14 +95,14 @@ class Tacotron2(TacotronAbstract):
         if self.num_speakers > 1:
             embedded_speakers = self.speaker_embedding(speaker_ids)[:, None]
             embedded_speakers = embedded_speakers.repeat(1, encoder_outputs.size(1), 1)
-            if hasattr(self, 'gst'):
+            if self.gst:
                 # B x gst_dim
                 encoder_outputs, embedded_gst = self.compute_gst(encoder_outputs, mel_specs)
                 encoder_outputs = torch.cat([encoder_outputs, embedded_gst, embedded_speakers], dim=-1)
             else:
                 encoder_outputs = torch.cat([encoder_outputs, embedded_speakers], dim=-1)
         else:
-            if hasattr(self, 'gst'):
+            if self.gst:
                 # B x gst_dim
                 encoder_outputs, embedded_gst = self.compute_gst(encoder_outputs, mel_specs)
                 encoder_outputs = torch.cat([encoder_outputs, embedded_gst], dim=-1)
@@ -140,14 +140,14 @@ class Tacotron2(TacotronAbstract):
         if self.num_speakers > 1:
             embedded_speakers = self.speaker_embedding(speaker_ids)[:, None]
             embedded_speakers = embedded_speakers.repeat(1, encoder_outputs.size(1), 1)
-            if hasattr(self, 'gst'):
+            if self.gst:
                 # B x gst_dim
                 encoder_outputs, embedded_gst = self.compute_gst(encoder_outputs, style_mel)
                 encoder_outputs = torch.cat([encoder_outputs, embedded_gst, embedded_speakers], dim=-1)
             else:
                 encoder_outputs = torch.cat([encoder_outputs, embedded_speakers], dim=-1)
         else:
-            if hasattr(self, 'gst'):
+            if self.gst:
                 # B x gst_dim
                 encoder_outputs, embedded_gst = self.compute_gst(encoder_outputs, style_mel)
                 encoder_outputs = torch.cat([encoder_outputs, embedded_gst], dim=-1)
@@ -170,14 +170,14 @@ class Tacotron2(TacotronAbstract):
         if self.num_speakers > 1:
             embedded_speakers = self.speaker_embedding(speaker_ids)[:, None]
             embedded_speakers = embedded_speakers.repeat(1, encoder_outputs.size(1), 1)
-            if hasattr(self, 'gst'):
+            if self.gst:
                 # B x gst_dim
                 encoder_outputs, embedded_gst = self.compute_gst(encoder_outputs, style_mel)
                 encoder_outputs = torch.cat([encoder_outputs, embedded_gst, embedded_speakers], dim=-1)
             else:
                 encoder_outputs = torch.cat([encoder_outputs, embedded_speakers], dim=-1)
         else:
-            if hasattr(self, 'gst'):
+            if self.gst:
                 # B x gst_dim
                 encoder_outputs, embedded_gst = self.compute_gst(encoder_outputs, style_mel)
                 encoder_outputs = torch.cat([encoder_outputs, embedded_gst], dim=-1)
