@@ -2,7 +2,7 @@
     "audio":{
         "audio_processor": "audio",     // to use dictate different audio processors, if available.
         "num_mels": 80,         // size of the mel spec frame.
-        "num_freq": 513,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "fft_size": 1024,       // number of stft frequency levels. Size of the linear spectogram frame.
         "sample_rate": 22050,   // wav sample-rate. If different than the original data, it is resampled.
         "frame_length_ms": null,  // stft window length in ms.
         "frame_shift_ms": null, // stft window hop-lengh in ms.
@@ -51,5 +51,15 @@
     "output_path": "result",
     "min_seq_len": 0,
     "max_seq_len": 300,
-    "log_dir": "tests/outputs/"
+    "log_dir": "tests/outputs/",
+
+    "use_speaker_embedding": false,     
+    "use_gst": false,       			    
+    "gst":	{			                
+        "gst_style_input": null,        
+        "gst_embedding_dim": 512,       
+        "gst_num_heads": 4,
+        "gst_style_tokens": 10
+	},  
+
     }
