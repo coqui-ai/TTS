@@ -52,7 +52,7 @@ if not args.tts_config and os.path.isfile(tts_config_file):
     args.tts_config = tts_config_file
 
 if not args.vocoder_checkpoint and os.path.isfile(vocoder_checkpoint_file):
-    args.vocoder_file = vocoder_checkpoint_file
+    args.vocoder_checkpoint = vocoder_checkpoint_file
 if not args.vocoder_config and os.path.isfile(vocoder_config_file):
     args.vocoder_config = vocoder_config_file
 
