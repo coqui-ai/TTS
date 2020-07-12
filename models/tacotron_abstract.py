@@ -177,8 +177,7 @@ class TacotronAbstract(ABC, nn.Module):
         elif style_input is None:
             gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
         else:
-            # pylint: disable=not-callable
-            gst_outputs = self.gst_layer(style_input)
+            gst_outputs = self.gst_layer(style_input) # pylint: disable=not-callable     
         embedded_gst = gst_outputs.repeat(1, inputs.size(1), 1)
         return inputs, embedded_gst
 
