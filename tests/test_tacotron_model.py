@@ -31,7 +31,7 @@ class TacotronTrainTest(unittest.TestCase):
         input_lengths = torch.randint(100, 129, (8, )).long().to(device)
         input_lengths[-1] = 128
         mel_spec = torch.rand(8, 30, c.audio['num_mels']).to(device)
-        linear_spec = torch.rand(8, 30, c.audio['num_freq']).to(device)
+        linear_spec = torch.rand(8, 30, c.audio['fft_size']).to(device)
         mel_lengths = torch.randint(20, 30, (8, )).long().to(device)
         stop_targets = torch.zeros(8, 30, 1).float().to(device)
         speaker_ids = torch.randint(0, 5, (8, )).long().to(device)
@@ -49,7 +49,7 @@ class TacotronTrainTest(unittest.TestCase):
         model = Tacotron(
             num_chars=32,
             num_speakers=5,
-            postnet_output_dim=c.audio['num_freq'],
+            postnet_output_dim=c.audio['fft_size'],
             decoder_output_dim=c.audio['num_mels'],
             r=c.r,
             memory_size=c.memory_size
@@ -93,7 +93,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
         input_lengths = torch.randint(100, 129, (8, )).long().to(device)
         input_lengths[-1] = 128
         mel_spec = torch.rand(8, 120, c.audio['num_mels']).to(device)
-        linear_spec = torch.rand(8, 120, c.audio['num_freq']).to(device)
+        linear_spec = torch.rand(8, 120, c.audio['fft_size']).to(device)
         mel_lengths = torch.randint(20, 120, (8, )).long().to(device)
         mel_lengths[-1] = 120
         stop_targets = torch.zeros(8, 120, 1).float().to(device)
@@ -113,7 +113,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
             num_chars=32,
             num_speakers=5,
             gst=True,
-            postnet_output_dim=c.audio['num_freq'],
+            postnet_output_dim=c.audio['fft_size'],
             decoder_output_dim=c.audio['num_mels'],
             r=c.r,
             memory_size=c.memory_size

@@ -83,6 +83,14 @@
     "use_phonemes": false,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
     "text_cleaner": "phoneme_cleaners",
-    "use_speaker_embedding": false // whether to use additional embeddings for separate speakers
+    "use_speaker_embedding": false, // whether to use additional embeddings for separate speakers
+    "use_gst": false,       			    
+    "gst":	{			                
+        "gst_style_input": null,        
+        "gst_embedding_dim": 256,       
+        "gst_num_heads": 4,
+        "gst_style_tokens": 10
+	}
 }
+
 

@@ -51,14 +51,5 @@
     "output_path": "result",
     "min_seq_len": 0,
     "max_seq_len": 300,
-    "log_dir": "tests/outputs/",
-
-    "use_speaker_embedding": false,     
-    "use_gst": false,       			    
-    "gst":	{			                
-        "gst_style_input": null,        
-        "gst_embedding_dim": 512,       
-        "gst_num_heads": 4,
-        "gst_style_tokens": 10
-	}
+    "log_dir": "tests/outputs/"
     }
