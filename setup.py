@@ -82,7 +82,7 @@ requirements = {
         "numpy>=1.16.0",
         "numba==0.48",
         "scipy>=0.19.0",
-        "librosa==0.6.2",
+        "librosa==0.7.2",
         "unidecode==0.4.20",
         "attrdict",
         "tensorboardX",
