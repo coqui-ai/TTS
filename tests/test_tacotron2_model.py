@@ -20,7 +20,12 @@ c = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 
 
 class TacotronTrainTest(unittest.TestCase):
+<<<<<<< HEAD
     def test_train_step(self):  # pylint: disable=no-self-use
+=======
+    @staticmethod
+    def test_train_step():
+>>>>>>> small gst config change
         input_dummy = torch.randint(0, 24, (8, 128)).long().to(device)
         input_lengths = torch.randint(100, 128, (8, )).long().to(device)
         input_lengths = torch.sort(input_lengths, descending=True)[0]
