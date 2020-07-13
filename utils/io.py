@@ -13,7 +13,7 @@ class AttrDict(dict):
 
 def load_config(config_path):
     config = AttrDict()
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding = "utf-8") as f:
         input_str = f.read()
     input_str = re.sub(r'\\\n', '', input_str)
     input_str = re.sub(r'//.*\n', '\n', input_str)
@@ -23,7 +23,7 @@ def load_config(config_path):
 
 
 def copy_config_file(config_file, out_path, new_fields):
-    config_lines = open(config_file, "r").readlines()
+    config_lines = open(config_file, "r", encoding = "utf-8").readlines()
     # add extra information fields
     for key, value in new_fields.items():
         if isinstance(value, str):
