@@ -92,7 +92,7 @@ def transliteration_cleaners(text):
 
 
 def basic_german_cleaners(text):
-    '''Pipeline for Turkish text'''
+    '''Pipeline for German text'''
     text = lowercase(text)
     text = collapse_whitespace(text)
     return text
