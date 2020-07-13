@@ -91,6 +91,7 @@ requirements = {
         "flask",
         "tqdm",
         "inflect",
+        "pysbd",
         "bokeh==1.4.0",
         "soundfile",
         "phonemizer>=2.2.0",
