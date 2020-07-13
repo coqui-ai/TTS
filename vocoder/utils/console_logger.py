@@ -55,7 +55,7 @@ class ConsoleLogger():
     def print_train_epoch_end(self, global_step, epoch, epoch_time,
                               print_dict):
         indent = "     | > "
-        log_text = f"\n{tcolors.BOLD}   --> TRAIN PERFORMACE -- EPOCH TIME: {epoch_time} sec -- GLOBAL_STEP: {global_step}{tcolors.ENDC}\n"
+        log_text = f"\n{tcolors.BOLD}   --> TRAIN PERFORMACE -- EPOCH TIME: {epoch_time:.2f} sec -- GLOBAL_STEP: {global_step}{tcolors.ENDC}\n"
         for key, value in print_dict.items():
             log_text += "{}{}: {:.5f}\n".format(indent, key, value)
         print(log_text, flush=True)
