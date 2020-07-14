@@ -109,3 +109,20 @@ class MelganGenerator(tf.keras.models.Model):
     def build_inference(self):
         x = tf.random.uniform((1, self.in_channels, 4), dtype=tf.float32)
         self(x, training=False)
+
+    @tf.function(
+        experimental_relax_shapes=True,
+        input_signature=[
+            tf.TensorSpec([1, None, None], dtype=tf.float32),
+        ],)
+    def inference_tflite(self, c):
+        c = tf.transpose(c, perm=[0, 2, 1])
+        c = tf.expand_dims(c, 2)
+        # FIXME: TF had no replicate padding as in Torch
+        # c = tf.pad(c, [[0, 0], [self.inference_padding, self.inference_padding], [0, 0], [0, 0]], "REFLECT")
+        o = c
+        for layer in self.model_layers:
+            o = layer(o)
+        # o = self.model_layers(c)
+        o = tf.transpose(o, perm=[0, 3, 2, 1])
+        return o[:, :, 0, :]
