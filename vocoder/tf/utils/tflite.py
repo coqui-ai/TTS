@@ -1,10 +1,9 @@
 import tensorflow as tf
 
 
-
 def convert_melgan_to_tflite(model,
-                                output_path=None,
-                                experimental_converter=True):
+                             output_path=None,
+                             experimental_converter=True):
     """Convert Tensorflow MelGAN model to TFLite. Save a binary file if output_path is
     provided, else return TFLite model."""
 
@@ -24,6 +23,7 @@ def convert_melgan_to_tflite(model,
             f.write(tflite_model)
         return None
     return tflite_model
+
 
 def load_tflite_model(tflite_path):
     tflite_model = tf.lite.Interpreter(model_path=tflite_path)
