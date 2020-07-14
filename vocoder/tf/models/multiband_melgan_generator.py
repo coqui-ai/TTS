@@ -30,12 +30,24 @@ class MultibandMelganGenerator(MelganGenerator):
     def pqmf_synthesis(self, x):
         return self.pqmf_layer.synthesis(x)
 
-    # def call(self, c, training=False):
-    #     if training:
-    #         raise NotImplementedError()
-    #     return self.inference(c)
-
     def inference(self, c):
+        c = tf.transpose(c, perm=[0, 2, 1])
+        c = tf.expand_dims(c, 2)
+        # FIXME: TF had no replicate padding as in Torch
+        # c = tf.pad(c, [[0, 0], [self.inference_padding, self.inference_padding], [0, 0], [0, 0]], "REFLECT")
+        o = c
+        for layer in self.model_layers:
+            o = layer(o)
+        o = tf.transpose(o, perm=[0, 3, 2, 1])
+        o = self.pqmf_layer.synthesis(o[:, :, 0, :])
+        return o
+
+    @tf.function(
+        experimental_relax_shapes=True,
+        input_signature=[
+            tf.TensorSpec([1, 80, None], dtype=tf.float32),
+        ],)
+    def inference_tflite(self, c):
         c = tf.transpose(c, perm=[0, 2, 1])
         c = tf.expand_dims(c, 2)
         # FIXME: TF had no replicate padding as in Torch
