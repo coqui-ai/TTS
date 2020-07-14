@@ -51,7 +51,7 @@ class PQMF(tf.keras.layers.Layer):
 
     def synthesis(self, x):
         """
-        x : B x 1 x T
+        x : B x D x T
         """
         x = tf.transpose(x, perm=[0, 2, 1])
         x = tf.nn.conv1d_transpose(

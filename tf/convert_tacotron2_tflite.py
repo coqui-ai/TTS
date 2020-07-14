@@ -35,5 +35,3 @@ model.decoder.set_max_decoder_steps(1000)
 
 # create tflite model
 tflite_model = convert_tacotron2_to_tflite(model, output_path=args.output_path)
-
-print(f'Tflite Model size is {len(tflite_model) / (1024.0 * 1024.0)} MBs.')

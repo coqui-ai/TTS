@@ -16,6 +16,7 @@ def convert_tacotron2_to_tflite(model,
         tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
     ]
     tflite_model = converter.convert()
+    print(f'Tflite Model size is {len(tflite_model) / (1024.0 * 1024.0)} MBs.')
     if output_path is not None:
         # same model binary if outputpath is provided
         with open(output_path, 'wb') as f:
