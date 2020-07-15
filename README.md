@@ -1,10 +1,10 @@
 <p align="center"><img src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png =250x250)
 " width="320" height="95" /></p>
 
-<center>
-<img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
-[![Discourse](https://img.shields.io/badge/discourse-online-green.svg)](https://discourse.mozilla.org/c/tts)
-</center>
+<p align='center'>
+    <img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
+    <a href='https://discourse.mozilla.org/c/tts'><img src="https://img.shields.io/badge/discourse-online-green.svg"/></a>
+</p>
 
 This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
 
