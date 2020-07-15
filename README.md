@@ -116,9 +116,11 @@ Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-articl
 ## [Mozilla TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloader easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.
+TTS provides a generic dataloader easy to use for your custom dataset. 
+You just need to write a simple function to format the dataset. Check ```datasets/preprocess.py``` to see some examples. 
+After that, you need to set ```dataset``` fields in ```config.json```.
 
-Some of the open-sourced datasets that we successfully applied TTS, are linked below.
+Some of the public datasets that we successfully applied TTS:
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
