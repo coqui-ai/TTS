@@ -124,6 +124,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
             y_hat_vis = y_hat
             y_G_sub = model_G.pqmf_analysis(y_G)
 
+        scores_fake, feats_fake, feats_real = None, None, None
         if global_step > c.steps_to_start_discriminator:
 
             # run D with or without cond. features
@@ -146,8 +147,6 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
                     _, feats_real = D_out_real
             else:
                 scores_fake = D_out_fake
-        else:
-            scores_fake, feats_fake, feats_real = None, None, None
 
         # compute losses
         loss_G_dict = criterion_G(y_hat, y_G, scores_fake, feats_fake,
@@ -328,6 +327,7 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
             y_G_sub = model_G.pqmf_analysis(y_G)
 
 
+        scores_fake, feats_fake, feats_real = None, None, None
         if global_step > c.steps_to_start_discriminator:
 
             if len(signature(model_D.forward).parameters) == 2:
@@ -349,8 +349,7 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
                     _, feats_real = D_out_real
             else:
                 scores_fake = D_out_fake
-        else:
-            scores_fake, feats_fake, feats_real = None, None, None
+                feats_fake, feats_real = None, None
 
         # compute losses
         loss_G_dict = criterion_G(y_hat, y_G, scores_fake, feats_fake,
