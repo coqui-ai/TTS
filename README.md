@@ -156,8 +156,6 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
-## [Testing and Examples](https://github.com/mozilla/TTS/wiki/Examples-using-TTS)
-
 ## Contribution guidelines
 This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
 
