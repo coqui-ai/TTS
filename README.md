@@ -6,7 +6,9 @@
     <a href='https://discourse.mozilla.org/c/tts'><img src="https://img.shields.io/badge/discourse-online-green.svg"/></a>
 </p>
 
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). 
+
+Mozilla TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
 
 You can check some of synthesized voice samples from [here](https://erogol.github.io/ddc-samples/).
 
