@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from TTS.tests import get_tests_path, get_tests_input_path, get_tests_output_path
+from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
 
@@ -10,7 +10,7 @@ OUT_PATH = os.path.join(get_tests_output_path(), "audio_tests")
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
 os.makedirs(OUT_PATH, exist_ok=True)
-conf = load_config(os.path.join(TESTS_PATH, 'test_config.json'))
+conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 
 
 # pylint: disable=protected-access

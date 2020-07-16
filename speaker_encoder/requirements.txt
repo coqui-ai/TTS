@@ -1,2 +1,0 @@
-umap-learn
-numpy>=1.17.0

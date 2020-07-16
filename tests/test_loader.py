@@ -4,18 +4,18 @@ import shutil
 import torch
 import numpy as np
 
+from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from torch.utils.data import DataLoader
 from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
-from TTS.datasets import TTSDataset
-from TTS.datasets.preprocess import ljspeech
+from TTS.tts.datasets import TTSDataset
+from TTS.tts.datasets.preprocess import ljspeech
 
 #pylint: disable=unused-variable
 
-file_path = os.path.dirname(os.path.realpath(__file__))
-OUTPATH = os.path.join(file_path, "outputs/loader_tests/")
+OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
-c = load_config(os.path.join(file_path, 'test_config.json'))
+c = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 ok_ljspeech = os.path.exists(c.data_path)
 
 DATA_EXIST = True

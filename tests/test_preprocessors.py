@@ -1,8 +1,8 @@
 import unittest
 import os
-from TTS.tests import get_tests_input_path
+from tests import get_tests_input_path
 
-from TTS.datasets.preprocess import common_voice
+from TTS.tts.datasets.preprocess import common_voice
 
 
 class TestPreprocessors(unittest.TestCase):

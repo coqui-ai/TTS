@@ -3,12 +3,12 @@ import os
 # pylint: disable=wildcard-import
 # pylint: disable=unused-import
 import unittest
-from TTS.utils.text import *
-from TTS.tests import get_tests_path
+from tests import get_tests_input_path
+from TTS.tts.utils.text import *
+from tests import get_tests_path
 from TTS.utils.io import load_config
 
-TESTS_PATH = get_tests_path()
-conf = load_config(os.path.join(TESTS_PATH, 'test_config.json'))
+conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 
 def test_phoneme_to_sequence():
     text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
@@ -19,7 +19,7 @@ def test_phoneme_to_sequence():
     sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "ɹiːsənt ɹɪsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪnkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹɪspɑːnsəbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjuːleɪʃən ænd lɜːnɪŋ!"
-    assert text_hat == text_hat_with_params == gt 
+    assert text_hat == text_hat_with_params == gt
 
     # multiple punctuations
     text = "Be a voice, not an! echo?"
