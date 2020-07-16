@@ -56,11 +56,11 @@ class develop(setuptools.command.develop.develop):
 
 
 # The documentation for this feature is in server/README.md
-package_data = ['server/templates/*']
+package_data = ['TTS/server/templates/*']
 
 if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
     print('Embedding model in wheel file...')
-    model_dir = os.path.join('server', 'model')
+    model_dir = os.path.join('TTS', 'server', 'model')
     tts_dir = os.path.join(model_dir, 'tts')
     os.makedirs(tts_dir, exist_ok=True)
     embedded_checkpoint_path = os.path.join(tts_dir, 'checkpoint.pth.tar')
