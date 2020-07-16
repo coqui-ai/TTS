@@ -1,9 +1,14 @@
 <p align="center"><img src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png =250x250)
 " width="320" height="95" /></p>
 
-<img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
+<p align='center'>
+    <img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
+    <a href='https://discourse.mozilla.org/c/tts'><img src="https://img.shields.io/badge/discourse-online-green.svg"/></a>
+</p>
 
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). 
+
+Mozilla TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
 
 You can check some of synthesized voice samples from [here](https://erogol.github.io/ddc-samples/).
 
@@ -38,25 +43,26 @@ Vocoders:
 You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
 ## Features
-- High performance Deep Learning models for Text2Speech related tasks.
-    - Text2Speech models (Tacotron, Tacotron2).
+- High performance Deep Learning models for Text2Speech tasks.
+    - Text2Spec models (Tacotron, Tacotron2).
     - Speaker Encoder to compute speaker embeddings efficiently.
-    - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS)
-- Support for multi-speaker TTS training.
-- Support for Multi-GPUs training.
-- Ability to convert Torch models to Tensorflow 2.0 for inference.
-- Released pre-trained models.
+    - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS, ParallelWaveGAN)
 - Fast and efficient model training.
 - Detailed training logs on console and Tensorboard.
+- Support for multi-speaker TTS.
+- Efficient Multi-GPUs training.
+- Ability to convert PyTorch models to Tensorflow 2.0 and TFLite for inference.
+- Released models in PyTorch, Tensorflow and TFLite.
 - Tools to curate Text2Speech datasets under```dataset_analysis```.
 - Demo server for model testing.
 - Notebooks for extensive model benchmarking.
 - Modular (but not too much) code base enabling easy testing for new ideas.
 
-## Requirements and Installation
+## Main Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
   * python>=3.6
-  * pytorch>=0.4.1
+  * pytorch>=1.4.1
+  * tensorflow>=2.2
   * librosa
   * tensorboard
   * tensorboardX
@@ -107,26 +113,14 @@ Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-articl
 
 <img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
 
-## Runtime
-The most time-consuming part is the vocoder algorithm (Griffin-Lim) which runs on CPU. By setting its number of iterations lower, you might have faster execution with a small loss of quality. Some of the experimental values are below.
-
-Sentence: "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent."
-
-Audio length is approximately 6 secs.
-
-| Time (secs) | System | # GL iters | Model
-| ---- |:-------|:-----------| ---- |
-|2.00|GTX1080Ti|30|Tacotron|
-|3.01|GTX1080Ti|60|Tacotron|
-|3.57|CPU|60|Tacotron|
-|5.27|GTX1080Ti|60|Tacotron2|
-|6.50|CPU|60|Tacotron2|
-
+## [Mozilla TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloader easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.
+TTS provides a generic dataloader easy to use for your custom dataset. 
+You just need to write a simple function to format the dataset. Check ```datasets/preprocess.py``` to see some examples. 
+After that, you need to set ```dataset``` fields in ```config.json```.
 
-Some of the open-sourced datasets that we successfully applied TTS, are linked below.
+Some of the public datasets that we successfully applied TTS:
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
@@ -163,8 +157,6 @@ Each run creates a new output folder and ```config.json``` is copied under this 
 In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
-
-## [Testing and Examples](https://github.com/mozilla/TTS/wiki/Examples-using-TTS)
 
 ## Contribution guidelines
 This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
