@@ -17,5 +17,9 @@ matrix:
     python: "3.6"
     install: pip install --quiet -r requirements_tests.txt
     env: TEST_SUITE="unittest"
+  - name: "Unit tests"
+    python: "3.6"
+    install: pip install --quiet -r requirements_tests.txt
+    env: TEST_SUITE="testscripts"
 
 script: ./.travis/script

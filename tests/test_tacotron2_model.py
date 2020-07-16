@@ -1,14 +1,14 @@
-import os
 import copy
-import torch
+import os
 import unittest
-import numpy as np
 
-from torch import optim
-from torch import nn
+import torch
+from tests import get_tests_input_path
+from torch import nn, optim
+
+from TTS.tts.layers.losses import MSELossMasked
+from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.utils.io import load_config
-from TTS.layers.losses import MSELossMasked
-from TTS.models.tacotron2 import Tacotron2
 
 #pylint: disable=unused-variable
 
@@ -16,8 +16,7 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-file_path = os.path.dirname(os.path.realpath(__file__))
-c = load_config(os.path.join(file_path, 'test_config.json'))
+c = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 
 
 class TacotronTrainTest(unittest.TestCase):

@@ -1,9 +1,9 @@
 import unittest
 import torch as T
 
-from TTS.layers.tacotron import Prenet, CBHG, Decoder, Encoder
-from TTS.layers.losses import L1LossMasked
-from TTS.utils.generic_utils import sequence_mask
+from TTS.tts.layers.tacotron import Prenet, CBHG, Decoder, Encoder
+from TTS.tts.layers.losses import L1LossMasked
+from TTS.tts.utils.generic_utils import sequence_mask
 
 # pylint: disable=unused-variable
 
