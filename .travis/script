@@ -11,12 +11,7 @@ fi
 
 if [[ "$TEST_SUITE" == "unittest" ]]; then
   # Run tests on all pushes
-  pushd tts_namespace
-  nosetests TTS.speaker_encoder.tests --nocapture
-  nosetests TTS.vocoder.tests --nocapture
-  nosetests TTS.tts.tests --nocapture
-  nosetests TTS.tts.tf.tests --nocapture
-  popd
+  nosetests tests --nocapture
 fi
 
 if [[ "$TEST_SUITE" == "testscripts" ]]; then
