@@ -3,10 +3,9 @@
 import argparse
 
 from TTS.utils.io import load_config
-from TTS.utils.text.symbols import symbols, phonemes
-from TTS.tf.utils.generic_utils import setup_model
-from TTS.tf.utils.io import load_checkpoint
-from TTS.tf.utils.tflite import convert_tacotron2_to_tflite
+from TTS.vocoder.tf.utils.generic_utils import setup_generator
+from TTS.vocoder.tf.utils.io import load_checkpoint
+from TTS.vocoder.tf.utils.tflite import convert_melgan_to_tflite
 
 
 parser = argparse.ArgumentParser()
@@ -25,13 +24,10 @@ args = parser.parse_args()
 CONFIG = load_config(args.config_path)
 
 # load the model
-c = CONFIG
-num_speakers = 0
-num_chars = len(phonemes) if c.use_phonemes else len(symbols)
-model = setup_model(num_chars, num_speakers, c, enable_tflite=True)
+model = setup_generator(CONFIG)
 model.build_inference()
 model = load_checkpoint(model, args.tf_model)
-model.decoder.set_max_decoder_steps(1000)
 
 # create tflite model
-tflite_model = convert_tacotron2_to_tflite(model, output_path=args.output_path)
+tflite_model = convert_melgan_to_tflite(model, output_path=args.output_path)
+

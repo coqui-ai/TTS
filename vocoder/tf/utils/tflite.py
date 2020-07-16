@@ -1,17 +1,17 @@
 import tensorflow as tf
 
 
-def convert_tacotron2_to_tflite(model,
-                                output_path=None,
-                                experimental_converter=True):
-    """Convert Tensorflow Tacotron2 model to TFLite. Save a binary file if output_path is
+def convert_melgan_to_tflite(model,
+                             output_path=None,
+                             experimental_converter=True):
+    """Convert Tensorflow MelGAN model to TFLite. Save a binary file if output_path is
     provided, else return TFLite model."""
 
     concrete_function = model.inference_tflite.get_concrete_function()
     converter = tf.lite.TFLiteConverter.from_concrete_functions(
         [concrete_function])
     converter.experimental_new_converter = experimental_converter
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.optimizations = []
     converter.target_spec.supported_ops = [
         tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
     ]
