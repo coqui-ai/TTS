@@ -16,8 +16,8 @@ fi
 
 if [[ "$TEST_SUITE" == "testscripts" ]]; then
   # Test server package
-  ./tts/tests/test_server_package.sh
+  ./tests/test_server_package.sh
   # test model training scripts
-  ./tts/tests/test_tts_train.sh
-  ./vocoder/tests/test_vocoder_train.sh
+  ./tests/test_tts_train.sh
+  ./tests/test_vocoder_train.sh
 fi
