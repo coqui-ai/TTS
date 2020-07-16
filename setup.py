@@ -103,7 +103,7 @@ requirements = {
         'gdown'
     ],
     'pip_install':[
-        'tensorflow>=2.2.0',
+        'tensorflow==2.3.0rc0',
     ]
 }
 
