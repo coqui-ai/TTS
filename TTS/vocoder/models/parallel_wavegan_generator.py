@@ -121,6 +121,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
 
         return x
 
+    @torch.no_grad()
     def inference(self, c):
         c = c.to(self.first_conv.weight.device)
         c = torch.nn.functional.pad(
