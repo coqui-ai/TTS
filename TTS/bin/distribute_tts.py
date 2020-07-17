@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os, sys
+import pathlib
+import time
+import subprocess
+import argparse
+import torch
+
+
 def main():
     """
     Call train.py as a new process and pass command arguments
@@ -25,15 +33,12 @@ def main():
     )
     args = parser.parse_args()
 
-    # OUT_PATH = create_experiment_folder(CONFIG.output_path, CONFIG.run_name,
-                                        # True)
-    # stdout_path = os.path.join(OUT_PATH, "process_stdout/")
-
     num_gpus = torch.cuda.device_count()
     group_id = time.strftime("%Y_%m_%d-%H%M%S")
 
     # set arguments for train.py
-    command = ['train.py']
+    folder_path =pathlib.Path(__file__).parent.absolute()
+    command = [os.path.join(folder_path,'train_tts.py')]
     command.append('--continue_path={}'.format(args.continue_path))
     command.append('--restore_path={}'.format(args.restore_path))
     command.append('--config_path={}'.format(args.config_path))
