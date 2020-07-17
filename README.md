@@ -217,3 +217,4 @@ If you like to use TTS to try a new idea and like to share your experiments with
 ### References
 - https://github.com/keithito/tacotron (Dataset pre-processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
+- https://github.com/kan-bayashi/ParallelWaveGAN (vocoder library)
