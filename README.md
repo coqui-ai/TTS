@@ -201,7 +201,7 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - [x] Enable process based distributed training. Similar to (https://github.com/fastai/imagenet-fast/).
 - [x] Adapting Neural Vocoder. TTS works with WaveRNN and ParallelWaveGAN (https://github.com/erogol/WaveRNN and https://github.com/erogol/ParallelWaveGAN)
 - [ ] Multi-speaker embedding.
-- [ ] Model optimization (model export, model pruning etc.)
+- [x] Model optimization (model export, model pruning etc.)
 
 <!--## References
 - [Efficient Neural Audio Synthesis](https://arxiv.org/pdf/1802.08435.pdf)
