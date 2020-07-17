@@ -84,18 +84,22 @@ Or you can use ```requirements.txt``` to install the requirements only.
 
 ### Directory Structure
 ```
-|- TTS/
-|   |- train.py         (train your TTS model.)
-|   |- distribute.py    (train your TTS model using Multiple GPUs)
-|   |- config.json      (TTS model configuration file)
-|   |- tf/              (Tensorflow 2 utilities and model implementations)
-|   |- layers/          (model layer definitions)
-|   |- models/          (model definitions)
-|   |- notebooks/       (Jupyter Notebooks for model evaluation and parameter selection)
-|   |- data_analysis/   (TTS Dataset analysis tools and notebooks.)
-|   |- utils/           (TTS utilities -io, visualization, data processing etc.-)
-|   |- speaker_encoder/ (Speaker Encoder implementation with the same folder structure.)
-|   |- vocoder/         (Vocoder implementations with the same folder structure.)
+|- bin/             (folder for all the executables.)
+   |- train*.py                  (train your target model.)
+   |- distribute.py              (train your TTS model using Multiple GPUs.)
+   |- compute_statistics.py      (compute dataset statistics for normalization.)
+   |- convert*.py                (convert target torch model to TF.)
+|- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
+|- utils/           (common utilities.)
+|- tts/             (text to speech models)
+    |- layers/          (model layer definitions)
+    |- models/          (model definitions)
+    |- tf/              (Tensorflow 2 utilities and model implementations)
+    |- utils/           (model specific utilities.)
+|- speaker_encoder/ (Speaker Encoder models.)
+    |- (same)
+|- vocoder/         (Vocoder models.)
+    |- (same)
 ```
 
 ### Docker
