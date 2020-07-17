@@ -22,9 +22,9 @@ def test_pwgan_generator():
         use_causal_conv=False,
         upsample_conditional_features=True,
         upsample_factors=[4, 4, 4, 4])
-    dummy_c = torch.rand((4, 80, 64))
+    dummy_c = torch.rand((2, 80, 5))
     output = model(dummy_c)
-    assert np.all(output.shape == (4, 1, 64 * 256))
+    assert np.all(output.shape == (2, 1, 5 * 256)), output.shape
     model.remove_weight_norm()
     output = model.inference(dummy_c)
-    assert np.all(output.shape == (4, 1, (64 + 4) * 256))
+    assert np.all(output.shape == (2, 1, (5 + 4) * 256))
