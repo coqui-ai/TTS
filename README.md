@@ -1,12 +1,14 @@
 <p align="center"><img src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png =250x250)
 " width="320" height="95" /></p>
 
-<center>
-<img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
-[![Discourse](https://img.shields.io/badge/discourse-online-green.svg)](https://discourse.mozilla.org/c/tts)
-</center>
+<p align='center'>
+    <img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
+    <a href='https://discourse.mozilla.org/c/tts'><img src="https://img.shields.io/badge/discourse-online-green.svg"/></a>
+</p>
 
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). 
+
+Mozilla TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
 
 You can check some of synthesized voice samples from [here](https://erogol.github.io/ddc-samples/).
 
@@ -114,9 +116,11 @@ Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-articl
 ## [Mozilla TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloader easy to use for new datasets. You need to write an preprocessor function to integrate your own dataset.Check ```datasets/preprocess.py``` to see some examples. After the function, you need to set ```dataset``` field in ```config.json```. Do not forget other data related fields too.
+TTS provides a generic dataloader easy to use for your custom dataset. 
+You just need to write a simple function to format the dataset. Check ```datasets/preprocess.py``` to see some examples. 
+After that, you need to set ```dataset``` fields in ```config.json```.
 
-Some of the open-sourced datasets that we successfully applied TTS, are linked below.
+Some of the public datasets that we successfully applied TTS:
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
@@ -153,8 +157,6 @@ Each run creates a new output folder and ```config.json``` is copied under this 
 In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
-
-## [Testing and Examples](https://github.com/mozilla/TTS/wiki/Examples-using-TTS)
 
 ## Contribution guidelines
 This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
