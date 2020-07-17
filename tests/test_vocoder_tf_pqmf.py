@@ -4,7 +4,7 @@ import tensorflow as tf
 import soundfile as sf
 from librosa.core import load
 
-from TTS.tests import get_tests_path, get_tests_input_path
+from tests import get_tests_path, get_tests_input_path
 from TTS.vocoder.tf.layers.pqmf import PQMF
 
 
