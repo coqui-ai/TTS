@@ -84,22 +84,23 @@ Or you can use ```requirements.txt``` to install the requirements only.
 
 ### Directory Structure
 ```
-|- bin/             (folder for all the executables.)
-   |- train*.py                  (train your target model.)
-   |- distribute.py              (train your TTS model using Multiple GPUs.)
-   |- compute_statistics.py      (compute dataset statistics for normalization.)
-   |- convert*.py                (convert target torch model to TF.)
 |- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
 |- utils/           (common utilities.)
-|- tts/             (text to speech models)
-    |- layers/          (model layer definitions)
-    |- models/          (model definitions)
-    |- tf/              (Tensorflow 2 utilities and model implementations)
-    |- utils/           (model specific utilities.)
-|- speaker_encoder/ (Speaker Encoder models.)
-    |- (same)
-|- vocoder/         (Vocoder models.)
-    |- (same)
+|- TTS
+    |- bin/             (folder for all the executables.)
+      |- train*.py                  (train your target model.)
+      |- distribute.py              (train your TTS model using Multiple GPUs.)
+      |- compute_statistics.py      (compute dataset statistics for normalization.)
+      |- convert*.py                (convert target torch model to TF.)
+    |- tts/             (text to speech models)
+        |- layers/          (model layer definitions)
+        |- models/          (model definitions)
+        |- tf/              (Tensorflow 2 utilities and model implementations)
+        |- utils/           (model specific utilities.)
+    |- speaker_encoder/ (Speaker Encoder models.)
+        |- (same)
+    |- vocoder/         (Vocoder models.)
+        |- (same)
 ```
 
 ### Docker
@@ -110,10 +111,10 @@ docker build -t mozilla-tts .
 nvidia-docker run -it --rm -p 5002:5002 mozilla-tts
 ```
 
-## Checkpoints and Audio Samples
+## Release Models
 Please visit [our wiki.](https://github.com/mozilla/TTS/wiki/Released-Models)
 
-## Example Model Outputs
+## Sample Model Output
 Below you see Tacotron model state after 16K iterations with batch-size 32 with LJSpeech dataset.
 
 > "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase the grey matter in the parts of the brain responsible for emotional regulation and learning."
@@ -151,15 +152,19 @@ tail -n 1100 metadata_shuf.csv > metadata_val.csv
 
 To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below. You also set the model architecture in  ```config.json```.
 
-```train.py --config_path config.json```
+```python TTS/bin/train.py --config_path TTS/tts/configs/config.json```
 
 To fine-tune a model, use ```--restore_path```.
 
-```train.py --config_path config.json --restore_path /path/to/your/model.pth.tar```
+```python TTS/bin/train.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
+
+To continue an old training run, use ```--continue_path```.
+
+```python TTS/bin/train.py --continue_path /path/to/your/run_folder/```
 
 For multi-GPU training use ```distribute.py```. It enables process based multi-GPU training where each process uses a single GPU.
 
-```CUDA_VISIBLE_DEVICES="0,1,4" distribute.py --config_path config.json```
+```CUDA_VISIBLE_DEVICES="0,1,4" TTS/bin/distribute.py --config_path TTS/tts/configs/config.json```
 
 Each run creates a new output folder and ```config.json``` is copied under this folder.
 
