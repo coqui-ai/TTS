@@ -1,53 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import argparse
+import json
 # pylint: disable=redefined-outer-name, unused-argument
 import os
-import time
-import argparse
-import torch
-import json
 import string
+import time
 
-from TTS.tts.utils.synthesis import synthesis
+import torch
+
 from TTS.tts.utils.generic_utils import setup_model
-from TTS.tts.utils.io import load_config
-from TTS.tts.utils.text.symbols import make_symbols, symbols, phonemes
-from TTS.tts.utils.audio import AudioProcessor
+from TTS.tts.utils.synthesis import synthesis
+from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_config
+from TTS.vocoder.utils.generic_utils import setup_generator
 
 
-def tts(model,
-        vocoder_model,
-        C,
-        VC,
-        text,
-        ap,
-        ap_vocoder,
-        use_cuda,
-        batched_vocoder,
-        speaker_id=None,
-        figures=False):
+def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_id):
     t_1 = time.time()
-    use_vocoder_model = vocoder_model is not None
-    waveform, alignment, _, postnet_output, stop_tokens, _ = synthesis(
-        model, text, C, use_cuda, ap, speaker_id, style_wav=False,
-        truncated=False, enable_eos_bos_chars=C.enable_eos_bos_chars,
-        use_griffin_lim=(not use_vocoder_model), do_trim_silence=True)
-
-    if C.model == "Tacotron" and use_vocoder_model:
-        postnet_output = ap.out_linear_to_mel(postnet_output.T).T
-    # correct if there is a scale difference b/w two models
-    if use_vocoder_model:
-        postnet_output = ap._denormalize(postnet_output)
-        postnet_output = ap_vocoder._normalize(postnet_output)
-        vocoder_input = torch.FloatTensor(postnet_output.T).unsqueeze(0)
-        waveform = vocoder_model.generate(
-            vocoder_input.cuda() if use_cuda else vocoder_input,
-            batched=batched_vocoder,
-            target=8000,
-            overlap=400)
-    print(" >  Run-time: {}".format(time.time() - t_1))
-    return alignment, postnet_output, stop_tokens, waveform
+    waveform, _, _, mel_postnet_spec, stop_tokens, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_id, None, False, CONFIG.enable_eos_bos_chars, use_gl)
+    if CONFIG.model == "Tacotron" and not use_gl:
+        mel_postnet_spec = ap.out_linear_to_mel(mel_postnet_spec.T).T
+    if not use_gl:
+        waveform = vocoder_model.inference(torch.FloatTensor(mel_postnet_spec.T).unsqueeze(0))
+    if use_cuda and not use_gl:
+        waveform = waveform.cpu()
+    if not use_gl:
+        waveform = waveform.numpy()
+    waveform = waveform.squeeze()
+    rtf = (time.time() - t_1) / (len(waveform) / ap.sample_rate)
+    tps = (time.time() - t_1) / len(waveform)
+    print(" > Run-time: {}".format(time.time() - t_1))
+    print(" > Real-time factor: {}".format(rtf))
+    print(" > Time per step: {}".format(tps))
+    return waveform
 
 
 if __name__ == "__main__":
@@ -100,10 +88,6 @@ if __name__ == "__main__":
         default=None)
     args = parser.parse_args()
 
-    if args.vocoder_path != "":
-        assert args.use_cuda, " [!] Enable cuda for vocoder."
-        from WaveRNN.models.wavernn import Model as VocoderModel
-
     # load the config
     C = load_config(args.config_path)
     C.forward_attn_mask = True
@@ -125,7 +109,7 @@ if __name__ == "__main__":
     # load the model
     num_chars = len(phonemes) if C.use_phonemes else len(symbols)
     model = setup_model(num_chars, num_speakers, C)
-    cp = torch.load(args.model_path)
+    cp = torch.load(args.model_path, map_location=torch.device('cpu'))
     model.load_state_dict(cp['model'])
     model.eval()
     if args.use_cuda:
@@ -135,46 +119,20 @@ if __name__ == "__main__":
     # load vocoder model
     if args.vocoder_path != "":
         VC = load_config(args.vocoder_config_path)
-        ap_vocoder = AudioProcessor(**VC.audio)
-        bits = 10
-        vocoder_model = VocoderModel(rnn_dims=512,
-                                     fc_dims=512,
-                                     mode=VC.mode,
-                                     mulaw=VC.mulaw,
-                                     pad=VC.pad,
-                                     upsample_factors=VC.upsample_factors,
-                                     feat_dims=VC.audio["num_mels"],
-                                     compute_dims=128,
-                                     res_out_dims=128,
-                                     res_blocks=10,
-                                     hop_length=ap.hop_length,
-                                     sample_rate=ap.sample_rate,
-                                     use_aux_net=True,
-                                     use_upsample_net=True)
-
-        check = torch.load(args.vocoder_path)
-        vocoder_model.load_state_dict(check['model'])
-        vocoder_model.eval()
+        vocoder_model = setup_generator(VC)
+        vocoder_model.load_state_dict(torch.load(args.vocoder_path, map_location="cpu")["model"])
+        vocoder_model.remove_weight_norm()
         if args.use_cuda:
             vocoder_model.cuda()
+        vocoder_model.eval()
     else:
         vocoder_model = None
         VC = None
-        ap_vocoder = None
 
     # synthesize voice
+    use_griffin_lim = args.vocoder_path == ""
     print(" > Text: {}".format(args.text))
-    _, _, _, wav = tts(model,
-                       vocoder_model,
-                       C,
-                       VC,
-                       args.text,
-                       ap,
-                       ap_vocoder,
-                       args.use_cuda,
-                       args.batched_vocoder,
-                       speaker_id=args.speaker_id,
-                       figures=False)
+    wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_id)
 
     # save the results
     file_name = args.text.replace(" ", "_")
