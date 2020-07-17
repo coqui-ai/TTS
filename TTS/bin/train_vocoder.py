@@ -1,23 +1,19 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import argparse
 import glob
 import os
 import sys
 import time
 import traceback
-from inspect import signature
 
 import torch
 from torch.utils.data import DataLoader
 
-from TTS.utils.generic_utils import (KeepAverage, count_parameters,
-                                         create_experiment_folder,
-                                         get_git_branch,
-                                         remove_experiment_folder,
-                                         set_init_dict)
+from inspect import signature
+
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.generic_utils import (KeepAverage, count_parameters,
+                                     create_experiment_folder, get_git_branch,
+                                     remove_experiment_folder, set_init_dict)
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
@@ -27,11 +23,12 @@ from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 # from distribute import (DistributedSampler, apply_gradient_allreduce,
 #                         init_distributed, reduce_tensor)
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
+from TTS.vocoder.utils.io import save_checkpoint, save_best_model
 from TTS.vocoder.utils.console_logger import ConsoleLogger
 from TTS.vocoder.utils.generic_utils import (check_config, plot_results,
                                              setup_discriminator,
                                              setup_generator)
-from TTS.vocoder.utils.io import save_best_model, save_checkpoint
+
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)
 
@@ -127,6 +124,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
             y_hat_vis = y_hat
             y_G_sub = model_G.pqmf_analysis(y_G)
 
+        scores_fake, feats_fake, feats_real = None, None, None
         if global_step > c.steps_to_start_discriminator:
 
             # run D with or without cond. features
@@ -149,8 +147,6 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
                     _, feats_real = D_out_real
             else:
                 scores_fake = D_out_fake
-        else:
-            scores_fake, feats_fake, feats_real = None, None, None
 
         # compute losses
         loss_G_dict = criterion_G(y_hat, y_G, scores_fake, feats_fake,
@@ -331,6 +327,7 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
             y_G_sub = model_G.pqmf_analysis(y_G)
 
 
+        scores_fake, feats_fake, feats_real = None, None, None
         if global_step > c.steps_to_start_discriminator:
 
             if len(signature(model_D.forward).parameters) == 2:
@@ -352,8 +349,7 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
                     _, feats_real = D_out_real
             else:
                 scores_fake = D_out_fake
-        else:
-            scores_fake, feats_fake, feats_real = None, None, None
+                feats_fake, feats_real = None, None
 
         # compute losses
         loss_G_dict = criterion_G(y_hat, y_G, scores_fake, feats_fake,
