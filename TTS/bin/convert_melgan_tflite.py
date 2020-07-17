@@ -2,7 +2,7 @@
 
 import argparse
 
-from TTS.tts.utils.io import load_config
+from TTS.utils.io import load_config
 from TTS.vocoder.tf.utils.generic_utils import setup_generator
 from TTS.vocoder.tf.utils.io import load_checkpoint
 from TTS.vocoder.tf.utils.tflite import convert_melgan_to_tflite

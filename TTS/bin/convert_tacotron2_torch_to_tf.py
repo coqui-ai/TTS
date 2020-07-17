@@ -1,21 +1,29 @@
 # %%
-import sys
-sys.path.append('/home/erogol/Projects')
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
 # %%
 import argparse
+import os
+import sys
+# %%
+# print variable match
+from pprint import pprint
+
 import numpy as np
-import torch
 import tensorflow as tf
+import torch
 from fuzzywuzzy import fuzz
 
-from TTS.tts.utils.text.symbols import phonemes, symbols
 from TTS.tts.utils.generic_utils import setup_model
-from TTS.tts.utils.io import load_config
-from TTS.tf.models.tacotron2 import Tacotron2
-from TTS.tf.utils.convert_torch_to_tf_utils import compare_torch_tf, tf_create_dummy_inputs, transfer_weights_torch_to_tf, convert_tf_name
-from TTS.tf.utils.generic_utils import save_checkpoint
+from TTS.tts.utils.text.symbols import phonemes, symbols
+from TTS.utils.io import load_config
+from TTS.tts.tf.models.tacotron2 import Tacotron2
+from TTS.tts.tf.utils.convert_torch_to_tf_utils import (
+    compare_torch_tf, convert_tf_name, tf_create_dummy_inputs,
+    transfer_weights_torch_to_tf)
+from TTS.tts.tf.utils.generic_utils import save_checkpoint
+
+sys.path.append('/home/erogol/Projects')
+os.environ['CUDA_VISIBLE_DEVICES'] = ''
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--torch_model_path',
@@ -108,9 +116,6 @@ for tf_name in tf_var_names:
     del torch_var_names[max_idx]
     var_map.append((tf_name, matching_name))
 
-# %%
-# print variable match
-from pprint import pprint
 pprint(var_map)
 pprint(torch_var_names)
 
