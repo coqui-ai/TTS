@@ -6,7 +6,7 @@ import tensorflow as tf
 import torch
 from fuzzywuzzy import fuzz
 
-from TTS.tts.utils.io import load_config
+from TTS.utils.io import load_config
 from TTS.vocoder.tf.utils.convert_torch_to_tf_utils import (
     compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf)
 from TTS.vocoder.tf.utils.generic_utils import \

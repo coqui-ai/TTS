@@ -2,11 +2,11 @@
 
 import argparse
 
-from TTS.tts.utils.io import load_config
+from TTS.utils.io import load_config
 from TTS.tts.utils.text.symbols import symbols, phonemes
-from TTS.tf.utils.generic_utils import setup_model
-from TTS.tf.utils.io import load_checkpoint
-from TTS.tf.utils.tflite import convert_tacotron2_to_tflite
+from TTS.tts.tf.utils.generic_utils import setup_model
+from TTS.tts.tf.utils.io import load_checkpoint
+from TTS.tts.tf.utils.tflite import convert_tacotron2_to_tflite
 
 
 parser = argparse.ArgumentParser()
