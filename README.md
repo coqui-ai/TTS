@@ -1,12 +1,17 @@
 <p align="center"><img src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png =250x250)
 " width="320" height="95" /></p>
 
+<br/>
+
 <p align='center'>
     <img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
     <a href='https://discourse.mozilla.org/c/tts'><img src="https://img.shields.io/badge/discourse-online-green.svg"/></a>
+    <a href='https://opensource.org/licenses/MPL-2.0'> <img src="https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg"/></a>
 </p>
 
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en). 
+<br/>
+
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en).
 
 Mozilla TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
 
@@ -116,8 +121,8 @@ Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-articl
 ## [Mozilla TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
 
 ## Datasets and Data-Loading
-TTS provides a generic dataloader easy to use for your custom dataset. 
-You just need to write a simple function to format the dataset. Check ```datasets/preprocess.py``` to see some examples. 
+TTS provides a generic dataloader easy to use for your custom dataset.
+You just need to write a simple function to format the dataset. Check ```datasets/preprocess.py``` to see some examples.
 After that, you need to set ```dataset``` fields in ```config.json```.
 
 Some of the public datasets that we successfully applied TTS:
