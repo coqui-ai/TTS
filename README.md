@@ -104,12 +104,7 @@ Or you can use ```requirements.txt``` to install the requirements only.
 ```
 
 ### Docker
-A barebone `Dockerfile` exists at the root of the project, which should let you quickly setup the environment. By default, it will start the server and let you query it. Make sure to use `nvidia-docker` to use your GPUs. Make sure you follow the instructions in the [`server README`](server/README.md) before you build your image so that the server can find the model within the image.
-
-```
-docker build -t mozilla-tts .
-nvidia-docker run -it --rm -p 5002:5002 mozilla-tts
-```
+A docker image is created by [@synesthesiam](https://github.com/synesthesiam) and shared in a separate [repository](https://github.com/synesthesiam/docker-mozillatts) with the latest LJSpeech models.
 
 ## Release Models
 Please visit [our wiki.](https://github.com/mozilla/TTS/wiki/Released-Models)
