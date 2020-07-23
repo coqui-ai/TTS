@@ -31,7 +31,7 @@ class CBHGTests(unittest.TestCase):
             gru_features=80,
             num_highways=4)
         # B x D x T
-        dummy_input = T.rand(4, 128, 8) 
+        dummy_input = T.rand(4, 128, 8)
 
         print(layer)
         output = layer(dummy_input)
@@ -44,8 +44,8 @@ class DecoderTests(unittest.TestCase):
     @staticmethod
     def test_in_out():
         layer = Decoder(
-            in_features=256,
-            memory_dim=80,
+            in_channels=256,
+            frame_channels=80,
             r=2,
             memory_size=4,
             attn_windowing=False,
@@ -74,8 +74,8 @@ class DecoderTests(unittest.TestCase):
     @staticmethod
     def test_in_out_multispeaker():
         layer = Decoder(
-            in_features=256,
-            memory_dim=80,
+            in_channels=256,
+            frame_channels=80,
             r=2,
             memory_size=4,
             attn_windowing=False,
