@@ -76,34 +76,13 @@ def pip_install(package_name):
     )
 
 
+reqs_from_file = open('requirements.txt').readlines()
+reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
+tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
+
 requirements = {
-    'install_requires':[
-        "torch>=1.5",
-        "numpy>=1.16.0",
-        "numba==0.48",
-        "scipy>=0.19.0",
-        "librosa==0.7.2",
-        "unidecode==0.4.20",
-        "attrdict",
-        "tensorboardX",
-        "matplotlib",
-        "Pillow",
-        "flask",
-        "tqdm",
-        "inflect",
-        "pysbd",
-        "bokeh==1.4.0",
-        "soundfile",
-        "phonemizer>=2.2.0",
-        "nose==1.3.7",
-        "cardboardlint==1.3.0",
-        "pylint==2.5.3",
-        'fuzzywuzzy',
-        'gdown'
-    ],
-    'pip_install':[
-        'tensorflow==2.3.0rc0',
-    ]
+    'install_requires': reqs_without_tf,
+    'pip_install': tf_req
 }
 
 
