@@ -205,3 +205,38 @@ def custom_turkish(root_path, meta_file):
             items.append([text, wav_file, speaker_name])
     print(f" [!] {len(skipped_files)} files skipped. They don't exist...")
     return items
+
+# ToDo: add the dataset link when the dataset is released publicly
+def brspeech(root_path, meta_file):
+    '''BRSpeech 3.0 beta'''
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    with open(txt_file, 'r') as ttf:
+        for line in ttf:
+            if line.startswith("wav_filename"):
+                continue
+            cols = line.split('|')
+            #print(cols)
+            wav_file = os.path.join(root_path, cols[0])
+            text = cols[2]
+            speaker_name = cols[3]
+            items.append([text, wav_file, speaker_name])
+    return items
+
+def vctk(root_path, meta_files=None, wavs_path='wav48'):
+    """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
+    test_speakers = meta_files
+    items = []
+    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
+    for meta_file in meta_files:
+        txt, speaker_id, txt_file = os.path.relpath(meta_file,root_path).split(os.sep)
+        file_id = txt_file.split('.')[0]
+        if isinstance(test_speakers, list): # if is list ignore this speakers ids
+            if speaker_id in test_speakers:
+                continue
+        with open(meta_file) as file_text:
+            text = file_text.readlines()[0]
+        wav_file = os.path.join(root_path, wavs_path, speaker_id,file_id+'.wav')
+        items.append([text, wav_file, speaker_id])
+    
+    return items
