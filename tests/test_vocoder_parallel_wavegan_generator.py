@@ -15,12 +15,9 @@ def test_pwgan_generator():
         gate_channels=128,
         skip_channels=64,
         aux_channels=80,
-        aux_context_window=2,
         dropout=0.0,
         bias=True,
         use_weight_norm=True,
-        use_causal_conv=False,
-        upsample_conditional_features=True,
         upsample_factors=[4, 4, 4, 4])
     dummy_c = torch.rand((2, 80, 5))
     output = model(dummy_c)

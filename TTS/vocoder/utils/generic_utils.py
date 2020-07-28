@@ -69,7 +69,7 @@ def setup_generator(c):
             num_res_blocks=c.generator_model_params['num_res_blocks'])
     if c.generator_model in 'parallel_wavegan_generator':
         model = MyModel(
-           in_channels=1,
+            in_channels=1,
             out_channels=1,
             kernel_size=3,
             num_res_blocks=c.generator_model_params['num_res_blocks'],
@@ -90,10 +90,11 @@ def setup_generator(c):
 def setup_discriminator(c):
     print(" > Discriminator Model: {}".format(c.discriminator_model))
     if 'parallel_wavegan' in c.discriminator_model:
-        MyModel = importlib.import_module('TTS.vocoder.models.parallel_wavegan_discriminator')
+        MyModel = importlib.import_module(
+            'TTS.vocoder.models.parallel_wavegan_discriminator')
     else:
         MyModel = importlib.import_module('TTS.vocoder.models.' +
-                                        c.discriminator_model.lower())
+                                          c.discriminator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
     if c.discriminator_model in 'random_window_discriminator':
         model = MyModel(

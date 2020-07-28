@@ -1,7 +1,6 @@
 import math
 import numpy as np
 import torch
-from torch.nn.utils import weight_norm
 
 from TTS.vocoder.layers.parallel_wavegan import ResidualBlock
 from TTS.vocoder.layers.upsample import ConvUpsample
@@ -13,6 +12,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         It is conditioned on an aux feature (spectrogram) to generate
     an output waveform from an input noise.
     """
+    # pylint: disable=dangerous-default-value
     def __init__(self,
                  in_channels=1,
                  out_channels=1,
@@ -23,13 +23,9 @@ class ParallelWaveganGenerator(torch.nn.Module):
                  gate_channels=128,
                  skip_channels=64,
                  aux_channels=80,
-                 aux_context_window=2,
                  dropout=0.0,
                  bias=True,
                  use_weight_norm=True,
-                 use_causal_conv=False,
-                 upsample_conditional_features=True,
-                 upsample_net="ConvInUpsampleNetwork",
                  upsample_factors=[4, 4, 4, 4],
                  inference_padding=2):
 
@@ -140,8 +136,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
 
     def apply_weight_norm(self):
         def _apply_weight_norm(m):
-            if isinstance(m, torch.nn.Conv1d) or isinstance(
-                    m, torch.nn.Conv2d):
+            if isinstance(m, (torch.nn.Conv1d, torch.nn.Conv2d)):
                 torch.nn.utils.weight_norm(m)
                 # print(f"Weight norm is applied to {m}.")
 

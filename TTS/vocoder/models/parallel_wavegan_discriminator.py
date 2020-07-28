@@ -1,7 +1,6 @@
 import math
 import torch
 from torch import nn
-from torch.nn import functional as F
 
 from TTS.vocoder.layers.parallel_wavegan import ResidualBlock
 
@@ -12,7 +11,7 @@ class ParallelWaveganDiscriminator(nn.Module):
     of predictions.
         It is a stack of convolutional blocks with dilation.
     """
-
+    # pylint: disable=dangerous-default-value
     def __init__(self,
                  in_channels=1,
                  out_channels=1,
@@ -37,10 +36,15 @@ class ParallelWaveganDiscriminator(nn.Module):
                 conv_in_channels = conv_channels
             padding = (kernel_size - 1) // 2 * dilation
             conv_layer = [
-                nn.Conv1d(conv_in_channels, conv_channels,
-                       kernel_size=kernel_size, padding=padding,
-                       dilation=dilation, bias=bias),
-                getattr(nn, nonlinear_activation)(inplace=True, **nonlinear_activation_params)
+                nn.Conv1d(conv_in_channels,
+                          conv_channels,
+                          kernel_size=kernel_size,
+                          padding=padding,
+                          dilation=dilation,
+                          bias=bias),
+                getattr(nn,
+                        nonlinear_activation)(inplace=True,
+                                              **nonlinear_activation_params)
             ]
             self.conv_layers += conv_layer
         padding = (kernel_size - 1) // 2
@@ -62,7 +66,7 @@ class ParallelWaveganDiscriminator(nn.Module):
 
     def apply_weight_norm(self):
         def _apply_weight_norm(m):
-            if isinstance(m, torch.nn.Conv1d) or isinstance(m, torch.nn.Conv2d):
+            if isinstance(m, (torch.nn.Conv1d, torch.nn.Conv2d)):
                 torch.nn.utils.weight_norm(m)
         self.apply(_apply_weight_norm)
 
@@ -77,6 +81,7 @@ class ParallelWaveganDiscriminator(nn.Module):
 
 
 class ResidualParallelWaveganDiscriminator(nn.Module):
+    # pylint: disable=dangerous-default-value
     def __init__(self,
                  in_channels=1,
                  out_channels=1,
@@ -177,7 +182,7 @@ class ResidualParallelWaveganDiscriminator(nn.Module):
 
     def apply_weight_norm(self):
         def _apply_weight_norm(m):
-            if isinstance(m, torch.nn.Conv1d) or isinstance(m, torch.nn.Conv2d):
+            if isinstance(m, (torch.nn.Conv1d, torch.nn.Conv2d)):
                 torch.nn.utils.weight_norm(m)
         self.apply(_apply_weight_norm)
 

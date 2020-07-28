@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch.nn import functional as F
 
@@ -20,6 +19,7 @@ class Stretch2d(torch.nn.Module):
 
 
 class UpsampleNetwork(torch.nn.Module):
+    # pylint: disable=dangerous-default-value
     def __init__(self,
                  upsample_factors,
                  nonlinear_activation=None,
@@ -64,6 +64,7 @@ class UpsampleNetwork(torch.nn.Module):
 
 
 class ConvUpsample(torch.nn.Module):
+    # pylint: disable=dangerous-default-value
     def __init__(self,
                  upsample_factors,
                  nonlinear_activation=None,
