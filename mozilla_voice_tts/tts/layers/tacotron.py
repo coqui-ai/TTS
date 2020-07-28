@@ -303,7 +303,7 @@ class Decoder(nn.Module):
         self.separate_stopnet = separate_stopnet
         self.query_dim = 256
         # memory -> |Prenet| -> processed_memory
-        prenet_dim = frame_channels * self.memory_size + speaker_embedding_dim if self.use_memory_queue else frame_channels + speaker_embedding_dim
+        prenet_dim = memory_dim * self.memory_size if self.use_memory_queue else memory_dim
         self.prenet = Prenet(
             prenet_dim,
             prenet_type,
@@ -429,7 +429,7 @@ class Decoder(nn.Module):
             # assert new_memory.shape[-1] == self.r * self.frame_channels
             self.memory_input = new_memory[:, self.frame_channels * (self.r - 1):]
 
-    def forward(self, inputs, memory, mask, speaker_embeddings=None):
+    def forward(self, inputs, memory, mask):
         """
         Args:
             inputs: Encoder outputs.
@@ -454,8 +454,7 @@ class Decoder(nn.Module):
             if t > 0:
                 new_memory = memory[t - 1]
                 self._update_memory_input(new_memory)
-            if speaker_embeddings is not None:
-                self.memory_input = torch.cat([self.memory_input, speaker_embeddings], dim=-1)
+
             output, stop_token, attention = self.decode(inputs, mask)
             outputs += [output]
             attentions += [attention]

@@ -6,7 +6,6 @@ from mozilla_voice_tts.tts.layers.gst_layers import GST
 from mozilla_voice_tts.tts.layers.tacotron import Decoder, Encoder, PostCBHG
 from mozilla_voice_tts.tts.models.tacotron_abstract import TacotronAbstract
 
-
 class Tacotron(TacotronAbstract):
     def __init__(self,
                  num_chars,
@@ -41,10 +40,19 @@ class Tacotron(TacotronAbstract):
                              location_attn, attn_K, separate_stopnet,
                              bidirectional_decoder, double_decoder_consistency,
                              ddc_r, gst)
-        decoder_in_features = 512 if num_speakers > 1 else 256
-        encoder_in_features = 512 if num_speakers > 1 else 256
+        
+        
+        # init layer dims
+        decoder_in_features = 256
+        encoder_in_features = 256
         speaker_embedding_dim = 256
         proj_speaker_dim = 80 if num_speakers > 1 else 0
+
+        if num_speakers > 1: 
+            decoder_in_features = decoder_in_features + speaker_embedding_dim # add speaker embedding dim
+        if self.gst:
+            decoder_in_features = decoder_in_features + gst_embedding_dim # add gst embedding dim
+
         # base model layers
         self.embedding = nn.Embedding(num_chars, 256, padding_idx=0)
         self.embedding.weight.data.normal_(0, 0.3)
@@ -98,10 +106,6 @@ class Tacotron(TacotronAbstract):
         # B x speaker_embed_dim
         if speaker_ids is not None:
             self.compute_speaker_embedding(speaker_ids)
-        if self.num_speakers > 1:
-            # B x T_in x embed_dim + speaker_embed_dim
-            inputs = self._concat_speaker_embedding(inputs,
-                                                    self.speaker_embeddings)
         # B x T_in x encoder_in_features
         encoder_outputs = self.encoder(inputs)
         # sequence masking
@@ -117,8 +121,7 @@ class Tacotron(TacotronAbstract):
         # alignments: B x T_in x encoder_in_features
         # stop_tokens: B x T_in
         decoder_outputs, alignments, stop_tokens = self.decoder(
-            encoder_outputs, mel_specs, input_mask,
-            self.speaker_embeddings_projected)
+            encoder_outputs, mel_specs, input_mask)
         # sequence masking
         if output_mask is not None:
             decoder_outputs = decoder_outputs * output_mask.unsqueeze(1).expand_as(decoder_outputs)
@@ -145,9 +148,6 @@ class Tacotron(TacotronAbstract):
         self._init_states()
         if speaker_ids is not None:
             self.compute_speaker_embedding(speaker_ids)
-        if self.num_speakers > 1:
-            inputs = self._concat_speaker_embedding(inputs,
-                                                    self.speaker_embeddings)
         encoder_outputs = self.encoder(inputs)
         if self.gst and style_mel is not None:
             encoder_outputs = self.compute_gst(encoder_outputs, style_mel)
