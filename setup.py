@@ -93,7 +93,6 @@ requirements = {
         "inflect",
         "pysbd",
         "bokeh==1.4.0",
-        "pysbd",
         "soundfile",
         "phonemizer>=2.2.0",
         "nose==1.3.7",
