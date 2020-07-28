@@ -35,7 +35,7 @@ class ConsoleLogger():
     def print_train_start(self):
         print(f"\n{tcolors.BOLD} > TRAINING ({self.get_time()}) {tcolors.ENDC}")
 
-    def print_train_step(self, batch_steps, step, global_step,
+    def print_train_step(self, batch_steps, step, global_step, log_dict,
                          step_time, loader_time, lrG, lrD,
                          loss_dict, avg_loss_dict):
         indent = "     | > "
