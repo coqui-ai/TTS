@@ -20,7 +20,7 @@ from TTS.vocoder.utils.generic_utils import setup_generator
 
 def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_id):
     t_1 = time.time()
-    waveform, _, _, mel_postnet_spec, stop_tokens, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_id, None, False, CONFIG.enable_eos_bos_chars, use_gl)
+    waveform, _, _, mel_postnet_spec, _, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_id, None, False, CONFIG.enable_eos_bos_chars, use_gl)
     if CONFIG.model == "Tacotron" and not use_gl:
         mel_postnet_spec = ap.out_linear_to_mel(mel_postnet_spec.T).T
     if not use_gl:

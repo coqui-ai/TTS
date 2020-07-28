@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys
+import os
+import sys
 import pathlib
 import time
 import subprocess
@@ -37,8 +38,8 @@ def main():
     group_id = time.strftime("%Y_%m_%d-%H%M%S")
 
     # set arguments for train.py
-    folder_path =pathlib.Path(__file__).parent.absolute()
-    command = [os.path.join(folder_path,'train_tts.py')]
+    folder_path = pathlib.Path(__file__).parent.absolute()
+    command = [os.path.join(folder_path, 'train_tts.py')]
     command.append('--continue_path={}'.format(args.continue_path))
     command.append('--restore_path={}'.format(args.restore_path))
     command.append('--config_path={}'.format(args.config_path))

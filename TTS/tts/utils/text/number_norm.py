@@ -31,14 +31,13 @@ def _expand_dollars(m):
         dollar_unit = 'dollar' if dollars == 1 else 'dollars'
         cent_unit = 'cent' if cents == 1 else 'cents'
         return '%s %s, %s %s' % (dollars, dollar_unit, cents, cent_unit)
-    elif dollars:
+    if dollars:
         dollar_unit = 'dollar' if dollars == 1 else 'dollars'
         return '%s %s' % (dollars, dollar_unit)
-    elif cents:
+    if cents:
         cent_unit = 'cent' if cents == 1 else 'cents'
         return '%s %s' % (cents, cent_unit)
-    else:
-        return 'zero dollars'
+    return 'zero dollars'
 
 
 def _expand_ordinal(m):
