@@ -18,12 +18,14 @@ matrix:
   - name: "Unit tests"
     python: "3.6"
     install:
-      - python setup.py install
+      - python setup.py egg_info
+      - pip install -e .
     env: TEST_SUITE="unittest"
   - name: "Unit tests"
     python: "3.6"
     install:
-      - python setup.py install
+      - python setup.py egg_info
+      - pip install -e .
     env: TEST_SUITE="testscripts"
 
 script: ./.travis/script
