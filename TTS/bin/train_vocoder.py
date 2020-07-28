@@ -4,13 +4,12 @@ import os
 import sys
 import time
 import traceback
+from inspect import signature
 
 import torch
 from torch.utils.data import DataLoader
-
-from inspect import signature
-
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      create_experiment_folder, get_git_branch,
                                      remove_experiment_folder, set_init_dict)
@@ -23,12 +22,10 @@ from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 # from distribute import (DistributedSampler, apply_gradient_allreduce,
 #                         init_distributed, reduce_tensor)
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
-from TTS.vocoder.utils.io import save_checkpoint, save_best_model
-from TTS.vocoder.utils.console_logger import ConsoleLogger
 from TTS.vocoder.utils.generic_utils import (check_config, plot_results,
                                              setup_discriminator,
                                              setup_generator)
-
+from TTS.vocoder.utils.io import save_best_model, save_checkpoint
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)
 
@@ -238,10 +235,14 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
 
         # print training stats
         if global_step % c.print_step == 0:
+            log_dict = {
+                'step_time': [step_time, 2],
+                'loader_time': [loader_time, 4],
+                "current_lr_G": current_lr_G,
+                "current_lr_D": current_lr_D
+            }
             c_logger.print_train_step(batch_n_iter, num_iter, global_step,
-                                      step_time, loader_time, current_lr_G,
-                                      current_lr_D, loss_dict,
-                                      keep_avg.avg_values)
+                                      log_dict, loss_dict, keep_avg.avg_values)
 
         # plot step stats
         if global_step % 10 == 0:
