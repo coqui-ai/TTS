@@ -218,10 +218,15 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 
         # print training progress
         if global_step % c.print_step == 0:
+            log_dict = {
+                "avg_spec_length": [avg_spec_length, 1],  # value, precision
+                "avg_text_length": [avg_text_length, 1],
+                "step_time": [step_time, 4],
+                "loader_time": [loader_time, 2],
+                "current_lr": current_lr,
+            }
             c_logger.print_train_step(batch_n_iter, num_iter, global_step,
-                                      avg_spec_length, avg_text_length,
-                                      step_time, loader_time, current_lr,
-                                      loss_dict, keep_avg.avg_values)
+                                      log_dict, loss_dict, keep_avg.avg_values)
 
         if args.rank == 0:
             # Plot Training Iter Stats
