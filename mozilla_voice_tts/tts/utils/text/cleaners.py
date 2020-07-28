@@ -107,7 +107,6 @@ def basic_turkish_cleaners(text):
     text = collapse_whitespace(text)
     return text
 
-
 def english_cleaners(text):
     '''Pipeline for English text, including number and abbreviation expansion.'''
     text = convert_to_ascii(text)

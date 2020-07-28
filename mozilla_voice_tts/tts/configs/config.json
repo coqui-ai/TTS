@@ -1,5 +1,5 @@
 {
-    "model": "Tacotron2",
+    "model": "Tacotron",
     "run_name": "ljspeech-ddc-bn",
     "run_description": "tacotron2 with ddc and batch-normalization",
 
@@ -114,7 +114,7 @@
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
     // DATA LOADING
-    "text_cleaner": "phoneme_cleaners",
+    "text_cleaner": "portuguese_cleaners",
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
     "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
@@ -123,15 +123,15 @@
     "max_seq_len": 153,     // DATASET-RELATED: maximum text length
 
     // PATHS
-    "output_path": "/home/erogol/Models/LJSpeech/",
+    "output_path": "../../Mozilla-TTS/vctk-test/",
 
     // PHONEMES
-    "phoneme_cache_path": "/media/erogol/data_ssd2/mozilla_us_phonemes_3",  // phoneme computation is slow, therefore, it caches results in the given folder.
+    "phoneme_cache_path": "../../Mozilla-TTS/vctk-test/",  // phoneme computation is slow, therefore, it caches results in the given folder.
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST
-    "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
+    "use_speaker_embedding": true,     // use speaker embedding to enable multi-speaker learning.
     "use_gst": true,       			    // use global style tokens
     "gst":	{			                // gst parameter if gst is enabled
         "gst_style_input": null,        // Condition the style input either on a 
@@ -147,9 +147,9 @@
     "datasets":   // List of datasets. They all merged and they get different speaker_ids.
         [
             {
-                "name": "ljspeech",
-                "path": "/home/erogol/Data/LJSpeech-1.1/",
-                "meta_file_train": "metadata.csv",
+                "name": "vctk",
+                "path": "../../../datasets/VCTK-Corpus-removed-silence/",
+                "meta_file_train": ["p225", "p234", "p238", "p245", "p248", "p261", "p294", "p302", "p326", "p335", "p347"], // for vtck if list, ignore speakers id in list for train, its useful for test cloning with new speakers
                 "meta_file_val": null
             }
         ]
