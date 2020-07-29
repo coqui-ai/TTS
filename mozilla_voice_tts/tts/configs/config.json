@@ -1,5 +1,5 @@
 {
-    "model": "Tacotron",
+    "model": "Tacotron2",
     "run_name": "ljspeech-ddc-bn",
     "run_description": "tacotron2 with ddc and batch-normalization",
 
@@ -114,7 +114,7 @@
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
     // DATA LOADING
-    "text_cleaner": "portuguese_cleaners",
+    "text_cleaner": "phoneme_cleaners",
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
     "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
@@ -131,7 +131,9 @@
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST
-    "use_speaker_embedding": true,     // use speaker embedding to enable multi-speaker learning.
+    "use_speaker_embedding": true,      // use speaker embedding to enable multi-speaker learning.
+    "use_external_speaker_embedding_file": false, // if true, forces the model to use external embedding per sample instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+    "external_speaker_embedding_file": "../../speakers-vctk-en.json", // if not null and use_external_speaker_embedding_file is true, it is used to load a specific embedding file and thus uses these embeddings instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
     "use_gst": true,       			    // use global style tokens
     "gst":	{			                // gst parameter if gst is enabled
         "gst_style_input": null,        // Condition the style input either on a 

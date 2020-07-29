@@ -147,8 +147,7 @@ class Decoder(nn.Module):
     #pylint: disable=attribute-defined-outside-init
     def __init__(self, in_channels, frame_channels, r, attn_type, attn_win, attn_norm,
                  prenet_type, prenet_dropout, forward_attn, trans_agent,
-                 forward_attn_mask, location_attn, attn_K, separate_stopnet,
-                 speaker_embedding_dim):
+                 forward_attn_mask, location_attn, attn_K, separate_stopnet):
         super(Decoder, self).__init__()
         self.frame_channels = frame_channels
         self.r_init = r
@@ -335,16 +334,14 @@ class Decoder(nn.Module):
             outputs, stop_tokens, alignments)
         return outputs, alignments, stop_tokens
 
-    def inference(self, inputs, speaker_embeddings=None):
+    def inference(self, inputs):
         r"""Decoder inference without teacher forcing and use
         Stopnet to stop decoder.
         Args:
             inputs: Encoder outputs.
-            speaker_embeddings: speaker embedding vectors.
 
         Shapes:
             - inputs: (B, T, D_out_enc)
-            - speaker_embeddings: (B, D_embed)
             - outputs: (B, T_mel, D_mel)
             - alignments: (B, T_in, T_out)
             - stop_tokens: (B, T_out)
@@ -358,8 +355,6 @@ class Decoder(nn.Module):
         outputs, stop_tokens, alignments, t = [], [], [], 0
         while True:
             memory = self.prenet(memory)
-            if speaker_embeddings is not None:
-                memory = torch.cat([memory, speaker_embeddings], dim=-1)
             decoder_output, alignment, stop_token = self.decode(memory)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [decoder_output.squeeze(1)]
