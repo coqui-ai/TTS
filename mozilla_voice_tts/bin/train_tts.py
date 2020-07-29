@@ -49,7 +49,7 @@ from mozilla_voice_tts.utils.training import (NoamLR, adam_weight_decay,
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 
-def setup_loader(ap, r, is_val=False, verbose=False):
+def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
     if is_val and not c.run_eval:
         loader = None
     else:
@@ -68,7 +68,8 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             use_phonemes=c.use_phonemes,
             phoneme_language=c.phoneme_language,
             enable_eos_bos=c.enable_eos_bos_chars,
-            verbose=verbose)
+            verbose=verbose,
+            speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -82,9 +83,8 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             pin_memory=False)
     return loader
 
-
-def format_data(data):
-    if c.use_speaker_embedding:
+def format_data(data, speaker_mapping=None):
+    if speaker_mapping is None and c.use_speaker_embedding and not c.use_external_speaker_embedding_file:
         speaker_mapping = load_speaker_mapping(OUT_PATH)
 
     # setup input data
@@ -99,12 +99,19 @@ def format_data(data):
     avg_spec_length = torch.mean(mel_lengths.float())
 
     if c.use_speaker_embedding:
-        speaker_ids = [
-            speaker_mapping[speaker_name] for speaker_name in speaker_names
-        ]
-        speaker_ids = torch.LongTensor(speaker_ids)
+        if c.use_external_speaker_embedding_file:
+            speaker_embeddings = data[8]
+            speaker_ids = None
+        else:
+            speaker_ids = [
+                speaker_mapping[speaker_name] for speaker_name in speaker_names
+            ]
+            speaker_ids = torch.LongTensor(speaker_ids)
+            speaker_embeddings = None
     else:
+        speaker_embeddings = None
         speaker_ids = None
+
 
     # set stop targets view, we predict a single stop token per iteration.
     stop_targets = stop_targets.view(text_input.shape[0],
@@ -122,13 +129,16 @@ def format_data(data):
         stop_targets = stop_targets.cuda(non_blocking=True)
         if speaker_ids is not None:
             speaker_ids = speaker_ids.cuda(non_blocking=True)
-    return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, avg_text_length, avg_spec_length
+        if speaker_embeddings is not None:
+            speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
+
+    return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, avg_text_length, avg_spec_length
 
 
 def train(model, criterion, optimizer, optimizer_st, scheduler,
-          ap, global_step, epoch, amp):
+          ap, global_step, epoch, amp, speaker_mapping=None):
     data_loader = setup_loader(ap, model.decoder.r, is_val=False,
-                               verbose=(epoch == 0))
+                               verbose=(epoch == 0), speaker_mapping=speaker_mapping)
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -143,7 +153,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         start_time = time.time()
 
         # format data
-        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, avg_text_length, avg_spec_length = format_data(data)
+        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, avg_text_length, avg_spec_length = format_data(data, speaker_mapping)
         loader_time = time.time() - end_time
 
         global_step += 1
@@ -158,10 +168,10 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         # forward pass model
         if c.bidirectional_decoder or c.double_decoder_consistency:
             decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
-                text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids)
+                text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
         else:
             decoder_output, postnet_output, alignments, stop_tokens = model(
-                text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids)
+                text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
             decoder_backward_output = None
             alignments_backward = None
 
@@ -312,8 +322,8 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, ap, global_step, epoch):
-    data_loader = setup_loader(ap, model.decoder.r, is_val=True)
+def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=None):
+    data_loader = setup_loader(ap, model.decoder.r, is_val=True, speaker_mapping=speaker_mapping)
     model.eval()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -323,16 +333,16 @@ def evaluate(model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, _, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, _, _ = format_data(data, speaker_mapping)
             assert mel_input.shape[1] % model.decoder.r == 0
 
             # forward pass model
             if c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
-                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
             else:
                 decoder_output, postnet_output, alignments, stop_tokens = model(
-                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids)
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
                 decoder_backward_output = None
                 alignments_backward = None
 
@@ -494,22 +504,41 @@ def main(args):  # pylint: disable=redefined-outer-name
     if c.use_speaker_embedding:
         speakers = get_speakers(meta_data_train)
         if args.restore_path:
-            prev_out_path = os.path.dirname(args.restore_path)
-            speaker_mapping = load_speaker_mapping(prev_out_path)
-            assert all([speaker in speaker_mapping
-                        for speaker in speakers]), "As of now you, you cannot " \
-                                                   "introduce new speakers to " \
-                                                   "a previously trained model."
-        else:
+            if c.use_external_speaker_embedding_file: # if restore checkpoint and use External Embedding file
+                prev_out_path = os.path.dirname(args.restore_path)
+                speaker_mapping = load_speaker_mapping(prev_out_path)
+                if not speaker_mapping:
+                    print("WARNING: speakers.json speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file")
+                    speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
+                    if not speaker_mapping:
+                        raise RuntimeError("You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file")
+                speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]['embedding'])
+            elif not c.use_external_speaker_embedding_file: # if restore checkpoint and don't use External Embedding file
+                prev_out_path = os.path.dirname(args.restore_path)
+                speaker_mapping = load_speaker_mapping(prev_out_path)
+                speaker_embedding_dim = None
+                assert all([speaker in speaker_mapping
+                            for speaker in speakers]), "As of now you, you cannot " \
+                                                    "introduce new speakers to " \
+                                                    "a previously trained model."
+        elif c.use_external_speaker_embedding_file and c.external_speaker_embedding_file: # if start new train using External Embedding file
+            speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
+            print(speaker_mapping)
+            speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]['embedding'])
+        elif c.use_external_speaker_embedding_file and not c.external_speaker_embedding_file: # if start new train using External Embedding file and don't pass external embedding file
+            raise "use_external_speaker_embedding_file is True, so you need pass a external speaker embedding file, run GE2E-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb or AngularPrototypical-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb notebook in notebooks/ folder"
+        else: # if start new train and don't use External Embedding file
             speaker_mapping = {name: i for i, name in enumerate(speakers)}
+            speaker_embedding_dim = None
         save_speaker_mapping(OUT_PATH, speaker_mapping)
         num_speakers = len(speaker_mapping)
         print("Training with {} speakers: {}".format(num_speakers,
                                                      ", ".join(speakers)))
     else:
         num_speakers = 0
+        speaker_embedding_dim = None
 
-    model = setup_model(num_chars, num_speakers, c)
+    model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim)
 
     params = set_weight_decay(model, c.wd)
     optimizer = RAdam(params, lr=c.lr, weight_decay=0)
@@ -530,6 +559,8 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup criterion
     criterion = TacotronLoss(c, stopnet_pos_weight=10.0, ga_sigma=0.4)
+    for name, _ in model.named_parameters():
+        print(name)
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
@@ -592,7 +623,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             print("\n > Number of output frames:", model.decoder.r)
         train_avg_loss_dict, global_step = train(model, criterion, optimizer,
                                                  optimizer_st, scheduler, ap,
-                                                 global_step, epoch, amp)
+                                                 global_step, epoch, amp, speaker_mapping)
         eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_postnet_loss']

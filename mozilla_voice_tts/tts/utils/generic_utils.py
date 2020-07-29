@@ -44,7 +44,7 @@ def sequence_mask(sequence_length, max_len=None):
     return seq_range_expand < seq_length_expand
 
 
-def setup_model(num_chars, num_speakers, c):
+def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('mozilla_voice_tts.tts.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
@@ -72,7 +72,8 @@ def setup_model(num_chars, num_speakers, c):
                         separate_stopnet=c.separate_stopnet,
                         bidirectional_decoder=c.bidirectional_decoder,
                         double_decoder_consistency=c.double_decoder_consistency,
-                        ddc_r=c.ddc_r)
+                        ddc_r=c.ddc_r,
+                        speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "tacotron2":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
@@ -96,7 +97,8 @@ def setup_model(num_chars, num_speakers, c):
                         separate_stopnet=c.separate_stopnet,
                         bidirectional_decoder=c.bidirectional_decoder,
                         double_decoder_consistency=c.double_decoder_consistency,
-                        ddc_r=c.ddc_r)
+                        ddc_r=c.ddc_r,
+                        speaker_embedding_dim=speaker_embedding_dim)
     return model
 
 
@@ -175,7 +177,7 @@ def check_config(c):
     check_argument('clip_norm', c['audio'], restricted=True, val_type=bool)
     check_argument('mel_fmin', c['audio'], restricted=True, val_type=float, min_val=0.0, max_val=1000)
     check_argument('mel_fmax', c['audio'], restricted=True, val_type=float, min_val=500.0)
-    check_argument('spec_gain', c['audio'], restricted=True, val_type=float, min_val=1, max_val=100)
+    check_argument('spec_gain', c['audio'], restricted=True, val_type=[int, float], min_val=1, max_val=100)
     check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
     check_argument('trim_db', c['audio'], restricted=True, val_type=int)
 
@@ -246,10 +248,10 @@ def check_config(c):
     # paths
     check_argument('output_path', c, restricted=True, val_type=str)
 
-    # multi-speaker
+    # multi-speaker and gst
     check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
-
-    # GST
+    check_argument('use_external_speaker_embedding_file', c, restricted=True, val_type=bool)
+    check_argument('external_speaker_embedding_file', c, restricted=True, val_type=str)
     check_argument('use_gst', c, restricted=True, val_type=bool)
     check_argument('gst_style_input', c, restricted=True, val_type=str)
     check_argument('gst', c, restricted=True, val_type=dict)
