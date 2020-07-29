@@ -559,8 +559,6 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup criterion
     criterion = TacotronLoss(c, stopnet_pos_weight=10.0, ga_sigma=0.4)
-    for name, _ in model.named_parameters():
-        print(name)
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
