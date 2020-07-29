@@ -96,7 +96,7 @@ class StyleTokenLayer(nn.Module):
         self.key_dim = embedding_dim // num_heads
         self.style_tokens = nn.Parameter(
             torch.FloatTensor(num_style_tokens, self.key_dim))
-        nn.init.orthogonal_(self.style_tokens)
+        nn.init.normal_(self.style_tokens, mean=0, std=0.5)
         self.attention = MultiHeadAttention(
             query_dim=self.query_dim,
             key_dim=self.key_dim,
