@@ -42,13 +42,19 @@ class Tacotron(TacotronAbstract):
                              bidirectional_decoder, double_decoder_consistency,
                              ddc_r, gst)
 
-
         # init layer dims
         decoder_in_features = 256
         encoder_in_features = 256
-        speaker_embedding_dim = 256
-        proj_speaker_dim = 80 if num_speakers > 1 else 0
 
+        if speaker_embedding_dim is None:
+            # if speaker_embedding_dim is None we need use the nn.Embedding, with default speaker_embedding_dim
+            self.embeddings_per_sample = False
+            speaker_embedding_dim = 256
+        else:
+            # if speaker_embedding_dim is not None we need use speaker embedding per sample
+            self.embeddings_per_sample = True
+
+        # speaker and gst embeddings is concat in decoder input
         if num_speakers > 1:
             decoder_in_features = decoder_in_features + speaker_embedding_dim # add speaker embedding dim
         if self.gst:
@@ -103,14 +109,10 @@ class Tacotron(TacotronAbstract):
         input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)
         # B x T_in x embed_dim
         inputs = self.embedding(characters)
-        # B x speaker_embed_dim
-        if speaker_ids is not None:
-            self.compute_speaker_embedding(speaker_ids)
         # B x T_in x encoder_in_features
         encoder_outputs = self.encoder(inputs)
         # sequence masking
         encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(encoder_outputs)
-
         # global style token
         if self.gst:
             # B x gst_dim
@@ -152,9 +154,6 @@ class Tacotron(TacotronAbstract):
     @torch.no_grad()
     def inference(self, characters, speaker_ids=None, style_mel=None, speaker_embeddings=None):
         inputs = self.embedding(characters)
-        self._init_states()
-        if speaker_ids is not None:
-            self.compute_speaker_embedding(speaker_ids)
         encoder_outputs = self.encoder(inputs)
         if self.gst:
             # B x gst_dim
