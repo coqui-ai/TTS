@@ -147,7 +147,6 @@ def check_argument(name, c, enum_list=None, max_val=None, min_val=None, restrict
         if enum_list:
             assert c[name].lower() in enum_list, f' [!] {name} is not a valid value'
         if isinstance(val_type, list):
-            valid_types = val_type
             is_valid = False
             for typ in val_type:
                 if isinstance(c[name], typ):
