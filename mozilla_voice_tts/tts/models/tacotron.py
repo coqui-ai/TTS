@@ -55,7 +55,7 @@ class Tacotron(TacotronAbstract):
             self.embeddings_per_sample = True
 
         # speaker and gst embeddings is concat in decoder input
-        if num_speakers > 1: 
+        if num_speakers > 1:
             decoder_in_features = decoder_in_features + speaker_embedding_dim # add speaker embedding dim
         if self.gst:
             decoder_in_features = decoder_in_features + gst_embedding_dim # add gst embedding dim
