@@ -18,9 +18,9 @@ from mozilla_voice_tts.utils.io import load_config
 from mozilla_voice_tts.vocoder.utils.generic_utils import setup_generator
 
 
-def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_id):
+def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_fileid, speaker_embedding=None):
     t_1 = time.time()
-    waveform, _, _, mel_postnet_spec, _, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_id, CONFIG.gst['gst_style_input'], False, CONFIG.enable_eos_bos_chars, use_gl)
+    waveform, _, _, mel_postnet_spec, _, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_fileid, None, False, CONFIG.enable_eos_bos_chars, use_gl, speaker_embedding=speaker_embedding)
     if CONFIG.model == "Tacotron" and not use_gl:
         mel_postnet_spec = ap.out_linear_to_mel(mel_postnet_spec.T).T
     if not use_gl:
@@ -80,9 +80,9 @@ if __name__ == "__main__":
                         help="JSON file for multi-speaker model.",
                         default="")
     parser.add_argument(
-        '--speaker_id',
-        type=int,
-        help="target speaker_id if the model is multi-speaker.",
+        '--speaker_fileid',
+        type=str,
+        help="if CONFIG.use_external_speaker_embedding_file is true, name of speaker embedding reference file present in speakers.json, else target speaker_fileid if the model is multi-speaker.",
         default=None)
     args = parser.parse_args()
 
@@ -97,16 +97,24 @@ if __name__ == "__main__":
     if 'characters' in C.keys():
         symbols, phonemes = make_symbols(**C.characters)
 
+    speaker_embedding = None
+    speaker_embedding_dim = None
+    num_speakers = 0
+
     # load speakers
     if args.speakers_json != '':
-        speakers = json.load(open(args.speakers_json, 'r'))
-        num_speakers = len(speakers)
-    else:
-        num_speakers = 0
+        speaker_mapping = json.load(open(args.speakers_json, 'r'))
+        num_speakers = len(speaker_mapping)
+        if C.use_external_speaker_embedding_file:
+            if args.speaker_fileid is not None:
+                speaker_embedding = speaker_mapping[args.speaker_fileid]['embedding']
+            else: # if speaker_fileid is not specificated use the first sample in speakers.json
+                speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[0]]['embedding']
+            speaker_embedding_dim = len(speaker_embedding)
 
     # load the model
     num_chars = len(phonemes) if C.use_phonemes else len(symbols)
-    model = setup_model(num_chars, num_speakers, C)
+    model = setup_model(num_chars, num_speakers, C, speaker_embedding_dim)
     cp = torch.load(args.model_path, map_location=torch.device('cpu'))
     model.load_state_dict(cp['model'])
     model.eval()
@@ -130,7 +138,16 @@ if __name__ == "__main__":
     # synthesize voice
     use_griffin_lim = args.vocoder_path == ""
     print(" > Text: {}".format(args.text))
-    wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_id)
+
+    if not C.use_external_speaker_embedding_file:
+        if args.speaker_fileid.isdigit():
+            args.speaker_fileid = int(args.speaker_fileid)
+        else:
+            args.speaker_fileid = None
+    else:
+        args.speaker_fileid = None
+
+    wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_fileid, speaker_embedding=speaker_embedding)
 
     # save the results
     file_name = args.text.replace(" ", "_")
