@@ -58,7 +58,7 @@ class Tacotron2(TacotronAbstract):
         else:
             # if speaker_embedding_dim is not None we need use speaker embedding per sample
             self.embeddings_per_sample = True
-    
+
         # speaker and gst embeddings is concat in decoder input
         if num_speakers > 1:
             decoder_in_features = decoder_in_features + speaker_embedding_dim # add speaker embedding dim
@@ -73,7 +73,7 @@ class Tacotron2(TacotronAbstract):
             if not self.embeddings_per_sample:
                 self.speaker_embedding = nn.Embedding(num_speakers, speaker_embedding_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
-            
+
         # base model layers
         self.encoder = Encoder(encoder_in_features)
         self.decoder = Decoder(decoder_in_features, self.decoder_output_dim, r, attn_type, attn_win,
