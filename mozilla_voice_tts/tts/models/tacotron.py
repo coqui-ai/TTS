@@ -113,7 +113,7 @@ class Tacotron(TacotronAbstract):
         encoder_outputs = self.encoder(inputs)
         # sequence masking
         encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(encoder_outputs)
-        
+
         # global style token
         if self.gst:
             # B x gst_dim
