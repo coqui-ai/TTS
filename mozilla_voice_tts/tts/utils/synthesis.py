@@ -210,13 +210,10 @@ def synthesis(model,
     if backend == 'torch':
         if speaker_id is not None:
             speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
-<<<<<<< HEAD:mozilla_voice_tts/tts/utils/synthesis.py
 
         if speaker_embedding is not None:
             speaker_embedding = embedding_to_torch(speaker_embedding, cuda=use_cuda)
 
-=======
->>>>>>> Added support for Tacotron2 GST + abbility to condition style input with wav or tokens:utils/synthesis.py
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         inputs = numpy_to_torch(inputs, torch.long, cuda=use_cuda)
