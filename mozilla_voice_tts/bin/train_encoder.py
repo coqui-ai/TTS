@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from mozilla_voice_tts.generic_utils import count_parameters
 from mozilla_voice_tts.speaker_encoder.dataset import MyDataset
 from mozilla_voice_tts.speaker_encoder.generic_utils import save_best_model
-from mozilla_voice_tts.speaker_encoder.loss import GE2ELoss
+from mozilla_voice_tts.speaker_encoder.losses import GE2ELoss
 from mozilla_voice_tts.speaker_encoder.model import SpeakerEncoder
 from mozilla_voice_tts.speaker_encoder.visual import plot_embeddings
 from mozilla_voice_tts.tts.datasets.preprocess import load_meta_data

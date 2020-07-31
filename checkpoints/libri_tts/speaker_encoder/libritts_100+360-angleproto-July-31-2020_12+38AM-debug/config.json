@@ -1,4 +1,5 @@
 
+"github_branch":"* dev-gst-embeddings",
 {
     "run_name": "libritts_100+360-angleproto",
     "run_description": "train speaker encoder for libritts 100 and 360",
