@@ -100,7 +100,7 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
         if global_step % c.steps_plot_stats == 0:
             # Plot Training Epoch Stats
             train_stats = {
-                "GE2Eloss": avg_loss,
+                "loss": avg_loss,
                 "lr": current_lr,
                 "grad_norm": grad_norm,
                 "step_time": step_time
@@ -140,7 +140,13 @@ def main(args):  # pylint: disable=redefined-outer-name
                            lstm_dim=384,
                            num_lstm_layers=3)
     optimizer = RAdam(model.parameters(), lr=c.lr)
-    criterion = GE2ELoss(loss_method='softmax')
+
+    if c.loss == "ge2e":
+        criterion = GE2ELoss(loss_method='softmax')
+    elif c.loss == "angleproto":
+        criterion = AngleProtoLoss()
+    else:
+        raise Exception("The %s  not is a loss supported" %c.loss)
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
@@ -185,7 +191,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     global_step = args.restore_step
     _, global_step = train(model, criterion, optimizer, scheduler, ap,
                            global_step)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
