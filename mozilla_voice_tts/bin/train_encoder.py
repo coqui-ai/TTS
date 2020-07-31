@@ -247,7 +247,7 @@ if __name__ == '__main__':
                      new_fields)
 
     LOG_DIR = OUT_PATH
-    tb_logger = TensorboardLogger(LOG_DIR)
+    tb_logger = TensorboardLogger(LOG_DIR, model_name='Speaker_Encoder')
 
     try:
         main(args)

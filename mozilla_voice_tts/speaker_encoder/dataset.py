@@ -31,7 +31,7 @@ class MyDataset(Dataset):
             print(f" | > Num speakers: {len(self.speakers)}")
 
     def load_wav(self, filename):
-        audio = self.ap.load_wav(filename)
+        audio = self.ap.load_wav(filename, sr=self.ap.sample_rate)
         return audio
 
     def load_data(self, idx):
