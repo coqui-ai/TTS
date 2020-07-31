@@ -21,6 +21,7 @@
         "do_trim_silence": false // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
     },
     "reinit_layers": [],
+    "loss": "angleproto", // "ge2e" to use Generalized End-to-End loss and "angleproto" to use Angular Prototypical loss (new SOTA)
     "grad_clip": 3.0, // upper limit for gradients for clipping.
     "epochs": 1000, // total number of epochs to train.
     "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
