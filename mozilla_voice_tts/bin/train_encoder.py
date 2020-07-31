@@ -135,10 +135,10 @@ def main(args):  # pylint: disable=redefined-outer-name
     global meta_data_eval
 
     ap = AudioProcessor(**c.audio)
-    model = SpeakerEncoder(input_dim=40,
-                           proj_dim=128,
-                           lstm_dim=384,
-                           num_lstm_layers=3)
+    model = SpeakerEncoder(input_dim=c.model['input_dim'],
+                           proj_dim=c.model['proj_dim'],
+                           lstm_dim=c.model['lstm_dim'],
+                           num_lstm_layers=c.model['num_lstm_layers'])
     optimizer = RAdam(model.parameters(), lr=c.lr)
 
     if c.loss == "ge2e":
