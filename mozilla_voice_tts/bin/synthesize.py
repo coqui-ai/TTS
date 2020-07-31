@@ -18,9 +18,9 @@ from mozilla_voice_tts.utils.io import load_config
 from mozilla_voice_tts.vocoder.utils.generic_utils import setup_generator
 
 
-def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_fileid, speaker_embedding=None):
+def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_fileid, speaker_embedding=None, gst_style=None):
     t_1 = time.time()
-    waveform, _, _, mel_postnet_spec, _, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_fileid, None, False, CONFIG.enable_eos_bos_chars, use_gl, speaker_embedding=speaker_embedding)
+    waveform, _, _, mel_postnet_spec, _, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_fileid, gst_style, False, CONFIG.enable_eos_bos_chars, use_gl, speaker_embedding=speaker_embedding)
     if CONFIG.model == "Tacotron" and not use_gl:
         mel_postnet_spec = ap.out_linear_to_mel(mel_postnet_spec.T).T
     if not use_gl:
@@ -84,6 +84,11 @@ if __name__ == "__main__":
         type=str,
         help="if CONFIG.use_external_speaker_embedding_file is true, name of speaker embedding reference file present in speakers.json, else target speaker_fileid if the model is multi-speaker.",
         default=None)
+    parser.add_argument(
+        '--gst_style',
+        help="Wav path file for GST stylereference.",
+        default=None)
+
     args = parser.parse_args()
 
     # load the config
@@ -147,7 +152,12 @@ if __name__ == "__main__":
     else:
         args.speaker_fileid = None
 
-    wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_fileid, speaker_embedding=speaker_embedding)
+    if args.gst_style is None:
+        gst_style = C.gst['gst_style_input']
+    else:
+        gst_style = args.gst_style
+
+    wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_fileid, speaker_embedding=speaker_embedding, gst_style=gst_style)
 
     # save the results
     file_name = args.text.replace(" ", "_")
