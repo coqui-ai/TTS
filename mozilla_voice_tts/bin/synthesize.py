@@ -158,7 +158,7 @@ if __name__ == "__main__":
         # check if gst_style string is a dict, if is dict convert  else use string
         try:
             gst_style = json.loads(args.gst_style)
-        except:
+        except ValueError:
             gst_style = args.gst_style
 
     wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_fileid, speaker_embedding=speaker_embedding, gst_style=gst_style)
