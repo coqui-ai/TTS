@@ -158,6 +158,8 @@ if __name__ == "__main__":
         # check if gst_style string is a dict, if is dict convert  else use string
         try:
             gst_style = json.loads(args.gst_style)
+            if max(map(int, gst_style.keys())) >= C.gst['gst_style_tokens']:
+                raise RuntimeError("The highest value of the gst_style dictionary key must be less than the number of GST Tokens, \n Highest dictionary key value: {} \n Number of GST tokens: {}".format(max(map(int, gst_style.keys())), C.gst['gst_style_tokens']))
         except ValueError:
             gst_style = args.gst_style
 
