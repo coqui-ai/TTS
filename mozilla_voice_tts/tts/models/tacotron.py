@@ -40,7 +40,7 @@ class Tacotron(TacotronAbstract):
                              forward_attn, trans_agent, forward_attn_mask,
                              location_attn, attn_K, separate_stopnet,
                              bidirectional_decoder, double_decoder_consistency,
-                             ddc_r, gst)
+                             ddc_r, gst, gst_embedding_dim, gst_num_heads, gst_style_tokens)
 
         # init layer dims
         decoder_in_features = 256
