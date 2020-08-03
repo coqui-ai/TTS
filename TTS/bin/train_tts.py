@@ -637,7 +637,7 @@ if __name__ == '__main__':
     check_config(c)
     _ = os.path.dirname(os.path.realpath(__file__))
 
-    if c.apex_amp_level:
+    if c.apex_amp_level is 'O1':
         print("   >  apex AMP level: ", c.apex_amp_level)
 
     OUT_PATH = args.continue_path
