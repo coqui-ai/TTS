@@ -178,6 +178,7 @@ def check_config(c):
     check_argument('r', c, restricted=True, val_type=int, min_val=1)
     check_argument('gradual_training', c, restricted=False, val_type=list)
     check_argument('loss_masking', c, restricted=True, val_type=bool)
+    check_argument('apex_amp_level', c, restricted=False, val_type=str)
     # check_argument('grad_accum', c, restricted=True, val_type=int, min_val=1, max_val=100)
 
     # validation parameters
