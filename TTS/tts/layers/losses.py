@@ -150,7 +150,7 @@ class GuidedAttentionLoss(torch.nn.Module):
 
     @staticmethod
     def _make_ga_mask(ilen, olen, sigma):
-        grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
+        grid_x, grid_y = torch.meshgrid(torch.arange(olen, device=olen.device), torch.arange(ilen, device=ilen.device))
         grid_x, grid_y = grid_x.float(), grid_y.float()
         return 1.0 - torch.exp(-(grid_y / ilen - grid_x / olen) ** 2 / (2 * (sigma ** 2)))
 
