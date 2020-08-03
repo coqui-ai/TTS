@@ -255,13 +255,13 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
                 align_img = alignments[0].data.cpu().numpy()
 
                 figures = {
-                    "prediction": plot_spectrogram(const_spec, ap),
-                    "ground_truth": plot_spectrogram(gt_spec, ap),
-                    "alignment": plot_alignment(align_img),
+                    "prediction": plot_spectrogram(const_spec, ap, output_fig=False),
+                    "ground_truth": plot_spectrogram(gt_spec, ap, output_fig=False),
+                    "alignment": plot_alignment(align_img, output_fig=False),
                 }
 
                 if c.bidirectional_decoder or c.double_decoder_consistency:
-                    figures["alignment_backward"] = plot_alignment(alignments_backward[0].data.cpu().numpy())
+                    figures["alignment_backward"] = plot_alignment(alignments_backward[0].data.cpu().numpy(), output_fig=False)
 
                 tb_logger.tb_train_figures(global_step, figures)
 
@@ -369,9 +369,9 @@ def evaluate(model, criterion, ap, global_step, epoch):
             align_img = alignments[idx].data.cpu().numpy()
 
             eval_figures = {
-                "prediction": plot_spectrogram(const_spec, ap),
-                "ground_truth": plot_spectrogram(gt_spec, ap),
-                "alignment": plot_alignment(align_img)
+                "prediction": plot_spectrogram(const_spec, ap, output_fig=False),
+                "ground_truth": plot_spectrogram(gt_spec, ap, output_fig=False),
+                "alignment": plot_alignment(align_img, output_fig=False)
             }
 
             # Sample audio
@@ -386,7 +386,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
 
             if c.bidirectional_decoder or c.double_decoder_consistency:
                 align_b_img = alignments_backward[idx].data.cpu().numpy()
-                eval_figures['alignment2'] = plot_alignment(align_b_img)
+                eval_figures['alignment2'] = plot_alignment(align_b_img, output_fig=False)
             tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
             tb_logger.tb_eval_figures(global_step, eval_figures)
 
@@ -431,9 +431,9 @@ def evaluate(model, criterion, ap, global_step, epoch):
                 ap.save_wav(wav, file_path)
                 test_audios['{}-audio'.format(idx)] = wav
                 test_figures['{}-prediction'.format(idx)] = plot_spectrogram(
-                    postnet_output, ap)
+                    postnet_output, ap, output_fig=False)
                 test_figures['{}-alignment'.format(idx)] = plot_alignment(
-                    alignment)
+                    alignment, output_fig=False)
             except:
                 print(" !! Error creating Test Sentence -", idx)
                 traceback.print_exc()

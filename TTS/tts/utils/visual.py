@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from TTS.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme
 
 
-def plot_alignment(alignment, info=None, fig_size=(16, 10), title=None):
+def plot_alignment(alignment, info=None, fig_size=(16, 10), title=None, output_fig=False):
     if isinstance(alignment, torch.Tensor):
         alignment_ = alignment.detach().cpu().numpy().squeeze()
     else:
@@ -24,10 +24,12 @@ def plot_alignment(alignment, info=None, fig_size=(16, 10), title=None):
     plt.tight_layout()
     if title is not None:
         plt.title(title)
+    if not output_fig:
+        plt.close()
     return fig
 
 
-def plot_spectrogram(spectrogram, ap=None, fig_size=(16, 10)):
+def plot_spectrogram(spectrogram, ap=None, fig_size=(16, 10), output_fig=False):
     if isinstance(spectrogram, torch.Tensor):
         spectrogram_ = spectrogram.detach().cpu().numpy().squeeze().T
     else:
@@ -38,10 +40,12 @@ def plot_spectrogram(spectrogram, ap=None, fig_size=(16, 10)):
     plt.imshow(spectrogram_, aspect="auto", origin="lower")
     plt.colorbar()
     plt.tight_layout()
+    if not output_fig:
+       plt.close()
     return fig
 
 
-def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, decoder_output=None, output_path=None, figsize=(8, 24)):
+def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, decoder_output=None, output_path=None, figsize=(8, 24), output_fig=False):
     if decoder_output is not None:
         num_plot = 4
     else:
@@ -91,3 +95,6 @@ def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, 
         print(output_path)
         fig.savefig(output_path)
         plt.close()
+
+    if not output_fig:
+       plt.close()
