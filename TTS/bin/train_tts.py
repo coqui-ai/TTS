@@ -170,7 +170,12 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
                               text_lengths)
 
         # backward pass
-        loss_dict['loss'].backward()
+        if amp is not None:
+            with amp.scale_loss( loss_dict['loss'], optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss_dict['loss'].backward()
+
         optimizer, current_lr = adam_weight_decay(optimizer)
         if amp:
             amp_opt_params = amp.master_params(optimizer)
