@@ -1,7 +1,7 @@
 import librosa
 import soundfile as sf
 import numpy as np
-import scipy.io
+import scipy.io.wavfile
 import scipy.signal
 
 from TTS.utils.data import StandardScaler
