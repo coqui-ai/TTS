@@ -128,5 +128,6 @@ setup(
 
 # for some reason having tensorflow in 'install_requires'
 # breaks some of the dependencies.
-for module in requirements['pip_install']:
-    pip_install(module)
+if 'bdist_wheel' not in unknown_args:
+    for module in requirements['pip_install']:
+        pip_install(module)
