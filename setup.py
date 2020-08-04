@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import numpy
 
 from setuptools import setup, find_packages
 import setuptools.command.develop
@@ -118,6 +119,7 @@ setup(
             'tts-server = TTS.server.server:main'
         ]
     },
+    include_dirs=[numpy.get_include()],
     ext_modules=cythonize(find_pyx(), language_level=3),
     packages=find_packages(include=['TTS*']),
     project_urls={
