@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional
-from TTS.tts.utils.generic_utils import sequence_mask
+from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
 
 
 class L1LossMasked(nn.Module):

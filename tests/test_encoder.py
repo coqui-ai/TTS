@@ -3,9 +3,9 @@ import unittest
 import torch as T
 
 from tests import get_tests_path, get_tests_input_path
-from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.loss import GE2ELoss
-from TTS.utils.io import load_config
+from mozilla_voice_tts.speaker_encoder.model import SpeakerEncoder
+from mozilla_voice_tts.speaker_encoder.loss import GE2ELoss
+from mozilla_voice_tts.utils.io import load_config
 
 
 file_path = get_tests_input_path()

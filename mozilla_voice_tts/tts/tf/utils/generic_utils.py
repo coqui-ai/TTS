@@ -78,7 +78,7 @@ def count_parameters(model, c):
 
 def setup_model(num_chars, num_speakers, c, enable_tflite=False):
     print(" > Using model: {}".format(c.model))
-    MyModel = importlib.import_module('TTS.tts.tf.models.' + c.model.lower())
+    MyModel = importlib.import_module('mozilla_voice_tts.tts.tf.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
     if c.model.lower() in "tacotron":
         raise NotImplementedError(' [!] Tacotron model is not ready.')

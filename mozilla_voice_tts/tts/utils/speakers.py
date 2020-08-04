@@ -1,7 +1,7 @@
 import os
 import json
 
-from TTS.tts.datasets.preprocess import get_preprocessor_by_name
+from mozilla_voice_tts.tts.datasets.preprocess import get_preprocessor_by_name
 
 
 def make_speakers_json_path(out_path):

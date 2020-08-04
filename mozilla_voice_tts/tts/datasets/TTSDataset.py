@@ -5,8 +5,8 @@ import torch
 import random
 from torch.utils.data import Dataset
 
-from TTS.tts.utils.text import text_to_sequence, phoneme_to_sequence, pad_with_eos_bos
-from TTS.tts.utils.data import prepare_data, prepare_tensor, prepare_stop_target
+from mozilla_voice_tts.tts.utils.text import text_to_sequence, phoneme_to_sequence, pad_with_eos_bos
+from mozilla_voice_tts.tts.utils.data import prepare_data, prepare_tensor, prepare_stop_target
 
 
 class MyDataset(Dataset):
@@ -30,7 +30,7 @@ class MyDataset(Dataset):
             outputs_per_step (int): number of time frames predicted per step.
             text_cleaner (str): text cleaner used for the dataset.
             compute_linear_spec (bool): compute linear spectrogram if True.
-            ap (TTS.tts.utils.AudioProcessor): audio processor object.
+            ap (mozilla_voice_tts.tts.utils.AudioProcessor): audio processor object.
             meta_data (list): list of dataset instances.
             batch_group_size (int): (0) range of batch randomization after sorting
                 sequences by length.

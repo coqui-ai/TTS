@@ -15,7 +15,7 @@ If you have the environment set already for TTS, then you can directly call ```s
 3. source /tmp/venv/bin/activate
 4. pip install -U pip setuptools wheel
 5. pip install -U https//example.com/url/to/python/package.whl
-6. python -m TTS.server.server
+6. python -m mozilla_voice_tts.server.server
 
 You can now open http://localhost:5002 in a browser
 

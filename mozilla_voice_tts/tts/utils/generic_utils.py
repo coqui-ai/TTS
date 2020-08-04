@@ -3,7 +3,7 @@ import importlib
 import numpy as np
 from collections import Counter
 
-from TTS.utils.generic_utils import check_argument
+from mozilla_voice_tts.utils.generic_utils import check_argument
 
 
 def split_dataset(items):
@@ -46,7 +46,7 @@ def sequence_mask(sequence_length, max_len=None):
 
 def setup_model(num_chars, num_speakers, c):
     print(" > Using model: {}".format(c.model))
-    MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
+    MyModel = importlib.import_module('mozilla_voice_tts.tts.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
     if c.model.lower() in "tacotron":
         model = MyModel(num_chars=num_chars,
@@ -227,7 +227,7 @@ def check_config(c):
 
     # dataloading
     # pylint: disable=import-outside-toplevel
-    from TTS.tts.utils.text import cleaners
+    from mozilla_voice_tts.tts.utils.text import cleaners
     check_argument('text_cleaner', c, restricted=True, val_type=str, enum_list=dir(cleaners))
     check_argument('enable_eos_bos_chars', c, restricted=True, val_type=bool)
     check_argument('num_loader_workers', c, restricted=True, val_type=int, min_val=0)

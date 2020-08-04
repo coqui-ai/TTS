@@ -7,9 +7,9 @@ tf.get_logger().setLevel('INFO')
 
 from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 
-from TTS.utils.io import load_config
-from TTS.tts.tf.models.tacotron2 import Tacotron2
-from TTS.tts.tf.utils.tflite import convert_tacotron2_to_tflite, load_tflite_model
+from mozilla_voice_tts.utils.io import load_config
+from mozilla_voice_tts.tts.tf.models.tacotron2 import Tacotron2
+from mozilla_voice_tts.tts.tf.utils.tflite import convert_tacotron2_to_tflite, load_tflite_model
 
 #pylint: disable=unused-variable
 

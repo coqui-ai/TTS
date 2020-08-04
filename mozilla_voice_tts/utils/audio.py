@@ -4,7 +4,7 @@ import numpy as np
 import scipy.io.wavfile
 import scipy.signal
 
-from TTS.tts.utils.data import StandardScaler
+from mozilla_voice_tts.tts.utils.data import StandardScaler
 
 
 class AudioProcessor(object):

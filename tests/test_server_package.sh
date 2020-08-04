@@ -12,12 +12,12 @@ pip install --quiet --upgrade pip setuptools wheel
 
 rm -f dist/*.whl
 python setup.py --quiet bdist_wheel --checkpoint tests/outputs/checkpoint_10.pth.tar --model_config tests/outputs/dummy_model_config.json
-pip install --quiet dist/TTS*.whl
+pip install --quiet dist/mozilla_voice_tts*.whl
 
 # this is related to https://github.com/librosa/librosa/issues/1160
 pip install numba==0.48
 
-python -m TTS.server.server &
+python -m mozilla_voice_tts.server.server &
 SERVER_PID=$!
 
 echo 'Waiting for server...'

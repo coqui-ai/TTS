@@ -11,13 +11,13 @@ import numpy as np
 import tensorflow as tf
 import torch
 from fuzzywuzzy import fuzz
-from TTS.tts.tf.models.tacotron2 import Tacotron2
-from TTS.tts.tf.utils.convert_torch_to_tf_utils import (
+from mozilla_voice_tts.tts.tf.models.tacotron2 import Tacotron2
+from mozilla_voice_tts.tts.tf.utils.convert_torch_to_tf_utils import (
     compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf)
-from TTS.tts.tf.utils.generic_utils import save_checkpoint
-from TTS.tts.utils.generic_utils import setup_model
-from TTS.tts.utils.text.symbols import phonemes, symbols
-from TTS.utils.io import load_config
+from mozilla_voice_tts.tts.tf.utils.generic_utils import save_checkpoint
+from mozilla_voice_tts.tts.utils.generic_utils import setup_model
+from mozilla_voice_tts.tts.utils.text.symbols import phonemes, symbols
+from mozilla_voice_tts.utils.io import load_config
 
 sys.path.append('/home/erogol/Projects')
 os.environ['CUDA_VISIBLE_DEVICES'] = ''

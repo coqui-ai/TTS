@@ -9,7 +9,7 @@ def to_camel(text):
 
 def setup_generator(c):
     print(" > Generator Model: {}".format(c.generator_model))
-    MyModel = importlib.import_module('TTS.vocoder.tf.models.' +
+    MyModel = importlib.import_module('mozilla_voice_tts.vocoder.tf.models.' +
                                       c.generator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.generator_model))
     if c.generator_model in 'melgan_generator':

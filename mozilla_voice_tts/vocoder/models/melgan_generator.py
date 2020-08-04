@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn.utils import weight_norm
 
-from TTS.vocoder.layers.melgan import ResidualStack
+from mozilla_voice_tts.vocoder.layers.melgan import ResidualStack
 
 
 class MelganGenerator(nn.Module):

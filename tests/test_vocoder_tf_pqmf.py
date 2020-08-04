@@ -5,7 +5,7 @@ import soundfile as sf
 from librosa.core import load
 
 from tests import get_tests_path, get_tests_input_path
-from TTS.vocoder.tf.layers.pqmf import PQMF
+from mozilla_voice_tts.vocoder.tf.layers.pqmf import PQMF
 
 
 TESTS_PATH = get_tests_path()

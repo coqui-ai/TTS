@@ -3,7 +3,7 @@ import librosa
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from TTS.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme
+from mozilla_voice_tts.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme
 
 
 def plot_alignment(alignment, info=None, fig_size=(16, 10), title=None, output_fig=False):

@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from TTS.vocoder.tf.models.melgan_generator import MelganGenerator
-from TTS.vocoder.tf.layers.pqmf import PQMF
+from mozilla_voice_tts.vocoder.tf.models.melgan_generator import MelganGenerator
+from mozilla_voice_tts.vocoder.tf.layers.pqmf import PQMF
 
 #pylint: disable=too-many-ancestors
 #pylint: disable=abstract-method
