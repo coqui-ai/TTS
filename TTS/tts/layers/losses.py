@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import torch
 from torch import nn
@@ -150,7 +151,7 @@ class GuidedAttentionLoss(torch.nn.Module):
 
     @staticmethod
     def _make_ga_mask(ilen, olen, sigma):
-        grid_x, grid_y = torch.meshgrid(torch.arange(olen, device=olen.device), torch.arange(ilen, device=ilen.device))
+        grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
         grid_x, grid_y = grid_x.float(), grid_y.float()
         return 1.0 - torch.exp(-(grid_y / ilen - grid_x / olen) ** 2 / (2 * (sigma ** 2)))
 
@@ -242,4 +243,22 @@ class TacotronLoss(torch.nn.Module):
             return_dict['ga_loss'] = ga_loss * self.ga_alpha
 
         return_dict['loss'] = loss
+        return return_dict
+
+
+class GlowTTSLoss(torch.nn.Module):
+    def __init__(self):
+        super(GlowTTSLoss, self).__init__()
+        self.constant_factor = 0.5 * math.log(2 * math.pi)
+
+    def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths):
+        return_dict = {}
+        # flow loss
+        pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means)**2)
+        log_mle = self.constant_factor +  (pz - torch.sum(log_det)) / (torch.sum(y_lengths // 2) * 2 * 80)
+        # duration loss
+        loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+        return_dict['loss'] = log_mle + loss_dur
+        return_dict['log_mle'] = log_mle
+        return_dict['loss_dur'] = loss_dur
         return return_dict

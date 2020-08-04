@@ -1,3 +1,4 @@
+import re
 import torch
 import importlib
 import numpy as np
@@ -42,6 +43,11 @@ def sequence_mask(sequence_length, max_len=None):
         sequence_length.unsqueeze(1).expand_as(seq_range_expand))
     # B x T_max
     return seq_range_expand < seq_length_expand
+
+
+def to_camel(text):
+    text = text.capitalize()
+    return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
 
 def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
@@ -99,6 +105,32 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         double_decoder_consistency=c.double_decoder_consistency,
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
+    elif c.model.lower() == "glow_tts":
+        model = MyModel(num_chars=num_chars,
+                        hidden_channels=192,
+                        filter_channels=768,
+                        filter_channels_dp=256,
+                        out_channels=80,
+                        kernel_size=3,
+                        num_heads=2,
+                        num_layers_enc=6,
+                        dropout_p=0.1,
+                        num_flow_blocks_dec=12,
+                        kernel_size_dec=5,
+                        dilation_rate=1,
+                        num_block_layers=4,
+                        dropout_p_dec=0.05,
+                        num_speakers=num_speakers,
+                        c_in_channels=0,
+                        num_splits=4,
+                        num_sqz=2,
+                        sigmoid_scale=False,
+                        rel_attn_window_size=4,
+                        input_length=None,
+                        mean_only=True,
+                        hidden_channels_enc=192,
+                        hidden_channels_dec=192,
+                        use_encoder_prenet=True)
     return model
 
 

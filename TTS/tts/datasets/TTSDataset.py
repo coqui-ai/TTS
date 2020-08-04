@@ -113,7 +113,14 @@ class MyDataset(Dataset):
         return phonemes
 
     def load_data(self, idx):
-        text, wav_file, speaker_name = self.items[idx]
+        item = self.items[idx]
+
+        if len(item) == 4:
+             text, wav_file, speaker_name, attn_file = item
+        else:
+             text, wav_file, speaker_name = item
+             attn = None
+
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
         if self.use_phonemes:
@@ -125,9 +132,13 @@ class MyDataset(Dataset):
         assert text.size > 0, self.items[idx][1]
         assert wav.size > 0, self.items[idx][1]
 
+        if "attn_file" in locals():
+            attn = np.load(attn_file)
+
         sample = {
             'text': text,
             'wav': wav,
+            'attn': attn,
             'item_idx': self.items[idx][1],
             'speaker_name': speaker_name,
             'wav_file_name': os.path.basename(wav_file)
@@ -245,8 +256,21 @@ class MyDataset(Dataset):
                 linear = torch.FloatTensor(linear).contiguous()
             else:
                 linear = None
+
+            # collate attention alignments
+            if batch[0]['attn'] is not None:
+                attns = [batch[idx]['attn'].T for idx in ids_sorted_decreasing]
+                for idx, attn in enumerate(attns):
+                    pad2 = mel.shape[1] - attn.shape[1]
+                    pad1 = text.shape[1] - attn.shape[0]
+                    attn = np.pad(attn, [[0, pad1], [0, pad2]])
+                    attns[idx] = attn
+                attns = prepare_tensor(attns, self.outputs_per_step)
+                attns = torch.FloatTensor(attns).unsqueeze(1)
+            else:
+                attns = None
             return text, text_lenghts, speaker_name, linear, mel, mel_lengths, \
-                   stop_targets, item_idxs, speaker_embedding
+                   stop_targets, item_idxs, speaker_embedding, attns
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}".format(type(batch[0]))))
