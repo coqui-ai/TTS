@@ -23,8 +23,8 @@ version = '0.0.4'
 
 # Adapted from https://github.com/pytorch/pytorch
 cwd = os.path.dirname(os.path.abspath(__file__))
-if os.getenv('TTS_PYTORCH_BUILD_VERSION'):
-    version = os.getenv('TTS_PYTORCH_BUILD_VERSION')
+if os.getenv('MOZILLA_VOICE_TTS_PYTORCH_BUILD_VERSION'):
+    version = os.getenv('MOZILLA_VOICE_TTS_PYTORCH_BUILD_VERSION')
 else:
     try:
         sha = subprocess.check_output(
@@ -56,11 +56,11 @@ class develop(setuptools.command.develop.develop):
 
 
 # The documentation for this feature is in server/README.md
-package_data = ['TTS/server/templates/*']
+package_data = ['mozilla_voice_tts/server/templates/*']
 
 if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
     print('Embedding model in wheel file...')
-    model_dir = os.path.join('TTS', 'server', 'model')
+    model_dir = os.path.join('mozilla_voice_tts', 'server', 'model')
     tts_dir = os.path.join(model_dir, 'tts')
     os.makedirs(tts_dir, exist_ok=True)
     embedded_checkpoint_path = os.path.join(tts_dir, 'checkpoint.pth.tar')
@@ -87,7 +87,7 @@ requirements = {
 
 
 setup(
-    name='TTS',
+    name='mozilla_voice_tts',
     version=version,
     url='https://github.com/mozilla/TTS',
     author='Eren Gölge',
@@ -96,7 +96,7 @@ setup(
     license='MPL-2.0',
     entry_points={
         'console_scripts': [
-            'tts-server = TTS.server.server:main'
+            'tts-server = mozilla_voice_tts.server.server:main'
         ]
     },
     packages=find_packages(include=['TTS*']),
