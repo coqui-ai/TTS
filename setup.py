@@ -10,6 +10,15 @@ from setuptools import setup, find_packages
 import setuptools.command.develop
 import setuptools.command.build_py
 
+# handle import if cython is not already installed.
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    # create closure for deferred import
+    def cythonize (*args, ** kwargs ):
+        from Cython.Build import cythonize
+        return cythonize(*args, ** kwargs)
+
 
 parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
 parser.add_argument('--checkpoint', type=str, help='Path to checkpoint file to embed in wheel.')
@@ -99,6 +108,7 @@ setup(
             'tts-server = TTS.server.server:main'
         ]
     },
+    ext_modules=cythonize(find_pyx(), language_level=3),
     packages=find_packages(include=['TTS*']),
     project_urls={
         'Documentation': 'https://github.com/mozilla/TTS/wiki',
