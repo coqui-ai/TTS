@@ -4,10 +4,10 @@ import numpy as np
 from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from torch.utils.data import DataLoader
 
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
-from TTS.vocoder.datasets.gan_dataset import GANDataset
-from TTS.vocoder.datasets.preprocess import load_wav_data
+from mozilla_voice_tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.utils.io import load_config
+from mozilla_voice_tts.vocoder.datasets.gan_dataset import GANDataset
+from mozilla_voice_tts.vocoder.datasets.preprocess import load_wav_data
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")

@@ -2,11 +2,11 @@
 
 import argparse
 
-from TTS.utils.io import load_config
-from TTS.tts.utils.text.symbols import symbols, phonemes
-from TTS.tts.tf.utils.generic_utils import setup_model
-from TTS.tts.tf.utils.io import load_checkpoint
-from TTS.tts.tf.utils.tflite import convert_tacotron2_to_tflite
+from mozilla_voice_tts.utils.io import load_config
+from mozilla_voice_tts.tts.utils.text.symbols import symbols, phonemes
+from mozilla_voice_tts.tts.tf.utils.generic_utils import setup_model
+from mozilla_voice_tts.tts.tf.utils.io import load_checkpoint
+from mozilla_voice_tts.tts.tf.utils.tflite import convert_tacotron2_to_tflite
 
 
 parser = argparse.ArgumentParser()

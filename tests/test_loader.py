@@ -6,10 +6,10 @@ import numpy as np
 
 from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from torch.utils.data import DataLoader
-from TTS.utils.io import load_config
-from TTS.utils.audio import AudioProcessor
-from TTS.tts.datasets import TTSDataset
-from TTS.tts.datasets.preprocess import ljspeech
+from mozilla_voice_tts.utils.io import load_config
+from mozilla_voice_tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.tts.datasets import TTSDataset
+from mozilla_voice_tts.tts.datasets.preprocess import ljspeech
 
 #pylint: disable=unused-variable
 

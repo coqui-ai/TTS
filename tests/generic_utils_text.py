@@ -1,8 +1,8 @@
 import unittest
 import torch as T
 
-from TTS.tts.utils.generic_utils import save_checkpoint, save_best_model
-from TTS.tts.layers.tacotron import Prenet
+from mozilla_voice_tts.tts.utils.generic_utils import save_checkpoint, save_best_model
+from mozilla_voice_tts.tts.layers.tacotron import Prenet
 
 OUT_PATH = '/tmp/test.pth.tar'
 

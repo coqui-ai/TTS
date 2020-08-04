@@ -1,6 +1,6 @@
 from torch import nn
 
-from TTS.vocoder.models.melgan_discriminator import MelganDiscriminator
+from mozilla_voice_tts.vocoder.models.melgan_discriminator import MelganDiscriminator
 
 
 class MelganMultiscaleDiscriminator(nn.Module):

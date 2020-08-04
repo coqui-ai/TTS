@@ -4,8 +4,8 @@ import re
 from packaging import version
 import phonemizer
 from phonemizer.phonemize import phonemize
-from TTS.tts.utils.text import cleaners
-from TTS.tts.utils.text.symbols import make_symbols, symbols, phonemes, _phoneme_punctuations, _bos, \
+from mozilla_voice_tts.tts.utils.text import cleaners
+from mozilla_voice_tts.tts.utils.text.symbols import make_symbols, symbols, phonemes, _phoneme_punctuations, _bos, \
     _eos
 
 # Mappings from symbol to numeric ID and vice versa:

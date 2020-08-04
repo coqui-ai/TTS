@@ -67,6 +67,7 @@
     "gradual_training": [[0, 7, 4]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.
     "ga_alpha": 10.0,        // weight for guided attention loss. If > 0, guided attention is enabled.
+    "apex_amp_level": null,
 
     // VALIDATION
     "run_eval": true,

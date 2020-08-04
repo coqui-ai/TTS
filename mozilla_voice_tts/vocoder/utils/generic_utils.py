@@ -3,7 +3,7 @@ import importlib
 import numpy as np
 from matplotlib import pyplot as plt
 
-from TTS.tts.utils.visual import plot_spectrogram
+from mozilla_voice_tts.tts.utils.visual import plot_spectrogram
 
 
 def plot_results(y_hat, y, ap, global_step, name_prefix):
@@ -44,7 +44,7 @@ def to_camel(text):
 
 def setup_generator(c):
     print(" > Generator Model: {}".format(c.generator_model))
-    MyModel = importlib.import_module('TTS.vocoder.models.' +
+    MyModel = importlib.import_module('mozilla_voice_tts.vocoder.models.' +
                                       c.generator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.generator_model))
     if c.generator_model in 'melgan_generator':
@@ -91,9 +91,9 @@ def setup_discriminator(c):
     print(" > Discriminator Model: {}".format(c.discriminator_model))
     if 'parallel_wavegan' in c.discriminator_model:
         MyModel = importlib.import_module(
-            'TTS.vocoder.models.parallel_wavegan_discriminator')
+            'mozilla_voice_tts.vocoder.models.parallel_wavegan_discriminator')
     else:
-        MyModel = importlib.import_module('TTS.vocoder.models.' +
+        MyModel = importlib.import_module('mozilla_voice_tts.vocoder.models.' +
                                           c.discriminator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
     if c.discriminator_model in 'random_window_discriminator':

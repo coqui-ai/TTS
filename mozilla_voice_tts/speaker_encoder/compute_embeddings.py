@@ -6,9 +6,9 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
-from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.tts.utils.audio import AudioProcessor
-from TTS.tts.utils.generic_utils import load_config
+from mozilla_voice_tts.speaker_encoder.model import SpeakerEncoder
+from mozilla_voice_tts.tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.tts.utils.generic_utils import load_config
 
 parser = argparse.ArgumentParser(
     description='Compute embedding vectors for each wav file in a dataset. ')

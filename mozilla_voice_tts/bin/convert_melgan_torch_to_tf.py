@@ -6,13 +6,13 @@ import tensorflow as tf
 import torch
 from fuzzywuzzy import fuzz
 
-from TTS.utils.io import load_config
-from TTS.vocoder.tf.utils.convert_torch_to_tf_utils import (
+from mozilla_voice_tts.utils.io import load_config
+from mozilla_voice_tts.vocoder.tf.utils.convert_torch_to_tf_utils import (
     compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf)
-from TTS.vocoder.tf.utils.generic_utils import \
+from mozilla_voice_tts.vocoder.tf.utils.generic_utils import \
     setup_generator as setup_tf_generator
-from TTS.vocoder.tf.utils.io import save_checkpoint
-from TTS.vocoder.utils.generic_utils import setup_generator
+from mozilla_voice_tts.vocoder.tf.utils.io import save_checkpoint
+from mozilla_voice_tts.vocoder.utils.generic_utils import setup_generator
 
 # prevent GPU use
 os.environ['CUDA_VISIBLE_DEVICES'] = ''

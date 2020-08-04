@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
-from TTS.tts.tf.utils.tf_utils import shape_list
-from TTS.tts.tf.layers.common_layers import Prenet, Attention
+from mozilla_voice_tts.tts.tf.utils.tf_utils import shape_list
+from mozilla_voice_tts.tts.tf.layers.common_layers import Prenet, Attention
 # from tensorflow_addons.seq2seq import AttentionWrapper
 
 

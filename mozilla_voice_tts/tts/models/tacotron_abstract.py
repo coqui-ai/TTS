@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch import nn
 
-from TTS.tts.utils.generic_utils import sequence_mask
+from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
 
 
 class TacotronAbstract(ABC, nn.Module):

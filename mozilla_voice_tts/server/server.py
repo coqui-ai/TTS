@@ -3,7 +3,7 @@ import argparse
 import os
 
 from flask import Flask, request, render_template, send_file
-from TTS.server.synthesizer import Synthesizer
+from mozilla_voice_tts.server.synthesizer import Synthesizer
 
 
 def create_argparser():
@@ -18,8 +18,8 @@ def create_argparser():
     parser.add_argument('--wavernn_checkpoint', type=str, default=None, help='path to WaveRNN checkpoint file.')
     parser.add_argument('--wavernn_config', type=str, default=None, help='path to WaveRNN config file.')
     parser.add_argument('--is_wavernn_batched', type=convert_boolean, default=False, help='true to use batched WaveRNN.')
-    parser.add_argument('--vocoder_config', type=str, default=None, help='path to TTS.vocoder config file.')
-    parser.add_argument('--vocoder_checkpoint', type=str, default=None, help='path to TTS.vocoder checkpoint file.')
+    parser.add_argument('--vocoder_config', type=str, default=None, help='path to mozilla_voice_tts.vocoder config file.')
+    parser.add_argument('--vocoder_checkpoint', type=str, default=None, help='path to mozilla_voice_tts.vocoder checkpoint file.')
     parser.add_argument('--port', type=int, default=5002, help='port to listen on.')
     parser.add_argument('--use_cuda', type=convert_boolean, default=False, help='true to use CUDA.')
     parser.add_argument('--debug', type=convert_boolean, default=False, help='true to enable Flask debug mode.')

@@ -2,7 +2,7 @@ import math
 import torch
 from torch import nn
 
-from TTS.vocoder.layers.parallel_wavegan import ResidualBlock
+from mozilla_voice_tts.vocoder.layers.parallel_wavegan import ResidualBlock
 
 
 class ParallelWaveganDiscriminator(nn.Module):

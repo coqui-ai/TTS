@@ -9,7 +9,7 @@ class MyDataset(Dataset):
                  num_utter_per_speaker=10, skip_speakers=False, verbose=False):
         """
         Args:
-            ap (TTS.tts.utils.AudioProcessor): audio processor object.
+            ap (mozilla_voice_tts.tts.utils.AudioProcessor): audio processor object.
             meta_data (list): list of dataset instances.
             seq_len (int): voice segment length in seconds.
             verbose (bool): print diagnostic information.

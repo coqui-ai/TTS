@@ -5,7 +5,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
 import tensorflow as tf
-from TTS.vocoder.tf.layers.melgan import ResidualStack, ReflectionPad1d
+from mozilla_voice_tts.vocoder.tf.layers.melgan import ResidualStack, ReflectionPad1d
 
 
 #pylint: disable=too-many-ancestors

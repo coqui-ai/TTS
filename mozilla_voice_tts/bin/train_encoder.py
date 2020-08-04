@@ -9,21 +9,21 @@ import traceback
 
 import torch
 from torch.utils.data import DataLoader
-from TTS.speaker_encoder.dataset import MyDataset
-from TTS.speaker_encoder.generic_utils import save_best_model
-from TTS.speaker_encoder.loss import GE2ELoss
-from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.visual import plot_embeddings
-from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.tts.utils.audio import AudioProcessor
-from TTS.tts.utils.generic_utils import (create_experiment_folder,
+from mozilla_voice_tts.speaker_encoder.dataset import MyDataset
+from mozilla_voice_tts.speaker_encoder.generic_utils import save_best_model
+from mozilla_voice_tts.speaker_encoder.loss import GE2ELoss
+from mozilla_voice_tts.speaker_encoder.model import SpeakerEncoder
+from mozilla_voice_tts.speaker_encoder.visual import plot_embeddings
+from mozilla_voice_tts.tts.datasets.preprocess import load_meta_data
+from mozilla_voice_tts.tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.tts.utils.generic_utils import (create_experiment_folder,
                                          get_git_branch,
                                          remove_experiment_folder,
                                          set_init_dict)
-from TTS.tts.utils.io import copy_config_file, load_config
-from TTS.tts.utils.radam import RAdam
-from TTS.tts.utils.tensorboard_logger import TensorboardLogger
-from TTS.tts.utils.training import NoamLR, check_update
+from mozilla_voice_tts.tts.utils.io import copy_config_file, load_config
+from mozilla_voice_tts.tts.utils.radam import RAdam
+from mozilla_voice_tts.tts.utils.tensorboard_logger import TensorboardLogger
+from mozilla_voice_tts.tts.utils.training import NoamLR, check_update
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True

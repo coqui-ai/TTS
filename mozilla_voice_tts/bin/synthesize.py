@@ -10,12 +10,12 @@ import time
 
 import torch
 
-from TTS.tts.utils.generic_utils import setup_model
-from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
-from TTS.vocoder.utils.generic_utils import setup_generator
+from mozilla_voice_tts.tts.utils.generic_utils import setup_model
+from mozilla_voice_tts.tts.utils.synthesis import synthesis
+from mozilla_voice_tts.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from mozilla_voice_tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.utils.io import load_config
+from mozilla_voice_tts.vocoder.utils.generic_utils import setup_generator
 
 
 def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_id):

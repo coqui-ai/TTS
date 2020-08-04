@@ -2,7 +2,7 @@ import unittest
 import os
 from tests import get_tests_input_path
 
-from TTS.tts.datasets.preprocess import common_voice
+from mozilla_voice_tts.tts.datasets.preprocess import common_voice
 
 
 class TestPreprocessors(unittest.TestCase):

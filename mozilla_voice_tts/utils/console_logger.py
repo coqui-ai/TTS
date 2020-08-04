@@ -1,5 +1,5 @@
 import datetime
-from TTS.utils.io import AttrDict
+from mozilla_voice_tts.utils.io import AttrDict
 
 
 tcolors = AttrDict({
