@@ -33,6 +33,8 @@ class Tacotron2(TacotronAbstract):
                  bidirectional_decoder=False,
                  double_decoder_consistency=False,
                  ddc_r=None,
+                 encoder_in_features=512,
+                 decoder_in_features=512,
                  speaker_embedding_dim=None,
                  gst=False,
                  gst_embedding_dim=512,
@@ -45,38 +47,27 @@ class Tacotron2(TacotronAbstract):
                              forward_attn, trans_agent, forward_attn_mask,
                              location_attn, attn_K, separate_stopnet,
                              bidirectional_decoder, double_decoder_consistency,
-                             ddc_r, gst, gst_embedding_dim, gst_num_heads, gst_style_tokens)
+                             ddc_r, encoder_in_features, decoder_in_features, 
+                             speaker_embedding_dim, gst, gst_embedding_dim, 
+                             gst_num_heads, gst_style_tokens)
 
-        # init layer dims
-        decoder_in_features = 512
-        encoder_in_features = 512
-
-        if speaker_embedding_dim is None:
-            # if speaker_embedding_dim is None we need use the nn.Embedding, with default speaker_embedding_dim
-            self.embeddings_per_sample = False
-            speaker_embedding_dim = 512
-        else:
-            # if speaker_embedding_dim is not None we need use speaker embedding per sample
-            self.embeddings_per_sample = True
+        # speaker embedding layer
+        if self.num_speakers > 1:
+            if not self.embeddings_per_sample:
+                speaker_embedding_dim = 512
+                self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
+                self.speaker_embedding.weight.data.normal_(0, 0.3)
 
         # speaker and gst embeddings is concat in decoder input
-        if num_speakers > 1:
-            decoder_in_features = decoder_in_features + speaker_embedding_dim # add speaker embedding dim
-        if self.gst:
-            decoder_in_features = decoder_in_features + gst_embedding_dim # add gst embedding dim
-
+        if self.num_speakers > 1:
+            self.decoder_in_features += speaker_embedding_dim # add speaker embedding dim
+            
         # embedding layer
         self.embedding = nn.Embedding(num_chars, 512, padding_idx=0)
 
-        # speaker embedding layer
-        if num_speakers > 1:
-            if not self.embeddings_per_sample:
-                self.speaker_embedding = nn.Embedding(num_speakers, speaker_embedding_dim)
-                self.speaker_embedding.weight.data.normal_(0, 0.3)
-
         # base model layers
-        self.encoder = Encoder(encoder_in_features)
-        self.decoder = Decoder(decoder_in_features, self.decoder_output_dim, r, attn_type, attn_win,
+        self.encoder = Encoder(self.encoder_in_features)
+        self.decoder = Decoder(self.decoder_in_features, self.decoder_output_dim, r, attn_type, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
                                forward_attn, trans_agent, forward_attn_mask,
                                location_attn, attn_K, separate_stopnet)
@@ -85,16 +76,16 @@ class Tacotron2(TacotronAbstract):
         # global style token layers
         if self.gst:
             self.gst_layer = GST(num_mel=80,
-                                 num_heads=gst_num_heads,
-                                 num_style_tokens=gst_style_tokens,
-                                 embedding_dim=gst_embedding_dim)
+                                 num_heads=self.gst_num_heads,
+                                 num_style_tokens=self.gst_style_tokens,
+                                 embedding_dim=self.gst_embedding_dim)
         # backward pass decoder
         if self.bidirectional_decoder:
             self._init_backward_decoder()
         # setup DDC
         if self.double_decoder_consistency:
             self.coarse_decoder = Decoder(
-                decoder_in_features, self.decoder_output_dim, ddc_r, attn_type,
+                self.decoder_in_features, self.decoder_output_dim, ddc_r, attn_type,
                 attn_win, attn_norm, prenet_type, prenet_dropout, forward_attn,
                 trans_agent, forward_attn_mask, location_attn, attn_K,
                 separate_stopnet)

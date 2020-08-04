@@ -27,6 +27,8 @@ class Tacotron(TacotronAbstract):
                  bidirectional_decoder=False,
                  double_decoder_consistency=False,
                  ddc_r=None,
+                 encoder_in_features=256,
+                 decoder_in_features=256,
                  speaker_embedding_dim=None,
                  gst=False,
                  gst_embedding_dim=256,
@@ -40,39 +42,28 @@ class Tacotron(TacotronAbstract):
                              forward_attn, trans_agent, forward_attn_mask,
                              location_attn, attn_K, separate_stopnet,
                              bidirectional_decoder, double_decoder_consistency,
-                             ddc_r, gst, gst_embedding_dim, gst_num_heads, gst_style_tokens)
+                             ddc_r, encoder_in_features, decoder_in_features, 
+                             speaker_embedding_dim, gst, gst_embedding_dim, 
+                             gst_num_heads, gst_style_tokens)
 
-        # init layer dims
-        decoder_in_features = 256
-        encoder_in_features = 256
-
-        if speaker_embedding_dim is None:
-            # if speaker_embedding_dim is None we need use the nn.Embedding, with default speaker_embedding_dim
-            self.embeddings_per_sample = False
-            speaker_embedding_dim = 256
-        else:
-            # if speaker_embedding_dim is not None we need use speaker embedding per sample
-            self.embeddings_per_sample = True
+        # speaker embedding layers
+        if self.num_speakers > 1:
+            if not self.embeddings_per_sample:
+                speaker_embedding_dim = 256
+                self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
+                self.speaker_embedding.weight.data.normal_(0, 0.3)
 
         # speaker and gst embeddings is concat in decoder input
-        if num_speakers > 1:
-            decoder_in_features = decoder_in_features + speaker_embedding_dim # add speaker embedding dim
-        if self.gst:
-            decoder_in_features = decoder_in_features + gst_embedding_dim # add gst embedding dim
+        if self.num_speakers > 1:
+            self.decoder_in_features += speaker_embedding_dim # add speaker embedding dim
 
         # embedding layer
         self.embedding = nn.Embedding(num_chars, 256, padding_idx=0)
-
-        # speaker embedding layers
-        if num_speakers > 1:
-            if not self.embeddings_per_sample:
-                self.speaker_embedding = nn.Embedding(num_speakers, speaker_embedding_dim)
-                self.speaker_embedding.weight.data.normal_(0, 0.3)
+        self.embedding.weight.data.normal_(0, 0.3)
 
         # base model layers
-        self.embedding.weight.data.normal_(0, 0.3)
-        self.encoder = Encoder(encoder_in_features)
-        self.decoder = Decoder(decoder_in_features, decoder_output_dim, r,
+        self.encoder = Encoder(self.encoder_in_features)
+        self.decoder = Decoder(self.decoder_in_features, decoder_output_dim, r,
                                memory_size, attn_type, attn_win, attn_norm,
                                prenet_type, prenet_dropout, forward_attn,
                                trans_agent, forward_attn_mask, location_attn,
@@ -93,7 +84,7 @@ class Tacotron(TacotronAbstract):
         # setup DDC
         if self.double_decoder_consistency:
             self.coarse_decoder = Decoder(
-                decoder_in_features, decoder_output_dim, ddc_r, memory_size,
+                self.decoder_in_features, decoder_output_dim, ddc_r, memory_size,
                 attn_type, attn_win, attn_norm, prenet_type, prenet_dropout,
                 forward_attn, trans_agent, forward_attn_mask, location_attn,
                 attn_K, separate_stopnet)
