@@ -145,6 +145,5 @@ def setup_discriminator(c):
         )
     return model
 
-
-def check_config(c):
-    pass
+# def check_config(c):
+    # pass

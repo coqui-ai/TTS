@@ -7,7 +7,7 @@ from mozilla_voice_tts.tts.datasets.preprocess import common_voice
 
 class TestPreprocessors(unittest.TestCase):
 
-    def test_common_voice_preprocessor(self):
+    def test_common_voice_preprocessor(self):  #pylint: disable=no-self-use
         root_path = get_tests_input_path()
         meta_file = "common_voice.tsv"
         items = common_voice(root_path, meta_file)

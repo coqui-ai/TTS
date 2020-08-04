@@ -52,7 +52,7 @@ class AudioProcessor(object):
         self.mel_fmin = mel_fmin or 0
         self.mel_fmax = mel_fmax
         self.spec_gain = float(spec_gain)
-        self.stft_pad_mode = 'reflect'
+        self.stft_pad_mode = stft_pad_mode
         self.max_norm = 1.0 if max_norm is None else float(max_norm)
         self.clip_norm = clip_norm
         self.do_trim_silence = do_trim_silence
@@ -123,7 +123,7 @@ class AudioProcessor(object):
             if self.symmetric_norm:
                 S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
                 if self.clip_norm:
-                    S_norm = np.clip(S_norm, -self.max_norm, self.max_norm)
+                    S_norm = np.clip(S_norm, -self.max_norm, self.max_norm)  # pylint: disable=invalid-unary-operand-type
                 return S_norm
             else:
                 S_norm = self.max_norm * S_norm
@@ -148,7 +148,7 @@ class AudioProcessor(object):
                     raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
             if self.symmetric_norm:
                 if self.clip_norm:
-                    S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)
+                    S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)  #pylint: disable=invalid-unary-operand-type
                 S_denorm = ((S_denorm + self.max_norm) * -self.min_level_db / (2 * self.max_norm)) + self.min_level_db
                 return S_denorm + self.ref_level_db
             else:

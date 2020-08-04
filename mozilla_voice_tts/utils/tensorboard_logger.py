@@ -47,7 +47,7 @@ class TensorboardLogger(object):
         for key, value in audios.items():
             try:
                 self.writer.add_audio('{}/{}'.format(scope_name, key), value, step, sample_rate=sample_rate)
-            except:
+            except RuntimeError:
                 traceback.print_exc()
 
     def tb_train_iter_stats(self, step, stats):

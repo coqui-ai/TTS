@@ -1,7 +1,8 @@
 import os
 import unittest
 
-from tests import get_tests_path, get_tests_input_path, get_tests_output_path
+from tests import get_tests_input_path, get_tests_output_path, get_tests_path
+
 from mozilla_voice_tts.utils.audio import AudioProcessor
 from mozilla_voice_tts.utils.io import load_config
 
@@ -103,7 +104,7 @@ class TestAudio(unittest.TestCase):
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm + 1, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm - 2, x_norm.min()
+        assert x_norm.min() >= -self.ap.max_norm - 2, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
         x_ = self.ap._denormalize(x_norm)
@@ -120,7 +121,7 @@ class TestAudio(unittest.TestCase):
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()
+        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
         x_ = self.ap._denormalize(x_norm)
@@ -148,7 +149,7 @@ class TestAudio(unittest.TestCase):
 
         assert (x_old - x).sum() == 0
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()
+        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() < 0, x_norm.min()
         x_ = self.ap._denormalize(x_norm)
         assert (x - x_).sum() < 1e-3

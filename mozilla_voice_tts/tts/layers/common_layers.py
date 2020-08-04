@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torch.autograd import Variable
 from torch.nn import functional as F
 
 
@@ -52,6 +51,7 @@ class LinearBN(nn.Module):
 
 
 class Prenet(nn.Module):
+    # pylint: disable=dangerous-default-value
     def __init__(self,
                  in_features,
                  prenet_type="original",
@@ -300,8 +300,8 @@ class OriginalAttention(nn.Module):
 
     def apply_forward_attention(self, alignment):
         # forward attention
-        fwd_shifted_alpha = F.pad(self.alpha[:, :-1].clone().to(alignment.device),
-                            (1, 0, 0, 0))
+        fwd_shifted_alpha = F.pad(
+            self.alpha[:, :-1].clone().to(alignment.device), (1, 0, 0, 0))
         # compute transition potentials
         alpha = ((1 - self.u) * self.alpha
                  + self.u * fwd_shifted_alpha
@@ -309,7 +309,7 @@ class OriginalAttention(nn.Module):
         # force incremental alignment
         if not self.training and self.forward_attn_mask:
             _, n = fwd_shifted_alpha.max(1)
-            val, n2 = alpha.max(1)
+            val, _ = alpha.max(1)
             for b in range(alignment.shape[0]):
                 alpha[b, n[b] + 3:] = 0
                 alpha[b, :(

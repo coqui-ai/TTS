@@ -1,7 +1,7 @@
 # coding: utf-8
 import torch
 from torch import nn
-from .common_layers import Prenet, init_attn, Linear
+from .common_layers import Prenet, init_attn
 
 
 class BatchNormConv1d(nn.Module):
@@ -46,9 +46,9 @@ class BatchNormConv1d(nn.Module):
         # self.init_layers()
 
     def init_layers(self):
-        if type(self.activation) == torch.nn.ReLU:
+        if isinstance(self.activation, torch.nn.ReLU):
             w_gain = 'relu'
-        elif type(self.activation) == torch.nn.Tanh:
+        elif isinstance(self.activation, torch.nn.Tanh):
             w_gain = 'tanh'
         elif self.activation is None:
             w_gain = 'linear'
@@ -117,7 +117,7 @@ class CBHG(nn.Module):
             - input: (B, C, T_in)
             - output: (B, T_in, C*2)
     """
-
+    #pylint: disable=dangerous-default-value
     def __init__(self,
                  in_features,
                  K=16,
@@ -355,7 +355,6 @@ class Decoder(nn.Module):
         Initialization of decoder states
         """
         B = inputs.size(0)
-        T = inputs.size(1)
         # go frame as zeros matrix
         if self.use_memory_queue:
             self.memory_input = torch.zeros(1, device=inputs.device).repeat(B, self.frame_channels * self.memory_size)
@@ -496,7 +495,7 @@ class Decoder(nn.Module):
             if t > inputs.shape[1] / 4 and (stop_token > 0.6
                                             or attention[:, -1].item() > 0.6):
                 break
-            elif t > self.max_decoder_steps:
+            if t > self.max_decoder_steps:
                 print("   | > Decoder stopped with 'max_decoder_steps")
                 break
         return self._parse_outputs(outputs, attentions, stop_tokens)

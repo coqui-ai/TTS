@@ -1,8 +1,6 @@
 import os
 import json
 
-from mozilla_voice_tts.tts.datasets.preprocess import get_preprocessor_by_name
-
 
 def make_speakers_json_path(out_path):
     """Returns conventional speakers.json location."""

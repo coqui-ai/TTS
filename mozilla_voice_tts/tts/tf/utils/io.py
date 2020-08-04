@@ -39,4 +39,3 @@ def load_tflite_model(tflite_path):
     tflite_model = tf.lite.Interpreter(model_path=tflite_path)
     tflite_model.allocate_tensors()
     return tflite_model
-

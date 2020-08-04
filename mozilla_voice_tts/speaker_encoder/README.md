@@ -10,7 +10,7 @@ Below is an example showing embedding results of various speakers. You can gener
 
 Download a pretrained model from [Released Models](https://github.com/mozilla/TTS/wiki/Released-Models) page.
 
-To run the code, you need to follow the same flow as in TTS.
+To run the code, you need to follow the same flow as in mozilla_voice_tts.
 
 - Define 'config.json' for your needs. Note that, audio parameters should match your TTS model.
 - Example training call ```python speaker_encoder/train.py --config_path speaker_encoder/config.json --data_path ~/Data/Libri-TTS/train-clean-360```

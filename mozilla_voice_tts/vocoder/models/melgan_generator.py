@@ -95,4 +95,3 @@ class MelganGenerator(nn.Module):
                     nn.utils.remove_weight_norm(layer)
                 except ValueError:
                     layer.remove_weight_norm()
-

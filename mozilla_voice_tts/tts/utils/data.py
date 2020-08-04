@@ -74,4 +74,3 @@ class StandardScaler():
         X *= self.scale_
         X += self.mean_
         return X
-

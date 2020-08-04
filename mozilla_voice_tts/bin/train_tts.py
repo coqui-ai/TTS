@@ -11,31 +11,40 @@ import traceback
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+
 from mozilla_voice_tts.tts.datasets.preprocess import load_meta_data
 from mozilla_voice_tts.tts.datasets.TTSDataset import MyDataset
 from mozilla_voice_tts.tts.layers.losses import TacotronLoss
 from mozilla_voice_tts.tts.utils.distribute import (DistributedSampler,
-                                      apply_gradient_allreduce,
-                                      init_distributed, reduce_tensor)
+                                                    apply_gradient_allreduce,
+                                                    init_distributed,
+                                                    reduce_tensor)
 from mozilla_voice_tts.tts.utils.generic_utils import check_config, setup_model
 from mozilla_voice_tts.tts.utils.io import save_best_model, save_checkpoint
 from mozilla_voice_tts.tts.utils.measures import alignment_diagonal_score
-from mozilla_voice_tts.tts.utils.speakers import (get_speakers, load_speaker_mapping,
-                                    save_speaker_mapping)
+from mozilla_voice_tts.tts.utils.speakers import (get_speakers,
+                                                  load_speaker_mapping,
+                                                  save_speaker_mapping)
 from mozilla_voice_tts.tts.utils.synthesis import synthesis
-from mozilla_voice_tts.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from mozilla_voice_tts.tts.utils.text.symbols import (make_symbols, phonemes,
+                                                      symbols)
 from mozilla_voice_tts.tts.utils.visual import plot_alignment, plot_spectrogram
 from mozilla_voice_tts.utils.audio import AudioProcessor
 from mozilla_voice_tts.utils.console_logger import ConsoleLogger
-from mozilla_voice_tts.utils.generic_utils import (KeepAverage, count_parameters,
-                                     create_experiment_folder, get_git_branch,
-                                     remove_experiment_folder, set_init_dict)
+from mozilla_voice_tts.utils.generic_utils import (KeepAverage,
+                                                   count_parameters,
+                                                   create_experiment_folder,
+                                                   get_git_branch,
+                                                   remove_experiment_folder,
+                                                   set_init_dict)
 from mozilla_voice_tts.utils.io import copy_config_file, load_config
 from mozilla_voice_tts.utils.radam import RAdam
 from mozilla_voice_tts.utils.tensorboard_logger import TensorboardLogger
-from mozilla_voice_tts.utils.training import (NoamLR, adam_weight_decay, check_update,
-                                gradual_training_scheduler, set_weight_decay,
-                                setup_torch_training_env)
+from mozilla_voice_tts.utils.training import (NoamLR, adam_weight_decay,
+                                              check_update,
+                                              gradual_training_scheduler,
+                                              set_weight_decay,
+                                              setup_torch_training_env)
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
@@ -47,7 +56,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
         dataset = MyDataset(
             r,
             c.text_cleaner,
-            compute_linear_spec=True if c.model.lower() == 'tacotron' else False,
+            compute_linear_spec=c.model.lower() == 'tacotron',
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             tp=c.characters if 'characters' in c.keys() else None,
@@ -156,7 +165,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
             decoder_backward_output = None
             alignments_backward = None
 
-        # set the alignment lengths wrt reduction factor for guided attention
+        # set the [alignment] lengths wrt reduction factor for guided attention
         if mel_lengths.max() % model.decoder.r != 0:
             alignment_lengths = (mel_lengths + (model.decoder.r - (mel_lengths.max() % model.decoder.r))) // model.decoder.r
         else:
@@ -171,7 +180,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 
         # backward pass
         if amp is not None:
-            with amp.scale_loss( loss_dict['loss'], optimizer) as scaled_loss:
+            with amp.scale_loss(loss_dict['loss'], optimizer) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss_dict['loss'].backward()
@@ -425,7 +434,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
         style_wav = c.get("style_wav_for_test")
         for idx, test_sentence in enumerate(test_sentences):
             try:
-                wav, alignment, decoder_output, postnet_output, stop_tokens, inputs = synthesis(
+                wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(
                     model,
                     test_sentence,
                     c,
@@ -448,7 +457,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
                     postnet_output, ap, output_fig=False)
                 test_figures['{}-alignment'.format(idx)] = plot_alignment(
                     alignment, output_fig=False)
-            except:
+            except:  #pylint: disable=bare-except
                 print(" !! Error creating Test Sentence -", idx)
                 traceback.print_exc()
         tb_logger.tb_test_audios(global_step, test_audios,
@@ -531,7 +540,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.reinit_layers:
                 raise RuntimeError
             model.load_state_dict(checkpoint['model'])
-        except:
+        except KeyError:
             print(" > Partial model initialization.")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)

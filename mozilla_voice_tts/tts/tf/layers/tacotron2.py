@@ -4,7 +4,9 @@ from mozilla_voice_tts.tts.tf.utils.tf_utils import shape_list
 from mozilla_voice_tts.tts.tf.layers.common_layers import Prenet, Attention
 # from tensorflow_addons.seq2seq import AttentionWrapper
 
-
+# NOTE: linter has a problem with the current TF release
+#pylint: disable=no-value-for-parameter
+#pylint: disable=unexpected-keyword-arg
 class ConvBNBlock(keras.layers.Layer):
     def __init__(self, filters, kernel_size, activation, **kwargs):
         super(ConvBNBlock, self).__init__(**kwargs)

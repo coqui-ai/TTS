@@ -1,6 +1,9 @@
 import numpy as np
 import tensorflow as tf
 
+# NOTE: linter has a problem with the current TF release
+#pylint: disable=no-value-for-parameter
+#pylint: disable=unexpected-keyword-arg
 
 def tf_create_dummy_inputs():
     """ Create dummy inputs for TF Tacotron2 model """

@@ -114,4 +114,3 @@ assert compare_torch_tf(output_torch, output_tf) < 1e-5, compare_torch_tf(
 save_checkpoint(model_tf, checkpoint['step'], checkpoint['epoch'],
                 args.output_path)
 print(' > Model conversion is successfully completed :).')
-
