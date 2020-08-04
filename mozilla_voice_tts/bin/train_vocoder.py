@@ -28,8 +28,7 @@ from mozilla_voice_tts.vocoder.datasets.preprocess import (load_wav_data,
 #                         init_distributed, reduce_tensor)
 from mozilla_voice_tts.vocoder.layers.losses import (DiscriminatorLoss,
                                                      GeneratorLoss)
-from mozilla_voice_tts.vocoder.utils.generic_utils import (check_config,
-                                                           plot_results,
+from mozilla_voice_tts.vocoder.utils.generic_utils import (plot_results,
                                                            setup_discriminator,
                                                            setup_generator)
 from mozilla_voice_tts.vocoder.utils.io import save_best_model, save_checkpoint
@@ -622,7 +621,7 @@ if __name__ == '__main__':
 
     # setup output paths and read configs
     c = load_config(args.config_path)
-    check_config(c)
+    # check_config(c)
     _ = os.path.dirname(os.path.realpath(__file__))
 
     OUT_PATH = args.continue_path
