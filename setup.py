@@ -45,6 +45,16 @@ else:
         pass
 
 
+# Handle Cython code
+def find_pyx(path='.'):
+    pyx_files = []
+    for root, dirs, filenames in os.walk(path):
+        for fname in filenames:
+            if fname.endswith('.pyx'):
+                pyx_files.append(os.path.join(root, fname))
+    return pyx_files
+
+
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
     def run(self):
         self.create_version_file()
