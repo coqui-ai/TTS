@@ -28,6 +28,9 @@ class TacotronAbstract(ABC, nn.Module):
                  bidirectional_decoder=False,
                  double_decoder_consistency=False,
                  ddc_r=None,
+                 encoder_in_features=512, 
+                 decoder_in_features=512, 
+                 speaker_embedding_dim=None,
                  gst=False,
                  gst_embedding_dim=512,
                  gst_num_heads=4,
@@ -57,6 +60,9 @@ class TacotronAbstract(ABC, nn.Module):
         self.location_attn = location_attn
         self.attn_K = attn_K
         self.separate_stopnet = separate_stopnet
+        self.encoder_in_features = encoder_in_features
+        self.decoder_in_features = decoder_in_features
+        self.speaker_embedding_dim = speaker_embedding_dim
 
         # layers
         self.embedding = None
@@ -64,8 +70,17 @@ class TacotronAbstract(ABC, nn.Module):
         self.decoder = None
         self.postnet = None
 
+        # multispeaker
+        if self.speaker_embedding_dim is None:
+            # if speaker_embedding_dim is None we need use the nn.Embedding, with default speaker_embedding_dim
+            self.embeddings_per_sample = False
+        else:
+            # if speaker_embedding_dim is not None we need use speaker embedding per sample
+            self.embeddings_per_sample = True
+
         # global style token
         if self.gst:
+            self.decoder_in_features += gst_embedding_dim # add gst embedding dim
             self.gst_layer = None
 
         # model states

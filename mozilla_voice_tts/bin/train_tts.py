@@ -536,6 +536,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         num_speakers = 0
         speaker_embedding_dim = None
+        speaker_mapping = None
 
     model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim)
 
