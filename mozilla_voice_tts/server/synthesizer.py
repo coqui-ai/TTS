@@ -4,7 +4,6 @@ import time
 
 import numpy as np
 import torch
-import yaml
 import pysbd
 
 from mozilla_voice_tts.utils.audio import AudioProcessor

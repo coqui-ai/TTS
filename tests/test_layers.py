@@ -9,7 +9,7 @@ from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
 
 
 class PrenetTests(unittest.TestCase):
-    def test_in_out(self):
+    def test_in_out(self):  #pylint: disable=no-self-use
         layer = Prenet(128, out_features=[256, 128])
         dummy_input = T.rand(4, 128)
 
@@ -104,7 +104,7 @@ class DecoderTests(unittest.TestCase):
 
 
 class EncoderTests(unittest.TestCase):
-    def test_in_out(self):
+    def test_in_out(self):  #pylint: disable=no-self-use
         layer = Encoder(128)
         dummy_input = T.rand(4, 8, 128)
 
@@ -117,7 +117,7 @@ class EncoderTests(unittest.TestCase):
 
 
 class L1LossMaskedTests(unittest.TestCase):
-    def test_in_out(self):
+    def test_in_out(self):  #pylint: disable=no-self-use
         # test input == target
         layer = L1LossMasked(seq_len_norm=False)
         dummy_input = T.ones(4, 8, 128).float()

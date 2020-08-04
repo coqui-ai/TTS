@@ -9,6 +9,8 @@ import traceback
 
 import torch
 from torch.utils.data import DataLoader
+
+from mozilla_voice_tts.generic_utils import count_parameters
 from mozilla_voice_tts.speaker_encoder.dataset import MyDataset
 from mozilla_voice_tts.speaker_encoder.generic_utils import save_best_model
 from mozilla_voice_tts.speaker_encoder.loss import GE2ELoss
@@ -16,10 +18,9 @@ from mozilla_voice_tts.speaker_encoder.model import SpeakerEncoder
 from mozilla_voice_tts.speaker_encoder.visual import plot_embeddings
 from mozilla_voice_tts.tts.datasets.preprocess import load_meta_data
 from mozilla_voice_tts.tts.utils.audio import AudioProcessor
-from mozilla_voice_tts.tts.utils.generic_utils import (create_experiment_folder,
-                                         get_git_branch,
-                                         remove_experiment_folder,
-                                         set_init_dict)
+from mozilla_voice_tts.tts.utils.generic_utils import (
+    create_experiment_folder, get_git_branch, remove_experiment_folder,
+    set_init_dict)
 from mozilla_voice_tts.tts.utils.io import copy_config_file, load_config
 from mozilla_voice_tts.tts.utils.radam import RAdam
 from mozilla_voice_tts.tts.utils.tensorboard_logger import TensorboardLogger
@@ -182,8 +183,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
     global_step = args.restore_step
-    train_loss, global_step = train(model, criterion, optimizer, scheduler, ap,
-                                    global_step)
+    _, global_step = train(model, criterion, optimizer, scheduler, ap,
+                           global_step)
 
 
 if __name__ == '__main__':

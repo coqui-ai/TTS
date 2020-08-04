@@ -30,4 +30,3 @@ model = load_checkpoint(model, args.tf_model)
 
 # create tflite model
 tflite_model = convert_melgan_to_tflite(model, output_path=args.output_path)
-

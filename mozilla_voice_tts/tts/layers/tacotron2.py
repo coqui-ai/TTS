@@ -1,10 +1,11 @@
 import torch
-from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
 from .common_layers import init_attn, Prenet, Linear
 
-
+# NOTE: linter has a problem with the current TF release
+#pylint: disable=no-value-for-parameter
+#pylint: disable=unexpected-keyword-arg
 class ConvBNBlock(nn.Module):
     r"""Convolutions with Batch Normalization and non-linear activation.
 
@@ -156,6 +157,7 @@ class Decoder(nn.Module):
         self.separate_stopnet = separate_stopnet
         self.max_decoder_steps = 1000
         self.stop_threshold = 0.5
+        self.speaker_embedding_dim = speaker_embedding_dim
 
         # model dimensions
         self.query_dim = 1024
@@ -211,8 +213,8 @@ class Decoder(nn.Module):
 
     def get_go_frame(self, inputs):
         B = inputs.size(0)
-        memory = torch.zeros(1, device=inputs.device).repeat(B,
-                             self.frame_channels * self.r)
+        memory = torch.zeros(1, device=inputs.device).repeat(
+            B, self.frame_channels * self.r)
         return memory
 
     def _init_states(self, inputs, mask, keep_states=False):
@@ -393,7 +395,6 @@ class Decoder(nn.Module):
         self.attention.init_win_idx()
         self.attention.init_states(inputs)
         outputs, stop_tokens, alignments, t = [], [], [], 0
-        stop_flags = [True, False, False]
         while True:
             memory = self.prenet(self.memory_truncated)
             decoder_output, alignment, stop_token = self.decode(memory)

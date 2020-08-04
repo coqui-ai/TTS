@@ -36,7 +36,7 @@ else:
         pass
 
 
-class build_py(setuptools.command.build_py.build_py):
+class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
     def run(self):
         self.create_version_file()
         setuptools.command.build_py.build_py.run(self)

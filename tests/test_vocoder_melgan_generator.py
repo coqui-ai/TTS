@@ -11,4 +11,3 @@ def test_melgan_generator():
     assert np.all(output.shape == (4, 1, 64 * 256))
     output = model.inference(dummy_input)
     assert np.all(output.shape == (4, 1, (64 + 4) * 256))
-

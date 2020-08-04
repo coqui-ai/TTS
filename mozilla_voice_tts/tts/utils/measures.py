@@ -1,6 +1,3 @@
-import torch
-
-
 def alignment_diagonal_score(alignments, binary=False):
     """
     Compute how diagonal alignment predictions are. It is useful

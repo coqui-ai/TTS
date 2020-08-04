@@ -41,7 +41,7 @@ def plot_spectrogram(spectrogram, ap=None, fig_size=(16, 10), output_fig=False):
     plt.colorbar()
     plt.tight_layout()
     if not output_fig:
-       plt.close()
+        plt.close()
     return fig
 
 
@@ -97,4 +97,4 @@ def visualize(alignment, postnet_output, stop_tokens, text, hop_length, CONFIG, 
         plt.close()
 
     if not output_fig:
-       plt.close()
+        plt.close()

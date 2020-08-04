@@ -71,7 +71,7 @@ def process_meta_data(path):
 
 
 def get_data_points(meta_data):
-    x = [char_cnt for char_cnt in meta_data]
+    x = meta_data
     y_avg = [meta_data[d]['mean'] for d in meta_data]
     y_mode = [meta_data[d]['mode'] for d in meta_data]
     y_median = [meta_data[d]['median'] for d in meta_data]

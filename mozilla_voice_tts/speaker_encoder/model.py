@@ -85,4 +85,3 @@ class SpeakerEncoder(nn.Module):
                     frames[cur_iter <= num_iters, :, :]
                 )
         return embed / num_iters
-

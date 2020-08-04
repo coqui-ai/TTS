@@ -8,6 +8,7 @@ from mozilla_voice_tts.tts.utils.text import cleaners
 from mozilla_voice_tts.tts.utils.text.symbols import make_symbols, symbols, phonemes, _phoneme_punctuations, _bos, \
     _eos
 
+# pylint: disable=unnecessary-comprehension
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
 _id_to_symbol = {i: s for i, s in enumerate(symbols)}

@@ -3,6 +3,9 @@ from tensorflow import keras
 from tensorflow.python.ops import math_ops
 # from tensorflow_addons.seq2seq import BahdanauAttention
 
+# NOTE: linter has a problem with the current TF release
+#pylint: disable=no-value-for-parameter
+#pylint: disable=unexpected-keyword-arg
 
 class Linear(keras.layers.Layer):
     def __init__(self, units, use_bias, **kwargs):

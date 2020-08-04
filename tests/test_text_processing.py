@@ -16,7 +16,7 @@ def test_phoneme_to_sequence():
     lang = "en-us"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "ɹiːsənt ɹɪsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪnkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹɪspɑːnsəbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjuːleɪʃən ænd lɜːnɪŋ!"
     assert text_hat == text_hat_with_params == gt
@@ -25,7 +25,7 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an! echo?"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ?"
     print(text_hat)
@@ -36,7 +36,7 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an! echo"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
     print(text_hat)
@@ -47,7 +47,7 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an echo!"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "biː ɐ vɔɪs, nɑːt ɐn ɛkoʊ!"
     print(text_hat)
@@ -58,7 +58,7 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an! echo.  "
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ."
     print(text_hat)
@@ -69,7 +69,7 @@ def test_phoneme_to_sequence():
     text = "Be a voice, not an! echo.  "
     sequence = phoneme_to_sequence(text, text_cleaner, lang, True)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ.~"
     print(text_hat)
@@ -80,7 +80,7 @@ def test_phoneme_to_sequence():
     text = "_Be a _voice, not an! echo_"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
     print(text_hat)

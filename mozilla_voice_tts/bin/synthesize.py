@@ -40,8 +40,6 @@ def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_id):
 
 if __name__ == "__main__":
 
-    global symbols, phonemes
-
     parser = argparse.ArgumentParser()
     parser.add_argument('text', type=str, help='Text to generate speech.')
     parser.add_argument('config_path',

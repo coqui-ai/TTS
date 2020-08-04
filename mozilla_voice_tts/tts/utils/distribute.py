@@ -1,15 +1,11 @@
 # edited from https://github.com/fastai/imagenet-fast/blob/master/imagenet_nv/distributed.py
-import os, sys
 import math
-import time
-import subprocess
-import argparse
+
 import torch
 import torch.distributed as dist
-from torch.utils.data.sampler import Sampler
-from torch.autograd import Variable
 from torch._utils import _flatten_dense_tensors, _unflatten_dense_tensors
-from mozilla_voice_tts.utils.generic_utils import create_experiment_folder
+from torch.autograd import Variable
+from torch.utils.data.sampler import Sampler
 
 
 class DistributedSampler(Sampler):
@@ -108,7 +104,7 @@ def apply_gradient_allreduce(module):
     for param in list(module.parameters()):
 
         def allreduce_hook(*_):
-            Variable._execution_engine.queue_callback(allreduce_params)
+            Variable._execution_engine.queue_callback(allreduce_params)  #pylint: disable=protected-access
 
         if param.requires_grad:
             param.register_hook(allreduce_hook)

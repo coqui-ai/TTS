@@ -92,7 +92,7 @@ var_map = [
 
 # %%
 # get tf_model graph
-mel_pred = model_tf.build_inference()
+model_tf.build_inference()
 
 # get tf variables
 tf_vars = model_tf.weights

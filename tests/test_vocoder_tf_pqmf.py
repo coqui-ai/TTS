@@ -26,4 +26,3 @@ def test_pqmf():
     print(w2_.min())
     print(w2_.mean())
     sf.write('tf_pqmf_output.wav', w2_.flatten(), sr)
-

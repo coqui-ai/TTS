@@ -5,7 +5,7 @@ from mozilla_voice_tts.tts.tf.layers.tacotron2 import Encoder, Decoder, Postnet
 from mozilla_voice_tts.tts.tf.utils.tf_utils import shape_list
 
 
-#pylint: disable=too-many-ancestors
+#pylint: disable=too-many-ancestors, abstract-method
 class Tacotron2(keras.models.Model):
     def __init__(self,
                  num_chars,
@@ -105,4 +105,3 @@ class Tacotron2(keras.models.Model):
         # TODO: issue https://github.com/PyCQA/pylint/issues/3613
         input_ids = tf.random.uniform(shape=[1, 4], maxval=10, dtype=tf.int32)  #pylint: disable=unexpected-keyword-arg
         self(input_ids)
-

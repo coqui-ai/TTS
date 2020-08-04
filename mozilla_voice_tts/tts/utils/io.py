@@ -3,7 +3,7 @@ import torch
 import datetime
 
 
-def load_checkpoint(model, checkpoint_path, use_cuda=False):
+def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False):
     state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
     model.load_state_dict(state['model'])
     if amp and 'amp' in state:
