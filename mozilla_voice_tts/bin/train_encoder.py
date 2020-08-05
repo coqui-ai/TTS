@@ -10,21 +10,21 @@ import traceback
 import torch
 from torch.utils.data import DataLoader
 
-from mozilla_voice_tts.generic_utils import count_parameters
 from mozilla_voice_tts.speaker_encoder.dataset import MyDataset
 from mozilla_voice_tts.speaker_encoder.generic_utils import save_best_model
-from mozilla_voice_tts.speaker_encoder.losses import GE2ELoss
+from mozilla_voice_tts.speaker_encoder.losses import GE2ELoss, AngleProtoLoss
 from mozilla_voice_tts.speaker_encoder.model import SpeakerEncoder
 from mozilla_voice_tts.speaker_encoder.visual import plot_embeddings
 from mozilla_voice_tts.tts.datasets.preprocess import load_meta_data
-from mozilla_voice_tts.tts.utils.audio import AudioProcessor
 from mozilla_voice_tts.tts.utils.generic_utils import (
     create_experiment_folder, get_git_branch, remove_experiment_folder,
     set_init_dict)
 from mozilla_voice_tts.tts.utils.io import copy_config_file, load_config
-from mozilla_voice_tts.tts.utils.radam import RAdam
-from mozilla_voice_tts.tts.utils.tensorboard_logger import TensorboardLogger
-from mozilla_voice_tts.tts.utils.training import NoamLR, check_update
+from mozilla_voice_tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.utils.generic_utils import count_parameters
+from mozilla_voice_tts.utils.radam import RAdam
+from mozilla_voice_tts.utils.tensorboard_logger import TensorboardLogger
+from mozilla_voice_tts.utils.training import NoamLR, check_update
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
@@ -146,7 +146,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     elif c.loss == "angleproto":
         criterion = AngleProtoLoss()
     else:
-        raise Exception("The %s  not is a loss supported" %c.loss)
+        raise Exception("The %s  not is a loss supported" % c.loss)
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
@@ -191,6 +191,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     global_step = args.restore_step
     _, global_step = train(model, criterion, optimizer, scheduler, ap,
                            global_step)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

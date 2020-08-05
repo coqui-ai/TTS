@@ -1,15 +1,9 @@
 import torch
 from torch import nn
 
-<<<<<<< HEAD:mozilla_voice_tts/tts/models/tacotron2.py
 from mozilla_voice_tts.tts.layers.gst_layers import GST
 from mozilla_voice_tts.tts.layers.tacotron2 import Decoder, Encoder, Postnet
 from mozilla_voice_tts.tts.models.tacotron_abstract import TacotronAbstract
-=======
-from TTS.tts.layers.gst_layers import GST
-from TTS.tts.layers.tacotron2 import Decoder, Encoder, Postnet
-from TTS.tts.models.tacotron_abstract import TacotronAbstract
->>>>>>> bugfix in DDC now DDC work on Tacotron1:TTS/tts/models/tacotron2.py
 
 # TODO: match function arguments with tacotron
 class Tacotron2(TacotronAbstract):
@@ -47,8 +41,8 @@ class Tacotron2(TacotronAbstract):
                              forward_attn, trans_agent, forward_attn_mask,
                              location_attn, attn_K, separate_stopnet,
                              bidirectional_decoder, double_decoder_consistency,
-                             ddc_r, encoder_in_features, decoder_in_features, 
-                             speaker_embedding_dim, gst, gst_embedding_dim, 
+                             ddc_r, encoder_in_features, decoder_in_features,
+                             speaker_embedding_dim, gst, gst_embedding_dim,
                              gst_num_heads, gst_style_tokens)
 
         # speaker embedding layer
@@ -61,7 +55,7 @@ class Tacotron2(TacotronAbstract):
         # speaker and gst embeddings is concat in decoder input
         if self.num_speakers > 1:
             self.decoder_in_features += speaker_embedding_dim # add speaker embedding dim
-            
+
         # embedding layer
         self.embedding = nn.Embedding(num_chars, 512, padding_idx=0)
 
