@@ -141,7 +141,6 @@ class Decoder(nn.Module):
         location_attn (bool): if true, use location sensitive attention.
         attn_K (int): number of attention heads for GravesAttention.
         separate_stopnet (bool): if true, detach stopnet input to prevent gradient flow.
-        speaker_embedding_dim (int): size of speaker embedding vector, for multi-speaker training.
     """
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
@@ -156,7 +155,6 @@ class Decoder(nn.Module):
         self.separate_stopnet = separate_stopnet
         self.max_decoder_steps = 1000
         self.stop_threshold = 0.5
-        self.speaker_embedding_dim = speaker_embedding_dim
 
         # model dimensions
         self.query_dim = 1024
