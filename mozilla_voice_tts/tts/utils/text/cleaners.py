@@ -91,6 +91,13 @@ def transliteration_cleaners(text):
     return text
 
 
+def basic_german_cleaners(text):
+    '''Pipeline for Turkish text'''
+    text = lowercase(text)
+    text = collapse_whitespace(text)
+    return text
+
+
 # TODO: elaborate it
 def basic_turkish_cleaners(text):
     '''Pipeline for Turkish text'''
