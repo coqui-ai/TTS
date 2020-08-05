@@ -83,6 +83,19 @@
     "use_phonemes": false,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
     "text_cleaner": "phoneme_cleaners",
-    "use_speaker_embedding": false // whether to use additional embeddings for separate speakers
+    "use_speaker_embedding": false, // whether to use additional embeddings for separate speakers
+
+    // MULTI-SPEAKER and GST
+    "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
+    "use_gst": true,       			    // use global style tokens
+    "gst":	{			                // gst parameter if gst is enabled
+        "gst_style_input": null,        // Condition the style input either on a
+                                        // -> wave file [path to wave] or
+                                        // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}
+                                        // with the dictionary being len(dict) <= len(gst_style_tokens).
+        "gst_embedding_dim": 512,
+        "gst_num_heads": 4,
+        "gst_style_tokens": 10
+        }
 }
 

@@ -303,7 +303,7 @@ class Decoder(nn.Module):
         self.separate_stopnet = separate_stopnet
         self.query_dim = 256
         # memory -> |Prenet| -> processed_memory
-        prenet_dim = memory_dim * self.memory_size if self.use_memory_queue else memory_dim
+        prenet_dim = frame_channels * self.memory_size if self.use_memory_queue else frame_channels
         self.prenet = Prenet(
             prenet_dim,
             prenet_type,

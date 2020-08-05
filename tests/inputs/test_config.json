@@ -53,27 +53,16 @@
     "max_seq_len": 300,
     "log_dir": "tests/outputs/",
 
-<<<<<<< HEAD
-    "use_speaker_embedding": false,     
-    "use_gst": false,       			    
-    "gst":	{			                
-        "gst_style_input": null,        
-        "gst_embedding_dim": 512,       
-        "gst_num_heads": 4,
-        "gst_style_tokens": 10
-	}
-=======
     // MULTI-SPEAKER and GST
     "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
     "use_gst": true,       			    // use global style tokens
     "gst":	{			                // gst parameter if gst is enabled
-        "gst_style_input": null,        // Condition the style input either on a 
-                                        // -> wave file [path to wave] or 
-                                        // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}  
+        "gst_style_input": null,        // Condition the style input either on a
+                                        // -> wave file [path to wave] or
+                                        // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}
                                         // with the dictionary being len(dict) <= len(gst_style_tokens).
-        "gst_embedding_dim": 512,       
+        "gst_embedding_dim": 512,
         "gst_num_heads": 4,
         "gst_style_tokens": 10
-        }  
->>>>>>> travis unit tests fix and add Tacotron and Tacotron 2 GST and MultiSpeaker Tests
-    }
+        }
+}
