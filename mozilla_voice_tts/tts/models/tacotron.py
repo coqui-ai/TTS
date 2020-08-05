@@ -6,6 +6,7 @@ from mozilla_voice_tts.tts.layers.gst_layers import GST
 from mozilla_voice_tts.tts.layers.tacotron import Decoder, Encoder, PostCBHG
 from mozilla_voice_tts.tts.models.tacotron_abstract import TacotronAbstract
 
+
 class Tacotron(TacotronAbstract):
     def __init__(self,
                  num_chars,
@@ -42,8 +43,8 @@ class Tacotron(TacotronAbstract):
                              forward_attn, trans_agent, forward_attn_mask,
                              location_attn, attn_K, separate_stopnet,
                              bidirectional_decoder, double_decoder_consistency,
-                             ddc_r, encoder_in_features, decoder_in_features, 
-                             speaker_embedding_dim, gst, gst_embedding_dim, 
+                             ddc_r, encoder_in_features, decoder_in_features,
+                             speaker_embedding_dim, gst, gst_embedding_dim,
                              gst_num_heads, gst_style_tokens)
 
         # speaker embedding layers
