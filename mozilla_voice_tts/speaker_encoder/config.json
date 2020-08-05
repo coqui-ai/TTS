@@ -1,14 +1,14 @@
 
 {
-    "run_name": "libritts_100+360-angleproto",
-    "run_description": "train speaker encoder for libritts 100 and 360",
+    "run_name": "Model compatible to  CorentinJ/Real-Time-Voice-Cloning",
+    "run_description": "train speaker encoder with voxceleb1, voxceleb2 and libriSpeech ",
     "audio":{
         // Audio processing parameters
-        "num_mels": 80,         // size of the mel spec frame. 
-        "num_freq": 1024,       // number of stft frequency levels. Size of the linear spectogram frame.
-        "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
-        "win_length": 1024,     // stft window length in ms.
-        "hop_length": 256,      // stft window hop-lengh in ms.
+        "num_mels": 40,         // size of the mel spec frame. 
+        "fft_size": 400,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 16000,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "win_length": 400,     // stft window length in ms.
+        "hop_length": 160,      // stft window hop-lengh in ms.
         "frame_length_ms": null,  // stft window length in ms.If null, 'win_length' is used.
         "frame_shift_ms": null,   // stft window hop-lengh in ms. If null, 'hop_length' is used.
         "preemphasis": 0.98,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
@@ -27,7 +27,7 @@
         "trim_db": 60          // threshold for timming silence. Set this according to your dataset.
     },
     "reinit_layers": [],
-    "loss": "angleproto", // "ge2e" to use Generalized End-to-End loss and "angleproto" to use Angular Prototypical loss (new SOTA)
+    "loss": "ge2e", // "ge2e" to use Generalized End-to-End loss and "angleproto" to use Angular Prototypical loss (new SOTA)
     "grad_clip": 3.0, // upper limit for gradients for clipping.
     "epochs": 1000, // total number of epochs to train.
     "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
@@ -41,12 +41,13 @@
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
     "save_step": 1000, // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 1, // Number of steps to log traning on console.
-    "output_path": "../../checkpoints/libri_tts/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
+    "output_path": "../../checkpoints/voxceleb_librispeech/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
     "model": {
-        "input_dim": 80, // input_dim == num_mels
-        "proj_dim": 128,
-        "lstm_dim": 384,
-        "num_lstm_layers": 3
+        "input_dim": 40,
+        "proj_dim": 256,
+        "lstm_dim": 256,
+        "num_lstm_layers": 3,
+        "use_lstm_with_projection": false
     },
     "datasets": 
         [
