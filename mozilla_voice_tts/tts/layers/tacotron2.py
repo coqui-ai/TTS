@@ -141,14 +141,12 @@ class Decoder(nn.Module):
         location_attn (bool): if true, use location sensitive attention.
         attn_K (int): number of attention heads for GravesAttention.
         separate_stopnet (bool): if true, detach stopnet input to prevent gradient flow.
-        speaker_embedding_dim (int): size of speaker embedding vector, for multi-speaker training.
     """
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
     def __init__(self, in_channels, frame_channels, r, attn_type, attn_win, attn_norm,
                  prenet_type, prenet_dropout, forward_attn, trans_agent,
-                 forward_attn_mask, location_attn, attn_K, separate_stopnet,
-                 speaker_embedding_dim):
+                 forward_attn_mask, location_attn, attn_K, separate_stopnet):
         super(Decoder, self).__init__()
         self.frame_channels = frame_channels
         self.r_init = r
@@ -157,7 +155,6 @@ class Decoder(nn.Module):
         self.separate_stopnet = separate_stopnet
         self.max_decoder_steps = 1000
         self.stop_threshold = 0.5
-        self.speaker_embedding_dim = speaker_embedding_dim
 
         # model dimensions
         self.query_dim = 1024
@@ -300,7 +297,7 @@ class Decoder(nn.Module):
         decoder_output = decoder_output[:, :self.r * self.frame_channels]
         return decoder_output, self.attention.attention_weights, stop_token
 
-    def forward(self, inputs, memories, mask, speaker_embeddings=None):
+    def forward(self, inputs, memories, mask):
         r"""Train Decoder with teacher forcing.
         Args:
             inputs: Encoder outputs.
@@ -318,8 +315,6 @@ class Decoder(nn.Module):
         memories = self._reshape_memory(memories)
         memories = torch.cat((memory, memories), dim=0)
         memories = self._update_memory(memories)
-        if speaker_embeddings is not None:
-            memories = torch.cat([memories, speaker_embeddings], dim=-1)
         memories = self.prenet(memories)
 
         self._init_states(inputs, mask=mask)
@@ -337,16 +332,14 @@ class Decoder(nn.Module):
             outputs, stop_tokens, alignments)
         return outputs, alignments, stop_tokens
 
-    def inference(self, inputs, speaker_embeddings=None):
+    def inference(self, inputs):
         r"""Decoder inference without teacher forcing and use
         Stopnet to stop decoder.
         Args:
             inputs: Encoder outputs.
-            speaker_embeddings: speaker embedding vectors.
 
         Shapes:
             - inputs: (B, T, D_out_enc)
-            - speaker_embeddings: (B, D_embed)
             - outputs: (B, T_mel, D_mel)
             - alignments: (B, T_in, T_out)
             - stop_tokens: (B, T_out)
@@ -360,8 +353,6 @@ class Decoder(nn.Module):
         outputs, stop_tokens, alignments, t = [], [], [], 0
         while True:
             memory = self.prenet(memory)
-            if speaker_embeddings is not None:
-                memory = torch.cat([memory, speaker_embeddings], dim=-1)
             decoder_output, alignment, stop_token = self.decode(memory)
             stop_token = torch.sigmoid(stop_token.data)
             outputs += [decoder_output.squeeze(1)]
