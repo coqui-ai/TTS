@@ -24,6 +24,7 @@ class MyDataset(Dataset):
                  phoneme_cache_path=None,
                  phoneme_language="en-us",
                  enable_eos_bos=False,
+                 speaker_mapping=None,
                  verbose=False):
         """
         Args:
@@ -58,6 +59,7 @@ class MyDataset(Dataset):
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
+        self.speaker_mapping = speaker_mapping
         self.verbose = verbose
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
@@ -127,7 +129,8 @@ class MyDataset(Dataset):
             'text': text,
             'wav': wav,
             'item_idx': self.items[idx][1],
-            'speaker_name': speaker_name
+            'speaker_name': speaker_name,
+            'wav_file_name': os.path.basename(wav_file)
         }
         return sample
 
@@ -191,9 +194,15 @@ class MyDataset(Dataset):
                 batch[idx]['item_idx'] for idx in ids_sorted_decreasing
             ]
             text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
+
             speaker_name = [batch[idx]['speaker_name']
                             for idx in ids_sorted_decreasing]
-
+            # get speaker embeddings
+            if self.speaker_mapping  is not None:
+                wav_files_names = [batch[idx]['wav_file_name'] for idx in ids_sorted_decreasing]
+                speaker_embedding = [self.speaker_mapping[w]['embedding'] for w in wav_files_names]
+            else:
+                speaker_embedding = None
             # compute features
             mel = [self.ap.melspectrogram(w).astype('float32') for w in wav]
 
@@ -224,6 +233,9 @@ class MyDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
+            if speaker_embedding is not None:
+                speaker_embedding = torch.FloatTensor(speaker_embedding)
+
             # compute linear spectrogram
             if self.compute_linear_spec:
                 linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
@@ -234,7 +246,7 @@ class MyDataset(Dataset):
             else:
                 linear = None
             return text, text_lenghts, speaker_name, linear, mel, mel_lengths, \
-                   stop_targets, item_idxs
+                   stop_targets, item_idxs, speaker_embedding
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}".format(type(batch[0]))))

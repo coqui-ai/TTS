@@ -44,7 +44,7 @@ def sequence_mask(sequence_length, max_len=None):
     return seq_range_expand < seq_length_expand
 
 
-def setup_model(num_chars, num_speakers, c):
+def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('mozilla_voice_tts.tts.models.' + c.model.lower())
     MyModel = getattr(MyModel, c.model)
@@ -55,6 +55,9 @@ def setup_model(num_chars, num_speakers, c):
                         postnet_output_dim=int(c.audio['fft_size'] / 2 + 1),
                         decoder_output_dim=c.audio['num_mels'],
                         gst=c.use_gst,
+                        gst_embedding_dim=c.gst['gst_embedding_dim'],
+                        gst_num_heads=c.gst['gst_num_heads'],
+                        gst_style_tokens=c.gst['gst_style_tokens'],
                         memory_size=c.memory_size,
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
@@ -69,7 +72,8 @@ def setup_model(num_chars, num_speakers, c):
                         separate_stopnet=c.separate_stopnet,
                         bidirectional_decoder=c.bidirectional_decoder,
                         double_decoder_consistency=c.double_decoder_consistency,
-                        ddc_r=c.ddc_r)
+                        ddc_r=c.ddc_r,
+                        speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "tacotron2":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
@@ -77,6 +81,9 @@ def setup_model(num_chars, num_speakers, c):
                         postnet_output_dim=c.audio['num_mels'],
                         decoder_output_dim=c.audio['num_mels'],
                         gst=c.use_gst,
+                        gst_embedding_dim=c.gst['gst_embedding_dim'],
+                        gst_num_heads=c.gst['gst_num_heads'],
+                        gst_style_tokens=c.gst['gst_style_tokens'],
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
                         attn_norm=c.attention_norm,
@@ -90,8 +97,10 @@ def setup_model(num_chars, num_speakers, c):
                         separate_stopnet=c.separate_stopnet,
                         bidirectional_decoder=c.bidirectional_decoder,
                         double_decoder_consistency=c.double_decoder_consistency,
-                        ddc_r=c.ddc_r)
+                        ddc_r=c.ddc_r,
+                        speaker_embedding_dim=speaker_embedding_dim)
     return model
+
 
 class KeepAverage():
     def __init__(self):
@@ -168,7 +177,7 @@ def check_config(c):
     check_argument('clip_norm', c['audio'], restricted=True, val_type=bool)
     check_argument('mel_fmin', c['audio'], restricted=True, val_type=float, min_val=0.0, max_val=1000)
     check_argument('mel_fmax', c['audio'], restricted=True, val_type=float, min_val=500.0)
-    check_argument('spec_gain', c['audio'], restricted=True, val_type=float, min_val=1, max_val=100)
+    check_argument('spec_gain', c['audio'], restricted=True, val_type=[int, float], min_val=1, max_val=100)
     check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
     check_argument('trim_db', c['audio'], restricted=True, val_type=int)
 
@@ -239,15 +248,21 @@ def check_config(c):
     # paths
     check_argument('output_path', c, restricted=True, val_type=str)
 
-    # multi-speaker gst
+    # multi-speaker and gst
     check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
-    check_argument('style_wav_for_test', c, restricted=True, val_type=str)
+    check_argument('use_external_speaker_embedding_file', c, restricted=True, val_type=bool)
+    check_argument('external_speaker_embedding_file', c, restricted=True, val_type=str)
     check_argument('use_gst', c, restricted=True, val_type=bool)
+    check_argument('gst', c, restricted=True, val_type=dict)
+    check_argument('gst_style_input', c['gst'], restricted=True, val_type=[str, dict])
+    check_argument('gst_embedding_dim', c['gst'], restricted=True, val_type=int, min_val=0, max_val=1000)
+    check_argument('gst_num_heads', c['gst'], restricted=True, val_type=int, min_val=2, max_val=10)
+    check_argument('gst_style_tokens', c['gst'], restricted=True, val_type=int, min_val=1, max_val=1000)
 
     # datasets - checking only the first entry
     check_argument('datasets', c, restricted=True, val_type=list)
     for dataset_entry in c['datasets']:
         check_argument('name', dataset_entry, restricted=True, val_type=str)
         check_argument('path', dataset_entry, restricted=True, val_type=str)
-        check_argument('meta_file_train', dataset_entry, restricted=True, val_type=str)
+        check_argument('meta_file_train', dataset_entry, restricted=True, val_type=[str, list])
         check_argument('meta_file_val', dataset_entry, restricted=True, val_type=str)

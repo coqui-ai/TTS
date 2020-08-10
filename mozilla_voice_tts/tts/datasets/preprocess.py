@@ -93,9 +93,10 @@ def mozilla_de(root_path, meta_file):
 
 def mailabs(root_path, meta_files=None):
     """Normalizes M-AI-Labs meta data files to TTS format"""
-    speaker_regex = re.compile("by_book/(male|female)/(?P<speaker_name>[^/]+)/")
+    speaker_regex = re.compile(
+        "by_book/(male|female)/(?P<speaker_name>[^/]+)/")
     if meta_files is None:
-        csv_files = glob(root_path+"/**/metadata.csv", recursive=True)
+        csv_files = glob(root_path + "/**/metadata.csv", recursive=True)
     else:
         csv_files = meta_files
     # meta_files = [f.strip() for f in meta_files.split(",")]
@@ -115,12 +116,15 @@ def mailabs(root_path, meta_files=None):
                 if meta_files is None:
                     wav_file = os.path.join(folder, 'wavs', cols[0] + '.wav')
                 else:
-                    wav_file = os.path.join(root_path, folder.replace("metadata.csv", ""), 'wavs', cols[0] + '.wav')
+                    wav_file = os.path.join(root_path,
+                                            folder.replace("metadata.csv", ""),
+                                            'wavs', cols[0] + '.wav')
                 if os.path.isfile(wav_file):
                     text = cols[1].strip()
                     items.append([text, wav_file, speaker_name])
                 else:
-                    raise RuntimeError("> File %s does not exist!"%(wav_file))
+                    raise RuntimeError("> File %s does not exist!" %
+                                       (wav_file))
     return items
 
 
@@ -185,7 +189,8 @@ def libri_tts(root_path, meta_files=None):
                 text = cols[1]
                 items.append([text, wav_file, speaker_name])
     for item in items:
-        assert os.path.exists(item[1]), f" [!] wav files don't exist - {item[1]}"
+        assert os.path.exists(
+            item[1]), f" [!] wav files don't exist - {item[1]}"
     return items
 
 
@@ -197,11 +202,53 @@ def custom_turkish(root_path, meta_file):
     with open(txt_file, 'r', encoding='utf-8') as ttf:
         for line in ttf:
             cols = line.split('|')
-            wav_file = os.path.join(root_path, 'wavs', cols[0].strip() + '.wav')
+            wav_file = os.path.join(root_path, 'wavs',
+                                    cols[0].strip() + '.wav')
             if not os.path.exists(wav_file):
                 skipped_files.append(wav_file)
                 continue
             text = cols[1].strip()
             items.append([text, wav_file, speaker_name])
     print(f" [!] {len(skipped_files)} files skipped. They don't exist...")
+    return items
+
+
+# ToDo: add the dataset link when the dataset is released publicly
+def brspeech(root_path, meta_file):
+    '''BRSpeech 3.0 beta'''
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    with open(txt_file, 'r') as ttf:
+        for line in ttf:
+            if line.startswith("wav_filename"):
+                continue
+            cols = line.split('|')
+            #print(cols)
+            wav_file = os.path.join(root_path, cols[0])
+            text = cols[2]
+            speaker_name = cols[3]
+            items.append([text, wav_file, speaker_name])
+    return items
+
+
+def vctk(root_path, meta_files=None, wavs_path='wav48'):
+    """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
+    test_speakers = meta_files
+    items = []
+    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt",
+                      recursive=True)
+    for meta_file in meta_files:
+        _, speaker_id, txt_file = os.path.relpath(meta_file,
+                                                  root_path).split(os.sep)
+        file_id = txt_file.split('.')[0]
+        if isinstance(test_speakers,
+                      list):  # if is list ignore this speakers ids
+            if speaker_id in test_speakers:
+                continue
+        with open(meta_file) as file_text:
+            text = file_text.readlines()[0]
+        wav_file = os.path.join(root_path, wavs_path, speaker_id,
+                                file_id + '.wav')
+        items.append([text, wav_file, speaker_id])
+
     return items

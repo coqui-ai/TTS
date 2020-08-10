@@ -123,28 +123,37 @@
     "max_seq_len": 153,     // DATASET-RELATED: maximum text length
 
     // PATHS
-    "output_path": "/home/erogol/Models/LJSpeech/",
+    "output_path": "../../Mozilla-TTS/vctk-test/",
 
     // PHONEMES
-    "phoneme_cache_path": "/media/erogol/data_ssd2/mozilla_us_phonemes_3",  // phoneme computation is slow, therefore, it caches results in the given folder.
+    "phoneme_cache_path": "../../Mozilla-TTS/vctk-test/",  // phoneme computation is slow, therefore, it caches results in the given folder.
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST
-    "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
-    "style_wav_for_test": null,          // path to style wav file to be used in TacotronGST inference.
-    "use_gst": false,       // TACOTRON ONLY: use global style tokens
+    "use_speaker_embedding": true,      // use speaker embedding to enable multi-speaker learning.
+    "use_external_speaker_embedding_file": false, // if true, forces the model to use external embedding per sample instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+    "external_speaker_embedding_file": "../../speakers-vctk-en.json", // if not null and use_external_speaker_embedding_file is true, it is used to load a specific embedding file and thus uses these embeddings instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+    "use_gst": true,       			    // use global style tokens
+    "gst":	{			                // gst parameter if gst is enabled
+        "gst_style_input": null,        // Condition the style input either on a
+                                        // -> wave file [path to wave] or
+                                        // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}
+                                        // with the dictionary being len(dict) <= len(gst_style_tokens).
+        "gst_embedding_dim": 512,
+        "gst_num_heads": 4,
+        "gst_style_tokens": 10
+	},
 
     // DATASETS
     "datasets":   // List of datasets. They all merged and they get different speaker_ids.
         [
             {
-                "name": "ljspeech",
-                "path": "/home/erogol/Data/LJSpeech-1.1/",
-                "meta_file_train": "metadata.csv",
+                "name": "vctk",
+                "path": "../../../datasets/VCTK-Corpus-removed-silence/",
+                "meta_file_train": ["p225", "p234", "p238", "p245", "p248", "p261", "p294", "p302", "p326", "p335", "p347"], // for vtck if list, ignore speakers id in list for train, its useful for test cloning with new speakers
                 "meta_file_val": null
             }
         ]
-
 }
 

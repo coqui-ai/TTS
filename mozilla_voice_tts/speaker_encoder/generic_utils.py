@@ -15,7 +15,7 @@ def save_checkpoint(model, optimizer, model_loss, out_path,
         'optimizer': optimizer.state_dict() if optimizer is not None else None,
         'step': current_step,
         'epoch': epoch,
-        'GE2Eloss': model_loss,
+        'loss': model_loss,
         'date': datetime.date.today().strftime("%B %d, %Y"),
     }
     torch.save(state, checkpoint_path)
@@ -29,7 +29,7 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
             'model': new_state_dict,
             'optimizer': optimizer.state_dict(),
             'step': current_step,
-            'GE2Eloss': model_loss,
+            'loss': model_loss,
             'date': datetime.date.today().strftime("%B %d, %Y"),
         }
         best_loss = model_loss
