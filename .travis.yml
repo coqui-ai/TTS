@@ -6,6 +6,8 @@ git:
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install espeak
+  - python -m pip install --upgrade pip
+  - pip install six==1.12.0
 
 matrix:
   include:
@@ -15,7 +17,15 @@ matrix:
     env: TEST_SUITE="lint"
   - name: "Unit tests"
     python: "3.6"
-    install: pip install --quiet -r requirements_tests.txt
+    install:
+      - python setup.py egg_info
+      - pip install -e .
     env: TEST_SUITE="unittest"
+  - name: "Unit tests"
+    python: "3.6"
+    install:
+      - python setup.py egg_info
+      - pip install -e .
+    env: TEST_SUITE="testscripts"
 
 script: ./.travis/script

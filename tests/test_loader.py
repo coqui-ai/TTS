@@ -1,21 +1,22 @@
 import os
-import unittest
 import shutil
-import torch
-import numpy as np
+import unittest
 
+import numpy as np
+import torch
+from tests import get_tests_input_path, get_tests_output_path
 from torch.utils.data import DataLoader
-from TTS.utils.io import load_config
-from TTS.utils.audio import AudioProcessor
-from TTS.datasets import TTSDataset
-from TTS.datasets.preprocess import ljspeech
+
+from mozilla_voice_tts.tts.datasets import TTSDataset
+from mozilla_voice_tts.tts.datasets.preprocess import ljspeech
+from mozilla_voice_tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.utils.io import load_config
 
 #pylint: disable=unused-variable
 
-file_path = os.path.dirname(os.path.realpath(__file__))
-OUTPATH = os.path.join(file_path, "outputs/loader_tests/")
+OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
-c = load_config(os.path.join(file_path, 'test_config.json'))
+c = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 ok_ljspeech = os.path.exists(c.data_path)
 
 DATA_EXIST = True
@@ -32,7 +33,7 @@ class TestTTSDataset(unittest.TestCase):
         self.ap = AudioProcessor(**c.audio)
 
     def _create_dataloader(self, batch_size, r, bgs):
-        items = ljspeech(c.data_path,'metadata.csv')
+        items = ljspeech(c.data_path, 'metadata.csv')
         dataset = TTSDataset.MyDataset(
             r,
             c.text_cleaner,
@@ -74,7 +75,7 @@ class TestTTSDataset(unittest.TestCase):
                 assert check_count == 0, \
                     " !! Negative values in text_input: {}".format(check_count)
                 # TODO: more assertion here
-                assert type(speaker_name[0]) is str
+                assert isinstance(speaker_name[0], str)
                 assert linear_input.shape[0] == c.batch_size
                 assert linear_input.shape[2] == self.ap.fft_size // 2 + 1
                 assert mel_input.shape[0] == c.batch_size
@@ -82,7 +83,7 @@ class TestTTSDataset(unittest.TestCase):
                 # check normalization ranges
                 if self.ap.symmetric_norm:
                     assert mel_input.max() <= self.ap.max_norm
-                    assert mel_input.min() >= -self.ap.max_norm
+                    assert mel_input.min() >= -self.ap.max_norm  #pylint: disable=invalid-unary-operand-type
                     assert mel_input.min() < 0
                 else:
                     assert mel_input.max() <= self.ap.max_norm
