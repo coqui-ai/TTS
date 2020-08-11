@@ -128,3 +128,4 @@ tests/outputs/*
 TODO.txt
 .vscode/*
 data/*
+notebooks/data/*
