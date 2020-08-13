@@ -16,10 +16,10 @@ from mozilla_voice_tts.speaker_encoder.losses import GE2ELoss, AngleProtoLoss
 from mozilla_voice_tts.speaker_encoder.model import SpeakerEncoder
 from mozilla_voice_tts.speaker_encoder.visual import plot_embeddings
 from mozilla_voice_tts.tts.datasets.preprocess import load_meta_data
-from mozilla_voice_tts.tts.utils.generic_utils import (
+from mozilla_voice_tts.utils.generic_utils import (
     create_experiment_folder, get_git_branch, remove_experiment_folder,
     set_init_dict)
-from mozilla_voice_tts.tts.utils.io import copy_config_file, load_config
+from mozilla_voice_tts.utils.io import copy_config_file, load_config
 from mozilla_voice_tts.utils.audio import AudioProcessor
 from mozilla_voice_tts.utils.generic_utils import count_parameters
 from mozilla_voice_tts.utils.radam import RAdam
