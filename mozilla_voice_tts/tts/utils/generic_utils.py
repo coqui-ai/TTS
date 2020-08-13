@@ -102,45 +102,6 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     return model
 
 
-class KeepAverage():
-    def __init__(self):
-        self.avg_values = {}
-        self.iters = {}
-
-    def __getitem__(self, key):
-        return self.avg_values[key]
-
-    def items(self):
-        return self.avg_values.items()
-
-    def add_value(self, name, init_val=0, init_iter=0):
-        self.avg_values[name] = init_val
-        self.iters[name] = init_iter
-
-    def update_value(self, name, value, weighted_avg=False):
-        if name not in self.avg_values:
-            # add value if not exist before
-            self.add_value(name, init_val=value)
-        else:
-            # else update existing value
-            if weighted_avg:
-                self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
-                self.iters[name] += 1
-            else:
-                self.avg_values[name] = self.avg_values[name] * \
-                    self.iters[name] + value
-                self.iters[name] += 1
-                self.avg_values[name] /= self.iters[name]
-
-    def add_values(self, name_dict):
-        for key, value in name_dict.items():
-            self.add_value(key, init_val=value)
-
-    def update_values(self, value_dict):
-        for key, value in value_dict.items():
-            self.update_value(key, value)
-
-
 def check_config(c):
     check_argument('model', c, enum_list=['tacotron', 'tacotron2'], restricted=True, val_type=str)
     check_argument('run_name', c, restricted=True, val_type=str)
