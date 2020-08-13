@@ -108,7 +108,7 @@ class Encoder(nn.Module):
         # pass embedding layer
         # [B ,T, D]
         x = self.emb(x) * math.sqrt(self.hidden_channels)
-        x += self.pe[:x.shape[1]].unsqueeze(0)
+        x = x + self.pe[:x.shape[1]].unsqueeze(0)
         # [B, D, T]
         x = torch.transpose(x, 1, -1)
         # compute input sequence mask
