@@ -65,7 +65,7 @@ class ConvLayerNorm(nn.Module):
         self.proj.bias.data.zero_()
 
     def forward(self, x, x_mask):
-        x_org = x
+        x_res = x
         for i in range(self.num_layers):
             x = self.conv_layers[i](x * x_mask)
             x = self.norm_layers[i](x * x_mask)
