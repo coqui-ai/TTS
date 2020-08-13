@@ -3,6 +3,7 @@ import soundfile as sf
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
+import pyworld as pw
 
 from mozilla_voice_tts.tts.utils.data import StandardScaler
 
@@ -284,6 +285,17 @@ class AudioProcessor(object):
         if pad_sides == 1:
             return 0, pad
         return pad // 2, pad // 2 + pad % 2
+
+    ### Compute F0 ###
+    def compute_f0(self, x):
+        f0, t = pw.dio(
+            x.astype(np.double),
+            fs=self.sample_rate,
+            f0_ceil=self.mel_fmax,
+            frame_period=1000 * self.hop_length / self.sample_rate,
+        )
+        f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
+        return f0
 
     ### Audio Processing ###
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):

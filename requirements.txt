@@ -15,6 +15,7 @@ tqdm
 inflect
 bokeh==1.4.0
 pysbd
+pyworld
 soundfile
 nose==1.3.7
 cardboardlint==1.3.0
