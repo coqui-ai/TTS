@@ -100,7 +100,7 @@ def format_data(data, speaker_mapping=None):
 
     if c.use_speaker_embedding:
         if c.use_external_speaker_embedding_file:
-            speaker_embeddings = data[8] 
+            speaker_embeddings = data[8]
             speaker_ids = None
         else:
             speaker_ids = [
