@@ -18,25 +18,29 @@ from mozilla_voice_tts.tts.datasets.TTSDataset import MyDataset
 from mozilla_voice_tts.tts.layers.losses import GlowTTSLoss
 from mozilla_voice_tts.utils.console_logger import ConsoleLogger
 from mozilla_voice_tts.tts.utils.distribute import (DistributedSampler,
-                                      init_distributed, reduce_tensor)
+                                                    init_distributed,
+                                                    reduce_tensor)
 from mozilla_voice_tts.tts.utils.generic_utils import check_config, setup_model
 from mozilla_voice_tts.tts.utils.io import save_best_model, save_checkpoint
 from mozilla_voice_tts.tts.utils.measures import alignment_diagonal_score
-from mozilla_voice_tts.tts.utils.speakers import (get_speakers, load_speaker_mapping,
-                                    save_speaker_mapping)
+from mozilla_voice_tts.tts.utils.speakers import (get_speakers,
+                                                  load_speaker_mapping,
+                                                  save_speaker_mapping)
 from mozilla_voice_tts.tts.utils.synthesis import synthesis
 from mozilla_voice_tts.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from mozilla_voice_tts.tts.utils.visual import plot_alignment, plot_spectrogram
 from mozilla_voice_tts.utils.audio import AudioProcessor
-from mozilla_voice_tts.utils.generic_utils import (KeepAverage, count_parameters,
-                                     create_experiment_folder, get_git_branch,
-                                     remove_experiment_folder, set_init_dict)
+from mozilla_voice_tts.utils.generic_utils import (
+    KeepAverage, count_parameters, create_experiment_folder, get_git_branch,
+    remove_experiment_folder, set_init_dict)
 from mozilla_voice_tts.utils.io import copy_config_file, load_config
 from mozilla_voice_tts.utils.radam import RAdam
 from mozilla_voice_tts.utils.tensorboard_logger import TensorboardLogger
-from mozilla_voice_tts.utils.training import (NoamLR, adam_weight_decay, check_update,
-                                gradual_training_scheduler, set_weight_decay,
-                                setup_torch_training_env)
+from mozilla_voice_tts.utils.training import (NoamLR, adam_weight_decay,
+                                              check_update,
+                                              gradual_training_scheduler,
+                                              set_weight_decay,
+                                              setup_torch_training_env)
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
@@ -118,7 +122,7 @@ def data_depended_init(model, ap):
             if getattr(f, "set_ddi", False):
                 f.set_ddi(True)
     else:
-         for f in model.decoder.flows:
+        for f in model.decoder.flows:
             if getattr(f, "set_ddi", False):
                 f.set_ddi(True)
 
@@ -142,7 +146,7 @@ def data_depended_init(model, ap):
             if getattr(f, "set_ddi", False):
                 f.set_ddi(False)
     else:
-         for f in model.decoder.flows:
+        for f in model.decoder.flows:
             if getattr(f, "set_ddi", False):
                 f.set_ddi(False)
     return model

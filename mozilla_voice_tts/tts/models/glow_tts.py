@@ -31,6 +31,8 @@ class GlowTts(nn.Module):
                  num_splits=4,
                  num_sqz=1,
                  sigmoid_scale=False,
+                 rel_attn_window_size=None,
+                 input_length=None,
                  mean_only=False,
                  hidden_channels_enc=None,
                  hidden_channels_dec=None,
@@ -56,6 +58,8 @@ class GlowTts(nn.Module):
         self.num_splits = num_splits
         self.num_sqz = num_sqz
         self.sigmoid_scale = sigmoid_scale
+        self.rel_attn_window_size = rel_attn_window_size
+        self.input_length = input_length
         self.mean_only = mean_only
         self.hidden_channels_enc = hidden_channels_enc
         self.hidden_channels_dec = hidden_channels_dec
@@ -72,6 +76,8 @@ class GlowTts(nn.Module):
                                num_layers_enc,
                                kernel_size,
                                dropout_p,
+                               rel_attn_window_size=rel_attn_window_size,
+                               input_length=input_length,
                                mean_only=mean_only,
                                use_prenet=True,
                                c_in_channels=c_in_channels)

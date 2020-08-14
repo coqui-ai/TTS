@@ -1,21 +1,16 @@
-import copy
-import math
-import numpy as np
-import scipy
 import torch
 from torch import nn
-from torch.nn import functional as F
 
 
 class DurationPredictor(nn.Module):
     def __init__(self, in_channels, filter_channels, kernel_size, dropout_p):
         super().__init__()
-
+        # class arguments
         self.in_channels = in_channels
         self.filter_channels = filter_channels
         self.kernel_size = kernel_size
         self.dropout_p = dropout_p
-
+        # layers
         self.drop = nn.Dropout(dropout_p)
         self.conv_1 = nn.Conv1d(in_channels,
                                 filter_channels,
@@ -27,6 +22,7 @@ class DurationPredictor(nn.Module):
                                 kernel_size,
                                 padding=kernel_size // 2)
         self.norm_2 = nn.GroupNorm(1, filter_channels)
+        # output layer
         self.proj = nn.Conv1d(filter_channels, 1, 1)
 
     def forward(self, x, x_mask):
