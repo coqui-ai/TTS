@@ -36,7 +36,8 @@ class GlowTts(nn.Module):
                  mean_only=False,
                  hidden_channels_enc=None,
                  hidden_channels_dec=None,
-                 use_encoder_prenet=False):
+                 use_encoder_prenet=False,
+                 encoder_type="transformer"):
 
         super().__init__()
         self.num_chars = num_chars
@@ -72,6 +73,7 @@ class GlowTts(nn.Module):
                                hidden_channels_enc or hidden_channels,
                                filter_channels,
                                filter_channels_dp,
+                               encoder_type,
                                num_heads,
                                num_layers_enc,
                                kernel_size,
