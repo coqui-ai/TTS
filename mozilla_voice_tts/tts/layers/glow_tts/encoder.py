@@ -121,7 +121,7 @@ class Encoder(nn.Module):
                                  1).to(x.dtype)
         # pass encoder
         for layer in self.encoder:
-            x = layer(x)
+            x = layer(x, x_mask)
         # set duration predictor input
         if g is not None:
             g_exp = g.expand(-1, -1, x.size(-1))
