@@ -9,9 +9,8 @@ from mozilla_voice_tts.tts.layers.glow_tts.glow import LayerNorm
 
 
 class RelativePositionMultiHeadAttention(nn.Module):
-    """Implementation of https://arxiv.org/pdf/1803.02155.pdf
-       Visualization of the algorithm
-       https://raw.githubusercontent.com/Separius/CudaRelativeAttention/master/algorithm.png
+    """Implementation of Relative Position Encoding based on
+    https://arxiv.org/pdf/1809.04281.pdf
     """
     def __init__(self,
                  channels,
