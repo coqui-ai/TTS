@@ -123,7 +123,6 @@ class Encoder(nn.Module):
                 rel_attn_window_size=rel_attn_window_size,
                 input_length=input_length)
         elif encoder_type.lower() == 'gatedconv':
-            breakpoint()
             self.encoder = GatedConvBlock(hidden_channels,
                                           kernel_size=5,
                                           dropout_p=dropout_p,
