@@ -87,7 +87,6 @@ class RelativePositionMultiHeadAttention(nn.Module):
         if self.rel_attn_window_size is not None:
             assert t_s == t_t, "Relative attention is only available for self-attention."
             # get relative key embeddings
-            breakpoint()
             key_relative_embeddings = self._get_relative_embeddings(
                 self.emb_rel_k, t_s)
             rel_logits = self._matmul_with_relative_keys(
