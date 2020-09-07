@@ -139,6 +139,6 @@
     "eval_split_size": 10,
 
     // PATHS
-    "output_path": "tests/outputs/train_outputs/"
+    "output_path": "tests/train_outputs/"
 }
 

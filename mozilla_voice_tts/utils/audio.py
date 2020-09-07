@@ -7,7 +7,7 @@ import pyworld as pw
 
 from mozilla_voice_tts.tts.utils.data import StandardScaler
 
-
+#pylint: disable=too-many-public-methods
 class AudioProcessor(object):
     def __init__(self,
                  sample_rate=None,

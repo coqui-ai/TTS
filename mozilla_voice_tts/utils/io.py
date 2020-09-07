@@ -1,6 +1,5 @@
 import re
 import json
-from shutil import copyfile
 
 class AttrDict(dict):
     """A custom dict which converts dict keys
