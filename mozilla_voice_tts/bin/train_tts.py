@@ -670,12 +670,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.continue_path != '':
+        print(f" > Training continues for {args.continue_path}")
         args.output_path = args.continue_path
         args.config_path = os.path.join(args.continue_path, 'config.json')
         list_of_files = glob.glob(args.continue_path + "/*.pth.tar") # * means all if need specific format then *.csv
         latest_model_file = max(list_of_files, key=os.path.getctime)
         args.restore_path = latest_model_file
-        print(f" > Training continues for {args.restore_path}")
 
     # setup output paths and read configs
     c = load_config(args.config_path)
