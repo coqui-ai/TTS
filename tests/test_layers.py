@@ -1,15 +1,15 @@
 import unittest
 import torch as T
 
-from TTS.layers.tacotron import Prenet, CBHG, Decoder, Encoder
-from TTS.layers.losses import L1LossMasked
-from TTS.utils.generic_utils import sequence_mask
+from mozilla_voice_tts.tts.layers.tacotron import Prenet, CBHG, Decoder, Encoder
+from mozilla_voice_tts.tts.layers.losses import L1LossMasked
+from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
 
 # pylint: disable=unused-variable
 
 
 class PrenetTests(unittest.TestCase):
-    def test_in_out(self):
+    def test_in_out(self):  #pylint: disable=no-self-use
         layer = Prenet(128, out_features=[256, 128])
         dummy_input = T.rand(4, 128)
 
@@ -31,7 +31,7 @@ class CBHGTests(unittest.TestCase):
             gru_features=80,
             num_highways=4)
         # B x D x T
-        dummy_input = T.rand(4, 128, 8) 
+        dummy_input = T.rand(4, 128, 8)
 
         print(layer)
         output = layer(dummy_input)
@@ -44,8 +44,8 @@ class DecoderTests(unittest.TestCase):
     @staticmethod
     def test_in_out():
         layer = Decoder(
-            in_features=256,
-            memory_dim=80,
+            in_channels=256,
+            frame_channels=80,
             r=2,
             memory_size=4,
             attn_windowing=False,
@@ -58,8 +58,7 @@ class DecoderTests(unittest.TestCase):
             trans_agent=True,
             forward_attn_mask=True,
             location_attn=True,
-            separate_stopnet=True,
-            speaker_embedding_dim=0)
+            separate_stopnet=True)
         dummy_input = T.rand(4, 8, 256)
         dummy_memory = T.rand(4, 2, 80)
 
@@ -71,40 +70,8 @@ class DecoderTests(unittest.TestCase):
         assert output.shape[2] == 2, "size not {}".format(output.shape[2])
         assert stop_tokens.shape[0] == 4
 
-    @staticmethod
-    def test_in_out_multispeaker():
-        layer = Decoder(
-            in_features=256,
-            memory_dim=80,
-            r=2,
-            memory_size=4,
-            attn_windowing=False,
-            attn_norm="sigmoid",
-            attn_K=5,
-            attn_type="graves",
-            prenet_type='original',
-            prenet_dropout=True,
-            forward_attn=True,
-            trans_agent=True,
-            forward_attn_mask=True,
-            location_attn=True,
-            separate_stopnet=True,
-            speaker_embedding_dim=80)
-        dummy_input = T.rand(4, 8, 256)
-        dummy_memory = T.rand(4, 2, 80)
-        dummy_embed = T.rand(4, 80)
-
-        output, alignment, stop_tokens = layer(
-            dummy_input, dummy_memory, mask=None, speaker_embeddings=dummy_embed)
-
-        assert output.shape[0] == 4
-        assert output.shape[1] == 80, "size not {}".format(output.shape[1])
-        assert output.shape[2] == 2, "size not {}".format(output.shape[2])
-        assert stop_tokens.shape[0] == 4
-
-
 class EncoderTests(unittest.TestCase):
-    def test_in_out(self):
+    def test_in_out(self):  #pylint: disable=no-self-use
         layer = Encoder(128)
         dummy_input = T.rand(4, 8, 128)
 
@@ -117,7 +84,7 @@ class EncoderTests(unittest.TestCase):
 
 
 class L1LossMaskedTests(unittest.TestCase):
-    def test_in_out(self):
+    def test_in_out(self):  #pylint: disable=no-self-use
         # test input == target
         layer = L1LossMasked(seq_len_norm=False)
         dummy_input = T.ones(4, 8, 128).float()

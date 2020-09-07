@@ -10,10 +10,12 @@ if [[ ( "$TRAVIS_PULL_REQUEST" != "false" ) && ( "$TEST_SUITE" == "lint" ) ]]; t
 fi
 
 if [[ "$TEST_SUITE" == "unittest" ]]; then
-  # Run tests on all pushes
-  pushd tts_namespace
-  python -m unittest
-  popd
-  # Test server package
+  nosetests tests --nocapture
   ./tests/test_server_package.sh
+fi
+
+if [[ "$TEST_SUITE" == "testscripts" ]]; then
+   # test model training scripts
+  ./tests/test_tts_train.sh
+  ./tests/test_vocoder_train.sh
 fi

@@ -5,10 +5,9 @@
     "wavernn_lib_path": null,   // Rootpath to wavernn project folder to be imported. If this is null, model uses GL for speech synthesis.
     "wavernn_file": null, // wavernn checkpoint file name
     "wavernn_config": null, // wavernn config file
-    "pwgan_lib_path": null,
-    "pwgan_file": null,
-    "pwgan_config": null,
-    "is_wavernn_batched":true, 
+    "vocoder_config":null,
+    "vocoder_checkpoint": null,
+    "is_wavernn_batched":true,
     "port": 5002,
     "use_cuda": false,
     "debug": true

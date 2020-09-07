@@ -1,0 +1,24 @@
+{
+    "audio":{
+        "num_mels": 80,         // size of the mel spec frame.
+        "num_freq": 513,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 22050,   // wav sample-rate. If different than the original data, it is resampled.
+        "frame_length_ms": null,  // stft window length in ms.
+        "frame_shift_ms": null, // stft window hop-lengh in ms.
+        "hop_length": 256,
+        "win_length": 1024,
+        "preemphasis": 0.97,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100,   // normalization range
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 30,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        "signal_norm": true,    // normalize the spec values in range [0, 1]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "clip_norm": true,       // clip normalized values into the range.
+        "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "mel_fmin": 0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 8000,        // maximum freq level for mel-spec. Tune for dataset!!
+        "do_trim_silence": false
+    }
+}
+
