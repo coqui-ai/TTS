@@ -1,6 +1,6 @@
 import unittest
 
-from TTS.utils.text import phonemes
+from mozilla_voice_tts.tts.utils.text import phonemes
 
 class SymbolsTest(unittest.TestCase):
     def test_uniqueness(self):  #pylint: disable=no-self-use

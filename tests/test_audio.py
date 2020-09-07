@@ -1,16 +1,17 @@
 import os
 import unittest
 
-from TTS.tests import get_tests_path, get_tests_input_path, get_tests_output_path
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from tests import get_tests_input_path, get_tests_output_path, get_tests_path
+
+from mozilla_voice_tts.utils.audio import AudioProcessor
+from mozilla_voice_tts.utils.io import load_config
 
 TESTS_PATH = get_tests_path()
 OUT_PATH = os.path.join(get_tests_output_path(), "audio_tests")
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
 os.makedirs(OUT_PATH, exist_ok=True)
-conf = load_config(os.path.join(TESTS_PATH, 'test_config.json'))
+conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 
 
 # pylint: disable=protected-access
@@ -103,7 +104,7 @@ class TestAudio(unittest.TestCase):
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm + 1, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm - 2, x_norm.min()
+        assert x_norm.min() >= -self.ap.max_norm - 2, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
         x_ = self.ap._denormalize(x_norm)
@@ -120,7 +121,7 @@ class TestAudio(unittest.TestCase):
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()
+        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
         x_ = self.ap._denormalize(x_norm)
@@ -148,7 +149,7 @@ class TestAudio(unittest.TestCase):
 
         assert (x_old - x).sum() == 0
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()
+        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() < 0, x_norm.min()
         x_ = self.ap._denormalize(x_norm)
         assert (x - x_).sum() < 1e-3

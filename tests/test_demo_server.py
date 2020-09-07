@@ -1,13 +1,14 @@
 import os
 import unittest
 
-import torch as T
+from tests import get_tests_input_path, get_tests_output_path
 
-from TTS.server.synthesizer import Synthesizer
-from TTS.tests import get_tests_input_path, get_tests_output_path
-from TTS.utils.text.symbols import make_symbols, phonemes, symbols
-from TTS.utils.generic_utils import setup_model
-from TTS.utils.io import load_config, save_checkpoint
+from mozilla_voice_tts.server.synthesizer import Synthesizer
+from mozilla_voice_tts.tts.utils.generic_utils import setup_model
+from mozilla_voice_tts.tts.utils.io import save_checkpoint
+from mozilla_voice_tts.tts.utils.text.symbols import (make_symbols, phonemes,
+                                                      symbols)
+from mozilla_voice_tts.utils.io import load_config
 
 
 class DemoServerTest(unittest.TestCase):
@@ -32,3 +33,27 @@ class DemoServerTest(unittest.TestCase):
         config['tts_config'] = os.path.join(tts_root_path, config['tts_config'])
         synthesizer = Synthesizer(config)
         synthesizer.tts("Better this test works!!")
+
+    def test_split_into_sentences(self):
+        """Check demo server sentences split as expected"""
+        print("\n > Testing demo server sentence splitting")
+        # pylint: disable=attribute-defined-outside-init
+        self.seg = Synthesizer.get_segmenter("en")
+        sis = Synthesizer.split_into_sentences
+        assert sis(self, 'Hello. Two sentences') == ['Hello.', 'Two sentences']
+        assert sis(self, 'He went to meet the adviser from Scott, Waltman & Co. next morning.') == ['He went to meet the adviser from Scott, Waltman & Co. next morning.']
+        assert sis(self, 'Let\'s run it past Sarah and co. They\'ll want to see this.') == ['Let\'s run it past Sarah and co.', 'They\'ll want to see this.']
+        assert sis(self, 'Where is Bobby Jr.\'s rabbit?') == ['Where is Bobby Jr.\'s rabbit?']
+        assert sis(self, 'Please inform the U.K. authorities right away.') == ['Please inform the U.K. authorities right away.']
+        assert sis(self, 'Were David and co. at the event?') == ['Were David and co. at the event?']
+        assert sis(self, 'paging dr. green, please come to theatre four immediately.') == ['paging dr. green, please come to theatre four immediately.']
+        assert sis(self, 'The email format is Firstname.Lastname@example.com. I think you reversed them.') == ['The email format is Firstname.Lastname@example.com.', 'I think you reversed them.']
+        assert sis(self, 'The demo site is: https://top100.example.com/subsection/latestnews.html. Please send us your feedback.') == ['The demo site is: https://top100.example.com/subsection/latestnews.html.', 'Please send us your feedback.']
+        assert sis(self, 'Scowling at him, \'You are not done yet!\' she yelled.') == ['Scowling at him, \'You are not done yet!\' she yelled.'] # with the  final lowercase "she" we see it's all one sentence
+        assert sis(self, 'Hey!! So good to see you.') == ['Hey!!', 'So good to see you.']
+        assert sis(self, 'He went to Yahoo! but I don\'t know the division.') == ['He went to Yahoo! but I don\'t know the division.']
+        assert sis(self, 'If you can\'t remember a quote, “at least make up a memorable one that\'s plausible..."') == ['If you can\'t remember a quote, “at least make up a memorable one that\'s plausible..."']
+        assert sis(self, 'The address is not google.com.') == ['The address is not google.com.']
+        assert sis(self, '1.) The first item 2.) The second item') == ['1.) The first item', '2.) The second item']
+        assert sis(self, '1) The first item 2) The second item') == ['1) The first item', '2) The second item']
+        assert sis(self, 'a. The first item b. The second item c. The third list item') == ['a. The first item', 'b. The second item', 'c. The third list item']

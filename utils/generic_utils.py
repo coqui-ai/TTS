@@ -107,15 +107,15 @@ def sequence_mask(sequence_length, max_len=None):
     return seq_range_expand < seq_length_expand
 
 
-def set_init_dict(model_dict, checkpoint, c):
+def set_init_dict(model_dict, checkpoint_state, c):
     # Partial initialization: if there is a mismatch with new and old layer, it is skipped.
-    for k, v in checkpoint['model'].items():
+    for k, v in checkpoint_state.items():
         if k not in model_dict:
             print(" | > Layer missing in the model definition: {}".format(k))
     # 1. filter out unnecessary keys
     pretrained_dict = {
         k: v
-        for k, v in checkpoint['model'].items() if k in model_dict
+        for k, v in checkpoint_state.items() if k in model_dict
     }
     # 2. filter out different size layers
     pretrained_dict = {
@@ -146,9 +146,12 @@ def setup_model(num_chars, num_speakers, c):
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
                         r=c.r,
-                        postnet_output_dim=c.audio['num_freq'],
+                        postnet_output_dim=int(c.audio['fft_size'] / 2 + 1),
                         decoder_output_dim=c.audio['num_mels'],
                         gst=c.use_gst,
+                        gst_embedding_dim=c.gst['gst_embedding_dim'],
+                        gst_num_heads=c.gst['gst_num_heads'],
+                        gst_style_tokens=c.gst['gst_style_tokens'],
                         memory_size=c.memory_size,
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
@@ -161,13 +164,19 @@ def setup_model(num_chars, num_speakers, c):
                         location_attn=c.location_attn,
                         attn_K=c.attention_heads,
                         separate_stopnet=c.separate_stopnet,
-                        bidirectional_decoder=c.bidirectional_decoder)
+                        bidirectional_decoder=c.bidirectional_decoder,
+                        double_decoder_consistency=c.double_decoder_consistency,
+                        ddc_r=c.ddc_r)
     elif c.model.lower() == "tacotron2":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=c.audio['num_mels'],
                         decoder_output_dim=c.audio['num_mels'],
+                        gst=c.use_gst,
+                        gst_embedding_dim=c.gst['gst_embedding_dim'],
+                        gst_num_heads=c.gst['gst_num_heads'],
+                        gst_style_tokens=c.gst['gst_style_tokens'],
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
                         attn_norm=c.attention_norm,
@@ -179,7 +188,9 @@ def setup_model(num_chars, num_speakers, c):
                         location_attn=c.location_attn,
                         attn_K=c.attention_heads,
                         separate_stopnet=c.separate_stopnet,
-                        bidirectional_decoder=c.bidirectional_decoder)
+                        bidirectional_decoder=c.bidirectional_decoder,
+                        double_decoder_consistency=c.double_decoder_consistency,
+                        ddc_r=c.ddc_r)
     return model
 
 class KeepAverage():
@@ -198,14 +209,19 @@ class KeepAverage():
         self.iters[name] = init_iter
 
     def update_value(self, name, value, weighted_avg=False):
-        if weighted_avg:
-            self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
-            self.iters[name] += 1
+        if name not in self.avg_values:
+            # add value if not exist before
+            self.add_value(name, init_val=value)
         else:
-            self.avg_values[name] = self.avg_values[name] * \
-                self.iters[name] + value
-            self.iters[name] += 1
-            self.avg_values[name] /= self.iters[name]
+            # else update existing value
+            if weighted_avg:
+                self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
+                self.iters[name] += 1
+            else:
+                self.avg_values[name] = self.avg_values[name] * \
+                    self.iters[name] + value
+                self.iters[name] += 1
+                self.avg_values[name] /= self.iters[name]
 
     def add_values(self, name_dict):
         for key, value in name_dict.items():
@@ -242,7 +258,7 @@ def check_config(c):
 
     # audio processing parameters
     _check_argument('num_mels', c['audio'], restricted=True, val_type=int, min_val=10, max_val=2056)
-    _check_argument('num_freq', c['audio'], restricted=True, val_type=int, min_val=128, max_val=4058)
+    _check_argument('fft_size', c['audio'], restricted=True, val_type=int, min_val=128, max_val=4058)
     _check_argument('sample_rate', c['audio'], restricted=True, val_type=int, min_val=512, max_val=100000)
     _check_argument('frame_length_ms', c['audio'], restricted=True, val_type=float, min_val=10, max_val=1000, alternative='win_length')
     _check_argument('frame_shift_ms', c['audio'], restricted=True, val_type=float, min_val=1, max_val=1000, alternative='hop_length')
@@ -268,6 +284,7 @@ def check_config(c):
     _check_argument('clip_norm', c['audio'], restricted=True, val_type=bool)
     _check_argument('mel_fmin', c['audio'], restricted=True, val_type=float, min_val=0.0, max_val=1000)
     _check_argument('mel_fmax', c['audio'], restricted=True, val_type=float, min_val=500.0)
+    _check_argument('spec_gain', c['audio'], restricted=True, val_type=float, min_val=1, max_val=100)
     _check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
     _check_argument('trim_db', c['audio'], restricted=True, val_type=int)
 
@@ -309,6 +326,8 @@ def check_config(c):
     _check_argument('transition_agent', c, restricted=True, val_type=bool)
     _check_argument('location_attn', c, restricted=True, val_type=bool)
     _check_argument('bidirectional_decoder', c, restricted=True, val_type=bool)
+    _check_argument('double_decoder_consistency', c, restricted=True, val_type=bool)
+    _check_argument('ddc_r', c, restricted='double_decoder_consistency' in c.keys(), min_val=1, max_val=7, val_type=int)
 
     # stopnet
     _check_argument('stopnet', c, restricted=True, val_type=bool)
@@ -316,6 +335,7 @@ def check_config(c):
 
     # tensorboard
     _check_argument('print_step', c, restricted=True, val_type=int, min_val=1)
+    _check_argument('tb_plot_step', c, restricted=True, val_type=int, min_val=1)
     _check_argument('save_step', c, restricted=True, val_type=int, min_val=1)
     _check_argument('checkpoint', c, restricted=True, val_type=bool)
     _check_argument('tb_model_param_stats', c, restricted=True, val_type=bool)
@@ -334,10 +354,16 @@ def check_config(c):
     # paths
     _check_argument('output_path', c, restricted=True, val_type=str)
 
-    # multi-speaker gst
+    # multi-speaker
     _check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
-    _check_argument('style_wav_for_test', c, restricted=True, val_type=str)
+
+    # GST
     _check_argument('use_gst', c, restricted=True, val_type=bool)
+    _check_argument('gst', c, restricted=True, val_type=dict)
+    _check_argument('gst_style_input', c['gst'], restricted=True, val_type=str)
+    _check_argument('gst_embedding_dim', c['gst'], restricted=True, val_type=int, min_val=1)
+    _check_argument('gst_num_heads', c['gst'], restricted=True, val_type=int, min_val=1)
+    _check_argument('gst_style_tokens', c['gst'], restricted=True, val_type=int, min_val=1)
 
     # datasets - checking only the first entry
     _check_argument('datasets', c, restricted=True, val_type=list)

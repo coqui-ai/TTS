@@ -19,12 +19,12 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.3'
+version = '0.0.4'
 
 # Adapted from https://github.com/pytorch/pytorch
 cwd = os.path.dirname(os.path.abspath(__file__))
-if os.getenv('TTS_PYTORCH_BUILD_VERSION'):
-    version = os.getenv('TTS_PYTORCH_BUILD_VERSION')
+if os.getenv('MOZILLA_VOICE_TTS_PYTORCH_BUILD_VERSION'):
+    version = os.getenv('MOZILLA_VOICE_TTS_PYTORCH_BUILD_VERSION')
 else:
     try:
         sha = subprocess.check_output(
@@ -36,7 +36,7 @@ else:
         pass
 
 
-class build_py(setuptools.command.build_py.build_py):
+class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
     def run(self):
         self.create_version_file()
         setuptools.command.build_py.build_py.run(self)
@@ -56,11 +56,11 @@ class develop(setuptools.command.develop.develop):
 
 
 # The documentation for this feature is in server/README.md
-package_data = ['server/templates/*']
+package_data = ['mozilla_voice_tts/server/templates/*']
 
 if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
     print('Embedding model in wheel file...')
-    model_dir = os.path.join('server', 'model')
+    model_dir = os.path.join('mozilla_voice_tts', 'server', 'model')
     tts_dir = os.path.join(model_dir, 'tts')
     os.makedirs(tts_dir, exist_ok=True)
     embedded_checkpoint_path = os.path.join(tts_dir, 'checkpoint.pth.tar')
@@ -69,17 +69,37 @@ if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
     shutil.copy(args.model_config, embedded_config_path)
     package_data.extend([embedded_checkpoint_path, embedded_config_path])
 
+
+def pip_install(package_name):
+    subprocess.call(
+        [sys.executable, '-m', 'pip', 'install', package_name]
+    )
+
+
+reqs_from_file = open('requirements.txt').readlines()
+reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
+tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
+
+requirements = {
+    'install_requires': reqs_without_tf,
+    'pip_install': tf_req
+}
+
+
 setup(
-    name='TTS',
+    name='mozilla_voice_tts',
     version=version,
     url='https://github.com/mozilla/TTS',
+    author='Eren Gölge',
+    author_email='egolge@mozilla.com',
     description='Text to Speech with Deep Learning',
     license='MPL-2.0',
-    package_dir={'': 'tts_namespace'},
-    packages=find_packages('tts_namespace'),
-    package_data={
-        'TTS': package_data,
+    entry_points={
+        'console_scripts': [
+            'tts-server = mozilla_voice_tts.server.server:main'
+        ]
     },
+    packages=find_packages(include=['TTS*']),
     project_urls={
         'Documentation': 'https://github.com/mozilla/TTS/wiki',
         'Tracker': 'https://github.com/mozilla/TTS/issues',
@@ -90,25 +110,24 @@ setup(
         'build_py': build_py,
         'develop': develop,
     },
-    install_requires=[
-        "scipy>=0.19.0",
-        "torch>=1.5",
-        "numpy>=1.16.0",
-	"numba==0.48.0",
-        "librosa==0.6.2",
-        "unidecode==0.4.20",
-        "attrdict",
-        "tensorboardX",
-        "matplotlib",
-        "Pillow",
-        "flask",
-        # "lws",
-        "tqdm",
-        "bokeh==1.4.0",
-        "soundfile",
-        "phonemizer @ https://github.com/bootphon/phonemizer/tarball/master",
-    ],
-    dependency_links=[
-        "http://github.com/bootphon/phonemizer/tarball/master#egg=phonemizer-1.0.1"
+    install_requires=requirements['install_requires'],
+    python_requires='>=3.6.0',
+    classifiers=[
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        'Development Status :: 3 - Alpha',
+        "Intended Audience :: Science/Research :: Developers",
+        "Operating System :: POSIX :: Linux",
+        'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
+        "Topic :: Software Development :: Libraries :: Python Modules :: Speech :: Sound/Audio :: Multimedia :: Artificial Intelligence",
     ]
 )
+
+# for some reason having tensorflow in 'install_requires'
+# breaks some of the dependencies.
+if 'bdist_wheel' not in unknown_args:
+    for module in requirements['pip_install']:
+        pip_install(module)

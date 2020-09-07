@@ -1,0 +1,68 @@
+    {
+    "audio":{
+        "audio_processor": "audio",     // to use dictate different audio processors, if available.
+        "num_mels": 80,         // size of the mel spec frame.
+        "fft_size": 1024,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 22050,   // wav sample-rate. If different than the original data, it is resampled.
+        "frame_length_ms": null,  // stft window length in ms.
+        "frame_shift_ms": null, // stft window hop-lengh in ms.
+        "hop_length": 256,
+        "win_length": 1024,
+        "preemphasis": 0.97,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100,   // normalization range
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 30,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        "signal_norm": true,    // normalize the spec values in range [0, 1]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "clip_norm": true,       // clip normalized values into the range.
+        "max_norm": 4,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "mel_fmin": 0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 8000,        // maximum freq level for mel-spec. Tune for dataset!!
+        "do_trim_silence": false,
+        "spec_gain": 20
+    },
+
+    "characters":{
+        "pad": "_",
+        "eos": "~",
+        "bos": "^",
+        "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? ",
+        "punctuations":"!'(),-.:;? ",
+        "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫ"
+    },
+
+    "hidden_size": 128,
+    "embedding_size": 256,
+    "text_cleaner": "english_cleaners",
+
+    "epochs": 2000,
+    "lr": 0.003,
+    "lr_patience": 5,
+    "lr_decay": 0.5,
+    "batch_size": 2,
+    "r": 5,
+    "mk": 1.0,
+    "num_loader_workers": 4,
+    "memory_size": 5,
+
+    "save_step": 200,
+    "data_path": "tests/data/ljspeech/",
+    "output_path": "result",
+    "min_seq_len": 0,
+    "max_seq_len": 300,
+    "log_dir": "tests/outputs/",
+
+    // MULTI-SPEAKER and GST
+    "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
+    "use_gst": true,       			    // use global style tokens
+    "gst":	{			                // gst parameter if gst is enabled
+        "gst_style_input": null,        // Condition the style input either on a
+                                        // -> wave file [path to wave] or
+                                        // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}
+                                        // with the dictionary being len(dict) <= len(gst_style_tokens).
+        "gst_embedding_dim": 512,
+        "gst_num_heads": 4,
+        "gst_style_tokens": 10
+        }
+}
