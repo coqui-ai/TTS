@@ -1,9 +1,9 @@
 import unittest
 import torch as T
 
-from mozilla_voice_tts.tts.layers.tacotron import Prenet, CBHG, Decoder, Encoder
-from mozilla_voice_tts.tts.layers.losses import L1LossMasked
-from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
+from TTS.tts.layers.tacotron import Prenet, CBHG, Decoder, Encoder
+from TTS.tts.layers.losses import L1LossMasked
+from TTS.tts.utils.generic_utils import sequence_mask
 
 # pylint: disable=unused-variable
 

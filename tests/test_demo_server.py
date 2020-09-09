@@ -2,13 +2,11 @@ import os
 import unittest
 
 from tests import get_tests_input_path, get_tests_output_path
-
-from mozilla_voice_tts.server.synthesizer import Synthesizer
-from mozilla_voice_tts.tts.utils.generic_utils import setup_model
-from mozilla_voice_tts.tts.utils.io import save_checkpoint
-from mozilla_voice_tts.tts.utils.text.symbols import (make_symbols, phonemes,
-                                                      symbols)
-from mozilla_voice_tts.utils.io import load_config
+from TTS.server.synthesizer import Synthesizer
+from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.utils.io import save_checkpoint
+from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.utils.io import load_config
 
 
 class DemoServerTest(unittest.TestCase):

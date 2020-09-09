@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from mozilla_voice_tts.vocoder.models.random_window_discriminator import RandomWindowDiscriminator
+from TTS.vocoder.models.random_window_discriminator import RandomWindowDiscriminator
 
 
 def test_rwd():
