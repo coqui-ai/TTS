@@ -4,9 +4,9 @@ import os
 # pylint: disable=unused-import
 import unittest
 from tests import get_tests_input_path
-from mozilla_voice_tts.tts.utils.text import *
+from TTS.tts.utils.text import *
 from tests import get_tests_path
-from mozilla_voice_tts.utils.io import load_config
+from TTS.utils.io import load_config
 
 conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mozilla_voice_tts.vocoder.models.parallel_wavegan_generator import ParallelWaveganGenerator
+from TTS.vocoder.models.parallel_wavegan_generator import ParallelWaveganGenerator
 
 
 def test_pwgan_generator():

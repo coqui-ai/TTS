@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mozilla_voice_tts.vocoder.models.parallel_wavegan_discriminator import ParallelWaveganDiscriminator, ResidualParallelWaveganDiscriminator
+from TTS.vocoder.models.parallel_wavegan_discriminator import ParallelWaveganDiscriminator, ResidualParallelWaveganDiscriminator
 
 
 def test_pwgan_disciminator():

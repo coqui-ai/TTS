@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mozilla_voice_tts.vocoder.models.melgan_generator import MelganGenerator
+from TTS.vocoder.models.melgan_generator import MelganGenerator
 
 def test_melgan_generator():
     model = MelganGenerator()
