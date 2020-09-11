@@ -1,5 +1,13 @@
 import re
 import json
+import pickle as pickle_tts
+
+class RenamingUnpickler(pickle_tts.Unpickler):
+    """Overload default pickler to solve module renaming problem"""
+    def find_class(self, module, name):
+        if 'mozilla_voice_tts' in module :
+            module = module.replace('mozilla_voice_tts', 'TTS')
+        return super().find_class(module, name)
 
 class AttrDict(dict):
     """A custom dict which converts dict keys

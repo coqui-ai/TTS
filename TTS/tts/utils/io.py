@@ -1,10 +1,17 @@
 import os
 import torch
 import datetime
+import pickle as pickle_tts
+
+from TTS.utils.io import RenamingUnpickler
 
 
 def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False):
-    state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+    try:
+        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+    except ModuleNotFoundError:
+        pickle_tts.Unpickler = RenamingUnpickler
+        state = torch.load(checkpoint_path, map_location=torch.device('cpu'), pickle_module=pickle_tts)
     model.load_state_dict(state['model'])
     if amp and 'amp' in state:
         amp.load_state_dict(state['amp'])
