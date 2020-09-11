@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 import torch
 from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.tts.utils.audio import AudioProcessor
-from TTS.tts.utils.generic_utils import load_config
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_config
 
 parser = argparse.ArgumentParser(
     description='Compute embedding vectors for each wav file in a dataset. ')
@@ -80,7 +80,7 @@ if args.use_cuda:
     model.cuda()
 
 for idx, wav_file in enumerate(tqdm(wav_files)):
-    mel_spec = ap.melspectrogram(ap.load_wav(wav_file)).T
+    mel_spec = ap.melspectrogram(ap.load_wav(wav_file, sr=ap.sample_rate)).T
     mel_spec = torch.FloatTensor(mel_spec[None, :, :])
     if args.use_cuda:
         mel_spec = mel_spec.cuda()
