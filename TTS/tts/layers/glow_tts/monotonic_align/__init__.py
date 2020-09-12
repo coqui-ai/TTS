@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from torch.nn import functional as F
-from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
-from mozilla_voice_tts.tts.layers.glow_tts.monotonic_align.core import maximum_path_c
+from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.layers.glow_tts.monotonic_align.core import maximum_path_c
 
 
 def convert_pad_shape(pad_shape):

@@ -13,30 +13,30 @@ import torch
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from mozilla_voice_tts.tts.datasets.preprocess import load_meta_data
-from mozilla_voice_tts.tts.datasets.TTSDataset import MyDataset
-from mozilla_voice_tts.tts.layers.losses import GlowTTSLoss
-from mozilla_voice_tts.utils.console_logger import ConsoleLogger
-from mozilla_voice_tts.tts.utils.distribute import (DistributedSampler,
+from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.datasets.TTSDataset import MyDataset
+from TTS.tts.layers.losses import GlowTTSLoss
+from TTS.utils.console_logger import ConsoleLogger
+from TTS.tts.utils.distribute import (DistributedSampler,
                                                     init_distributed,
                                                     reduce_tensor)
-from mozilla_voice_tts.tts.utils.generic_utils import check_config, setup_model
-from mozilla_voice_tts.tts.utils.io import save_best_model, save_checkpoint
-from mozilla_voice_tts.tts.utils.measures import alignment_diagonal_score
-from mozilla_voice_tts.tts.utils.speakers import (get_speakers,
+from TTS.tts.utils.generic_utils import check_config, setup_model
+from TTS.tts.utils.io import save_best_model, save_checkpoint
+from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.speakers import (get_speakers,
                                                   load_speaker_mapping,
                                                   save_speaker_mapping)
-from mozilla_voice_tts.tts.utils.synthesis import synthesis
-from mozilla_voice_tts.tts.utils.text.symbols import make_symbols, phonemes, symbols
-from mozilla_voice_tts.tts.utils.visual import plot_alignment, plot_spectrogram
-from mozilla_voice_tts.utils.audio import AudioProcessor
-from mozilla_voice_tts.utils.generic_utils import (
+from TTS.tts.utils.synthesis import synthesis
+from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.generic_utils import (
     KeepAverage, count_parameters, create_experiment_folder, get_git_branch,
     remove_experiment_folder, set_init_dict)
-from mozilla_voice_tts.utils.io import copy_config_file, load_config
-from mozilla_voice_tts.utils.radam import RAdam
-from mozilla_voice_tts.utils.tensorboard_logger import TensorboardLogger
-from mozilla_voice_tts.utils.training import (NoamLR, adam_weight_decay,
+from TTS.utils.io import copy_config_file, load_config
+from TTS.utils.radam import RAdam
+from TTS.utils.tensorboard_logger import TensorboardLogger
+from TTS.utils.training import (NoamLR, adam_weight_decay,
                                               check_update,
                                               gradual_training_scheduler,
                                               set_weight_decay,

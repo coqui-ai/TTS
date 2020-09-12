@@ -2,8 +2,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
-from mozilla_voice_tts.tts.layers.glow_tts.glow import InvConvNear, CouplingBlock, ActNorm
+from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.layers.glow_tts.glow import InvConvNear, CouplingBlock, ActNorm
 
 
 def squeeze(x, x_mask=None, num_sqz=2):
