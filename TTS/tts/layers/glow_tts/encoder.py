@@ -2,10 +2,10 @@ import math
 import torch
 from torch import nn
 
-from mozilla_voice_tts.tts.layers.glow_tts.transformer import Transformer
-from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
-from mozilla_voice_tts.tts.layers.glow_tts.glow import ConvLayerNorm, LayerNorm
-from mozilla_voice_tts.tts.layers.glow_tts.duration_predictor import DurationPredictor
+from TTS.tts.layers.glow_tts.transformer import Transformer
+from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.layers.glow_tts.glow import ConvLayerNorm, LayerNorm
+from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 
 
 class GatedConvBlock(nn.Module):

@@ -3,10 +3,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from mozilla_voice_tts.tts.layers.glow_tts.encoder import Encoder
-from mozilla_voice_tts.tts.layers.glow_tts.decoder import Decoder
-from mozilla_voice_tts.tts.utils.generic_utils import sequence_mask
-from mozilla_voice_tts.tts.layers.glow_tts.monotonic_align import maximum_path, generate_path
+from TTS.tts.layers.glow_tts.encoder import Encoder
+from TTS.tts.layers.glow_tts.decoder import Decoder
+from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.layers.glow_tts.monotonic_align import maximum_path, generate_path
 
 
 class GlowTts(nn.Module):

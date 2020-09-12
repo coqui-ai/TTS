@@ -49,7 +49,7 @@ def to_camel(text):
 def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
-    MyModel = getattr(MyModel, c.model)
+    MyModel = getattr(MyModel, to_camel(c.model))
     if c.model.lower() in "tacotron":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
