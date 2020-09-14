@@ -1,6 +1,7 @@
 # %%
 # %%
 import argparse
+from difflib import SequenceMatcher
 import os
 import sys
 # %%
@@ -10,7 +11,6 @@ from pprint import pprint
 import numpy as np
 import tensorflow as tf
 import torch
-from fuzzywuzzy import fuzz
 from TTS.tts.tf.models.tacotron2 import Tacotron2
 from TTS.tts.tf.utils.convert_torch_to_tf_utils import (
     compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf)
@@ -106,7 +106,7 @@ for tf_name in tf_var_names:
         continue
     tf_name_edited = convert_tf_name(tf_name)
     ratios = [
-        fuzz.ratio(torch_name, tf_name_edited)
+        SequenceMatcher(None, torch_name, tf_name_edited).ratio()
         for torch_name in torch_var_names
     ]
     max_idx = np.argmax(ratios)
