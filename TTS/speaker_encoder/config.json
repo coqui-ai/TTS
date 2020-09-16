@@ -52,35 +52,41 @@
     "datasets": 
         [
             {
+                "name": "common_voice_wav",
+                "path": "../../audio-datasets/en/MozillaCommonVoice",
+                "meta_file_train": "train.tsv",
+                "meta_file_val": "test.tsv"
+            },
+            {
                 "name": "voxceleb1",
                 "path": "../../audio-datasets/en/voxceleb1/",
                 "meta_file_train": null,
                 "meta_file_val": null
             },
-//            {
-//                "name": "voxceleb2",
-//                "path": "../../audio-datasets/en/voxceleb2/",
-//                "meta_file_train": null,
-//                "meta_file_val": null
-//            },
-//            {
-//                "name": "vctk",
-//                "path": "../../audio-datasets/en/VCTK-Corpus/",
-//                "meta_file_train": null,
-//                "meta_file_val": null
-//            },
-//            {
-//                "name": "libri_tts",
-//                "path": "../../audio-datasets/en/LibriTTS/train-clean-100",
-//                "meta_file_train": null,
-//                "meta_file_val": null
-//            },
-//            {
-//                "name": "libri_tts",
-//                "path": "../../audio-datasets/en/LibriTTS/train-clean-360",
-//                "meta_file_train": null,
-//                "meta_file_val": null
-//            },
+            {
+                "name": "voxceleb2",
+                "path": "../../audio-datasets/en/voxceleb2/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "vctk",
+                "path": "../../audio-datasets/en/VCTK-Corpus/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "libri_tts",
+                "path": "../../audio-datasets/en/LibriTTS/train-clean-100",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "libri_tts",
+                "path": "../../audio-datasets/en/LibriTTS/train-clean-360",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
             {
                 "name": "libri_tts",
                 "path": "../../audio-datasets/en/LibriTTS/train-other-500",
