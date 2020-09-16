@@ -161,7 +161,7 @@ def nancy(root_path, meta_file):
     return items
 
 
-def common_voice(root_path, meta_file):
+def common_voice_wav(root_path, meta_file):
     """Normalize the common voice meta data file to TTS format."""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -172,8 +172,8 @@ def common_voice(root_path, meta_file):
             cols = line.split("\t")
             text = cols[2]
             speaker_name = cols[0]
-            wav_file = os.path.join(root_path, "clips", cols[1] + ".wav")
-            items.append([text, wav_file, speaker_name])
+            wav_file = os.path.join(root_path, "clips", cols[1].replace(".mp3", ".wav"))
+            items.append([text, wav_file, 'MCV_' + speaker_name])
     return items
 
 
@@ -251,9 +251,9 @@ def vctk(root_path, meta_files=None, wavs_path='wav48'):
                 continue
         with open(meta_file) as file_text:
             text = file_text.readlines()[0]
-        wav_file = os.path.join(root_path, wavs_path, 'VCTK_' + speaker_id,
+        wav_file = os.path.join(root_path, wavs_path, speaker_id,
                                 file_id + '.wav')
-        items.append([text, wav_file, speaker_id])
+        items.append([text, wav_file, 'VCTK_' + speaker_id])
 
     return items
 
@@ -298,3 +298,5 @@ def _voxcel_x(root_path, voxcel_idx):
 
     with open(str(cache_to), 'r') as f:
         return [x.strip().split('|') for x in f.readlines()]
+
+
