@@ -1,6 +1,6 @@
 
 {
-    "run_name": "Model compatible to  CorentinJ/Real-Time-Voice-Cloning",
+    "run_name": "mueller91",
     "run_description": "train speaker encoder with voxceleb1, voxceleb2 and libriSpeech ",
     "audio":{
         // Audio processing parameters
@@ -41,7 +41,7 @@
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
     "save_step": 1000, // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 1, // Number of steps to log traning on console.
-    "output_path": "../../checkpoints/voxceleb_librispeech/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
+    "output_path": "../../MozillaTTSOutput/checkpoints/voxceleb_librispeech/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
     "model": {
         "input_dim": 40,
         "proj_dim": 256,
@@ -52,8 +52,38 @@
     "datasets": 
         [
             {
-                "name": "vctk",
-                "path": "../../../datasets/VCTK-Corpus-removed-silence/",
+                "name": "voxceleb1",
+                "path": "../../audio-datasets/en/voxceleb1/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+//            {
+//                "name": "voxceleb2",
+//                "path": "../../audio-datasets/en/voxceleb2/",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "vctk",
+//                "path": "../../audio-datasets/en/VCTK-Corpus/",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "libri_tts",
+//                "path": "../../audio-datasets/en/LibriTTS/train-clean-100",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "libri_tts",
+//                "path": "../../audio-datasets/en/LibriTTS/train-clean-360",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+            {
+                "name": "libri_tts",
+                "path": "../../audio-datasets/en/LibriTTS/train-other-500",
                 "meta_file_train": null,
                 "meta_file_val": null
             }
