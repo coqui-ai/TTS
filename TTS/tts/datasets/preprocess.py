@@ -2,6 +2,10 @@ import os
 from glob import glob
 import re
 import sys
+from pathlib import Path
+
+from tqdm import tqdm
+
 from TTS.tts.utils.generic_utils import split_dataset
 
 
@@ -16,6 +20,7 @@ def load_meta_data(datasets):
         preprocessor = get_preprocessor_by_name(name)
 
         meta_data_train = preprocessor(root_path, meta_file_train)
+        print(f"Found {len(meta_data_train)} files in {Path(root_path).absolute()}")
         if meta_file_val is None:
             meta_data_eval, meta_data_train = split_dataset(meta_data_train)
         else:
@@ -187,7 +192,7 @@ def libri_tts(root_path, meta_files=None):
                 cols = line.split('\t')
                 wav_file = os.path.join(_root_path, cols[0] + '.wav')
                 text = cols[1]
-                items.append([text, wav_file, speaker_name])
+                items.append([text, wav_file, 'LTTS_' + speaker_name])
     for item in items:
         assert os.path.exists(
             item[1]), f" [!] wav files don't exist - {item[1]}"
@@ -235,8 +240,7 @@ def vctk(root_path, meta_files=None, wavs_path='wav48'):
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     test_speakers = meta_files
     items = []
-    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt",
-                      recursive=True)
+    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
     for meta_file in meta_files:
         _, speaker_id, txt_file = os.path.relpath(meta_file,
                                                   root_path).split(os.sep)
@@ -247,8 +251,50 @@ def vctk(root_path, meta_files=None, wavs_path='wav48'):
                 continue
         with open(meta_file) as file_text:
             text = file_text.readlines()[0]
-        wav_file = os.path.join(root_path, wavs_path, speaker_id,
+        wav_file = os.path.join(root_path, wavs_path, 'VCTK_' + speaker_id,
                                 file_id + '.wav')
         items.append([text, wav_file, speaker_id])
 
     return items
+
+# ======================================== VOX CELEB ===========================================
+def voxceleb2(root_path, meta_file):
+    """
+    :param meta_file   Used only for consistency with load_meta_data api
+    """
+    return _voxcel_x(root_path, voxcel_idx="2")
+
+
+def voxceleb1(root_path, meta_file):
+    """
+    :param meta_file   Used only for consistency with load_meta_data api
+    """
+    return _voxcel_x(root_path, voxcel_idx="1")
+
+
+def _voxcel_x(root_path, voxcel_idx):
+    assert voxcel_idx in ["1", "2"]
+    expected_count = 148_000 if voxcel_idx == "1" else 1_000_000
+    voxceleb_path = Path(root_path)
+    cache_to = voxceleb_path / f"metafile_voxceleb{voxcel_idx}.csv"
+    cache_to.parent.mkdir(exist_ok=True)
+
+    # if not exists meta file, crawl recursively for 'wav' files
+    if not cache_to.exists():
+        cnt = 0
+        meta_data = ""
+        wav_files = voxceleb_path.rglob("**/*.wav")
+        for path in tqdm(wav_files, desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
+                         total=expected_count):
+            speaker_id = str(Path(path).parent.parent.stem)
+            assert speaker_id.startswith('id')
+            text = None  # VoxCel does not provide transciptions, and they are not needed for training the SE
+            meta_data += f"{text}|{path}|voxcel{voxcel_idx}_{speaker_id}\n"
+            cnt += 1
+        with open(str(cache_to), 'w') as f:
+            f.write(meta_data)
+        if cnt < expected_count:
+            raise ValueError(f"Found too few instances for Voxceleb. Should be around {expected_count}, is: {cnt}")
+
+    with open(str(cache_to), 'r') as f:
+        return [x.strip().split('|') for x in f.readlines()]

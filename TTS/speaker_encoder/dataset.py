@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import random
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 
 class MyDataset(Dataset):
@@ -53,6 +54,7 @@ class MyDataset(Dataset):
     def __parse_items(self):
         self.speaker_to_utters = {}
         for i in self.items:
+            text_ = i[0]
             path_ = i[1]
             speaker_ = i[2]
             if speaker_ in self.speaker_to_utters.keys():
@@ -60,11 +62,11 @@ class MyDataset(Dataset):
             else:
                 self.speaker_to_utters[speaker_] = [path_, ]
 
-            if self.skip_speakers:
-                self.speaker_to_utters = {k: v for (k, v) in self.speaker_to_utters.items() if
-                                          len(v) >= self.num_utter_per_speaker}
+        if self.skip_speakers:
+            self.speaker_to_utters = {k: v for (k, v) in self.speaker_to_utters.items() if
+                                      len(v) >= self.num_utter_per_speaker}
 
-            self.speakers = [k for (k, v) in self.speaker_to_utters]
+        self.speakers = [k for (k, v) in self.speaker_to_utters.items()]
 
     # def __parse_items(self):
     #     """
