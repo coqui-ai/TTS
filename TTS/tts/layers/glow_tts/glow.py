@@ -2,31 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-
-class LayerNorm(nn.Module):
-    def __init__(self, channels, eps=1e-4):
-        """Layer norm for the 2nd dimension of the input.
-        Args:
-            channels (int): number of channels (2nd dimension) of the input.
-            eps (float): to prevent 0 division
-
-        Shapes:
-            - input: (B, C, T)
-            - output: (B, C, T)
-        """
-        super().__init__()
-        self.channels = channels
-        self.eps = eps
-
-        self.gamma = nn.Parameter(torch.ones(1, channels, 1) * 0.1)
-        self.beta = nn.Parameter(torch.zeros(1, channels, 1))
-
-    def forward(self, x):
-        mean = torch.mean(x, 1, keepdim=True)
-        variance = torch.mean((x - mean)**2, 1, keepdim=True)
-        x = (x - mean) * torch.rsqrt(variance + self.eps)
-        x = x * self.gamma + self.beta
-        return x
+from .normalization import LayerNorm
 
 
 class ConvLayerNorm(nn.Module):
@@ -70,7 +46,7 @@ class ConvLayerNorm(nn.Module):
             x = self.conv_layers[i](x * x_mask)
             x = self.norm_layers[i](x * x_mask)
             x = F.dropout(F.relu(x), self.dropout_p, training=self.training)
-        x = x_org + self.proj(x)
+        x = x_res + self.proj(x)
         return x * x_mask
 
 

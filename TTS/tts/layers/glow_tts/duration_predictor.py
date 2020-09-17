@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+from .normalization import LayerNorm
+
 
 class DurationPredictor(nn.Module):
     def __init__(self, in_channels, filter_channels, kernel_size, dropout_p):
@@ -16,12 +18,12 @@ class DurationPredictor(nn.Module):
                                 filter_channels,
                                 kernel_size,
                                 padding=kernel_size // 2)
-        self.norm_1 = nn.GroupNorm(1, filter_channels)
+        self.norm_1 = LayerNorm(filter_channels)
         self.conv_2 = nn.Conv1d(filter_channels,
                                 filter_channels,
                                 kernel_size,
                                 padding=kernel_size // 2)
-        self.norm_2 = nn.GroupNorm(1, filter_channels)
+        self.norm_2 = LayerNorm(filter_channels)
         # output layer
         self.proj = nn.Conv1d(filter_channels, 1, 1)
 

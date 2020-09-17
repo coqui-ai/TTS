@@ -3,49 +3,11 @@ import torch
 from torch import nn
 
 from TTS.tts.layers.glow_tts.transformer import Transformer
+from TTS.tts.layers.glow_tts.gated_conv import GatedConvBlock
 from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.layers.glow_tts.glow import ConvLayerNorm, LayerNorm
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-
-
-class GatedConvBlock(nn.Module):
-    """Gated convolutional block as in https://arxiv.org/pdf/1612.08083.pdf
-    Args:
-        in_out_channels (int): number of input/output channels.
-        kernel_size (int): convolution kernel size.
-        dropout_p (float): dropout rate.
-    """
-    def __init__(self, in_out_channels, kernel_size, dropout_p, num_layers):
-        super().__init__()
-        # class arguments
-        self.dropout_p = dropout_p
-        self.num_layers = num_layers
-        # define layers
-        self.conv_layers = nn.ModuleList()
-        self.norm_layers = nn.ModuleList()
-        self.layers = nn.ModuleList()
-        for _ in range(num_layers):
-            self.conv_layers += [
-                nn.Conv1d(in_out_channels,
-                          2 * in_out_channels,
-                          kernel_size,
-                          padding=kernel_size // 2)
-            ]
-            self.norm_layers += [LayerNorm(2 * in_out_channels)]
-
-    def forward(self, x, x_mask):
-        o = x
-        res = x
-        for idx in range(self.num_layers):
-            o = nn.functional.dropout(o,
-                                      p=self.dropout_p,
-                                      training=self.training)
-            o = self.conv_layers[idx](o * x_mask)
-            o = self.norm_layers[idx](o)
-            o = nn.functional.glu(o, dim=1)
-            o = res + o
-            res = o
-        return o
+from TTS.tts.layers.glow_tts.time_depth_sep_conv import TimeDepthSeparableConvBlock
 
 
 class Encoder(nn.Module):
@@ -82,7 +44,7 @@ class Encoder(nn.Module):
                  rel_attn_window_size=None,
                  input_length=None,
                  mean_only=False,
-                 use_prenet=False,
+                 use_prenet=True,
                  c_in_channels=0):
         super().__init__()
         # class arguments
@@ -127,6 +89,21 @@ class Encoder(nn.Module):
                                           kernel_size=5,
                                           dropout_p=dropout_p,
                                           num_layers=3 + num_layers)
+        elif encoder_type.lower() == 'time-depth-separable':
+            # optional convolutional prenet
+            if use_prenet:
+                self.pre = ConvLayerNorm(hidden_channels,
+                                         hidden_channels,
+                                         hidden_channels,
+                                         kernel_size=5,
+                                         num_layers=3,
+                                         dropout_p=0.5)
+            self.encoder = TimeDepthSeparableConvBlock(hidden_channels,
+                                                       hidden_channels,
+                                                       hidden_channels,
+                                                       kernel_size=5,
+                                                       num_layers=3 + num_layers)
+
         # final projection layers
         self.proj_m = nn.Conv1d(hidden_channels, out_channels, 1)
         if not mean_only:
@@ -146,7 +123,7 @@ class Encoder(nn.Module):
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)),
                                  1).to(x.dtype)
         # pre-conv layers
-        if self.encoder_type == 'transformer':
+        if self.encoder_type in ['transformer', 'time-depth-separable']:
             if self.use_prenet:
                 x = self.pre(x, x_mask)
         # encoder
