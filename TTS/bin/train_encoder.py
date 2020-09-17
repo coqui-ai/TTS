@@ -44,6 +44,8 @@ def setup_loader(ap, is_val=False, verbose=False):
                             voice_len=1.6,
                             num_utter_per_speaker=10,
                             skip_speakers=False,
+                            storage_size=c.storage["storage_size"],
+                            sample_from_storage_p=c.storage["sample_from_storage_p"],
                             verbose=verbose)
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(dataset,
@@ -60,6 +62,7 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
     epoch_time = 0
     best_loss = float('inf')
     avg_loss = 0
+    avg_loader_time = 0
     end_time = time.time()
     for _, data in enumerate(data_loader):
         start_time = time.time()
@@ -93,8 +96,12 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
         step_time = time.time() - start_time
         epoch_time += step_time
 
-        avg_loss = 0.01 * loss.item(
-        ) + 0.99 * avg_loss if avg_loss != 0 else loss.item()
+        # Averaged Loss and Averaged Loader Time
+        dataset_number_prefetched = 2 * c.num_loader_workers  # this is hardcoded in pytorch
+        avg_loss = 0.01 * loss.item() \
+                   + 0.99 * avg_loss if avg_loss != 0 else loss.item()
+        avg_loader_time = 1/dataset_number_prefetched * loader_time\
+                          + (dataset_number_prefetched-1) / dataset_number_prefetched * avg_loader_time if avg_loader_time != 0 else loader_time
         current_lr = optimizer.param_groups[0]['lr']
 
         if global_step % c.steps_plot_stats == 0:
@@ -103,7 +110,8 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
                 "loss": avg_loss,
                 "lr": current_lr,
                 "grad_norm": grad_norm,
-                "step_time": step_time
+                "step_time": step_time,
+                "loader_time": loader_time
             }
             tb_logger.tb_train_epoch_stats(global_step, train_stats)
             figures = {
@@ -116,9 +124,9 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
         if global_step % c.print_step == 0:
             print(
                 "   | > Step:{}  Loss:{:.5f}  AvgLoss:{:.5f}  GradNorm:{:.5f}  "
-                "StepTime:{:.2f}  LoaderTime:{:.2f}  LR:{:.6f}".format(
+                "StepTime:{:.2f}  LoaderTime:{:.2f}  AvGLoaderTime:{:.2f}  LR:{:.6f}".format(
                     global_step, loss.item(), avg_loss, grad_norm, step_time,
-                    loader_time, current_lr),
+                    loader_time, avg_loader_time, current_lr),
                 flush=True)
 
         # save best model

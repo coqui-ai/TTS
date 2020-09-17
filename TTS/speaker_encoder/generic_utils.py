@@ -23,7 +23,7 @@ def save_checkpoint(model, optimizer, model_loss, out_path,
 
 def save_best_model(model, optimizer, model_loss, best_loss, out_path,
                     current_step):
-    if model_loss < best_loss:
+    if model_loss < best_loss and current_step > 1000:
         new_state_dict = model.state_dict()
         state = {
             'model': new_state_dict,
@@ -35,7 +35,7 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
         best_loss = model_loss
         bestmodel_path = 'best_model.pth.tar'
         bestmodel_path = os.path.join(out_path, bestmodel_path)
-        print("\n > BEST MODEL ({0:.5f}) : {1:}".format(
-            model_loss, bestmodel_path))
+        print("\n > NEW BEST MODEL ({0:.5f}) : {1:}".format(
+            model_loss, os.path.abspath(bestmodel_path)))
         torch.save(state, bestmodel_path)
     return best_loss

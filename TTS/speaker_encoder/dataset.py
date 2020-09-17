@@ -1,4 +1,5 @@
 import numpy as np
+import queue
 import torch
 import random
 from torch.utils.data import Dataset
@@ -7,6 +8,7 @@ from tqdm import tqdm
 
 class MyDataset(Dataset):
     def __init__(self, ap, meta_data, voice_len=1.6, num_speakers_in_batch=64,
+                 storage_size=1, sample_from_storage_p=0.5,
                  num_utter_per_speaker=10, skip_speakers=False, verbose=False):
         """
         Args:
@@ -25,8 +27,12 @@ class MyDataset(Dataset):
         self.ap = ap
         self.verbose = verbose
         self.__parse_items()
+        self.storage = queue.Queue(maxsize=storage_size*num_speakers_in_batch)
+        self.sample_from_storage_p = float(sample_from_storage_p)
         if self.verbose:
             print("\n > DataLoader initialization")
+            print(f" | > Storage Size: {self.storage.maxsize} speakers, each with {num_utter_per_speaker} utters")
+            print(f" | > Sample_from_storage_p : {self.sample_from_storage_p}")
             print(f" | > Number of instances : {len(self.items)}")
             print(f" | > Sequence length: {self.seq_len}")
             print(f" | > Num speakers: {len(self.speakers)}")
@@ -134,7 +140,17 @@ class MyDataset(Dataset):
         labels = []
         feats = []
         for speaker in batch:
-            feats_, labels_ = self.__sample_speaker_utterances(speaker)
+            if random.random() < self.sample_from_storage_p and self.storage.full():
+                # sample from storage (if full), ignoring the speaker
+                feats_, labels_ = random.choice(self.storage.queue)
+            else:
+                # don't sample from storage, but from HDD
+                feats_, labels_ = self.__sample_speaker_utterances(speaker)
+                # if storage is full, remove an item
+                if self.storage.full():
+                    _ = self.storage.get_nowait()
+                # put the newly loaded item into storage
+                self.storage.put_nowait((feats_, labels_))
             labels.append(labels_)
             feats.extend(feats_)
         feats = torch.stack(feats)
