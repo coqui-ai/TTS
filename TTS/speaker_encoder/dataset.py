@@ -110,7 +110,7 @@ class MyDataset(Dataset):
         """
         Sample all M utterances for the given speaker.
         """
-        feats = []
+        wavs = []
         labels = []
         for _ in range(self.num_utter_per_speaker):
             # TODO:dummy but works
@@ -126,11 +126,9 @@ class MyDataset(Dataset):
                     break
                 self.speaker_to_utters[speaker].remove(utter)
 
-            offset = random.randint(0, wav.shape[0] - self.seq_len)
-            mel = self.ap.melspectrogram(wav[offset : offset + self.seq_len])
-            feats.append(torch.FloatTensor(mel))
+            wavs.append(wav)
             labels.append(speaker)
-        return feats, labels
+        return wavs, labels
 
     def __getitem__(self, idx):
         speaker, _ = self.__sample_speaker()
@@ -142,15 +140,21 @@ class MyDataset(Dataset):
         for speaker in batch:
             if random.random() < self.sample_from_storage_p and self.storage.full():
                 # sample from storage (if full), ignoring the speaker
-                feats_, labels_ = random.choice(self.storage.queue)
+                wavs_, labels_ = random.choice(self.storage.queue)
             else:
                 # don't sample from storage, but from HDD
-                feats_, labels_ = self.__sample_speaker_utterances(speaker)
+                wavs_, labels_ = self.__sample_speaker_utterances(speaker)
                 # if storage is full, remove an item
                 if self.storage.full():
                     _ = self.storage.get_nowait()
                 # put the newly loaded item into storage
-                self.storage.put_nowait((feats_, labels_))
+                self.storage.put_nowait((wavs_, labels_))
+
+            # get a random subset of each of the wavs and convert to MFCC.
+            offsets_ = [random.randint(0, wav.shape[0] - self.seq_len) for wav in wavs_]
+            mels_ = [self.ap.melspectrogram(wavs_[i][offsets_[i]: offsets_[i] + self.seq_len]) for i in range(len(wavs_))]
+            feats_ = [torch.FloatTensor(mel) for mel in mels_]
+
             labels.append(labels_)
             feats.extend(feats_)
         feats = torch.stack(feats)
