@@ -46,6 +46,7 @@ def setup_loader(ap, is_val=False, verbose=False):
                             skip_speakers=False,
                             storage_size=c.storage["storage_size"],
                             sample_from_storage_p=c.storage["sample_from_storage_p"],
+                            additive_noise=c.storage["additive_noise"],
                             verbose=verbose)
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(dataset,

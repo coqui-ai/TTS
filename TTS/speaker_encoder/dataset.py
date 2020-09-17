@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 import queue
 import torch
@@ -8,7 +9,7 @@ from tqdm import tqdm
 
 class MyDataset(Dataset):
     def __init__(self, ap, meta_data, voice_len=1.6, num_speakers_in_batch=64,
-                 storage_size=1, sample_from_storage_p=0.5,
+                 storage_size=1, sample_from_storage_p=0.5, additive_noise=0,
                  num_utter_per_speaker=10, skip_speakers=False, verbose=False):
         """
         Args:
@@ -29,6 +30,7 @@ class MyDataset(Dataset):
         self.__parse_items()
         self.storage = queue.Queue(maxsize=storage_size*num_speakers_in_batch)
         self.sample_from_storage_p = float(sample_from_storage_p)
+        self.additive_noise = float(additive_noise)
         if self.verbose:
             print("\n > DataLoader initialization")
             print(f" | > Storage Size: {self.storage.maxsize} speakers, each with {num_utter_per_speaker} utters")
@@ -149,6 +151,11 @@ class MyDataset(Dataset):
                     _ = self.storage.get_nowait()
                 # put the newly loaded item into storage
                 self.storage.put_nowait((wavs_, labels_))
+
+            # add random gaussian noise
+            if self.additive_noise > 0:
+                noises_ = [numpy.random.normal(0, self.additive_noise, size=len(w)) for w in wavs_]
+                wavs_ = [wavs_[i] + noises_[i] for i in range(len(wavs_))]
 
             # get a random subset of each of the wavs and convert to MFCC.
             offsets_ = [random.randint(0, wav.shape[0] - self.seq_len) for wav in wavs_]
