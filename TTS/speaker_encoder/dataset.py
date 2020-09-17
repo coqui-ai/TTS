@@ -33,8 +33,10 @@ class MyDataset(Dataset):
         self.additive_noise = float(additive_noise)
         if self.verbose:
             print("\n > DataLoader initialization")
+            print(f" | > Speakers per Batch: {num_speakers_in_batch}")
             print(f" | > Storage Size: {self.storage.maxsize} speakers, each with {num_utter_per_speaker} utters")
             print(f" | > Sample_from_storage_p : {self.sample_from_storage_p}")
+            print(f" | > Noise added : {self.additive_noise}")
             print(f" | > Number of instances : {len(self.items)}")
             print(f" | > Sequence length: {self.seq_len}")
             print(f" | > Num speakers: {len(self.speakers)}")

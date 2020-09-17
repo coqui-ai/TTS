@@ -42,7 +42,8 @@ def setup_loader(ap, is_val=False, verbose=False):
         dataset = MyDataset(ap,
                             meta_data_eval if is_val else meta_data_train,
                             voice_len=1.6,
-                            num_utter_per_speaker=10,
+                            num_utter_per_speaker=c.num_utters_per_speaker,
+                            num_speakers_in_batch=c.num_speakers_in_batch,
                             skip_speakers=False,
                             storage_size=c.storage["storage_size"],
                             sample_from_storage_p=c.storage["sample_from_storage_p"],
@@ -98,11 +99,10 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
         epoch_time += step_time
 
         # Averaged Loss and Averaged Loader Time
-        dataset_number_prefetched = 2 * c.num_loader_workers  # this is hardcoded in pytorch
         avg_loss = 0.01 * loss.item() \
                    + 0.99 * avg_loss if avg_loss != 0 else loss.item()
-        avg_loader_time = 1/dataset_number_prefetched * loader_time\
-                          + (dataset_number_prefetched-1) / dataset_number_prefetched * avg_loader_time if avg_loader_time != 0 else loader_time
+        avg_loader_time = 1/c.num_loader_workers * loader_time + \
+                          (c.num_loader_workers-1) / c.num_loader_workers * avg_loader_time if avg_loader_time != 0 else loader_time
         current_lr = optimizer.param_groups[0]['lr']
 
         if global_step % c.steps_plot_stats == 0:
