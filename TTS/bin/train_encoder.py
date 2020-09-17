@@ -111,7 +111,7 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
                 "lr": current_lr,
                 "grad_norm": grad_norm,
                 "step_time": step_time,
-                "loader_time": loader_time
+                "avg_loader_time": avg_loader_time
             }
             tb_logger.tb_train_epoch_stats(global_step, train_stats)
             figures = {
