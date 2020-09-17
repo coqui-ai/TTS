@@ -251,13 +251,19 @@ class GlowTTSLoss(torch.nn.Module):
         super(GlowTTSLoss, self).__init__()
         self.constant_factor = 0.5 * math.log(2 * math.pi)
 
-    def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths):
+    def forward(self, z, means, scales, log_det, y_lengths, o_dur_log,
+                o_attn_dur, x_lengths):
         return_dict = {}
-        # flow loss
-        pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means)**2)
-        log_mle = self.constant_factor +  (pz - torch.sum(log_det)) / (torch.sum(y_lengths // 2) * 2 * 80)
-        # duration loss
-        loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+        # flow loss - neg log likelihood
+        pz = torch.sum(scales) + 0.5 * torch.sum(
+            torch.exp(-2 * scales) * (z - means)**2)
+        log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (
+            torch.sum(y_lengths // 2) * 2 * z.shape[1])
+        # duration loss - MSE
+        # loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+        # duration loss - huber loss
+        loss_dur = torch.nn.functional.smooth_l1_loss(
+            o_dur_log, o_attn_dur, reduction='sum') / torch.sum(x_lengths)
         return_dict['loss'] = log_mle + loss_dur
         return_dict['log_mle'] = log_mle
         return_dict['loss_dur'] = loss_dur

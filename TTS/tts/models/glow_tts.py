@@ -79,6 +79,7 @@ class GlowTts(nn.Module):
                                 kernel_size=kernel_size,
                                 dropout_p=dropout_p,
                                 mean_only=mean_only,
+                                use_prenet=use_encoder_prenet,
                                 c_in_channels=c_in_channels)
 
 
