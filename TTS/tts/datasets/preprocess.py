@@ -17,10 +17,10 @@ def load_meta_data(datasets):
         root_path = dataset['path']
         meta_file_train = dataset['meta_file_train']
         meta_file_val = dataset['meta_file_val']
+        print(f" | > Preprocessing {name}")
         preprocessor = get_preprocessor_by_name(name)
-
         meta_data_train = preprocessor(root_path, meta_file_train)
-        print(f"Found {len(meta_data_train)} files in {Path(root_path).absolute()}")
+        print(f"  | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         if meta_file_val is None:
             meta_data_eval, meta_data_train = split_dataset(meta_data_train)
         else:
@@ -254,6 +254,25 @@ def vctk(root_path, meta_files=None, wavs_path='wav48'):
         wav_file = os.path.join(root_path, wavs_path, speaker_id,
                                 file_id + '.wav')
         items.append([text, wav_file, 'VCTK_' + speaker_id])
+
+    return items
+
+
+def vctk_slim(root_path, meta_files=None, wavs_path='wav48'):
+    test_speakers = meta_files
+    """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
+    items = []
+    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
+    for meta_file in meta_files:
+        _, speaker_id, txt_file = os.path.relpath(meta_file,
+                                                  root_path).split(os.sep)
+        file_id = txt_file.split('.')[0]
+        if isinstance(test_speakers, list):  # if is list ignore this speakers ids
+            if speaker_id in test_speakers:
+                continue
+        wav_file = os.path.join(root_path, wavs_path, speaker_id,
+                                file_id + '.wav')
+        items.append([None, wav_file, 'VCTK_' + speaker_id])
 
     return items
 

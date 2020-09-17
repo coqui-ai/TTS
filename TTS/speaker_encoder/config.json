@@ -23,7 +23,7 @@
         "clip_norm": true,      // clip normalized values into the range.
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
-        "do_trim_silence": false,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": true,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60          // threshold for timming silence. Set this according to your dataset.
     },
     "reinit_layers": [],
@@ -45,53 +45,57 @@
     "model": {
         "input_dim": 40,
         "proj_dim": 256,
-        "lstm_dim": 256,
+        "lstm_dim": 768,
         "num_lstm_layers": 3,
-        "use_lstm_with_projection": false
+        "use_lstm_with_projection": true
+    },
+    "storage": {
+        "sample_from_storage_p": 0.42,  // the probability with which we'll sample from the DataSet in-memory storage
+        "storage_size": 5   // the size of the in-memory storage with respect to a single batch
     },
     "datasets": 
         [
             {
-                "name": "common_voice_wav",
-                "path": "../../audio-datasets/en/MozillaCommonVoice",
-                "meta_file_train": "train.tsv",
-                "meta_file_val": "test.tsv"
-            },
-            {
-                "name": "voxceleb1",
-                "path": "../../audio-datasets/en/voxceleb1/",
-                "meta_file_train": null,
-                "meta_file_val": null
-            },
-            {
-                "name": "voxceleb2",
-                "path": "../../audio-datasets/en/voxceleb2/",
-                "meta_file_train": null,
-                "meta_file_val": null
-            },
-            {
-                "name": "vctk",
+                "name": "vctk_slim",
                 "path": "../../audio-datasets/en/VCTK-Corpus/",
                 "meta_file_train": null,
                 "meta_file_val": null
-            },
-            {
-                "name": "libri_tts",
-                "path": "../../audio-datasets/en/LibriTTS/train-clean-100",
-                "meta_file_train": null,
-                "meta_file_val": null
-            },
-            {
-                "name": "libri_tts",
-                "path": "../../audio-datasets/en/LibriTTS/train-clean-360",
-                "meta_file_train": null,
-                "meta_file_val": null
-            },
-            {
-                "name": "libri_tts",
-                "path": "../../audio-datasets/en/LibriTTS/train-other-500",
-                "meta_file_train": null,
-                "meta_file_val": null
             }
+//            {
+//                "name": "libri_tts",
+//                "path": "../../audio-datasets/en/LibriTTS/train-clean-100",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "libri_tts",
+//                "path": "../../audio-datasets/en/LibriTTS/train-clean-360",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "libri_tts",
+//                "path": "../../audio-datasets/en/LibriTTS/train-other-500",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "voxceleb1",
+//                "path": "../../audio-datasets/en/voxceleb1/",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "voxceleb2",
+//                "path": "../../audio-datasets/en/voxceleb2/",
+//                "meta_file_train": null,
+//                "meta_file_val": null
+//            },
+//            {
+//                "name": "common_voice_wav",
+//                "path": "../../audio-datasets/en/MozillaCommonVoice",
+//                "meta_file_train": "train.tsv",
+//                "meta_file_val": "test.tsv"
+//            }
         ]
 }
