@@ -174,8 +174,9 @@ class AudioProcessor(object):
         for key in stats_config.keys():
             if key in skip_parameters:
                 continue
-            assert stats_config[key] == self.__dict__[key],\
-                f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
+            if key != 'sample_rate':
+                assert stats_config[key] == self.__dict__[key],\
+                    f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
         return mel_mean, mel_std, linear_mean, linear_std, stats_config
 
     # pylint: disable=attribute-defined-outside-init
@@ -322,6 +323,7 @@ class AudioProcessor(object):
     def load_wav(self, filename, sr=None):
         if sr is None:
             x, sr = sf.read(filename)
+            assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
         else:
             x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
@@ -329,7 +331,6 @@ class AudioProcessor(object):
                 x = self.trim_silence(x)
             except ValueError:
                 print(f' [!] File cannot be trimmed for silence - {filename}')
-        assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
         if self.do_sound_norm:
             x = self.sound_norm(x)
         return x
