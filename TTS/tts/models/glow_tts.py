@@ -69,19 +69,18 @@ class GlowTts(nn.Module):
         self.length_scale=1.
 
         self.encoder = Encoder(num_chars,
-                                out_channels=out_channels,
-                                hidden_channels=hidden_channels,
-                                filter_channels=filter_channels,
-                                filter_channels_dp=filter_channels_dp,
-                                encoder_type=encoder_type,
-                                num_heads=num_heads,
-                                num_layers=num_layers_enc,
-                                kernel_size=kernel_size,
-                                dropout_p=dropout_p,
-                                mean_only=mean_only,
-                                use_prenet=use_encoder_prenet,
-                                c_in_channels=c_in_channels)
-
+                               out_channels=out_channels,
+                               hidden_channels=hidden_channels,
+                               filter_channels=filter_channels,
+                               filter_channels_dp=filter_channels_dp,
+                               encoder_type=encoder_type,
+                               num_heads=num_heads,
+                               num_layers=num_layers_enc,
+                               kernel_size=kernel_size,
+                               dropout_p=dropout_p,
+                               mean_only=mean_only,
+                               use_prenet=use_encoder_prenet,
+                               c_in_channels=c_in_channels)
 
         self.decoder = Decoder(out_channels,
                                hidden_channels_dec or hidden_channels,
