@@ -10,37 +10,32 @@ import traceback
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
-
+from torch.utils.data import DataLoader
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import GlowTTSLoss
-from TTS.utils.console_logger import ConsoleLogger
-from TTS.tts.utils.distribute import (DistributedSampler,
-                                                    init_distributed,
-                                                    reduce_tensor)
+from TTS.tts.utils.distribute import (DistributedSampler, init_distributed,
+                                      reduce_tensor)
 from TTS.tts.utils.generic_utils import check_config, setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
-from TTS.tts.utils.speakers import (get_speakers,
-                                                  load_speaker_mapping,
-                                                  save_speaker_mapping)
+from TTS.tts.utils.speakers import (get_speakers, load_speaker_mapping,
+                                    save_speaker_mapping)
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import (
-    KeepAverage, count_parameters, create_experiment_folder, get_git_branch,
-    remove_experiment_folder, set_init_dict)
+from TTS.utils.console_logger import ConsoleLogger
+from TTS.utils.generic_utils import (KeepAverage, count_parameters,
+                                     create_experiment_folder, get_git_branch,
+                                     remove_experiment_folder, set_init_dict)
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
-from TTS.utils.training import (NoamLR, adam_weight_decay,
-                                              check_update,
-                                              gradual_training_scheduler,
-                                              set_weight_decay,
-                                              setup_torch_training_env)
+from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
+                                gradual_training_scheduler, set_weight_decay,
+                                setup_torch_training_env)
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
@@ -116,7 +111,7 @@ def format_data(data):
 
 
 def data_depended_init(model, ap):
-    """Data depended initialization for normalization layers."""
+    """Data depended initialization for activation normalization."""
     if hasattr(model, 'module'):
         for f in model.module.decoder.flows:
             if getattr(f, "set_ddi", False):
