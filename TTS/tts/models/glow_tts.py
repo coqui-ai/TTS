@@ -112,10 +112,11 @@ class GlowTts(nn.Module):
 
     def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None):
         """
-            x: B x T
-            x_lenghts: B
-            y: B x D x T
-            y_lengths: B
+            Shapes:
+                x: B x T
+                x_lenghts: B
+                y: B x C x T
+                y_lengths: B
         """
         y_max_length = y.size(2)
         # norm speaker embeddings
