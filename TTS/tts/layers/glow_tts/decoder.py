@@ -3,7 +3,8 @@ from torch import nn
 from torch.nn import functional as F
 
 from TTS.tts.utils.generic_utils import sequence_mask
-from TTS.tts.layers.glow_tts.glow import InvConvNear, CouplingBlock, ActNorm
+from TTS.tts.layers.glow_tts.glow import InvConvNear, CouplingBlock
+from TTS.tts.layers.glow_tts.normalization import ActNorm
 
 
 def squeeze(x, x_mask=None, num_sqz=2):
