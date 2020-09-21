@@ -50,7 +50,7 @@ def save_best_model(target_loss, best_loss, model, optimizer, current_step, epoc
     if target_loss < best_loss:
         file_name = 'best_model.pth.tar'
         checkpoint_path = os.path.join(output_folder, file_name)
-        print(" > BEST MODEL : {}".format(checkpoint_path))
+        print(" >> BEST MODEL : {}".format(checkpoint_path))
         save_model(model, optimizer, current_step, epoch, r, checkpoint_path, model_loss=target_loss, **kwargs)
         best_loss = target_loss
     return best_loss

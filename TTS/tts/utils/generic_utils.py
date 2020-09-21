@@ -7,11 +7,9 @@ from TTS.utils.generic_utils import check_argument
 
 
 def split_dataset(items):
-    is_multi_speaker = False
     speakers = [item[-1] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
-    eval_split_size = 500 if len(items) * 0.01 > 500 else int(
-        len(items) * 0.01)
+    eval_split_size = min(500, int(len(items) * 0.01))
     assert eval_split_size > 0, " [!] You do not have enough samples to train. You need at least 100 samples."
     np.random.seed(0)
     np.random.shuffle(items)
@@ -141,6 +139,11 @@ def check_config(c):
     check_argument('spec_gain', c['audio'], restricted=True, val_type=[int, float], min_val=1, max_val=100)
     check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
     check_argument('trim_db', c['audio'], restricted=True, val_type=int)
+
+    # storage parameters
+    check_argument('sample_from_storage_p', c['storage'], restricted=True, val_type=float, min_val=0.0, max_val=1.0)
+    check_argument('storage_size', c['storage'], restricted=True, val_type=int, min_val=1, max_val=100)
+    check_argument('additive_noise', c['storage'], restricted=True, val_type=float, min_val=0.0, max_val=1.0)
 
     # training parameters
     check_argument('batch_size', c, restricted=True, val_type=int, min_val=1)

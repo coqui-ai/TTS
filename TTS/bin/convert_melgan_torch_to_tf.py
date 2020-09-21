@@ -1,10 +1,10 @@
 import argparse
+from difflib import SequenceMatcher
 import os
 
 import numpy as np
 import tensorflow as tf
 import torch
-from fuzzywuzzy import fuzz
 
 from TTS.utils.io import load_config
 from TTS.vocoder.tf.utils.convert_torch_to_tf_utils import (
@@ -67,7 +67,7 @@ for tf_name in tf_var_names:
         continue
     tf_name_edited = convert_tf_name(tf_name)
     ratios = [
-        fuzz.ratio(torch_name, tf_name_edited)
+        SequenceMatcher(None, torch_name, tf_name_edited).ratio()
         for torch_name in torch_var_names
     ]
     max_idx = np.argmax(ratios)
