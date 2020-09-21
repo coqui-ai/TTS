@@ -64,7 +64,6 @@ class MyDataset(Dataset):
     def __parse_items(self):
         self.speaker_to_utters = {}
         for i in self.items:
-            text_ = i[0]
             path_ = i[1]
             speaker_ = i[2]
             if speaker_ in self.speaker_to_utters.keys():

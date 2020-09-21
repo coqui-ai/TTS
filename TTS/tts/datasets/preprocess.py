@@ -160,7 +160,7 @@ def nancy(root_path, meta_file):
     return items
 
 
-def common_voice_wav(root_path, meta_file):
+def common_voice(root_path, meta_file):
     """Normalize the common voice meta data file to TTS format."""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -258,16 +258,15 @@ def vctk(root_path, meta_files=None, wavs_path='wav48'):
 
 
 def vctk_slim(root_path, meta_files=None, wavs_path='wav48'):
-    test_speakers = meta_files
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
-    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
-    for meta_file in meta_files:
-        _, speaker_id, txt_file = os.path.relpath(meta_file,
+    txt_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
+    for text_file in txt_files:
+        _, speaker_id, txt_file = os.path.relpath(text_file,
                                                   root_path).split(os.sep)
         file_id = txt_file.split('.')[0]
-        if isinstance(test_speakers, list):  # if is list ignore this speakers ids
-            if speaker_id in test_speakers:
+        if isinstance(meta_files, list):  # if is list ignore this speakers ids
+            if speaker_id in meta_files:
                 continue
         wav_file = os.path.join(root_path, wavs_path, speaker_id,
                                 file_id + '.wav')
@@ -276,21 +275,21 @@ def vctk_slim(root_path, meta_files=None, wavs_path='wav48'):
     return items
 
 # ======================================== VOX CELEB ===========================================
-def voxceleb2(root_path, meta_file):
+def voxceleb2(root_path, meta_file=None):
     """
     :param meta_file   Used only for consistency with load_meta_data api
     """
-    return _voxcel_x(root_path, voxcel_idx="2")
+    return _voxcel_x(root_path, meta_file, voxcel_idx="2")
 
 
-def voxceleb1(root_path, meta_file):
+def voxceleb1(root_path, meta_file=None):
     """
     :param meta_file   Used only for consistency with load_meta_data api
     """
-    return _voxcel_x(root_path, voxcel_idx="1")
+    return _voxcel_x(root_path, meta_file, voxcel_idx="1")
 
 
-def _voxcel_x(root_path, voxcel_idx):
+def _voxcel_x(root_path, meta_file, voxcel_idx):
     assert voxcel_idx in ["1", "2"]
     expected_count = 148_000 if voxcel_idx == "1" else 1_000_000
     voxceleb_path = Path(root_path)
@@ -298,7 +297,11 @@ def _voxcel_x(root_path, voxcel_idx):
     cache_to.parent.mkdir(exist_ok=True)
 
     # if not exists meta file, crawl recursively for 'wav' files
-    if not cache_to.exists():
+    if meta_file is not None:
+        with open(str(meta_file), 'r') as f:
+            return [x.strip().split('|') for x in f.readlines()]
+
+    elif not cache_to.exists():
         cnt = 0
         meta_data = ""
         wav_files = voxceleb_path.rglob("**/*.wav")
@@ -316,5 +319,3 @@ def _voxcel_x(root_path, voxcel_idx):
 
     with open(str(cache_to), 'r') as f:
         return [x.strip().split('|') for x in f.readlines()]
-
-
