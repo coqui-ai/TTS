@@ -67,6 +67,15 @@ def setup_generator(c):
             upsample_factors=c.generator_model_params['upsample_factors'],
             res_kernel=3,
             num_res_blocks=c.generator_model_params['num_res_blocks'])
+    if c.generator_model in 'fullband_melgan_generator':
+        model = MyModel(
+            in_channels=c.audio['num_mels'],
+            out_channels=1,
+            proj_kernel=7,
+            base_channels=512,
+            upsample_factors=c.generator_model_params['upsample_factors'],
+            res_kernel=3,
+            num_res_blocks=c.generator_model_params['num_res_blocks'])
     if c.generator_model in 'parallel_wavegan_generator':
         model = MyModel(
             in_channels=1,
