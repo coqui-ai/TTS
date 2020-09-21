@@ -5,10 +5,20 @@ import os
 import shutil
 import subprocess
 import sys
+import numpy
 
 from setuptools import setup, find_packages
 import setuptools.command.develop
 import setuptools.command.build_py
+
+# handle import if cython is not already installed.
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    # create closure for deferred import
+    def cythonize (*args, ** kwargs ):
+        from Cython.Build import cythonize
+        return cythonize(*args, ** kwargs)
 
 
 parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
@@ -34,6 +44,16 @@ else:
         pass
     except IOError:  # FileNotFoundError for python 3
         pass
+
+
+# Handle Cython code
+def find_pyx(path='.'):
+    pyx_files = []
+    for root, dirs, filenames in os.walk(path):
+        for fname in filenames:
+            if fname.endswith('.pyx'):
+                pyx_files.append(os.path.join(root, fname))
+    return pyx_files
 
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
@@ -99,6 +119,8 @@ setup(
             'tts-server = TTS.server.server:main'
         ]
     },
+    include_dirs=[numpy.get_include()],
+    ext_modules=cythonize(find_pyx(), language_level=3),
     packages=find_packages(include=['TTS*']),
     project_urls={
         'Documentation': 'https://github.com/mozilla/TTS/wiki',

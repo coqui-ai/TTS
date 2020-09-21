@@ -1,3 +1,4 @@
+import re
 import torch
 import importlib
 import numpy as np
@@ -31,21 +32,22 @@ def split_dataset(items):
 def sequence_mask(sequence_length, max_len=None):
     if max_len is None:
         max_len = sequence_length.data.max()
-    batch_size = sequence_length.size(0)
-    seq_range = torch.arange(0, max_len).long()
-    seq_range_expand = seq_range.unsqueeze(0).expand(batch_size, max_len)
-    if sequence_length.is_cuda:
-        seq_range_expand = seq_range_expand.to(sequence_length.device)
-    seq_length_expand = (
-        sequence_length.unsqueeze(1).expand_as(seq_range_expand))
+    seq_range = torch.arange(max_len,
+                             dtype=sequence_length.dtype,
+                             device=sequence_length.device)
     # B x T_max
-    return seq_range_expand < seq_length_expand
+    return seq_range.unsqueeze(0) < sequence_length.unsqueeze(1)
+
+
+def to_camel(text):
+    text = text.capitalize()
+    return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
 
 def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
-    MyModel = getattr(MyModel, c.model)
+    MyModel = getattr(MyModel, to_camel(c.model))
     if c.model.lower() in "tacotron":
         model = MyModel(num_chars=num_chars,
                         num_speakers=num_speakers,
@@ -97,6 +99,31 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         double_decoder_consistency=c.double_decoder_consistency,
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
+    elif c.model.lower() == "glow_tts":
+        model = MyModel(num_chars=num_chars,
+                        hidden_channels=192,
+                        filter_channels=768,
+                        filter_channels_dp=256,
+                        out_channels=80,
+                        kernel_size=3,
+                        num_heads=2,
+                        num_layers_enc=6,
+                        encoder_type=c.encoder_type,
+                        dropout_p=0.1,
+                        num_flow_blocks_dec=12,
+                        kernel_size_dec=5,
+                        dilation_rate=1,
+                        num_block_layers=4,
+                        dropout_p_dec=0.05,
+                        num_speakers=num_speakers,
+                        c_in_channels=0,
+                        num_splits=4,
+                        num_sqz=2,
+                        sigmoid_scale=False,
+                        mean_only=True,
+                        hidden_channels_enc=192,
+                        hidden_channels_dec=192,
+                        use_encoder_prenet=True)
     return model
 
 
