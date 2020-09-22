@@ -48,7 +48,6 @@ class ResidualStack(tf.keras.layers.Layer):
         ]
 
     def call(self, x):
-        # breakpoint()
         for block, shortcut in zip(self.blocks, self.shortcuts):
             res = shortcut(x)
             for layer in block:
