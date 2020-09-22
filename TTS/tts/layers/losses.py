@@ -131,6 +131,20 @@ class BCELossMasked(nn.Module):
         return loss
 
 
+class DifferentailSpectralLoss(nn.Module):
+    """Differential Spectral Loss
+        https://arxiv.org/ftp/arxiv/papers/1909/1909.10302.pdf"""
+
+    def __init__(self, loss_func):
+        super().__init__()
+        self.loss_func = loss_func
+
+    def forward(self, x, target, length):
+        x_diff = x[:, 1:] - x[:, :-1]
+        target_diff = target[:, 1:] - target[:, :-1]
+        return self.loss_func(x_diff, target_diff, length-1)
+
+
 class GuidedAttentionLoss(torch.nn.Module):
     def __init__(self, sigma=0.4):
         super(GuidedAttentionLoss, self).__init__()
@@ -172,8 +186,12 @@ class TacotronLoss(torch.nn.Module):
         super(TacotronLoss, self).__init__()
         self.stopnet_pos_weight = stopnet_pos_weight
         self.ga_alpha = c.ga_alpha
+        self.diff_spec_alpha = c.diff_spec_alpha
+        self.decoder_alpha = c.decoder_loss_alpha
+        self.postnet_alpha = c.postnet_loss_alpha
         self.config = c
-        # postnet decoder loss
+
+        # postnet and decoder loss
         if c.loss_masking:
             self.criterion = L1LossMasked(c.seq_len_norm) if c.model in [
                 "Tacotron"
@@ -181,6 +199,9 @@ class TacotronLoss(torch.nn.Module):
         else:
             self.criterion = nn.L1Loss() if c.model in ["Tacotron"
                                                         ] else nn.MSELoss()
+        # differential spectral loss
+        if c.diff_spec_loss_alpha > 0:
+            self.criterion_diff_spec = DifferentailSpectralLoss(loss_func=self.criterion)
         # guided attention loss
         if c.ga_alpha > 0:
             self.criterion_ga = GuidedAttentionLoss(sigma=ga_sigma)
@@ -196,21 +217,25 @@ class TacotronLoss(torch.nn.Module):
         return_dict = {}
         # decoder and postnet losses
         if self.config.loss_masking:
-            decoder_loss = self.criterion(decoder_output, mel_input,
-                                          output_lens)
-            if self.config.model in ["Tacotron", "TacotronGST"]:
-                postnet_loss = self.criterion(postnet_output, linear_input,
+            if self.decoder_alpha > 0:
+                decoder_loss = self.criterion(decoder_output, mel_input,
                                               output_lens)
-            else:
-                postnet_loss = self.criterion(postnet_output, mel_input,
-                                              output_lens)
+            if postnet_alpha > 0:
+                if self.config.model in ["Tacotron", "TacotronGST"]:
+                    postnet_loss = self.criterion(postnet_output, linear_input,
+                                                output_lens)
+                else:
+                    postnet_loss = self.criterion(postnet_output, mel_input,
+                                                output_lens)
         else:
-            decoder_loss = self.criterion(decoder_output, mel_input)
-            if self.config.model in ["Tacotron", "TacotronGST"]:
-                postnet_loss = self.criterion(postnet_output, linear_input)
-            else:
-                postnet_loss = self.criterion(postnet_output, mel_input)
-        loss = decoder_loss + postnet_loss
+            if self.decoder_alpha > 0:
+                decoder_loss = self.criterion(decoder_output, mel_input)
+            if self.postnet_alpha > 0:
+                if self.config.model in ["Tacotron", "TacotronGST"]:
+                    postnet_loss = self.criterion(postnet_output, linear_input)
+                else:
+                    postnet_loss = self.criterion(postnet_output, mel_input)
+        loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
         return_dict['decoder_loss'] = decoder_loss
         return_dict['postnet_loss'] = postnet_loss
 
@@ -254,6 +279,11 @@ class TacotronLoss(torch.nn.Module):
             loss += ga_loss * self.ga_alpha
             return_dict['ga_loss'] = ga_loss * self.ga_alpha
 
+        # differential spectral loss
+        if self.config.diff_spec_loss_alpha > 0:
+            diff_spec_loss = self.criterion_diff_spec(postnet_output, mel_input, output_lens)
+            loss += diff_spec_loss * self.diff_spec_alpha
+            return_dict['diff_spec_loss'] = diff_spec_loss
         return_dict['loss'] = loss
         return return_dict
 
