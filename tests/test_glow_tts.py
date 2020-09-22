@@ -4,7 +4,7 @@ import unittest
 
 import torch
 from tests import get_tests_input_path
-from torch import nn, optim
+from torch import optim
 
 from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.models.glow_tts import GlowTts
@@ -42,64 +42,60 @@ class GlowTTSTrainTest(unittest.TestCase):
         criterion = criterion = GlowTTSLoss()
 
         # model to train
-        model = GlowTts(
-                num_chars=32,
-                hidden_channels=128,
-                filter_channels=32,
-                filter_channels_dp=32,
-                out_channels=80,
-                kernel_size=3,
-                num_heads=2,
-                num_layers_enc=6,
-                dropout_p=0.1,
-                num_flow_blocks_dec=12,
-                kernel_size_dec=5,
-                dilation_rate=5,
-                num_block_layers=4,
-                dropout_p_dec=0.,
-                num_speakers=0,
-                c_in_channels=0,
-                num_splits=4,
-                num_sqz=1,
-                sigmoid_scale=False,
-                rel_attn_window_size=None,
-                input_length=None,
-                mean_only=False,
-                hidden_channels_enc=None,
-                hidden_channels_dec=None,
-                use_encoder_prenet=False,
-                encoder_type="transformer"
-        ).to(device)
+        model = GlowTts(num_chars=32,
+                        hidden_channels=128,
+                        filter_channels=32,
+                        filter_channels_dp=32,
+                        out_channels=80,
+                        kernel_size=3,
+                        num_heads=2,
+                        num_layers_enc=6,
+                        dropout_p=0.1,
+                        num_flow_blocks_dec=12,
+                        kernel_size_dec=5,
+                        dilation_rate=5,
+                        num_block_layers=4,
+                        dropout_p_dec=0.,
+                        num_speakers=0,
+                        c_in_channels=0,
+                        num_splits=4,
+                        num_sqz=1,
+                        sigmoid_scale=False,
+                        rel_attn_window_size=None,
+                        input_length=None,
+                        mean_only=False,
+                        hidden_channels_enc=None,
+                        hidden_channels_dec=None,
+                        use_encoder_prenet=False,
+                        encoder_type="transformer").to(device)
 
         # reference model to compare model weights
-        model_ref = GlowTts(
-                num_chars=32,
-                hidden_channels=128,
-                filter_channels=32,
-                filter_channels_dp=32,
-                out_channels=80,
-                kernel_size=3,
-                num_heads=2,
-                num_layers_enc=6,
-                dropout_p=0.1,
-                num_flow_blocks_dec=12,
-                kernel_size_dec=5,
-                dilation_rate=5,
-                num_block_layers=4,
-                dropout_p_dec=0.,
-                num_speakers=0,
-                c_in_channels=0,
-                num_splits=4,
-                num_sqz=1,
-                sigmoid_scale=False,
-                rel_attn_window_size=None,
-                input_length=None,
-                mean_only=False,
-                hidden_channels_enc=None,
-                hidden_channels_dec=None,
-                use_encoder_prenet=False,
-                encoder_type="transformer"
-        ).to(device)
+        model_ref = GlowTts(num_chars=32,
+                            hidden_channels=128,
+                            filter_channels=32,
+                            filter_channels_dp=32,
+                            out_channels=80,
+                            kernel_size=3,
+                            num_heads=2,
+                            num_layers_enc=6,
+                            dropout_p=0.1,
+                            num_flow_blocks_dec=12,
+                            kernel_size_dec=5,
+                            dilation_rate=5,
+                            num_block_layers=4,
+                            dropout_p_dec=0.,
+                            num_speakers=0,
+                            c_in_channels=0,
+                            num_splits=4,
+                            num_sqz=1,
+                            sigmoid_scale=False,
+                            rel_attn_window_size=None,
+                            input_length=None,
+                            mean_only=False,
+                            hidden_channels_enc=None,
+                            hidden_channels_dec=None,
+                            use_encoder_prenet=False,
+                            encoder_type="transformer").to(device)
 
         model.train()
         print(" > Num parameters for GlowTTS model:%s" %
@@ -120,7 +116,7 @@ class GlowTTSTrainTest(unittest.TestCase):
                 input_dummy, input_lengths, mel_spec, mel_lengths, None)
             optimizer.zero_grad()
             loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                            o_dur_log, o_total_dur, input_lengths)
+                                  o_dur_log, o_total_dur, input_lengths)
             loss = loss_dict['loss']
             loss.backward()
             optimizer.step()

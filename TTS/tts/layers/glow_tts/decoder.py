@@ -1,8 +1,6 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
 
-from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.layers.glow_tts.glow import InvConvNear, CouplingBlock
 from TTS.tts.layers.glow_tts.normalization import ActNorm
 
@@ -54,8 +52,7 @@ class Decoder(nn.Module):
                  num_splits=4,
                  num_sqz=2,
                  sigmoid_scale=False,
-                 c_in_channels=0,
-                 feat_channels=None):
+                 c_in_channels=0):
         super().__init__()
 
         self.in_channels = in_channels

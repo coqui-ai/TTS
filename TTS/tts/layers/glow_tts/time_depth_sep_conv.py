@@ -1,8 +1,6 @@
 import torch
 from torch import nn
 
-from .normalization import LayerNorm
-
 
 class TimeDepthSeparableConv(nn.Module):
     """Time depth separable convolution as in https://arxiv.org/pdf/1904.02619.pdf

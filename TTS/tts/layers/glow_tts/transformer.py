@@ -1,6 +1,4 @@
-import copy
 import math
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -106,7 +104,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
             scores = scores.masked_fill(mask == 0, -1e4)
             if self.input_length is not None:
                 block_mask = torch.ones_like(scores).triu(
-                    -self.input_length).tril(self.input_length)
+                    -1 * self.input_length).tril(self.input_length)
                 scores = scores * block_mask + -1e4 * (1 - block_mask)
         # attention score normalization
         p_attn = F.softmax(scores, dim=-1)  # [b, n_h, t_t, t_s]
@@ -126,7 +124,8 @@ class RelativePositionMultiHeadAttention(nn.Module):
             b, d, t_t)  # [b, n_h, t_t, d_k] -> [b, d, t_t]
         return output, p_attn
 
-    def _matmul_with_relative_values(self, p_attn, re):
+    @staticmethod
+    def _matmul_with_relative_values(p_attn, re):
         """
         Args:
             p_attn (Tensor): attention weights.

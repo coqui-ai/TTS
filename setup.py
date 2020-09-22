@@ -16,20 +16,24 @@ try:
     from Cython.Build import cythonize
 except ImportError:
     # create closure for deferred import
-    def cythonize (*args, ** kwargs ):
-        from Cython.Build import cythonize
-        return cythonize(*args, ** kwargs)
+    def cythonize(*args, **kwargs):  #pylint: disable=redefined-outer-name
+        from Cython.Build import cythonize  #pylint: disable=redefined-outer-name, import-outside-toplevel
+        return cythonize(*args, **kwargs)
 
 
 parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
-parser.add_argument('--checkpoint', type=str, help='Path to checkpoint file to embed in wheel.')
-parser.add_argument('--model_config', type=str, help='Path to model configuration file to embed in wheel.')
+parser.add_argument('--checkpoint',
+                    type=str,
+                    help='Path to checkpoint file to embed in wheel.')
+parser.add_argument('--model_config',
+                    type=str,
+                    help='Path to model configuration file to embed in wheel.')
 args, unknown_args = parser.parse_known_args()
 
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.4'
+version = '0.0.5'
 
 # Adapted from https://github.com/pytorch/pytorch
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -37,8 +41,8 @@ if os.getenv('TTS_PYTORCH_BUILD_VERSION'):
     version = os.getenv('TTS_PYTORCH_BUILD_VERSION')
 else:
     try:
-        sha = subprocess.check_output(
-            ['git', 'rev-parse', 'HEAD'], cwd=cwd).decode('ascii').strip()
+        sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                                      cwd=cwd).decode('ascii').strip()
         version += '+' + sha[:7]
     except subprocess.CalledProcessError:
         pass
@@ -49,7 +53,7 @@ else:
 # Handle Cython code
 def find_pyx(path='.'):
     pyx_files = []
-    for root, dirs, filenames in os.walk(path):
+    for root, _, filenames in os.walk(path):
         for fname in filenames:
             if fname.endswith('.pyx'):
                 pyx_files.append(os.path.join(root, fname))
@@ -91,20 +95,14 @@ if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
 
 
 def pip_install(package_name):
-    subprocess.call(
-        [sys.executable, '-m', 'pip', 'install', package_name]
-    )
+    subprocess.call([sys.executable, '-m', 'pip', 'install', package_name])
 
 
 reqs_from_file = open('requirements.txt').readlines()
 reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
 tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
 
-requirements = {
-    'install_requires': reqs_without_tf,
-    'pip_install': tf_req
-}
-
+requirements = {'install_requires': reqs_without_tf, 'pip_install': tf_req}
 
 setup(
     name='TTS',
@@ -114,11 +112,7 @@ setup(
     author_email='egolge@mozilla.com',
     description='Text to Speech with Deep Learning',
     license='MPL-2.0',
-    entry_points={
-        'console_scripts': [
-            'tts-server = TTS.server.server:main'
-        ]
-    },
+    entry_points={'console_scripts': ['tts-server = TTS.server.server:main']},
     include_dirs=[numpy.get_include()],
     ext_modules=cythonize(find_pyx(), language_level=3),
     packages=find_packages(include=['TTS*']),
@@ -145,8 +139,7 @@ setup(
         "Operating System :: POSIX :: Linux",
         'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
         "Topic :: Software Development :: Libraries :: Python Modules :: Speech :: Sound/Audio :: Multimedia :: Artificial Intelligence",
-    ]
-)
+    ])
 
 # for some reason having tensorflow in 'install_requires'
 # breaks some of the dependencies.
