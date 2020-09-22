@@ -11,13 +11,12 @@ import torch
 from torch.utils.data import DataLoader
 
 from TTS.speaker_encoder.dataset import MyDataset
-from TTS.speaker_encoder.utils.generic_utils import save_best_model
 from TTS.speaker_encoder.losses import GE2ELoss, AngleProtoLoss
 from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.speaker_encoder.utils import check_config_speaker_encoder
-from TTS.speaker_encoder.visual import plot_embeddings
+from TTS.speaker_encoder.visuals import plot_embeddings
 from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.utils.io import save_best_model
 from TTS.utils.generic_utils import (
     create_experiment_folder, get_git_branch, remove_experiment_folder,
     set_init_dict)
