@@ -6,9 +6,7 @@ import pickle as pickle_tts
 class RenamingUnpickler(pickle_tts.Unpickler):
     """Overload default pickler to solve module renaming problem"""
     def find_class(self, module, name):
-        if 'TTS' in module:
-            module = module.replace('TTS', 'TTS')
-        return super().find_class(module, name)
+        return super().find_class(module.replace('mozilla_voice_tts', 'TTS'), name)
 
 
 class AttrDict(dict):
