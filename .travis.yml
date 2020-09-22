@@ -8,6 +8,7 @@ before_install:
   - sudo apt-get -y install espeak
   - python -m pip install --upgrade pip
   - pip install six==1.12.0
+  - pip install --upgrade cython
 
 matrix:
   include:
