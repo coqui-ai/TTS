@@ -31,11 +31,19 @@ class LayerNorm(nn.Module):
 class TemporalBatchNorm1d(nn.BatchNorm1d):
     """Normalize each channel separately over time and batch.
     """
-    def __init__(self, channels, affine=True, track_running_stats=True, momentum=0.1):
-        super(TemporalBatchNorm1d, self).__init__(channels, affine=affine, track_running_stats=track_running_stats, momentum=momentum)
+    def __init__(self,
+                 channels,
+                 affine=True,
+                 track_running_stats=True,
+                 momentum=0.1):
+        super(TemporalBatchNorm1d,
+              self).__init__(channels,
+                             affine=affine,
+                             track_running_stats=track_running_stats,
+                             momentum=momentum)
 
     def forward(self, x):
-        return super().forward(x.transpose(2,1)).transpose(2,1)
+        return super().forward(x.transpose(2, 1)).transpose(2, 1)
 
 
 class ActNorm(nn.Module):
@@ -51,7 +59,6 @@ class ActNorm(nn.Module):
         - inputs: (B, C, T)
         - outputs: (B, C, T)
     """
-
     def __init__(self, channels, ddi=False, **kwargs):  # pylint: disable=unused-argument
         super().__init__()
         self.channels = channels

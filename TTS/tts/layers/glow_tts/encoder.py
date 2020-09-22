@@ -5,7 +5,7 @@ from torch import nn
 from TTS.tts.layers.glow_tts.transformer import Transformer
 from TTS.tts.layers.glow_tts.gated_conv import GatedConvBlock
 from TTS.tts.utils.generic_utils import sequence_mask
-from TTS.tts.layers.glow_tts.glow import ConvLayerNorm, LayerNorm
+from TTS.tts.layers.glow_tts.glow import ConvLayerNorm
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.time_depth_sep_conv import TimeDepthSeparableConvBlock
 

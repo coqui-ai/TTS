@@ -58,7 +58,7 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
                 decoder_output, postnet_output, alignments, stop_tokens = model.inference(
                     inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings)
     elif 'glow' in CONFIG.model.lower():
-        inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)
+        inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths)
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.

@@ -100,13 +100,13 @@ class MyDataset(Dataset):
         try:
             phonemes = np.load(cache_path)
         except FileNotFoundError:
-            phonemes = self._generate_and_cache_phoneme_sequence(text,
-                                                                 cache_path)
+            phonemes = self._generate_and_cache_phoneme_sequence(
+                text, cache_path)
         except (ValueError, IOError):
             print(" > ERROR: failed loading phonemes for {}. "
                   "Recomputing.".format(wav_file))
-            phonemes = self._generate_and_cache_phoneme_sequence(text,
-                                                                 cache_path)
+            phonemes = self._generate_and_cache_phoneme_sequence(
+                text, cache_path)
         if self.enable_eos_bos:
             phonemes = pad_with_eos_bos(phonemes, tp=self.tp)
             phonemes = np.asarray(phonemes, dtype=np.int32)
@@ -116,18 +116,19 @@ class MyDataset(Dataset):
         item = self.items[idx]
 
         if len(item) == 4:
-             text, wav_file, speaker_name, attn_file = item
+            text, wav_file, speaker_name, attn_file = item
         else:
-             text, wav_file, speaker_name = item
-             attn = None
+            text, wav_file, speaker_name = item
+            attn = None
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
         if self.use_phonemes:
             text = self._load_or_generate_phoneme_sequence(wav_file, text)
         else:
-            text = np.asarray(
-                text_to_sequence(text, [self.cleaners], tp=self.tp), dtype=np.int32)
+            text = np.asarray(text_to_sequence(text, [self.cleaners],
+                                               tp=self.tp),
+                              dtype=np.int32)
 
         assert text.size > 0, self.items[idx][1]
         assert wav.size > 0, self.items[idx][1]
@@ -172,8 +173,9 @@ class MyDataset(Dataset):
             print(" | > Max length sequence: {}".format(np.max(lengths)))
             print(" | > Min length sequence: {}".format(np.min(lengths)))
             print(" | > Avg length sequence: {}".format(np.mean(lengths)))
-            print(" | > Num. instances discarded by max-min (max={}, min={}) seq limits: {}".format(
-                self.max_seq_len, self.min_seq_len, len(ignored)))
+            print(
+                " | > Num. instances discarded by max-min (max={}, min={}) seq limits: {}"
+                .format(self.max_seq_len, self.min_seq_len, len(ignored)))
             print(" | > Batch group size: {}.".format(self.batch_group_size))
 
     def __len__(self):
@@ -206,12 +208,19 @@ class MyDataset(Dataset):
             ]
             text = [batch[idx]['text'] for idx in ids_sorted_decreasing]
 
-            speaker_name = [batch[idx]['speaker_name']
-                            for idx in ids_sorted_decreasing]
+            speaker_name = [
+                batch[idx]['speaker_name'] for idx in ids_sorted_decreasing
+            ]
             # get speaker embeddings
-            if self.speaker_mapping  is not None:
-                wav_files_names = [batch[idx]['wav_file_name'] for idx in ids_sorted_decreasing]
-                speaker_embedding = [self.speaker_mapping[w]['embedding'] for w in wav_files_names]
+            if self.speaker_mapping is not None:
+                wav_files_names = [
+                    batch[idx]['wav_file_name']
+                    for idx in ids_sorted_decreasing
+                ]
+                speaker_embedding = [
+                    self.speaker_mapping[w]['embedding']
+                    for w in wav_files_names
+                ]
             else:
                 speaker_embedding = None
             # compute features
@@ -221,7 +230,8 @@ class MyDataset(Dataset):
 
             # compute 'stop token' targets
             stop_targets = [
-                np.array([0.] * (mel_len - 1) + [1.]) for mel_len in mel_lengths
+                np.array([0.] * (mel_len - 1) + [1.])
+                for mel_len in mel_lengths
             ]
 
             # PAD stop targets
@@ -249,7 +259,9 @@ class MyDataset(Dataset):
 
             # compute linear spectrogram
             if self.compute_linear_spec:
-                linear = [self.ap.spectrogram(w).astype('float32') for w in wav]
+                linear = [
+                    self.ap.spectrogram(w).astype('float32') for w in wav
+                ]
                 linear = prepare_tensor(linear, self.outputs_per_step)
                 linear = linear.transpose(0, 2, 1)
                 assert mel.shape[1] == linear.shape[1]

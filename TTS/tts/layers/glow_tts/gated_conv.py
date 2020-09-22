@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 
 from .normalization import LayerNorm

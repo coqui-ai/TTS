@@ -8,16 +8,14 @@ import sys
 import time
 import traceback
 
-import numpy as np
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.utils.distribute import (DistributedSampler, init_distributed,
                                       reduce_tensor)
-from TTS.tts.utils.generic_utils import check_config, setup_model
+from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import (get_speakers, load_speaker_mapping,
@@ -33,21 +31,20 @@ from TTS.utils.generic_utils import (KeepAverage, count_parameters,
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
-from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
-                                gradual_training_scheduler, set_weight_decay,
+from TTS.utils.training import (NoamLR, check_update,
                                 setup_torch_training_env)
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
-
 def setup_loader(ap, r, is_val=False, verbose=False):
+
     if is_val and not c.run_eval:
         loader = None
     else:
         dataset = MyDataset(
             r,
             c.text_cleaner,
-            compute_linear_spec=True if c.model.lower() == 'tacotron' else False,
+            compute_linear_spec=False,
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             tp=c.characters if 'characters' in c.keys() else None,
@@ -125,11 +122,11 @@ def data_depended_init(model, ap):
     model.train()
     print(" > Data depended initialization ... ")
     with torch.no_grad():
-        for num_iter, data in enumerate(data_loader):
+        for _, data in enumerate(data_loader):
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, speaker_ids,\
-                avg_text_length, avg_spec_length, attn_mask = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, _,\
+                _, _, attn_mask = format_data(data)
 
             # forward pass model
             _ = model.forward(
@@ -165,7 +162,7 @@ def train(model, criterion, optimizer, scheduler,
         start_time = time.time()
 
         # format data
-        text_input, text_lengths, mel_input, mel_lengths, speaker_ids,\
+        text_input, text_lengths, mel_input, mel_lengths, _,\
             avg_text_length, avg_spec_length, attn_mask = format_data(data)
 
         loader_time = time.time() - end_time
@@ -187,7 +184,7 @@ def train(model, criterion, optimizer, scheduler,
 
         # backward pass
         if amp is not None:
-            with amp.scale_loss( loss_dict['loss'], optimizer) as scaled_loss:
+            with amp.scale_loss(loss_dict['loss'], optimizer) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss_dict['loss'].backward()
@@ -312,8 +309,8 @@ def evaluate(model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, speaker_ids,\
-                avg_text_length, avg_spec_length, attn_mask = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, _,\
+                _, _, attn_mask = format_data(data)
 
             # forward pass model
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
@@ -321,7 +318,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
 
             # compute loss
             loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                                o_dur_log, o_total_dur, text_lengths)
+                                  o_dur_log, o_total_dur, text_lengths)
 
             # step time
             step_time = time.time() - start_time
@@ -405,7 +402,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
         style_wav = c.get("style_wav_for_test")
         for idx, test_sentence in enumerate(test_sentences):
             try:
-                wav, alignment, decoder_output, postnet_output, stop_tokens, inputs = synthesis(
+                wav, alignment, _, postnet_output, _, _ = synthesis(
                     model,
                     test_sentence,
                     c,
@@ -428,7 +425,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
                     postnet_output, ap)
                 test_figures['{}-alignment'.format(idx)] = plot_alignment(
                     alignment)
-            except:
+            except: #pylint: disable=bare-except
                 print(" !! Error creating Test Sentence -", idx)
                 traceback.print_exc()
         tb_logger.tb_test_audios(global_step, test_audios,
@@ -503,7 +500,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.reinit_layers:
                 raise RuntimeError
             model.load_state_dict(checkpoint['model'])
-        except:
+        except: #pylint: disable=bare-except
             print(" > Partial model initialization.")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)

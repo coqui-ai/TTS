@@ -65,8 +65,8 @@ class GlowTts(nn.Module):
         self.hidden_channels_enc = hidden_channels_enc
         self.hidden_channels_dec = hidden_channels_dec
         self.use_encoder_prenet = use_encoder_prenet
-        self.noise_scale=0.66
-        self.length_scale=1.
+        self.noise_scale = 0.66
+        self.length_scale = 1.
 
         self.encoder = Encoder(num_chars,
                                out_channels=out_channels,
@@ -98,7 +98,8 @@ class GlowTts(nn.Module):
             self.emb_g = nn.Embedding(num_speakers, c_in_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
-    def compute_outputs(self, attn, o_mean, o_log_scale, x_mask):
+    @staticmethod
+    def compute_outputs(attn, o_mean, o_log_scale, x_mask):
         # compute final values with the computed alignment
         y_mean = torch.matmul(
             attn.squeeze(1).transpose(1, 2), o_mean.transpose(1, 2)).transpose(
@@ -123,22 +124,30 @@ class GlowTts(nn.Module):
         if g is not None:
             g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
         # embedding pass
-        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g)
+        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
+                                                              x_lengths,
+                                                              g=g)
         # format feature vectors and feature vector lenghts
-        y, y_lengths, y_max_length, attn = self.preprocess(y, y_lengths, y_max_length, None)
+        y, y_lengths, y_max_length, attn = self.preprocess(
+            y, y_lengths, y_max_length, None)
         # create masks
-        y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length), 1).to(x_mask.dtype)
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length),
+                                 1).to(x_mask.dtype)
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         # decoder pass
         z, logdet = self.decoder(y, y_mask, g=g, reverse=False)
         # find the alignment path
         with torch.no_grad():
             o_scale = torch.exp(-2 * o_log_scale)
-            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale, [1]).unsqueeze(-1) # [b, t, 1]
-            logp2 = torch.matmul(o_scale.transpose(1,2), -0.5 * (z ** 2)) # [b, t, d] x [b, d, t'] = [b, t, t']
-            logp3 = torch.matmul((o_mean * o_scale).transpose(1,2), z) # [b, t, d] x [b, d, t'] = [b, t, t']
-            logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1) # [b, t, 1]
-            logp = logp1 + logp2 + logp3 + logp4 # [b, t, t']
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale,
+                              [1]).unsqueeze(-1)  # [b, t, 1]
+            logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 *
+                                 (z**2))  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp3 = torch.matmul((o_mean * o_scale).transpose(1, 2),
+                                 z)  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp4 = torch.sum(-0.5 * (o_mean**2) * o_scale,
+                              [1]).unsqueeze(-1)  # [b, t, 1]
+            logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
             attn = maximum_path(logp,
                                 attn_mask.squeeze(1)).unsqueeze(1).detach()
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(
@@ -151,14 +160,17 @@ class GlowTts(nn.Module):
         if g is not None:
             g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
         # embedding pass
-        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g)
+        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
+                                                              x_lengths,
+                                                              g=g)
         # compute output durations
         w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
         y_max_length = None
         # compute masks
-        y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length), 1).to(x_mask.dtype)
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length),
+                                 1).to(x_mask.dtype)
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         # compute attention mask
         attn = generate_path(w_ceil.squeeze(1),
