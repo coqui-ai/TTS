@@ -220,7 +220,7 @@ class TacotronLoss(torch.nn.Module):
             if self.decoder_alpha > 0:
                 decoder_loss = self.criterion(decoder_output, mel_input,
                                               output_lens)
-            if postnet_alpha > 0:
+            if self.postnet_alpha > 0:
                 if self.config.model in ["Tacotron", "TacotronGST"]:
                     postnet_loss = self.criterion(postnet_output, linear_input,
                                                 output_lens)
