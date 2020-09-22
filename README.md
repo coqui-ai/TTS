@@ -30,6 +30,7 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
 Text-to-Spectrogram:
 - Tacotron: [paper](https://arxiv.org/abs/1703.10135)
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
+- Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
 
 Attention Methods:
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
