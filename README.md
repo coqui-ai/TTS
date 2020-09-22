@@ -210,7 +210,8 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - [Parallel WaveNet](https://arxiv.org/abs/1711.10433)
 -->
 
-### References
+### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
 - https://github.com/kan-bayashi/ParallelWaveGAN (vocoder library)
+- https://github.com/jaywalnut310/glow-tts (Original Glow-TTS implementation)
