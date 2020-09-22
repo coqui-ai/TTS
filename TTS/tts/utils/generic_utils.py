@@ -141,9 +141,10 @@ def check_config(c):
     check_argument('trim_db', c['audio'], restricted=True, val_type=int)
 
     # storage parameters (only for speaker encoder)
-    check_argument('sample_from_storage_p', c['storage'], restricted=False, val_type=float, min_val=0.0, max_val=1.0)
-    check_argument('storage_size', c['storage'], restricted=False, val_type=int, min_val=1, max_val=100)
-    check_argument('additive_noise', c['storage'], restricted=False, val_type=float, min_val=0.0, max_val=1.0)
+    if 'storage' in c.keys():
+        check_argument('sample_from_storage_p', c['storage'], restricted=False, val_type=float, min_val=0.0, max_val=1.0)
+        check_argument('storage_size', c['storage'], restricted=False, val_type=int, min_val=1, max_val=100)
+        check_argument('additive_noise', c['storage'], restricted=False, val_type=float, min_val=0.0, max_val=1.0)
 
     # training parameters
     check_argument('batch_size', c, restricted=True, val_type=int, min_val=1)
