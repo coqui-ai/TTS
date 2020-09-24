@@ -1,7 +1,7 @@
 {
     "model": "Tacotron2",
-    "run_name": "ljspeech-ddc-bn",
-    "run_description": "tacotron2 with ddc and batch-normalization",
+    "run_name": "ljspeech-ddc",
+    "run_description": "tacotron2 with DDC and differential spectral loss.",
 
     // AUDIO PARAMETERS
     "audio":{
@@ -27,9 +27,9 @@
 
         // MelSpectrogram parameters
         "num_mels": 80,         // size of the mel spec frame.
-        "mel_fmin": 0.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
-        "mel_fmax": 8000.0,     // maximum freq level for mel-spec. Tune for dataset!!
-        "spec_gain": 20.0,
+        "mel_fmin": 50.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 7600.0,     // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 1,
 
         // Normalization parameters
         "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
@@ -37,7 +37,7 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": "/home/erogol/Data/LJSpeech-1.1/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
 
     // VOCABULARY PARAMETERS
@@ -90,7 +90,7 @@
 
     // TACOTRON PRENET
     "memory_size": -1,             // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.
-    "prenet_type": "bn",           // "original" or "bn".
+    "prenet_type": "original",     // "original" or "bn".
     "prenet_dropout": false,       // enable/disable dropout at prenet.
 
     // TACOTRON ATTENTION
@@ -123,23 +123,23 @@
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
     "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
-    "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
+    "batch_group_size": 4,  //Number of batches to shuffle after bucketing.
     "min_seq_len": 6,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 153,     // DATASET-RELATED: maximum text length
 
     // PATHS
-    "output_path": "../../Mozilla-TTS/vctk-test/",
+    "output_path": "/home/erogol/Models/LJSpeech/",
 
     // PHONEMES
-    "phoneme_cache_path": "../../Mozilla-TTS/vctk-test/",  // phoneme computation is slow, therefore, it caches results in the given folder.
+    "phoneme_cache_path": "/home/erogol/Models/phoneme_cache/",  // phoneme computation is slow, therefore, it caches results in the given folder.
     "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST
-    "use_speaker_embedding": true,      // use speaker embedding to enable multi-speaker learning.
+    "use_speaker_embedding": false,      // use speaker embedding to enable multi-speaker learning.
+    "use_gst": false,       			    // use global style tokens
     "use_external_speaker_embedding_file": false, // if true, forces the model to use external embedding per sample instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
     "external_speaker_embedding_file": "../../speakers-vctk-en.json", // if not null and use_external_speaker_embedding_file is true, it is used to load a specific embedding file and thus uses these embeddings instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
-    "use_gst": true,       			    // use global style tokens
     "gst":	{			                // gst parameter if gst is enabled
         "gst_style_input": null,        // Condition the style input either on a
                                         // -> wave file [path to wave] or
@@ -154,9 +154,9 @@
     "datasets":   // List of datasets. They all merged and they get different speaker_ids.
         [
             {
-                "name": "vctk",
-                "path": "../../../datasets/VCTK-Corpus-removed-silence/",
-                "meta_file_train": ["p225", "p234", "p238", "p245", "p248", "p261", "p294", "p302", "p326", "p335", "p347"], // for vtck if list, ignore speakers id in list for train, its useful for test cloning with new speakers
+                "name": "ljspeech",
+                "path": "/home/erogol/Data/LJSpeech-1.1/",
+                "meta_file_train": "metadata.csv", // for vtck if list, ignore speakers id in list for train, its useful for test cloning with new speakers
                 "meta_file_val": null
             }
         ]
