@@ -7,9 +7,8 @@ from TTS.tts.utils.generic_utils import sequence_mask
 
 
 class L1LossMasked(nn.Module):
-
     def __init__(self, seq_len_norm):
-        super(L1LossMasked, self).__init__()
+        super().__init__()
         self.seq_len_norm = seq_len_norm
 
     def forward(self, x, target, length):
@@ -28,25 +27,24 @@ class L1LossMasked(nn.Module):
         """
         # mask: (batch, max_len, 1)
         target.requires_grad = False
-        mask = sequence_mask(
-            sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
+        mask = sequence_mask(sequence_length=length,
+                             max_len=target.size(1)).unsqueeze(2).float()
         if self.seq_len_norm:
             norm_w = mask / mask.sum(dim=1, keepdim=True)
             out_weights = norm_w.div(target.shape[0] * target.shape[2])
             mask = mask.expand_as(x)
-            loss = functional.l1_loss(
-                x * mask, target * mask, reduction='none')
+            loss = functional.l1_loss(x * mask,
+                                      target * mask,
+                                      reduction='none')
             loss = loss.mul(out_weights.to(loss.device)).sum()
         else:
             mask = mask.expand_as(x)
-            loss = functional.l1_loss(
-                x * mask, target * mask, reduction='sum')
+            loss = functional.l1_loss(x * mask, target * mask, reduction='sum')
             loss = loss / mask.sum()
         return loss
 
 
 class MSELossMasked(nn.Module):
-
     def __init__(self, seq_len_norm):
         super(MSELossMasked, self).__init__()
         self.seq_len_norm = seq_len_norm
@@ -67,19 +65,21 @@ class MSELossMasked(nn.Module):
         """
         # mask: (batch, max_len, 1)
         target.requires_grad = False
-        mask = sequence_mask(
-            sequence_length=length, max_len=target.size(1)).unsqueeze(2).float()
+        mask = sequence_mask(sequence_length=length,
+                             max_len=target.size(1)).unsqueeze(2).float()
         if self.seq_len_norm:
             norm_w = mask / mask.sum(dim=1, keepdim=True)
             out_weights = norm_w.div(target.shape[0] * target.shape[2])
             mask = mask.expand_as(x)
-            loss = functional.mse_loss(
-                x * mask, target * mask, reduction='none')
+            loss = functional.mse_loss(x * mask,
+                                       target * mask,
+                                       reduction='none')
             loss = loss.mul(out_weights.to(loss.device)).sum()
         else:
             mask = mask.expand_as(x)
-            loss = functional.mse_loss(
-                x * mask, target * mask, reduction='sum')
+            loss = functional.mse_loss(x * mask,
+                                       target * mask,
+                                       reduction='sum')
             loss = loss / mask.sum()
         return loss
 
@@ -100,7 +100,6 @@ class AttentionEntropyLoss(nn.Module):
 
 
 class BCELossMasked(nn.Module):
-
     def __init__(self, pos_weight):
         super(BCELossMasked, self).__init__()
         self.pos_weight = pos_weight
@@ -121,9 +120,13 @@ class BCELossMasked(nn.Module):
         """
         # mask: (batch, max_len, 1)
         target.requires_grad = False
-        mask = sequence_mask(sequence_length=length, max_len=target.size(1)).float()
+        mask = sequence_mask(sequence_length=length,
+                             max_len=target.size(1)).float()
         loss = functional.binary_cross_entropy_with_logits(
-            x * mask, target * mask, pos_weight=self.pos_weight, reduction='sum')
+            x * mask,
+            target * mask,
+            pos_weight=self.pos_weight,
+            reduction='sum')
         loss = loss / mask.sum()
         return loss
 
@@ -139,7 +142,8 @@ class GuidedAttentionLoss(torch.nn.Module):
         max_olen = max(olens)
         ga_masks = torch.zeros((B, max_olen, max_ilen))
         for idx, (ilen, olen) in enumerate(zip(ilens, olens)):
-            ga_masks[idx, :olen, :ilen] = self._make_ga_mask(ilen, olen, self.sigma)
+            ga_masks[idx, :olen, :ilen] = self._make_ga_mask(
+                ilen, olen, self.sigma)
         return ga_masks
 
     def forward(self, att_ws, ilens, olens):
@@ -153,7 +157,8 @@ class GuidedAttentionLoss(torch.nn.Module):
     def _make_ga_mask(ilen, olen, sigma):
         grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
         grid_x, grid_y = grid_x.float(), grid_y.float()
-        return 1.0 - torch.exp(-(grid_y / ilen - grid_x / olen) ** 2 / (2 * (sigma ** 2)))
+        return 1.0 - torch.exp(-(grid_y / ilen - grid_x / olen)**2 /
+                               (2 * (sigma**2)))
 
     @staticmethod
     def _make_masks(ilens, olens):
@@ -181,7 +186,8 @@ class TacotronLoss(torch.nn.Module):
             self.criterion_ga = GuidedAttentionLoss(sigma=ga_sigma)
         # stopnet loss
         # pylint: disable=not-callable
-        self.criterion_st = BCELossMasked(pos_weight=torch.tensor(stopnet_pos_weight)) if c.stopnet else None
+        self.criterion_st = BCELossMasked(
+            pos_weight=torch.tensor(stopnet_pos_weight)) if c.stopnet else None
 
     def forward(self, postnet_output, decoder_output, mel_input, linear_input,
                 stopnet_output, stopnet_target, output_lens, decoder_b_output,
@@ -219,19 +225,25 @@ class TacotronLoss(torch.nn.Module):
         # backward decoder loss (if enabled)
         if self.config.bidirectional_decoder:
             if self.config.loss_masking:
-                decoder_b_loss = self.criterion(torch.flip(decoder_b_output, dims=(1, )), mel_input, output_lens)
+                decoder_b_loss = self.criterion(
+                    torch.flip(decoder_b_output, dims=(1, )), mel_input,
+                    output_lens)
             else:
-                decoder_b_loss = self.criterion(torch.flip(decoder_b_output, dims=(1, )), mel_input)
-            decoder_c_loss = torch.nn.functional.l1_loss(torch.flip(decoder_b_output, dims=(1, )), decoder_output)
+                decoder_b_loss = self.criterion(
+                    torch.flip(decoder_b_output, dims=(1, )), mel_input)
+            decoder_c_loss = torch.nn.functional.l1_loss(
+                torch.flip(decoder_b_output, dims=(1, )), decoder_output)
             loss += decoder_b_loss + decoder_c_loss
             return_dict['decoder_b_loss'] = decoder_b_loss
             return_dict['decoder_c_loss'] = decoder_c_loss
 
         # double decoder consistency loss (if enabled)
         if self.config.double_decoder_consistency:
-            decoder_b_loss = self.criterion(decoder_b_output, mel_input, output_lens)
+            decoder_b_loss = self.criterion(decoder_b_output, mel_input,
+                                            output_lens)
             # decoder_c_loss = torch.nn.functional.l1_loss(decoder_b_output, decoder_output)
-            attention_c_loss = torch.nn.functional.l1_loss(alignments, alignments_backwards)
+            attention_c_loss = torch.nn.functional.l1_loss(
+                alignments, alignments_backwards)
             loss += decoder_b_loss + attention_c_loss
             return_dict['decoder_coarse_loss'] = decoder_b_loss
             return_dict['decoder_ddc_loss'] = attention_c_loss
@@ -248,7 +260,7 @@ class TacotronLoss(torch.nn.Module):
 
 class GlowTTSLoss(torch.nn.Module):
     def __init__(self):
-        super(GlowTTSLoss, self).__init__()
+        super().__init__()
         self.constant_factor = 0.5 * math.log(2 * math.pi)
 
     def forward(self, z, means, scales, log_det, y_lengths, o_dur_log,
