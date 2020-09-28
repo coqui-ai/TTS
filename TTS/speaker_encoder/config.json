@@ -1,0 +1,103 @@
+
+{
+    "run_name": "mueller91",
+    "run_description": "train speaker encoder with voxceleb1, voxceleb2 and libriSpeech ",
+    "audio":{
+        // Audio processing parameters
+        "num_mels": 40,         // size of the mel spec frame. 
+        "fft_size": 400,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 16000,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "win_length": 400,     // stft window length in ms.
+        "hop_length": 160,      // stft window hop-lengh in ms.
+        "frame_length_ms": null,  // stft window length in ms.If null, 'win_length' is used.
+        "frame_shift_ms": null,   // stft window hop-lengh in ms. If null, 'hop_length' is used.
+        "preemphasis": 0.98,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100,   // normalization range
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        // Normalization parameters
+        "signal_norm": true,    // normalize the spec values in range [0, 1]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4.0,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true,      // clip normalized values into the range.
+        "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
+        "do_trim_silence": true,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "trim_db": 60          // threshold for timming silence. Set this according to your dataset.
+    },
+    "reinit_layers": [],
+    "loss": "angleproto", // "ge2e" to use Generalized End-to-End loss and "angleproto" to use Angular Prototypical loss (new SOTA)
+    "grad_clip": 3.0, // upper limit for gradients for clipping.
+    "epochs": 1000, // total number of epochs to train.
+    "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_decay": false, // if true, Noam learning rate decaying is applied through training.
+    "warmup_steps": 4000, // Noam decay steps to increase the learning rate from 0 to "lr"
+    "tb_model_param_stats": false, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
+    "steps_plot_stats": 10, // number of steps to plot embeddings.
+    "num_speakers_in_batch": 64, // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "num_utters_per_speaker": 10,  //
+    "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "wd": 0.000001, // Weight decay weight.
+    "checkpoint": true, // If true, it saves checkpoints per "save_step"
+    "save_step": 1000, // Number of training steps expected to save traning stats and checkpoints.
+    "print_step": 20, // Number of steps to log traning on console.
+    "output_path": "../../MozillaTTSOutput/checkpoints/voxceleb_librispeech/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
+    "model": {
+        "input_dim": 40,
+        "proj_dim": 256,
+        "lstm_dim": 768,
+        "num_lstm_layers": 3,
+        "use_lstm_with_projection": true
+    },
+    "storage": {
+        "sample_from_storage_p": 0.66,  // the probability with which we'll sample from the DataSet in-memory storage
+        "storage_size": 15,   // the size of the in-memory storage with respect to a single batch
+        "additive_noise": 1e-5   // add very small gaussian noise to the data in order to increase robustness
+    },
+    "datasets": 
+        [
+            {
+                "name": "vctk_slim",
+                "path": "../../../audio-datasets/en/VCTK-Corpus/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "libri_tts",
+                "path": "../../../audio-datasets/en/LibriTTS/train-clean-100",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "libri_tts",
+                "path": "../../../audio-datasets/en/LibriTTS/train-clean-360",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "libri_tts",
+                "path": "../../../audio-datasets/en/LibriTTS/train-other-500",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "voxceleb1",
+                "path": "../../../audio-datasets/en/voxceleb1/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "voxceleb2",
+                "path": "../../../audio-datasets/en/voxceleb2/",
+                "meta_file_train": null,
+                "meta_file_val": null
+            },
+            {
+                "name": "common_voice",
+                "path": "../../../audio-datasets/en/MozillaCommonVoice",
+                "meta_file_train": "train.tsv",
+                "meta_file_val": "test.tsv"
+            }
+        ]
+}
