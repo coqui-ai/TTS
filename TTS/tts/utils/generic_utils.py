@@ -127,7 +127,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     return model
 
 
-def check_config(c):
+def check_config_tts(c):
     check_argument('model', c, enum_list=['tacotron', 'tacotron2'], restricted=True, val_type=str)
     check_argument('run_name', c, restricted=True, val_type=str)
     check_argument('run_description', c, val_type=str)
@@ -166,11 +166,6 @@ def check_config(c):
     check_argument('spec_gain', c['audio'], restricted=True, val_type=[int, float], min_val=1, max_val=100)
     check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
     check_argument('trim_db', c['audio'], restricted=True, val_type=int)
-
-    # storage parameters
-    check_argument('sample_from_storage_p', c['storage'], restricted=True, val_type=float, min_val=0.0, max_val=1.0)
-    check_argument('storage_size', c['storage'], restricted=True, val_type=int, min_val=1, max_val=100)
-    check_argument('additive_noise', c['storage'], restricted=True, val_type=float, min_val=0.0, max_val=1.0)
 
     # training parameters
     check_argument('batch_size', c, restricted=True, val_type=int, min_val=1)
