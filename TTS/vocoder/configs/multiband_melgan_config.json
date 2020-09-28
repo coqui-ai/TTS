@@ -40,12 +40,9 @@
     //     "url": "tcp:\/\/localhost:54321"
     // },
 
-    // MODEL PARAMETERS
-    "use_pqmf": true,
-
     // LOSS PARAMETERS
     "use_stft_loss": true,
-    "use_subband_stft_loss": true,
+    "use_subband_stft_loss": true,  // use only with multi-band models.
     "use_mse_gan_loss": true,
     "use_hinge_gan_loss": false,
     "use_feat_match_loss": false,  // use only with melgan discriminators
