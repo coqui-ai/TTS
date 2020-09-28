@@ -17,7 +17,7 @@ from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.utils.distribute import (DistributedSampler,
                                       apply_gradient_allreduce,
                                       init_distributed, reduce_tensor)
-from TTS.tts.utils.generic_utils import check_config, setup_model
+from TTS.tts.utils.generic_utils import setup_model, check_config_tts
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import (get_speakers, load_speaker_mapping,
@@ -670,7 +670,7 @@ if __name__ == '__main__':
 
     # setup output paths and read configs
     c = load_config(args.config_path)
-    check_config(c)
+    check_config_tts(c)
     _ = os.path.dirname(os.path.realpath(__file__))
 
     if c.apex_amp_level == 'O1':
