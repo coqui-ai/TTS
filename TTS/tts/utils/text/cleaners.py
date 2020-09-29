@@ -13,35 +13,17 @@ hyperparameter. Some cleaners are English-specific. You'll typically want to use
 import re
 from unidecode import unidecode
 from .number_norm import normalize_numbers
+from .abbreviations import abbreviations_en, abbreviations_fr
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
 
-# List of (regular expression, replacement) pairs for abbreviations:
-_abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1])
-                  for x in [
-                      ('mrs', 'misess'),
-                      ('mr', 'mister'),
-                      ('dr', 'doctor'),
-                      ('st', 'saint'),
-                      ('co', 'company'),
-                      ('jr', 'junior'),
-                      ('maj', 'major'),
-                      ('gen', 'general'),
-                      ('drs', 'doctors'),
-                      ('rev', 'reverend'),
-                      ('lt', 'lieutenant'),
-                      ('hon', 'honorable'),
-                      ('sgt', 'sergeant'),
-                      ('capt', 'captain'),
-                      ('esq', 'esquire'),
-                      ('ltd', 'limited'),
-                      ('col', 'colonel'),
-                      ('ft', 'fort'),
-                  ]]
 
-
-def expand_abbreviations(text):
+def expand_abbreviations(text, lang='en'):
+    if lang == 'en':
+        _abbreviations = abbreviations_en
+    elif lang == 'fr':
+        _abbreviations = abbreviations_fr
     for regex, replacement in _abbreviations:
         text = re.sub(regex, replacement, text)
     return text
@@ -121,9 +103,9 @@ def english_cleaners(text):
     return text
 
 def french_cleaners(text):
-    '''Basic pipeline for French text. There is no need to expand abbreviation and
-        numbers, phonemizer already does that'''
+    '''Pipeline for French text. There is no need to expand numbers, phonemizer already does that'''
     text = lowercase(text)
+    text = expand_abbreviations(text, lang='fr')
     text = replace_symbols(text, lang='fr')
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
