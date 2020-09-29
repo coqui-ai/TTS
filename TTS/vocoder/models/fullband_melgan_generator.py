@@ -12,14 +12,13 @@ class FullbandMelganGenerator(MelganGenerator):
                  upsample_factors=(2, 8, 2, 2),
                  res_kernel=3,
                  num_res_blocks=4):
-        super(FullbandMelganGenerator,
-              self).__init__(in_channels=in_channels,
-                             out_channels=out_channels,
-                             proj_kernel=proj_kernel,
-                             base_channels=base_channels,
-                             upsample_factors=upsample_factors,
-                             res_kernel=res_kernel,
-                             num_res_blocks=num_res_blocks)
+        super().__init__(in_channels=in_channels,
+                         out_channels=out_channels,
+                         proj_kernel=proj_kernel,
+                         base_channels=base_channels,
+                         upsample_factors=upsample_factors,
+                         res_kernel=res_kernel,
+                         num_res_blocks=num_res_blocks)
 
     @torch.no_grad()
     def inference(self, cond_features):
