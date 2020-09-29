@@ -36,11 +36,10 @@ class TemporalBatchNorm1d(nn.BatchNorm1d):
                  affine=True,
                  track_running_stats=True,
                  momentum=0.1):
-        super(TemporalBatchNorm1d,
-              self).__init__(channels,
-                             affine=affine,
-                             track_running_stats=track_running_stats,
-                             momentum=momentum)
+        super().__init__(channels,
+                         affine=affine,
+                         track_running_stats=track_running_stats,
+                         momentum=momentum)
 
     def forward(self, x):
         return super().forward(x.transpose(2, 1)).transpose(2, 1)

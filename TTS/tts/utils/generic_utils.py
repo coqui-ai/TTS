@@ -16,13 +16,14 @@ def split_dataset(items):
     np.random.shuffle(items)
     if is_multi_speaker:
         items_eval = []
-        # most stupid code ever -- Fix it !
+        speakers = [item[-1] for item in items]
+        speaker_counter = Counter(speakers)
         while len(items_eval) < eval_split_size:
-            speakers = [item[-1] for item in items]
-            speaker_counter = Counter(speakers)
             item_idx = np.random.randint(0, len(items))
-            if speaker_counter[items[item_idx][-1]] > 1:
+            speaker_to_be_removed = items[item_idx][-1]
+            if speaker_counter[speaker_to_be_removed] > 1:
                 items_eval.append(items[item_idx])
+                speaker_counter[speaker_to_be_removed] -= 1
                 del items[item_idx]
         return items_eval, items
     return items[:eval_split_size], items[eval_split_size:]
@@ -127,7 +128,8 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     return model
 
 
-def check_config(c):
+
+def check_config_tts(c):
     check_argument('model', c, enum_list=['tacotron', 'tacotron2'], restricted=True, val_type=str)
     check_argument('run_name', c, restricted=True, val_type=str)
     check_argument('run_description', c, val_type=str)
@@ -166,11 +168,6 @@ def check_config(c):
     check_argument('spec_gain', c['audio'], restricted=True, val_type=[int, float], min_val=1, max_val=100)
     check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
     check_argument('trim_db', c['audio'], restricted=True, val_type=int)
-
-    # storage parameters
-    check_argument('sample_from_storage_p', c['storage'], restricted=True, val_type=float, min_val=0.0, max_val=1.0)
-    check_argument('storage_size', c['storage'], restricted=True, val_type=int, min_val=1, max_val=100)
-    check_argument('additive_noise', c['storage'], restricted=True, val_type=float, min_val=0.0, max_val=1.0)
 
     # training parameters
     check_argument('batch_size', c, restricted=True, val_type=int, min_val=1)

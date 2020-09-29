@@ -11,7 +11,7 @@ class TimeDepthSeparableConv(nn.Module):
                  out_channels,
                  kernel_size,
                  bias=True):
-        super(TimeDepthSeparableConv, self).__init__()
+        super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -69,7 +69,7 @@ class TimeDepthSeparableConvBlock(nn.Module):
                  num_layers,
                  kernel_size,
                  bias=True):
-        super(TimeDepthSeparableConvBlock, self).__init__()
+        super().__init__()
         assert (kernel_size - 1) % 2 == 0
         assert num_layers > 1
 
