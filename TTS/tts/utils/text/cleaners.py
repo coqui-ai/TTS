@@ -73,6 +73,8 @@ def replace_symbols(text, lang='en'):
     text = text.replace(':', ' ')
     if lang == 'en':
         text = text.replace('&', 'and')
+    elif lang == 'fr':
+        text = text.replace('&', ' et ')
     elif lang == 'pt':
         text = text.replace('&', ' e ')
     return text
@@ -114,6 +116,15 @@ def english_cleaners(text):
     text = expand_numbers(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
+    text = remove_aux_symbols(text)
+    text = collapse_whitespace(text)
+    return text
+
+def french_cleaners(text):
+    '''Basic pipeline for French text. There is no need to expand abbreviation and
+        numbers, phonemizer already does that'''
+    text = lowercase(text)
+    text = replace_symbols(text, lang='fr')
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
     return text
