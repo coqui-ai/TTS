@@ -34,7 +34,8 @@ class TacotronAbstract(ABC, nn.Module):
                  gst=False,
                  gst_embedding_dim=512,
                  gst_num_heads=4,
-                 gst_style_tokens=10):
+                 gst_style_tokens=10,
+                 gst_use_speaker_embedding=False):
         """ Abstract Tacotron class """
         super().__init__()
         self.num_chars = num_chars
@@ -45,6 +46,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.gst_embedding_dim = gst_embedding_dim
         self.gst_num_heads = gst_num_heads
         self.gst_style_tokens = gst_style_tokens
+        self.gst_use_speaker_embedding = gst_use_speaker_embedding
         self.num_speakers = num_speakers
         self.bidirectional_decoder = bidirectional_decoder
         self.double_decoder_consistency = double_decoder_consistency
@@ -179,11 +181,14 @@ class TacotronAbstract(ABC, nn.Module):
             self.speaker_embeddings_projected = self.speaker_project_mel(
                 self.speaker_embeddings).squeeze(1)
 
-    def compute_gst(self, inputs, style_input):
+    def compute_gst(self, inputs, style_input, speaker_embedding=None):
         """ Compute global style token """
         device = inputs.device
         if isinstance(style_input, dict):
             query = torch.zeros(1, 1, self.gst_embedding_dim//2).to(device)
+            if speaker_embedding is not None:
+                query = torch.cat([query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
+
             _GST = torch.tanh(self.gst_layer.style_token_layer.style_tokens)
             gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
             for k_token, v_amplifier in style_input.items():
@@ -193,7 +198,7 @@ class TacotronAbstract(ABC, nn.Module):
         elif style_input is None:
             gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
         else:
-            gst_outputs = self.gst_layer(style_input) # pylint: disable=not-callable
+            gst_outputs = self.gst_layer(style_input, speaker_embedding) # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
 
