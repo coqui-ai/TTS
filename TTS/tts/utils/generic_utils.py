@@ -59,6 +59,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         gst_embedding_dim=c.gst['gst_embedding_dim'],
                         gst_num_heads=c.gst['gst_num_heads'],
                         gst_style_tokens=c.gst['gst_style_tokens'],
+                        gst_use_speaker_embedding=c.gst['gst_use_speaker_embedding'],
                         memory_size=c.memory_size,
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
@@ -85,6 +86,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         gst_embedding_dim=c.gst['gst_embedding_dim'],
                         gst_num_heads=c.gst['gst_num_heads'],
                         gst_style_tokens=c.gst['gst_style_tokens'],
+                        gst_use_speaker_embedding=c.gst['gst_use_speaker_embedding'],
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
                         attn_norm=c.attention_norm,
@@ -244,6 +246,7 @@ def check_config_tts(c):
     check_argument('gst', c, restricted=True, val_type=dict)
     check_argument('gst_style_input', c['gst'], restricted=True, val_type=[str, dict])
     check_argument('gst_embedding_dim', c['gst'], restricted=True, val_type=int, min_val=0, max_val=1000)
+    check_argument('gst_use_speaker_embedding', c['gst'], restricted=True, val_type=bool)
     check_argument('gst_num_heads', c['gst'], restricted=True, val_type=int, min_val=2, max_val=10)
     check_argument('gst_style_tokens', c['gst'], restricted=True, val_type=int, min_val=1, max_val=1000)
 
