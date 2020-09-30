@@ -13,35 +13,17 @@ hyperparameter. Some cleaners are English-specific. You'll typically want to use
 import re
 from unidecode import unidecode
 from .number_norm import normalize_numbers
+from .abbreviations import abbreviations_en, abbreviations_fr
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
 
-# List of (regular expression, replacement) pairs for abbreviations:
-_abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1])
-                  for x in [
-                      ('mrs', 'misess'),
-                      ('mr', 'mister'),
-                      ('dr', 'doctor'),
-                      ('st', 'saint'),
-                      ('co', 'company'),
-                      ('jr', 'junior'),
-                      ('maj', 'major'),
-                      ('gen', 'general'),
-                      ('drs', 'doctors'),
-                      ('rev', 'reverend'),
-                      ('lt', 'lieutenant'),
-                      ('hon', 'honorable'),
-                      ('sgt', 'sergeant'),
-                      ('capt', 'captain'),
-                      ('esq', 'esquire'),
-                      ('ltd', 'limited'),
-                      ('col', 'colonel'),
-                      ('ft', 'fort'),
-                  ]]
 
-
-def expand_abbreviations(text):
+def expand_abbreviations(text, lang='en'):
+    if lang == 'en':
+        _abbreviations = abbreviations_en
+    elif lang == 'fr':
+        _abbreviations = abbreviations_fr
     for regex, replacement in _abbreviations:
         text = re.sub(regex, replacement, text)
     return text
@@ -70,9 +52,11 @@ def remove_aux_symbols(text):
 def replace_symbols(text, lang='en'):
     text = text.replace(';', ',')
     text = text.replace('-', ' ')
-    text = text.replace(':', ' ')
+    text = text.replace(':', ',')
     if lang == 'en':
-        text = text.replace('&', 'and')
+        text = text.replace('&', ' and ')
+    elif lang == 'fr':
+        text = text.replace('&', ' et ')
     elif lang == 'pt':
         text = text.replace('&', ' e ')
     return text
@@ -114,6 +98,15 @@ def english_cleaners(text):
     text = expand_numbers(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
+    text = remove_aux_symbols(text)
+    text = collapse_whitespace(text)
+    return text
+
+def french_cleaners(text):
+    '''Pipeline for French text. There is no need to expand numbers, phonemizer already does that'''
+    text = lowercase(text)
+    text = expand_abbreviations(text, lang='fr')
+    text = replace_symbols(text, lang='fr')
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
     return text
