@@ -24,6 +24,7 @@ If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-
 ## TTS Performance
 <p align="center"><img src="https://discourse-prod-uploads-81679984178418.s3.dualstack.us-west-2.amazonaws.com/optimized/3X/6/4/6428f980e9ec751c248e591460895f7881aec0c6_2_1035x591.png" width="800" /></p>
 
+"Mozilla*" and "Judy*" are our models. 
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
 ## Provided Models and Methods
