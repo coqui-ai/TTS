@@ -20,6 +20,7 @@ def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False):
     # set model stepsize
     if hasattr(model.decoder, 'r'):
         model.decoder.set_r(state['r'])
+        print(" > Model r: ", state['r'])
     return model, state
 
 
