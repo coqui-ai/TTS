@@ -254,17 +254,9 @@ class TacotronLoss(torch.nn.Module):
                     torch.flip(decoder_b_output, dims=(1, )), mel_input,
                     output_lens)
             else:
-<<<<<<< HEAD
-                decoder_b_loss = self.criterion(
-                    torch.flip(decoder_b_output, dims=(1, )), mel_input)
-            decoder_c_loss = torch.nn.functional.l1_loss(
-                torch.flip(decoder_b_output, dims=(1, )), decoder_output)
-            loss += decoder_b_loss + decoder_c_loss
-=======
                 decoder_b_loss = self.criterion(torch.flip(decoder_b_output, dims=(1, )), mel_input)
             decoder_c_loss = torch.nn.functional.l1_loss(torch.flip(decoder_b_output, dims=(1, )), decoder_output)
             loss += self.decoder_alpha * (decoder_b_loss + decoder_c_loss)
->>>>>>> differential spectral loss
             return_dict['decoder_b_loss'] = decoder_b_loss
             return_dict['decoder_c_loss'] = decoder_c_loss
 
@@ -273,14 +265,8 @@ class TacotronLoss(torch.nn.Module):
             decoder_b_loss = self.criterion(decoder_b_output, mel_input,
                                             output_lens)
             # decoder_c_loss = torch.nn.functional.l1_loss(decoder_b_output, decoder_output)
-<<<<<<< HEAD
-            attention_c_loss = torch.nn.functional.l1_loss(
-                alignments, alignments_backwards)
-            loss += decoder_b_loss + attention_c_loss
-=======
             attention_c_loss = torch.nn.functional.l1_loss(alignments, alignments_backwards)
             loss += self.decoder_alpha * (decoder_b_loss + attention_c_loss)
->>>>>>> differential spectral loss
             return_dict['decoder_coarse_loss'] = decoder_b_loss
             return_dict['decoder_ddc_loss'] = attention_c_loss
 
