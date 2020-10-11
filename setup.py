@@ -7,7 +7,7 @@ import subprocess
 import sys
 import numpy
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 import setuptools.command.develop
 import setuptools.command.build_py
 
@@ -58,6 +58,13 @@ def find_pyx(path='.'):
             if fname.endswith('.pyx'):
                 pyx_files.append(os.path.join(root, fname))
     return pyx_files
+
+
+def find_cython_extensions(path="."):
+    exts = cythonize(find_pyx(path), language_level=3)
+    for ext in exts:
+        ext.include_dirs = [numpy.get_include()]
+    return exts
 
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
@@ -113,8 +120,7 @@ setup(
     description='Text to Speech with Deep Learning',
     license='MPL-2.0',
     entry_points={'console_scripts': ['tts-server = TTS.server.server:main']},
-    include_dirs=[numpy.get_include()],
-    ext_modules=cythonize(find_pyx(), language_level=3),
+    ext_modules=find_cython_extensions(),
     packages=find_packages(include=['TTS*']),
     project_urls={
         'Documentation': 'https://github.com/mozilla/TTS/wiki',
