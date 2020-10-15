@@ -15,9 +15,11 @@ This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en).
 
 Mozilla TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
 
-You can check some of synthesized voice samples from [here](https://erogol.github.io/ddc-samples/).
+English Voice Samples: https://erogol.github.io/ddc-samples/
 
-If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief post about some of TTS architectures and [here](https://github.com/erogol/TTS-papers) list of up-to-date research papers.
+TTS training recipes: https://github.com/erogol/TTS_recipes
+
+TTS paper collection: https://github.com/erogol/TTS-papers
 
 [![](https://sourcerer.io/fame/erogol/erogol/TTS/images/0)](https://sourcerer.io/fame/erogol/erogol/TTS/links/0)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/1)](https://sourcerer.io/fame/erogol/erogol/TTS/links/1)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/2)](https://sourcerer.io/fame/erogol/erogol/TTS/links/2)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/3)](https://sourcerer.io/fame/erogol/erogol/TTS/links/3)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/4)](https://sourcerer.io/fame/erogol/erogol/TTS/links/4)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/5)](https://sourcerer.io/fame/erogol/erogol/TTS/links/5)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/6)](https://sourcerer.io/fame/erogol/erogol/TTS/links/6)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/7)](https://sourcerer.io/fame/erogol/erogol/TTS/links/7)
 
