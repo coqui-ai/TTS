@@ -11,9 +11,9 @@
 
 <br/>
 
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en).
+Mozilla TTS is a deep learning based Text2Speech project, low in cost and high in quality.
 
-Mozilla TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
+This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en).
 
 English Voice Samples: https://erogol.github.io/ddc-samples/
 
