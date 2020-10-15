@@ -23,8 +23,12 @@ def load_wav_data(data_path, eval_split_size):
 
 
 def load_wav_feat_data(data_path, feat_path, eval_split_size):
-    wav_paths = sorted(find_wav_files(data_path))
-    feat_paths = sorted(find_feat_files(feat_path))
+    wav_paths = find_wav_files(data_path)
+    feat_paths = find_feat_files(feat_path)
+
+    wav_paths.sort(key=lambda x: Path(x).stem)
+    feat_paths.sort(key=lambda x: Path(x).stem)
+
     assert len(wav_paths) == len(feat_paths)
     for wav, feat in zip(wav_paths, feat_paths):
         wav_name = Path(wav).stem
