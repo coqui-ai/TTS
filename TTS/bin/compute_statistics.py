@@ -11,20 +11,27 @@ from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
 
+
 def main():
     """Run preprocessing process."""
     parser = argparse.ArgumentParser(
-        description="Compute mean and variance of spectrogtram features.")
-    parser.add_argument("--config_path", type=str, required=True,
-                        help="TTS config file path to define audio processin parameters.")
-    parser.add_argument("--out_path", default=None, type=str,
-                        help="directory to save the output file.")
+        description="Compute mean and variance of spectrogtram features."
+    )
+    parser.add_argument(
+        "--config_path",
+        type=str,
+        required=True,
+        help="TTS config file path to define audio processin parameters.",
+    )
+    parser.add_argument(
+        "--out_path", default=None, type=str, help="directory to save the output file."
+    )
     args = parser.parse_args()
 
     # load config
     CONFIG = load_config(args.config_path)
-    CONFIG.audio['signal_norm'] = False  # do not apply earlier normalization
-    CONFIG.audio['stats_path'] = None  # discard pre-defined stats
+    CONFIG.audio["signal_norm"] = False  # do not apply earlier normalization
+    CONFIG.audio["stats_path"] = None  # discard pre-defined stats
 
     # load audio processor
     ap = AudioProcessor(**CONFIG.audio)
@@ -58,27 +65,27 @@ def main():
 
     output_file_path = os.path.join(args.out_path, "scale_stats.npy")
     stats = {}
-    stats['mel_mean'] = mel_mean
-    stats['mel_std'] = mel_scale
-    stats['linear_mean'] = linear_mean
-    stats['linear_std'] = linear_scale
+    stats["mel_mean"] = mel_mean
+    stats["mel_std"] = mel_scale
+    stats["linear_mean"] = linear_mean
+    stats["linear_std"] = linear_scale
 
-    print(f' > Avg mel spec mean: {mel_mean.mean()}')
-    print(f' > Avg mel spec scale: {mel_scale.mean()}')
-    print(f' > Avg linear spec mean: {linear_mean.mean()}')
-    print(f' > Avg lienar spec scale: {linear_scale.mean()}')
+    print(f" > Avg mel spec mean: {mel_mean.mean()}")
+    print(f" > Avg mel spec scale: {mel_scale.mean()}")
+    print(f" > Avg linear spec mean: {linear_mean.mean()}")
+    print(f" > Avg lienar spec scale: {linear_scale.mean()}")
 
     # set default config values for mean-var scaling
-    CONFIG.audio['stats_path'] = output_file_path
-    CONFIG.audio['signal_norm'] = True
+    CONFIG.audio["stats_path"] = output_file_path
+    CONFIG.audio["signal_norm"] = True
     # remove redundant values
-    del CONFIG.audio['max_norm']
-    del CONFIG.audio['min_level_db']
-    del CONFIG.audio['symmetric_norm']
-    del CONFIG.audio['clip_norm']
-    stats['audio_config'] = CONFIG.audio
+    del CONFIG.audio["max_norm"]
+    del CONFIG.audio["min_level_db"]
+    del CONFIG.audio["symmetric_norm"]
+    del CONFIG.audio["clip_norm"]
+    stats["audio_config"] = CONFIG.audio
     np.save(output_file_path, stats, allow_pickle=True)
-    print(f' > scale_stats.npy is saved to {output_file_path}')
+    print(f" > scale_stats.npy is saved to {output_file_path}")
 
 
 if __name__ == "__main__":
