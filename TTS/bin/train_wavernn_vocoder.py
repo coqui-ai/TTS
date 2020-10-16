@@ -13,17 +13,13 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-
-from TTS.utils.audio import AudioProcessor
 from TTS.tts.utils.visual import plot_spectrogram
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.radam import RAdam
 from TTS.utils.io import copy_config_file, load_config
-from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
-from TTS.utils.tensorboard_logger import TensorboardLogger
-from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
-from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
-from TTS.vocoder.utils.generic_utils import setup_wavernn
 from TTS.utils.training import setup_torch_training_env
 from TTS.utils.console_logger import ConsoleLogger
+from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.generic_utils import (
     KeepAverage,
     count_parameters,
@@ -32,6 +28,10 @@ from TTS.utils.generic_utils import (
     remove_experiment_folder,
     set_init_dict,
 )
+from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
+from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
+from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
+from TTS.vocoder.utils.generic_utils import setup_wavernn
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
 
 
@@ -105,9 +105,7 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
         # MODEL TRAINING #
         ##################
         y_hat = model(x, m)
-        y_hat_vis = y_hat  # for visualization
 
-        # y_hat = y_hat.transpose(1, 2)
         if isinstance(model.mode, int):
             y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
         else:
@@ -200,8 +198,8 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
             )
             # compute spectrograms
             figures = {
-                "prediction": plot_spectrogram(predict_mel.T, ap, output_fig=False),
-                "ground_truth": plot_spectrogram(ground_mel.T, ap, output_fig=False),
+                "prediction": plot_spectrogram(predict_mel.T),
+                "ground_truth": plot_spectrogram(ground_mel.T),
             }
             tb_logger.tb_train_figures(global_step, figures)
         end_time = time.time()
@@ -237,6 +235,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
             global_step += 1
 
             y_hat = model(x, m)
+            y_hat_viz = y_hat  # for vizualization
             if isinstance(model.mode, int):
                 y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
             else:
@@ -266,7 +265,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
 
     if epoch > CONFIG.test_delay_epochs:
         # synthesize a full voice
-        wav_path = eval_data[random.randrange(0, len(eval_data))][0]
+        wav_path = train_data[random.randrange(0, len(train_data))][0]
         wav = ap.load_wav(wav_path)
         ground_mel = ap.melspectrogram(wav)
         sample_wav = model.generate(
@@ -283,8 +282,8 @@ def evaluate(model, criterion, ap, global_step, epoch):
         )
         # compute spectrograms
         figures = {
-            "prediction": plot_spectrogram(predict_mel.T, ap, output_fig=False),
-            "ground_truth": plot_spectrogram(ground_mel.T, ap, output_fig=False),
+            "eval/prediction": plot_spectrogram(predict_mel.T),
+            "eval/ground_truth": plot_spectrogram(ground_mel.T),
         }
         tb_logger.tb_eval_figures(global_step, figures)
 
@@ -303,7 +302,6 @@ def main(args):  # pylint: disable=redefined-outer-name
         eval_data, train_data = load_wav_feat_data(
             CONFIG.data_path, CONFIG.feature_path, CONFIG.eval_split_size
         )
-        eval_data, train_data = eval_data, train_data
     else:
         eval_data, train_data = load_wav_data(CONFIG.data_path, CONFIG.eval_split_size)
 
@@ -326,7 +324,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         if isinstance(CONFIG.mode, int):
             criterion.cuda()
 
-    optimizer = optim.Adam(model_wavernn.parameters(), lr=CONFIG.lr, weight_decay=0)
+    optimizer = RAdam(model_wavernn.parameters(), lr=CONFIG.lr, weight_decay=0)
+
     scheduler = None
     if "lr_scheduler" in CONFIG:
         scheduler = getattr(torch.optim.lr_scheduler, CONFIG.lr_scheduler)
