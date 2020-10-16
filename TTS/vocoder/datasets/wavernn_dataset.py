@@ -7,8 +7,7 @@ from torch.utils.data import Dataset
 
 class WaveRNNDataset(Dataset):
     """
-    WaveRNN Dataset searchs for all the wav files under root path
-    and converts them to acoustic features on the fly.
+    WaveRNN Dataset searchs for all the wav files under root path.
     """
 
     def __init__(
@@ -20,8 +19,6 @@ class WaveRNNDataset(Dataset):
         pad,
         mode,
         is_training=True,
-        return_segments=True,
-        use_cache=False,
         verbose=False,
     ):
 
@@ -32,13 +29,7 @@ class WaveRNNDataset(Dataset):
         self.pad = pad
         self.mode = mode
         self.is_training = is_training
-        self.return_segments = return_segments
-        self.use_cache = use_cache
         self.verbose = verbose
-
-        # wav_files = [f"{self.path}wavs/{file}.wav" for file in self.metadata]
-        # with Pool(4) as pool:
-        #    self.wav_cache = pool.map(self.ap.load_wav, wav_files)
 
     def __len__(self):
         return len(self.item_list)
