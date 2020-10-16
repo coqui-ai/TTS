@@ -4,12 +4,9 @@ import os
 import sys
 import time
 import traceback
-from inspect import signature
 
 import torch
 from torch.utils.data import DataLoader
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data.distributed import DistributedSampler
 
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.console_logger import ConsoleLogger
@@ -20,13 +17,17 @@ from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import setup_torch_training_env
-from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
-from TTS.utils.distribute import init_distributed, reduce_tensor
-from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
-from TTS.vocoder.utils.generic_utils import (plot_results, setup_discriminator,
-                                             setup_generator)
+from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset
+from TTS.vocoder.utils.generic_utils import plot_results, setup_generator
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
+
+# DISTRIBUTED
+from apex.parallel import DistributedDataParallel as DDP_apex
+from torch.nn.parallel import DistributedDataParallel as DDP_th
+from torch.utils.data.distributed import DistributedSampler
+from TTS.utils.distribute import init_distributed
+
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)
 
@@ -110,11 +111,6 @@ def train(model, criterion, optimizer,
                 scaled_loss.backward()
         else:
             loss.backward()
-
-        if amp:
-            amp_opt_params = amp.master_params(optimizer)
-        else:
-            amp_opt_params = None
 
         if c.clip_grad > 0:
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
@@ -279,7 +275,6 @@ def evaluate(model, criterion, ap, global_step, epoch):
     return keep_avg.avg_values
 
 
-# FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global train_data, eval_data
@@ -305,10 +300,9 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0)
 
     # DISTRIBUTED
-    if c.apex_amp_level:
+    if c.apex_amp_level is not None:
         # pylint: disable=import-outside-toplevel
         from apex import amp
-        from apex.parallel import DistributedDataParallel as DDP
         model.cuda()
         model, optimizer = amp.initialize(model, optimizer, opt_level=c.apex_amp_level)
     else:
@@ -363,7 +357,10 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # DISTRUBUTED
     if num_gpus > 1:
-        model = DDP(model)
+        if c.apex_amp_level is not None:
+            model = DDP_apex(model)
+        else:
+            model = DDP_th(model, device_ids=[args.rank])
 
     num_params = count_parameters(model)
     print(" > WaveGrad has {} parameters".format(num_params), flush=True)
@@ -447,7 +444,7 @@ if __name__ == '__main__':
     _ = os.path.dirname(os.path.realpath(__file__))
 
     # DISTRIBUTED
-    if c.apex_amp_level:
+    if c.apex_amp_level is not None:
         print("   >  apex AMP level: ", c.apex_amp_level)
 
     OUT_PATH = args.continue_path

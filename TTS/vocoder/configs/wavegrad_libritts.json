@@ -34,10 +34,10 @@
     },
 
     // DISTRIBUTED TRAINING
-    "apex_amp_level": "O1",     // amp optimization level. "O1" is currentl supported.
+    "apex_amp_level": null,     // APEX amp optimization level. "O1" is currently supported.
     "distributed":{
         "backend": "nccl",
-        "url": "tcp:\/\/localhost:54321"
+        "url": "tcp:\/\/localhost:54322"
     },
 
     "target_loss": "avg_wavegrad_loss",  // loss value to pick the best model to save after each epoch
@@ -47,7 +47,7 @@
     "model_params":{
         "x_conv_channels":32,
         "c_conv_channels":768,
-        "ublock_out_channels": [768, 512, 512, 256, 128],
+        "ublock_out_channels": [512, 512, 256, 128, 128],
         "dblock_out_channels": [128, 128, 256, 512],
         "upsample_factors": [4, 4, 4, 2, 2],
         "upsample_dilations": [

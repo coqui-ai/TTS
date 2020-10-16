@@ -11,6 +11,7 @@ import traceback
 import torch
 from random import randrange
 from torch.utils.data import DataLoader
+
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import GlowTTSLoss
@@ -33,6 +34,13 @@ from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import (NoamLR, check_update,
                                 setup_torch_training_env)
+
+# DISTRIBUTED
+from apex.parallel import DistributedDataParallel as DDP_apex
+from torch.nn.parallel import DistributedDataParallel as DDP_th
+from torch.utils.data.distributed import DistributedSampler
+from TTS.utils.distribute import init_distributed, reduce_tensor
+
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
@@ -481,10 +489,9 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
     criterion = GlowTTSLoss()
 
-    if c.apex_amp_level:
+    if c.apex_amp_level is not None:
         # pylint: disable=import-outside-toplevel
         from apex import amp
-        from apex.parallel import DistributedDataParallel as DDP
         model.cuda()
         model, optimizer = amp.initialize(model, optimizer, opt_level=c.apex_amp_level)
     else:
@@ -523,7 +530,10 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # DISTRUBUTED
     if num_gpus > 1:
-        model = DDP(model)
+        if c.apex_amp_level is not None:
+            model = DDP_apex(model)
+        else:
+            model = DDP_th(model, device_ids=[args.rank])
 
     if c.noam_schedule:
         scheduler = NoamLR(optimizer,
