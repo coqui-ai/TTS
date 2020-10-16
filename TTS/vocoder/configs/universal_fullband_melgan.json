@@ -31,13 +31,13 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": "/data/rw/home/Data/LibriTTS/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": "/home/erogol/Data/libritts/LibriTTS/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
 
     // DISTRIBUTED TRAINING
     "distributed":{
         "backend": "nccl",
-        "url": "tcp:\/\/localhost:54321"
+        "url": "tcp:\/\/localhost:54324"
     },
 
     // MODEL PARAMETERS
@@ -83,7 +83,7 @@
     },
 
     // DATASET
-    "data_path": "/data5/rw/home/Data/LibriTTS/LibriTTS/train-clean-360/",
+    "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/",
     "feature_path": null,
     "seq_len": 16384,
     "pad_short": 2000,
@@ -132,7 +132,7 @@
     "eval_split_size": 10,
 
     // PATHS
-    "output_path": "/data4/rw/home/Trainings/LJSpeech/"
+    "output_path": "/home/erogol/Models/"
 }
 
 

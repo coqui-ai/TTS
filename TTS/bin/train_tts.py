@@ -38,7 +38,9 @@ from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
                                 gradual_training_scheduler, set_weight_decay,
                                 setup_torch_training_env)
 
+
 use_cuda, num_gpus = setup_torch_training_env(True, False)
+
 
 def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
     if is_val and not c.run_eval:
