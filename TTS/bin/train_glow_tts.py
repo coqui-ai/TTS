@@ -186,7 +186,7 @@ def train(model, criterion, optimizer, scheduler,
         loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
                               o_dur_log, o_total_dur, text_lengths)
 
-        # backward pass
+        # backward pass - DISTRIBUTED
         if amp is not None:
             with amp.scale_loss(loss_dict['loss'], optimizer) as scaled_loss:
                 scaled_loss.backward()
