@@ -1,5 +1,4 @@
 {
-    "model": "wavernn",
     "run_name": "wavernn_test",
     "run_description": "wavernn_test training",
 
@@ -54,13 +53,14 @@
     "mode": "mold",         		// mold [string], gauss [string], bits [int]
     "mulaw": false,         		// apply mulaw if mode is bits
     "padding": 2,			// pad the input for resnet to see wider input length
-
+    
     // DATASET
+    "use_gta": true,			// use computed gta features from the tts model
     "data_path": "/media/alexander/LinuxFS/SpeechData/GothicSpeech/NPC_Speech/",			// path containing training wav files
-    "feature_path": "/media/alexander/LinuxFS/SpeechData/GothicSpeech/NPC_Speech_Computed/mel/", 	// path containing extracted features .npy (mels / quant)
+    "feature_path": "/media/alexander/LinuxFS/SpeechData/GothicSpeech/NPC_Speech_Computed/mel/", 	// path containing computed features .npy (mels / quant)
 
     // TRAINING
-    "batch_size": 32,       	// Batch size for training. Lower values than 32 might cause hard to learn attention.
+    "batch_size": 64,       	// Batch size for training. Lower values than 32 might cause hard to learn attention.
     "epochs": 10000,        	// total number of epochs to train.
     "warmup_steps": 10,
 
