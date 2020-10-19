@@ -48,6 +48,7 @@ class WaveRNNDataset(Dataset):
             feat_path = self.item_list[index]
             m = np.load(feat_path.replace("/quant/", "/mel/"))
         if self.mode in ["gauss", "mold"]:
+            # x = np.load(feat_path.replace("/mel/", "/quant/"))
             x = self.ap.load_wav(wavpath)
         elif isinstance(self.mode, int):
             x = np.load(feat_path.replace("/mel/", "/quant/"))
