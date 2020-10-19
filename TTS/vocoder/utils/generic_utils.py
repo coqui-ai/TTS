@@ -39,7 +39,7 @@ def plot_results(y_hat, y, ap, global_step, name_prefix):
 
 def to_camel(text):
     text = text.capitalize()
-    return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
+    return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
 
 def setup_wavernn(c):
@@ -67,101 +67,92 @@ def setup_wavernn(c):
 
 def setup_generator(c):
     print(" > Generator Model: {}".format(c.generator_model))
-    MyModel = importlib.import_module("TTS.vocoder.models." + c.generator_model.lower())
+    MyModel = importlib.import_module('TTS.vocoder.models.' +
+                                      c.generator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.generator_model))
-    if c.generator_model in "melgan_generator":
+    if c.generator_model in 'melgan_generator':
         model = MyModel(
-            in_channels=c.audio["num_mels"],
+            in_channels=c.audio['num_mels'],
             out_channels=1,
             proj_kernel=7,
             base_channels=512,
-            upsample_factors=c.generator_model_params["upsample_factors"],
+            upsample_factors=c.generator_model_params['upsample_factors'],
             res_kernel=3,
-            num_res_blocks=c.generator_model_params["num_res_blocks"],
-        )
-    if c.generator_model in "melgan_fb_generator":
+            num_res_blocks=c.generator_model_params['num_res_blocks'])
+    if c.generator_model in 'melgan_fb_generator':
         pass
-    if c.generator_model in "multiband_melgan_generator":
+    if c.generator_model in 'multiband_melgan_generator':
         model = MyModel(
-            in_channels=c.audio["num_mels"],
+            in_channels=c.audio['num_mels'],
             out_channels=4,
             proj_kernel=7,
             base_channels=384,
-            upsample_factors=c.generator_model_params["upsample_factors"],
+            upsample_factors=c.generator_model_params['upsample_factors'],
             res_kernel=3,
-            num_res_blocks=c.generator_model_params["num_res_blocks"],
-        )
-    if c.generator_model in "fullband_melgan_generator":
+            num_res_blocks=c.generator_model_params['num_res_blocks'])
+    if c.generator_model in 'fullband_melgan_generator':
         model = MyModel(
-            in_channels=c.audio["num_mels"],
+            in_channels=c.audio['num_mels'],
             out_channels=1,
             proj_kernel=7,
             base_channels=512,
-            upsample_factors=c.generator_model_params["upsample_factors"],
+            upsample_factors=c.generator_model_params['upsample_factors'],
             res_kernel=3,
-            num_res_blocks=c.generator_model_params["num_res_blocks"],
-        )
-    if c.generator_model in "parallel_wavegan_generator":
+            num_res_blocks=c.generator_model_params['num_res_blocks'])
+    if c.generator_model in 'parallel_wavegan_generator':
         model = MyModel(
             in_channels=1,
             out_channels=1,
             kernel_size=3,
-            num_res_blocks=c.generator_model_params["num_res_blocks"],
-            stacks=c.generator_model_params["stacks"],
+            num_res_blocks=c.generator_model_params['num_res_blocks'],
+            stacks=c.generator_model_params['stacks'],
             res_channels=64,
             gate_channels=128,
             skip_channels=64,
-            aux_channels=c.audio["num_mels"],
+            aux_channels=c.audio['num_mels'],
             dropout=0.0,
             bias=True,
             use_weight_norm=True,
-            upsample_factors=c.generator_model_params["upsample_factors"],
-        )
+            upsample_factors=c.generator_model_params['upsample_factors'])
     return model
 
 
 def setup_discriminator(c):
     print(" > Discriminator Model: {}".format(c.discriminator_model))
-    if "parallel_wavegan" in c.discriminator_model:
+    if 'parallel_wavegan' in c.discriminator_model:
         MyModel = importlib.import_module(
-            "TTS.vocoder.models.parallel_wavegan_discriminator"
-        )
+            'TTS.vocoder.models.parallel_wavegan_discriminator')
     else:
-        MyModel = importlib.import_module(
-            "TTS.vocoder.models." + c.discriminator_model.lower()
-        )
+        MyModel = importlib.import_module('TTS.vocoder.models.' +
+                                          c.discriminator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
-    if c.discriminator_model in "random_window_discriminator":
+    if c.discriminator_model in 'random_window_discriminator':
         model = MyModel(
-            cond_channels=c.audio["num_mels"],
-            hop_length=c.audio["hop_length"],
-            uncond_disc_donwsample_factors=c.discriminator_model_params[
-                "uncond_disc_donwsample_factors"
-            ],
-            cond_disc_downsample_factors=c.discriminator_model_params[
-                "cond_disc_downsample_factors"
-            ],
-            cond_disc_out_channels=c.discriminator_model_params[
-                "cond_disc_out_channels"
-            ],
-            window_sizes=c.discriminator_model_params["window_sizes"],
-        )
-    if c.discriminator_model in "melgan_multiscale_discriminator":
+            cond_channels=c.audio['num_mels'],
+            hop_length=c.audio['hop_length'],
+            uncond_disc_donwsample_factors=c.
+            discriminator_model_params['uncond_disc_donwsample_factors'],
+            cond_disc_downsample_factors=c.
+            discriminator_model_params['cond_disc_downsample_factors'],
+            cond_disc_out_channels=c.
+            discriminator_model_params['cond_disc_out_channels'],
+            window_sizes=c.discriminator_model_params['window_sizes'])
+    if c.discriminator_model in 'melgan_multiscale_discriminator':
         model = MyModel(
             in_channels=1,
             out_channels=1,
             kernel_sizes=(5, 3),
-            base_channels=c.discriminator_model_params["base_channels"],
-            max_channels=c.discriminator_model_params["max_channels"],
-            downsample_factors=c.discriminator_model_params["downsample_factors"],
-        )
-    if c.discriminator_model == "residual_parallel_wavegan_discriminator":
+            base_channels=c.discriminator_model_params['base_channels'],
+            max_channels=c.discriminator_model_params['max_channels'],
+            downsample_factors=c.
+            discriminator_model_params['downsample_factors'])
+    if c.discriminator_model == 'residual_parallel_wavegan_discriminator':
         model = MyModel(
             in_channels=1,
             out_channels=1,
             kernel_size=3,
-            num_layers=c.discriminator_model_params["num_layers"],
-            stacks=c.discriminator_model_params["stacks"],
+            num_layers=c.discriminator_model_params['num_layers'],
+            stacks=c.discriminator_model_params['stacks'],
             res_channels=64,
             gate_channels=128,
             skip_channels=64,
@@ -170,17 +161,17 @@ def setup_discriminator(c):
             nonlinear_activation="LeakyReLU",
             nonlinear_activation_params={"negative_slope": 0.2},
         )
-    if c.discriminator_model == "parallel_wavegan_discriminator":
+    if c.discriminator_model == 'parallel_wavegan_discriminator':
         model = MyModel(
             in_channels=1,
             out_channels=1,
             kernel_size=3,
-            num_layers=c.discriminator_model_params["num_layers"],
+            num_layers=c.discriminator_model_params['num_layers'],
             conv_channels=64,
             dilation_factor=1,
             nonlinear_activation="LeakyReLU",
             nonlinear_activation_params={"negative_slope": 0.2},
-            bias=True,
+            bias=True
         )
     return model
 
