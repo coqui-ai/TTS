@@ -42,7 +42,7 @@ class MelResNet(nn.Module):
         self.conv_in = nn.Conv1d(in_dims, compute_dims, kernel_size=k_size, bias=False)
         self.batch_norm = nn.BatchNorm1d(compute_dims)
         self.layers = nn.ModuleList()
-        for i in range(res_blocks):
+        for _ in range(res_blocks):
             self.layers.append(ResBlock(compute_dims))
         self.conv_out = nn.Conv1d(compute_dims, res_out_dims, kernel_size=1)
 
@@ -365,7 +365,8 @@ class WaveRNN(nn.Module):
             (i * b_size, seq_len * b_size, b_size, gen_rate, realtime_ratio),
         )
 
-    def get_gru_cell(self, gru):
+    @staticmethod
+    def get_gru_cell(gru):
         gru_cell = nn.GRUCell(gru.input_size, gru.hidden_size)
         gru_cell.weight_hh.data = gru.weight_hh_l0.data
         gru_cell.weight_ih.data = gru.weight_ih_l0.data
@@ -373,13 +374,14 @@ class WaveRNN(nn.Module):
         gru_cell.bias_ih.data = gru.bias_ih_l0.data
         return gru_cell
 
-    def pad_tensor(self, x, pad, side="both"):
+    @staticmethod
+    def pad_tensor(x, pad, side="both"):
         # NB - this is just a quick method i need right now
         # i.e., it won't generalise to other shapes/dims
         b, t, c = x.size()
         total = t + 2 * pad if side == "both" else t + pad
         padded = torch.zeros(b, total, c).cuda()
-        if side == "before" or side == "both":
+        if side in ("before", "both"):
             padded[:, pad : pad + t, :] = x
         elif side == "after":
             padded[:, :t, :] = x
