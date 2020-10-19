@@ -55,18 +55,17 @@
     "padding": 2,			// pad the input for resnet to see wider input length
     
     // DATASET
-    "use_gta": true,			// use computed gta features from the tts model
-    "data_path": "/media/alexander/LinuxFS/SpeechData/GothicSpeech/NPC_Speech/",			// path containing training wav files
-    "feature_path": "/media/alexander/LinuxFS/SpeechData/GothicSpeech/NPC_Speech_Computed/mel/", 	// path containing computed features .npy (mels / quant)
+    //"use_gta": true,			// use computed gta features from the tts model
+    "data_path": "path/to/wav/files",	// path containing training wav files
+    "feature_path": null, 		// path containing computed features from wav files if null compute them
 
     // TRAINING
     "batch_size": 64,       	// Batch size for training. Lower values than 32 might cause hard to learn attention.
     "epochs": 10000,        	// total number of epochs to train.
-    "warmup_steps": 10,
 
     // VALIDATION
     "run_eval": true,
-    "test_delay_epochs": 10,         // early testing only wastes computation time.
+    "test_every_epochs": 10,         // Test after set number of epochs (Test every 20 epochs for example)
 
     // OPTIMIZER
     "grad_clip": 4,		     // apply gradient clipping if > 0
@@ -90,6 +89,6 @@
     "eval_split_size": 50,	    // number of samples for testing	
 
     // PATHS
-    "output_path": "/media/alexander/LinuxFS/Projects/wavernn/Trainings/"
+    "output_path": "output/training/path"
 }
 
