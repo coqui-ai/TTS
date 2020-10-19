@@ -1,5 +1,3 @@
-import os
-import glob
 import torch
 import numpy as np
 from torch.utils.data import Dataset
@@ -42,7 +40,7 @@ class WaveRNNDataset(Dataset):
         wavpath, feat_path = self.item_list[index]
         m = np.load(feat_path.replace("/quant/", "/mel/"))
         # x = self.wav_cache[index]
-        if 5 > m.shape[-1]:
+        if m.shape[-1] < 5:
             print(" [!] Instance is too short! : {}".format(wavpath))
             self.item_list[index] = self.item_list[index + 1]
             feat_path = self.item_list[index]
