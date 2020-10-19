@@ -71,6 +71,16 @@
 
     // TRAINING
     "batch_size": 64,      // Batch size for training.
+    "train_noise_schedule":{
+        "min_val": 1e-6,
+        "max_val": 1e-2,
+        "num_steps": 1000
+    },
+    "test_noise_schedule":{
+        "min_val": 1e-6,
+        "max_val": 1e-2,
+        "num_steps": 50
+    },
 
     // VALIDATION
     "run_eval": true,       // enable/disable evaluation run

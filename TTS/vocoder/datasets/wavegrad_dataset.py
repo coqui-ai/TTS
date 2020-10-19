@@ -62,6 +62,13 @@ class WaveGradDataset(Dataset):
         item = self.load_item(idx)
         return item
 
+    def load_test_samples(self, num_samples):
+        samples = []
+        for idx in range(num_samples):
+            mel, audio = self.load_item(idx)
+            samples.append([mel, audio])
+        return samples
+
     def load_item(self, idx):
         """ load (audio, feat) couple """
         if self.compute_feat:

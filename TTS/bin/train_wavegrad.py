@@ -50,22 +50,35 @@ def setup_loader(ap, is_val=False, verbose=False):
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(dataset,
                             batch_size=c.batch_size,
-                            shuffle=False if num_gpus > 1 else True,
+                            shuffle=num_gpus <= 1,
                             drop_last=False,
                             sampler=sampler,
                             num_workers=c.num_val_loader_workers
                             if is_val else c.num_loader_workers,
                             pin_memory=False)
+
+
     return loader
 
 
 def format_data(data):
     # return a whole audio segment
-    m, y = data
+    m, x = data
     if use_cuda:
         m = m.cuda(non_blocking=True)
-        y = y.cuda(non_blocking=True)
-    return m, y
+        x = x.cuda(non_blocking=True)
+    return m, x
+
+
+def format_test_data(data):
+    # return a whole audio segment
+    m, x = data
+    m = m.unsqueeze(0)
+    x = x.unsqueeze(0)
+    if use_cuda:
+        m = m.cuda(non_blocking=True)
+        x = x.cuda(non_blocking=True)
+    return m, x
 
 
 def train(model, criterion, optimizer,
@@ -81,26 +94,36 @@ def train(model, criterion, optimizer,
         batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
     end_time = time.time()
     c_logger.print_train_start()
+    # setup noise schedule
+    noise_schedule = c['train_noise_schedule']
+    if hasattr(model, 'module'):
+        model.module.init_noise_schedule(noise_schedule['num_steps'],
+                                         noise_schedule['min_val'],
+                                         noise_schedule['max_val'])
+    else:
+        model.init_noise_schedule(noise_schedule['num_steps'],
+                                  noise_schedule['min_val'],
+                                  noise_schedule['max_val'])
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
         # format data
-        m, y = format_data(data)
+        m, x = format_data(data)
         loader_time = time.time() - end_time
 
         global_step += 1
 
         # compute noisy input
         if hasattr(model, 'module'):
-            y_noisy, noise_scale = model.module.compute_noisy_x(y)
+            noise, x_noisy, noise_scale = model.module.compute_noisy_x(x)
         else:
-            y_noisy, noise_scale = model.compute_noisy_x(y)
+            noise, x_noisy, noise_scale = model.compute_noisy_x(x)
 
         # forward pass
-        y_hat = model(y_noisy, m, noise_scale)
+        noise_hat = model(x_noisy, m, noise_scale)
 
         # compute losses
-        loss = criterion(y_noisy, y_hat)
+        loss = criterion(noise, noise_hat)
         loss_wavegrad_dict = {'wavegrad_loss':loss}
 
         # backward pass with loss scaling
@@ -181,15 +204,6 @@ def train(model, criterion, optimizer,
                                     OUT_PATH,
                                     model_losses=loss_dict)
 
-                # compute spectrograms
-                figures = plot_results(y_hat[0], y[0], ap, global_step, 'train')
-                tb_logger.tb_train_figures(global_step, figures)
-
-                # Sample audio
-                sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
-                tb_logger.tb_train_audios(global_step,
-                                        {'train/audio': sample_voice},
-                                        c.audio["sample_rate"])
         end_time = time.time()
 
     # print epoch stats
@@ -218,23 +232,23 @@ def evaluate(model, criterion, ap, global_step, epoch):
         start_time = time.time()
 
         # format data
-        m, y = format_data(data)
+        m, x = format_data(data)
         loader_time = time.time() - end_time
 
         global_step += 1
 
         # compute noisy input
         if hasattr(model, 'module'):
-            y_noisy, noise_scale = model.module.compute_noisy_x(y)
+            noise, x_noisy, noise_scale = model.module.compute_noisy_x(x)
         else:
-            y_noisy, noise_scale = model.compute_noisy_x(y)
+            noise, x_noisy, noise_scale = model.compute_noisy_x(x)
 
 
         # forward pass
-        y_hat = model(y_noisy, m, noise_scale)
+        noise_hat = model(x_noisy, m, noise_scale)
 
         # compute losses
-        loss = criterion(y_noisy, y_hat)
+        loss = criterion(noise, noise_hat)
         loss_wavegrad_dict = {'wavegrad_loss':loss}
 
 
@@ -261,14 +275,32 @@ def evaluate(model, criterion, ap, global_step, epoch):
             c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
 
     if args.rank == 0:
+        samples = data_loader.dataset.load_test_samples(1)
+        m, x = format_test_data(samples[0])
+
+        # setup noise schedule and inference
+        noise_schedule = c['test_noise_schedule']
+        if hasattr(model, 'module'):
+            model.module.init_noise_schedule(noise_schedule['num_steps'],
+                                             noise_schedule['min_val'],
+                                             noise_schedule['max_val'])
+            # compute voice
+            x_pred = model.module.inference(m)
+        else:
+            model.init_noise_schedule(noise_schedule['num_steps'],
+                                      noise_schedule['min_val'],
+                                      noise_schedule['max_val'])
+             # compute voice
+            x_pred = model.inference(m)
+
         # compute spectrograms
-        figures = plot_results(y_hat, y, ap, global_step, 'eval')
+        figures = plot_results(x_pred, x, ap, global_step, 'eval')
         tb_logger.tb_eval_figures(global_step, figures)
 
         # Sample audio
-        sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
+        sample_voice = x_pred[0].squeeze(0).detach().cpu().numpy()
         tb_logger.tb_eval_audios(global_step, {'eval/audio': sample_voice},
-                                c.audio["sample_rate"])
+                                 c.audio["sample_rate"])
 
         tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
 
