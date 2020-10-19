@@ -4,6 +4,16 @@ from torch import nn
 from torch.nn import functional as F
 
 
+class Conv1d(nn.Conv1d):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.orthogonal_(self.weight)
+        nn.init.zeros_(self.bias)
+
+
 class NoiseLevelEncoding(nn.Module):
     """Noise level encoding applying same
     encoding vector to all time steps. It is
@@ -25,7 +35,8 @@ class NoiseLevelEncoding(nn.Module):
         """
         return (x + self.encoding(noise_level)[:, :, None])
 
-    def init_encoding(self, length):
+    @staticmethod
+    def init_encoding(length):
         div_by = torch.arange(length) / length
         enc = torch.exp(-math.log(1e4) * div_by.unsqueeze(0))
         return enc
@@ -46,8 +57,8 @@ class FiLM(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.encoding = NoiseLevelEncoding(in_channels)
-        self.conv_in = nn.Conv1d(in_channels, in_channels, 3, padding=1)
-        self.conv_out = nn.Conv1d(in_channels, out_channels * 2, 3, padding=1)
+        self.conv_in = Conv1d(in_channels, in_channels, 3, padding=1)
+        self.conv_out = Conv1d(in_channels, out_channels * 2, 3, padding=1)
         self._init_parameters()
 
     def _init_parameters(self):
@@ -74,26 +85,26 @@ class UBlock(nn.Module):
         assert len(dilations) == 4
 
         self.upsample_factor = upsample_factor
-        self.shortcut_conv = nn.Conv1d(in_channels, hid_channels, 1)
+        self.shortcut_conv = Conv1d(in_channels, hid_channels, 1)
         self.main_block1 = nn.ModuleList([
-            nn.Conv1d(in_channels,
+            Conv1d(in_channels,
                    hid_channels,
                    3,
                    dilation=dilations[0],
                    padding=dilations[0]),
-            nn.Conv1d(hid_channels,
+            Conv1d(hid_channels,
                    hid_channels,
                    3,
                    dilation=dilations[1],
                    padding=dilations[1])
         ])
         self.main_block2 = nn.ModuleList([
-            nn.Conv1d(hid_channels,
+            Conv1d(hid_channels,
                    hid_channels,
                    3,
                    dilation=dilations[2],
                    padding=dilations[2]),
-            nn.Conv1d(hid_channels,
+            Conv1d(hid_channels,
                    hid_channels,
                    3,
                    dilation=dilations[3],
@@ -129,11 +140,11 @@ class DBlock(nn.Module):
     def __init__(self, in_channels, hid_channels, downsample_factor):
         super().__init__()
         self.downsample_factor = downsample_factor
-        self.res_conv = nn.Conv1d(in_channels, hid_channels, 1)
+        self.res_conv = Conv1d(in_channels, hid_channels, 1)
         self.main_convs = nn.ModuleList([
-            nn.Conv1d(in_channels, hid_channels, 3, dilation=1, padding=1),
-            nn.Conv1d(hid_channels, hid_channels, 3, dilation=2, padding=2),
-            nn.Conv1d(hid_channels, hid_channels, 3, dilation=4, padding=4),
+            Conv1d(in_channels, hid_channels, 3, dilation=1, padding=1),
+            Conv1d(hid_channels, hid_channels, 3, dilation=2, padding=2),
+            Conv1d(hid_channels, hid_channels, 3, dilation=4, padding=4),
         ])
 
     def forward(self, x):

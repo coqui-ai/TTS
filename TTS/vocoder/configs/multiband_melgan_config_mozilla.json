@@ -92,8 +92,8 @@
     // DATASET
     "data_path": "/home/erogol/Data/MozillaMerged22050/wavs/",
     "feature_path": null,
-    "seq_len": 16384,
-    "pad_short": 2000,
+    "seq_len": 6144,
+    "pad_short": 500,
     "conv_pad": 0,
     "use_noise_augment": false,
     "use_cache": true,
@@ -102,6 +102,16 @@
 
     // TRAINING
     "batch_size": 64,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "train_noise_schedule":{
+        "min_val": 1e-6,
+        "max_val": 1e-2,
+        "num_steps": 1000
+    },
+    "test_noise_schedule":{
+        "min_val": 1e-6,
+        "max_val": 1e-2,
+        "num_steps": 50
+    }
 
     // VALIDATION
     "run_eval": true,

@@ -22,14 +22,6 @@ class Wavegrad(nn.Module):
         assert len(upsample_factors) == len(upsample_dilations)
         assert len(upsample_factors) == len(ublock_out_channels)
 
-        # inference time noise schedule params
-        self.S = 1000
-        beta, alpha, alpha_cum, noise_level = self._setup_noise_level()
-        self.register_buffer('beta', beta)
-        self.register_buffer('alpha', alpha)
-        self.register_buffer('alpha_cum', alpha_cum)
-        self.register_buffer('noise_level', noise_level)
-
         # setup up-down sampling parameters
         self.hop_length = np.prod(upsample_factors)
         self.upsample_factors = upsample_factors
@@ -68,21 +60,23 @@ class Wavegrad(nn.Module):
         # print(ic, 'last_conv--', out_channels)
         self.last_conv = nn.Conv1d(ic, out_channels, 3, padding=1)
 
-    def _setup_noise_level(self, noise_schedule=None):
-        """compute noise schedule parameters"""
-        if noise_schedule is None:
-            beta = np.linspace(1e-6, 0.01, self.S)
-        else:
-            beta = noise_schedule
-        alpha = 1 - beta
-        alpha_cum = np.cumprod(alpha)
-        noise_level = np.concatenate([[1.0], alpha_cum ** 0.5], axis=0)
+        # inference time noise schedule params
+        self.S = 1000
+        self.init_noise_schedule(self.S)
 
-        beta = torch.from_numpy(beta)
-        alpha = torch.from_numpy(alpha)
-        alpha_cum = torch.from_numpy(alpha_cum)
-        noise_level = torch.from_numpy(noise_level.astype(np.float32))
-        return beta, alpha, alpha_cum, noise_level
+
+    def init_noise_schedule(self, num_iter, min_val=1e-6, max_val=0.01):
+        """compute noise schedule parameters"""
+        device = self.last_conv.weight.device
+        beta = torch.linspace(min_val, max_val, num_iter).to(device)
+        alpha = 1 - beta
+        alpha_cum = alpha.cumprod(dim=0)
+        noise_level = torch.cat([torch.FloatTensor([1]).to(device), alpha_cum ** 0.5])
+
+        self.register_buffer('beta', beta)
+        self.register_buffer('alpha', alpha)
+        self.register_buffer('alpha_cum', alpha_cum)
+        self.register_buffer('noise_level', noise_level)
 
     def compute_noisy_x(self, x):
         B = x.shape[0]
@@ -94,7 +88,7 @@ class Wavegrad(nn.Module):
         noise_scale = noise_scale.unsqueeze(1)
         noise = torch.randn_like(x)
         noisy_x = noise_scale * x + (1.0 - noise_scale**2)**0.5 * noise
-        return noisy_x.unsqueeze(1), noise_scale[:, 0]
+        return noise.unsqueeze(1), noisy_x.unsqueeze(1), noise_scale[:, 0]
 
     def forward(self, x, c, noise_scale):
         assert len(c.shape) == 3  # B, C, T
@@ -114,9 +108,8 @@ class Wavegrad(nn.Module):
 
     def inference(self, c):
         with torch.no_grad():
-            x = torch.randn(c.shape[0], self.hop_length * c.shape[-1]).to(c)
-            noise_scale = torch.from_numpy(
-                self.alpha_cum**0.5).float().unsqueeze(1).to(c)
+            x = torch.randn(c.shape[0], 1, self.hop_length * c.shape[-1]).to(c)
+            noise_scale = (self.alpha_cum**0.5).unsqueeze(1).to(c)
             for n in range(len(self.alpha) - 1, -1, -1):
                 c1 = 1 / self.alpha[n]**0.5
                 c2 = (1 - self.alpha[n]) / (1 - self.alpha_cum[n])**0.5
