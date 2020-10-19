@@ -28,7 +28,8 @@ def sample_from_gaussian(y_hat, log_std_min=-7.0, scale_factor=1.0):
         torch.exp(log_std),
     )
     sample = dist.sample()
-    sample = torch.clamp(torch.clamp(sample, min=-scale_factor), max=scale_factor)
+    sample = torch.clamp(torch.clamp(
+        sample, min=-scale_factor), max=scale_factor)
     del dist
     return sample
 
@@ -58,8 +59,9 @@ def discretized_mix_logistic_loss(
 
     # unpack parameters. (B, T, num_mixtures) x 3
     logit_probs = y_hat[:, :, :nr_mix]
-    means = y_hat[:, :, nr_mix : 2 * nr_mix]
-    log_scales = torch.clamp(y_hat[:, :, 2 * nr_mix : 3 * nr_mix], min=log_scale_min)
+    means = y_hat[:, :, nr_mix: 2 * nr_mix]
+    log_scales = torch.clamp(
+        y_hat[:, :, 2 * nr_mix: 3 * nr_mix], min=log_scale_min)
 
     # B x T x 1 -> B x T x num_mixtures
     y = y.expand_as(means)
@@ -104,7 +106,8 @@ def discretized_mix_logistic_loss(
     ) + (1.0 - inner_inner_cond) * (log_pdf_mid - np.log((num_classes - 1) / 2))
     inner_cond = (y > 0.999).float()
     inner_out = (
-        inner_cond * log_one_minus_cdf_min + (1.0 - inner_cond) * inner_inner_out
+        inner_cond * log_one_minus_cdf_min +
+        (1.0 - inner_cond) * inner_inner_out
     )
     cond = (y < -0.999).float()
     log_probs = cond * log_cdf_plus + (1.0 - cond) * inner_out
@@ -142,9 +145,9 @@ def sample_from_discretized_mix_logistic(y, log_scale_min=None):
     # (B, T) -> (B, T, nr_mix)
     one_hot = to_one_hot(argmax, nr_mix)
     # select logistic parameters
-    means = torch.sum(y[:, :, nr_mix : 2 * nr_mix] * one_hot, dim=-1)
+    means = torch.sum(y[:, :, nr_mix: 2 * nr_mix] * one_hot, dim=-1)
     log_scales = torch.clamp(
-        torch.sum(y[:, :, 2 * nr_mix : 3 * nr_mix] * one_hot, dim=-1), min=log_scale_min
+        torch.sum(y[:, :, 2 * nr_mix: 3 * nr_mix] * one_hot, dim=-1), min=log_scale_min
     )
     # sample from logistic & clip to interval
     # we don't actually round to the nearest 8bit value when sampling
