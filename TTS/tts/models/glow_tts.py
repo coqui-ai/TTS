@@ -37,7 +37,8 @@ class GlowTts(nn.Module):
                  hidden_channels_enc=None,
                  hidden_channels_dec=None,
                  use_encoder_prenet=False,
-                 encoder_type="transformer"):
+                 encoder_type="transformer",
+                 external_speaker_embedding_dim=None):
 
         super().__init__()
         self.num_chars = num_chars
@@ -68,6 +69,13 @@ class GlowTts(nn.Module):
         self.noise_scale = 0.66
         self.length_scale = 1.
 
+        # if is a multispeaker and c_in_channels is 0, set to 256
+        if num_speakers > 1:
+            if self.c_in_channels == 0 and not external_speaker_embedding_dim:
+                self.c_in_channels = 256
+            elif external_speaker_embedding_dim:
+                self.c_in_channels = external_speaker_embedding_dim
+
         self.encoder = Encoder(num_chars,
                                out_channels=out_channels,
                                hidden_channels=hidden_channels,
@@ -94,7 +102,7 @@ class GlowTts(nn.Module):
                                sigmoid_scale=sigmoid_scale,
                                c_in_channels=c_in_channels)
 
-        if num_speakers > 1:
+        if num_speakers > 1 and not external_speaker_embedding_dim:
             self.emb_g = nn.Embedding(num_speakers, c_in_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
