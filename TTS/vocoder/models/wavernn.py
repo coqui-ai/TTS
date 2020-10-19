@@ -365,28 +365,6 @@ class WaveRNN(nn.Module):
             (i * b_size, seq_len * b_size, b_size, gen_rate, realtime_ratio),
         )
 
-    @staticmethod
-    def get_gru_cell(gru):
-        gru_cell = nn.GRUCell(gru.input_size, gru.hidden_size)
-        gru_cell.weight_hh.data = gru.weight_hh_l0.data
-        gru_cell.weight_ih.data = gru.weight_ih_l0.data
-        gru_cell.bias_hh.data = gru.bias_hh_l0.data
-        gru_cell.bias_ih.data = gru.bias_ih_l0.data
-        return gru_cell
-
-    @staticmethod
-    def pad_tensor(x, pad, side="both"):
-        # NB - this is just a quick method i need right now
-        # i.e., it won't generalise to other shapes/dims
-        b, t, c = x.size()
-        total = t + 2 * pad if side == "both" else t + pad
-        padded = torch.zeros(b, total, c).cuda()
-        if side in ("before", "both"):
-            padded[:, pad : pad + t, :] = x
-        elif side == "after":
-            padded[:, :t, :] = x
-        return padded
-
     def fold_with_overlap(self, x, target, overlap):
 
         """Fold the tensor with overlap for quick batched inference.
@@ -430,7 +408,30 @@ class WaveRNN(nn.Module):
 
         return folded
 
-    def xfade_and_unfold(self, y, target, overlap):
+    @staticmethod
+    def get_gru_cell(gru):
+        gru_cell = nn.GRUCell(gru.input_size, gru.hidden_size)
+        gru_cell.weight_hh.data = gru.weight_hh_l0.data
+        gru_cell.weight_ih.data = gru.weight_ih_l0.data
+        gru_cell.bias_hh.data = gru.bias_hh_l0.data
+        gru_cell.bias_ih.data = gru.bias_ih_l0.data
+        return gru_cell
+
+    @staticmethod
+    def pad_tensor(x, pad, side="both"):
+        # NB - this is just a quick method i need right now
+        # i.e., it won't generalise to other shapes/dims
+        b, t, c = x.size()
+        total = t + 2 * pad if side == "both" else t + pad
+        padded = torch.zeros(b, total, c).cuda()
+        if side in ("before", "both"):
+            padded[:, pad : pad + t, :] = x
+        elif side == "after":
+            padded[:, :t, :] = x
+        return padded
+
+    @staticmethod
+    def xfade_and_unfold(y, target, overlap):
 
         """Applies a crossfade and unfolds into a 1d array.
         Args:
