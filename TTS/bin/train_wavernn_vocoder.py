@@ -1,8 +1,5 @@
 import argparse
-import math
 import os
-import pickle
-import shutil
 import sys
 import traceback
 import time
@@ -11,7 +8,8 @@ import random
 
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
+
+# from torch.utils.data.distributed import DistributedSampler
 
 from TTS.tts.utils.visual import plot_spectrogram
 from TTS.utils.audio import AudioProcessor
@@ -30,7 +28,6 @@ from TTS.utils.generic_utils import (
 )
 from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 from TTS.vocoder.datasets.preprocess import (
-    load_wav_data,
     find_feat_files,
     load_wav_feat_data,
     preprocess_wav_files,
@@ -322,7 +319,7 @@ def main(args):  # pylint: disable=redefined-outer-name
                 CONFIG.data_path, mel_feat_path, CONFIG.eval_split_size
             )
         else:
-            print(f" > No feature data found. Preprocessing...")
+            print(" > No feature data found. Preprocessing...")
             # preprocessing feature data from given wav files
             preprocess_wav_files(OUT_PATH, CONFIG, ap)
             eval_data, train_data = load_wav_feat_data(
