@@ -29,7 +29,12 @@ from TTS.utils.generic_utils import (
     set_init_dict,
 )
 from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
-from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
+from TTS.vocoder.datasets.preprocess import (
+    load_wav_data,
+    find_feat_files,
+    load_wav_feat_data,
+    preprocess_wav_files,
+)
 from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
 from TTS.vocoder.utils.generic_utils import setup_wavernn
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
@@ -192,15 +197,17 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
             )
             predict_mel = ap.melspectrogram(sample_wav)
 
-            # Sample audio
-            tb_logger.tb_train_audios(
-                global_step, {"eval/audio": sample_wav}, CONFIG.audio["sample_rate"]
-            )
             # compute spectrograms
             figures = {
-                "prediction": plot_spectrogram(predict_mel.T),
-                "ground_truth": plot_spectrogram(ground_mel.T),
+                "train/ground_truth": plot_spectrogram(ground_mel.T),
+                "train/prediction": plot_spectrogram(predict_mel.T),
             }
+
+            # Sample audio
+            tb_logger.tb_train_audios(
+                global_step, {"train/audio": sample_wav}, CONFIG.audio["sample_rate"]
+            )
+
             tb_logger.tb_train_figures(global_step, figures)
         end_time = time.time()
 
@@ -235,7 +242,6 @@ def evaluate(model, criterion, ap, global_step, epoch):
             global_step += 1
 
             y_hat = model(x, m)
-            y_hat_viz = y_hat  # for vizualization
             if isinstance(model.mode, int):
                 y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
             else:
@@ -263,11 +269,11 @@ def evaluate(model, criterion, ap, global_step, epoch):
             if CONFIG.print_eval:
                 c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
 
-    if epoch > CONFIG.test_delay_epochs:
-        # synthesize a full voice
-        wav_path = train_data[random.randrange(0, len(train_data))][0]
+    if epoch % CONFIG.test_every_epochs == 0:
+        # synthesize a part of data
+        wav_path = eval_data[random.randrange(0, len(eval_data))][0]
         wav = ap.load_wav(wav_path)
-        ground_mel = ap.melspectrogram(wav)
+        ground_mel = ap.melspectrogram(wav[:22000])
         sample_wav = model.generate(
             ground_mel,
             CONFIG.batched,
@@ -276,15 +282,17 @@ def evaluate(model, criterion, ap, global_step, epoch):
         )
         predict_mel = ap.melspectrogram(sample_wav)
 
+        # compute spectrograms
+        figures = {
+            "eval/ground_truth": plot_spectrogram(ground_mel.T),
+            "eval/prediction": plot_spectrogram(predict_mel.T),
+        }
+
         # Sample audio
         tb_logger.tb_eval_audios(
             global_step, {"eval/audio": sample_wav}, CONFIG.audio["sample_rate"]
         )
-        # compute spectrograms
-        figures = {
-            "eval/prediction": plot_spectrogram(predict_mel.T),
-            "eval/ground_truth": plot_spectrogram(ground_mel.T),
-        }
+
         tb_logger.tb_eval_figures(global_step, figures)
 
     tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
@@ -296,6 +304,9 @@ def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global train_data, eval_data
 
+    # setup audio processor
+    ap = AudioProcessor(**CONFIG.audio)
+
     print(f" > Loading wavs from: {CONFIG.data_path}")
     if CONFIG.feature_path is not None:
         print(f" > Loading features from: {CONFIG.feature_path}")
@@ -303,11 +314,20 @@ def main(args):  # pylint: disable=redefined-outer-name
             CONFIG.data_path, CONFIG.feature_path, CONFIG.eval_split_size
         )
     else:
-        eval_data, train_data = load_wav_data(CONFIG.data_path, CONFIG.eval_split_size)
-
-    # setup audio processor
-    ap = AudioProcessor(**CONFIG.audio)
-
+        mel_feat_path = os.path.join(OUT_PATH, "mel")
+        feat_data = find_feat_files(mel_feat_path)
+        if feat_data:
+            print(f" > Loading features from: {mel_feat_path}")
+            eval_data, train_data = load_wav_feat_data(
+                CONFIG.data_path, mel_feat_path, CONFIG.eval_split_size
+            )
+        else:
+            print(f" > No feature data found. Preprocessing...")
+            # preprocessing feature data from given wav files
+            preprocess_wav_files(OUT_PATH, CONFIG, ap)
+            eval_data, train_data = load_wav_feat_data(
+                CONFIG.data_path, mel_feat_path, CONFIG.eval_split_size
+            )
     # setup model
     model_wavernn = setup_wavernn(CONFIG)
 
