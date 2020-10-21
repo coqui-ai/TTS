@@ -147,7 +147,8 @@
                                         // with the dictionary being len(dict) <= len(gst_style_tokens).
         "gst_embedding_dim": 512,
         "gst_num_heads": 4,
-        "gst_style_tokens": 10
+        "gst_style_tokens": 10,
+        "gst_use_speaker_embedding": false
 	},
 
     // DATASETS
