@@ -151,15 +151,15 @@ tail -n 1100 metadata_shuf.csv > metadata_val.csv
 
 To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below. You also set the model architecture in  ```config.json```.
 
-```python TTS/bin/train.py --config_path TTS/tts/configs/config.json```
+```python TTS/bin/train_tts.py --config_path TTS/tts/configs/config.json```
 
 To fine-tune a model, use ```--restore_path```.
 
-```python TTS/bin/train.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
+```python TTS/bin/train_tts.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
 
 To continue an old training run, use ```--continue_path```.
 
-```python TTS/bin/train.py --continue_path /path/to/your/run_folder/```
+```python TTS/bin/train_tts.py --continue_path /path/to/your/run_folder/```
 
 For multi-GPU training use ```distribute.py```. It enables process based multi-GPU training where each process uses a single GPU.
 
