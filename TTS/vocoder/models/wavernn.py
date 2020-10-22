@@ -39,7 +39,8 @@ class MelResNet(nn.Module):
     def __init__(self, res_blocks, in_dims, compute_dims, res_out_dims, pad):
         super().__init__()
         k_size = pad * 2 + 1
-        self.conv_in = nn.Conv1d(in_dims, compute_dims, kernel_size=k_size, bias=False)
+        self.conv_in = nn.Conv1d(
+            in_dims, compute_dims, kernel_size=k_size, bias=False)
         self.batch_norm = nn.BatchNorm1d(compute_dims)
         self.layers = nn.ModuleList()
         for _ in range(res_blocks):
@@ -94,7 +95,8 @@ class UpsampleNetwork(nn.Module):
             k_size = (1, scale * 2 + 1)
             padding = (0, scale)
             stretch = Stretch2d(scale, 1)
-            conv = nn.Conv2d(1, 1, kernel_size=k_size, padding=padding, bias=False)
+            conv = nn.Conv2d(1, 1, kernel_size=k_size,
+                             padding=padding, bias=False)
             conv.weight.data.fill_(1.0 / k_size[1])
             self.up_layers.append(stretch)
             self.up_layers.append(conv)
@@ -110,7 +112,7 @@ class UpsampleNetwork(nn.Module):
         m = m.unsqueeze(1)
         for f in self.up_layers:
             m = f(m)
-        m = m.squeeze(1)[:, :, self.indent : -self.indent]
+        m = m.squeeze(1)[:, :, self.indent: -self.indent]
         return m.transpose(1, 2), aux
 
 
@@ -123,7 +125,8 @@ class Upsample(nn.Module):
         self.pad = pad
         self.indent = pad * scale
         self.use_aux_net = use_aux_net
-        self.resnet = MelResNet(res_blocks, feat_dims, compute_dims, res_out_dims, pad)
+        self.resnet = MelResNet(res_blocks, feat_dims,
+                                compute_dims, res_out_dims, pad)
 
     def forward(self, m):
         if self.use_aux_net:
@@ -137,7 +140,7 @@ class Upsample(nn.Module):
         m = torch.nn.functional.interpolate(
             m, scale_factor=self.scale, mode="linear", align_corners=True
         )
-        m = m[:, :, self.indent : -self.indent]
+        m = m[:, :, self.indent: -self.indent]
         m = m * 0.045  # empirically found
 
         return m.transpose(1, 2), aux
@@ -207,7 +210,8 @@ class WaveRNN(nn.Module):
         if self.use_aux_net:
             self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
             self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-            self.rnn2 = nn.GRU(rnn_dims + self.aux_dims, rnn_dims, batch_first=True)
+            self.rnn2 = nn.GRU(rnn_dims + self.aux_dims,
+                               rnn_dims, batch_first=True)
             self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
             self.fc2 = nn.Linear(fc_dims + self.aux_dims, fc_dims)
             self.fc3 = nn.Linear(fc_dims, self.n_classes)
@@ -221,16 +225,16 @@ class WaveRNN(nn.Module):
 
     def forward(self, x, mels):
         bsize = x.size(0)
-        h1 = torch.zeros(1, bsize, self.rnn_dims).cuda()
-        h2 = torch.zeros(1, bsize, self.rnn_dims).cuda()
+        h1 = torch.zeros(1, bsize, self.rnn_dims).to(x.device) 
+        h2 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
         mels, aux = self.upsample(mels)
 
         if self.use_aux_net:
             aux_idx = [self.aux_dims * i for i in range(5)]
-            a1 = aux[:, :, aux_idx[0] : aux_idx[1]]
-            a2 = aux[:, :, aux_idx[1] : aux_idx[2]]
-            a3 = aux[:, :, aux_idx[2] : aux_idx[3]]
-            a4 = aux[:, :, aux_idx[3] : aux_idx[4]]
+            a1 = aux[:, :, aux_idx[0]: aux_idx[1]]
+            a2 = aux[:, :, aux_idx[1]: aux_idx[2]]
+            a3 = aux[:, :, aux_idx[2]: aux_idx[3]]
+            a4 = aux[:, :, aux_idx[3]: aux_idx[4]]
 
         x = (
             torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
@@ -256,19 +260,21 @@ class WaveRNN(nn.Module):
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
-    def generate(self, mels, batched, target, overlap):
+    def generate(self, mels, batched, target, overlap, use_cuda):
 
         self.eval()
+        device = 'cuda' if use_cuda else 'cpu'
         output = []
         start = time.time()
         rnn1 = self.get_gru_cell(self.rnn1)
         rnn2 = self.get_gru_cell(self.rnn2)
 
         with torch.no_grad():
-
-            mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
+            mels = torch.FloatTensor(mels).unsqueeze(0).to(device)
+            #mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
             wave_len = (mels.size(-1) - 1) * self.hop_length
-            mels = self.pad_tensor(mels.transpose(1, 2), pad=self.pad, side="both")
+            mels = self.pad_tensor(mels.transpose(
+                1, 2), pad=self.pad, side="both")
             mels, aux = self.upsample(mels.transpose(1, 2))
 
             if batched:
@@ -278,13 +284,13 @@ class WaveRNN(nn.Module):
 
             b_size, seq_len, _ = mels.size()
 
-            h1 = torch.zeros(b_size, self.rnn_dims).cuda()
-            h2 = torch.zeros(b_size, self.rnn_dims).cuda()
-            x = torch.zeros(b_size, 1).cuda()
+            h1 = torch.zeros(b_size, self.rnn_dims).to(device)
+            h2 = torch.zeros(b_size, self.rnn_dims).to(device)
+            x = torch.zeros(b_size, 1).to(device)
 
             if self.use_aux_net:
                 d = self.aux_dims
-                aux_split = [aux[:, :, d * i : d * (i + 1)] for i in range(4)]
+                aux_split = [aux[:, :, d * i: d * (i + 1)] for i in range(4)]
 
             for i in range(seq_len):
 
@@ -319,11 +325,12 @@ class WaveRNN(nn.Module):
                         logits.unsqueeze(0).transpose(1, 2)
                     )
                     output.append(sample.view(-1))
-                    x = sample.transpose(0, 1).cuda()
+                    x = sample.transpose(0, 1).to(device)
                 elif self.mode == "gauss":
-                    sample = sample_from_gaussian(logits.unsqueeze(0).transpose(1, 2))
+                    sample = sample_from_gaussian(
+                        logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
-                    x = sample.transpose(0, 1).cuda()
+                    x = sample.transpose(0, 1).to(device)
                 elif isinstance(self.mode, int):
                     posterior = F.softmax(logits, dim=1)
                     distrib = torch.distributions.Categorical(posterior)
@@ -332,7 +339,8 @@ class WaveRNN(nn.Module):
                     output.append(sample)
                     x = sample.unsqueeze(-1)
                 else:
-                    raise RuntimeError("Unknown model mode value - ", self.mode)
+                    raise RuntimeError(
+                        "Unknown model mode value - ", self.mode)
 
                 if i % 100 == 0:
                     self.gen_display(i, seq_len, b_size, start)
@@ -352,7 +360,7 @@ class WaveRNN(nn.Module):
         # Fade-out at the end to avoid signal cutting out suddenly
         fade_out = np.linspace(1, 0, 20 * self.hop_length)
         output = output[:wave_len]
-        output[-20 * self.hop_length :] *= fade_out
+        output[-20 * self.hop_length:] *= fade_out
 
         self.train()
         return output
@@ -366,7 +374,6 @@ class WaveRNN(nn.Module):
         )
 
     def fold_with_overlap(self, x, target, overlap):
-
         """Fold the tensor with overlap for quick batched inference.
             Overlap will be used for crossfading in xfade_and_unfold()
         Args:
@@ -398,7 +405,7 @@ class WaveRNN(nn.Module):
             padding = target + 2 * overlap - remaining
             x = self.pad_tensor(x, padding, side="after")
 
-        folded = torch.zeros(num_folds, target + 2 * overlap, features).cuda()
+        folded = torch.zeros(num_folds, target + 2 * overlap, features).to(x.device)
 
         # Get the values for the folded tensor
         for i in range(num_folds):
@@ -423,16 +430,15 @@ class WaveRNN(nn.Module):
         # i.e., it won't generalise to other shapes/dims
         b, t, c = x.size()
         total = t + 2 * pad if side == "both" else t + pad
-        padded = torch.zeros(b, total, c).cuda()
+        padded = torch.zeros(b, total, c).to(x.device)
         if side in ("before", "both"):
-            padded[:, pad : pad + t, :] = x
+            padded[:, pad: pad + t, :] = x
         elif side == "after":
             padded[:, :t, :] = x
         return padded
 
     @staticmethod
     def xfade_and_unfold(y, target, overlap):
-
         """Applies a crossfade and unfolds into a 1d array.
         Args:
             y (ndarry)    : Batched sequences of audio samples
