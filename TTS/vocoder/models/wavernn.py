@@ -225,7 +225,7 @@ class WaveRNN(nn.Module):
 
     def forward(self, x, mels):
         bsize = x.size(0)
-        h1 = torch.zeros(1, bsize, self.rnn_dims).to(x.device) 
+        h1 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
         h2 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
         mels, aux = self.upsample(mels)
 
