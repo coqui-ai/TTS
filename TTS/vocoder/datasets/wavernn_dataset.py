@@ -8,17 +8,16 @@ class WaveRNNDataset(Dataset):
     WaveRNN Dataset searchs for all the wav files under root path.
     """
 
-    def __init__(
-        self,
-        ap,
-        items,
-        seq_len,
-        hop_len,
-        pad,
-        mode,
-        is_training=True,
-        verbose=False,
-    ):
+    def __init__(self,
+                 ap,
+                 items,
+                 seq_len,
+                 hop_len,
+                 pad,
+                 mode,
+                 is_training=True,
+                 verbose=False,
+                 ):
 
         self.ap = ap
         self.item_list = items
@@ -56,17 +55,19 @@ class WaveRNNDataset(Dataset):
 
     def collate(self, batch):
         mel_win = self.seq_len // self.hop_len + 2 * self.pad
-        max_offsets = [x[0].shape[-1] - (mel_win + 2 * self.pad) for x in batch]
+        max_offsets = [x[0].shape[-1] -
+                       (mel_win + 2 * self.pad) for x in batch]
         mel_offsets = [np.random.randint(0, offset) for offset in max_offsets]
-        sig_offsets = [(offset + self.pad) * self.hop_len for offset in mel_offsets]
+        sig_offsets = [(offset + self.pad) *
+                       self.hop_len for offset in mel_offsets]
 
         mels = [
-            x[0][:, mel_offsets[i] : mel_offsets[i] + mel_win]
+            x[0][:, mel_offsets[i]: mel_offsets[i] + mel_win]
             for i, x in enumerate(batch)
         ]
 
         coarse = [
-            x[1][sig_offsets[i] : sig_offsets[i] + self.seq_len + 1]
+            x[1][sig_offsets[i]: sig_offsets[i] + self.seq_len + 1]
             for i, x in enumerate(batch)
         ]
 
@@ -79,7 +80,8 @@ class WaveRNNDataset(Dataset):
             coarse = np.stack(coarse).astype(np.int64)
             coarse = torch.LongTensor(coarse)
             x_input = (
-                2 * coarse[:, : self.seq_len].float() / (2 ** self.mode - 1.0) - 1.0
+                2 * coarse[:, : self.seq_len].float() /
+                (2 ** self.mode - 1.0) - 1.0
             )
         y_coarse = coarse[:, 1:]
         mels = torch.FloatTensor(mels)
