@@ -44,43 +44,41 @@ def setup_loader(ap, is_val=False, verbose=False):
     if is_val and not CONFIG.run_eval:
         loader = None
     else:
-        dataset = WaveRNNDataset(
-            ap=ap,
-            items=eval_data if is_val else train_data,
-            seq_len=CONFIG.seq_len,
-            hop_len=ap.hop_length,
-            pad=CONFIG.padding,
-            mode=CONFIG.mode,
-            is_training=not is_val,
-            verbose=verbose,
-        )
+        dataset = WaveRNNDataset(ap=ap,
+                                 items=eval_data if is_val else train_data,
+                                 seq_len=CONFIG.seq_len,
+                                 hop_len=ap.hop_length,
+                                 pad=CONFIG.padding,
+                                 mode=CONFIG.mode,
+                                 is_training=not is_val,
+                                 verbose=verbose,
+                                 )
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        loader = DataLoader(
-            dataset,
-            shuffle=True,
-            collate_fn=dataset.collate,
-            batch_size=CONFIG.batch_size,
-            num_workers=CONFIG.num_val_loader_workers
-            if is_val
-            else CONFIG.num_loader_workers,
-            pin_memory=True,
-        )
+        loader = DataLoader(dataset,
+                            shuffle=True,
+                            collate_fn=dataset.collate,
+                            batch_size=CONFIG.batch_size,
+                            num_workers=CONFIG.num_val_loader_workers
+                            if is_val
+                            else CONFIG.num_loader_workers,
+                            pin_memory=True,
+                            )
     return loader
 
 
 def format_data(data):
     # setup input data
-    x = data[0]
-    m = data[1]
-    y = data[2]
+    x_input = data[0]
+    mels = data[1]
+    y_coarse = data[2]
 
     # dispatch data to GPU
     if use_cuda:
-        x = x.cuda(non_blocking=True)
-        m = m.cuda(non_blocking=True)
-        y = y.cuda(non_blocking=True)
+        x_input = x_input.cuda(non_blocking=True)
+        mels = mels.cuda(non_blocking=True)
+        y_coarse = y_coarse.cuda(non_blocking=True)
 
-    return x, m, y
+    return x_input, mels, y_coarse
 
 
 def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
@@ -90,7 +88,8 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
     epoch_time = 0
     keep_avg = KeepAverage()
     if use_cuda:
-        batch_n_iter = int(len(data_loader.dataset) / (CONFIG.batch_size * num_gpus))
+        batch_n_iter = int(len(data_loader.dataset) /
+                           (CONFIG.batch_size * num_gpus))
     else:
         batch_n_iter = int(len(data_loader.dataset) / CONFIG.batch_size)
     end_time = time.time()
@@ -99,30 +98,31 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
     print(" > Training", flush=True)
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
-        x, m, y = format_data(data)
+        x_input, mels, y_coarse = format_data(data)
         loader_time = time.time() - end_time
         global_step += 1
 
         ##################
         # MODEL TRAINING #
         ##################
-        y_hat = model(x, m)
+        y_hat = model(x_input, mels)
 
         if isinstance(model.mode, int):
             y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
         else:
-            y = y.float()
-        y = y.unsqueeze(-1)
+            y_coarse = y_coarse.float()
+        y_coarse = y_coarse.unsqueeze(-1)
         # m_scaled, _ = model.upsample(m)
 
         # compute losses
-        loss = criterion(y_hat, y)
+        loss = criterion(y_hat, y_coarse)
         if loss.item() is None:
             raise RuntimeError(" [!] None loss. Exiting ...")
         optimizer.zero_grad()
         loss.backward()
         if CONFIG.grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), CONFIG.grad_clip)
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(), CONFIG.grad_clip)
 
         optimizer.step()
         if scheduler is not None:
@@ -145,19 +145,17 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
 
         # print training stats
         if global_step % CONFIG.print_step == 0:
-            log_dict = {
-                "step_time": [step_time, 2],
-                "loader_time": [loader_time, 4],
-                "current_lr": cur_lr,
-            }
-            c_logger.print_train_step(
-                batch_n_iter,
-                num_iter,
-                global_step,
-                log_dict,
-                loss_dict,
-                keep_avg.avg_values,
-            )
+            log_dict = {"step_time": [step_time, 2],
+                        "loader_time": [loader_time, 4],
+                        "current_lr": cur_lr,
+                        }
+            c_logger.print_train_step(batch_n_iter,
+                                      num_iter,
+                                      global_step,
+                                      log_dict,
+                                      loss_dict,
+                                      keep_avg.avg_values,
+                                      )
 
         # plot step stats
         if global_step % 10 == 0:
@@ -169,40 +167,38 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
         if global_step % CONFIG.save_step == 0:
             if CONFIG.checkpoint:
                 # save model
-                save_checkpoint(
-                    model,
-                    optimizer,
-                    scheduler,
-                    None,
-                    None,
-                    None,
-                    global_step,
-                    epoch,
-                    OUT_PATH,
-                    model_losses=loss_dict,
-                )
+                save_checkpoint(model,
+                                optimizer,
+                                scheduler,
+                                None,
+                                None,
+                                None,
+                                global_step,
+                                epoch,
+                                OUT_PATH,
+                                model_losses=loss_dict,
+                                )
 
             # synthesize a full voice
             wav_path = train_data[random.randrange(0, len(train_data))][0]
             wav = ap.load_wav(wav_path)
             ground_mel = ap.melspectrogram(wav)
-            sample_wav = model.generate(
-                ground_mel,
-                CONFIG.batched,
-                CONFIG.target_samples,
-                CONFIG.overlap_samples,
-            )
+            sample_wav = model.generate(ground_mel,
+                                        CONFIG.batched,
+                                        CONFIG.target_samples,
+                                        CONFIG.overlap_samples,
+                                        )
             predict_mel = ap.melspectrogram(sample_wav)
 
             # compute spectrograms
-            figures = {
-                "train/ground_truth": plot_spectrogram(ground_mel.T),
-                "train/prediction": plot_spectrogram(predict_mel.T),
-            }
+            figures = {"train/ground_truth": plot_spectrogram(ground_mel.T),
+                       "train/prediction": plot_spectrogram(predict_mel.T),
+                       }
 
             # Sample audio
             tb_logger.tb_train_audios(
-                global_step, {"train/audio": sample_wav}, CONFIG.audio["sample_rate"]
+                global_step, {
+                    "train/audio": sample_wav}, CONFIG.audio["sample_rate"]
             )
 
             tb_logger.tb_train_figures(global_step, figures)
@@ -234,17 +230,17 @@ def evaluate(model, criterion, ap, global_step, epoch):
         for num_iter, data in enumerate(data_loader):
             start_time = time.time()
             # format data
-            x, m, y = format_data(data)
+            x_input, mels, y_coarse = format_data(data)
             loader_time = time.time() - end_time
             global_step += 1
 
-            y_hat = model(x, m)
+            y_hat = model(x_input, mels)
             if isinstance(model.mode, int):
                 y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
             else:
-                y = y.float()
-            y = y.unsqueeze(-1)
-            loss = criterion(y_hat, y)
+                y_coarse = y_coarse.float()
+            y_coarse = y_coarse.unsqueeze(-1)
+            loss = criterion(y_hat, y_coarse)
             # Compute avg loss
             # if num_gpus > 1:
             #     loss = reduce_tensor(loss.data, num_gpus)
@@ -264,30 +260,31 @@ def evaluate(model, criterion, ap, global_step, epoch):
 
             # print eval stats
             if CONFIG.print_eval:
-                c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
+                c_logger.print_eval_step(
+                    num_iter, loss_dict, keep_avg.avg_values)
 
-    if epoch % CONFIG.test_every_epochs == 0:
+    if epoch % CONFIG.test_every_epochs == 0 and epoch != 0:
         # synthesize a part of data
         wav_path = eval_data[random.randrange(0, len(eval_data))][0]
         wav = ap.load_wav(wav_path)
         ground_mel = ap.melspectrogram(wav[:22000])
-        sample_wav = model.generate(
-            ground_mel,
-            CONFIG.batched,
-            CONFIG.target_samples,
-            CONFIG.overlap_samples,
-        )
+        sample_wav = model.generate(ground_mel,
+                                    CONFIG.batched,
+                                    CONFIG.target_samples,
+                                    CONFIG.overlap_samples,
+                                    use_cuda
+                                    )
         predict_mel = ap.melspectrogram(sample_wav)
 
         # compute spectrograms
-        figures = {
-            "eval/ground_truth": plot_spectrogram(ground_mel.T),
-            "eval/prediction": plot_spectrogram(predict_mel.T),
-        }
+        figures = {"eval/ground_truth": plot_spectrogram(ground_mel.T),
+                   "eval/prediction": plot_spectrogram(predict_mel.T),
+                   }
 
         # Sample audio
         tb_logger.tb_eval_audios(
-            global_step, {"eval/audio": sample_wav}, CONFIG.audio["sample_rate"]
+            global_step, {
+                "eval/audio": sample_wav}, CONFIG.audio["sample_rate"]
         )
 
         tb_logger.tb_eval_figures(global_step, figures)
@@ -372,7 +369,8 @@ def main(args):  # pylint: disable=redefined-outer-name
             model_dict = set_init_dict(model_dict, checkpoint["model"], CONFIG)
             model_wavernn.load_state_dict(model_dict)
 
-        print(" > Model restored from step %d" % checkpoint["step"], flush=True)
+        print(" > Model restored from step %d" %
+              checkpoint["step"], flush=True)
         args.restore_step = checkpoint["step"]
     else:
         args.restore_step = 0
@@ -393,7 +391,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         _, global_step = train(
             model_wavernn, optimizer, criterion, scheduler, ap, global_step, epoch
         )
-        eval_avg_loss_dict = evaluate(model_wavernn, criterion, ap, global_step, epoch)
+        eval_avg_loss_dict = evaluate(
+            model_wavernn, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = eval_avg_loss_dict["avg_model_loss"]
         best_loss = save_best_model(
@@ -493,7 +492,8 @@ if __name__ == "__main__":
         tb_logger = TensorboardLogger(LOG_DIR, model_name="VOCODER")
 
         # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", CONFIG["run_description"], 0)
+        tb_logger.tb_add_text("model-description",
+                              CONFIG["run_description"], 0)
 
     try:
         main(args)
