@@ -126,7 +126,8 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         mean_only=True,
                         hidden_channels_enc=192,
                         hidden_channels_dec=192,
-                        use_encoder_prenet=True)
+                        use_encoder_prenet=True,
+                        external_speaker_embedding_dim=speaker_embedding_dim)
     return model
 
 def is_tacotron(c):
