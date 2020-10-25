@@ -17,7 +17,7 @@ def test_wavernn():
         feat_dims=80,
         compute_dims=128,
         res_out_dims=128,
-        res_blocks=10,
+        num_res_blocks=10,
         hop_length=256,
         sample_rate=22050,
     )

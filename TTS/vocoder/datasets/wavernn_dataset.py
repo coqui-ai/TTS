@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-from multiprocessing import Manager
 
 
 class WaveRNNDataset(Dataset):

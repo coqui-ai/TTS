@@ -23,7 +23,7 @@ test_quant_feat_path = os.path.join(test_data_path, "quant")
 ok_ljspeech = os.path.exists(test_data_path)
 
 
-def wavernn_dataset_case(batch_size, seq_len, hop_len, pad, mode, num_workers):
+def wavernn_dataset_case(batch_size, seq_len, hop_len, pad, mode, mulaw, num_workers):
     """ run dataloader with given parameters and check conditions """
     ap = AudioProcessor(**C.audio)
 
@@ -42,6 +42,7 @@ def wavernn_dataset_case(batch_size, seq_len, hop_len, pad, mode, num_workers):
                              hop_len=hop_len,
                              pad=pad,
                              mode=mode,
+                             mulaw=mulaw
                              )
     # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
     loader = DataLoader(dataset,
@@ -78,13 +79,13 @@ def wavernn_dataset_case(batch_size, seq_len, hop_len, pad, mode, num_workers):
 def test_parametrized_wavernn_dataset():
     ''' test dataloader with different parameters '''
     params = [
-        [16, C.audio['hop_length'] * 10, C.audio['hop_length'], 2, 10, 0],
-        [16, C.audio['hop_length'] * 10, C.audio['hop_length'], 2, "mold", 4],
-        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 2, 9, 0],
-        [1, C.audio['hop_length'], C.audio['hop_length'], 2, 10, 0],
-        [1, C.audio['hop_length'], C.audio['hop_length'], 2, "mold", 0],
-        [1, C.audio['hop_length'] * 5, C.audio['hop_length'], 4, 10, 2],
-        [1, C.audio['hop_length'] * 5, C.audio['hop_length'], 2, "mold", 0],
+        [16, C.audio['hop_length'] * 10, C.audio['hop_length'], 2, 10, True, 0],
+        [16, C.audio['hop_length'] * 10, C.audio['hop_length'], 2, "mold", False, 4],
+        [1, C.audio['hop_length'] * 10, C.audio['hop_length'], 2, 9, False, 0],
+        [1, C.audio['hop_length'], C.audio['hop_length'], 2, 10, True, 0],
+        [1, C.audio['hop_length'], C.audio['hop_length'], 2, "mold", False, 0],
+        [1, C.audio['hop_length'] * 5, C.audio['hop_length'], 4, 10, False, 2],
+        [1, C.audio['hop_length'] * 5, C.audio['hop_length'], 2, "mold", False, 0],
     ]
     for param in params:
         print(param)
