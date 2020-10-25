@@ -28,7 +28,6 @@ from TTS.utils.generic_utils import (
 )
 from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 from TTS.vocoder.datasets.preprocess import (
-    find_feat_files,
     load_wav_data,
     load_wav_feat_data
 )
