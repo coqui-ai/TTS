@@ -51,6 +51,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             tp=c.characters if 'characters' in c.keys() else None,
+            add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
             batch_group_size=0 if is_val else c.batch_group_size *
             c.batch_size,
             min_seq_len=c.min_seq_len,
