@@ -36,14 +36,14 @@ class ResBlock(nn.Module):
 
 
 class MelResNet(nn.Module):
-    def __init__(self, res_blocks, in_dims, compute_dims, res_out_dims, pad):
+    def __init__(self, num_res_blocks, in_dims, compute_dims, res_out_dims, pad):
         super().__init__()
         k_size = pad * 2 + 1
         self.conv_in = nn.Conv1d(
             in_dims, compute_dims, kernel_size=k_size, bias=False)
         self.batch_norm = nn.BatchNorm1d(compute_dims)
         self.layers = nn.ModuleList()
-        for _ in range(res_blocks):
+        for _ in range(num_res_blocks):
             self.layers.append(ResBlock(compute_dims))
         self.conv_out = nn.Conv1d(compute_dims, res_out_dims, kernel_size=1)
 
@@ -76,7 +76,7 @@ class UpsampleNetwork(nn.Module):
         feat_dims,
         upsample_scales,
         compute_dims,
-        res_blocks,
+        num_res_blocks,
         res_out_dims,
         pad,
         use_aux_net,
@@ -87,7 +87,7 @@ class UpsampleNetwork(nn.Module):
         self.use_aux_net = use_aux_net
         if use_aux_net:
             self.resnet = MelResNet(
-                res_blocks, feat_dims, compute_dims, res_out_dims, pad
+                num_res_blocks, feat_dims, compute_dims, res_out_dims, pad
             )
             self.resnet_stretch = Stretch2d(self.total_scale, 1)
         self.up_layers = nn.ModuleList()
@@ -118,14 +118,14 @@ class UpsampleNetwork(nn.Module):
 
 class Upsample(nn.Module):
     def __init__(
-        self, scale, pad, res_blocks, feat_dims, compute_dims, res_out_dims, use_aux_net
+        self, scale, pad, num_res_blocks, feat_dims, compute_dims, res_out_dims, use_aux_net
     ):
         super().__init__()
         self.scale = scale
         self.pad = pad
         self.indent = pad * scale
         self.use_aux_net = use_aux_net
-        self.resnet = MelResNet(res_blocks, feat_dims,
+        self.resnet = MelResNet(num_res_blocks, feat_dims,
                                 compute_dims, res_out_dims, pad)
 
     def forward(self, m):
@@ -147,23 +147,22 @@ class Upsample(nn.Module):
 
 
 class WaveRNN(nn.Module):
-    def __init__(
-        self,
-        rnn_dims,
-        fc_dims,
-        mode,
-        mulaw,
-        pad,
-        use_aux_net,
-        use_upsample_net,
-        upsample_factors,
-        feat_dims,
-        compute_dims,
-        res_out_dims,
-        res_blocks,
-        hop_length,
-        sample_rate,
-    ):
+    def __init__(self,
+                 rnn_dims,
+                 fc_dims,
+                 mode,
+                 mulaw,
+                 pad,
+                 use_aux_net,
+                 use_upsample_net,
+                 upsample_factors,
+                 feat_dims,
+                 compute_dims,
+                 res_out_dims,
+                 num_res_blocks,
+                 hop_length,
+                 sample_rate,
+                 ):
         super().__init__()
         self.mode = mode
         self.mulaw = mulaw
@@ -177,7 +176,7 @@ class WaveRNN(nn.Module):
         elif self.mode == "gauss":
             self.n_classes = 2
         else:
-            raise RuntimeError(" > Unknown training mode")
+            raise RuntimeError("Unknown model mode value - ", self.mode)
 
         self.rnn_dims = rnn_dims
         self.aux_dims = res_out_dims // 4
@@ -192,7 +191,7 @@ class WaveRNN(nn.Module):
                 feat_dims,
                 upsample_factors,
                 compute_dims,
-                res_blocks,
+                num_res_blocks,
                 res_out_dims,
                 pad,
                 use_aux_net,
@@ -201,7 +200,7 @@ class WaveRNN(nn.Module):
             self.upsample = Upsample(
                 hop_length,
                 pad,
-                res_blocks,
+                num_res_blocks,
                 feat_dims,
                 compute_dims,
                 res_out_dims,
@@ -260,7 +259,7 @@ class WaveRNN(nn.Module):
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
-    def generate(self, mels, batched, target, overlap, use_cuda):
+    def generate(self, mels, batched, target, overlap, use_cuda=False):
 
         self.eval()
         device = 'cuda' if use_cuda else 'cpu'
@@ -360,7 +359,9 @@ class WaveRNN(nn.Module):
         # Fade-out at the end to avoid signal cutting out suddenly
         fade_out = np.linspace(1, 0, 20 * self.hop_length)
         output = output[:wave_len]
-        output[-20 * self.hop_length:] *= fade_out
+
+        if wave_len > len(fade_out):
+            output[-20 * self.hop_length:] *= fade_out
 
         self.train()
         return output
@@ -405,7 +406,8 @@ class WaveRNN(nn.Module):
             padding = target + 2 * overlap - remaining
             x = self.pad_tensor(x, padding, side="after")
 
-        folded = torch.zeros(num_folds, target + 2 * overlap, features).to(x.device)
+        folded = torch.zeros(num_folds, target + 2 *
+                             overlap, features).to(x.device)
 
         # Get the values for the folded tensor
         for i in range(num_folds):
