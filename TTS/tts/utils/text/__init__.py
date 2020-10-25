@@ -57,6 +57,10 @@ def text2phone(text, language):
 
     return ph
 
+def intersperse(sequence, token):
+    result = [token] * (len(sequence) * 2 + 1)
+    result[1::2] = sequence
+    return result
 
 def pad_with_eos_bos(phoneme_sequence, tp=None):
     # pylint: disable=global-statement
@@ -69,8 +73,7 @@ def pad_with_eos_bos(phoneme_sequence, tp=None):
 
     return [_phonemes_to_id[_bos]] + list(phoneme_sequence) + [_phonemes_to_id[_eos]]
 
-
-def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None):
+def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None, add_blank=False):
     # pylint: disable=global-statement
     global _phonemes_to_id
     if tp:
@@ -88,6 +91,8 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
     # Append EOS char
     if enable_eos_bos:
         sequence = pad_with_eos_bos(sequence, tp=tp)
+    if add_blank:
+        sequence = intersperse(sequence, len(_phonemes)) # add a blank token (new), whose id number is len(_phonemes)
     return sequence
 
 
@@ -107,7 +112,7 @@ def sequence_to_phoneme(sequence, tp=None):
     return result.replace('}{', ' ')
 
 
-def text_to_sequence(text, cleaner_names, tp=None):
+def text_to_sequence(text, cleaner_names, tp=None, add_blank=False):
     '''Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
 
       The text can optionally have ARPAbet sequences enclosed in curly braces embedded
@@ -137,6 +142,9 @@ def text_to_sequence(text, cleaner_names, tp=None):
             _clean_text(m.group(1), cleaner_names))
         sequence += _arpabet_to_sequence(m.group(2))
         text = m.group(3)
+
+    if add_blank:
+        sequence = intersperse(sequence, len(_symbols)) # add a blank token (new), whose id number is len(_symbols)
     return sequence
 
 
