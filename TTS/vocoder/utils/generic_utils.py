@@ -119,7 +119,7 @@ def setup_generator(c):
             in_channels=c['audio']['num_mels'],
             out_channels=1,
             x_conv_channels=c['model_params']['x_conv_channels'],
-            c_conv_channels=c['model_params']['c_conv_channels'],
+            y_conv_channels=c['model_params']['y_conv_channels'],
             dblock_out_channels=c['model_params']['dblock_out_channels'],
             ublock_out_channels=c['model_params']['ublock_out_channels'],
             upsample_factors=c['model_params']['upsample_factors'],
