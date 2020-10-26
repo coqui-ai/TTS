@@ -16,6 +16,8 @@ _id_to_symbol = {i: s for i, s in enumerate(symbols)}
 _phonemes_to_id = {s: i for i, s in enumerate(phonemes)}
 _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 
+_symbols = symbols
+_phonemes = phonemes
 # Regular expression matching text enclosed in curly braces:
 _CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
@@ -75,7 +77,7 @@ def pad_with_eos_bos(phoneme_sequence, tp=None):
 
 def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None, add_blank=False):
     # pylint: disable=global-statement
-    global _phonemes_to_id
+    global _phonemes_to_id, _phonemes
     if tp:
         _, _phonemes = make_symbols(**tp)
         _phonemes_to_id = {s: i for i, s in enumerate(_phonemes)}
@@ -96,10 +98,12 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
     return sequence
 
 
-def sequence_to_phoneme(sequence, tp=None):
+def sequence_to_phoneme(sequence, tp=None, add_blank=False):
     # pylint: disable=global-statement
     '''Converts a sequence of IDs back to a string'''
-    global _id_to_phonemes
+    global _id_to_phonemes, _phonemes
+    if add_blank:
+        sequence = list(filter(lambda x: x != len(_phonemes), sequence))
     result = ''
     if tp:
         _, _phonemes = make_symbols(**tp)
@@ -126,7 +130,7 @@ def text_to_sequence(text, cleaner_names, tp=None, add_blank=False):
         List of integers corresponding to the symbols in the text
     '''
     # pylint: disable=global-statement
-    global _symbol_to_id
+    global _symbol_to_id, _symbols
     if tp:
         _symbols, _ = make_symbols(**tp)
         _symbol_to_id = {s: i for i, s in enumerate(_symbols)}
@@ -148,10 +152,13 @@ def text_to_sequence(text, cleaner_names, tp=None, add_blank=False):
     return sequence
 
 
-def sequence_to_text(sequence, tp=None):
+def sequence_to_text(sequence, tp=None, add_blank=False):
     '''Converts a sequence of IDs back to a string'''
     # pylint: disable=global-statement
-    global _id_to_symbol
+    global _id_to_symbol, _symbols
+    if add_blank:
+        sequence = list(filter(lambda x: x != len(_symbols), sequence))
+
     if tp:
         _symbols, _ = make_symbols(**tp)
         _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
