@@ -17,5 +17,6 @@ fi
 if [[ "$TEST_SUITE" == "testscripts" ]]; then
    # test model training scripts
   ./tests/test_tts_train.sh
-  ./tests/test_vocoder_train.sh
+  ./tests/test_vocoder_gan_train.sh
+  ./tests/test_vocoder_wavernn_train.sh
 fi

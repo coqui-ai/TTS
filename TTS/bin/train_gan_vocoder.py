@@ -326,7 +326,6 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
             y_hat = model_G.pqmf_synthesis(y_hat)
             y_G_sub = model_G.pqmf_analysis(y_G)
 
-
         scores_fake, feats_fake, feats_real = None, None, None
         if global_step > c.steps_to_start_discriminator:
 
@@ -403,7 +402,6 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
                 else:
                     loss_dict[key] = value.item()
 
-
         step_time = time.time() - start_time
         epoch_time += step_time
 
@@ -443,7 +441,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     print(f" > Loading wavs from: {c.data_path}")
     if c.feature_path is not None:
         print(f" > Loading features from: {c.feature_path}")
-        eval_data, train_data = load_wav_feat_data(c.data_path, c.feature_path, c.eval_split_size)
+        eval_data, train_data = load_wav_feat_data(
+            c.data_path, c.feature_path, c.eval_split_size)
     else:
         eval_data, train_data = load_wav_data(c.data_path, c.eval_split_size)
 
@@ -470,10 +469,12 @@ def main(args):  # pylint: disable=redefined-outer-name
     scheduler_disc = None
     if 'lr_scheduler_gen' in c:
         scheduler_gen = getattr(torch.optim.lr_scheduler, c.lr_scheduler_gen)
-        scheduler_gen = scheduler_gen(optimizer_gen, **c.lr_scheduler_gen_params)
+        scheduler_gen = scheduler_gen(
+            optimizer_gen, **c.lr_scheduler_gen_params)
     if 'lr_scheduler_disc' in c:
         scheduler_disc = getattr(torch.optim.lr_scheduler, c.lr_scheduler_disc)
-        scheduler_disc = scheduler_disc(optimizer_disc, **c.lr_scheduler_disc_params)
+        scheduler_disc = scheduler_disc(
+            optimizer_disc, **c.lr_scheduler_disc_params)
 
     # setup criterion
     criterion_gen = GeneratorLoss(c)
@@ -572,8 +573,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--continue_path',
         type=str,
-        help=
-        'Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
+        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
         default='',
         required='--config_path' not in sys.argv)
     parser.add_argument(

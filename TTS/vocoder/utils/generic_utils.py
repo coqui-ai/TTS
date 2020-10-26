@@ -42,6 +42,29 @@ def to_camel(text):
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
 
+def setup_wavernn(c):
+    print(" > Model: WaveRNN")
+    MyModel = importlib.import_module("TTS.vocoder.models.wavernn")
+    MyModel = getattr(MyModel, "WaveRNN")
+    model = MyModel(
+        rnn_dims=c.wavernn_model_params['rnn_dims'],
+        fc_dims=c.wavernn_model_params['fc_dims'],
+        mode=c.mode,
+        mulaw=c.mulaw,
+        pad=c.padding,
+        use_aux_net=c.wavernn_model_params['use_aux_net'],
+        use_upsample_net=c.wavernn_model_params['use_upsample_net'],
+        upsample_factors=c.wavernn_model_params['upsample_factors'],
+        feat_dims=c.audio['num_mels'],
+        compute_dims=c.wavernn_model_params['compute_dims'],
+        res_out_dims=c.wavernn_model_params['res_out_dims'],
+        num_res_blocks=c.wavernn_model_params['num_res_blocks'],
+        hop_length=c.audio["hop_length"],
+        sample_rate=c.audio["sample_rate"],
+    )
+    return model
+
+
 def setup_generator(c):
     print(" > Generator Model: {}".format(c.generator_model))
     MyModel = importlib.import_module('TTS.vocoder.models.' +
