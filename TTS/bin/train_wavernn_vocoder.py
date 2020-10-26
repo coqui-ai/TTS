@@ -95,7 +95,6 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
     end_time = time.time()
     c_logger.print_train_start()
     # train loop
-    print(" > Training", flush=True)
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
         x_input, mels, y_coarse = format_data(data)
