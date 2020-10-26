@@ -28,7 +28,6 @@ class WaveGradDataset(Dataset):
 
         self.ap = ap
         self.item_list = items
-        self.compute_feat = not isinstance(items[0], (tuple, list))
         self.seq_len = seq_len
         self.hop_len = hop_len
         self.pad_short = pad_short
@@ -64,57 +63,49 @@ class WaveGradDataset(Dataset):
 
     def load_test_samples(self, num_samples):
         samples = []
+        return_segments = self.return_segments
+        self.return_segments = False
         for idx in range(num_samples):
             mel, audio = self.load_item(idx)
             samples.append([mel, audio])
+        self.return_segments = return_segments
         return samples
 
     def load_item(self, idx):
         """ load (audio, feat) couple """
-        if self.compute_feat:
-            # compute features from wav
-            wavpath = self.item_list[idx]
-            # print(wavpath)
+        # compute features from wav
+        wavpath = self.item_list[idx]
 
-            if self.use_cache and self.cache[idx] is not None:
-                audio, mel = self.cache[idx]
-            else:
-                audio = self.ap.load_wav(wavpath)
-
-                if len(audio) < self.seq_len + self.pad_short:
-                    audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
-                            mode='constant', constant_values=0.0)
-
-                mel = self.ap.melspectrogram(audio)
+        if self.use_cache and self.cache[idx] is not None:
+            audio = self.cache[idx]
         else:
+            audio = self.ap.load_wav(wavpath)
 
-            # load precomputed features
-            wavpath, feat_path = self.item_list[idx]
+            # correct audio length wrt segment length
+            if audio.shape[-1] < self.seq_len + self.pad_short:
+                audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
+                        mode='constant', constant_values=0.0)
+            assert audio.shape[-1] >= self.seq_len + self.pad_short, f"{audio.shape[-1]} vs {self.seq_len + self.pad_short}"
 
-            if self.use_cache and self.cache[idx] is not None:
-                audio, mel = self.cache[idx]
-            else:
-                audio = self.ap.load_wav(wavpath)
-                mel = np.load(feat_path)
+            # correct the audio length wrt hop length
+            p = (audio.shape[-1] // self.hop_len + 1) * self.hop_len - audio.shape[-1]
+            audio = np.pad(audio, (0, p), mode='constant', constant_values=0.0)
 
-        # correct the audio length wrt padding applied in stft
-        audio = np.pad(audio, (0, self.hop_len), mode="edge")
-        audio = audio[:mel.shape[-1] * self.hop_len]
-        assert mel.shape[-1] * self.hop_len == audio.shape[-1], f' [!] {mel.shape[-1] * self.hop_len} vs {audio.shape[-1]}'
-
-        audio = torch.from_numpy(audio).float().unsqueeze(0)
-        mel = torch.from_numpy(mel).float().squeeze(0)
+            if self.use_cache:
+                self.cache[idx] = audio
 
         if self.return_segments:
-            max_mel_start = mel.shape[1] - self.feat_frame_len
-            mel_start = random.randint(0, max_mel_start)
-            mel_end = mel_start + self.feat_frame_len
-            mel = mel[:, mel_start:mel_end]
-
-            audio_start = mel_start * self.hop_len
-            audio = audio[:, audio_start:audio_start +
-                          self.seq_len]
+            max_start = len(audio) - self.seq_len
+            start = random.randint(0, max_start)
+            end = start + self.seq_len
+            audio = audio[start:end]
 
         if self.use_noise_augment and self.is_training and self.return_segments:
             audio = audio + (1 / 32768) * torch.randn_like(audio)
+
+        mel = self.ap.melspectrogram(audio)
+        mel = mel[..., :-1]
+
+        audio = torch.from_numpy(audio).float()
+        mel = torch.from_numpy(mel).float().squeeze(0)
         return (mel, audio)
