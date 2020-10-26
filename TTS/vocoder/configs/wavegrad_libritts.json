@@ -30,11 +30,11 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": "/home/erogol/Data/libritts/LibriTTS/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": "/home/erogol/Data/libritts/LibriTTS/scale_stats_wavegrad.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
 
     // DISTRIBUTED TRAINING
-    "apex_amp_level": null,     // APEX amp optimization level. "O1" is currently supported.
+    "apex_amp_level": "O1",     // APEX amp optimization level. "O1" is currently supported.
     "distributed":{
         "backend": "nccl",
         "url": "tcp:\/\/localhost:54322"
@@ -45,8 +45,8 @@
     // MODEL PARAMETERS
     "generator_model": "wavegrad",
     "model_params":{
-        "x_conv_channels":32,
-        "c_conv_channels":768,
+        "y_conv_channels":32,
+        "x_conv_channels":768,
         "ublock_out_channels": [512, 512, 256, 128, 128],
         "dblock_out_channels": [128, 128, 256, 512],
         "upsample_factors": [4, 4, 4, 2, 2],
@@ -62,15 +62,15 @@
     "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/",  // root data path. It finds all wav files recursively from there.
     "feature_path": null,   // if you use precomputed features
     "seq_len": 6144,        // 24 * hop_length
-    "pad_short": 2000,      // additional padding for short wavs
+    "pad_short": 0,      // additional padding for short wavs
     "conv_pad": 0,          // additional padding against convolutions applied to spectrograms
     "use_noise_augment": false,     // add noise to the audio signal for augmentation
-    "use_cache": true,      // use in memory cache to keep the computed features. This might cause OOM.
+    "use_cache": false,      // use in memory cache to keep the computed features. This might cause OOM.
 
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 64,      // Batch size for training.
+    "batch_size": 96,      // Batch size for training.
     "train_noise_schedule":{
         "min_val": 1e-6,
         "max_val": 1e-2,
@@ -87,7 +87,7 @@
 
     // OPTIMIZER
     "epochs": 10000,                // total number of epochs to train.
-    "clip_grad": 1,                 // Generator gradient clipping threshold. Apply gradient clipping if > 0
+    "clip_grad": 1.0,                 // Generator gradient clipping threshold. Apply gradient clipping if > 0
     "lr_scheduler": "MultiStepLR",  // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
     "lr_scheduler_params": {
         "gamma": 0.5,
@@ -96,16 +96,16 @@
     "lr": 1e-4,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
 
     // TENSORBOARD and LOGGING
-    "print_step": 25,       // Number of steps to log traning on console.
+    "print_step": 50,       // Number of steps to log traning on console.
     "print_eval": false,     // If True, it prints loss values for each step in eval run.
     "save_step": 10000,      // Number of training steps expected to plot training stats on TB and save model checkpoints.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
-    "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
+    "tb_model_param_stats": true,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
     // DATA LOADING
     "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
-    "eval_split_size": 10,
+    "eval_split_size": 256,
 
     // PATHS
     "output_path": "/home/erogol/Models/LJSpeech/"
