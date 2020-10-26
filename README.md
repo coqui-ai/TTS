@@ -11,19 +11,22 @@
 
 <br/>
 
+Mozilla TTS is a deep learning based Text2Speech project, low in cost and high in quality.
+
 This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en).
 
-Mozilla TTS aims a deep learning based Text2Speech engine, low in cost and high in quality.
+English Voice Samples: https://erogol.github.io/ddc-samples/
 
-You can check some of synthesized voice samples from [here](https://erogol.github.io/ddc-samples/).
+TTS training recipes: https://github.com/erogol/TTS_recipes
 
-If you are new, you can also find [here](http://www.erogol.com/text-speech-deep-learning-architectures/) a brief post about some of TTS architectures and [here](https://github.com/erogol/TTS-papers) list of up-to-date research papers.
+TTS paper collection: https://github.com/erogol/TTS-papers
 
 [![](https://sourcerer.io/fame/erogol/erogol/TTS/images/0)](https://sourcerer.io/fame/erogol/erogol/TTS/links/0)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/1)](https://sourcerer.io/fame/erogol/erogol/TTS/links/1)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/2)](https://sourcerer.io/fame/erogol/erogol/TTS/links/2)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/3)](https://sourcerer.io/fame/erogol/erogol/TTS/links/3)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/4)](https://sourcerer.io/fame/erogol/erogol/TTS/links/4)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/5)](https://sourcerer.io/fame/erogol/erogol/TTS/links/5)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/6)](https://sourcerer.io/fame/erogol/erogol/TTS/links/6)[![](https://sourcerer.io/fame/erogol/erogol/TTS/images/7)](https://sourcerer.io/fame/erogol/erogol/TTS/links/7)
 
 ## TTS Performance
-<p align="center"><img src="https://camo.githubusercontent.com/9fa79f977015e55eb9ec7aa32045555f60d093d3/68747470733a2f2f646973636f757273652d706161732d70726f64756374696f6e2d636f6e74656e742e73332e6475616c737461636b2e75732d656173742d312e616d617a6f6e6177732e636f6d2f6f7074696d697a65642f33582f362f342f363432386639383065396563373531633234386535393134363038393566373838316165633063365f325f363930783339342e706e67"/></p>
+<p align="center"><img src="https://discourse-prod-uploads-81679984178418.s3.dualstack.us-west-2.amazonaws.com/optimized/3X/6/4/6428f980e9ec751c248e591460895f7881aec0c6_2_1035x591.png" width="800" /></p>
 
+"Mozilla*" and "Judy*" are our models. 
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
 ## Provided Models and Methods
