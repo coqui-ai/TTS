@@ -71,8 +71,8 @@ You can also help us implement more models. Some TTS related work can be found [
 ## Main Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
   * python>=3.6
-  * pytorch>=1.4.1
-  * tensorflow>=2.2
+  * pytorch>=1.5.0
+  * tensorflow>=2.3
   * librosa
   * tensorboard
   * tensorboardX
@@ -164,7 +164,7 @@ To continue an old training run, use ```--continue_path```.
 
 For multi-GPU training use ```distribute.py```. It enables process based multi-GPU training where each process uses a single GPU.
 
-```CUDA_VISIBLE_DEVICES="0,1,4" TTS/bin/distribute.py --config_path TTS/tts/configs/config.json```
+```CUDA_VISIBLE_DEVICES="0,1,4" TTS/bin/distribute.py --script train_tts.py --config_path TTS/tts/configs/config.json```
 
 Each run creates a new output folder and ```config.json``` is copied under this folder.
 
@@ -219,3 +219,4 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
 - https://github.com/kan-bayashi/ParallelWaveGAN (vocoder library)
 - https://github.com/jaywalnut310/glow-tts (Original Glow-TTS implementation)
+- https://github.com/fatchord/WaveRNN/ (WaveRNN implementation)
