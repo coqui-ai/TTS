@@ -22,8 +22,7 @@ from TTS.tts.utils.distribute import (DistributedSampler,
 from TTS.tts.utils.generic_utils import setup_model, check_config_tts
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
-from TTS.tts.utils.speakers import (get_speakers, load_speaker_mapping,
-                                    save_speaker_mapping)
+from TTS.tts.utils.speakers import parse_speakers, load_speaker_mapping
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -52,6 +51,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             tp=c.characters if 'characters' in c.keys() else None,
+            add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
             batch_group_size=0 if is_val else c.batch_group_size *
             c.batch_size,
             min_seq_len=c.min_seq_len,
@@ -502,42 +502,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         meta_data_eval = meta_data_eval[:int(len(meta_data_eval) * c.eval_portion)]
 
     # parse speakers
-    if c.use_speaker_embedding:
-        speakers = get_speakers(meta_data_train)
-        if args.restore_path:
-            if c.use_external_speaker_embedding_file: # if restore checkpoint and use External Embedding file
-                prev_out_path = os.path.dirname(args.restore_path)
-                speaker_mapping = load_speaker_mapping(prev_out_path)
-                if not speaker_mapping:
-                    print("WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file")
-                    speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
-                    if not speaker_mapping:
-                        raise RuntimeError("You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file")
-                speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]['embedding'])
-            elif not c.use_external_speaker_embedding_file: # if restore checkpoint and don't use External Embedding file
-                prev_out_path = os.path.dirname(args.restore_path)
-                speaker_mapping = load_speaker_mapping(prev_out_path)
-                speaker_embedding_dim = None
-                assert all([speaker in speaker_mapping
-                            for speaker in speakers]), "As of now you, you cannot " \
-                                                    "introduce new speakers to " \
-                                                    "a previously trained model."
-        elif c.use_external_speaker_embedding_file and c.external_speaker_embedding_file: # if start new train using External Embedding file
-            speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
-            speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]['embedding'])
-        elif c.use_external_speaker_embedding_file and not c.external_speaker_embedding_file: # if start new train using External Embedding file and don't pass external embedding file
-            raise "use_external_speaker_embedding_file is True, so you need pass a external speaker embedding file, run GE2E-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb or AngularPrototypical-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb notebook in notebooks/ folder"
-        else: # if start new train and don't use External Embedding file
-            speaker_mapping = {name: i for i, name in enumerate(speakers)}
-            speaker_embedding_dim = None
-        save_speaker_mapping(OUT_PATH, speaker_mapping)
-        num_speakers = len(speaker_mapping)
-        print("Training with {} speakers: {}".format(num_speakers,
-                                                     ", ".join(speakers)))
-    else:
-        num_speakers = 0
-        speaker_embedding_dim = None
-        speaker_mapping = None
+    num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
 
     model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim)
 
