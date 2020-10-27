@@ -26,7 +26,7 @@ TTS paper collection: https://github.com/erogol/TTS-papers
 ## TTS Performance
 <p align="center"><img src="https://discourse-prod-uploads-81679984178418.s3.dualstack.us-west-2.amazonaws.com/optimized/3X/6/4/6428f980e9ec751c248e591460895f7881aec0c6_2_1035x591.png" width="800" /></p>
 
-"Mozilla*" and "Judy*" are our models. 
+"Mozilla*" and "Judy*" are our models.
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
 ## Provided Models and Methods
@@ -48,6 +48,7 @@ Vocoders:
 - MelGAN: [paper](https://arxiv.org/abs/1710.10467)
 - MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
 - GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
+- WaveRNN: [origin][https://github.com/fatchord/WaveRNN/]
 
 You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
