@@ -7,6 +7,8 @@ from torch.nn import functional
 from TTS.tts.utils.generic_utils import sequence_mask
 
 
+# pylint: disable=abstract-method Method
+# relates https://github.com/pytorch/pytorch/issues/42305
 class L1LossMasked(nn.Module):
     def __init__(self, seq_len_norm):
         super().__init__()
@@ -145,9 +147,8 @@ class DifferentailSpectralLoss(nn.Module):
         target_diff = target[:, 1:] - target[:, :-1]
         if len(signature(self.loss_func).parameters) > 2:
             return self.loss_func(x_diff, target_diff, length-1)
-        else:
-            # if loss masking is not enabled
-            return self.loss_func(x_diff, target_diff)
+        # if loss masking is not enabled
+        return self.loss_func(x_diff, target_diff)
 
 
 class GuidedAttentionLoss(torch.nn.Module):
