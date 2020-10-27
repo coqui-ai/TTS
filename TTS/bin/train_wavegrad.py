@@ -7,10 +7,7 @@ import traceback
 
 import torch
 # DISTRIBUTED
-try:
-    from apex.parallel import DistributedDataParallel as DDP_apex
-except:
-    from torch.nn.parallel import DistributedDataParallel as DDP_th
+from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -82,7 +79,7 @@ def format_test_data(data):
 
 
 def train(model, criterion, optimizer,
-          scheduler, ap, global_step, epoch, amp):
+          scheduler, ap, global_step, epoch):
     data_loader = setup_loader(ap, is_val=False, verbose=(epoch == 0))
     model.train()
     epoch_time = 0
@@ -104,6 +101,7 @@ def train(model, criterion, optimizer,
         model.compute_noise_level(noise_schedule['num_steps'],
                                   noise_schedule['min_val'],
                                   noise_schedule['max_val'])
+    scaler = torch.cuda.amp.GradScaler()
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -113,38 +111,45 @@ def train(model, criterion, optimizer,
 
         global_step += 1
 
-        # compute noisy input
-        if hasattr(model, 'module'):
-            noise, x_noisy, noise_scale = model.module.compute_y_n(x)
-        else:
-            noise, x_noisy, noise_scale = model.compute_y_n(x)
+        with torch.cuda.amp.autocast():
+            # compute noisy input
+            if hasattr(model, 'module'):
+                noise, x_noisy, noise_scale = model.module.compute_y_n(x)
+            else:
+                noise, x_noisy, noise_scale = model.compute_y_n(x)
 
-        # forward pass
-        noise_hat = model(x_noisy, m, noise_scale)
+            # forward pass
+            noise_hat = model(x_noisy, m, noise_scale)
 
-        # compute losses
-        loss = criterion(noise, noise_hat)
-        # if loss.item() > 100:
-        #     breakpoint()
+            # compute losses
+            loss = criterion(noise, noise_hat)
         loss_wavegrad_dict = {'wavegrad_loss':loss}
 
-        # backward pass with loss scaling
+        # check nan loss
+        if torch.isnan(loss).any():
+          raise RuntimeError(f'Detected NaN loss at step {self.step}.')
+
         optimizer.zero_grad()
 
-        if amp is not None:
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-        else:
-            loss.backward()
-
-        if c.clip_grad > 0:
-            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           c.clip_grad)
-        optimizer.step()
-
-        # schedule update
+         # schedule update
         if scheduler is not None:
             scheduler.step()
+
+        # backward pass with loss scaling
+        if c.mixed_precision:
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                           c.clip_grad)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                           c.clip_grad)
+            optimizer.step()
+
+
 
         # disconnect loss values
         loss_dict = dict()
@@ -175,7 +180,7 @@ def train(model, criterion, optimizer,
                 'step_time': [step_time, 2],
                 'loader_time': [loader_time, 4],
                 "current_lr": current_lr,
-                "grad_norm": grad_norm
+                "grad_norm": grad_norm.item()
             }
             c_logger.print_train_step(batch_n_iter, num_iter, global_step,
                                       log_dict, loss_dict, keep_avg.avg_values)
@@ -185,7 +190,7 @@ def train(model, criterion, optimizer,
             if global_step % 10 == 0:
                 iter_stats = {
                     "lr": current_lr,
-                    "grad_norm": grad_norm,
+                    "grad_norm": grad_norm.item(),
                     "step_time": step_time
                 }
                 iter_stats.update(loss_dict)
@@ -335,16 +340,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     # setup optimizers
     optimizer = Adam(model.parameters(), lr=c.lr, weight_decay=0)
 
-    # DISTRIBUTED
-    if c.apex_amp_level is not None:
-        # pylint: disable=import-outside-toplevel
-        from apex import amp
-        model.cuda()
-        # optimizer.cuda()
-        model, optimizer = amp.initialize(model, optimizer, opt_level=c.apex_amp_level)
-    else:
-        amp = None
-
     # schedulers
     scheduler = None
     if 'lr_scheduler' in c:
@@ -373,10 +368,6 @@ def main(args):  # pylint: disable=redefined-outer-name
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)
             model.load_state_dict(model_dict)
             del model_dict
-
-        # DISTRUBUTED
-        if amp and 'amp' in checkpoint:
-            amp.load_state_dict(checkpoint['amp'])
 
         # reset lr if not countinuining training.
         for group in optimizer.param_groups:
@@ -410,7 +401,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         c_logger.print_epoch_start(epoch, c.epochs)
         _, global_step = train(model, criterion, optimizer,
                                scheduler, ap, global_step,
-                               epoch, amp)
+                               epoch)
         eval_avg_loss_dict = evaluate(model, criterion, ap,
                                       global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
@@ -426,8 +417,7 @@ def main(args):  # pylint: disable=redefined-outer-name
                                     global_step,
                                     epoch,
                                     OUT_PATH,
-                                    model_losses=eval_avg_loss_dict,
-                                    amp_state_dict=amp.state_dict() if amp else None)
+                                    model_losses=eval_avg_loss_dict)
 
 
 if __name__ == '__main__':
@@ -481,8 +471,8 @@ if __name__ == '__main__':
     _ = os.path.dirname(os.path.realpath(__file__))
 
     # DISTRIBUTED
-    if c.apex_amp_level is not None:
-        print("   >  apex AMP level: ", c.apex_amp_level)
+    if c.mixed_precision:
+        print("   >  Mixed precision is enabled")
 
     OUT_PATH = args.continue_path
     if args.continue_path == '':

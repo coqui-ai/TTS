@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils import weight_norm
 
 from math import log as ln
 
@@ -13,36 +14,59 @@ class Conv1d(nn.Conv1d):
         nn.init.zeros_(self.bias)
 
 
+# class PositionalEncoding(nn.Module):
+#     def __init__(self, n_channels):
+#         super().__init__()
+#         self.n_channels = n_channels
+#         self.length = n_channels // 2
+#         assert n_channels % 2 == 0
+
+#     def forward(self, x, noise_level):
+#         """
+#         Shapes:
+#             x: B x C x T
+#             noise_level: B
+#         """
+#         return (x + self.encoding(noise_level)[:, :, None])
+
+#     def encoding(self, noise_level):
+#         step = torch.arange(
+#             self.length, dtype=noise_level.dtype, device=noise_level.device) / self.length
+#         encoding = noise_level.unsqueeze(1) * torch.exp(
+#             -ln(1e4) * step.unsqueeze(0))
+#         encoding = torch.cat([torch.sin(encoding), torch.cos(encoding)], dim=-1)
+#         return encoding
+
+
 class PositionalEncoding(nn.Module):
-    def __init__(self, n_channels):
+    def __init__(self, n_channels, max_len=10000):
         super().__init__()
         self.n_channels = n_channels
-        self.length = n_channels // 2
-        assert n_channels % 2 == 0
+        self.max_len = max_len
+        self.C = 5000
+        self.pe = torch.zeros(0, 0)
 
     def forward(self, x, noise_level):
-        """
-        Shapes:
-            x: B x C x T
-            noise_level: B
-        """
-        return (x + self.encoding(noise_level)[:, :, None])
+        if x.shape[2] > self.pe.shape[1]:
+            self.init_pe_matrix(x.shape[1] ,x.shape[2], x)
+        return x + noise_level[..., None, None] + self.pe[:, :x.size(2)].repeat(x.shape[0], 1, 1) / self.C
 
-    def encoding(self, noise_level):
-        step = torch.arange(
-            self.length, dtype=noise_level.dtype, device=noise_level.device) / self.length
-        encoding = noise_level.unsqueeze(1) * torch.exp(
-            -ln(1e4) * step.unsqueeze(0))
-        encoding = torch.cat([torch.sin(encoding), torch.cos(encoding)], dim=-1)
-        return encoding
+    def init_pe_matrix(self, n_channels, max_len, x):
+        pe = torch.zeros(max_len, n_channels)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.pow(10000, torch.arange(0, n_channels, 2).float() / n_channels)
+
+        pe[:, 0::2] = torch.sin(position / div_term)
+        pe[:, 1::2] = torch.cos(position / div_term)
+        self.pe = pe.transpose(0, 1).to(x)
 
 
 class FiLM(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.encoding = PositionalEncoding(input_size)
-        self.input_conv = nn.Conv1d(input_size, input_size, 3, padding=1)
-        self.output_conv = nn.Conv1d(input_size, output_size * 2, 3, padding=1)
+        self.input_conv = weight_norm(nn.Conv1d(input_size, input_size, 3, padding=1))
+        self.output_conv = weight_norm(nn.Conv1d(input_size, output_size * 2, 3, padding=1))
         self.ini_parameters()
 
     def ini_parameters(self):
@@ -72,30 +96,30 @@ class UBlock(nn.Module):
         assert len(dilation) == 4
 
         self.factor = factor
-        self.block1 = Conv1d(input_size, hidden_size, 1)
+        self.block1 = weight_norm(Conv1d(input_size, hidden_size, 1))
         self.block2 = nn.ModuleList([
-            Conv1d(input_size,
+            weight_norm(Conv1d(input_size,
                    hidden_size,
                    3,
                    dilation=dilation[0],
-                   padding=dilation[0]),
-            Conv1d(hidden_size,
+                   padding=dilation[0])),
+            weight_norm(Conv1d(hidden_size,
                    hidden_size,
                    3,
                    dilation=dilation[1],
-                   padding=dilation[1])
+                   padding=dilation[1]))
         ])
         self.block3 = nn.ModuleList([
-            Conv1d(hidden_size,
+            weight_norm(Conv1d(hidden_size,
                    hidden_size,
                    3,
                    dilation=dilation[2],
-                   padding=dilation[2]),
-            Conv1d(hidden_size,
+                   padding=dilation[2])),
+            weight_norm(Conv1d(hidden_size,
                    hidden_size,
                    3,
                    dilation=dilation[3],
-                   padding=dilation[3])
+                   padding=dilation[3]))
         ])
 
     def forward(self, x, shift, scale):
@@ -129,11 +153,11 @@ class DBlock(nn.Module):
     def __init__(self, input_size, hidden_size, factor):
         super().__init__()
         self.factor = factor
-        self.residual_dense = Conv1d(input_size, hidden_size, 1)
+        self.residual_dense = weight_norm(Conv1d(input_size, hidden_size, 1))
         self.conv = nn.ModuleList([
-            Conv1d(input_size, hidden_size, 3, dilation=1, padding=1),
-            Conv1d(hidden_size, hidden_size, 3, dilation=2, padding=2),
-            Conv1d(hidden_size, hidden_size, 3, dilation=4, padding=4),
+            weight_norm(Conv1d(input_size, hidden_size, 3, dilation=1, padding=1)),
+            weight_norm(Conv1d(hidden_size, hidden_size, 3, dilation=2, padding=2)),
+            weight_norm(Conv1d(hidden_size, hidden_size, 3, dilation=4, padding=4)),
         ])
 
     def forward(self, x):
