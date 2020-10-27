@@ -37,7 +37,8 @@ class GlowTts(nn.Module):
                  hidden_channels_enc=None,
                  hidden_channels_dec=None,
                  use_encoder_prenet=False,
-                 encoder_type="transformer"):
+                 encoder_type="transformer",
+                 external_speaker_embedding_dim=None):
 
         super().__init__()
         self.num_chars = num_chars
@@ -67,6 +68,14 @@ class GlowTts(nn.Module):
         self.use_encoder_prenet = use_encoder_prenet
         self.noise_scale = 0.66
         self.length_scale = 1.
+        self.external_speaker_embedding_dim = external_speaker_embedding_dim
+
+        # if is a multispeaker and c_in_channels is 0, set to 256
+        if num_speakers > 1:
+            if self.c_in_channels == 0 and not self.external_speaker_embedding_dim:
+                self.c_in_channels = 512
+            elif self.external_speaker_embedding_dim:
+                self.c_in_channels = self.external_speaker_embedding_dim
 
         self.encoder = Encoder(num_chars,
                                out_channels=out_channels,
@@ -80,7 +89,7 @@ class GlowTts(nn.Module):
                                dropout_p=dropout_p,
                                mean_only=mean_only,
                                use_prenet=use_encoder_prenet,
-                               c_in_channels=c_in_channels)
+                               c_in_channels=self.c_in_channels)
 
         self.decoder = Decoder(out_channels,
                                hidden_channels_dec or hidden_channels,
@@ -92,10 +101,10 @@ class GlowTts(nn.Module):
                                num_splits=num_splits,
                                num_sqz=num_sqz,
                                sigmoid_scale=sigmoid_scale,
-                               c_in_channels=c_in_channels)
+                               c_in_channels=self.c_in_channels)
 
-        if num_speakers > 1:
-            self.emb_g = nn.Embedding(num_speakers, c_in_channels)
+        if num_speakers > 1 and not external_speaker_embedding_dim:
+            self.emb_g = nn.Embedding(num_speakers, self.c_in_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
     @staticmethod
@@ -122,7 +131,11 @@ class GlowTts(nn.Module):
         y_max_length = y.size(2)
         # norm speaker embeddings
         if g is not None:
-            g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
+            if self.external_speaker_embedding_dim:
+                g = F.normalize(g).unsqueeze(-1)
+            else:
+                g = F.normalize(self.emb_g(g)).unsqueeze(-1)# [b, h]
+
         # embedding pass
         o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
                                                               x_lengths,
@@ -157,8 +170,13 @@ class GlowTts(nn.Module):
 
     @torch.no_grad()
     def inference(self, x, x_lengths, g=None):
+
         if g is not None:
-            g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
+            if self.external_speaker_embedding_dim:
+                g = F.normalize(g).unsqueeze(-1)
+            else:
+                g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
+
         # embedding pass
         o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
                                                               x_lengths,

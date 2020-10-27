@@ -11,6 +11,7 @@ from TTS.utils.io import load_config
 conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 
 def test_phoneme_to_sequence():
+
     text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
     text_cleaner = ["phoneme_cleaners"]
     lang = "en-us"
@@ -20,7 +21,7 @@ def test_phoneme_to_sequence():
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = "ɹiːsənt ɹɪsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪnkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹɪspɑːnsəbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjuːleɪʃən ænd lɜːnɪŋ!"
     assert text_hat == text_hat_with_params == gt
-
+    
     # multiple punctuations
     text = "Be a voice, not an! echo?"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
@@ -82,6 +83,84 @@ def test_phoneme_to_sequence():
     text_hat = sequence_to_phoneme(sequence)
     _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == text_hat_with_params == gt
+
+def test_phoneme_to_sequence_with_blank_token():
+
+    text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
+    text_cleaner = ["phoneme_cleaners"]
+    lang = "en-us"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters, add_blank=True)
+    text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters, add_blank=True)
+    gt = "ɹiːsənt ɹɪsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪnkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹɪspɑːnsəbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjuːleɪʃən ænd lɜːnɪŋ!"
+    assert text_hat == text_hat_with_params == gt
+
+    # multiple punctuations
+    text = "Be a voice, not an! echo?"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters, add_blank=True)
+    text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters, add_blank=True)
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ?"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == text_hat_with_params == gt
+
+    # not ending with punctuation
+    text = "Be a voice, not an! echo"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters, add_blank=True)
+    text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters, add_blank=True)
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == text_hat_with_params == gt
+
+    # original
+    text = "Be a voice, not an echo!"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters, add_blank=True)
+    text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters, add_blank=True)
+    gt = "biː ɐ vɔɪs, nɑːt ɐn ɛkoʊ!"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == text_hat_with_params == gt
+
+    # extra space after the sentence
+    text = "Be a voice, not an! echo.  "
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters, add_blank=True)
+    text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters, add_blank=True)
+    gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ."
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == text_hat_with_params == gt
+
+    # extra space after the sentence
+    text = "Be a voice, not an! echo.  "
+    sequence = phoneme_to_sequence(text, text_cleaner, lang, True)
+    text_hat = sequence_to_phoneme(sequence)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters, add_blank=True)
+    text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters, add_blank=True)
+    gt = "^biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ.~"
+    print(text_hat)
+    print(len(sequence))
+    assert text_hat == text_hat_with_params == gt
+
+    # padding char
+    text = "_Be a _voice, not an! echo_"
+    sequence = phoneme_to_sequence(text, text_cleaner, lang)
+    text_hat = sequence_to_phoneme(sequence)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters, add_blank=True)
+    text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters, add_blank=True)
     gt = "biː ɐ vɔɪs, nɑːt ɐn! ɛkoʊ"
     print(text_hat)
     print(len(sequence))
