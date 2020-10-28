@@ -28,7 +28,6 @@ def split_dataset(items):
         return items_eval, items
     return items[:eval_split_size], items[eval_split_size:]
 
-
 # from https://gist.github.com/jihunchoi/f1434a77df9db1bb337417854b398df1
 def sequence_mask(sequence_length, max_len=None):
     if max_len is None:
@@ -50,7 +49,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
     MyModel = getattr(MyModel, to_camel(c.model))
     if c.model.lower() in "tacotron":
-        model = MyModel(num_chars=num_chars,
+        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=int(c.audio['fft_size'] / 2 + 1),
@@ -77,7 +76,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "tacotron2":
-        model = MyModel(num_chars=num_chars,
+        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=c.audio['num_mels'],
@@ -103,7 +102,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "glow_tts":
-        model = MyModel(num_chars=num_chars,
+        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         hidden_channels=192,
                         filter_channels=768,
                         filter_channels_dp=256,
@@ -131,7 +130,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     return model
 
 def is_tacotron(c):
-    return False if c['model'] == 'glow_tts' else True
+    return False if 'glow_tts' in c['model'] else True
 
 def check_config_tts(c):
     check_argument('model', c, enum_list=['tacotron', 'tacotron2', 'glow_tts'], restricted=True, val_type=str)
