@@ -26,11 +26,14 @@ class WaveRNNDataset(Dataset):
         self.item_list = items
         self.seq_len = seq_len
         self.hop_len = hop_len
+        self.mel_len = seq_len // hop_len
         self.pad = pad
         self.mode = mode
         self.mulaw = mulaw
         self.is_training = is_training
         self.verbose = verbose
+
+        assert self.seq_len % self.hop_len == 0
 
     def __len__(self):
         return len(self.item_list)
@@ -48,13 +51,12 @@ class WaveRNNDataset(Dataset):
 
             wavpath = self.item_list[index]
             audio = self.ap.load_wav(wavpath)
+            min_audio_len = 2 * self.seq_len + (2 * self.pad * self.hop_len)
+            if audio.shape[0] < min_audio_len:
+                print(" [!] Instance is too short! : {}".format(wavpath))
+                audio = np.pad(audio, [0, min_audio_len - audio.shape[0] + self.hop_len])
             mel = self.ap.melspectrogram(audio)
 
-            if mel.shape[-1] < 5:
-                print(" [!] Instance is too short! : {}".format(wavpath))
-                self.item_list[index] = self.item_list[index + 1]
-                audio = self.ap.load_wav(wavpath)
-                mel = self.ap.melspectrogram(audio)
             if self.mode in ["gauss", "mold"]:
                 x_input = audio
             elif isinstance(self.mode, int):
@@ -68,7 +70,7 @@ class WaveRNNDataset(Dataset):
             wavpath, feat_path = self.item_list[index]
             mel = np.load(feat_path.replace("/quant/", "/mel/"))
 
-            if mel.shape[-1] < 5:
+            if mel.shape[-1] < self.mel_len  + 2 * self.pad:
                 print(" [!] Instance is too short! : {}".format(wavpath))
                 self.item_list[index] = self.item_list[index + 1]
                 feat_path = self.item_list[index]
@@ -80,12 +82,13 @@ class WaveRNNDataset(Dataset):
             else:
                 raise RuntimeError("Unknown dataset mode - ", self.mode)
 
-        return mel, x_input
+        return mel, x_input, wavpath
 
     def collate(self, batch):
         mel_win = self.seq_len // self.hop_len + 2 * self.pad
         max_offsets = [x[0].shape[-1] -
                        (mel_win + 2 * self.pad) for x in batch]
+
         mel_offsets = [np.random.randint(0, offset) for offset in max_offsets]
         sig_offsets = [(offset + self.pad) *
                        self.hop_len for offset in mel_offsets]
