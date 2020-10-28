@@ -1,6 +1,6 @@
 {
-    "run_name": "wavernn_test",
-    "run_description": "wavernn_test training",
+    "run_name": "wavernn_librittts",
+    "run_description": "wavernn libritts training from LJSpeech model",
 
 // AUDIO PARAMETERS
     "audio": {
@@ -10,7 +10,7 @@
         "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
         "frame_shift_ms": null, // stft window hop-lengh in ms. If null, 'hop_length' is used.
         // Audio processing parameters
-        "sample_rate": 22050, // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "sample_rate": 24000, // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
         "preemphasis": 0.98, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
         "ref_level_db": 20, // reference level db, theoretically 20db is the sound of air.
         // Silence trimming
@@ -58,14 +58,15 @@
 
 // DATASET
     //"use_gta": true,								// use computed gta features from the tts model
-    "data_path": "/home/erogol/Data/LJSpeech-1.1/wavs/", // path containing training wav files
+    "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/", // path containing training wav files
     "feature_path": null, // path containing computed features from wav files if null compute them
     "seq_len": 1280, // has to be devideable by hop_length
     "padding": 2, // pad the input for resnet to see wider input length
 
 // TRAINING
-    "batch_size": 64, // Batch size for training.
+    "batch_size": 256, // Batch size for training.
     "epochs": 10000, // total number of epochs to train.
+    "mixed_precision": true, // enable/ disable mixed precision training
 
 // VALIDATION
     "run_eval": true,

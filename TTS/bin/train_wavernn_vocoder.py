@@ -94,6 +94,7 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
         batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
     end_time = time.time()
     c_logger.print_train_start()
+    scaler = torch.cuda.amp.GradScaler()
     # train loop
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
@@ -101,24 +102,43 @@ def train(model, optimizer, criterion, scheduler, ap, global_step, epoch):
         loader_time = time.time() - end_time
         global_step += 1
 
-        y_hat = model(x_input, mels)
-
-        if isinstance(model.mode, int):
-            y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
-        else:
-            y_coarse = y_coarse.float()
-        y_coarse = y_coarse.unsqueeze(-1)
-
-        # compute losses
-        loss = criterion(y_hat, y_coarse)
-        if loss.item() is None:
-            raise RuntimeError(" [!] None loss. Exiting ...")
         optimizer.zero_grad()
-        loss.backward()
-        if c.grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(
-                model.parameters(), c.grad_clip)
-        optimizer.step()
+
+        if c.mixed_precision:
+            # mixed precision training
+            with torch.cuda.amp.autocast():
+                y_hat = model(x_input, mels)
+                if isinstance(model.mode, int):
+                    y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
+                else:
+                    y_coarse = y_coarse.float()
+                y_coarse = y_coarse.unsqueeze(-1)
+                # compute losses
+                loss = criterion(y_hat, y_coarse)
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            if c.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), c.grad_clip)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            # full precision training
+            y_hat = model(x_input, mels)
+            if isinstance(model.mode, int):
+                y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
+            else:
+                y_coarse = y_coarse.float()
+            y_coarse = y_coarse.unsqueeze(-1)
+            # compute losses
+            loss = criterion(y_hat, y_coarse)
+            if loss.item() is None:
+                raise RuntimeError(" [!] None loss. Exiting ...")
+            loss.backward()
+            if c.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), c.grad_clip)
+            optimizer.step()
 
         if scheduler is not None:
             scheduler.step()
