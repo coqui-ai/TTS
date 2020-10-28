@@ -69,10 +69,14 @@
 
     // LOSS SETTINGS
     "loss_masking": true,       // enable / disable loss masking against the sequence padding.
-    "decoder_loss_alpha": 0.5,  // decoder loss weight. If > 0, it is enabled
-    "postnet_loss_alpha": 0.25, // postnet loss weight. If > 0, it is enabled
+    "decoder_loss_alpha": 0.5,  // original decoder loss weight. If > 0, it is enabled
+    "postnet_loss_alpha": 0.25, // original postnet loss weight. If > 0, it is enabled
+    "postnet_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "decoder_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "decoder_ssim_alpha": 0.5,     // decoder ssim loss weight. If > 0, it is enabled
+    "postnet_ssim_alpha": 0.25,     // postnet ssim loss weight. If > 0, it is enabled
     "ga_alpha": 5.0,           // weight for guided attention loss. If > 0, guided attention is enabled.
-    "diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+
 
     // VALIDATION
     "run_eval": true,
