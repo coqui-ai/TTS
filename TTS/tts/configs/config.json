@@ -76,6 +76,7 @@
     "decoder_ssim_alpha": 0.5,     // decoder ssim loss weight. If > 0, it is enabled
     "postnet_ssim_alpha": 0.25,     // postnet ssim loss weight. If > 0, it is enabled
     "ga_alpha": 5.0,           // weight for guided attention loss. If > 0, guided attention is enabled.
+    "stopnet_pos_weight": 15.0, // pos class weight for stopnet loss since there are way more negative samples than positive samples.
 
 
     // VALIDATION
