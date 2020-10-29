@@ -30,9 +30,18 @@ class WavegradTrainTest(unittest.TestCase):
                      upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2],
                                          [1, 2, 4, 8], [1, 2, 4, 8],
                                          [1, 2, 4, 8]])
+
+        model_ref = Wavegrad(in_channels=80,
+                     out_channels=1,
+                     upsample_factors=[5, 5, 3, 2, 2],
+                     upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2],
+                                         [1, 2, 4, 8], [1, 2, 4, 8],
+                                         [1, 2, 4, 8]])
         model.train()
         model.to(device)
-        model_ref = copy.deepcopy(model)
+        model.compute_noise_level(1000, 1e-6, 1e-2)
+        model_ref.load_state_dict(model.state_dict())
+        model_ref.to(device)
         count = 0
         for param, param_ref in zip(model.parameters(),
                                     model_ref.parameters()):

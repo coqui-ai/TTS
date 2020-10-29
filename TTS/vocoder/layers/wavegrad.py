@@ -11,31 +11,8 @@ class Conv1d(nn.Conv1d):
         nn.init.zeros_(self.bias)
 
 
-# class PositionalEncoding(nn.Module):
-#     def __init__(self, n_channels):
-#         super().__init__()
-#         self.n_channels = n_channels
-#         self.length = n_channels // 2
-#         assert n_channels % 2 == 0
-
-#     def forward(self, x, noise_level):
-#         """
-#         Shapes:
-#             x: B x C x T
-#             noise_level: B
-#         """
-#         return (x + self.encoding(noise_level)[:, :, None])
-
-#     def encoding(self, noise_level):
-#         step = torch.arange(
-#             self.length, dtype=noise_level.dtype, device=noise_level.device) / self.length
-#         encoding = noise_level.unsqueeze(1) * torch.exp(
-#             -ln(1e4) * step.unsqueeze(0))
-#         encoding = torch.cat([torch.sin(encoding), torch.cos(encoding)], dim=-1)
-#         return encoding
-
-
 class PositionalEncoding(nn.Module):
+    """Positional encoding with noise level conditioning"""
     def __init__(self, n_channels, max_len=10000):
         super().__init__()
         self.n_channels = n_channels
@@ -64,9 +41,7 @@ class FiLM(nn.Module):
         self.encoding = PositionalEncoding(input_size)
         self.input_conv = weight_norm(nn.Conv1d(input_size, input_size, 3, padding=1))
         self.output_conv = weight_norm(nn.Conv1d(input_size, output_size * 2, 3, padding=1))
-        self.ini_parameters()
 
-    def ini_parameters(self):
         nn.init.xavier_uniform_(self.input_conv.weight)
         nn.init.xavier_uniform_(self.output_conv.weight)
         nn.init.zeros_(self.input_conv.bias)
@@ -120,30 +95,28 @@ class UBlock(nn.Module):
         ])
 
     def forward(self, x, shift, scale):
-        block1 = F.interpolate(x, size=x.shape[-1] * self.factor)
-        block1 = self.block1(block1)
+        o1 = F.interpolate(x, size=x.shape[-1] * self.factor)
+        o1 = self.block1(o1)
 
-        block2 = F.leaky_relu(x, 0.2)
-        block2 = F.interpolate(block2, size=x.shape[-1] * self.factor)
-        block2 = self.block2[0](block2)
-        # block2 = film_shift + film_scale * block2
-        block2 = shif_and_scale(block2, scale, shift)
-        block2 = F.leaky_relu(block2, 0.2)
-        block2 = self.block2[1](block2)
+        o2 = F.leaky_relu(x, 0.2)
+        o2 = F.interpolate(o2, size=x.shape[-1] * self.factor)
+        o2 = self.block2[0](o2)
+        o2 = shif_and_scale(o2, scale, shift)
+        o2 = F.leaky_relu(o2, 0.2)
+        o2 = self.block2[1](o2)
 
-        x = block1 + block2
+        x = o1 + o2
 
-        # block3 = film_shift + film_scale * x
-        block3 = shif_and_scale(x, scale, shift)
-        block3 = F.leaky_relu(block3, 0.2)
-        block3 = self.block3[0](block3)
-        # block3 = film_shift + film_scale * block3
-        block3 = shif_and_scale(block3, scale, shift)
-        block3 = F.leaky_relu(block3, 0.2)
-        block3 = self.block3[1](block3)
+        o3 = shif_and_scale(x, scale, shift)
+        o3 = F.leaky_relu(o3, 0.2)
+        o3 = self.block3[0](o3)
 
-        x = x + block3
-        return x
+        o3 = shif_and_scale(o3, scale, shift)
+        o3 = F.leaky_relu(o3, 0.2)
+        o3 = self.block3[1](o3)
+
+        o = x + o3
+        return o
 
 
 class DBlock(nn.Module):
