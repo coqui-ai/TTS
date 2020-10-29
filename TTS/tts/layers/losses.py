@@ -5,6 +5,7 @@ from torch import nn
 from inspect import signature
 from torch.nn import functional
 from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.utils.ssim import ssim
 
 
 # pylint: disable=abstract-method Method
@@ -25,6 +26,10 @@ class L1LossMasked(nn.Module):
                 class for each corresponding step.
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
+        Shapes:
+            x: B x T X D
+            target: B x T x D
+            length: B
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
@@ -63,6 +68,10 @@ class MSELossMasked(nn.Module):
                 class for each corresponding step.
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
+        Shapes:
+            x: B x T X D
+            target: B x T x D
+            length: B
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
@@ -85,6 +94,33 @@ class MSELossMasked(nn.Module):
                                        reduction='sum')
             loss = loss / mask.sum()
         return loss
+
+
+class SSIMLoss(torch.nn.Module):
+    """SSIM loss as explained here https://en.wikipedia.org/wiki/Structural_similarity"""
+    def __init__(self):
+        super().__init__()
+        self.loss_func = ssim
+
+    def forward(self, y_hat, y, length=None):
+        """
+        Args:
+            y_hat (tensor): model prediction values.
+            y (tensor): target values.
+            length (tensor): length of each sample in a batch.
+        Shapes:
+            y_hat: B x T X D
+            y: B x T x D
+            length: B
+         Returns:
+            loss: An average loss value in range [0, 1] masked by the length.
+        """
+        if length is not None:
+            m = sequence_mask(sequence_length=length,
+                              max_len=y.size(1)).unsqueeze(2).float().to(
+                                  y_hat.device)
+            y_hat, y = y_hat * m, y * m
+        return 1 - self.loss_func(y_hat.unsqueeze(1), y.unsqueeze(1))
 
 
 class AttentionEntropyLoss(nn.Module):
@@ -118,19 +154,29 @@ class BCELossMasked(nn.Module):
                 class for each corresponding step.
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
+        Shapes:
+            x: B x T
+            target: B x T
+            length: B
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
         # mask: (batch, max_len, 1)
         target.requires_grad = False
-        mask = sequence_mask(sequence_length=length,
-                             max_len=target.size(1)).float()
+        if length is not None:
+            mask = sequence_mask(sequence_length=length,
+                                max_len=target.size(1)).float()
+            x = x * mask
+            target = target * mask
+            num_items = mask.sum()
+        else:
+            num_items = torch.numel(x)
         loss = functional.binary_cross_entropy_with_logits(
-            x * mask,
-            target * mask,
+            x,
+            target,
             pos_weight=self.pos_weight,
             reduction='sum')
-        loss = loss / mask.sum()
+        loss = loss / num_items
         return loss
 
 
@@ -142,13 +188,20 @@ class DifferentailSpectralLoss(nn.Module):
         super().__init__()
         self.loss_func = loss_func
 
-    def forward(self, x, target, length):
+    def forward(self, x, target, length=None):
+        """
+         Shapes:
+            x: B x T
+            target: B x T
+            length: B
+        Returns:
+            loss: An average loss value in range [0, 1] masked by the length.
+        """
         x_diff = x[:, 1:] - x[:, :-1]
         target_diff = target[:, 1:] - target[:, :-1]
-        if len(signature(self.loss_func).parameters) > 2:
-            return self.loss_func(x_diff, target_diff, length-1)
-        # if loss masking is not enabled
-        return self.loss_func(x_diff, target_diff)
+        if length is None:
+            return self.loss_func(x_diff, target_diff)
+        return self.loss_func(x_diff, target_diff, length-1)
 
 
 class GuidedAttentionLoss(torch.nn.Module):
@@ -188,13 +241,17 @@ class GuidedAttentionLoss(torch.nn.Module):
 
 
 class TacotronLoss(torch.nn.Module):
+    """Collection of Tacotron set-up based on provided config."""
     def __init__(self, c, stopnet_pos_weight=10, ga_sigma=0.4):
         super(TacotronLoss, self).__init__()
         self.stopnet_pos_weight = stopnet_pos_weight
         self.ga_alpha = c.ga_alpha
-        self.diff_spec_alpha = c.diff_spec_alpha
+        self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
+        self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
         self.decoder_alpha = c.decoder_loss_alpha
         self.postnet_alpha = c.postnet_loss_alpha
+        self.decoder_ssim_alpha = c.decoder_ssim_alpha
+        self.postnet_ssim_alpha = c.postnet_ssim_alpha
         self.config = c
 
         # postnet and decoder loss
@@ -205,12 +262,15 @@ class TacotronLoss(torch.nn.Module):
         else:
             self.criterion = nn.L1Loss() if c.model in ["Tacotron"
                                                         ] else nn.MSELoss()
-        # differential spectral loss
-        if c.diff_spec_alpha > 0:
-            self.criterion_diff_spec = DifferentailSpectralLoss(loss_func=self.criterion)
         # guided attention loss
         if c.ga_alpha > 0:
             self.criterion_ga = GuidedAttentionLoss(sigma=ga_sigma)
+        # differential spectral loss
+        if c.postnet_diff_spec_alpha > 0 or c.decoder_diff_spec_alpha > 0:
+            self.criterion_diff_spec = DifferentailSpectralLoss(loss_func=self.criterion)
+        # ssim loss
+        if c.postnet_ssim_alpha > 0 or c.decoder_ssim_alpha > 0:
+            self.criterion_ssim = SSIMLoss()
         # stopnet loss
         # pylint: disable=not-callable
         self.criterion_st = BCELossMasked(
@@ -221,6 +281,9 @@ class TacotronLoss(torch.nn.Module):
                 alignments, alignment_lens, alignments_backwards, input_lens):
 
         return_dict = {}
+        # remove lengths if no masking is applied
+        if not self.config.loss_masking:
+            output_lens = None
         # decoder and postnet losses
         if self.config.loss_masking:
             if self.decoder_alpha > 0:
@@ -285,11 +348,30 @@ class TacotronLoss(torch.nn.Module):
             loss += ga_loss * self.ga_alpha
             return_dict['ga_loss'] = ga_loss * self.ga_alpha
 
-        # differential spectral loss
-        if self.config.diff_spec_alpha > 0:
-            diff_spec_loss = self.criterion_diff_spec(postnet_output, mel_input, output_lens)
-            loss += diff_spec_loss * self.diff_spec_alpha
-            return_dict['diff_spec_loss'] = diff_spec_loss
+        # decoder differential spectral loss
+        if self.config.decoder_diff_spec_alpha > 0:
+            decoder_diff_spec_loss = self.criterion_diff_spec(decoder_output, mel_input, output_lens)
+            loss += decoder_diff_spec_loss * self.decoder_diff_spec_alpha
+            return_dict['decoder_diff_spec_loss'] = decoder_diff_spec_loss
+
+        # postnet differential spectral loss
+        if self.config.postnet_diff_spec_alpha > 0:
+            postnet_diff_spec_loss = self.criterion_diff_spec(postnet_output, mel_input, output_lens)
+            loss += postnet_diff_spec_loss * self.postnet_diff_spec_alpha
+            return_dict['postnet_diff_spec_loss'] = postnet_diff_spec_loss
+
+        # decoder ssim loss
+        if self.config.decoder_ssim_alpha > 0:
+            decoder_ssim_loss = self.criterion_ssim(decoder_output, mel_input, output_lens)
+            loss += decoder_ssim_loss * self.postnet_ssim_alpha
+            return_dict['decoder_ssim_loss'] = decoder_ssim_loss
+
+        # postnet ssim loss
+        if self.config.postnet_ssim_alpha > 0:
+            postnet_ssim_loss = self.criterion_ssim(postnet_output, mel_input, output_lens)
+            loss += postnet_ssim_loss * self.postnet_ssim_alpha
+            return_dict['postnet_ssim_loss'] = postnet_ssim_loss
+
         return_dict['loss'] = loss
         return return_dict
 

@@ -1,14 +1,8 @@
-import copy
-import os
 import unittest
 
 import torch
-from tests import get_tests_input_path
-from torch import nn, optim
-
+from torch import optim
 from TTS.vocoder.models.wavegrad import Wavegrad
-from TTS.utils.io import load_config
-from TTS.utils.audio import AudioProcessor
 
 #pylint: disable=unused-variable
 

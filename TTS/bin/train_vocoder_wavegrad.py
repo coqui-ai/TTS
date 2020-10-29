@@ -128,7 +128,7 @@ def train(model, criterion, optimizer,
 
         # check nan loss
         if torch.isnan(loss).any():
-          raise RuntimeError(f'Detected NaN loss at step {global_step}.')
+            raise RuntimeError(f'Detected NaN loss at step {global_step}.')
 
         optimizer.zero_grad()
 
@@ -297,7 +297,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
             model.compute_noise_level(noise_schedule['num_steps'],
                                       noise_schedule['min_val'],
                                       noise_schedule['max_val'])
-             # compute voice
+            # compute voice
             x_pred = model.inference(m)
 
         # compute spectrograms
@@ -384,10 +384,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # DISTRUBUTED
     if num_gpus > 1:
-        if c.apex_amp_level is not None:
-            model = DDP_apex(model)
-        else:
-            model = DDP_th(model, device_ids=[args.rank])
+        model = DDP_th(model, device_ids=[args.rank])
 
     num_params = count_parameters(model)
     print(" > WaveGrad has {} parameters".format(num_params), flush=True)
