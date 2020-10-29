@@ -62,7 +62,7 @@ class GE2ELossTests(unittest.TestCase):
         assert output.item() >= 0.0
         # check speaker loss with orthogonal d-vectors
         dummy_input = T.empty(3, 64)
-        dummy_input = T.nn.init.orthogonal(dummy_input)
+        dummy_input = T.nn.init.orthogonal_(dummy_input)
         dummy_input = T.cat(
             [
                 dummy_input[0].repeat(5, 1, 1).transpose(0, 1),
@@ -91,7 +91,7 @@ class AngleProtoLossTests(unittest.TestCase):
 
         # check speaker loss with orthogonal d-vectors
         dummy_input = T.empty(3, 64)
-        dummy_input = T.nn.init.orthogonal(dummy_input)
+        dummy_input = T.nn.init.orthogonal_(dummy_input)
         dummy_input = T.cat(
             [
                 dummy_input[0].repeat(5, 1, 1).transpose(0, 1),

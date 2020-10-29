@@ -20,6 +20,15 @@ class Wavegrad(nn.Module):
         super().__init__()
 
         self.hop_len = np.prod(upsample_factors)
+        self.noise_level = None
+        self.num_steps = None
+        self.beta = None
+        self.alpha = None
+        self.alpha_hat = None
+        self.noise_level = None
+        self.c1 = None
+        self.c2 = None
+        self.sigma = None
 
         # dblocks
         self.dblocks = nn.ModuleList([
@@ -75,6 +84,7 @@ class Wavegrad(nn.Module):
 
 
     def compute_y_n(self, y_0):
+        """Compute noisy audio based on noise schedule"""
         self.noise_level = self.noise_level.to(y_0)
         if len(y_0.shape) == 3:
             y_0 = y_0.squeeze(1)
@@ -87,6 +97,7 @@ class Wavegrad(nn.Module):
         return noise.unsqueeze(1), noisy_audio.unsqueeze(1), noise_scale[:, 0]
 
     def compute_noise_level(self, num_steps, min_val, max_val):
+        """Compute noise schedule parameters"""
         beta = np.linspace(min_val, max_val, num_steps)
         alpha = 1 - beta
         alpha_hat = np.cumprod(alpha)
@@ -101,5 +112,3 @@ class Wavegrad(nn.Module):
         self.c1 = 1 / self.alpha**0.5
         self.c2 = (1 - self.alpha) / (1 - self.alpha_hat)**0.5
         self.sigma = ((1.0 - self.alpha_hat[:-1]) / (1.0 - self.alpha_hat[1:]) * self.beta[1:])**0.5
-
-
