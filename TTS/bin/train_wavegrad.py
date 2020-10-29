@@ -16,7 +16,8 @@ from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      create_experiment_folder, get_git_branch,
-                                     remove_experiment_folder, set_init_dict)
+                                     remove_experiment_folder, set_init_dict,
+                                     set_amp_context)
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import setup_torch_training_env
@@ -101,7 +102,7 @@ def train(model, criterion, optimizer,
         model.compute_noise_level(noise_schedule['num_steps'],
                                   noise_schedule['min_val'],
                                   noise_schedule['max_val'])
-    scaler = torch.cuda.amp.GradScaler()
+    scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -111,7 +112,7 @@ def train(model, criterion, optimizer,
 
         global_step += 1
 
-        with torch.cuda.amp.autocast():
+        with set_amp_context(c.mixed_precision):
             # compute noisy input
             if hasattr(model, 'module'):
                 noise, x_noisy, noise_scale = model.module.compute_y_n(x)
@@ -127,7 +128,7 @@ def train(model, criterion, optimizer,
 
         # check nan loss
         if torch.isnan(loss).any():
-          raise RuntimeError(f'Detected NaN loss at step {self.step}.')
+          raise RuntimeError(f'Detected NaN loss at step {global_step}.')
 
         optimizer.zero_grad()
 
