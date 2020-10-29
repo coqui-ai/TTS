@@ -74,6 +74,16 @@
     "test_delay_epochs": 0,  //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
 
+    // LOSS SETTINGS
+    "loss_masking": false,       // enable / disable loss masking against the sequence padding.
+    "decoder_loss_alpha": 0.5,  // decoder loss weight. If > 0, it is enabled
+    "postnet_loss_alpha": 0.25, // postnet loss weight. If > 0, it is enabled
+    "ga_alpha": 10.0,           // weight for guided attention loss. If > 0, guided attention is enabled.
+    "decoder_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "postnet_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "decoder_ssim_alpha": 0.5,     // differential spectral loss weight. If > 0, it is enabled
+    "postnet_ssim_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+
     // OPTIMIZER
     "noam_schedule": false,        // use noam warmup and lr schedule.
     "grad_clip": 1.0,              // upper limit for gradients for clipping.

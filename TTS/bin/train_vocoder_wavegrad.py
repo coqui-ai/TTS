@@ -132,10 +132,6 @@ def train(model, criterion, optimizer,
 
         optimizer.zero_grad()
 
-         # schedule update
-        if scheduler is not None:
-            scheduler.step()
-
         # backward pass with loss scaling
         if c.mixed_precision:
             scaler.scale(loss).backward()
@@ -150,7 +146,9 @@ def train(model, criterion, optimizer,
                                            c.clip_grad)
             optimizer.step()
 
-
+        # schedule update
+        if scheduler is not None:
+            scheduler.step()
 
         # disconnect loss values
         loss_dict = dict()
