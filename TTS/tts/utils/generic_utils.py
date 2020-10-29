@@ -248,7 +248,7 @@ def check_config_tts(c):
     check_argument('use_external_speaker_embedding_file', c, restricted=True if c['use_speaker_embedding'] else False, val_type=bool)
     check_argument('external_speaker_embedding_file', c, restricted=True if c['use_external_speaker_embedding_file'] else False, val_type=str)
     check_argument('use_gst', c, restricted=is_tacotron(c), val_type=bool)
-    if c['use_gst']:
+    if c['model'].lower() in ['tacotron', 'tacotron2'] and c['use_gst']:
         check_argument('gst', c, restricted=is_tacotron(c), val_type=dict)
         check_argument('gst_style_input', c['gst'], restricted=is_tacotron(c), val_type=[str, dict])
         check_argument('gst_embedding_dim', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=0, max_val=1000)

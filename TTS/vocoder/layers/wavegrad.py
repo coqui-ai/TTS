@@ -1,10 +1,7 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
-
-from math import log as ln
 
 
 class Conv1d(nn.Conv1d):
