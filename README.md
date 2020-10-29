@@ -49,6 +49,7 @@ Vocoders:
 - MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
 - GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
 - WaveRNN: [origin][https://github.com/fatchord/WaveRNN/]
+- WaveGrad: [paper][https://arxiv.org/abs/2009.00713]
 
 You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
