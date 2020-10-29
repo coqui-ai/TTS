@@ -178,9 +178,18 @@ def check_config_tts(c):
     check_argument('eval_batch_size', c, restricted=True, val_type=int, min_val=1)
     check_argument('r', c, restricted=True, val_type=int, min_val=1)
     check_argument('gradual_training', c, restricted=False, val_type=list)
-    check_argument('loss_masking', c, restricted=True, val_type=bool)
     check_argument('apex_amp_level', c, restricted=False, val_type=str)
     # check_argument('grad_accum', c, restricted=True, val_type=int, min_val=1, max_val=100)
+
+    # loss parameters
+    check_argument('loss_masking', c, restricted=True, val_type=bool)
+    check_argument('decoder_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+    check_argument('postnet_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+    check_argument('postnet_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+    check_argument('decoder_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+    check_argument('decoder_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+    check_argument('postnet_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+    check_argument('ga_alpha', c, restricted=True, val_type=float, min_val=0)
 
     # validation parameters
     check_argument('run_eval', c, restricted=True, val_type=bool)
@@ -245,8 +254,8 @@ def check_config_tts(c):
 
     # multi-speaker and gst
     check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
-    check_argument('use_external_speaker_embedding_file', c, restricted=True if c['use_speaker_embedding'] else False, val_type=bool)
-    check_argument('external_speaker_embedding_file', c, restricted=True if c['use_external_speaker_embedding_file'] else False, val_type=str)
+    check_argument('use_external_speaker_embedding_file', c, restricted=c['use_speaker_embedding'], val_type=bool)
+    check_argument('external_speaker_embedding_file', c, restricted=c['use_external_speaker_embedding_file'], val_type=str)
     check_argument('use_gst', c, restricted=is_tacotron(c), val_type=bool)
     if c['model'].lower() in ['tacotron', 'tacotron2'] and c['use_gst']:
         check_argument('gst', c, restricted=is_tacotron(c), val_type=dict)

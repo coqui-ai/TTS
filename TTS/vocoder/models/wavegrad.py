@@ -104,6 +104,7 @@ class Wavegrad(nn.Module):
         noise_level = np.concatenate([[1.0], alpha_hat ** 0.5], axis=0)
 
         self.num_steps = num_steps
+        # pylint: disable=not-callable
         self.beta = torch.tensor(beta.astype(np.float32))
         self.alpha = torch.tensor(alpha.astype(np.float32))
         self.alpha_hat = torch.tensor(alpha_hat.astype(np.float32))
