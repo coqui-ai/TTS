@@ -150,23 +150,25 @@ head -n 12000 metadata_shuf.csv > metadata_train.csv
 tail -n 1100 metadata_shuf.csv > metadata_val.csv
 ```
 
-To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below. You also set the model architecture in  ```config.json```.
+To train a new model, you need to define your own ```config.json``` to define model details, trainin configuration and more (check the examples). Then call the corressponding train script.
 
-```python TTS/bin/train_tts.py --config_path TTS/tts/configs/config.json```
+For instance, in order to train a tacotron or tacotron2 model on LJSpeech dataset, follow these steps.
+
+```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json```
 
 To fine-tune a model, use ```--restore_path```.
 
-```python TTS/bin/train_tts.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
+```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
 
 To continue an old training run, use ```--continue_path```.
 
-```python TTS/bin/train_tts.py --continue_path /path/to/your/run_folder/```
+```python TTS/bin/train_tacotron.py --continue_path /path/to/your/run_folder/```
 
-For multi-GPU training use ```distribute.py```. It enables process based multi-GPU training where each process uses a single GPU.
+For multi-GPU training, call ```distribute.py```. It runs any provided train script in multi-GPU setting.
 
-```CUDA_VISIBLE_DEVICES="0,1,4" TTS/bin/distribute.py --script train_tts.py --config_path TTS/tts/configs/config.json```
+```CUDA_VISIBLE_DEVICES="0,1,4" python TTS/bin/distribute.py --script train_tacotron.py --config_path TTS/tts/configs/config.json```
 
-Each run creates a new output folder and ```config.json``` is copied under this folder.
+Each run creates a new output folder accomodating used ```config.json```, model checkpoints and tensorboard logs.
 
 In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
