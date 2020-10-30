@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
+from torch.nn.utils import weight_norm
 
 from ..layers.wavegrad import DBlock, FiLM, UBlock, Conv1d
 
@@ -10,6 +11,7 @@ class Wavegrad(nn.Module):
     def __init__(self,
                  in_channels=80,
                  out_channels=1,
+                 use_weight_norm=False,
                  y_conv_channels=32,
                  x_conv_channels=768,
                  dblock_out_channels=[128, 128, 256, 512],
@@ -19,6 +21,7 @@ class Wavegrad(nn.Module):
                                      [1, 2, 4, 8], [1, 2, 4, 8]]):
         super().__init__()
 
+        self.use_weight_norm = use_weight_norm
         self.hop_len = np.prod(upsample_factors)
         self.noise_level = None
         self.num_steps = None
@@ -31,9 +34,8 @@ class Wavegrad(nn.Module):
         self.sigma = None
 
         # dblocks
-        self.dblocks = nn.ModuleList([
-            Conv1d(1, y_conv_channels, 5, padding=2),
-        ])
+        self.y_conv = Conv1d(1, y_conv_channels, 5, padding=2)
+        self.dblocks = nn.ModuleList([])
         ic = y_conv_channels
         for oc, df in zip(dblock_out_channels, reversed(upsample_factors)):
             self.dblocks.append(DBlock(ic, oc, df))
@@ -56,15 +58,22 @@ class Wavegrad(nn.Module):
         self.x_conv = Conv1d(in_channels, x_conv_channels, 3, padding=1)
         self.out_conv = Conv1d(oc, out_channels, 3, padding=1)
 
+        if use_weight_norm:
+            self.apply_weight_norm()
+
     def forward(self, x, spectrogram, noise_scale):
-        downsampled = []
-        for film, layer in zip(self.film, self.dblocks):
+        shift_and_scale = []
+
+        x = self.y_conv(x)
+        shift_and_scale.append(self.film[0](x, noise_scale))
+
+        for film, layer in zip(self.film[1:], self.dblocks):
             x = layer(x)
-            downsampled.append(film(x, noise_scale))
+            shift_and_scale.append(film(x, noise_scale))
 
         x = self.x_conv(spectrogram)
         for layer, (film_shift, film_scale) in zip(self.ublocks,
-                                                   reversed(downsampled)):
+                                                   reversed(shift_and_scale)):
             x = layer(x, film_shift, film_scale)
         x = self.out_conv(x)
         return x
@@ -113,3 +122,48 @@ class Wavegrad(nn.Module):
         self.c1 = 1 / self.alpha**0.5
         self.c2 = (1 - self.alpha) / (1 - self.alpha_hat)**0.5
         self.sigma = ((1.0 - self.alpha_hat[:-1]) / (1.0 - self.alpha_hat[1:]) * self.beta[1:])**0.5
+
+    def remove_weight_norm(self):
+        for _, layer in enumerate(self.dblocks):
+            if len(layer.state_dict()) != 0:
+                try:
+                    nn.utils.remove_weight_norm(layer)
+                except ValueError:
+                    layer.remove_weight_norm()
+
+        for _, layer in enumerate(self.film):
+            if len(layer.state_dict()) != 0:
+                try:
+                    nn.utils.remove_weight_norm(layer)
+                except ValueError:
+                    layer.remove_weight_norm()
+
+
+        for _, layer in enumerate(self.ublocks):
+            if len(layer.state_dict()) != 0:
+                try:
+                    nn.utils.remove_weight_norm(layer)
+                except ValueError:
+                    layer.remove_weight_norm()
+
+        nn.utils.remove_weight_norm(self.x_conv)
+        nn.utils.remove_weight_norm(self.out_conv)
+        nn.utils.remove_weight_norm(self.y_conv)
+
+    def apply_weight_norm(self):
+        for _, layer in enumerate(self.dblocks):
+            if len(layer.state_dict()) != 0:
+                layer.apply_weight_norm()
+
+        for _, layer in enumerate(self.film):
+            if len(layer.state_dict()) != 0:
+                layer.apply_weight_norm()
+
+
+        for _, layer in enumerate(self.ublocks):
+            if len(layer.state_dict()) != 0:
+                layer.apply_weight_norm()
+
+        self.x_conv = weight_norm(self.x_conv)
+        self.out_conv = weight_norm(self.out_conv)
+        self.y_conv = weight_norm(self.y_conv)
