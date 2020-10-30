@@ -32,6 +32,9 @@ def test_film():
     assert scale.shape[2] == 100
     assert isinstance(scale, torch.FloatTensor)
 
+    layer.apply_weight_norm()
+    layer.remove_weight_norm()
+
 
 def test_ublock():
     inp1 = torch.rand(32, 50, 100)
@@ -49,6 +52,9 @@ def test_ublock():
     assert o.shape[2] == 100
     assert isinstance(o, torch.FloatTensor)
 
+    layer.apply_weight_norm()
+    layer.remove_weight_norm()
+
 
 def test_dblock():
     inp = torch.rand(32, 50, 130)
@@ -59,6 +65,9 @@ def test_dblock():
     assert o.shape[1] == 100
     assert o.shape[2] == 65
     assert isinstance(o, torch.FloatTensor)
+
+    layer.apply_weight_norm()
+    layer.remove_weight_norm()
 
 
 def test_wavegrad_forward():
@@ -78,3 +87,6 @@ def test_wavegrad_forward():
     assert o.shape[1] == 1
     assert o.shape[2] == 20 * 300
     assert isinstance(o, torch.FloatTensor)
+
+    model.apply_weight_norm()
+    model.remove_weight_norm()

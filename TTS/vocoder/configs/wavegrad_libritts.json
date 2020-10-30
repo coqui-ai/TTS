@@ -45,6 +45,7 @@
     // MODEL PARAMETERS
     "generator_model": "wavegrad",
     "model_params":{
+        "use_weight_norm": true,
         "y_conv_channels":32,
         "x_conv_channels":768,
         "ublock_out_channels": [512, 512, 256, 128, 128],

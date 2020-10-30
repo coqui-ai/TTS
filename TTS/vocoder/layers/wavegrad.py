@@ -39,8 +39,8 @@ class FiLM(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.encoding = PositionalEncoding(input_size)
-        self.input_conv = weight_norm(nn.Conv1d(input_size, input_size, 3, padding=1))
-        self.output_conv = weight_norm(nn.Conv1d(input_size, output_size * 2, 3, padding=1))
+        self.input_conv = nn.Conv1d(input_size, input_size, 3, padding=1)
+        self.output_conv = nn.Conv1d(input_size, output_size * 2, 3, padding=1)
 
         nn.init.xavier_uniform_(self.input_conv.weight)
         nn.init.xavier_uniform_(self.output_conv.weight)
@@ -48,11 +48,19 @@ class FiLM(nn.Module):
         nn.init.zeros_(self.output_conv.bias)
 
     def forward(self, x, noise_scale):
-        x = self.input_conv(x)
-        x = F.leaky_relu(x, 0.2)
-        x = self.encoding(x, noise_scale)
-        shift, scale = torch.chunk(self.output_conv(x), 2, dim=1)
+        o = self.input_conv(x)
+        o = F.leaky_relu(o, 0.2)
+        o = self.encoding(o, noise_scale)
+        shift, scale = torch.chunk(self.output_conv(o), 2, dim=1)
         return shift, scale
+
+    def remove_weight_norm(self):
+        nn.utils.remove_weight_norm(self.input_conv)
+        nn.utils.remove_weight_norm(self.output_conv)
+
+    def apply_weight_norm(self):
+        self.input_conv = weight_norm(self.input_conv)
+        self.output_conv = weight_norm(self.output_conv)
 
 
 @torch.jit.script
@@ -68,79 +76,100 @@ class UBlock(nn.Module):
         assert len(dilation) == 4
 
         self.factor = factor
-        self.block1 = weight_norm(Conv1d(input_size, hidden_size, 1))
-        self.block2 = nn.ModuleList([
-            weight_norm(Conv1d(input_size,
+        self.res_block = Conv1d(input_size, hidden_size, 1)
+        self.main_block = nn.ModuleList([
+            Conv1d(input_size,
                    hidden_size,
                    3,
                    dilation=dilation[0],
-                   padding=dilation[0])),
-            weight_norm(Conv1d(hidden_size,
+                   padding=dilation[0]),
+            Conv1d(hidden_size,
                    hidden_size,
                    3,
                    dilation=dilation[1],
-                   padding=dilation[1]))
+                   padding=dilation[1])
         ])
-        self.block3 = nn.ModuleList([
-            weight_norm(Conv1d(hidden_size,
+        self.out_block = nn.ModuleList([
+            Conv1d(hidden_size,
                    hidden_size,
                    3,
                    dilation=dilation[2],
-                   padding=dilation[2])),
-            weight_norm(Conv1d(hidden_size,
+                   padding=dilation[2]),
+            Conv1d(hidden_size,
                    hidden_size,
                    3,
                    dilation=dilation[3],
-                   padding=dilation[3]))
+                   padding=dilation[3])
         ])
 
     def forward(self, x, shift, scale):
-        o1 = F.interpolate(x, size=x.shape[-1] * self.factor)
-        o1 = self.block1(o1)
-
-        o2 = F.leaky_relu(x, 0.2)
-        o2 = F.interpolate(o2, size=x.shape[-1] * self.factor)
-        o2 = self.block2[0](o2)
-        o2 = shif_and_scale(o2, scale, shift)
-        o2 = F.leaky_relu(o2, 0.2)
-        o2 = self.block2[1](o2)
-
-        x = o1 + o2
-
-        o3 = shif_and_scale(x, scale, shift)
-        o3 = F.leaky_relu(o3, 0.2)
-        o3 = self.block3[0](o3)
-
-        o3 = shif_and_scale(o3, scale, shift)
-        o3 = F.leaky_relu(o3, 0.2)
-        o3 = self.block3[1](o3)
-
-        o = x + o3
+        x_inter = F.interpolate(x, size=x.shape[-1] * self.factor)
+        res = self.res_block(x_inter)
+        o = F.leaky_relu(x_inter, 0.2)
+        o = F.interpolate(o, size=x.shape[-1] * self.factor)
+        o = self.main_block[0](o)
+        o = shif_and_scale(o, scale, shift)
+        o = F.leaky_relu(o, 0.2)
+        o = self.main_block[1](o)
+        res2 = res + o
+        o = shif_and_scale(res2, scale, shift)
+        o = F.leaky_relu(o, 0.2)
+        o = self.out_block[0](o)
+        o = shif_and_scale(o, scale, shift)
+        o = F.leaky_relu(o, 0.2)
+        o = self.out_block[1](o)
+        o = o + res2
         return o
+
+    def remove_weight_norm(self):
+        nn.utils.remove_weight_norm(self.res_block)
+        for _, layer in enumerate(self.main_block):
+            if len(layer.state_dict()) != 0:
+                nn.utils.remove_weight_norm(layer)
+        for _, layer in enumerate(self.out_block):
+            if len(layer.state_dict()) != 0:
+                nn.utils.remove_weight_norm(layer)
+
+    def apply_weight_norm(self):
+        self.res_block = weight_norm(self.res_block)
+        for idx, layer in enumerate(self.main_block):
+            if len(layer.state_dict()) != 0:
+                self.main_block[idx] = weight_norm(layer)
+        for idx, layer in enumerate(self.out_block):
+            if len(layer.state_dict()) != 0:
+                self.out_block[idx] = weight_norm(layer)
 
 
 class DBlock(nn.Module):
     def __init__(self, input_size, hidden_size, factor):
         super().__init__()
         self.factor = factor
-        self.residual_dense = weight_norm(Conv1d(input_size, hidden_size, 1))
-        self.conv = nn.ModuleList([
-            weight_norm(Conv1d(input_size, hidden_size, 3, dilation=1, padding=1)),
-            weight_norm(Conv1d(hidden_size, hidden_size, 3, dilation=2, padding=2)),
-            weight_norm(Conv1d(hidden_size, hidden_size, 3, dilation=4, padding=4)),
+        self.res_block = Conv1d(input_size, hidden_size, 1)
+        self.main_block = nn.ModuleList([
+            Conv1d(input_size, hidden_size, 3, dilation=1, padding=1),
+            Conv1d(hidden_size, hidden_size, 3, dilation=2, padding=2),
+            Conv1d(hidden_size, hidden_size, 3, dilation=4, padding=4),
         ])
 
     def forward(self, x):
         size = x.shape[-1] // self.factor
+        res = self.res_block(x)
+        res = F.interpolate(res, size=size)
+        o = F.interpolate(x, size=size)
+        for layer in self.main_block:
+            o = F.leaky_relu(o, 0.2)
+            o = layer(o)
+        return o + res
 
-        residual = self.residual_dense(x)
-        residual = F.interpolate(residual, size=size)
+    def remove_weight_norm(self):
+        nn.utils.remove_weight_norm(self.res_block)
+        for _, layer in enumerate(self.main_block):
+            if len(layer.state_dict()) != 0:
+                nn.utils.remove_weight_norm(layer)
 
-        x = F.interpolate(x, size=size)
-        for layer in self.conv:
-            x = F.leaky_relu(x, 0.2)
-            x = layer(x)
-
-        return x + residual
-
+    def apply_weight_norm(self):
+        self.res_block = weight_norm(self.res_block)
+        for idx, layer in enumerate(self.main_block):
+            if len(layer.state_dict()) != 0:
+               self.main_block[idx] = weight_norm(layer)
 

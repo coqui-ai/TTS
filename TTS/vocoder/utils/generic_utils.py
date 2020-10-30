@@ -118,6 +118,7 @@ def setup_generator(c):
         model = MyModel(
             in_channels=c['audio']['num_mels'],
             out_channels=1,
+            use_weight_norm=c['model_params']['use_weight_norm'],
             x_conv_channels=c['model_params']['x_conv_channels'],
             y_conv_channels=c['model_params']['y_conv_channels'],
             dblock_out_channels=c['model_params']['dblock_out_channels'],
