@@ -402,4 +402,9 @@ class GlowTTSLoss(torch.nn.Module):
         return_dict['loss'] = log_mle + loss_dur
         return_dict['log_mle'] = log_mle
         return_dict['loss_dur'] = loss_dur
+
+         # check if any loss is NaN
+        for key, loss in return_dict.items():
+            if torch.isnan(loss):
+                raise RuntimeError(f" [!] NaN loss with {key}.")
         return return_dict
