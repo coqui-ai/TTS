@@ -228,7 +228,7 @@ class GuidedAttentionLoss(torch.nn.Module):
 
     @staticmethod
     def _make_ga_mask(ilen, olen, sigma):
-        grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
+        grid_x, grid_y = torch.meshgrid(torch.arange(olen).to(olen), torch.arange(ilen).to(ilen))
         grid_x, grid_y = grid_x.float(), grid_y.float()
         return 1.0 - torch.exp(-(grid_y / ilen - grid_x / olen)**2 /
                                (2 * (sigma**2)))
@@ -373,6 +373,11 @@ class TacotronLoss(torch.nn.Module):
             return_dict['postnet_ssim_loss'] = postnet_ssim_loss
 
         return_dict['loss'] = loss
+
+        # check if any loss is NaN
+        for key, loss in return_dict.items():
+            if torch.isnan(loss):
+                raise RuntimeError(f" [!] NaN loss with {key}.")
         return return_dict
 
 
