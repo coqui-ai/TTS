@@ -3,7 +3,7 @@ import glob
 import os
 import shutil
 import subprocess
-from contextlib import nullcontext
+import contextlib
 
 import torch
 
@@ -12,7 +12,10 @@ def set_amp_context(mixed_precision):
     if mixed_precision:
         cm = torch.cuda.amp.autocast()
     else:
-        cm = nullcontext()
+        if os.python.version<=3.6:
+            cm = contextlib.suppress()
+        else:
+            cm = nullcontext()
     return cm
 
 
