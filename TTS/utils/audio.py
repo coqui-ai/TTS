@@ -174,7 +174,7 @@ class AudioProcessor(object):
         for key in stats_config.keys():
             if key in skip_parameters:
                 continue
-            if key != 'sample_rate':
+            if key not in ['sample_rate', 'trim_db']:
                 assert stats_config[key] == self.__dict__[key],\
                     f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
         return mel_mean, mel_std, linear_mean, linear_std, stats_config

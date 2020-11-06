@@ -78,13 +78,21 @@ class Wavegrad(nn.Module):
         x = self.out_conv(x)
         return x
 
+    def load_noise_schedule(self, path):
+        sched = np.load(path, allow_pickle=True).item()
+        self.compute_noise_level(**sched)
+
     @torch.no_grad()
-    def inference(self, x):
-        y_n = torch.randn(x.shape[0], 1, self.hop_len * x.shape[-1], dtype=torch.float32).to(x)
-        sqrt_alpha_hat = self.noise_level.unsqueeze(1).to(x)
+    def inference(self, x, y_n=None):
+        """ x: B x D X T """
+        if y_n is None:
+            y_n = torch.randn(x.shape[0], 1, self.hop_len * x.shape[-1], dtype=torch.float32).to(x)
+        else:
+            y_n = torch.FloatTensor(y_n).unsqueeze(0).unsqueeze(0).to(x)
+        sqrt_alpha_hat = self.noise_level.to(x)
         for n in range(len(self.alpha) - 1, -1, -1):
             y_n = self.c1[n] * (y_n -
-                        self.c2[n] * self.forward(y_n, x, sqrt_alpha_hat[n]).squeeze(1))
+                        self.c2[n] * self.forward(y_n, x, sqrt_alpha_hat[n].repeat(x.shape[0])))
             if n > 0:
                 z = torch.randn_like(y_n)
                 y_n += self.sigma[n - 1] * z
@@ -105,9 +113,11 @@ class Wavegrad(nn.Module):
         noisy_audio = noise_scale * y_0 + (1.0 - noise_scale**2)**0.5 * noise
         return noise.unsqueeze(1), noisy_audio.unsqueeze(1), noise_scale[:, 0]
 
-    def compute_noise_level(self, num_steps, min_val, max_val):
+    def compute_noise_level(self, num_steps, min_val, max_val, base_vals=None):
         """Compute noise schedule parameters"""
         beta = np.linspace(min_val, max_val, num_steps)
+        if base_vals is not None:
+            beta *= base_vals
         alpha = 1 - beta
         alpha_hat = np.cumprod(alpha)
         noise_level = np.concatenate([[1.0], alpha_hat ** 0.5], axis=0)

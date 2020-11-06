@@ -81,11 +81,12 @@ class WaveGradDataset(Dataset):
         else:
             audio = self.ap.load_wav(wavpath)
 
-            # correct audio length wrt segment length
-            if audio.shape[-1] < self.seq_len + self.pad_short:
-                audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
-                        mode='constant', constant_values=0.0)
-            assert audio.shape[-1] >= self.seq_len + self.pad_short, f"{audio.shape[-1]} vs {self.seq_len + self.pad_short}"
+            if self.return_segments:
+                # correct audio length wrt segment length
+                if audio.shape[-1] < self.seq_len + self.pad_short:
+                    audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
+                            mode='constant', constant_values=0.0)
+                assert audio.shape[-1] >= self.seq_len + self.pad_short, f"{audio.shape[-1]} vs {self.seq_len + self.pad_short}"
 
             # correct the audio length wrt hop length
             p = (audio.shape[-1] // self.hop_len + 1) * self.hop_len - audio.shape[-1]
@@ -104,8 +105,26 @@ class WaveGradDataset(Dataset):
             audio = audio + (1 / 32768) * torch.randn_like(audio)
 
         mel = self.ap.melspectrogram(audio)
-        mel = mel[..., :-1]
+        mel = mel[..., :-1]  # ignore the padding
 
         audio = torch.from_numpy(audio).float()
         mel = torch.from_numpy(mel).float().squeeze(0)
         return (mel, audio)
+
+
+    def collate_full_clips(self, batch):
+        """This is used in tune_wavegrad.py.
+        It pads sequences to the max length."""
+        max_mel_length = max([b[0].shape[1] for b in batch]) if len(batch) > 1 else batch[0][0].shape[1]
+        max_audio_length = max([b[1].shape[0] for b in batch]) if len(batch) > 1 else batch[0][1].shape[0]
+
+        mels = torch.zeros([len(batch), batch[0][0].shape[0], max_mel_length])
+        audios = torch.zeros([len(batch), max_audio_length])
+
+        for idx, b in enumerate(batch):
+            mel = b[0]
+            audio = b[1]
+            mels[idx, :, :mel.shape[1]] = mel
+            audios[idx, :audio.shape[0]] = audio
+
+        return mels, audios
