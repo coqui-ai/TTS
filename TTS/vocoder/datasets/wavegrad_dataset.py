@@ -111,8 +111,8 @@ class WaveGradDataset(Dataset):
         mel = torch.from_numpy(mel).float().squeeze(0)
         return (mel, audio)
 
-
-    def collate_full_clips(self, batch):
+    @staticmethod
+    def collate_full_clips(batch):
         """This is used in tune_wavegrad.py.
         It pads sequences to the max length."""
         max_mel_length = max([b[0].shape[1] for b in batch]) if len(batch) > 1 else batch[0][0].shape[1]
