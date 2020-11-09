@@ -10,7 +10,6 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
 from TTS.vocoder.datasets.preprocess import load_wav_data
 from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset
-from TTS.vocoder.models.wavegrad import Wavegrad
 from TTS.vocoder.utils.generic_utils import setup_generator
 
 parser = argparse.ArgumentParser()
