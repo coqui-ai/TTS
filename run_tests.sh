@@ -1,7 +1,7 @@
 TF_CPP_MIN_LOG_LEVEL=3
 
 # tests
-# nosetests tests -x &&\
+nosetests tests -x &&\
 
 # runtime tests
 ./tests/test_server_package.sh && \
