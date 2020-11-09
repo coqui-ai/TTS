@@ -47,6 +47,7 @@ Speaker Encoder:
 Vocoders:
 - MelGAN: [paper](https://arxiv.org/abs/1710.10467)
 - MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
+- ParallelWaveGAN: [paper](https://arxiv.org/abs/1910.11480)
 - GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
 - WaveRNN: [origin][https://github.com/fatchord/WaveRNN/]
 - WaveGrad: [paper][https://arxiv.org/abs/2009.00713]
@@ -203,7 +204,7 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - [x] Train TTS with r=1 successfully.
 - [x] Enable process based distributed training. Similar to (https://github.com/fastai/imagenet-fast/).
 - [x] Adapting Neural Vocoder. TTS works with WaveRNN and ParallelWaveGAN (https://github.com/erogol/WaveRNN and https://github.com/erogol/ParallelWaveGAN)
-- [ ] Multi-speaker embedding.
+- [x] Multi-speaker embedding.
 - [x] Model optimization (model export, model pruning etc.)
 
 <!--## References
@@ -222,4 +223,4 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
 - https://github.com/kan-bayashi/ParallelWaveGAN (vocoder library)
 - https://github.com/jaywalnut310/glow-tts (Original Glow-TTS implementation)
-- https://github.com/fatchord/WaveRNN/ (WaveRNN implementation)
+- https://github.com/fatchord/WaveRNN/ (Original WaveRNN implementation)
