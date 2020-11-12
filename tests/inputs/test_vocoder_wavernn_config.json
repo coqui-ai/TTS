@@ -35,7 +35,7 @@
     },
 
     // Generating / Synthesizing
-    "batched": true,			
+    "batched": true,
     "target_samples": 11000,		// target number of samples to be generated in each batch entry
     "overlap_samples": 550,		// number of samples for crossfading between batches
 
@@ -53,11 +53,24 @@
     "mode": "mold",         		// mold [string], gauss [string], bits [int]
     "mulaw": false,         		// apply mulaw if mode is bits
     "padding": 2,			// pad the input for resnet to see wider input length
-    
+
     // DATASET
     //"use_gta": true,				// use computed gta features from the tts model
     "data_path": "tests/data/ljspeech/wavs/",	// path containing training wav files
     "feature_path": null, 			// path containing computed features from wav files if null compute them
+
+    // MODEL PARAMETERS
+    "wavernn_model_params": {
+        "rnn_dims": 512,
+        "fc_dims": 512,
+        "compute_dims": 128,
+        "res_out_dims": 128,
+        "num_res_blocks": 10,
+        "use_aux_net": true,
+        "use_upsample_net": true,
+        "upsample_factors": [4, 8, 8] 	// this needs to correctly factorise hop_length
+    },
+    "mixed_precision": false,
 
     // TRAINING
     "batch_size": 4,       	// Batch size for training. Lower values than 32 might cause hard to learn attention.
@@ -86,7 +99,7 @@
     // DATA LOADING
     "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 4,    // number of evaluation data loader processes.
-    "eval_split_size": 10,	    // number of samples for testing	
+    "eval_split_size": 10,	    // number of samples for testing
 
     // PATHS
     "output_path": "tests/train_outputs/"

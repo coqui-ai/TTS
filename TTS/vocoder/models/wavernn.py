@@ -271,9 +271,12 @@ class WaveRNN(nn.Module):
 
         with torch.no_grad():
             if isinstance(mels, np.ndarray):
-                mels = torch.FloatTensor(mels).unsqueeze(0).to(device)
-            #mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
+                mels = torch.FloatTensor(mels).to(device)
+
+            if mels.ndim == 2:
+                mels = mels.unsqueeze(0)
             wave_len = (mels.size(-1) - 1) * self.hop_length
+
             mels = self.pad_tensor(mels.transpose(
                 1, 2), pad=self.pad, side="both")
             mels, aux = self.upsample(mels.transpose(1, 2))

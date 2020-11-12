@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -xe
 BASEDIR=$(dirname "$0")
 echo "$BASEDIR"
 # create run dir
