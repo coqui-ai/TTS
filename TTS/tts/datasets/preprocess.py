@@ -9,9 +9,9 @@ from tqdm import tqdm
 from TTS.tts.utils.generic_utils import split_dataset
 
 
-def load_meta_data(datasets):
+def load_meta_data(datasets, eval_split=True):
     meta_data_train_all = []
-    meta_data_eval_all = []
+    meta_data_eval_all = [] if eval_split else None
     for dataset in datasets:
         name = dataset['name']
         root_path = dataset['path']
@@ -25,7 +25,8 @@ def load_meta_data(datasets):
         else:
             meta_data_eval = preprocessor(root_path, meta_file_val)
         meta_data_train_all += meta_data_train
-        meta_data_eval_all += meta_data_eval
+        if meta_data_eval_all is not None:
+            meta_data_eval_all += meta_data_eval
     return meta_data_train_all, meta_data_eval_all
 
 
