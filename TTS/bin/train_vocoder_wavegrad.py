@@ -80,7 +80,7 @@ def format_test_data(data):
 
 
 def train(model, criterion, optimizer,
-          scheduler, ap, global_step, epoch):
+          scheduler, scaler, ap, global_step, epoch):
     data_loader = setup_loader(ap, is_val=False, verbose=(epoch == 0))
     model.train()
     epoch_time = 0
@@ -102,7 +102,6 @@ def train(model, criterion, optimizer,
         model.compute_noise_level(noise_schedule['num_steps'],
                                   noise_schedule['min_val'],
                                   noise_schedule['max_val'])
-    scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -208,7 +207,8 @@ def train(model, criterion, optimizer,
                                     global_step,
                                     epoch,
                                     OUT_PATH,
-                                    model_losses=loss_dict)
+                                    model_losses=loss_dict,
+                                    scaler=scaler.state_dict() if c.mixed_precision else None)
 
         end_time = time.time()
 
@@ -336,6 +336,9 @@ def main(args):  # pylint: disable=redefined-outer-name
     # setup models
     model = setup_generator(c)
 
+    # scaler for mixed_precision
+    scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
+
     # setup optimizers
     optimizer = Adam(model.parameters(), lr=c.lr, weight_decay=0)
 
@@ -396,7 +399,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
         _, global_step = train(model, criterion, optimizer,
-                               scheduler, ap, global_step,
+                               scheduler, scaler, ap, global_step,
                                epoch)
         eval_avg_loss_dict = evaluate(model, criterion, ap,
                                       global_step, epoch)
@@ -413,7 +416,8 @@ def main(args):  # pylint: disable=redefined-outer-name
                                     global_step,
                                     epoch,
                                     OUT_PATH,
-                                    model_losses=eval_avg_loss_dict)
+                                    model_losses=eval_avg_loss_dict,
+                                    scaler=scaler.state_dict() if c.mixed_precision else None)
 
 
 if __name__ == '__main__':
