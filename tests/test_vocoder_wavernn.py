@@ -27,5 +27,5 @@ def test_wavernn():
     dummy_y = torch.rand((80, y_size))
     output = model(dummy_x, dummy_m)
     assert np.all(output.shape == (2, 1280, 4 * 256)), output.shape
-    output = model.generate(dummy_y, True, 5500, 550, False)
+    output = model.inference(dummy_y, True, 5500, 550)
     assert np.all(output.shape == (256 * (y_size - 1),))

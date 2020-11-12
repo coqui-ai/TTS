@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-
+set -xe
 BASEDIR=$(dirname "$0")
 echo "$BASEDIR"
 # create run dir
-mkdir $BASEDIR/train_outputs
+mkdir -p $BASEDIR/train_outputs
 # run training
 CUDA_VISIBLE_DEVICES="" python TTS/bin/train_vocoder_wavernn.py --config_path $BASEDIR/inputs/test_vocoder_wavernn_config.json
 # find the training folder

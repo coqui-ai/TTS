@@ -182,13 +182,14 @@ def check_config_tts(c):
 
     # loss parameters
     check_argument('loss_masking', c, restricted=True, val_type=bool)
-    check_argument('decoder_loss_alpha', c, restricted=True, val_type=float, min_val=0)
-    check_argument('postnet_loss_alpha', c, restricted=True, val_type=float, min_val=0)
-    check_argument('postnet_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
-    check_argument('decoder_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
-    check_argument('decoder_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
-    check_argument('postnet_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
-    check_argument('ga_alpha', c, restricted=True, val_type=float, min_val=0)
+    if c['model'].lower() in ['tacotron', 'tacotron2']:
+        check_argument('decoder_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('postnet_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('postnet_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('decoder_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('decoder_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('postnet_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('ga_alpha', c, restricted=True, val_type=float, min_val=0)
 
     # validation parameters
     check_argument('run_eval', c, restricted=True, val_type=bool)
