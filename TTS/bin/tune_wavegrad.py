@@ -59,11 +59,13 @@ if args.use_cuda:
 
 # setup optimization parameters
 base_values = sorted(np.random.uniform(high=10, size=args.search_depth))
+exponents = 10 ** np.linspace(-6, -2, num=args.num_iter)
 best_error = float('inf')
 best_schedule = None
 total_search_iter = len(base_values)**args.num_iter
 for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=total_search_iter):
-    model.compute_noise_level(num_steps=args.num_iter, min_val=1e-6, max_val=1e-1, base_vals=base)
+    beta = exponents * base
+    model.compute_noise_level(beta)
     for data in loader:
         mel, audio = data
         y_hat = model.inference(mel.cuda() if args.use_cuda else mel)
@@ -78,11 +80,11 @@ for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=tot
             mel_hat.append(torch.from_numpy(m))
 
         mel_hat = torch.stack(mel_hat)
-        mse = torch.sum((mel - mel_hat) ** 2)
+        mse = torch.sum((mel - mel_hat) ** 2).mean()
         if mse.item() < best_error:
             best_error = mse.item()
-            best_schedule = {'num_steps': args.num_iter, 'min_val':1e-6, 'max_val':1e-1, 'base_vals':base}
-            print(" > Found a better schedule.")
+            best_schedule = {'beta': beta}
+            print(f" > Found a better schedule. - MSE: {mse.item()}")
             np.save(args.output_path, best_schedule)
 
 

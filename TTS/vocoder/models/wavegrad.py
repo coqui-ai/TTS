@@ -79,8 +79,8 @@ class Wavegrad(nn.Module):
         return x
 
     def load_noise_schedule(self, path):
-        sched = np.load(path, allow_pickle=True).item()
-        self.compute_noise_level(**sched)
+        beta = np.load(path, allow_pickle=True).item()['beta']
+        self.compute_noise_level(beta)
 
     @torch.no_grad()
     def inference(self, x, y_n=None):
@@ -113,16 +113,13 @@ class Wavegrad(nn.Module):
         noisy_audio = noise_scale * y_0 + (1.0 - noise_scale**2)**0.5 * noise
         return noise.unsqueeze(1), noisy_audio.unsqueeze(1), noise_scale[:, 0]
 
-    def compute_noise_level(self, num_steps, min_val, max_val, base_vals=None):
+    def compute_noise_level(self, beta):
         """Compute noise schedule parameters"""
-        beta = np.linspace(min_val, max_val, num_steps)
-        if base_vals is not None:
-            beta *= base_vals
+        self.num_steps = len(beta)
         alpha = 1 - beta
         alpha_hat = np.cumprod(alpha)
         noise_level = np.concatenate([[1.0], alpha_hat ** 0.5], axis=0)
 
-        self.num_steps = num_steps
         # pylint: disable=not-callable
         self.beta = torch.tensor(beta.astype(np.float32))
         self.alpha = torch.tensor(alpha.astype(np.float32))
