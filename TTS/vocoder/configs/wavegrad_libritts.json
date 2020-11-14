@@ -72,6 +72,8 @@
 
     // TRAINING
     "batch_size": 96,      // Batch size for training.
+
+    // NOISE SCHEDULE PARAMS - Only effective at training time.
     "train_noise_schedule":{
         "min_val": 1e-6,
         "max_val": 1e-2,
