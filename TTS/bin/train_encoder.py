@@ -212,6 +212,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--config_path',
         type=str,
+        required=True,
         help='Path to config file for training.',
     )
     parser.add_argument('--debug',
