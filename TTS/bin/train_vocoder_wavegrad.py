@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import traceback
+import numpy as np
 
 import torch
 # DISTRIBUTED
@@ -94,14 +95,11 @@ def train(model, criterion, optimizer,
     c_logger.print_train_start()
     # setup noise schedule
     noise_schedule = c['train_noise_schedule']
+    betas = np.linspace(noise_schedule['min_val'], noise_schedule['max_val'], noise_schedule['num_steps'])
     if hasattr(model, 'module'):
-        model.module.compute_noise_level(noise_schedule['num_steps'],
-                                         noise_schedule['min_val'],
-                                         noise_schedule['max_val'])
+        model.module.compute_noise_level(betas)
     else:
-        model.compute_noise_level(noise_schedule['num_steps'],
-                                  noise_schedule['min_val'],
-                                  noise_schedule['max_val'])
+        model.compute_noise_level(betas)
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -287,16 +285,13 @@ def evaluate(model, criterion, ap, global_step, epoch):
 
         # setup noise schedule and inference
         noise_schedule = c['test_noise_schedule']
+        betas = np.linspace(noise_schedule['min_val'], noise_schedule['max_val'], noise_schedule['num_steps'])
         if hasattr(model, 'module'):
-            model.module.compute_noise_level(noise_schedule['num_steps'],
-                                             noise_schedule['min_val'],
-                                             noise_schedule['max_val'])
+            model.module.compute_noise_level(betas)
             # compute voice
             x_pred = model.module.inference(m)
         else:
-            model.compute_noise_level(noise_schedule['num_steps'],
-                                      noise_schedule['min_val'],
-                                      noise_schedule['max_val'])
+            model.compute_noise_level(betas)
             # compute voice
             x_pred = model.inference(m)
 
@@ -363,6 +358,9 @@ def main(args):  # pylint: disable=redefined-outer-name
                 scheduler.load_state_dict(checkpoint['scheduler'])
                 # NOTE: Not sure if necessary
                 scheduler.optimizer = optimizer
+            if "scaler" in checkpoint and c.mixed_precision:
+                print(" > Restoring AMP Scaler...")
+                scaler.load_state_dict(checkpoint["scaler"])
         except RuntimeError:
             # retore only matching layers.
             print(" > Partial model initialization...")
