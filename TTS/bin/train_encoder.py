@@ -35,7 +35,7 @@ print(" > Using CUDA: ", use_cuda)
 print(" > Number of GPUs: ", num_gpus)
 
 
-def setup_loader(ap, is_val=False, verbose=False):
+def setup_loader(ap: AudioProcessor, is_val: bool=False, verbose: bool=False):
     if is_val:
         loader = None
     else:
