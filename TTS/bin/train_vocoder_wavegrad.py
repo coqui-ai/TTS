@@ -109,7 +109,7 @@ def train(model, criterion, optimizer,
 
         global_step += 1
 
-        with set_amp_context(c.mixed_precision):
+        with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             # compute noisy input
             if hasattr(model, 'module'):
                 noise, x_noisy, noise_scale = model.module.compute_y_n(x)

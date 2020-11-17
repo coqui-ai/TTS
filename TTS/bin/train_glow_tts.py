@@ -182,7 +182,7 @@ def train(model, criterion, optimizer, scheduler,
         optimizer.zero_grad()
 
         # forward pass model
-        with set_amp_context(c.mixed_precision):
+        with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
                 text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_ids)
 

@@ -158,7 +158,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         if optimizer_st:
             optimizer_st.zero_grad()
 
-        with set_amp_context(c.mixed_precision):
+        with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             # forward pass model
             if c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
