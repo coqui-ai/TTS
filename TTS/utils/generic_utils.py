@@ -13,10 +13,10 @@ def set_amp_context(mixed_precision):
     if mixed_precision:
         cm = torch.cuda.amp.autocast()
     else:
-        if platform.python_version() <= "3.6.0":
-            cm = contextlib.suppress()
-        else:
-            cm = contextlib.nullcontext()
+        # if platform.python_version() <= "3.6.0":
+        cm = contextlib.suppress()
+        # else:
+            # cm = contextlib.nullcontext()
     return cm
 
 
