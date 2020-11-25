@@ -17,8 +17,7 @@ from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      create_experiment_folder, get_git_branch,
-                                     remove_experiment_folder, set_init_dict,
-                                     set_amp_context)
+                                     remove_experiment_folder, set_init_dict)
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import setup_torch_training_env

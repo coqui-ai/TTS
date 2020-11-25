@@ -4,20 +4,8 @@ import os
 import shutil
 import subprocess
 import contextlib
-import platform
 
 import torch
-
-
-def set_amp_context(mixed_precision):
-    if mixed_precision:
-        cm = torch.cuda.amp.autocast()
-    else:
-        # if platform.python_version() <= "3.6.0":
-        cm = contextlib.suppress()
-        # else:
-            # cm = contextlib.nullcontext()
-    return cm
 
 
 def get_git_branch():
