@@ -28,7 +28,7 @@ class WaveGradDataset(Dataset):
 
         self.ap = ap
         self.item_list = items
-        self.seq_len = seq_len
+        self.seq_len = seq_len if return_segments else None
         self.hop_len = hop_len
         self.pad_short = pad_short
         self.conv_pad = conv_pad
@@ -38,7 +38,8 @@ class WaveGradDataset(Dataset):
         self.use_noise_augment = use_noise_augment
         self.verbose = verbose
 
-        assert seq_len % hop_len == 0, " [!] seq_len has to be a multiple of hop_len."
+        if return_segments:
+            assert seq_len % hop_len == 0, " [!] seq_len has to be a multiple of hop_len."
         self.feat_frame_len = seq_len // hop_len + (2 * conv_pad)
 
         # cache acoustic features
