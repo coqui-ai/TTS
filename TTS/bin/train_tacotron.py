@@ -28,8 +28,7 @@ from TTS.utils.distribute import (DistributedSampler, apply_gradient_allreduce,
                                   init_distributed, reduce_tensor)
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      create_experiment_folder, get_git_branch,
-                                     remove_experiment_folder, set_init_dict,
-                                     set_amp_context)
+                                     remove_experiment_folder, set_init_dict)
 from TTS.utils.io import copy_config_file, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
