@@ -34,7 +34,7 @@ _, train_data = load_wav_data(args.data_path, 0)
 train_data = train_data[:args.num_samples]
 dataset = WaveGradDataset(ap=ap,
                           items=train_data,
-                          seq_len=ap.hop_length * 100,
+                          seq_len=-1,
                           hop_len=ap.hop_length,
                           pad_short=config.pad_short,
                           conv_pad=config.conv_pad,
@@ -58,8 +58,9 @@ if args.use_cuda:
     model.cuda()
 
 # setup optimization parameters
-base_values = sorted(np.random.uniform(high=10, size=args.search_depth))
-exponents = 10 ** np.linspace(-6, -2, num=args.num_iter)
+base_values = sorted(10 * np.random.uniform(size=args.search_depth))
+print(base_values)
+exponents = 10 ** np.linspace(-6, -1, num=args.num_iter)
 best_error = float('inf')
 best_schedule = None
 total_search_iter = len(base_values)**args.num_iter
