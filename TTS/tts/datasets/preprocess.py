@@ -20,13 +20,13 @@ def load_meta_data(datasets, eval_split=True):
         preprocessor = get_preprocessor_by_name(name)
         meta_data_train = preprocessor(root_path, meta_file_train)
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
-        if meta_file_val is None:
-            meta_data_eval, meta_data_train = split_dataset(meta_data_train)
-        else:
-            meta_data_eval = preprocessor(root_path, meta_file_val)
-        meta_data_train_all += meta_data_train
-        if meta_data_eval_all is not None:
+        if eval_split:
+            if meta_file_val is None:
+                meta_data_eval, meta_data_train = split_dataset(meta_data_train)
+            else:
+                meta_data_eval = preprocessor(root_path, meta_file_val)
             meta_data_eval_all += meta_data_eval
+        meta_data_train_all += meta_data_train
     return meta_data_train_all, meta_data_eval_all
 
 
