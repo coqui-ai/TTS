@@ -1,0 +1,116 @@
+{
+    "run_name": "wavegrad-libritts",
+    "run_description": "wavegrad libritts",
+
+    "audio":{
+        "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
+        "win_length": 1024,      // stft window length in ms.
+        "hop_length": 256,       // stft window hop-lengh in ms.
+        "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
+        "frame_shift_ms": null,  // stft window hop-lengh in ms. If null, 'hop_length' is used.
+
+        // Audio processing parameters
+        "sample_rate": 24000,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "ref_level_db": 0,     // reference level db, theoretically 20db is the sound of air.
+
+        // Silence trimming
+        "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
+
+        // MelSpectrogram parameters
+        "num_mels": 80,         // size of the mel spec frame.
+        "mel_fmin": 50.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 7600.0,     // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 1.0,         // scaler value appplied after log transform of spectrogram.
+
+        // Normalization parameters
+        "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
+        "min_level_db": -100,   // lower bound for normalization
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true,      // clip normalized values into the range.
+        "stats_path": "/home/erogol/Data/libritts/LibriTTS/scale_stats_wavegrad.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+    },
+
+    // DISTRIBUTED TRAINING
+    "mixed_precision": true,     // enable torch mixed precision training (true, false)
+    "distributed":{
+        "backend": "nccl",
+        "url": "tcp:\/\/localhost:54322"
+    },
+
+    "target_loss": "avg_wavegrad_loss",  // loss value to pick the best model to save after each epoch
+
+    // MODEL PARAMETERS
+    "generator_model": "wavegrad",
+    "model_params":{
+        "use_weight_norm": true,
+        "y_conv_channels":32,
+        "x_conv_channels":768,
+        "ublock_out_channels": [512, 512, 256, 128, 128],
+        "dblock_out_channels": [128, 128, 256, 512],
+        "upsample_factors": [4, 4, 4, 2, 2],
+        "upsample_dilations": [
+            [1, 2, 1, 2],
+            [1, 2, 1, 2],
+            [1, 2, 4, 8],
+            [1, 2, 4, 8],
+            [1, 2, 4, 8]]
+    },
+
+    // DATASET
+    "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/",  // root data path. It finds all wav files recursively from there.
+    "feature_path": null,   // if you use precomputed features
+    "seq_len": 6144,        // 24 * hop_length
+    "pad_short": 0,      // additional padding for short wavs
+    "conv_pad": 0,          // additional padding against convolutions applied to spectrograms
+    "use_noise_augment": false,     // add noise to the audio signal for augmentation
+    "use_cache": false,      // use in memory cache to keep the computed features. This might cause OOM.
+
+    "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
+
+    // TRAINING
+    "batch_size": 96,      // Batch size for training.
+
+    // NOISE SCHEDULE PARAMS - Only effective at training time.
+    "train_noise_schedule":{
+        "min_val": 1e-6,
+        "max_val": 1e-2,
+        "num_steps": 1000
+    },
+    "test_noise_schedule":{
+        "min_val": 1e-6,
+        "max_val": 1e-2,
+        "num_steps": 50
+    },
+
+    // VALIDATION
+    "run_eval": true,       // enable/disable evaluation run
+
+    // OPTIMIZER
+    "epochs": 10000,                // total number of epochs to train.
+    "clip_grad": 1.0,                 // Generator gradient clipping threshold. Apply gradient clipping if > 0
+    "lr_scheduler": "MultiStepLR",  // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    "lr_scheduler_params": {
+        "gamma": 0.5,
+        "milestones": [100000, 200000, 300000, 400000, 500000, 600000]
+    },
+    "lr": 1e-4,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
+
+    // TENSORBOARD and LOGGING
+    "print_step": 50,       // Number of steps to log traning on console.
+    "print_eval": false,     // If True, it prints loss values for each step in eval run.
+    "save_step": 5000,      // Number of training steps expected to plot training stats on TB and save model checkpoints.
+    "checkpoint": true,     // If true, it saves checkpoints per "save_step"
+    "tb_model_param_stats": true,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
+
+    // DATA LOADING
+    "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_val_loader_workers": 4,    // number of evaluation data loader processes.
+    "eval_split_size": 256,
+
+    // PATHS
+    "output_path": "/home/erogol/Models/LJSpeech/"
+}
+

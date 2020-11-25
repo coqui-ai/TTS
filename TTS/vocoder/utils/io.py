@@ -20,7 +20,10 @@ def load_checkpoint(model, checkpoint_path, use_cuda=False):
 
 def save_model(model, optimizer, scheduler, model_disc, optimizer_disc,
                scheduler_disc, current_step, epoch, output_path, **kwargs):
-    model_state = model.state_dict()
+    if hasattr(model, 'module'):
+        model_state = model.module.state_dict()
+    else:
+        model_state = model.state_dict()
     model_disc_state = model_disc.state_dict()\
          if model_disc is not None else None
     optimizer_state = optimizer.state_dict()\

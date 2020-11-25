@@ -67,12 +67,23 @@
     "gradual_training": [[0, 7, 4]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.
     "ga_alpha": 10.0,        // weight for guided attention loss. If > 0, guided attention is enabled.
-    "apex_amp_level": null,
+    "mixed_precision": false,
 
     // VALIDATION
     "run_eval": true,
     "test_delay_epochs": 0,  //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
+
+    // LOSS SETTINGS
+    "loss_masking": true,       // enable / disable loss masking against the sequence padding.
+    "decoder_loss_alpha": 0.5,  // original decoder loss weight. If > 0, it is enabled
+    "postnet_loss_alpha": 0.25, // original postnet loss weight. If > 0, it is enabled
+    "postnet_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "decoder_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "decoder_ssim_alpha": 0.5,     // decoder ssim loss weight. If > 0, it is enabled
+    "postnet_ssim_alpha": 0.25,     // postnet ssim loss weight. If > 0, it is enabled
+    "ga_alpha": 5.0,           // weight for guided attention loss. If > 0, guided attention is enabled.
+    "stopnet_pos_weight": 15.0, // pos class weight for stopnet loss since there are way more negative samples than positive samples.
 
     // OPTIMIZER
     "noam_schedule": false,        // use noam warmup and lr schedule.

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import glob
 import argparse
 
 import numpy as np
@@ -10,6 +11,7 @@ from tqdm import tqdm
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
+
 
 def main():
     """Run preprocessing process."""
@@ -30,7 +32,10 @@ def main():
     ap = AudioProcessor(**CONFIG.audio)
 
     # load the meta data of target dataset
-    dataset_items = load_meta_data(CONFIG.datasets)[0]  # take only train data
+    if 'data_path' in CONFIG.keys():
+        dataset_items = glob.glob(os.path.join(CONFIG.data_path, '**', '*.wav'), recursive=True)
+    else:
+        dataset_items = load_meta_data(CONFIG.datasets)[0]  # take only train data
     print(f" > There are {len(dataset_items)} files.")
 
     mel_sum = 0
@@ -40,7 +45,7 @@ def main():
     N = 0
     for item in tqdm(dataset_items):
         # compute features
-        wav = ap.load_wav(item[1])
+        wav = ap.load_wav(item if isinstance(item, str) else item[1])
         linear = ap.spectrogram(wav)
         mel = ap.melspectrogram(wav)
 
@@ -56,7 +61,7 @@ def main():
     linear_mean = linear_sum / N
     linear_scale = np.sqrt(linear_square_sum / N - linear_mean ** 2)
 
-    output_file_path = os.path.join(args.out_path, "scale_stats.npy")
+    output_file_path = args.out_path
     stats = {}
     stats['mel_mean'] = mel_mean
     stats['mel_std'] = mel_scale
@@ -78,7 +83,7 @@ def main():
     del CONFIG.audio['clip_norm']
     stats['audio_config'] = CONFIG.audio
     np.save(output_file_path, stats, allow_pickle=True)
-    print(f' > scale_stats.npy is saved to {output_file_path}')
+    print(f' > stats saved to {output_file_path}')
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ class MyDataset(Dataset):
                  ap,
                  meta_data,
                  tp=None,
+                 add_blank=False,
                  batch_group_size=0,
                  min_seq_len=0,
                  max_seq_len=float("inf"),
@@ -55,6 +56,7 @@ class MyDataset(Dataset):
         self.max_seq_len = max_seq_len
         self.ap = ap
         self.tp = tp
+        self.add_blank = add_blank
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
@@ -88,7 +90,7 @@ class MyDataset(Dataset):
         phonemes = phoneme_to_sequence(text, [self.cleaners],
                                        language=self.phoneme_language,
                                        enable_eos_bos=False,
-                                       tp=self.tp)
+                                       tp=self.tp, add_blank=self.add_blank)
         phonemes = np.asarray(phonemes, dtype=np.int32)
         np.save(cache_path, phonemes)
         return phonemes
@@ -127,7 +129,7 @@ class MyDataset(Dataset):
             text = self._load_or_generate_phoneme_sequence(wav_file, text)
         else:
             text = np.asarray(text_to_sequence(text, [self.cleaners],
-                                               tp=self.tp),
+                                               tp=self.tp, add_blank=self.add_blank),
                               dtype=np.int32)
 
         assert text.size > 0, self.items[idx][1]

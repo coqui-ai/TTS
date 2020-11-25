@@ -9,9 +9,9 @@ from tqdm import tqdm
 from TTS.tts.utils.generic_utils import split_dataset
 
 
-def load_meta_data(datasets):
+def load_meta_data(datasets, eval_split=True):
     meta_data_train_all = []
-    meta_data_eval_all = []
+    meta_data_eval_all = [] if eval_split else None
     for dataset in datasets:
         name = dataset['name']
         root_path = dataset['path']
@@ -20,12 +20,13 @@ def load_meta_data(datasets):
         preprocessor = get_preprocessor_by_name(name)
         meta_data_train = preprocessor(root_path, meta_file_train)
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
-        if meta_file_val is None:
-            meta_data_eval, meta_data_train = split_dataset(meta_data_train)
-        else:
-            meta_data_eval = preprocessor(root_path, meta_file_val)
+        if eval_split:
+            if meta_file_val is None:
+                meta_data_eval, meta_data_train = split_dataset(meta_data_train)
+            else:
+                meta_data_eval = preprocessor(root_path, meta_file_val)
+            meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
-        meta_data_eval_all += meta_data_eval
     return meta_data_train_all, meta_data_eval_all
 
 
@@ -227,7 +228,6 @@ def brspeech(root_path, meta_file):
             if line.startswith("wav_filename"):
                 continue
             cols = line.split('|')
-            #print(cols)
             wav_file = os.path.join(root_path, cols[0])
             text = cols[2]
             speaker_name = cols[3]
@@ -303,17 +303,17 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
 
     elif not cache_to.exists():
         cnt = 0
-        meta_data = ""
+        meta_data = []
         wav_files = voxceleb_path.rglob("**/*.wav")
         for path in tqdm(wav_files, desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
                          total=expected_count):
             speaker_id = str(Path(path).parent.parent.stem)
             assert speaker_id.startswith('id')
             text = None  # VoxCel does not provide transciptions, and they are not needed for training the SE
-            meta_data += f"{text}|{path}|voxcel{voxcel_idx}_{speaker_id}\n"
+            meta_data.append(f"{text}|{path}|voxcel{voxcel_idx}_{speaker_id}\n")
             cnt += 1
         with open(str(cache_to), 'w') as f:
-            f.write(meta_data)
+            f.write("".join(meta_data))
         if cnt < expected_count:
             raise ValueError(f"Found too few instances for Voxceleb. Should be around {expected_count}, is: {cnt}")
 
