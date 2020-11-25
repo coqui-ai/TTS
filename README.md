@@ -26,7 +26,7 @@ TTS paper collection: https://github.com/erogol/TTS-papers
 ## TTS Performance
 <p align="center"><img src="https://discourse-prod-uploads-81679984178418.s3.dualstack.us-west-2.amazonaws.com/optimized/3X/6/4/6428f980e9ec751c248e591460895f7881aec0c6_2_1035x591.png" width="800" /></p>
 
-"Mozilla*" and "Judy*" are our models. 
+"Mozilla*" and "Judy*" are our models.
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
 ## Provided Models and Methods
@@ -47,7 +47,10 @@ Speaker Encoder:
 Vocoders:
 - MelGAN: [paper](https://arxiv.org/abs/1710.10467)
 - MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
+- ParallelWaveGAN: [paper](https://arxiv.org/abs/1910.11480)
 - GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
+- WaveRNN: [origin][https://github.com/fatchord/WaveRNN/]
+- WaveGrad: [paper][https://arxiv.org/abs/2009.00713]
 
 You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
@@ -70,8 +73,8 @@ You can also help us implement more models. Some TTS related work can be found [
 ## Main Requirements and Installation
 Highly recommended to use [miniconda](https://conda.io/miniconda.html) for easier installation.
   * python>=3.6
-  * pytorch>=1.4.1
-  * tensorflow>=2.2
+  * pytorch>=1.5.0
+  * tensorflow>=2.3
   * librosa
   * tensorboard
   * tensorboardX
@@ -149,23 +152,25 @@ head -n 12000 metadata_shuf.csv > metadata_train.csv
 tail -n 1100 metadata_shuf.csv > metadata_val.csv
 ```
 
-To train a new model, you need to define your own ```config.json``` file (check the example) and call with the command below. You also set the model architecture in  ```config.json```.
+To train a new model, you need to define your own ```config.json``` to define model details, trainin configuration and more (check the examples). Then call the corressponding train script.
 
-```python TTS/bin/train_tts.py --config_path TTS/tts/configs/config.json```
+For instance, in order to train a tacotron or tacotron2 model on LJSpeech dataset, follow these steps.
+
+```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json```
 
 To fine-tune a model, use ```--restore_path```.
 
-```python TTS/bin/train_tts.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
+```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
 
 To continue an old training run, use ```--continue_path```.
 
-```python TTS/bin/train_tts.py --continue_path /path/to/your/run_folder/```
+```python TTS/bin/train_tacotron.py --continue_path /path/to/your/run_folder/```
 
-For multi-GPU training use ```distribute.py```. It enables process based multi-GPU training where each process uses a single GPU.
+For multi-GPU training, call ```distribute.py```. It runs any provided train script in multi-GPU setting.
 
-```CUDA_VISIBLE_DEVICES="0,1,4" TTS/bin/distribute.py --config_path TTS/tts/configs/config.json```
+```CUDA_VISIBLE_DEVICES="0,1,4" python TTS/bin/distribute.py --script train_tacotron.py --config_path TTS/tts/configs/config.json```
 
-Each run creates a new output folder and ```config.json``` is copied under this folder.
+Each run creates a new output folder accomodating used ```config.json```, model checkpoints and tensorboard logs.
 
 In case of any error or intercepted execution, if there is no checkpoint yet under the output folder, the whole folder is going to be removed.
 
@@ -199,7 +204,7 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - [x] Train TTS with r=1 successfully.
 - [x] Enable process based distributed training. Similar to (https://github.com/fastai/imagenet-fast/).
 - [x] Adapting Neural Vocoder. TTS works with WaveRNN and ParallelWaveGAN (https://github.com/erogol/WaveRNN and https://github.com/erogol/ParallelWaveGAN)
-- [ ] Multi-speaker embedding.
+- [x] Multi-speaker embedding.
 - [x] Model optimization (model export, model pruning etc.)
 
 <!--## References
@@ -218,3 +223,4 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
 - https://github.com/kan-bayashi/ParallelWaveGAN (vocoder library)
 - https://github.com/jaywalnut310/glow-tts (Original Glow-TTS implementation)
+- https://github.com/fatchord/WaveRNN/ (Original WaveRNN implementation)

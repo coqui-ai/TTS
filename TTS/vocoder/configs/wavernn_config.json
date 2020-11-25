@@ -1,0 +1,98 @@
+{
+    "run_name": "wavernn_librittts",
+    "run_description": "wavernn libritts training from LJSpeech model",
+
+// AUDIO PARAMETERS
+    "audio": {
+        "fft_size": 1024, // number of stft frequency levels. Size of the linear spectogram frame.
+        "win_length": 1024, // stft window length in ms.
+        "hop_length": 256, // stft window hop-lengh in ms.
+        "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
+        "frame_shift_ms": null, // stft window hop-lengh in ms. If null, 'hop_length' is used.
+        // Audio processing parameters
+        "sample_rate": 24000, // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "preemphasis": 0.98, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "ref_level_db": 20, // reference level db, theoretically 20db is the sound of air.
+        // Silence trimming
+        "do_trim_silence": false, // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "trim_db": 60, // threshold for timming silence. Set this according to your dataset.
+        // MelSpectrogram parameters
+        "num_mels": 80, // size of the mel spec frame.
+        "mel_fmin": 40.0, // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 8000.0, // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 20.0, // scaler value appplied after log transform of spectrogram.
+        // Normalization parameters
+        "signal_norm": true, // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
+        "min_level_db": -100, // lower bound for normalization
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4.0, // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true, // clip normalized values into the range.
+        "stats_path": null // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+    },
+
+// Generating / Synthesizing
+    "batched": true,
+    "target_samples": 11000, // target number of samples to be generated in each batch entry
+    "overlap_samples": 550, // number of samples for crossfading between batches
+    // DISTRIBUTED TRAINING
+    // "distributed":{
+    //     "backend": "nccl",
+    //     "url": "tcp:\/\/localhost:54321"
+    // },
+
+// MODEL MODE
+    "mode": "mold", // mold [string], gauss [string], bits [int]
+    "mulaw": true, // apply mulaw if mode is bits
+
+// MODEL PARAMETERS
+    "wavernn_model_params": {
+        "rnn_dims": 512,
+        "fc_dims": 512,
+        "compute_dims": 128,
+        "res_out_dims": 128,
+        "num_res_blocks": 10,
+        "use_aux_net": true,
+        "use_upsample_net": true,
+        "upsample_factors": [4, 8, 8] 	// this needs to correctly factorise hop_length
+    },
+
+// DATASET
+    //"use_gta": true,								// use computed gta features from the tts model
+    "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/", // path containing training wav files
+    "feature_path": null, // path containing computed features from wav files if null compute them
+    "seq_len": 1280, // has to be devideable by hop_length
+    "padding": 2, // pad the input for resnet to see wider input length
+
+// TRAINING
+    "batch_size": 256, // Batch size for training.
+    "epochs": 10000, // total number of epochs to train.
+    "mixed_precision": true, // enable/ disable mixed precision training
+
+// VALIDATION
+    "run_eval": true,
+    "test_every_epochs": 10, // Test after set number of epochs (Test every 10 epochs for example)
+
+// OPTIMIZER
+    "grad_clip": 4, // apply gradient clipping if > 0
+    "lr_scheduler": "MultiStepLR", // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    "lr_scheduler_params": {
+        "gamma": 0.5,
+        "milestones": [200000, 400000, 600000]
+    },
+    "lr": 1e-4, // initial learning rate
+
+// TENSORBOARD and LOGGING
+    "print_step": 25, // Number of steps to log traning on console.
+    "print_eval": false, // If True, it prints loss values for each step in eval run.
+    "save_step": 25000, // Number of training steps expected to plot training stats on TB and save model checkpoints.
+    "checkpoint": true, // If true, it saves checkpoints per "save_step"
+    "tb_model_param_stats": false, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
+
+// DATA LOADING
+    "num_loader_workers": 4, // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_val_loader_workers": 4, // number of evaluation data loader processes.
+    "eval_split_size": 50, // number of samples for testing
+
+// PATHS
+    "output_path": "/home/erogol/Models/LJSpeech/"
+}

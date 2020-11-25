@@ -51,10 +51,13 @@
     //     "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫ"
     // },
 
+    "add_blank": false, // if true add a new token after each token of the sentence. This increases the size of the input sequence, but has considerably improved the prosody of the GlowTTS model.
+
     // DISTRIBUTED TRAINING
+    "apex_amp_level": null,     // APEX amp optimization level. "O1" is currently supported.
     "distributed":{
         "backend": "nccl",
-        "url": "tcp:\/\/localhost:54321"
+        "url": "tcp:\/\/localhost:54323"
     },
 
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.

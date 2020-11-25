@@ -61,6 +61,7 @@ class SpeakerEncoder(nn.Module):
             d = torch.nn.functional.normalize(d, p=2, dim=1)
         return d
 
+    @torch.no_grad()
     def inference(self, x):
         d = self.layers.forward(x)
         if self.use_lstm_with_projection:

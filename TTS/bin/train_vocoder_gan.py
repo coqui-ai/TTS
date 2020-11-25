@@ -19,12 +19,15 @@ from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
-# from distribute import (DistributedSampler, apply_gradient_allreduce,
-#                         init_distributed, reduce_tensor)
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
 from TTS.vocoder.utils.generic_utils import (plot_results, setup_discriminator,
                                              setup_generator)
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
+
+# DISTRIBUTED
+from torch.nn.parallel import DistributedDataParallel as DDP_th
+from torch.utils.data.distributed import DistributedSampler
+from TTS.utils.distribute import init_distributed
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)
 
@@ -45,12 +48,12 @@ def setup_loader(ap, is_val=False, verbose=False):
                              use_cache=c.use_cache,
                              verbose=verbose)
         dataset.shuffle_mapping()
-        # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        sampler = DistributedSampler(dataset, shuffle=True) if num_gpus > 1 else None
         loader = DataLoader(dataset,
                             batch_size=1 if is_val else c.batch_size,
-                            shuffle=True,
+                            shuffle=False if num_gpus > 1 else True,
                             drop_last=False,
-                            sampler=None,
+                            sampler=sampler,
                             num_workers=c.num_val_loader_workers
                             if is_val else c.num_loader_workers,
                             pin_memory=False)
@@ -243,41 +246,42 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
             c_logger.print_train_step(batch_n_iter, num_iter, global_step,
                                       log_dict, loss_dict, keep_avg.avg_values)
 
-        # plot step stats
-        if global_step % 10 == 0:
-            iter_stats = {
-                "lr_G": current_lr_G,
-                "lr_D": current_lr_D,
-                "step_time": step_time
-            }
-            iter_stats.update(loss_dict)
-            tb_logger.tb_train_iter_stats(global_step, iter_stats)
+        if args.rank == 0:
+            # plot step stats
+            if global_step % 10 == 0:
+                iter_stats = {
+                    "lr_G": current_lr_G,
+                    "lr_D": current_lr_D,
+                    "step_time": step_time
+                }
+                iter_stats.update(loss_dict)
+                tb_logger.tb_train_iter_stats(global_step, iter_stats)
 
-        # save checkpoint
-        if global_step % c.save_step == 0:
-            if c.checkpoint:
-                # save model
-                save_checkpoint(model_G,
-                                optimizer_G,
-                                scheduler_G,
-                                model_D,
-                                optimizer_D,
-                                scheduler_D,
-                                global_step,
-                                epoch,
-                                OUT_PATH,
-                                model_losses=loss_dict)
+            # save checkpoint
+            if global_step % c.save_step == 0:
+                if c.checkpoint:
+                    # save model
+                    save_checkpoint(model_G,
+                                    optimizer_G,
+                                    scheduler_G,
+                                    model_D,
+                                    optimizer_D,
+                                    scheduler_D,
+                                    global_step,
+                                    epoch,
+                                    OUT_PATH,
+                                    model_losses=loss_dict)
 
-            # compute spectrograms
-            figures = plot_results(y_hat_vis, y_G, ap, global_step,
-                                   'train')
-            tb_logger.tb_train_figures(global_step, figures)
+                # compute spectrograms
+                figures = plot_results(y_hat_vis, y_G, ap, global_step,
+                                    'train')
+                tb_logger.tb_train_figures(global_step, figures)
 
-            # Sample audio
-            sample_voice = y_hat_vis[0].squeeze(0).detach().cpu().numpy()
-            tb_logger.tb_train_audios(global_step,
-                                      {'train/audio': sample_voice},
-                                      c.audio["sample_rate"])
+                # Sample audio
+                sample_voice = y_hat_vis[0].squeeze(0).detach().cpu().numpy()
+                tb_logger.tb_train_audios(global_step,
+                                        {'train/audio': sample_voice},
+                                        c.audio["sample_rate"])
         end_time = time.time()
 
     # print epoch stats
@@ -286,7 +290,8 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
     # Plot Training Epoch Stats
     epoch_stats = {"epoch_time": epoch_time}
     epoch_stats.update(keep_avg.avg_values)
-    tb_logger.tb_train_epoch_stats(global_step, epoch_stats)
+    if args.rank == 0:
+        tb_logger.tb_train_epoch_stats(global_step, epoch_stats)
     # TODO: plot model stats
     # if c.tb_model_param_stats:
     # tb_logger.tb_model_weights(model, global_step)
@@ -325,7 +330,6 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
             y_hat_sub = y_hat
             y_hat = model_G.pqmf_synthesis(y_hat)
             y_G_sub = model_G.pqmf_analysis(y_G)
-
 
         scores_fake, feats_fake, feats_real = None, None, None
         if global_step > c.steps_to_start_discriminator:
@@ -403,7 +407,6 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
                 else:
                     loss_dict[key] = value.item()
 
-
         step_time = time.time() - start_time
         epoch_time += step_time
 
@@ -419,19 +422,20 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
         if c.print_eval:
             c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
 
-    # compute spectrograms
-    figures = plot_results(y_hat, y_G, ap, global_step, 'eval')
-    tb_logger.tb_eval_figures(global_step, figures)
+    if args.rank == 0:
+        # compute spectrograms
+        figures = plot_results(y_hat, y_G, ap, global_step, 'eval')
+        tb_logger.tb_eval_figures(global_step, figures)
 
-    # Sample audio
-    sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
-    tb_logger.tb_eval_audios(global_step, {'eval/audio': sample_voice},
-                             c.audio["sample_rate"])
+        # Sample audio
+        sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
+        tb_logger.tb_eval_audios(global_step, {'eval/audio': sample_voice},
+                                c.audio["sample_rate"])
 
-    # synthesize a full voice
+        tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
+
+     # synthesize a full voice
     data_loader.return_segments = False
-
-    tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
 
     return keep_avg.avg_values
 
@@ -443,7 +447,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     print(f" > Loading wavs from: {c.data_path}")
     if c.feature_path is not None:
         print(f" > Loading features from: {c.feature_path}")
-        eval_data, train_data = load_wav_feat_data(c.data_path, c.feature_path, c.eval_split_size)
+        eval_data, train_data = load_wav_feat_data(
+            c.data_path, c.feature_path, c.eval_split_size)
     else:
         eval_data, train_data = load_wav_data(c.data_path, c.eval_split_size)
 
@@ -451,9 +456,9 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
 
     # DISTRUBUTED
-    # if num_gpus > 1:
-    # init_distributed(args.rank, num_gpus, args.group_id,
-    #  c.distributed["backend"], c.distributed["url"])
+    if num_gpus > 1:
+        init_distributed(args.rank, num_gpus, args.group_id,
+                         c.distributed["backend"], c.distributed["url"])
 
     # setup models
     model_gen = setup_generator(c)
@@ -470,10 +475,12 @@ def main(args):  # pylint: disable=redefined-outer-name
     scheduler_disc = None
     if 'lr_scheduler_gen' in c:
         scheduler_gen = getattr(torch.optim.lr_scheduler, c.lr_scheduler_gen)
-        scheduler_gen = scheduler_gen(optimizer_gen, **c.lr_scheduler_gen_params)
+        scheduler_gen = scheduler_gen(
+            optimizer_gen, **c.lr_scheduler_gen_params)
     if 'lr_scheduler_disc' in c:
         scheduler_disc = getattr(torch.optim.lr_scheduler, c.lr_scheduler_disc)
-        scheduler_disc = scheduler_disc(optimizer_disc, **c.lr_scheduler_disc_params)
+        scheduler_disc = scheduler_disc(
+            optimizer_disc, **c.lr_scheduler_disc_params)
 
     # setup criterion
     criterion_gen = GeneratorLoss(c)
@@ -531,8 +538,9 @@ def main(args):  # pylint: disable=redefined-outer-name
         criterion_disc.cuda()
 
     # DISTRUBUTED
-    # if num_gpus > 1:
-    #     model = apply_gradient_allreduce(model)
+    if num_gpus > 1:
+        model_gen = DDP_th(model_gen, device_ids=[args.rank])
+        model_disc = DDP_th(model_disc, device_ids=[args.rank])
 
     num_params = count_parameters(model_gen)
     print(" > Generator has {} parameters".format(num_params), flush=True)
@@ -572,8 +580,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--continue_path',
         type=str,
-        help=
-        'Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
+        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
         default='',
         required='--config_path' not in sys.argv)
     parser.add_argument(

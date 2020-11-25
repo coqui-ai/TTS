@@ -28,7 +28,6 @@ def split_dataset(items):
         return items_eval, items
     return items[:eval_split_size], items[eval_split_size:]
 
-
 # from https://gist.github.com/jihunchoi/f1434a77df9db1bb337417854b398df1
 def sequence_mask(sequence_length, max_len=None):
     if max_len is None:
@@ -50,7 +49,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
     MyModel = getattr(MyModel, to_camel(c.model))
     if c.model.lower() in "tacotron":
-        model = MyModel(num_chars=num_chars,
+        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=int(c.audio['fft_size'] / 2 + 1),
@@ -77,7 +76,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "tacotron2":
-        model = MyModel(num_chars=num_chars,
+        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=c.audio['num_mels'],
@@ -103,7 +102,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "glow_tts":
-        model = MyModel(num_chars=num_chars,
+        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         hidden_channels=192,
                         filter_channels=768,
                         filter_channels_dp=256,
@@ -126,13 +125,15 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         mean_only=True,
                         hidden_channels_enc=192,
                         hidden_channels_dec=192,
-                        use_encoder_prenet=True)
+                        use_encoder_prenet=True,
+                        external_speaker_embedding_dim=speaker_embedding_dim)
     return model
 
-
+def is_tacotron(c):
+    return False if 'glow_tts' in c['model'] else True
 
 def check_config_tts(c):
-    check_argument('model', c, enum_list=['tacotron', 'tacotron2'], restricted=True, val_type=str)
+    check_argument('model', c, enum_list=['tacotron', 'tacotron2', 'glow_tts'], restricted=True, val_type=str)
     check_argument('run_name', c, restricted=True, val_type=str)
     check_argument('run_description', c, val_type=str)
 
@@ -176,9 +177,19 @@ def check_config_tts(c):
     check_argument('eval_batch_size', c, restricted=True, val_type=int, min_val=1)
     check_argument('r', c, restricted=True, val_type=int, min_val=1)
     check_argument('gradual_training', c, restricted=False, val_type=list)
-    check_argument('loss_masking', c, restricted=True, val_type=bool)
     check_argument('apex_amp_level', c, restricted=False, val_type=str)
     # check_argument('grad_accum', c, restricted=True, val_type=int, min_val=1, max_val=100)
+
+    # loss parameters
+    check_argument('loss_masking', c, restricted=True, val_type=bool)
+    if c['model'].lower() in ['tacotron', 'tacotron2']:
+        check_argument('decoder_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('postnet_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('postnet_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('decoder_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('decoder_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('postnet_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('ga_alpha', c, restricted=True, val_type=float, min_val=0)
 
     # validation parameters
     check_argument('run_eval', c, restricted=True, val_type=bool)
@@ -195,27 +206,30 @@ def check_config_tts(c):
     check_argument('seq_len_norm', c, restricted=True, val_type=bool)
 
     # tacotron prenet
-    check_argument('memory_size', c, restricted=True, val_type=int, min_val=-1)
-    check_argument('prenet_type', c, restricted=True, val_type=str, enum_list=['original', 'bn'])
-    check_argument('prenet_dropout', c, restricted=True, val_type=bool)
+    check_argument('memory_size', c, restricted=is_tacotron(c), val_type=int, min_val=-1)
+    check_argument('prenet_type', c, restricted=is_tacotron(c), val_type=str, enum_list=['original', 'bn'])
+    check_argument('prenet_dropout', c, restricted=is_tacotron(c), val_type=bool)
 
     # attention
-    check_argument('attention_type', c, restricted=True, val_type=str, enum_list=['graves', 'original'])
-    check_argument('attention_heads', c, restricted=True, val_type=int)
-    check_argument('attention_norm', c, restricted=True, val_type=str, enum_list=['sigmoid', 'softmax'])
-    check_argument('windowing', c, restricted=True, val_type=bool)
-    check_argument('use_forward_attn', c, restricted=True, val_type=bool)
-    check_argument('forward_attn_mask', c, restricted=True, val_type=bool)
-    check_argument('transition_agent', c, restricted=True, val_type=bool)
-    check_argument('transition_agent', c, restricted=True, val_type=bool)
-    check_argument('location_attn', c, restricted=True, val_type=bool)
-    check_argument('bidirectional_decoder', c, restricted=True, val_type=bool)
-    check_argument('double_decoder_consistency', c, restricted=True, val_type=bool)
+    check_argument('attention_type', c, restricted=is_tacotron(c), val_type=str, enum_list=['graves', 'original'])
+    check_argument('attention_heads', c, restricted=is_tacotron(c), val_type=int)
+    check_argument('attention_norm', c, restricted=is_tacotron(c), val_type=str, enum_list=['sigmoid', 'softmax'])
+    check_argument('windowing', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('use_forward_attn', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('forward_attn_mask', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('transition_agent', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('transition_agent', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('location_attn', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('bidirectional_decoder', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('double_decoder_consistency', c, restricted=is_tacotron(c), val_type=bool)
     check_argument('ddc_r', c, restricted='double_decoder_consistency' in c.keys(), min_val=1, max_val=7, val_type=int)
 
     # stopnet
-    check_argument('stopnet', c, restricted=True, val_type=bool)
-    check_argument('separate_stopnet', c, restricted=True, val_type=bool)
+    check_argument('stopnet', c, restricted=is_tacotron(c), val_type=bool)
+    check_argument('separate_stopnet', c, restricted=is_tacotron(c), val_type=bool)
+
+    # GlowTTS parameters
+    check_argument('encoder_type', c, restricted=not is_tacotron(c), val_type=str)
 
     # tensorboard
     check_argument('print_step', c, restricted=True, val_type=int, min_val=1)
@@ -240,15 +254,16 @@ def check_config_tts(c):
 
     # multi-speaker and gst
     check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
-    check_argument('use_external_speaker_embedding_file', c, restricted=True, val_type=bool)
-    check_argument('external_speaker_embedding_file', c, restricted=True, val_type=str)
-    check_argument('use_gst', c, restricted=True, val_type=bool)
-    check_argument('gst', c, restricted=True, val_type=dict)
-    check_argument('gst_style_input', c['gst'], restricted=True, val_type=[str, dict])
-    check_argument('gst_embedding_dim', c['gst'], restricted=True, val_type=int, min_val=0, max_val=1000)
-    check_argument('gst_use_speaker_embedding', c['gst'], restricted=True, val_type=bool)
-    check_argument('gst_num_heads', c['gst'], restricted=True, val_type=int, min_val=2, max_val=10)
-    check_argument('gst_style_tokens', c['gst'], restricted=True, val_type=int, min_val=1, max_val=1000)
+    check_argument('use_external_speaker_embedding_file', c, restricted=c['use_speaker_embedding'], val_type=bool)
+    check_argument('external_speaker_embedding_file', c, restricted=c['use_external_speaker_embedding_file'], val_type=str)
+    check_argument('use_gst', c, restricted=is_tacotron(c), val_type=bool)
+    if c['model'].lower() in ['tacotron', 'tacotron2'] and c['use_gst']:
+        check_argument('gst', c, restricted=is_tacotron(c), val_type=dict)
+        check_argument('gst_style_input', c['gst'], restricted=is_tacotron(c), val_type=[str, dict])
+        check_argument('gst_embedding_dim', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=0, max_val=1000)
+        check_argument('gst_use_speaker_embedding', c['gst'], restricted=is_tacotron(c), val_type=bool)
+        check_argument('gst_num_heads', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=2, max_val=10)
+        check_argument('gst_style_tokens', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=1, max_val=1000)
 
     # datasets - checking only the first entry
     check_argument('datasets', c, restricted=True, val_type=list)

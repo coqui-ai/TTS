@@ -9,17 +9,16 @@ import time
 import traceback
 
 import torch
+from random import randrange
 from torch.utils.data import DataLoader
+
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import GlowTTSLoss
-from TTS.tts.utils.distribute import (DistributedSampler, init_distributed,
-                                      reduce_tensor)
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.utils.generic_utils import setup_model, check_config_tts
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
-from TTS.tts.utils.speakers import (get_speakers, load_speaker_mapping,
-                                    save_speaker_mapping)
+from TTS.tts.utils.speakers import parse_speakers, load_speaker_mapping
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -34,10 +33,15 @@ from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import (NoamLR, check_update,
                                 setup_torch_training_env)
 
+# DISTRIBUTED
+from torch.nn.parallel import DistributedDataParallel as DDP_th
+from torch.utils.data.distributed import DistributedSampler
+from TTS.utils.distribute import init_distributed, reduce_tensor
+
+
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
-def setup_loader(ap, r, is_val=False, verbose=False):
-
+def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
     if is_val and not c.run_eval:
         loader = None
     else:
@@ -48,6 +52,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             meta_data=meta_data_eval if is_val else meta_data_train,
             ap=ap,
             tp=c.characters if 'characters' in c.keys() else None,
+            add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
             batch_group_size=0 if is_val else c.batch_group_size *
             c.batch_size,
             min_seq_len=c.min_seq_len,
@@ -56,7 +61,8 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             use_phonemes=c.use_phonemes,
             phoneme_language=c.phoneme_language,
             enable_eos_bos=c.enable_eos_bos_chars,
-            verbose=verbose)
+            verbose=verbose,
+            speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -86,10 +92,13 @@ def format_data(data):
     avg_spec_length = torch.mean(mel_lengths.float())
 
     if c.use_speaker_embedding:
-        speaker_ids = [
-            speaker_mapping[speaker_name] for speaker_name in speaker_names
-        ]
-        speaker_ids = torch.LongTensor(speaker_ids)
+        if c.use_external_speaker_embedding_file:
+            speaker_ids = data[8]
+        else:
+            speaker_ids = [
+                speaker_mapping[speaker_name] for speaker_name in speaker_names
+            ]
+            speaker_ids = torch.LongTensor(speaker_ids)
     else:
         speaker_ids = None
 
@@ -107,7 +116,7 @@ def format_data(data):
          avg_text_length, avg_spec_length, attn_mask
 
 
-def data_depended_init(model, ap):
+def data_depended_init(model, ap, speaker_mapping=None):
     """Data depended initialization for activation normalization."""
     if hasattr(model, 'module'):
         for f in model.module.decoder.flows:
@@ -118,19 +127,19 @@ def data_depended_init(model, ap):
             if getattr(f, "set_ddi", False):
                 f.set_ddi(True)
 
-    data_loader = setup_loader(ap, 1, is_val=False)
+    data_loader = setup_loader(ap, 1, is_val=False, speaker_mapping=speaker_mapping)
     model.train()
     print(" > Data depended initialization ... ")
     with torch.no_grad():
         for _, data in enumerate(data_loader):
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, _,\
+            text_input, text_lengths, mel_input, mel_lengths, speaker_ids,\
                 _, _, attn_mask = format_data(data)
 
             # forward pass model
             _ = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask)
+                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_ids)
             break
 
     if hasattr(model, 'module'):
@@ -145,9 +154,9 @@ def data_depended_init(model, ap):
 
 
 def train(model, criterion, optimizer, scheduler,
-          ap, global_step, epoch, amp):
+          ap, global_step, epoch, speaker_mapping=None):
     data_loader = setup_loader(ap, 1, is_val=False,
-                               verbose=(epoch == 0))
+                               verbose=(epoch == 0), speaker_mapping=speaker_mapping)
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -158,43 +167,49 @@ def train(model, criterion, optimizer, scheduler,
         batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
     end_time = time.time()
     c_logger.print_train_start()
+    scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
     for num_iter, data in enumerate(data_loader):
         start_time = time.time()
 
         # format data
-        text_input, text_lengths, mel_input, mel_lengths, _,\
+        text_input, text_lengths, mel_input, mel_lengths, speaker_ids,\
             avg_text_length, avg_spec_length, attn_mask = format_data(data)
 
         loader_time = time.time() - end_time
 
         global_step += 1
+        optimizer.zero_grad()
+
+        # forward pass model
+        with torch.cuda.amp.autocast(enabled=c.mixed_precision):
+            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
+                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_ids)
+
+            # compute loss
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
+                                o_dur_log, o_total_dur, text_lengths)
+
+        # backward pass with loss scaling
+        if c.mixed_precision:
+            scaler.scale(loss_dict['loss']).backward()
+            scaler.unscale_(optimizer)
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                           c.grad_clip)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss_dict['loss'].backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                           c.grad_clip)
+            optimizer.step()
+
+
+        grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True)
+        optimizer.step()
 
         # setup lr
         if c.noam_schedule:
             scheduler.step()
-        optimizer.zero_grad()
-
-        # forward pass model
-        z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-            text_input, text_lengths, mel_input, mel_lengths, attn_mask)
-
-        # compute loss
-        loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                              o_dur_log, o_total_dur, text_lengths)
-
-        # backward pass
-        if amp is not None:
-            with amp.scale_loss(loss_dict['loss'], optimizer) as scaled_loss:
-                scaled_loss.backward()
-        else:
-            loss_dict['loss'].backward()
-
-        if amp:
-            amp_opt_params = amp.master_params(optimizer)
-        else:
-            amp_opt_params = None
-        grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True, amp_opt_params=amp_opt_params)
-        optimizer.step()
 
         # current_lr
         current_lr = optimizer.param_groups[0]['lr']
@@ -257,12 +272,12 @@ def train(model, criterion, optimizer, scheduler,
                 if c.checkpoint:
                     # save model
                     save_checkpoint(model, optimizer, global_step, epoch, 1, OUT_PATH,
-                                    model_loss=loss_dict['loss'],
-                                    amp_state_dict=amp.state_dict() if amp else None)
+                                    model_loss=loss_dict['loss'])
 
                 # Diagnostic visualizations
                 # direct pass on model for spec predictions
-                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1])
+                target_speaker = None if speaker_ids is None else speaker_ids[:1]
+                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker)
                 spec_pred = spec_pred.permute(0, 2, 1)
                 gt_spec = mel_input.permute(0, 2, 1)
                 const_spec = spec_pred[0].data.cpu().numpy()
@@ -298,8 +313,8 @@ def train(model, criterion, optimizer, scheduler,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, ap, global_step, epoch):
-    data_loader = setup_loader(ap, 1, is_val=True)
+def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping):
+    data_loader = setup_loader(ap, 1, is_val=True, speaker_mapping=speaker_mapping)
     model.eval()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -309,12 +324,12 @@ def evaluate(model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, _,\
+            text_input, text_lengths, mel_input, mel_lengths, speaker_ids,\
                 _, _, attn_mask = format_data(data)
 
             # forward pass model
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask)
+                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_ids)
 
             # compute loss
             loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
@@ -355,10 +370,11 @@ def evaluate(model, criterion, ap, global_step, epoch):
         if args.rank == 0:
             # Diagnostic visualizations
             # direct pass on model for spec predictions
+            target_speaker = None if speaker_ids is None else speaker_ids[:1]
             if hasattr(model, 'module'):
-                spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1])
+                spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker)
             else:
-                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1])
+                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker)
             spec_pred = spec_pred.permute(0, 2, 1)
             gt_spec = mel_input.permute(0, 2, 1)
 
@@ -398,7 +414,17 @@ def evaluate(model, criterion, ap, global_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
-        speaker_id = 0 if c.use_speaker_embedding else None
+        if c.use_speaker_embedding:
+            if c.use_external_speaker_embedding_file:
+                speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding']
+                speaker_id = None
+            else:
+                speaker_id = 0
+                speaker_embedding = None
+        else:
+            speaker_id = None
+            speaker_embedding = None
+
         style_wav = c.get("style_wav_for_test")
         for idx, test_sentence in enumerate(test_sentences):
             try:
@@ -409,6 +435,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
                     use_cuda,
                     ap,
                     speaker_id=speaker_id,
+                    speaker_embedding=speaker_embedding,
                     style_wav=style_wav,
                     truncated=False,
                     enable_eos_bos_chars=c.enable_eos_bos_chars, #pylint: disable=unused-argument
@@ -459,37 +486,12 @@ def main(args):  # pylint: disable=redefined-outer-name
         meta_data_eval = meta_data_eval[:int(len(meta_data_eval) * c.eval_portion)]
 
     # parse speakers
-    if c.use_speaker_embedding:
-        speakers = get_speakers(meta_data_train)
-        if args.restore_path:
-            prev_out_path = os.path.dirname(args.restore_path)
-            speaker_mapping = load_speaker_mapping(prev_out_path)
-            assert all([speaker in speaker_mapping
-                        for speaker in speakers]), "As of now you, you cannot " \
-                                                   "introduce new speakers to " \
-                                                   "a previously trained model."
-        else:
-            speaker_mapping = {name: i for i, name in enumerate(speakers)}
-        save_speaker_mapping(OUT_PATH, speaker_mapping)
-        num_speakers = len(speaker_mapping)
-        print("Training with {} speakers: {}".format(num_speakers,
-                                                     ", ".join(speakers)))
-    else:
-        num_speakers = 0
+    num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
 
     # setup model
-    model = setup_model(num_chars, num_speakers, c)
+    model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim=speaker_embedding_dim)
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
     criterion = GlowTTSLoss()
-
-    if c.apex_amp_level:
-        # pylint: disable=import-outside-toplevel
-        from apex import amp
-        from apex.parallel import DistributedDataParallel as DDP
-        model.cuda()
-        model, optimizer = amp.initialize(model, optimizer, opt_level=c.apex_amp_level)
-    else:
-        amp = None
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
@@ -507,9 +509,6 @@ def main(args):  # pylint: disable=redefined-outer-name
             model.load_state_dict(model_dict)
             del model_dict
 
-        if amp and 'amp' in checkpoint:
-            amp.load_state_dict(checkpoint['amp'])
-
         for group in optimizer.param_groups:
             group['initial_lr'] = c.lr
         print(" > Model restored from step %d" % checkpoint['step'],
@@ -524,7 +523,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # DISTRUBUTED
     if num_gpus > 1:
-        model = DDP(model)
+        model = DDP_th(model, device_ids=[args.rank])
 
     if c.noam_schedule:
         scheduler = NoamLR(optimizer,
@@ -540,19 +539,19 @@ def main(args):  # pylint: disable=redefined-outer-name
         best_loss = float('inf')
 
     global_step = args.restore_step
-    model = data_depended_init(model, ap)
+    model = data_depended_init(model, ap, speaker_mapping)
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
         train_avg_loss_dict, global_step = train(model, criterion, optimizer,
                                                  scheduler, ap, global_step,
-                                                 epoch, amp)
-        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
+                                                 epoch, speaker_mapping)
+        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=speaker_mapping)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_loss']
         best_loss = save_best_model(target_loss, best_loss, model, optimizer, global_step, epoch, c.r,
-                                    OUT_PATH, amp_state_dict=amp.state_dict() if amp else None)
+                                    OUT_PATH)
 
 
 if __name__ == '__main__':
@@ -602,10 +601,11 @@ if __name__ == '__main__':
     # setup output paths and read configs
     c = load_config(args.config_path)
     # check_config(c)
+    check_config_tts(c)
     _ = os.path.dirname(os.path.realpath(__file__))
 
-    if c.apex_amp_level:
-        print("   >  apex AMP level: ", c.apex_amp_level)
+    if c.mixed_precision:
+        print("   > Mixed precision enabled.")
 
     OUT_PATH = args.continue_path
     if args.continue_path == '':
