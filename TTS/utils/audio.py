@@ -11,6 +11,7 @@ from TTS.tts.utils.data import StandardScaler
 class AudioProcessor(object):
     def __init__(self,
                  sample_rate=None,
+                 resample=False,
                  num_mels=None,
                  min_level_db=None,
                  frame_shift_ms=None,
@@ -39,6 +40,7 @@ class AudioProcessor(object):
         print(" > Setting up Audio Processor...")
         # setup class attributed
         self.sample_rate = sample_rate
+        self.resample = resample
         self.num_mels = num_mels
         self.min_level_db = min_level_db or 0
         self.frame_shift_ms = frame_shift_ms
@@ -324,6 +326,8 @@ class AudioProcessor(object):
         if sr is None:
             x, sr = sf.read(filename)
             assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
+        elif self.resample:
+            x, sr = librosa.load(filename, sr=self.sample_rate)
         else:
             x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
