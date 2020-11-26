@@ -138,6 +138,12 @@ class MyDataset(Dataset):
         if "attn_file" in locals():
             attn = np.load(attn_file)
 
+        if len(text) > self.max_seq_len:
+            # return a different sample if the phonemized
+            # text is longer than the threshold
+            # TODO: find a better fix
+            return self.load_data(100)
+
         sample = {
             'text': text,
             'wav': wav,
