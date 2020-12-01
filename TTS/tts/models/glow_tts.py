@@ -104,6 +104,7 @@ class GlowTts(nn.Module):
                                c_in_channels=self.c_in_channels)
 
         if num_speakers > 1 and not external_speaker_embedding_dim:
+            # speaker embedding layer
             self.emb_g = nn.Embedding(num_speakers, self.c_in_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
