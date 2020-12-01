@@ -18,7 +18,7 @@ from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.utils.generic_utils import check_config_tts, setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
-from TTS.tts.utils.speakers import load_speaker_mapping, parse_speakers
+from TTS.tts.utils.speakers import parse_speakers
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -39,7 +39,7 @@ from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 
-def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
+def setup_loader(ap, r, is_val=False, verbose=False):
     if is_val and not c.run_eval:
         loader = None
     else:
@@ -74,10 +74,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
             pin_memory=False)
     return loader
 
-def format_data(data, speaker_mapping=None):
-    if speaker_mapping is None and c.use_speaker_embedding and not c.use_external_speaker_embedding_file:
-        speaker_mapping = load_speaker_mapping(OUT_PATH)
-
+def format_data(data):
     # setup input data
     text_input = data[0]
     text_lengths = data[1]
@@ -127,7 +124,7 @@ def format_data(data, speaker_mapping=None):
 
 
 def train(model, criterion, optimizer, optimizer_st, scheduler,
-          ap, global_step, epoch, scaler, scaler_st, speaker_mapping=None):
+          ap, global_step, epoch, scaler, scaler_st):
     data_loader = setup_loader(ap, model.decoder.r, is_val=False,
                                verbose=(epoch == 0), speaker_mapping=speaker_mapping)
     model.train()
@@ -144,7 +141,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         start_time = time.time()
 
         # format data
-        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length = format_data(data, speaker_mapping)
+        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length = format_data(data)
         loader_time = time.time() - end_time
 
         global_step += 1
@@ -327,7 +324,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=None):
+def evaluate(model, criterion, ap, global_step, epoch):
     data_loader = setup_loader(ap, model.decoder.r, is_val=True, speaker_mapping=speaker_mapping)
     model.eval()
     epoch_time = 0
@@ -338,7 +335,7 @@ def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=None):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, _, _ = format_data(data, speaker_mapping)
+            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, _, _ = format_data(data)
             assert mel_input.shape[1] % model.decoder.r == 0
 
             # forward pass model
@@ -493,7 +490,7 @@ def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=None):
 # FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, symbols, phonemes
+    global meta_data_train, meta_data_eval, symbols, phonemes, speaker_mapping
     # Audio processor
     ap = AudioProcessor(**c.audio)
     if 'characters' in c.keys():
@@ -599,8 +596,8 @@ def main(args):  # pylint: disable=redefined-outer-name
             print("\n > Number of output frames:", model.decoder.r)
         train_avg_loss_dict, global_step = train(model, criterion, optimizer,
                                                  optimizer_st, scheduler, ap,
-                                                 global_step, epoch, scaler, scaler_st, speaker_mapping)
-        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch, speaker_mapping)
+                                                 global_step, epoch, scaler, scaler_st)
+        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_postnet_loss']
         if c.run_eval:
