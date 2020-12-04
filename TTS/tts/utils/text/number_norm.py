@@ -9,7 +9,7 @@ _comma_number_re = re.compile(r'([0-9][0-9\,]+[0-9])')
 _decimal_number_re = re.compile(r'([0-9]+\.[0-9]+)')
 _currency_re = re.compile(r'(£|\$|¥)([0-9\,\.]*[0-9]+)')
 _ordinal_re = re.compile(r'[0-9]+(st|nd|rd|th)')
-_number_re = re.compile(r'[0-9]+')
+_number_re = re.compile(r'-?[0-9]+')
 
 
 def _remove_commas(m):
