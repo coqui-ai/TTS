@@ -105,8 +105,8 @@ class Wavegrad(nn.Module):
         self.noise_level = self.noise_level.to(y_0)
         if len(y_0.shape) == 3:
             y_0 = y_0.squeeze(1)
-        s = torch.randint(1, self.num_steps + 1, [y_0.shape[0]])
-        l_a, l_b = self.noise_level[s-1], self.noise_level[s]
+        s = torch.randint(0, self.num_steps - 1, [y_0.shape[0]])
+        l_a, l_b = self.noise_level[s], self.noise_level[s+1]
         noise_scale = l_a + torch.rand(y_0.shape[0]).to(y_0) * (l_b - l_a)
         noise_scale = noise_scale.unsqueeze(1)
         noise = torch.randn_like(y_0)
