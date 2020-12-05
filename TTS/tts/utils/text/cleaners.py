@@ -122,8 +122,8 @@ def portuguese_cleaners(text):
 
 def phoneme_cleaners(text):
     '''Pipeline for phonemes mode, including number and abbreviation expansion.'''
-    text = convert_to_ascii(text)
     text = expand_numbers(text)
+    text = convert_to_ascii(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
     text = remove_aux_symbols(text)
