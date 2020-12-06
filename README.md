@@ -11,9 +11,7 @@
 
 <br/>
 
-Mozilla TTS is a deep learning based Text2Speech project, low in cost and high in quality.
-
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en).
+TTS is a deep learning based Text2Speech project, low in cost and high in quality.
 
 English Voice Samples: https://erogol.github.io/ddc-samples/
 
@@ -125,7 +123,7 @@ Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-articl
 
 <img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
 
-## [Mozilla TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
+## [TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
 
 ## Datasets and Data-Loading
 TTS provides a generic dataloader easy to use for your custom dataset.
