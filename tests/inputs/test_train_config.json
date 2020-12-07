@@ -132,6 +132,7 @@
     "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
     "min_seq_len": 6,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 153,     // DATASET-RELATED: maximum text length
+    "compute_input_seq_cache": true,
 
     // PATHS
     "output_path": "tests/train_outputs/",
