@@ -63,6 +63,7 @@ class MyDataset(Dataset):
         self.enable_eos_bos = enable_eos_bos
         self.speaker_mapping = speaker_mapping
         self.verbose = verbose
+        self.input_seq_computed = False
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
@@ -71,7 +72,6 @@ class MyDataset(Dataset):
             if use_phonemes:
                 print("   | > phoneme language: {}".format(phoneme_language))
             print(" | > Number of instances : {}".format(len(self.items)))
-        self.sort_items()
 
     def load_wav(self, filename):
         audio = self.ap.load_wav(filename)
