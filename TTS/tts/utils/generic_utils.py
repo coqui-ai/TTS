@@ -248,6 +248,7 @@ def check_config_tts(c):
     check_argument('batch_group_size', c, restricted=True, val_type=int, min_val=0)
     check_argument('min_seq_len', c, restricted=True, val_type=int, min_val=0)
     check_argument('max_seq_len', c, restricted=True, val_type=int, min_val=10)
+    check_argument('compute_input_seq_cache', c, restricted=True, val_type=bool)
 
     # paths
     check_argument('output_path', c, restricted=True, val_type=str)
