@@ -61,6 +61,12 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             enable_eos_bos=c.enable_eos_bos_chars,
             verbose=verbose,
             speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+
+        if c.use_phonemes and c.compute_input_seq_cache:
+            # precompute phonemes to have a better estimate of sequence lengths.
+            dataset.compute_input_seq(c.num_loader_workers)
+        dataset.sort_items()
+
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -123,10 +129,8 @@ def format_data(data):
     return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length
 
 
-def train(model, criterion, optimizer, optimizer_st, scheduler,
+def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
           ap, global_step, epoch, scaler, scaler_st):
-    data_loader = setup_loader(ap, model.decoder.r, is_val=False,
-                               verbose=(epoch == 0), speaker_mapping=speaker_mapping)
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -324,8 +328,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, ap, global_step, epoch):
-    data_loader = setup_loader(ap, model.decoder.r, is_val=True, speaker_mapping=speaker_mapping)
+def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     model.eval()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -583,6 +586,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     if 'best_loss' not in locals():
         best_loss = float('inf')
 
+    # define data loaders
+    train_loader = setup_loader(ap,
+                                model.decoder.r,
+                                is_val=False,
+                                verbose=True)
+    eval_loader = setup_loader(ap, model.decoder.r, is_val=True)
+
     global_step = args.restore_step
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
@@ -594,16 +604,27 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
             print("\n > Number of output frames:", model.decoder.r)
-        train_avg_loss_dict, global_step = train(model, criterion, optimizer,
+        train_avg_loss_dict, global_step = train(train_loader, model,
+                                                 criterion, optimizer,
                                                  optimizer_st, scheduler, ap,
-                                                 global_step, epoch, scaler, scaler_st)
-        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
+                                                 global_step, epoch, scaler,
+                                                 scaler_st)
+        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
+                                      global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_postnet_loss']
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_postnet_loss']
-        best_loss = save_best_model(target_loss, best_loss, model, optimizer, global_step, epoch, c.r,
-                                    OUT_PATH, scaler=scaler.state_dict() if c.mixed_precision else None)
+        best_loss = save_best_model(
+            target_loss,
+            best_loss,
+            model,
+            optimizer,
+            global_step,
+            epoch,
+            c.r,
+            OUT_PATH,
+            scaler=scaler.state_dict() if c.mixed_precision else None)
 
 
 if __name__ == '__main__':

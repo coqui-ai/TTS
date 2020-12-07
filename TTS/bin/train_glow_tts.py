@@ -59,6 +59,12 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             enable_eos_bos=c.enable_eos_bos_chars,
             verbose=verbose,
             speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+
+        if c.use_phonemes and c.compute_input_seq_cache:
+            # precompute phonemes to have a better estimate of sequence lengths.
+            dataset.compute_input_seq(c.num_loader_workers)
+        dataset.sort_items()
+
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -112,7 +118,7 @@ def format_data(data):
          avg_text_length, avg_spec_length, attn_mask, item_idx
 
 
-def data_depended_init(model, ap):
+def data_depended_init(data_loader, model, ap):
     """Data depended initialization for activation normalization."""
     if hasattr(model, 'module'):
         for f in model.module.decoder.flows:
@@ -123,7 +129,6 @@ def data_depended_init(model, ap):
             if getattr(f, "set_ddi", False):
                 f.set_ddi(True)
 
-    data_loader = setup_loader(ap, 1, is_val=False)
     model.train()
     print(" > Data depended initialization ... ")
     num_iter = 0
@@ -152,10 +157,9 @@ def data_depended_init(model, ap):
     return model
 
 
-def train(model, criterion, optimizer, scheduler,
+def train(data_loader, model, criterion, optimizer, scheduler,
           ap, global_step, epoch):
-    data_loader = setup_loader(ap, 1, is_val=False,
-                               verbose=(epoch == 0))
+
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -308,8 +312,7 @@ def train(model, criterion, optimizer, scheduler,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, ap, global_step, epoch):
-    data_loader = setup_loader(ap, 1, is_val=True)
+def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     model.eval()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -533,14 +536,18 @@ def main(args):  # pylint: disable=redefined-outer-name
     if 'best_loss' not in locals():
         best_loss = float('inf')
 
+    # define dataloaders
+    train_loader = setup_loader(ap, 1, is_val=False, verbose=True)
+    eval_loader = setup_loader(ap, 1, is_val=True, verbose=True)
+
     global_step = args.restore_step
-    model = data_depended_init(model, ap)
+    model = data_depended_init(train_loader, model, ap)
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
-        train_avg_loss_dict, global_step = train(model, criterion, optimizer,
+        train_avg_loss_dict, global_step = train(train_loader, model, criterion, optimizer,
                                                  scheduler, ap, global_step,
                                                  epoch)
-        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
+        eval_avg_loss_dict = evaluate(eval_loader , model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:
