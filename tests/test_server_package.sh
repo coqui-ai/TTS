@@ -7,26 +7,24 @@ if [[ ! -f tests/outputs/checkpoint_10.pth.tar ]]; then
 fi
 
 rm -f dist/*.whl
-python3 setup.py --quiet bdist_wheel --checkpoint tests/outputs/checkpoint_10.pth.tar --model_config tests/outputs/dummy_model_config.json
+python setup.py --quiet bdist_wheel --checkpoint tests/outputs/checkpoint_10.pth.tar --model_config tests/outputs/dummy_model_config.json
 
-python3 -m venv /tmp/venv
+python -m venv /tmp/venv
 source /tmp/venv/bin/activate
-python3 -m pip install --quiet --upgrade pip setuptools wheel cython
-# wait to install numpy until we have wheel support
-python3 -m pip install numpy
-python3 -m pip install --quiet dist/TTS*.whl
+pip install --quiet --upgrade pip setuptools wheel
+pip install --quiet dist/TTS*.whl
 
 # this is related to https://github.com/librosa/librosa/issues/1160
-python3 -m pip install numba==0.48
+pip install numba==0.48
 
-python3 -m TTS.server.server &
+python -m TTS.server.server &
 SERVER_PID=$!
 
 echo 'Waiting for server...'
 sleep 30
 
 curl -o /tmp/audio.wav "http://localhost:5002/api/tts?text=synthesis%20schmynthesis"
-python3 -c 'import sys; import wave; print(wave.open(sys.argv[1]).getnframes())' /tmp/audio.wav
+python -c 'import sys; import wave; print(wave.open(sys.argv[1]).getnframes())' /tmp/audio.wav
 
 kill $SERVER_PID
 
