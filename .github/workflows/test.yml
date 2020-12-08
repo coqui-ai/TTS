@@ -1,0 +1,49 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install espeak git
+      - name: Upgrade pip
+        # so we can take advantage of pyproject.toml build-dependency support
+        run: python3 -m pip install --upgrade pip
+      - name: Install TTS
+        run: |
+          python3 -m pip install .
+          python3 setup.py egg_info
+      - name: Lint check
+        run: |
+          python3 -m pip install --quiet --upgrade cardboardlint pylint
+          cardboardlinter --refspec ${GITHUB_BASE_REF} -n auto
+      - name: Unit tests
+        run: nosetests tests --nocapture
+      - name: Test scripts
+        run: |
+          ./tests/test_server_package.sh
+          ./tests/test_glow-tts_train.sh
+          ./tests/test_server_package.sh
+          ./tests/test_tacotron_train.sh
+          ./tests/test_vocoder_gan_train.sh
+          ./tests/test_vocoder_wavegrad_train.sh
+          ./tests/test_vocoder_wavernn_train.sh
+
