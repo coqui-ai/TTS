@@ -1,0 +1,56 @@
+version: 2
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3.6
+      - test-3.7
+      - test-3.8
+
+executor: ubuntu-latest
+
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test-3.6: &test-template
+    docker:
+      - image: circleci/python:3.6
+    resource_class: large
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run: |
+          sudo apt update
+          sudo apt install espeak git
+        # so we can take advantage of pyproject.toml build-dependency support
+      - run: python3 -m pip install --upgrade pip
+      - run: python3 -m pip install numpy Cython
+      - run: |
+          python3 setup.py egg_info
+          python3 -m pip install -e .
+      - run: |
+          python3 -m pip install --quiet --upgrade cardboardlint pylint
+          cardboardlinter --refspec ${CIRCLE_BRANCH} -n auto
+      - run: nosetests tests --nocapture
+      - run: |
+          ./tests/test_server_package.sh
+          ./tests/test_glow-tts_train.sh
+          ./tests/test_server_package.sh
+          ./tests/test_tacotron_train.sh
+          ./tests/test_vocoder_gan_train.sh
+          ./tests/test_vocoder_wavegrad_train.sh
+          ./tests/test_vocoder_wavernn_train.sh
+
+  test-3.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.7
+
+  test-3.8:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.8
