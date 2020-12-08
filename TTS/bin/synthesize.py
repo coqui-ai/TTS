@@ -25,7 +25,7 @@ def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_fileid
 
     # grab spectrogram (thx to the nice guys at mozilla discourse for codesnipplet)
     if args.save_spectogram:
-        spec_file_name = args.text.replace(" ", "_")
+        spec_file_name = args.text.replace(" ", "_")[0:10]
         spec_file_name = spec_file_name.translate(
             str.maketrans('', '', string.punctuation.replace('_', ''))) + '.npy'
         spec_file_name = os.path.join(args.out_path, spec_file_name)
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_fileid, speaker_embedding=speaker_embedding, gst_style=gst_style)
 
     # save the results
-    file_name = args.text.replace(" ", "_")
+    file_name = args.text.replace(" ", "_")[0:10]
     file_name = file_name.translate(
         str.maketrans('', '', string.punctuation.replace('_', ''))) + '.wav'
     out_path = os.path.join(args.out_path, file_name)
