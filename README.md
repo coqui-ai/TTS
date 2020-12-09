@@ -4,7 +4,7 @@
 <br/>
 
 <p align='center'>
-    <img src="https://travis-ci.org/mozilla/TTS.svg?branch=dev"/>
+    <img src='https://circleci.com/gh/mozilla/TTS/tree/dev.svg?style=svg' alt="mozilla"/>
     <a href='https://discourse.mozilla.org/c/tts'><img src="https://img.shields.io/badge/discourse-online-green.svg"/></a>
     <a href='https://opensource.org/licenses/MPL-2.0'> <img src="https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg"/></a>
 </p>
