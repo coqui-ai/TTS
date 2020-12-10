@@ -64,9 +64,9 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, 'module'):
             # distributed model
-            postnet_output, _, _, _, alignments, _, _ = model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id else speaker_embeddings)
+            postnet_output, _, _, _, alignments, _, _ = model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
         else:
-            postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id else speaker_embeddings)
+            postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.
         decoder_output = None
