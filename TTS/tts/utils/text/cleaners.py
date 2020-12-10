@@ -14,6 +14,7 @@ import re
 from unidecode import unidecode
 from .number_norm import normalize_numbers
 from .abbreviations import abbreviations_en, abbreviations_fr
+from .time import expand_time_english
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
@@ -95,6 +96,7 @@ def english_cleaners(text):
     '''Pipeline for English text, including number and abbreviation expansion.'''
     text = convert_to_ascii(text)
     text = lowercase(text)
+    text = expand_time_english(text)
     text = expand_numbers(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
@@ -122,8 +124,8 @@ def portuguese_cleaners(text):
 
 def phoneme_cleaners(text):
     '''Pipeline for phonemes mode, including number and abbreviation expansion.'''
-    text = convert_to_ascii(text)
     text = expand_numbers(text)
+    text = convert_to_ascii(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
     text = remove_aux_symbols(text)
