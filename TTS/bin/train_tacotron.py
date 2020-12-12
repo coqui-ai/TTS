@@ -604,7 +604,9 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
             train_loader.dataset.outputs_per_step = r
+            train_loader.batch_size = c.batch_size
             eval_loader.dataset.outputs_per_step = r
+            eval_loader.batch_size = c.batch_size
             print("\n > Number of output frames:", model.decoder.r)
         train_avg_loss_dict, global_step = train(train_loader, model,
                                                  criterion, optimizer,
