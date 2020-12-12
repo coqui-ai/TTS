@@ -3,11 +3,12 @@ import torch
 from torch import nn
 
 from TTS.tts.layers.glow_tts.transformer import Transformer
-from TTS.tts.layers.glow_tts.gated_conv import GatedConvBlock
+from TTS.tts.layers.generic.gated_conv import GatedConvBlock
 from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.layers.glow_tts.glow import ConvLayerNorm
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.glow_tts.time_depth_sep_conv import TimeDepthSeparableConvBlock
+from TTS.tts.layers.generic.time_depth_sep_conv import TimeDepthSeparableConvBlock
+from TTS.tts.layers.generic.res_conv_bn import ResidualConvBNBlock
 
 
 class Encoder(nn.Module):
@@ -84,12 +85,26 @@ class Encoder(nn.Module):
                 dropout_p=dropout_p,
                 rel_attn_window_size=rel_attn_window_size,
                 input_length=input_length)
-        elif encoder_type.lower() == 'gatedconv':
+        elif encoder_type.lower() == 'gated_conv':
             self.encoder = GatedConvBlock(hidden_channels,
                                           kernel_size=5,
                                           dropout_p=dropout_p,
                                           num_layers=3 + num_layers)
-        elif encoder_type.lower() == 'time-depth-separable':
+        elif encoder_type.lower() == 'residual_conv_bn':
+            if use_prenet:
+                self.pre = nn.Sequential(
+                    nn.Conv1d(hidden_channels, hidden_channels, 1),
+                    nn.ReLU()
+                )
+            dilations = 4 * [1, 2, 4] + [1]
+            num_conv_blocks = 2
+            num_res_blocks = 13  # total 2 * 13 blocks
+            self.encoder = ResidualConvBNBlock(hidden_channels,
+                                               kernel_size=4,
+                                               dilations=dilations,
+                                               num_res_blocks=num_res_blocks,
+                                               num_conv_blocks=num_conv_blocks)
+        elif encoder_type.lower() == 'time_depth_separable':
             # optional convolutional prenet
             if use_prenet:
                 self.pre = ConvLayerNorm(hidden_channels,

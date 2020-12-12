@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .normalization import LayerNorm
+from ..generic.normalization import LayerNorm
 
 
 class ConvLayerNorm(nn.Module):
