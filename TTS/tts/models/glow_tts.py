@@ -141,7 +141,7 @@ class GlowTts(nn.Module):
         o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
                                                               x_lengths,
                                                               g=g)
-        # format feature vectors and feature vector lenghts
+        # drop redisual frames wrt num_sqz and set y_lengths.
         y, y_lengths, y_max_length, attn = self.preprocess(
             y, y_lengths, y_max_length, None)
         # create masks
