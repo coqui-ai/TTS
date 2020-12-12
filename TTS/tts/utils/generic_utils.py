@@ -211,7 +211,7 @@ def check_config_tts(c):
     check_argument('prenet_dropout', c, restricted=is_tacotron(c), val_type=bool)
 
     # attention
-    check_argument('attention_type', c, restricted=is_tacotron(c), val_type=str, enum_list=['graves', 'original'])
+    check_argument('attention_type', c, restricted=is_tacotron(c), val_type=str, enum_list=['graves', 'original', 'dynamic_convolution'])
     check_argument('attention_heads', c, restricted=is_tacotron(c), val_type=int)
     check_argument('attention_norm', c, restricted=is_tacotron(c), val_type=str, enum_list=['sigmoid', 'softmax'])
     check_argument('windowing', c, restricted=is_tacotron(c), val_type=bool)
