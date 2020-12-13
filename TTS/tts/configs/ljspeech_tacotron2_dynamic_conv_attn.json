@@ -61,7 +61,7 @@
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 2,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
     "eval_batch_size":16,
     "r": 7,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
     "gradual_training": [[0, 7, 64], [1, 5, 64], [50000, 3, 32], [130000, 2, 32], [290000, 1, 32]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
@@ -108,7 +108,7 @@
     "transition_agent": false,     // enable/disable transition agent of forward attention.
     "location_attn": true,         // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "bidirectional_decoder": false,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
-    "double_decoder_consistency": true,  // use DDC explained here https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency-draft/
+    "double_decoder_consistency": false,  // use DDC explained here https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency-draft/
     "ddc_r": 7,                           // reduction rate for coarse decoder.
 
     // STOPNET
