@@ -11,9 +11,7 @@
 
 <br/>
 
-Mozilla TTS is a deep learning based Text2Speech project, low in cost and high in quality.
-
-This project is a part of [Mozilla Common Voice](https://voice.mozilla.org/en).
+TTS is a deep learning based Text2Speech project, low in cost and high in quality.
 
 English Voice Samples: https://erogol.github.io/ddc-samples/
 
@@ -177,7 +175,6 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Contribution guidelines
-This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
 
 Please send your Pull Request to ```dev``` branch. Before making a Pull Request, check your changes for basic mistakes and style problems by using a linter. We have cardboardlinter setup in this repository, so for example, if you've made some changes and would like to run the linter on just the changed code, you can use the follow command:
 
