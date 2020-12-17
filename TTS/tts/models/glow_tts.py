@@ -14,10 +14,9 @@ class GlowTts(nn.Module):
     def __init__(self,
                  num_chars,
                  hidden_channels,
-                 filter_channels,
-                 filter_channels_dp,
+                 hidden_channels_ffn,
+                 hidden_channels_dp,
                  out_channels,
-                 kernel_size=3,
                  num_heads=2,
                  num_layers_enc=6,
                  dropout_p=0.1,
@@ -43,10 +42,9 @@ class GlowTts(nn.Module):
         super().__init__()
         self.num_chars = num_chars
         self.hidden_channels = hidden_channels
-        self.filter_channels = filter_channels
-        self.filter_channels_dp = filter_channels_dp
+        self.hidden_channels_ffn = hidden_channels_ffn
+        self.hidden_channels_dp = hidden_channels_dp
         self.out_channels = out_channels
-        self.kernel_size = kernel_size
         self.num_heads = num_heads
         self.num_layers_enc = num_layers_enc
         self.dropout_p = dropout_p
@@ -80,13 +78,13 @@ class GlowTts(nn.Module):
         self.encoder = Encoder(num_chars,
                                out_channels=out_channels,
                                hidden_channels=hidden_channels,
-                               filter_channels=filter_channels,
-                               filter_channels_dp=filter_channels_dp,
+                               hidden_channels_ffn=hidden_channels_ffn,
+                               hidden_channels_dp=hidden_channels_dp,
                                encoder_type=encoder_type,
                                num_heads=num_heads,
                                num_layers=num_layers_enc,
-                               kernel_size=kernel_size,
                                dropout_p=dropout_p,
+                               rel_attn_window_size=rel_attn_window_size,
                                mean_only=mean_only,
                                use_prenet=use_encoder_prenet,
                                c_in_channels=self.c_in_channels)
