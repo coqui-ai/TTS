@@ -19,7 +19,7 @@ class Encoder(nn.Module):
         num_chars (int): number of characters.
         out_channels (int): number of output channels.
         hidden_channels (int): encoder's embedding size.
-        filter_channels (int): transformer's feed-forward channels.
+        hidden_channels_ffn (int): transformer's feed-forward channels.
         num_head (int): number of attention heads in transformer.
         num_layers (int): number of transformer encoder stack.
         kernel_size (int): kernel size for conv layers and duration predictor.
@@ -35,12 +35,11 @@ class Encoder(nn.Module):
                  num_chars,
                  out_channels,
                  hidden_channels,
-                 filter_channels,
-                 filter_channels_dp,
+                 hidden_channels_ffn,
+                 hidden_channels_dp,
                  encoder_type,
                  num_heads,
                  num_layers,
-                 kernel_size,
                  dropout_p,
                  rel_attn_window_size=None,
                  input_length=None,
@@ -52,11 +51,10 @@ class Encoder(nn.Module):
         self.num_chars = num_chars
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
-        self.filter_channels = filter_channels
-        self.filter_channels_dp = filter_channels_dp
+        self.hidden_channels_ffn = hidden_channels_ffn
+        self.hidden_channels_dp = hidden_channels_dp
         self.num_heads = num_heads
         self.num_layers = num_layers
-        self.kernel_size = kernel_size
         self.dropout_p = dropout_p
         self.mean_only = mean_only
         self.use_prenet = use_prenet
@@ -78,10 +76,10 @@ class Encoder(nn.Module):
             # text encoder
             self.encoder = Transformer(
                 hidden_channels,
-                filter_channels,
+                hidden_channels_ffn,
                 num_heads,
                 num_layers,
-                kernel_size=kernel_size,
+                kernel_size=3,
                 dropout_p=dropout_p,
                 rel_attn_window_size=rel_attn_window_size,
                 input_length=input_length)
@@ -125,7 +123,7 @@ class Encoder(nn.Module):
             self.proj_s = nn.Conv1d(hidden_channels, out_channels, 1)
         # duration predictor
         self.duration_predictor = DurationPredictor(
-            hidden_channels + c_in_channels, filter_channels_dp, kernel_size,
+            hidden_channels + c_in_channels, hidden_channels_dp, 3,
             dropout_p)
 
     def forward(self, x, x_lengths, g=None):

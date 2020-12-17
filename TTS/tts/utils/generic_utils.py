@@ -104,8 +104,8 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     elif c.model.lower() == "glow_tts":
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         hidden_channels=192,
-                        filter_channels=768,
-                        filter_channels_dp=256,
+                        hidden_channels_ffn=768,
+                        hidden_channels_dp=256,
                         out_channels=c.audio['num_mels'],
                         kernel_size=3,
                         num_heads=2,
@@ -126,6 +126,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         hidden_channels_enc=192,
                         hidden_channels_dec=192,
                         use_encoder_prenet=True,
+                        rel_attn_window_size=4,
                         external_speaker_embedding_dim=speaker_embedding_dim)
     return model
 

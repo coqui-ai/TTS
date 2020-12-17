@@ -229,23 +229,23 @@ class FFN(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
-                 filter_channels,
+                 hidden_channels,
                  kernel_size,
                  dropout_p=0.,
                  activation=None):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.filter_channels = filter_channels
+        self.hidden_channels = hidden_channels
         self.kernel_size = kernel_size
         self.dropout_p = dropout_p
         self.activation = activation
 
         self.conv_1 = nn.Conv1d(in_channels,
-                                filter_channels,
+                                hidden_channels,
                                 kernel_size,
                                 padding=kernel_size // 2)
-        self.conv_2 = nn.Conv1d(filter_channels,
+        self.conv_2 = nn.Conv1d(hidden_channels,
                                 out_channels,
                                 kernel_size,
                                 padding=kernel_size // 2)
@@ -265,7 +265,7 @@ class FFN(nn.Module):
 class Transformer(nn.Module):
     def __init__(self,
                  hidden_channels,
-                 filter_channels,
+                 hidden_channels_ffn,
                  num_heads,
                  num_layers,
                  kernel_size=1,
@@ -274,7 +274,7 @@ class Transformer(nn.Module):
                  input_length=None):
         super().__init__()
         self.hidden_channels = hidden_channels
-        self.filter_channels = filter_channels
+        self.hidden_channels_ffn = hidden_channels_ffn
         self.num_heads = num_heads
         self.num_layers = num_layers
         self.kernel_size = kernel_size
@@ -299,7 +299,7 @@ class Transformer(nn.Module):
             self.ffn_layers.append(
                 FFN(hidden_channels,
                     hidden_channels,
-                    filter_channels,
+                    hidden_channels_ffn,
                     kernel_size,
                     dropout_p=dropout_p))
             self.norm_layers_2.append(LayerNorm(hidden_channels))
