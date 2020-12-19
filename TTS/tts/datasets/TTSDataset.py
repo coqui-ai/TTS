@@ -30,6 +30,7 @@ class MyDataset(Dataset):
                  phoneme_language="en-us",
                  enable_eos_bos=False,
                  speaker_mapping=None,
+                 use_noise_augment=False,
                  verbose=False):
         """
         Args:
@@ -48,6 +49,7 @@ class MyDataset(Dataset):
             phoneme_language (str): one the languages from
                 https://github.com/bootphon/phonemizer#languages
             enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
+            use_noise_augment (bool): enable adding random noise to wav for augmentation.
             verbose (bool): print diagnostic information.
         """
         self.batch_group_size = batch_group_size
@@ -66,6 +68,7 @@ class MyDataset(Dataset):
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
         self.speaker_mapping = speaker_mapping
+        self.use_noise_augment = use_noise_augment
         self.verbose = verbose
         self.input_seq_computed = False
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
@@ -133,6 +136,10 @@ class MyDataset(Dataset):
             attn = None
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
+
+        # apply noise for augmentation
+        if self.use_noise_augment:
+            wav = wav + (1.0 / 32768.0) * np.random.rand(*wav.shape)
 
         if not self.input_seq_computed:
             if self.use_phonemes:

@@ -57,6 +57,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             use_phonemes=c.use_phonemes,
             phoneme_language=c.phoneme_language,
             enable_eos_bos=c.enable_eos_bos_chars,
+            use_noise_augment=not is_val,
             verbose=verbose,
             speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
 
@@ -279,7 +280,12 @@ def train(data_loader, model, criterion, optimizer, scheduler,
                 # Diagnostic visualizations
                 # direct pass on model for spec predictions
                 target_speaker = None if speaker_c is None else speaker_c[:1]
-                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker)
+
+                if hasattr(model, 'module'):
+                    spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker)
+                else:
+                    spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker)
+
                 spec_pred = spec_pred.permute(0, 2, 1)
                 gt_spec = mel_input.permute(0, 2, 1)
                 const_spec = spec_pred[0].data.cpu().numpy()
