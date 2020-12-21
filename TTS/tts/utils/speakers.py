@@ -63,7 +63,7 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
             speaker_embedding_dim = None
         save_speaker_mapping(OUT_PATH, speaker_mapping)
         num_speakers = len(speaker_mapping)
-        print("Training with {} speakers: {}".format(len(speakers),
+        print(" > Training with {} speakers: {}".format(len(speakers),
                                                      ", ".join(speakers)))
     else:
         num_speakers = 0
