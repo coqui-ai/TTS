@@ -136,9 +136,8 @@ class Encoder(nn.Module):
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)),
                                  1).to(x.dtype)
         # pre-conv layers
-        if self.encoder_type in ['transformer', 'time-depth-separable']:
-            if self.use_prenet:
-                x = self.pre(x, x_mask)
+        if hasattr(self, 'pre') and self.use_prenet:
+            x = self.pre(x, x_mask)
         # encoder
         x = self.encoder(x, x_mask)
         # set duration predictor input
