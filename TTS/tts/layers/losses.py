@@ -241,6 +241,7 @@ class GuidedAttentionLoss(torch.nn.Module):
 
 
 class Huber(nn.Module):
+    # pylint: disable=R0201
     def forward(self, x, y, length=None):
         """
         Shapes:

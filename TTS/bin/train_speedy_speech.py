@@ -155,7 +155,7 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
         # format data
         text_input, text_lengths, mel_targets, mel_lengths, speaker_c,\
-            avg_text_length, avg_spec_length, attn_mask, dur_target, item_idx = format_data(data)
+            avg_text_length, avg_spec_length, _, dur_target, _ = format_data(data)
 
         loader_time = time.time() - end_time
 
@@ -302,7 +302,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
             # format data
             text_input, text_lengths, mel_targets, mel_lengths, speaker_c,\
-                avg_text_length, avg_spec_length, attn_mask, dur_target, item_idx = format_data(data)
+                _, _, _, dur_target, _ = format_data(data)
 
             # forward pass model
             with torch.cuda.amp.autocast(enabled=c.mixed_precision):

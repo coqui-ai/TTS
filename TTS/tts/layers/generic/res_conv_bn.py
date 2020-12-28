@@ -1,15 +1,17 @@
-import torch
 from torch import nn
-from .normalization import TemporalBatchNorm1d
 
 
-class ZeroTemporalPad(nn.ZeroPad2d):
+class ZeroTemporalPad(nn.Module):
     """Pad sequences to equal lentgh in the temporal dimension"""
     def __init__(self, kernel_size, dilation):
+        super().__init__()
         total_pad = (dilation * (kernel_size - 1))
         begin = total_pad // 2
         end = total_pad - begin
-        super(ZeroTemporalPad, self).__init__((0, 0, begin, end))
+        self.pad_layer = nn.ZeroPad2d((0, 0, begin, end))
+
+    def forward(self, x):
+        return self.pad_layer(x)
 
 
 class ConvBN(nn.Module):

@@ -1,11 +1,5 @@
-import torch
 from torch import nn
-from torch.nn import functional as F
-
-from TTS.tts.layers.glow_tts.transformer import Transformer
-from TTS.tts.layers.glow_tts.glow import ConvLayerNorm
-from TTS.tts.utils.generic_utils import sequence_mask
-from TTS.tts.layers.generic.res_conv_bn import ResidualConvBNBlock, ConvBNBlock
+from TTS.tts.layers.generic.res_conv_bn import ConvBNBlock, ResidualConvBNBlock
 
 
 class Decoder(nn.Module):
@@ -35,7 +29,8 @@ class Decoder(nn.Module):
             nn.Conv1d(hidden_channels, out_channels, 1),
         )
 
-    def forward(self, x, x_mask, g=None):
+    def forward(self, x, x_mask, g=None):  # pylint: disable=unused-argument
+        # TODO: implement multi-speaker
         o = self.decoder(x, x_mask)
         o = self.post_conv(o) + x
         return self.post_net(o)

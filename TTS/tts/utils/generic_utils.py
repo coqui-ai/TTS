@@ -107,7 +107,6 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         hidden_channels_ffn=768,
                         hidden_channels_dp=256,
                         out_channels=c.audio['num_mels'],
-                        kernel_size=3,
                         num_heads=2,
                         num_layers_enc=6,
                         encoder_type=c.encoder_type,
