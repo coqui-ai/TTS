@@ -32,15 +32,18 @@ Text-to-Spectrogram:
 - Tacotron: [paper](https://arxiv.org/abs/1703.10135)
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
 - Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
+- Speedy-Speech [paper](https://arxiv.org/pdf/2008.03802.pdf)
 
 Attention Methods:
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
 - Forward Backward Decoding: [paper](https://arxiv.org/abs/1907.09006)
 - Graves Attention: [paper](https://arxiv.org/abs/1907.09006)
 - Double Decoder Consistency: [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
+- Dynamic Convolutional Attention [paper](https://arxiv.org/abs/1910.10288)
 
 Speaker Encoder:
 - GE2E: [paper](https://arxiv.org/abs/1710.10467)
+- Angular-Prototypical [paper](https://arxiv.org/pdf/2003.11982.pdf)
 
 Vocoders:
 - MelGAN: [paper](https://arxiv.org/abs/1710.10467)
