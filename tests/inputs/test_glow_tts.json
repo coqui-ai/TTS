@@ -86,7 +86,7 @@
     "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
     "seq_len_norm": false,         // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
 
-    "encoder_type": "gatedconv",
+    "encoder_type": "transformer",
 
     // TENSORBOARD and LOGGING
     "print_step": 25,       // Number of steps to log training on console.

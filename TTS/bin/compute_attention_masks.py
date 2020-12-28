@@ -13,7 +13,6 @@ Sample run on LJSpeech dataset.
 
 
 import argparse
-import glob
 import importlib
 import os
 
@@ -22,7 +21,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from TTS.tts.datasets.TTSDataset import MyDataset
-from TTS.tts.utils.generic_utils import sequence_mask, setup_model
+from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
@@ -101,7 +100,7 @@ if __name__ == '__main__':
                         ap=ap,
                         meta_data=meta_data,
                         tp=C.characters if 'characters' in C.keys() else None,
-                        add_blank=c['add_blank'] if 'add_blank' in C.keys() else False,
+                        add_blank=C['add_blank'] if 'add_blank' in C.keys() else False,
                         use_phonemes=C.use_phonemes,
                         phoneme_cache_path=C.phoneme_cache_path,
                         phoneme_language=C.phoneme_language,

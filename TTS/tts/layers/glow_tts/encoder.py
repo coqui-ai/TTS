@@ -116,6 +116,8 @@ class Encoder(nn.Module):
                                                        hidden_channels,
                                                        kernel_size=5,
                                                        num_layers=3 + num_layers)
+        else:
+            raise ValueError(" [!] Unkown encoder type.")
 
         # final projection layers
         self.proj_m = nn.Conv1d(hidden_channels, out_channels, 1)

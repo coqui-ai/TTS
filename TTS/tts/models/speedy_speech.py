@@ -8,6 +8,7 @@ from TTS.tts.layers.glow_tts.monotonic_align import generate_path
 
 
 class SpeedySpeech(nn.Module):
+    # pylint: disable=dangerous-default-value
     def __init__(
         self,
         num_chars,
@@ -40,7 +41,8 @@ class SpeedySpeech(nn.Module):
                                decoder_residual_conv_bn_params)
         self.duration_predictor = DurationPredictor(hidden_channels)
 
-    def expand_encoder_outputs(self, en, dr, x_mask, y_mask):
+    @staticmethod
+    def expand_encoder_outputs(en, dr, x_mask, y_mask):
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         attn = generate_path(dr, attn_mask.squeeze(1)).to(en.dtype)
         o_en_ex = torch.matmul(
@@ -54,10 +56,8 @@ class SpeedySpeech(nn.Module):
         o_dr = torch.round(o_dr)
         return o_dr
 
-    def forward(self, x, x_lengths, y_lengths, dr, g=None):
-        """
-        docstring
-        """
+    def forward(self, x, x_lengths, y_lengths, dr, g=None):  # pylint: disable=unused-argument
+        # TODO: multi-speaker
         # [B, T, C]
         x_emb = self.emb(x)
         # [B, C, T]
@@ -88,7 +88,8 @@ class SpeedySpeech(nn.Module):
 
         return o_de, o_dr_log.squeeze(1), attn.transpose(1, 2)
 
-    def inference(self, x, x_lengths, g=None):
+    def inference(self, x, x_lengths, g=None):  # pylint: disable=unused-argument
+        # TODO: multi-speaker
         # pad input to prevent dropping the last word
         x = torch.nn.functional.pad(x, pad=(0, 5), mode='constant', value=0)
 

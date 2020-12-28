@@ -17,6 +17,7 @@ class PositionalEncoding(nn.Module):
     """
 
     def __init__(self, dim, dropout=0.0, max_len=5000):
+        super().__init__()
         if dim % 2 != 0:
             raise ValueError("Cannot use sin/cos positional encoding with "
                              "odd dim (got dim={:d})".format(dim))
@@ -27,7 +28,6 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position.float() * div_term)
         pe[:, 1::2] = torch.cos(position.float() * div_term)
         pe = pe.unsqueeze(0).transpose(1, 2)
-        super(PositionalEncoding, self).__init__()
         self.register_buffer('pe', pe)
         if dropout > 0:
             self.dropout = nn.Dropout(p=dropout)
@@ -125,7 +125,7 @@ class Encoder(nn.Module):
                                      num_layers=3,
                                      dropout_p=0.5)
             # text encoder
-            self.encoder = Transformer(hidden_channels, **encoder_params)
+            self.encoder = Transformer(hidden_channels, **encoder_params)  # pylint: disable=unexpected-keyword-arg
         elif encoder_type.lower() == 'residual_conv_bn':
             self.pre = nn.Sequential(
                 nn.Conv1d(hidden_channels, hidden_channels, 1), nn.ReLU())
@@ -139,7 +139,8 @@ class Encoder(nn.Module):
         self.post_bn = nn.BatchNorm1d(hidden_channels)
         self.post_conv2 = nn.Conv1d(hidden_channels, out_channels, 1)
 
-    def forward(self, x, x_mask, g=None):
+    def forward(self, x, x_mask, g=None):  # pylint: disable=unused-argument
+        # TODO: implement multi-speaker
         if self.encoder_type == 'transformer':
             o = self.pre(x, x_mask)
         else:
