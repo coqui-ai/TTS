@@ -33,28 +33,35 @@ class PositionalEncoding(nn.Module):
             self.dropout = nn.Dropout(p=dropout)
         self.dim = dim
 
-    def forward(self, x, step=None):
+    def forward(self, x, mask=None, first_idx=None, last_idx=None):
         """Embed inputs.
         Args:
             x (FloatTensor): Sequence of word vectors
                 ``(seq_len, batch_size, self.dim)``
-            step (int or NoneType): If stepwise (``seq_len = 1``), use
-                the encoding for this position.
+            mask (FloatTensor): Sequence mask.
+            first_idx (int or NoneType): starting index for taking a
+                certain part of the embeddings.
+            last_idx (int or NoneType): ending index for taking a
+                certain part of the embeddings.
 
         Shapes:
             x: B x C x T
         """
 
         x = x * math.sqrt(self.dim)
-        if step is None:
+        if first_idx is None:
             if self.pe.size(2) < x.size(2):
                 raise RuntimeError(
                     f"Sequence is {x.size(2)} but PositionalEncoding is"
                     f" limited to {self.pe.size(2)}. See max_len argument."
                 )
-            x = x + self.pe[:, : ,:x.size(2)]
+            if mask is not None:
+                pos_enc = (self.pe[:, : ,:x.size(2)] * mask)
+            else:
+                pos_enc = self.pe[:, :, :x.size(2)]
+            x = x + pos_enc
         else:
-            x = x + self.pe[:, :, step]
+            x = x + self.pe[:, :, first_idx:last_idx]
         if hasattr(self, 'dropout'):
             x = self.dropout(x)
         return x
