@@ -25,7 +25,7 @@ class Decoder(nn.Module):
 
         self.post_conv = nn.Conv1d(hidden_channels, hidden_channels, 1)
         self.post_net = nn.Sequential(
-            ConvBNBlock(hidden_channels, 4, 1, num_conv_blocks=2),
+            ConvBNBlock(hidden_channels, residual_conv_bn_params['kernel_size'], 1, num_conv_blocks=2),
             nn.Conv1d(hidden_channels, out_channels, 1),
         )
 
@@ -33,4 +33,4 @@ class Decoder(nn.Module):
         # TODO: implement multi-speaker
         o = self.decoder(x, x_mask)
         o = self.post_conv(o) + x
-        return self.post_net(o)
+        return self.post_net(o) * x_mask

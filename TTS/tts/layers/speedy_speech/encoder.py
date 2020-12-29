@@ -154,8 +154,8 @@ class Encoder(nn.Module):
             o = self.pre(x) * x_mask
         o = self.encoder(o, x_mask)
         o = self.post_conv(o + x)
-        o = self.post_bn(o)
         o = F.relu(o)
+        o = self.post_bn(o)
         o = self.post_conv2(o)
         # [B, C, T]
         return o * x_mask
