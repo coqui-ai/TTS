@@ -27,8 +27,8 @@ class ConvBN(nn.Module):
     def forward(self, x):
         o = self.conv1d(x)
         o = self.pad(o)
-        o = self.norm(o)
         o = nn.functional.relu(o)
+        o = self.norm(o)
         return o
 
 
