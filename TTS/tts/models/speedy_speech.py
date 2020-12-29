@@ -81,7 +81,7 @@ class SpeedySpeech(nn.Module):
 
         # positional encoding
         if hasattr(self, 'pos_encoder'):
-            o_en_ex = self.pos_encoder(o_en_ex)
+            o_en_ex = self.pos_encoder(o_en_ex, y_mask)
 
         # decoder pass
         o_de = self.decoder(o_en_ex, y_mask)
