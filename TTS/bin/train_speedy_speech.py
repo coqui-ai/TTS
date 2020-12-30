@@ -317,7 +317,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             epoch_time += step_time
 
             # compute alignment score
-            align_error = 1 - alignment_diagonal_score(alignments)
+            align_error = 1 - alignment_diagonal_score(alignments, binary=True)
             loss_dict['align_error'] = align_error
 
             # aggregate losses from processes
