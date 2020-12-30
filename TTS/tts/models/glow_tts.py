@@ -126,6 +126,7 @@ class GlowTts(nn.Module):
                 x_lenghts: B
                 y: B x C x T
                 y_lengths: B
+                g: B x C or B
         """
         y_max_length = y.size(2)
         # norm speaker embeddings
@@ -133,7 +134,7 @@ class GlowTts(nn.Module):
             if self.external_speaker_embedding_dim:
                 g = F.normalize(g).unsqueeze(-1)
             else:
-                g = F.normalize(self.emb_g(g)).unsqueeze(-1)# [b, h]
+                g = F.normalize(self.emb_g(g)).unsqueeze(-1)# [b, h, 1]
 
         # embedding pass
         o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
