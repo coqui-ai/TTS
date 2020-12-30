@@ -84,7 +84,7 @@ class WN(torch.nn.Module):
         self.res_skip_layers = torch.nn.ModuleList()
         self.dropout = nn.Dropout(dropout_p)
 
-        if c_in_channels != 0:
+        if c_in_channels > 0:
             cond_layer = torch.nn.Conv1d(c_in_channels,
                                          2 * hidden_channels * num_layers, 1)
             self.cond_layer = torch.nn.utils.weight_norm(cond_layer,
