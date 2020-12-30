@@ -110,6 +110,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         num_heads=2,
                         num_layers_enc=6,
                         encoder_type=c.encoder_type,
+                        rel_attn_window_size=4,
                         dropout_p=0.1,
                         num_flow_blocks_dec=12,
                         kernel_size_dec=5,
@@ -132,6 +133,8 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         hidden_channels=128,
                         positional_encoding=c['positional_encoding'],
                         encoder_type=c['encoder_type'],
+                        encoder_params=c['encoder_params'],
+                        decoder_type=c['decoder_type'],
                         decoder_residual_conv_bn_params=c['decoder_residual_conv_bn_params'],
                         c_in_channels=0)
     return model
