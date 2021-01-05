@@ -64,6 +64,7 @@
 
     // MODEL PARAMETERS
     "positional_encoding": true,
+    "hidden_channels": 128,  // defined globally all the hidden channels of the model - 128 default
     "encoder_type": "residual_conv_bn",
     "encoder_params":{
         "kernel_size": 4,
@@ -71,7 +72,8 @@
         "num_conv_blocks": 2,
         "num_res_blocks": 13
     },
-    "decoder_residual_conv_bn_params":{
+    "decoder_type": "residual_conv_bn",
+    "decoder_params":{
         "kernel_size": 4,
         "dilations": [1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1],
         "num_conv_blocks": 2,
