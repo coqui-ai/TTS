@@ -2,7 +2,7 @@ import math
 import torch
 from torch import nn
 
-from TTS.tts.layers.glow_tts.transformer import Transformer
+from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.layers.generic.gated_conv import GatedConvBlock
 from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.layers.glow_tts.glow import ConvLayerNorm
@@ -12,16 +12,20 @@ from TTS.tts.layers.generic.res_conv_bn import ResidualConvBNBlock
 
 
 class Encoder(nn.Module):
-    """Glow-TTS encoder module. It uses Transformer with Relative Pos.Encoding
-    as in the original paper or GatedConvBlock as a faster alternative.
+    """Glow-TTS encoder module.
 
+    embedding -> <prenet> -> encoder_module -> <postnet> --> proj_mean
+                                                         |
+                                                         |-> proj_var
+                                                         |
+                                                         |-> concat -> duration_predictor
+                                                                ↑
+                                                          speaker_embed
     Args:
         num_chars (int): number of characters.
         out_channels (int): number of output channels.
         hidden_channels (int): encoder's embedding size.
         hidden_channels_ffn (int): transformer's feed-forward channels.
-        num_head (int): number of attention heads in transformer.
-        num_layers (int): number of transformer encoder stack.
         kernel_size (int): kernel size for conv layers and duration predictor.
         dropout_p (float): dropout rate for any dropout layer.
         mean_only (bool): if True, output only mean values and use constant std.
@@ -30,19 +34,49 @@ class Encoder(nn.Module):
 
     Shapes:
         - input: (B, T, C)
+
+    Notes:
+        suggested encoder params...
+
+        for encoder_type == 'rel_pos_transformer'
+            encoder_params={
+                'kernel_size':3,
+                'dropout_p': 0.1,
+                'num_layers': 6,
+                'num_heads': 2,
+                'hidden_channels_ffn': 768,  # 4 times the hidden_channels
+                'input_length': None
+            }
+
+        for encoder_type == 'gated_conv'
+            encoder_params={
+                'kernel_size':5,
+                'dropout_p': 0.1,
+                'num_layers': 9,
+            }
+
+        for encoder_type == 'residual_conv_bn'
+            encoder_params={
+                "kernel_size": 4,
+                "dilations": [1, 2, 4, 1, 2, 4, 1, 2, 4, 1, 2, 4, 1],
+                "num_conv_blocks": 2,
+                "num_res_blocks": 13
+            }
+
+         for encoder_type == 'time_depth_separable'
+            encoder_params={
+                "kernel_size": 5,
+                'num_layers': 9,
+            }
     """
     def __init__(self,
                  num_chars,
                  out_channels,
                  hidden_channels,
-                 hidden_channels_ffn,
                  hidden_channels_dp,
                  encoder_type,
-                 num_heads,
-                 num_layers,
-                 dropout_p,
-                 rel_attn_window_size=None,
-                 input_length=None,
+                 encoder_params,
+                 dropout_p_dp=0.1,
                  mean_only=False,
                  use_prenet=True,
                  c_in_channels=0):
@@ -51,11 +85,8 @@ class Encoder(nn.Module):
         self.num_chars = num_chars
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
-        self.hidden_channels_ffn = hidden_channels_ffn
         self.hidden_channels_dp = hidden_channels_dp
-        self.num_heads = num_heads
-        self.num_layers = num_layers
-        self.dropout_p = dropout_p
+        self.dropout_p_dp = dropout_p_dp
         self.mean_only = mean_only
         self.use_prenet = use_prenet
         self.c_in_channels = c_in_channels
