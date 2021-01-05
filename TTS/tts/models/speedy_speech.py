@@ -24,7 +24,7 @@ class SpeedySpeech(nn.Module):
             "num_res_blocks": 13
         },
         decoder_type='residual_conv_bn',
-        decoder_residual_conv_bn_params={
+        decoder_params={
             "kernel_size": 4,
             "dilations": 4 * [1, 2, 4, 8] + [1],
             "num_conv_blocks": 2,
@@ -41,7 +41,7 @@ class SpeedySpeech(nn.Module):
         if positional_encoding:
             self.pos_encoder = PositionalEncoding(hidden_channels)
         self.decoder = Decoder(out_channels, hidden_channels,
-                               decoder_type, decoder_residual_conv_bn_params)
+                               decoder_type, decoder_params)
         self.duration_predictor = DurationPredictor(hidden_channels + c_in_channels)
 
         if num_speakers > 1 and not external_c:

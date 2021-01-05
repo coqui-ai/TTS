@@ -117,22 +117,20 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         num_speakers=num_speakers,
                         c_in_channels=0,
                         num_splits=4,
-                        num_sqz=2,
+                        num_squeeze=2,
                         sigmoid_scale=False,
                         mean_only=True,
-                        hidden_channels_enc=192,
-                        hidden_channels_dec=192,
-                        use_encoder_prenet=True,
+                        use_encoder_prenet=c["use_encoder_prenet"],
                         external_speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "speedy_speech":
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         out_channels=c.audio['num_mels'],
-                        hidden_channels=128,
+                        hidden_channels=c['hidden_channels'],
                         positional_encoding=c['positional_encoding'],
                         encoder_type=c['encoder_type'],
                         encoder_params=c['encoder_params'],
                         decoder_type=c['decoder_type'],
-                        decoder_residual_conv_bn_params=c['decoder_residual_conv_bn_params'],
+                        decoder_params=c['decoder_params'],
                         c_in_channels=0)
     return model
 

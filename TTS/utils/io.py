@@ -57,7 +57,7 @@ def copy_model_files(c, config_file, out_path, new_fields):
             in the config file.
     """
     # copy config.json
-    copy_config_path = OUT_PATH
+    copy_config_path = os.path.join(out_path, 'config.json')
     config_lines = open(config_file, "r").readlines()
     # add extra information fields
     for key, value in new_fields.items():
@@ -70,5 +70,6 @@ def copy_model_files(c, config_file, out_path, new_fields):
     config_out_file.writelines(config_lines)
     config_out_file.close()
     # copy model stats file if available
-    copy_stats_path = os.path.join(out_path, 'scale_stats.npy')
-    copyfile(c.audio['stats_path'], copy_stats_path)
+    if c.audio['stats_path'] is not None:
+        copy_stats_path = os.path.join(out_path, 'scale_stats.npy')
+        copyfile(c.audio['stats_path'], copy_stats_path)
