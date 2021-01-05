@@ -57,7 +57,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             use_phonemes=c.use_phonemes,
             phoneme_language=c.phoneme_language,
             enable_eos_bos=c.enable_eos_bos_chars,
-            use_noise_augment=not is_val,
+            use_noise_augment=c['use_noise_augment'] and not is_val,
             verbose=verbose,
             speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
 
