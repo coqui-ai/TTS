@@ -1,5 +1,6 @@
 from torch import nn
 from TTS.tts.layers.generic.res_conv_bn import ConvBNBlock, ResidualConvBNBlock
+from TTS.tts.layers.generic.wavenet import WNBlocks
 from TTS.tts.layers.glow_tts.transformer import Transformer
 
 
@@ -19,7 +20,7 @@ class Decoder(nn.Module):
             Default decoder_params...
 
             for 'transformer'
-                encoder_params={
+                decoder_params={
                     'hidden_channels_ffn': 128,
                     'num_heads': 2,
                     "kernel_size": 3,
@@ -30,11 +31,21 @@ class Decoder(nn.Module):
                 },
 
             for 'residual_conv_bn'
-                encoder_params = {
+                decoder_params = {
                     "kernel_size": 4,
                     "dilations": 4 * [1, 2, 4, 8] + [1],
                     "num_conv_blocks": 2,
                     "num_res_blocks": 17
+                }
+
+            for 'wavenet'
+                decoder_params = {
+                    "num_blocks": 12,
+                    "hidden_channels":192,
+                    "kernel_size": 5,
+                    "dilation_rate": 1,
+                    "num_layers": 4,
+                    "dropout_p": 0.05
                 }
     """
     # pylint: disable=dangerous-default-value
@@ -60,6 +71,8 @@ class Decoder(nn.Module):
         elif decoder_type == 'residual_conv_bn':
             self.decoder = ResidualConvBNBlock(self.hidden_channels,
                                                **decoder_params)
+        elif decoder_type == 'wavenet':
+            self.decoder = WNBlocks(in_channels=self.in_channels, hidden_channels=self.hidden_channels, **decoder_params)
         else:
             raise ValueError(f'[!] Unknown decoder type - {decoder_type}')
 
