@@ -60,9 +60,11 @@ class ResidualConvBNBlock(nn.Module):
             self.res_blocks.append(block)
 
     def forward(self, x, x_mask=None):
-        o = x
+        o = x * x_mask
         for block in self.res_blocks:
             res = o
-            o = block(o * x_mask if x_mask is not None else o)
+            o = block(o)
             o = o + res
+            if x_mask is not None:
+                o = o * x_mask
         return o
