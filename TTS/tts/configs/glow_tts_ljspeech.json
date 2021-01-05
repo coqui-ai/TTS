@@ -31,12 +31,12 @@
             "spec_gain": 1.0,         // scaler value appplied after log transform of spectrogram.00
 
             // Normalization parameters
-            "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
+            "signal_norm": false,   // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
             "min_level_db": -100,   // lower bound for normalization
             "symmetric_norm": true, // move normalization to range [-1, 1]
             "max_norm": 1.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
             "clip_norm": true,      // clip normalized values into the range.
-            "stats_path": "/home/erogol/Data/LJSpeech-1.1/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+            "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
         },
 
         // VOCABULARY PARAMETERS
@@ -63,6 +63,19 @@
 
         // MODEL PARAMETERS
         // "use_mas": false,       // use Monotonic Alignment Search if true. Otherwise use pre-computed attention alignments.
+        "hidden_channels_encoder": 192,
+        "hidden_channels_decoder": 192,
+        "hidden_channels_duration_predictor": 256,
+        "use_encoder_prenet": true,
+        "encoder_type": "rel_pos_transformer",
+        "encoder_params": {
+            "kernel_size":3,
+            "dropout_p": 0.1,
+            "num_layers": 6,
+            "num_heads": 2,
+            "hidden_channels_ffn": 768,
+            "input_length": null
+        },
 
         // TRAINING
         "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
@@ -86,8 +99,6 @@
         "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
         "seq_len_norm": false,         // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
 
-        "encoder_type": "residual_conv_bn",
-
         // TENSORBOARD and LOGGING
         "print_step": 25,       // Number of steps to log training on console.
         "tb_plot_step": 100,    // Number of steps to plot TB training figures.
@@ -105,6 +116,7 @@
         "min_seq_len": 3,       // DATASET-RELATED: minimum text length to use in training
         "max_seq_len": 500,     // DATASET-RELATED: maximum text length
         "compute_f0": false,     // compute f0 values in data-loader
+        "use_noise_augment": true,  //add a random noise to audio signal for augmentation at training .
         "compute_input_seq_cache": true,
 
         // PATHS
