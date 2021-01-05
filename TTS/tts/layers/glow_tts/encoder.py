@@ -94,49 +94,32 @@ class Encoder(nn.Module):
         # embedding layer
         self.emb = nn.Embedding(num_chars, hidden_channels)
         nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
-        # init encoder
-        if encoder_type.lower() == "transformer":
-            # optional convolutional prenet
+        # init encoder module
+        if encoder_type.lower() == "rel_pos_transformer":
             if use_prenet:
-                self.pre = ConvLayerNorm(hidden_channels,
+                self.prenet = ConvLayerNorm(hidden_channels,
                                          hidden_channels,
                                          hidden_channels,
                                          kernel_size=5,
                                          num_layers=3,
                                          dropout_p=0.5)
-            # text encoder
-            self.encoder = Transformer(
-                hidden_channels,
-                hidden_channels_ffn,
-                num_heads,
-                num_layers,
-                kernel_size=3,
-                dropout_p=dropout_p,
-                rel_attn_window_size=rel_attn_window_size,
-                input_length=input_length)
+            self.encoder = RelativePositionTransformer(
+                hidden_channels, **encoder_params)
         elif encoder_type.lower() == 'gated_conv':
-            self.encoder = GatedConvBlock(hidden_channels,
-                                          kernel_size=5,
-                                          dropout_p=dropout_p,
-                                          num_layers=3 + num_layers)
+            self.encoder = GatedConvBlock(hidden_channels, **encoder_params)
         elif encoder_type.lower() == 'residual_conv_bn':
             if use_prenet:
-                self.pre = nn.Sequential(
+                self.prenet = nn.Sequential(
                     nn.Conv1d(hidden_channels, hidden_channels, 1),
                     nn.ReLU()
                 )
-            dilations = 4 * [1, 2, 4] + [1]
-            num_conv_blocks = 2
-            num_res_blocks = 13  # total 2 * 13 blocks
-            self.encoder = ResidualConvBNBlock(hidden_channels,
-                                               kernel_size=4,
-                                               dilations=dilations,
-                                               num_res_blocks=num_res_blocks,
-                                               num_conv_blocks=num_conv_blocks)
+            self.encoder = ResidualConvBNBlock(hidden_channels, **encoder_params)
+            self.postnet = nn.Sequential(
+                nn.Conv1d(self.hidden_channels, self.hidden_channels, 1),
+                nn.BatchNorm1d(self.hidden_channels))
         elif encoder_type.lower() == 'time_depth_separable':
-            # optional convolutional prenet
             if use_prenet:
-                self.pre = ConvLayerNorm(hidden_channels,
+                self.prenet = ConvLayerNorm(hidden_channels,
                                          hidden_channels,
                                          hidden_channels,
                                          kernel_size=5,
@@ -145,8 +128,7 @@ class Encoder(nn.Module):
             self.encoder = TimeDepthSeparableConvBlock(hidden_channels,
                                                        hidden_channels,
                                                        hidden_channels,
-                                                       kernel_size=5,
-                                                       num_layers=3 + num_layers)
+                                                       **encoder_params)
         else:
             raise ValueError(" [!] Unkown encoder type.")
 
@@ -157,7 +139,7 @@ class Encoder(nn.Module):
         # duration predictor
         self.duration_predictor = DurationPredictor(
             hidden_channels + c_in_channels, hidden_channels_dp, 3,
-            dropout_p)
+            dropout_p_dp)
 
     def forward(self, x, x_lengths, g=None):
         # embedding layer
@@ -168,11 +150,14 @@ class Encoder(nn.Module):
         # compute input sequence mask
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)),
                                  1).to(x.dtype)
-        # pre-conv layers
-        if hasattr(self, 'pre') and self.use_prenet:
-            x = self.pre(x, x_mask)
+        # prenet
+        if hasattr(self, 'prenet') and self.use_prenet:
+            x = self.prenet(x, x_mask)
         # encoder
         x = self.encoder(x, x_mask)
+        # postnet
+        if hasattr(self, 'postnet'):
+            x = self.postnet(x) * x_mask
         # set duration predictor input
         if g is not None:
             g_exp = g.expand(-1, -1, x.size(-1))

@@ -10,44 +10,59 @@ from TTS.tts.layers.glow_tts.monotonic_align import maximum_path, generate_path
 
 
 class GlowTts(nn.Module):
-    """Glow TTS models from https://arxiv.org/abs/2005.11129"""
+    """Glow TTS models from https://arxiv.org/abs/2005.11129
+
+    Args:
+        num_chars (int): number of embedding characters.
+        hidden_channels_enc (int): number of embedding and encoder channels.
+        hidden_channels_dec (int): number of decoder channels.
+        use_encoder_prenet (bool): enable/disable prenet for encoder. Prenet modules are hard-coded for each alternative encoder.
+        hidden_channels_dp (int): number of duration predictor channels.
+        out_channels (int): number of output channels. It should be equal to the number of spectrogram filter.
+        num_flow_blocks_dec (int): number of decoder blocks.
+        kernel_size_dec (int): decoder kernel size.
+        dilation_rate (int): rate to increase dilation by each layer in a decoder block.
+        num_block_layers (int): number of decoder layers in each decoder block.
+        dropout_p_dec (float): dropout rate for decoder.
+        num_speaker (int): number of speaker to define the size of speaker embedding layer.
+        c_in_channels (int): number of speaker embedding channels. It is set to 512 if embeddings are learned.
+        num_splits (int): number of split levels in inversible conv1x1 operation.
+        num_squeeze (int): number of squeeze levels. When squeezing channels increases and time steps reduces by the factor 'num_squeeze'.
+        sigmoid_scale (bool): enable/disable sigmoid scaling in decoder.
+        mean_only (bool): if True, encoder only computes mean value and uses constant variance for each time step.
+        encoder_type (str): encoder module type.
+        encoder_params (dict): encoder module parameters.
+        external_speaker_embedding_dim (int): channels of external speaker embedding vectors.
+    """
     def __init__(self,
                  num_chars,
-                 hidden_channels,
-                 hidden_channels_ffn,
+                 hidden_channels_enc,
+                 hidden_channels_dec,
+                 use_encoder_prenet,
                  hidden_channels_dp,
                  out_channels,
-                 num_heads=2,
-                 num_layers_enc=6,
-                 dropout_p=0.1,
                  num_flow_blocks_dec=12,
                  kernel_size_dec=5,
                  dilation_rate=5,
                  num_block_layers=4,
-                 dropout_p_dec=0.,
+                 dropout_p_dp=0.1,
+                 dropout_p_dec=0.05,
                  num_speakers=0,
                  c_in_channels=0,
                  num_splits=4,
-                 num_sqz=1,
+                 num_squeeze=1,
                  sigmoid_scale=False,
-                 rel_attn_window_size=None,
-                 input_length=None,
                  mean_only=False,
-                 hidden_channels_enc=None,
-                 hidden_channels_dec=None,
-                 use_encoder_prenet=False,
                  encoder_type="transformer",
+                 encoder_params=None,
                  external_speaker_embedding_dim=None):
 
         super().__init__()
         self.num_chars = num_chars
-        self.hidden_channels = hidden_channels
-        self.hidden_channels_ffn = hidden_channels_ffn
         self.hidden_channels_dp = hidden_channels_dp
+        self.hidden_channels_enc = hidden_channels_enc
+        self.hidden_channels_dec = hidden_channels_dec
         self.out_channels = out_channels
-        self.num_heads = num_heads
-        self.num_layers_enc = num_layers_enc
-        self.dropout_p = dropout_p
         self.num_flow_blocks_dec = num_flow_blocks_dec
         self.kernel_size_dec = kernel_size_dec
         self.dilation_rate = dilation_rate
@@ -56,16 +71,14 @@ class GlowTts(nn.Module):
         self.num_speakers = num_speakers
         self.c_in_channels = c_in_channels
         self.num_splits = num_splits
-        self.num_sqz = num_sqz
+        self.num_squeeze = num_squeeze
         self.sigmoid_scale = sigmoid_scale
-        self.rel_attn_window_size = rel_attn_window_size
-        self.input_length = input_length
         self.mean_only = mean_only
-        self.hidden_channels_enc = hidden_channels_enc
-        self.hidden_channels_dec = hidden_channels_dec
         self.use_encoder_prenet = use_encoder_prenet
-        self.noise_scale = 0.66
-        self.length_scale = 1.
+
+        # model constants.
+        self.noise_scale = 0.33  # defines the noise variance applied to the random z vector at inference.
+        self.length_scale = 1.   # scaler for the duration predictor. The larger it is, the slower the speech.
         self.external_speaker_embedding_dim = external_speaker_embedding_dim
 
         # if is a multispeaker and c_in_channels is 0, set to 256
@@ -77,27 +90,24 @@ class GlowTts(nn.Module):
 
         self.encoder = Encoder(num_chars,
                                out_channels=out_channels,
-                               hidden_channels=hidden_channels,
-                               hidden_channels_ffn=hidden_channels_ffn,
+                               hidden_channels=hidden_channels_enc,
                                hidden_channels_dp=hidden_channels_dp,
                                encoder_type=encoder_type,
-                               num_heads=num_heads,
-                               num_layers=num_layers_enc,
-                               dropout_p=dropout_p,
-                               rel_attn_window_size=rel_attn_window_size,
+                               encoder_params=encoder_params,
                                mean_only=mean_only,
                                use_prenet=use_encoder_prenet,
+                               dropout_p_dp=dropout_p_dp,
                                c_in_channels=self.c_in_channels)
 
         self.decoder = Decoder(out_channels,
-                               hidden_channels_dec or hidden_channels,
+                               hidden_channels_dec,
                                kernel_size_dec,
                                dilation_rate,
                                num_flow_blocks_dec,
                                num_block_layers,
                                dropout_p=dropout_p_dec,
                                num_splits=num_splits,
-                               num_sqz=num_sqz,
+                               num_squeeze=num_squeeze,
                                sigmoid_scale=sigmoid_scale,
                                c_in_channels=self.c_in_channels)
 
@@ -140,7 +150,7 @@ class GlowTts(nn.Module):
         o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x,
                                                               x_lengths,
                                                               g=g)
-        # drop redisual frames wrt num_sqz and set y_lengths.
+        # drop redisual frames wrt num_squeeze and set y_lengths.
         y, y_lengths, y_max_length, attn = self.preprocess(
             y, y_lengths, y_max_length, None)
         # create masks
@@ -195,6 +205,7 @@ class GlowTts(nn.Module):
                              attn_mask.squeeze(1)).unsqueeze(1)
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(
             attn, o_mean, o_log_scale, x_mask)
+
         z = (y_mean + torch.exp(y_log_scale) * torch.randn_like(y_mean) *
              self.noise_scale) * y_mask
         # decoder pass
@@ -204,11 +215,11 @@ class GlowTts(nn.Module):
 
     def preprocess(self, y, y_lengths, y_max_length, attn=None):
         if y_max_length is not None:
-            y_max_length = (y_max_length // self.num_sqz) * self.num_sqz
+            y_max_length = (y_max_length // self.num_squeeze) * self.num_squeeze
             y = y[:, :, :y_max_length]
             if attn is not None:
                 attn = attn[:, :, :, :y_max_length]
-        y_lengths = (y_lengths // self.num_sqz) * self.num_sqz
+        y_lengths = (y_lengths // self.num_squeeze) * self.num_squeeze
         return y, y_lengths, y_max_length, attn
 
     def store_inverse(self):

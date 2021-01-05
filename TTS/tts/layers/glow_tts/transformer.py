@@ -81,7 +81,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         # compute raw attention scores
         scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(
             self.k_channels)
-        # relative positional encoding
+        # relative positional encoding for scores
         if self.rel_attn_window_size is not None:
             assert t_s == t_t, "Relative attention is only available for self-attention."
             # get relative key embeddings
@@ -262,7 +262,7 @@ class FFN(nn.Module):
         return x * x_mask
 
 
-class Transformer(nn.Module):
+class RelativePositionTransformer(nn.Module):
     def __init__(self,
                  hidden_channels,
                  hidden_channels_ffn,
