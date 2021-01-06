@@ -7,7 +7,7 @@ from TTS.tts.layers.glow_tts.glow import LayerNorm
 
 
 class RelativePositionMultiHeadAttention(nn.Module):
-     """Multi-head attention with Relative Positional embedding.
+    """Multi-head attention with Relative Positional embedding.
     https://arxiv.org/pdf/1809.04281.pdf
 
     It learns positional embeddings for a window of neighbours. For keys and values,
