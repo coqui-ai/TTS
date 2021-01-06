@@ -37,7 +37,16 @@ def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_fileid
     if CONFIG.model == "Tacotron" and not use_gl:
         mel_postnet_spec = ap.out_linear_to_mel(mel_postnet_spec.T).T
     if not use_gl:
-        waveform = vocoder_model.inference(torch.FloatTensor(mel_postnet_spec.T).unsqueeze(0))
+        # Use if not computed noise schedule with tune_wavegrad
+        beta = np.linspace(1e-6, 0.01, 50)
+        vocoder_model.compute_noise_level(beta)
+
+        # Use alternative when using output npy file from tune_wavegrad
+        # beta = np.load("output-tune-wavegrad.npy", allow_pickle=True).item()
+        # vocoder_model.compute_noise_level(beta['beta'])
+        
+        device_type = "cuda" if use_cuda else "cpu"
+        waveform = vocoder_model.inference(torch.FloatTensor(mel_postnet_spec.T).to(device_type).unsqueeze(0))
     if use_cuda and not use_gl:
         waveform = waveform.cpu()
     if not use_gl:
