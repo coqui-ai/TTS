@@ -130,6 +130,15 @@ class Tacotron2(TacotronAbstract):
         return mel_outputs, mel_outputs_postnet, alignments
 
     def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, speaker_ids=None, speaker_embeddings=None):
+        """
+        Shapes:
+            text: [B, T_in]
+            text_lengths: [B]
+            mel_specs: [B, T_out, C]
+            mel_lengths: [B]
+            speaker_ids: [B, 1]
+            speaker_embeddings: [B, C]
+        """
         # compute mask for padding
         # B x T_in_max (boolean)
         input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)

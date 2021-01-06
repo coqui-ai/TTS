@@ -134,10 +134,12 @@ class Tacotron(TacotronAbstract):
     def forward(self, characters, text_lengths, mel_specs, mel_lengths=None, speaker_ids=None, speaker_embeddings=None):
         """
         Shapes:
-            - characters: B x T_in
-            - text_lengths: B
-            - mel_specs: B x T_out x D
-            - speaker_ids: B x 1
+            characters: [B, T_in]
+            text_lengths: [B]
+            mel_specs: [B, T_out, C]
+            mel_lengths: [B]
+            speaker_ids: [B, 1]
+            speaker_embeddings: [B, C]
         """
         input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)
         # B x T_in x embed_dim
