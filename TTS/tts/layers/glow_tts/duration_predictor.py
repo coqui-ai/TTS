@@ -5,6 +5,15 @@ from ..generic.normalization import LayerNorm
 
 
 class DurationPredictor(nn.Module):
+    """Glow-TTS duration prediction model.
+    [2 x (conv1d_kxk -> relu -> layer_norm -> dropout)] -> conv1d_1x1 -> durs
+
+        Args:
+            in_channels ([type]): [description]
+            hidden_channels ([type]): [description]
+            kernel_size ([type]): [description]
+            dropout_p ([type]): [description]
+    """
     def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p):
         super().__init__()
         # class arguments
@@ -28,6 +37,14 @@ class DurationPredictor(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, 1, 1)
 
     def forward(self, x, x_mask):
+        """
+        Shapes:
+            x: [B, C, T]
+            x_mask: [B, 1, T]
+
+        Returns:
+            [type]: [description]
+        """
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
         x = self.norm_1(x)

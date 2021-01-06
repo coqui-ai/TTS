@@ -142,6 +142,12 @@ class Encoder(nn.Module):
             dropout_p_dp)
 
     def forward(self, x, x_lengths, g=None):
+        """
+        Shapes:
+            x: [B, C, T]
+            x_lengths: [B]
+            g (optional): [B, 1, T]
+        """
         # embedding layer
         # [B ,T, D]
         x = self.emb(x) * math.sqrt(self.hidden_channels)
