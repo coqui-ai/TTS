@@ -7,8 +7,46 @@ from TTS.tts.layers.glow_tts.glow import LayerNorm
 
 
 class RelativePositionMultiHeadAttention(nn.Module):
-    """Implementation of Relative Position Encoding based on
+     """Multi-head attention with Relative Positional embedding.
     https://arxiv.org/pdf/1809.04281.pdf
+
+    It learns positional embeddings for a window of neighbours. For keys and values,
+    it learns different set of embeddings. Key embeddings are agregated with the attention
+    scores and value embeddings are aggregated with the output.
+
+    Note:
+        Example with relative attention window size 2
+        input = [a, b, c, d, e]
+        rel_attn_embeddings = [e(t-2), e(t-1), e(t+1), e(t+2)]
+
+        So it learns 4 embedding vectors (in total 8) separately for key and value vectors.
+
+        Considering the input c
+            e(t-2) corresponds to c -> a
+            e(t-2) corresponds to c -> b
+            e(t-2) corresponds to c -> d
+            e(t-2) corresponds to c -> e
+
+        These embeddings are shared among different time steps. So input a, b, d and e also uses
+        the same embeddings.
+
+        Embeddings are ignored when the relative window is out of limit for the first and the last
+        n items.
+
+    Args:
+        channels (int): input and inner layer channels.
+        out_channels (int): output channels.
+        num_heads (int): number of attention heads.
+        rel_attn_window_size (int, optional): relation attention window size.
+            If 4, for each time step next and previous 4 time steps are attended.
+            If default, relative encoding is disabled and it is a regular transformer.
+            Defaults to None.
+        heads_share (bool, optional): [description]. Defaults to True.
+        dropout_p (float, optional): dropout rate. Defaults to 0..
+        input_length (int, optional): intput length for positional encoding. Defaults to None.
+        proximal_bias (bool, optional): enable/disable proximal bias as in the paper. Defaults to False.
+        proximal_init (bool, optional): enable/disable poximal init as in the paper.
+            Init key and query layer weights the same. Defaults to False.
     """
     def __init__(self,
                  channels,
@@ -20,6 +58,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
                  input_length=None,
                  proximal_bias=False,
                  proximal_init=False):
+
         super().__init__()
         assert channels % num_heads == 0, " [!] channels should be divisible by num_heads."
         # class attributes
@@ -226,20 +265,28 @@ class RelativePositionMultiHeadAttention(nn.Module):
 
 
 class FFN(nn.Module):
+    """Feed Forward Inner layers for Transformer.
+
+        Args:
+            in_channels (int): input tensor channels.
+            out_channels (int): output tensor channels.
+            hidden_channels (int): inner layers hidden channels.
+            kernel_size (int): conv1d filter kernel size.
+            dropout_p (float, optional): dropout rate. Defaults to 0.
+    """
     def __init__(self,
                  in_channels,
                  out_channels,
                  hidden_channels,
                  kernel_size,
-                 dropout_p=0.,
-                 activation=None):
+                 dropout_p=0.):
+
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
         self.kernel_size = kernel_size
         self.dropout_p = dropout_p
-        self.activation = activation
 
         self.conv_1 = nn.Conv1d(in_channels,
                                 hidden_channels,
@@ -253,16 +300,29 @@ class FFN(nn.Module):
 
     def forward(self, x, x_mask):
         x = self.conv_1(x * x_mask)
-        if self.activation == "gelu":
-            x = x * torch.sigmoid(1.702 * x)
-        else:
-            x = torch.relu(x)
+        x = torch.relu(x)
         x = self.dropout(x)
         x = self.conv_2(x * x_mask)
         return x * x_mask
 
 
 class RelativePositionTransformer(nn.Module):
+    """Transformer with Relative Potional Encoding.
+        https://arxiv.org/abs/1803.02155
+
+        Args:
+            hidden_channels (int): model hidden channels.
+            hidden_channels_ffn (int): hidden channels of FeedForwardNetwork.
+            num_heads (int): number of attention heads.
+            num_layers (int): number of transformer layers.
+            kernel_size (int, optional): kernel size of feed-forward inner layers. Defaults to 1.
+            dropout_p (float, optional): dropout rate for self-attention and feed-forward inner layers_per_stack. Defaults to 0.
+            rel_attn_window_size (int, optional): relation attention window size.
+                If 4, for each time step next and previous 4 time steps are attended.
+                If default, relative encoding is disabled and it is a regular transformer.
+                Defaults to None.
+            input_length (int, optional): input lenght to limit position encoding. Defaults to None.
+    """
     def __init__(self,
                  hidden_channels,
                  hidden_channels_ffn,
@@ -305,6 +365,11 @@ class RelativePositionTransformer(nn.Module):
             self.norm_layers_2.append(LayerNorm(hidden_channels))
 
     def forward(self, x, x_mask):
+        """
+        Shapes:
+            x: [B, C, T]
+            x_mask: [B, 1, T]
+        """
         attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
         for i in range(self.num_layers):
             x = x * x_mask
