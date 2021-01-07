@@ -27,7 +27,7 @@ class ConvLayerNorm(nn.Module):
         self.conv_layers = nn.ModuleList()
         self.norm_layers = nn.ModuleList()
 
-        for idx in range(num_layers - 1):
+        for idx in range(num_layers):
             self.conv_layers.append(
                 nn.Conv1d(in_channels if idx == 0 else hidden_channels,
                           hidden_channels,
