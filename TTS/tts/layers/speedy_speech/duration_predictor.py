@@ -4,8 +4,20 @@ from TTS.tts.layers.generic.res_conv_bn import ConvBN
 
 
 class DurationPredictor(nn.Module):
-    """Predicts phoneme log durations based on the encoder outputs"""
+    """Speedy Speech duration predictor model.
+    Predicts phoneme durations from encoder outputs.
+
+    Note:
+        Outputs interpreted as log(durations)
+        To get actual durations, do exp transformation
+
+    conv_BN_4x1 -> conv_BN_3x1 -> conv_BN_1x1 -> conv_1x1
+
+    Args:
+        hidden_channels (int): number of channels in the inner layers.
+    """
     def __init__(self, hidden_channels):
+
         super().__init__()
 
         self.layers = nn.ModuleList([
@@ -16,10 +28,10 @@ class DurationPredictor(nn.Module):
         ])
 
     def forward(self, x, x_mask):
-        """Outputs interpreted as log(durations)
-        To get actual durations, do exp transformation
-        :param x:
-        :return:
+        """
+        Shapes:
+            x: [B, C, T]
+            x_mask: [B, 1, T]
         """
         o = x
         for layer in self.layers:

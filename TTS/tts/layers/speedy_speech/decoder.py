@@ -1,7 +1,7 @@
 from torch import nn
 from TTS.tts.layers.generic.res_conv_bn import ConvBNBlock, ResidualConvBNBlock
 from TTS.tts.layers.generic.wavenet import WNBlocks
-from TTS.tts.layers.glow_tts.transformer import Transformer
+from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 
 
 class Decoder(nn.Module):
@@ -67,7 +67,7 @@ class Decoder(nn.Module):
         self.out_channels = out_channels
 
         if decoder_type == 'transformer':
-            self.decoder = Transformer(self.hidden_channels, **decoder_params)
+            self.decoder = RelativePositionTransformer(self.hidden_channels, **decoder_params)
         elif decoder_type == 'residual_conv_bn':
             self.decoder = ResidualConvBNBlock(self.hidden_channels,
                                                **decoder_params)
