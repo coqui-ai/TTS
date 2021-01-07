@@ -8,7 +8,33 @@ from TTS.tts.layers.glow_tts.monotonic_align import generate_path
 
 
 class SpeedySpeech(nn.Module):
-    # pylint: disable=dangerous-default-value
+    """Speedy Speech model
+    https://arxiv.org/abs/2008.03802
+
+    Encoder -> DurationPredictor -> Decoder
+
+    This model is able to achieve a reasonable performance with only
+    ~3M model parameters and convolutional layers.
+
+    This model requires precomputed phoneme durations to train a duration predictor. At inference
+    it only uses the duration predictor to compute durations and expand encoder outputs respectively.
+
+    Args:
+        num_chars (int): number of unique input to characters
+        out_channels (int): number of output tensor channels. It is equal to the expected spectrogram size.
+        hidden_channels (int): number of channels in all the model layers.
+        positional_encoding (bool, optional): enable/disable Positional encoding on encoder outputs. Defaults to True.
+        length_scale (int, optional): coefficient to set the speech speed. <1 slower, >1 faster. Defaults to 1.
+        encoder_type (str, optional): set the encoder type. Defaults to 'residual_conv_bn'.
+        encoder_params (dict, optional): set encoder parameters depending on 'encoder_type'. Defaults to { "kernel_size": 4, "dilations": 4 * [1, 2, 4] + [1], "num_conv_blocks": 2, "num_res_blocks": 13 }.
+        decoder_type (str, optional): decoder type. Defaults to 'residual_conv_bn'.
+        decoder_params (dict, optional): set decoder parameters depending on 'decoder_type'. Defaults to { "kernel_size": 4, "dilations": 4 * [1, 2, 4, 8] + [1], "num_conv_blocks": 2, "num_res_blocks": 17 }.
+        num_speakers (int, optional): number of speakers for multi-speaker training. Defaults to 0.
+        external_c (bool, optional): enable external speaker embeddings. Defaults to False.
+        c_in_channels (int, optional): number of channels in speaker embedding vectors. Defaults to 0.
+    """
+# pylint: disable=dangerous-default-value
+
     def __init__(
         self,
         num_chars,
@@ -33,6 +59,7 @@ class SpeedySpeech(nn.Module):
         num_speakers=0,
         external_c=False,
         c_in_channels=0):
+
         super().__init__()
         self.length_scale = float(length_scale) if isinstance(length_scale, int) else length_scale
         self.emb = nn.Embedding(num_chars, hidden_channels)
@@ -54,6 +81,19 @@ class SpeedySpeech(nn.Module):
 
     @staticmethod
     def expand_encoder_outputs(en, dr, x_mask, y_mask):
+        """Generate attention alignment map from durations and
+        expand encoder outputs
+
+        Example:
+            encoder output: [a,b,c,d]
+            durations: [1, 3, 2, 1]
+
+            expanded: [a, b, b, b, c, c, d]
+            attention map: [[0, 0, 0, 0, 0, 0, 1],
+                            [0, 0, 0, 0, 1, 1, 0],
+                            [0, 1, 1, 1, 0, 0, 0],
+                            [1, 0, 0, 0, 0, 0, 0]]
+        """
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         attn = generate_path(dr, attn_mask.squeeze(1)).to(en.dtype)
         o_en_ex = torch.matmul(
@@ -121,12 +161,27 @@ class SpeedySpeech(nn.Module):
         return o_de, attn.transpose(1, 2)
 
     def forward(self, x, x_lengths, y_lengths, dr, g=None):  # pylint: disable=unused-argument
+        """
+        Shapes:
+            x: [B, T_max]
+            x_lengths: [B]
+            y_lengths: [B]
+            dr: [B, T_max]
+            g: [B, C]
+        """
+        breakpoint()
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
         o_dr_log = self.duration_predictor(o_en_dp.detach(), x_mask)
         o_de, attn= self._forward_decoder(o_en, o_en_dp, dr, x_mask, y_lengths, g=g)
         return o_de, o_dr_log.squeeze(1), attn
 
     def inference(self, x, x_lengths, g=None):  # pylint: disable=unused-argument
+        """
+        Shapes:
+            x: [B, T_max]
+            x_lengths: [B]
+            g: [B, C]
+        """
         # pad input to prevent dropping the last word
         x = torch.nn.functional.pad(x, pad=(0, 5), mode='constant', value=0)
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
