@@ -64,6 +64,8 @@
 
     // MODEL PARAMETERS
     "positional_encoding": true,
+    "hidden_channels": 128,
+    "encoder_type": "residual_conv_bn",
     "encoder_type": "residual_conv_bn",
     "encoder_params":{
         "kernel_size": 4,
@@ -71,12 +73,14 @@
         "num_conv_blocks": 2,
         "num_res_blocks": 13
     },
-    "decoder_residual_conv_bn_params":{
+    "decoder_type": "residual_conv_bn",
+    "decoder_params":{
         "kernel_size": 4,
         "dilations": [1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1],
         "num_conv_blocks": 2,
         "num_res_blocks": 17
     },
+
 
     // TRAINING
     "batch_size":64,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.

@@ -122,7 +122,7 @@ class Encoder(nn.Module):
                                      num_layers=3,
                                      dropout_p=0.5)
             # text encoder
-            self.encoder = Transformer(self.hidden_channels, **encoder_params)  # pylint: disable=unexpected-keyword-arg
+            self.encoder = RelativePositionTransformer(self.hidden_channels, **encoder_params)  # pylint: disable=unexpected-keyword-arg
         elif encoder_type.lower() == 'residual_conv_bn':
             self.pre = nn.Sequential(
                 nn.Conv1d(self.in_channels, self.hidden_channels, 1),
