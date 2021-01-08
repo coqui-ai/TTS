@@ -169,7 +169,6 @@ class SpeedySpeech(nn.Module):
             dr: [B, T_max]
             g: [B, C]
         """
-        breakpoint()
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
         o_dr_log = self.duration_predictor(o_en_dp.detach(), x_mask)
         o_de, attn= self._forward_decoder(o_en, o_en_dp, dr, x_mask, y_lengths, g=g)

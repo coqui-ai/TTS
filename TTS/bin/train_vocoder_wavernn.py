@@ -514,7 +514,7 @@ if __name__ == "__main__":
             new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
         copy_model_files(
-            args.config_path, os.path.join(OUT_PATH, "config.json"), new_fields
+            c, args.config_path, OUT_PATH, new_fields
         )
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
