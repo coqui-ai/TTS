@@ -6,14 +6,23 @@ from TTS.tts.layers.generic.wavenet import WN
 from ..generic.normalization import LayerNorm
 
 
-class ConvLayerNorm(nn.Module):
-    """Residual Convolution with LayerNorm
-    x -> conv1d -> layer_norm -> dropout -> + -> o
-    |                                       |
-    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-    """
+class ResidualConv1dLayerNormBlock(nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, kernel_size,
                  num_layers, dropout_p):
+        """Conv1d with Layer Normalization and residual connection as in GlowTTS paper.
+        https://arxiv.org/pdf/1811.00002.pdf
+
+         x |-> conv1d -> layer_norm -> relu -> dropout -> + -> o
+           |---------------> conv1d_1x1 -----------------------|
+
+        Args:
+            in_channels (int): number of input tensor channels.
+            hidden_channels (int): number of inner layer channels.
+            out_channels (int): number of output tensor channels.
+            kernel_size (int): kernel size of conv1d filter.
+            num_layers (int): number of blocks.
+            dropout_p (float): dropout rate for each block.
+        """
         super().__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
@@ -50,7 +59,9 @@ class ConvLayerNorm(nn.Module):
 
 
 class InvConvNear(nn.Module):
-    """Inversible Convolution with splitting.
+    """Invertible Convolution with input splitting as in GlowTTS paper.
+    https://arxiv.org/pdf/1811.00002.pdf
+
     Args:
         channels (int): input and output channels.
         num_splits (int): number of splits, also H and W of conv layer.
@@ -122,8 +133,8 @@ class InvConvNear(nn.Module):
 
 
 class CouplingBlock(nn.Module):
-    """Glow Affine Coupling block.
-    For details https://arxiv.org/pdf/1811.00002.pdf
+    """Glow Affine Coupling block as in GlowTTS paper.
+   https://arxiv.org/pdf/1811.00002.pdf
 
     x --> x0 -> conv1d -> wavenet -> conv1d --> t, s -> concat(s*x1 + t, x0) -> o
       '-> x1 - - - - - - - - - - - - - - - - - - - - - - - - - ^
