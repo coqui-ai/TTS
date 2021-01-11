@@ -21,14 +21,23 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | Type                            | Platforms                               |
 | ------------------------------- | --------------------------------------- |
 | 🚨 **Bug Reports**              | [GitHub Issue Tracker]                  |
-| 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                   |
+| ❔ **FAQ**                       | [TTS/Wiki](https://github.com/mozilla/TTS/wiki/FAQ)                              |
+| 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
 | 👩‍💻 **Usage Questions**          | [Discourse Forum]                       |
 | 🗯 **General Discussion**        | [Discourse Forum] and [Matrix Channel]  |
 
 [github issue tracker]: https://github.com/mozilla/tts/issues
 [discourse forum]: https://discourse.mozilla.org/c/tts/
 [matrix channel]: https://matrix.to/#/!KTePhNahjgiVumkqca:matrix.org?via=matrix.org
+[Tutorials and Examples]: https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials
 
+
+## 🔗 Links and Resources
+| Type                            | Links                               |
+| ------------------------------- | --------------------------------------- |
+| 👩🏾‍🏫 **Tutorials and Examples**  | [TTS/Wiki](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials) |
+| 🤖 **Released Models**         | [TTS/Wiki](https://github.com/mozilla/TTS/wiki/Released-Models)|
+| 💻 **Docker Image**            | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-mozillatts)|
 
 ## 🥇 TTS Performance
 <p align="center"><img src="https://discourse-prod-uploads-81679984178418.s3.dualstack.us-west-2.amazonaws.com/optimized/3X/6/4/6428f980e9ec751c248e591460895f7881aec0c6_2_1035x591.png" width="800" /></p>
@@ -82,7 +91,7 @@ TTS supports **python >= 3.6**.
 
 ```python setup.py install``` or ```python setup.py develop``` to keep your installation in your working directory.
 
-### Directory Structure
+## Directory Structure
 ```
 |- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
 |- utils/           (common utilities.)
@@ -103,12 +112,6 @@ TTS supports **python >= 3.6**.
         |- (same)
 ```
 
-### Docker
-A docker image is created by [@synesthesiam](https://github.com/synesthesiam) and shared in a separate [repository](https://github.com/synesthesiam/docker-mozillatts) with the latest LJSpeech models.
-
-## Released Models
-Please visit [our wiki.](https://github.com/mozilla/TTS/wiki/Released-Models)
-
 ## Sample Model Output
 Below you see Tacotron model state after 16K iterations with batch-size 32 with LJSpeech dataset.
 
@@ -117,8 +120,6 @@ Below you see Tacotron model state after 16K iterations with batch-size 32 with 
 Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
 
 <img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
-
-## [TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
 
 ## Datasets and Data-Loading
 TTS provides a generic dataloader easy to use for your custom dataset.
@@ -134,7 +135,7 @@ Some of the public datasets that we successfully applied TTS:
 - [LibriTTS](https://openslr.org/60/)
 - [Spanish](https://drive.google.com/file/d/1Sm_zyBo67XHkiFhcRSQ4YaHPYM0slO_e/view?usp=sharing) - thx! @carlfm01
 
-## Training and Fine-tuning LJ-Speech
+## Example: Training and Fine-tuning LJ-Speech Dataset
 Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below.
 
 To start with, split ```metadata.csv``` into train and validation subsets respectively ```metadata_train.csv``` and ```metadata_val.csv```. Note that for text-to-speech, validation performance might be misleading since the loss value does not directly measure the voice quality to the human ear and it also does not measure the attention module performance. Therefore, running the model with new sentences and listening to the results is the best way to go.
@@ -186,8 +187,6 @@ If you like to use TTS to try a new idea and like to share your experiments with
 - Open an issue pointing your branch.
 - Explain your idea and experiment.
 - Share your results regularly. (Tensorboard log files, audio results, visuals etc.)
-
-## [Contact/Getting Help](https://github.com/mozilla/TTS/wiki/Contact-and-Getting-Help)
 
 ## Major TODOs
 - [x] Implement the model.
