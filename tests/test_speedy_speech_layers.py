@@ -50,9 +50,43 @@ def test_decoder():
     input_mask = torch.unsqueeze(
         sequence_mask(input_lengths, input_dummy.size(2)), 1).to(device)
 
+    # residual bn conv decoder
     layer = Decoder(out_channels=11, in_hidden_channels=128).to(device)
     output = layer(input_dummy, input_mask)
     assert list(output.shape) == [8, 11, 37]
+
+    # transformer decoder
+    layer = Decoder(out_channels=11,
+                    in_hidden_channels=128,
+                    decoder_type='transformer',
+                    decoder_params={
+                        'hidden_channels_ffn': 128,
+                        'num_heads': 2,
+                        "kernel_size": 3,
+                        "dropout_p": 0.1,
+                        "num_layers": 8,
+                        "rel_attn_window_size": 4,
+                        "input_length": None
+                    }).to(device)
+    output = layer(input_dummy, input_mask)
+    assert list(output.shape) == [8, 11, 37]
+
+
+    # wavenet decoder
+    layer = Decoder(out_channels=11,
+                    in_hidden_channels=128,
+                    decoder_type='wavenet',
+                    decoder_params={
+                        "num_blocks": 12,
+                        "hidden_channels": 192,
+                        "kernel_size": 5,
+                        "dilation_rate": 1,
+                        "num_layers": 4,
+                        "dropout_p": 0.05
+                    }).to(device)
+    output = layer(input_dummy, input_mask)
+    assert list(output.shape) == [8, 11, 37]
+
 
 
 def test_duration_predictor():

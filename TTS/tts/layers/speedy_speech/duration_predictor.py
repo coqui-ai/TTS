@@ -1,6 +1,6 @@
 from torch import nn
 
-from TTS.tts.layers.generic.res_conv_bn import ConvBN
+from TTS.tts.layers.generic.res_conv_bn import Conv1dBN
 
 
 class DurationPredictor(nn.Module):
@@ -21,9 +21,9 @@ class DurationPredictor(nn.Module):
         super().__init__()
 
         self.layers = nn.ModuleList([
-            ConvBN(hidden_channels, 4, 1),
-            ConvBN(hidden_channels, 3, 1),
-            ConvBN(hidden_channels, 1, 1),
+            Conv1dBN(hidden_channels, hidden_channels, 4, 1),
+            Conv1dBN(hidden_channels, hidden_channels, 3, 1),
+            Conv1dBN(hidden_channels, hidden_channels, 1, 1),
             nn.Conv1d(hidden_channels, 1, 1)
         ])
 

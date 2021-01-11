@@ -1,11 +1,10 @@
 import math
 import torch
 from torch import nn
-from torch.nn import functional as F
 
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
-from TTS.tts.layers.glow_tts.glow import ConvLayerNorm
-from TTS.tts.layers.generic.res_conv_bn import ResidualConvBNBlock
+from TTS.tts.layers.generic.res_conv_bn import  ResidualConv1dBNBlock
+
 
 
 class PositionalEncoding(nn.Module):
@@ -18,12 +17,13 @@ class PositionalEncoding(nn.Module):
     def __init__(self, channels, dropout=0.0, max_len=5000):
         super().__init__()
         if channels % 2 != 0:
-            raise ValueError("Cannot use sin/cos positional encoding with "
-                             "odd channels (got channels={:d})".format(channels))
+            raise ValueError(
+                "Cannot use sin/cos positional encoding with "
+                "odd channels (got channels={:d})".format(channels))
         pe = torch.zeros(max_len, channels)
         position = torch.arange(0, max_len).unsqueeze(1)
         div_term = torch.exp((torch.arange(0, channels, 2, dtype=torch.float) *
-                             -(math.log(10000.0) / channels)))
+                              -(math.log(10000.0) / channels)))
         pe[:, 0::2] = torch.sin(position.float() * div_term)
         pe[:, 1::2] = torch.cos(position.float() * div_term)
         pe = pe.unsqueeze(0).transpose(1, 2)
@@ -59,9 +59,77 @@ class PositionalEncoding(nn.Module):
         return x
 
 
+class RelativePositionTransformerEncoder(nn.Module):
+    """Speedy speech encoder built on Transformer with Relative Position encoding.
+
+    TODO: Integrate speaker conditioning vector.
+
+    Args:
+        in_channels (int): number of input channels.
+        out_channels (int): number of output channels.
+        hidden_channels (int): number of hidden channels
+        params (dict): dictionary for residual convolutional blocks.
+    """
+    def __init__(self, in_channels, out_channels, hidden_channels, params):
+        super().__init__()
+        self.prenet = ResidualConv1dBNBlock(in_channels,
+                                     hidden_channels,
+                                     hidden_channels,
+                                     kernel_size=5,
+                                     num_res_blocks=3,
+                                     num_conv_blocks=1,
+                                     dilations=[1, 1, 1]
+                                     )
+        self.rel_pos_transformer = RelativePositionTransformer(
+            hidden_channels, out_channels, hidden_channels, **params)
+
+    def forward(self, x, x_mask=None, g=None):  # pylint: disable=unused-argument
+        if x_mask is None:
+            x_mask = 1
+        o = self.prenet(x) * x_mask
+        o = self.rel_pos_transformer(o, x_mask)
+        return o
+
+
+class ResidualConv1dBNEncoder(nn.Module):
+    """Residual Convolutional Encoder as in the original Speedy Speech paper
+
+    TODO: Integrate speaker conditioning vector.
+
+    Args:
+        in_channels (int): number of input channels.
+        out_channels (int): number of output channels.
+        hidden_channels (int): number of hidden channels
+        params (dict): dictionary for residual convolutional blocks.
+    """
+    def __init__(self, in_channels, out_channels, hidden_channels, params):
+        super().__init__()
+        self.prenet =  nn.Sequential(
+                nn.Conv1d(in_channels, hidden_channels, 1),
+                nn.ReLU())
+        self.res_conv_block = ResidualConv1dBNBlock(hidden_channels,
+                                                    hidden_channels,
+                                                    hidden_channels, **params)
+
+        self.postnet = nn.Sequential(*[
+            nn.Conv1d(hidden_channels, hidden_channels, 1),
+            nn.ReLU(),
+            nn.BatchNorm1d(hidden_channels),
+            nn.Conv1d(hidden_channels, out_channels, 1)
+        ])
+
+    def forward(self, x, x_mask=None, g=None):  # pylint: disable=unused-argument
+        if x_mask is None:
+            x_mask = 1
+        o = self.prenet(x) * x_mask
+        o = self.res_conv_block(o, x_mask)
+        o = self.postnet(o + x) * x_mask
+        return o * x_mask
+
+
 class Encoder(nn.Module):
     # pylint: disable=dangerous-default-value
-    """Speedy-Speech encoder using Transformers or Residual BN Convs internally.
+    """Factory class for Speedy Speech encoder enables different encoder types internally.
 
     Args:
         num_chars (int): number of characters.
@@ -114,29 +182,21 @@ class Encoder(nn.Module):
 
         # init encoder
         if encoder_type.lower() == "transformer":
-            # optional convolutional prenet
-            self.pre = ConvLayerNorm(self.in_channels,
-                                     self.hidden_channels,
-                                     self.hidden_channels,
-                                     kernel_size=5,
-                                     num_layers=3,
-                                     dropout_p=0.5)
             # text encoder
-            self.encoder = RelativePositionTransformer(self.hidden_channels, **encoder_params)  # pylint: disable=unexpected-keyword-arg
+            self.encoder = RelativePositionTransformerEncoder(in_hidden_channels,
+                                                   out_channels,
+                                                   in_hidden_channels,
+                                                   encoder_params)  # pylint: disable=unexpected-keyword-arg
         elif encoder_type.lower() == 'residual_conv_bn':
-            self.pre = nn.Sequential(
-                nn.Conv1d(self.in_channels, self.hidden_channels, 1),
-                nn.ReLU())
-            self.encoder = ResidualConvBNBlock(self.hidden_channels,
-                                               **encoder_params)
+            self.encoder = ResidualConv1dBNEncoder(in_hidden_channels,
+                                                   out_channels,
+                                                   in_hidden_channels,
+                                                   encoder_params)
         else:
-            raise NotImplementedError(' [!] encoder type not implemented.')
+            raise NotImplementedError(' [!] unknown encoder type.')
 
         # final projection layers
-        self.post_conv = nn.Conv1d(self.hidden_channels, self.hidden_channels,
-                                   1)
-        self.post_bn = nn.BatchNorm1d(self.hidden_channels)
-        self.post_conv2 = nn.Conv1d(self.hidden_channels, self.out_channels, 1)
+
 
     def forward(self, x, x_mask, g=None):  # pylint: disable=unused-argument
         """
@@ -145,15 +205,5 @@ class Encoder(nn.Module):
             x_mask: [B, 1, T]
             g: [B, C, 1]
         """
-        # TODO: implement multi-speaker
-        if self.encoder_type == 'transformer':
-            o = self.pre(x, x_mask)
-        else:
-            o = self.pre(x) * x_mask
-        o = self.encoder(o, x_mask)
-        o = self.post_conv(o + x)
-        o = F.relu(o)
-        o = self.post_bn(o)
-        o = self.post_conv2(o)
-        # [B, C, T]
+        o = self.encoder(x, x_mask)
         return o * x_mask
