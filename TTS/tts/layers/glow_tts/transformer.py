@@ -264,7 +264,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         return diff.unsqueeze(0).unsqueeze(0)
 
 
-class FFN(nn.Module):
+class FeedForwardNetwork(nn.Module):
     """Feed Forward Inner layers for Transformer.
 
         Args:
@@ -326,6 +326,8 @@ class RelativePositionTransformer(nn.Module):
             input_length (int, optional): input lenght to limit position encoding. Defaults to None.
     """
     def __init__(self,
+                 in_channels,
+                 out_channels,
                  hidden_channels,
                  hidden_channels_ffn,
                  num_heads,
@@ -348,23 +350,31 @@ class RelativePositionTransformer(nn.Module):
         self.norm_layers_1 = nn.ModuleList()
         self.ffn_layers = nn.ModuleList()
         self.norm_layers_2 = nn.ModuleList()
-        for _ in range(self.num_layers):
+
+        for idx in range(self.num_layers):
             self.attn_layers.append(
                 RelativePositionMultiHeadAttention(
-                    hidden_channels,
+                    hidden_channels if idx != 0 else in_channels,
                     hidden_channels,
                     num_heads,
                     rel_attn_window_size=rel_attn_window_size,
                     dropout_p=dropout_p,
                     input_length=input_length))
             self.norm_layers_1.append(LayerNorm(hidden_channels))
+
+            if hidden_channels != out_channels and (idx + 1) == self.num_layers:
+                self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
+
             self.ffn_layers.append(
-                FFN(hidden_channels,
-                    hidden_channels,
+                FeedForwardNetwork(hidden_channels,
+                    hidden_channels if (idx + 1) != self.num_layers else out_channels,
                     hidden_channels_ffn,
                     kernel_size,
                     dropout_p=dropout_p))
-            self.norm_layers_2.append(LayerNorm(hidden_channels))
+
+            self.norm_layers_2.append(
+                LayerNorm(hidden_channels if (
+                    idx + 1) != self.num_layers else out_channels))
 
     def forward(self, x, x_mask):
         """
