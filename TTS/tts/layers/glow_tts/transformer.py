@@ -311,6 +311,8 @@ class RelativePositionTransformer(nn.Module):
         https://arxiv.org/abs/1803.02155
 
         Args:
+            in_channels (int): number of channels of the input tensor.
+            out_chanels (int): number of channels of the output tensor.
             hidden_channels (int): model hidden channels.
             hidden_channels_ffn (int): hidden channels of FeedForwardNetwork.
             num_heads (int): number of attention heads.

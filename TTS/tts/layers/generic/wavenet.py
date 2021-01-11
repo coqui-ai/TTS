@@ -15,10 +15,11 @@ def fused_add_tanh_sigmoid_multiply(input_a, input_b, n_channels):
 class WN(torch.nn.Module):
     """Wavenet layers with weight norm and no input conditioning.
 
-    x -> conv1d(dilation) -> dropout -> split(z + g) -> tanh(z1)    -> t * s -> conv1d1x1 -> z + x -> ...
-    g - - - - - - - - - - - - - - - - - - - - - ^    -> sigmoid(z2) - - - ^          |
-                                                                                     ˅
-                                                                                   o + z
+         |-----------------------------------------------------------------------------|
+         |                                    |-> tanh    -|                           |
+    res -|- conv1d(dilation) -> dropout -> + -|            * -> conv1d1x1 -> split -|- + -> res
+    g -------------------------------------|  |-> sigmoid -|                        |
+    o --------------------------------------------------------------------------- + --------- o
 
     Args:
         in_channels (int): number of input channels.
@@ -55,12 +56,13 @@ class WN(torch.nn.Module):
         self.res_skip_layers = torch.nn.ModuleList()
         self.dropout = nn.Dropout(dropout_p)
 
+        # init conditioning layer
         if c_in_channels > 0:
             cond_layer = torch.nn.Conv1d(c_in_channels,
                                          2 * hidden_channels * num_layers, 1)
             self.cond_layer = torch.nn.utils.weight_norm(cond_layer,
                                                          name='weight')
-
+        # intermediate layers
         for i in range(num_layers):
             dilation = dilation_rate**i
             padding = int((kernel_size * dilation - dilation) / 2)
@@ -124,7 +126,23 @@ class WN(torch.nn.Module):
 
 
 class WNBlocks(nn.Module):
-    """Wavenet blocks"""
+    """Wavenet blocks.
+
+    Note: After each block dilation resets to 1 and it increases in each block
+        along the dilation rate.
+
+    Args:
+        in_channels (int): number of input channels.
+        hidden_channes (int): number of hidden channels.
+        kernel_size (int): filter kernel size for the first conv layer.
+        dilation_rate (int): dilations rate to increase dilation per layer.
+            If it is 2, dilations are 1, 2, 4, 8 for the next 4 layers.
+        num_blocks (int): number of wavenet blocks.
+        num_layers (int): number of wavenet layers.
+        c_in_channels (int): number of channels of conditioning input.
+        dropout_p (float): dropout rate.
+        weight_norm (bool): enable/disable weight norm for convolution layers.
+    """
 
     def __init__(self,
                  in_channels,
