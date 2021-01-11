@@ -1,7 +1,8 @@
 # coding: utf-8
 import torch
 from torch import nn
-from .common_layers import Prenet, init_attn
+from .common_layers import Prenet
+from .attentions import init_attn
 
 
 class BatchNormConv1d(nn.Module):

@@ -391,6 +391,10 @@ class RelativePositionTransformer(nn.Module):
 
             y = self.ffn_layers[i](x, x_mask)
             y = self.dropout(y)
+
+            if (i + 1) == self.num_layers and hasattr(self, 'proj'):
+                x = self.proj(x)
+
             x = self.norm_layers_2[i](x + y)
         x = x * x_mask
         return x
