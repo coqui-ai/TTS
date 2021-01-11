@@ -1,5 +1,5 @@
-<img src="https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/52643646-c2102980-2edd-11e9-8c37-b72f3c89a640.png =250x250)
-" width="300" height="90" align="right" />
+<img src="https://user-images.githubusercontent.com/1402048/104139991-3fd15e00-53af-11eb-8640-3a78a64641dd.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/104139991-3fd15e00-53af-11eb-8640-3a78a64641dd.png =250x250)
+" width="256" height="256" align="right" />
 
 # TTS: Text-to-Speech for all.
 
@@ -21,7 +21,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | Type                            | Platforms                               |
 | ------------------------------- | --------------------------------------- |
 | 🚨 **Bug Reports**              | [GitHub Issue Tracker]                  |
-| ❔ **FAQ**                       | [Wiki](https://github.com/mozilla/TTS/wiki/FAQ)                              |
+| ❔ **FAQ**                       | [TTS/Wiki](https://github.com/mozilla/TTS/wiki/FAQ)                              |
 | 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
 | 👩‍💻 **Usage Questions**          | [Discourse Forum]                       |
 | 🗯 **General Discussion**        | [Discourse Forum] and [Matrix Channel]  |
