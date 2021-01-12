@@ -66,6 +66,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 - Tacotron: [paper](https://arxiv.org/abs/1703.10135)
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
 - Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
+- Speedy-Speech: [paper](https://arxiv.org/abs/2008.03802)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
@@ -75,6 +76,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 
 ### Speaker Encoder
 - GE2E: [paper](https://arxiv.org/abs/1710.10467)
+- Angular Loss: [paper](https://arxiv.org/pdf/2003.11982.pdf)
 
 ### Vocoders
 - MelGAN: [paper](https://arxiv.org/abs/1710.10467)
