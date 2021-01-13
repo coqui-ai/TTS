@@ -47,9 +47,9 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 
 ## Features
 - High performance Deep Learning models for Text2Speech tasks.
-    - Text2Spec models (Tacotron, Tacotron2).
+    - Text2Spec models (Tacotron, Tacotron2, Glow-TTS, SpeedySpeech).
     - Speaker Encoder to compute speaker embeddings efficiently.
-    - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS, ParallelWaveGAN)
+    - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS, ParallelWaveGAN, WaveGrad, WaveRNN)
 - Fast and efficient model training.
 - Detailed training logs on console and Tensorboard.
 - Support for multi-speaker TTS.
