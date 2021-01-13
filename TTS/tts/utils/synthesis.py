@@ -62,7 +62,22 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
                     inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings)
     elif 'glow' in CONFIG.model.lower():
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
-        postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id else speaker_embeddings)
+        if hasattr(model, 'module'):
+            # distributed model
+            postnet_output, _, _, _, alignments, _, _ = model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+        else:
+            postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+        postnet_output = postnet_output.permute(0, 2, 1)
+        # these only belong to tacotron models.
+        decoder_output = None
+        stop_tokens = None
+    elif 'speedy_speech' in CONFIG.model.lower():
+        inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
+        if hasattr(model, 'module'):
+            # distributed model
+            postnet_output, alignments= model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+        else:
+            postnet_output, alignments= model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.
         decoder_output = None
@@ -145,7 +160,8 @@ def inv_spectrogram(postnet_output, ap, CONFIG):
 def id_to_torch(speaker_id, cuda=False):
     if speaker_id is not None:
         speaker_id = np.asarray(speaker_id)
-        speaker_id = torch.from_numpy(speaker_id).unsqueeze(0)
+        # TODO: test this for tacotron models
+        speaker_id = torch.from_numpy(speaker_id)
     if cuda:
         return speaker_id.cuda()
     return speaker_id

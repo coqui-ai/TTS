@@ -2,10 +2,17 @@ import torch
 from torch import nn
 
 from TTS.tts.layers.glow_tts.glow import InvConvNear, CouplingBlock
-from TTS.tts.layers.glow_tts.normalization import ActNorm
+from TTS.tts.layers.generic.normalization import ActNorm
 
 
 def squeeze(x, x_mask=None, num_sqz=2):
+    """GlowTTS squeeze operation
+    Increase number of channels and reduce number of time steps
+    by the same factor.
+
+    Note:
+        each 's' is a n-dimensional vector.
+        [s1,s2,s3,s4,s5,s6] --> [[s1, s3, s5], [s2, s4, s6]]"""
     b, c, t = x.size()
 
     t = (t // num_sqz) * num_sqz
@@ -23,6 +30,11 @@ def squeeze(x, x_mask=None, num_sqz=2):
 
 
 def unsqueeze(x, x_mask=None, num_sqz=2):
+    """GlowTTS unsqueeze operation
+
+    Note:
+        each 's' is a n-dimensional vector.
+        [[s1, s3, s5], [s2, s4, s6]] --> [[s1, s3, s5], [s2, s4, s6]] """
     b, c, t = x.size()
 
     x_unsqz = x.view(b, num_sqz, c // num_sqz, t)
@@ -40,7 +52,19 @@ def unsqueeze(x, x_mask=None, num_sqz=2):
 
 
 class Decoder(nn.Module):
-    """Stack of Glow Modules"""
+    """Stack of Glow Decoder Modules.
+    Squeeze -> ActNorm -> InvertibleConv1x1 -> AffineCoupling -> Unsqueeze
+
+    Args:
+        in_channels (int): channels of input tensor.
+        hidden_channels (int): hidden decoder channels.
+        kernel_size (int): Coupling block kernel size. (Wavenet filter kernel size.)
+        dilation_rate (int): rate to increase dilation by each layer in a decoder block.
+        num_flow_blocks (int): number of decoder blocks.
+        num_coupling_layers (int): number coupling layers. (number of wavenet layers.)
+        dropout_p (float): wavenet dropout rate.
+        sigmoid_scale (bool): enable/disable sigmoid scaling in coupling layer.
+    """
     def __init__(self,
                  in_channels,
                  hidden_channels,
@@ -50,7 +74,7 @@ class Decoder(nn.Module):
                  num_coupling_layers,
                  dropout_p=0.,
                  num_splits=4,
-                 num_sqz=2,
+                 num_squeeze=2,
                  sigmoid_scale=False,
                  c_in_channels=0):
         super().__init__()
@@ -63,18 +87,18 @@ class Decoder(nn.Module):
         self.num_coupling_layers = num_coupling_layers
         self.dropout_p = dropout_p
         self.num_splits = num_splits
-        self.num_sqz = num_sqz
+        self.num_squeeze = num_squeeze
         self.sigmoid_scale = sigmoid_scale
         self.c_in_channels = c_in_channels
 
         self.flows = nn.ModuleList()
         for _ in range(num_flow_blocks):
-            self.flows.append(ActNorm(channels=in_channels * num_sqz))
+            self.flows.append(ActNorm(channels=in_channels * num_squeeze))
             self.flows.append(
-                InvConvNear(channels=in_channels * num_sqz,
+                InvConvNear(channels=in_channels * num_squeeze,
                             num_splits=num_splits))
             self.flows.append(
-                CouplingBlock(in_channels * num_sqz,
+                CouplingBlock(in_channels * num_squeeze,
                               hidden_channels,
                               kernel_size=kernel_size,
                               dilation_rate=dilation_rate,
@@ -91,16 +115,16 @@ class Decoder(nn.Module):
             flows = reversed(self.flows)
             logdet_tot = None
 
-        if self.num_sqz > 1:
-            x, x_mask = squeeze(x, x_mask, self.num_sqz)
+        if self.num_squeeze > 1:
+            x, x_mask = squeeze(x, x_mask, self.num_squeeze)
         for f in flows:
             if not reverse:
                 x, logdet = f(x, x_mask, g=g, reverse=reverse)
                 logdet_tot += logdet
             else:
                 x, logdet = f(x, x_mask, g=g, reverse=reverse)
-        if self.num_sqz > 1:
-            x, x_mask = unsqueeze(x, x_mask, self.num_sqz)
+        if self.num_squeeze > 1:
+            x, x_mask = unsqueeze(x, x_mask, self.num_squeeze)
         return x, logdet_tot
 
     def store_inverse(self):

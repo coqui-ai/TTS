@@ -2,14 +2,14 @@
 
 import inflect
 import re
+from typing import Dict
 
 _inflect = inflect.engine()
 _comma_number_re = re.compile(r'([0-9][0-9\,]+[0-9])')
 _decimal_number_re = re.compile(r'([0-9]+\.[0-9]+)')
-_pounds_re = re.compile(r'£([0-9\,]*[0-9]+)')
-_dollars_re = re.compile(r'\$([0-9\.\,]*[0-9]+)')
+_currency_re = re.compile(r'(£|\$|¥)([0-9\,\.]*[0-9]+)')
 _ordinal_re = re.compile(r'[0-9]+(st|nd|rd|th)')
-_number_re = re.compile(r'[0-9]+')
+_number_re = re.compile(r'-?[0-9]+')
 
 
 def _remove_commas(m):
@@ -20,24 +20,54 @@ def _expand_decimal_point(m):
     return m.group(1).replace('.', ' point ')
 
 
-def _expand_dollars(m):
-    match = m.group(1)
-    parts = match.split('.')
+def __expand_currency(value: str, inflection: Dict[float, str]) -> str:
+    parts = value.replace(",", "").split('.')
     if len(parts) > 2:
-        return match + ' dollars'  # Unexpected format
-    dollars = int(parts[0]) if parts[0] else 0
-    cents = int(parts[1]) if len(parts) > 1 and parts[1] else 0
-    if dollars and cents:
-        dollar_unit = 'dollar' if dollars == 1 else 'dollars'
-        cent_unit = 'cent' if cents == 1 else 'cents'
-        return '%s %s, %s %s' % (dollars, dollar_unit, cents, cent_unit)
-    if dollars:
-        dollar_unit = 'dollar' if dollars == 1 else 'dollars'
-        return '%s %s' % (dollars, dollar_unit)
-    if cents:
-        cent_unit = 'cent' if cents == 1 else 'cents'
-        return '%s %s' % (cents, cent_unit)
-    return 'zero dollars'
+        return f"{value} {inflection[2]}"  # Unexpected format
+    text = []
+    integer = int(parts[0]) if parts[0] else 0
+    if integer > 0:
+        integer_unit = inflection.get(integer, inflection[2])
+        text.append(f"{integer} {integer_unit}")
+    fraction = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+    if fraction > 0:
+        fraction_unit = inflection.get(fraction/100, inflection[0.02])
+        text.append(f"{fraction} {fraction_unit}")
+    if len(text) == 0:
+        return f"zero {inflection[2]}"
+    return " ".join(text)
+
+
+def _expand_currency(m: "re.Match") -> str:
+    currencies = {
+        "$": {
+            0.01: "cent",
+            0.02: "cents",
+            1: "dollar",
+            2: "dollars",
+        },
+        "€": {
+            0.01: "cent",
+            0.02: "cents",
+            1: "euro",
+            2: "euros",
+        },
+        "£": {
+            0.01: "penny",
+            0.02: "pence",
+            1: "pound sterling",
+            2: "pounds sterling",
+        },
+        "¥": {
+            # TODO rin
+            0.02: "sen",
+            2: "yen",
+        }
+    }
+    unit = m.group(1)
+    currency = currencies[unit]
+    value = m.group(2)
+    return __expand_currency(value, currency)
 
 
 def _expand_ordinal(m):
@@ -62,8 +92,7 @@ def _expand_number(m):
 
 def normalize_numbers(text):
     text = re.sub(_comma_number_re, _remove_commas, text)
-    text = re.sub(_pounds_re, r'\1 pounds', text)
-    text = re.sub(_dollars_re, _expand_dollars, text)
+    text = re.sub(_currency_re, _expand_currency, text)
     text = re.sub(_decimal_number_re, _expand_decimal_point, text)
     text = re.sub(_ordinal_re, _expand_ordinal, text)
     text = re.sub(_number_re, _expand_number, text)

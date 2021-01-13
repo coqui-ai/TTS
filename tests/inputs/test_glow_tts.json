@@ -70,6 +70,7 @@
     "eval_batch_size":1,
     "r": 1,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
     "loss_masking": true,   // enable / disable loss masking against the sequence padding.
+    "data_dep_init_iter": 1,
 
     // VALIDATION
     "run_eval": true,
@@ -85,7 +86,19 @@
     "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
     "seq_len_norm": false,         // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
 
-    "encoder_type": "gatedconv",
+    "hidden_channels_encoder": 192,
+        "hidden_channels_decoder": 192,
+        "hidden_channels_duration_predictor": 256,
+        "use_encoder_prenet": true,
+        "encoder_type": "rel_pos_transformer",
+        "encoder_params": {
+            "kernel_size":3,
+            "dropout_p": 0.1,
+            "num_layers": 6,
+            "num_heads": 2,
+            "hidden_channels_ffn": 768,
+            "input_length": null
+    },
 
     // TENSORBOARD and LOGGING
     "print_step": 25,       // Number of steps to log training on console.
@@ -105,6 +118,8 @@
     "min_seq_len": 3,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 500,     // DATASET-RELATED: maximum text length
     "compute_f0": false,     // compute f0 values in data-loader
+    "compute_input_seq_cache": true,
+    "use_noise_augment": true,
 
     // PATHS
     "output_path": "tests/train_outputs/",

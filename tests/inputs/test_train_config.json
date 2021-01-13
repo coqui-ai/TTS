@@ -100,7 +100,7 @@
     "prenet_dropout": false,        // enable/disable dropout at prenet.
 
     // TACOTRON ATTENTION
-    "attention_type": "original",  // 'original' or 'graves'
+    "attention_type": "original",  // 'original' , 'graves', 'dynamic_convolution'
     "attention_heads": 4,          // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid",   // softmax or sigmoid.
     "windowing": false,            // Enables attention windowing. Used only in eval mode.
@@ -132,6 +132,7 @@
     "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
     "min_seq_len": 6,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 153,     // DATASET-RELATED: maximum text length
+    "compute_input_seq_cache": true,
 
     // PATHS
     "output_path": "tests/train_outputs/",

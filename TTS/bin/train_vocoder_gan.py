@@ -13,7 +13,7 @@ from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      create_experiment_folder, get_git_branch,
                                      remove_experiment_folder, set_init_dict)
-from TTS.utils.io import copy_config_file, load_config
+from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import setup_torch_training_env
@@ -639,8 +639,8 @@ if __name__ == '__main__':
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
-        copy_config_file(args.config_path,
-                         os.path.join(OUT_PATH, 'config.json'), new_fields)
+        copy_model_files(c,  args.config_path,
+                         OUT_PATH, new_fields)
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 

@@ -1,12 +1,16 @@
-import os
-import numpy as np
 import collections
-import torch
+import os
 import random
-from torch.utils.data import Dataset
+from multiprocessing import Manager, Pool
 
-from TTS.tts.utils.text import text_to_sequence, phoneme_to_sequence, pad_with_eos_bos
-from TTS.tts.utils.data import prepare_data, prepare_tensor, prepare_stop_target
+import numpy as np
+import torch
+import tqdm
+from torch.utils.data import Dataset
+from TTS.tts.utils.data import (prepare_data, prepare_stop_target,
+                                prepare_tensor)
+from TTS.tts.utils.text import (pad_with_eos_bos, phoneme_to_sequence,
+                                text_to_sequence)
 
 
 class MyDataset(Dataset):
@@ -26,6 +30,7 @@ class MyDataset(Dataset):
                  phoneme_language="en-us",
                  enable_eos_bos=False,
                  speaker_mapping=None,
+                 use_noise_augment=False,
                  verbose=False):
         """
         Args:
@@ -44,6 +49,7 @@ class MyDataset(Dataset):
             phoneme_language (str): one the languages from
                 https://github.com/bootphon/phonemizer#languages
             enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
+            use_noise_augment (bool): enable adding random noise to wav for augmentation.
             verbose (bool): print diagnostic information.
         """
         self.batch_group_size = batch_group_size
@@ -62,7 +68,9 @@ class MyDataset(Dataset):
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
         self.speaker_mapping = speaker_mapping
+        self.use_noise_augment = use_noise_augment
         self.verbose = verbose
+        self.input_seq_computed = False
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
@@ -71,7 +79,6 @@ class MyDataset(Dataset):
             if use_phonemes:
                 print("   | > phoneme language: {}".format(phoneme_language))
             print(" | > Number of instances : {}".format(len(self.items)))
-        self.sort_items()
 
     def load_wav(self, filename):
         audio = self.ap.load_wav(filename)
@@ -82,35 +89,40 @@ class MyDataset(Dataset):
         data = np.load(filename).astype('float32')
         return data
 
-    def _generate_and_cache_phoneme_sequence(self, text, cache_path):
+    @staticmethod
+    def _generate_and_cache_phoneme_sequence(text, cache_path, cleaners, language, tp, add_blank):
         """generate a phoneme sequence from text.
         since the usage is for subsequent caching, we never add bos and
         eos chars here. Instead we add those dynamically later; based on the
         config option."""
-        phonemes = phoneme_to_sequence(text, [self.cleaners],
-                                       language=self.phoneme_language,
+        phonemes = phoneme_to_sequence(text, [cleaners],
+                                       language=language,
                                        enable_eos_bos=False,
-                                       tp=self.tp, add_blank=self.add_blank)
+                                       tp=tp, add_blank=add_blank)
         phonemes = np.asarray(phonemes, dtype=np.int32)
         np.save(cache_path, phonemes)
         return phonemes
 
-    def _load_or_generate_phoneme_sequence(self, wav_file, text):
+    @staticmethod
+    def _load_or_generate_phoneme_sequence(wav_file, text, phoneme_cache_path, enable_eos_bos, cleaners, language, tp, add_blank):
         file_name = os.path.splitext(os.path.basename(wav_file))[0]
-        cache_path = os.path.join(self.phoneme_cache_path,
-                                  file_name + '_phoneme.npy')
+
+        # different names for normal phonemes and with blank chars.
+        file_name_ext = '_blanked_phoneme.npy' if add_blank else '_phoneme.npy'
+        cache_path = os.path.join(phoneme_cache_path,
+                                  file_name + file_name_ext)
         try:
             phonemes = np.load(cache_path)
         except FileNotFoundError:
-            phonemes = self._generate_and_cache_phoneme_sequence(
-                text, cache_path)
+            phonemes = MyDataset._generate_and_cache_phoneme_sequence(
+                text, cache_path, cleaners, language, tp, add_blank)
         except (ValueError, IOError):
-            print(" > ERROR: failed loading phonemes for {}. "
+            print(" [!] failed loading phonemes for {}. "
                   "Recomputing.".format(wav_file))
-            phonemes = self._generate_and_cache_phoneme_sequence(
-                text, cache_path)
-        if self.enable_eos_bos:
-            phonemes = pad_with_eos_bos(phonemes, tp=self.tp)
+            phonemes = MyDataset._generate_and_cache_phoneme_sequence(
+                text, cache_path, cleaners, language, tp, add_blank)
+        if enable_eos_bos:
+            phonemes = pad_with_eos_bos(phonemes, tp=tp)
             phonemes = np.asarray(phonemes, dtype=np.int32)
         return phonemes
 
@@ -125,11 +137,17 @@ class MyDataset(Dataset):
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
-        if self.use_phonemes:
-            text = self._load_or_generate_phoneme_sequence(wav_file, text)
-        else:
-            text = np.asarray(text_to_sequence(text, [self.cleaners],
-                                               tp=self.tp, add_blank=self.add_blank),
+        # apply noise for augmentation
+        if self.use_noise_augment:
+            wav = wav + (1.0 / 32768.0) * np.random.rand(*wav.shape)
+
+        if not self.input_seq_computed:
+            if self.use_phonemes:
+                text = self._load_or_generate_phoneme_sequence(wav_file, text, self.phoneme_cache_path, self.enable_eos_bos, self.cleaners, self.phoneme_language, self.tp, self.add_blank)
+
+            else:
+                text = np.asarray(text_to_sequence(text, [self.cleaners],
+                                                tp=self.tp, add_blank=self.add_blank),
                               dtype=np.int32)
 
         assert text.size > 0, self.items[idx][1]
@@ -137,6 +155,12 @@ class MyDataset(Dataset):
 
         if "attn_file" in locals():
             attn = np.load(attn_file)
+
+        if len(text) > self.max_seq_len:
+            # return a different sample if the phonemized
+            # text is longer than the threshold
+            # TODO: find a better fix
+            return self.load_data(100)
 
         sample = {
             'text': text,
@@ -147,6 +171,41 @@ class MyDataset(Dataset):
             'wav_file_name': os.path.basename(wav_file)
         }
         return sample
+
+    @staticmethod
+    def _phoneme_worker(args):
+        item = args[0]
+        func_args = args[1]
+        text, wav_file, *_ = item
+        phonemes = MyDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
+        return phonemes
+
+    def compute_input_seq(self, num_workers=0):
+        """compute input sequences separately. Call it before
+        passing dataset to data loader."""
+        if not self.use_phonemes:
+            if self.verbose:
+                print(" | > Computing input sequences ...")
+            for idx, item in enumerate(tqdm.tqdm(self.items)):
+                text, *_ = item
+                sequence = np.asarray(text_to_sequence(text, [self.cleaners],
+                                               tp=self.tp, add_blank=self.add_blank),
+                              dtype=np.int32)
+                self.items[idx][0] = sequence
+
+        else:
+            func_args = [self.phoneme_cache_path, self.enable_eos_bos, self.cleaners, self.phoneme_language, self.tp, self.add_blank]
+            if self.verbose:
+                print(" | > Computing phonemes ...")
+            if num_workers == 0:
+                for idx, item in enumerate(tqdm.tqdm(self.items)):
+                    phonemes = self._phoneme_worker([item, func_args])
+                    self.items[idx][0] = phonemes
+            else:
+                with Pool(num_workers) as p:
+                    phonemes = list(tqdm.tqdm(p.imap(MyDataset._phoneme_worker, [[item, func_args] for item in self.items]), total=len(self.items)))
+                    for idx, p in enumerate(phonemes):
+                        self.items[idx][0] = p
 
     def sort_items(self):
         r"""Sort instances based on text length in ascending order"""
