@@ -3,27 +3,15 @@
 
 # TTS: Text-to-Speech for all.
 
-<<<<<<< HEAD
-<p align='center'>
-    <img src='https://circleci.com/gh/mozilla/TTS/tree/dev.svg?style=svg' alt="mozilla"/>
-    <a href='https://discourse.mozilla.org/c/tts'><img src="https://img.shields.io/badge/discourse-online-green.svg"/></a>
-    <a href='https://opensource.org/licenses/MPL-2.0'> <img src="https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg"/></a>
-</p>
-=======
 TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to be achive the best trade-off among ease-of-training, speed and quality.
 TTS comes with [pretrained models](https://github.com/mozilla/TTS/wiki/Released-Models), tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
->>>>>>> dev
 
 [![CircleCI](<https://circleci.com/gh/mozilla/TTS/tree/dev.svg?style=svg>)]()
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 
-<<<<<<< HEAD
-TTS is a deep learning based Text2Speech project, low in cost and high in quality.
-=======
 :loudspeaker: [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
 
 :man_cook:  [TTS training recipes](https://github.com/erogol/TTS_recipes)
->>>>>>> dev
 
 :page_facing_up: [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
 
@@ -57,34 +45,6 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 "Mozilla*" and "Judy*" are our models.
 [Details...](https://github.com/mozilla/TTS/wiki/Mean-Opinion-Score-Results)
 
-<<<<<<< HEAD
-## Provided Models and Methods
-Text-to-Spectrogram:
-- Tacotron: [paper](https://arxiv.org/abs/1703.10135)
-- Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
-- Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
-
-Attention Methods:
-- Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
-- Forward Backward Decoding: [paper](https://arxiv.org/abs/1907.09006)
-- Graves Attention: [paper](https://arxiv.org/abs/1907.09006)
-- Double Decoder Consistency: [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
-
-Speaker Encoder:
-- GE2E: [paper](https://arxiv.org/abs/1710.10467)
-
-Vocoders:
-- MelGAN: [paper](https://arxiv.org/abs/1710.10467)
-- MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
-- ParallelWaveGAN: [paper](https://arxiv.org/abs/1910.11480)
-- GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
-- WaveRNN: [origin](https://github.com/fatchord/WaveRNN/)
-- WaveGrad: [paper](https://arxiv.org/abs/2009.00713)
-
-You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
-
-=======
->>>>>>> dev
 ## Features
 - High performance Deep Learning models for Text2Speech tasks.
     - Text2Spec models (Tacotron, Tacotron2).
@@ -163,11 +123,6 @@ Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-articl
 
 <img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
 
-<<<<<<< HEAD
-## [TTS Tutorials and Notebooks](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials)
-
-=======
->>>>>>> dev
 ## Datasets and Data-Loading
 TTS provides a generic dataloader easy to use for your custom dataset.
 You just need to write a simple function to format the dataset. Check ```datasets/preprocess.py``` to see some examples.
