@@ -1,0 +1,171 @@
+{
+    "model": "Tacotron2",
+    "run_name": "ljspeech-dcattn",
+    "run_description": "tacotron2 with dynamic convolution attention.",
+
+    // AUDIO PARAMETERS
+    "audio":{
+        // stft parameters
+        "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
+        "win_length": 1024,      // stft window length in ms.
+        "hop_length": 256,       // stft window hop-lengh in ms.
+        "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
+        "frame_shift_ms": null,  // stft window hop-lengh in ms. If null, 'hop_length' is used.
+
+        // Audio processing parameters
+        "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate.
+        "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+
+        // Silence trimming
+        "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (true), TWEB (false), Nancy (true)
+        "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
+
+        // Griffin-Lim
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+
+        // MelSpectrogram parameters
+        "num_mels": 80,         // size of the mel spec frame.
+        "mel_fmin": 50.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 7600.0,     // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 1,
+
+        // Normalization parameters
+        "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
+        "min_level_db": -100,   // lower bound for normalization
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true,      // clip normalized values into the range.
+        "stats_path": "/home/erogol/Data/LJSpeech-1.1/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+    },
+
+    // VOCABULARY PARAMETERS
+    // if custom character set is not defined,
+    // default set in symbols.py is used
+    // "characters":{
+    //     "pad": "_",
+    //     "eos": "~",
+    //     "bos": "^",
+    //     "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? ",
+    //     "punctuations":"!'(),-.:;? ",
+    //     "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫ"
+    // },
+
+    // DISTRIBUTED TRAINING
+    "distributed":{
+        "backend": "nccl",
+        "url": "tcp:\/\/localhost:54321"
+    },
+
+    "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
+
+    // TRAINING
+    "batch_size": 32,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "eval_batch_size":16,
+    "r": 7,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
+    "gradual_training": [[0, 7, 64], [1, 5, 64], [50000, 3, 32], [130000, 2, 32], [290000, 1, 32]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
+    "mixed_precision": true,     // level of optimization with NVIDIA's apex feature for automatic mixed FP16/FP32 precision (AMP), NOTE: currently only O1 is supported, and use "O1" to activate.
+
+    // LOSS SETTINGS
+    "loss_masking": true,       // enable / disable loss masking against the sequence padding.
+    "decoder_loss_alpha": 0.5,  // original decoder loss weight. If > 0, it is enabled
+    "postnet_loss_alpha": 0.25, // original postnet loss weight. If > 0, it is enabled
+    "postnet_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "decoder_diff_spec_alpha": 0.25,     // differential spectral loss weight. If > 0, it is enabled
+    "decoder_ssim_alpha": 0.5,     // decoder ssim loss weight. If > 0, it is enabled
+    "postnet_ssim_alpha": 0.25,     // postnet ssim loss weight. If > 0, it is enabled
+    "ga_alpha": 0.0,           // weight for guided attention loss. If > 0, guided attention is enabled.
+    "stopnet_pos_weight": 15.0, // pos class weight for stopnet loss since there are way more negative samples than positive samples.
+
+
+    // VALIDATION
+    "run_eval": true,
+    "test_delay_epochs": 10,  //Until attention is aligned, testing only wastes computation time.
+    "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
+
+    // OPTIMIZER
+    "noam_schedule": false,        // use noam warmup and lr schedule.
+    "grad_clip": 1.0,              // upper limit for gradients for clipping.
+    "epochs": 1000,                // total number of epochs to train.
+    "lr": 0.0001,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "wd": 0.000001,                // Weight decay weight.
+    "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
+    "seq_len_norm": false,         // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
+
+    // TACOTRON PRENET
+    "memory_size": -1,             // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.
+    "prenet_type": "original",     // "original" or "bn".
+    "prenet_dropout": false,       // enable/disable dropout at prenet.
+
+    // TACOTRON ATTENTION
+    "attention_type": "dynamic_convolution",  // 'original' , 'graves', 'dynamic_convolution'
+    "attention_heads": 4,          // number of attention heads (only for 'graves')
+    "attention_norm": "softmax",   // softmax or sigmoid.
+    "windowing": false,            // Enables attention windowing. Used only in eval mode.
+    "use_forward_attn": false,     // if it uses forward attention. In general, it aligns faster.
+    "forward_attn_mask": false,    // Additional masking forcing monotonicity only in eval mode.
+    "transition_agent": false,     // enable/disable transition agent of forward attention.
+    "location_attn": true,         // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
+    "bidirectional_decoder": false,  // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
+    "double_decoder_consistency": false,  // use DDC explained here https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency-draft/
+    "ddc_r": 7,                           // reduction rate for coarse decoder.
+
+    // STOPNET
+    "stopnet": true,               // Train stopnet predicting the end of synthesis.
+    "separate_stopnet": true,      // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
+
+    // TENSORBOARD and LOGGING
+    "print_step": 25,       // Number of steps to log training on console.
+    "tb_plot_step": 100,    // Number of steps to plot TB training figures.
+    "print_eval": false,     // If True, it prints intermediate loss values in evalulation.
+    "save_step": 10000,      // Number of training steps expected to save traninpg stats and checkpoints.
+    "checkpoint": true,     // If true, it saves checkpoints per "save_step"
+    "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
+
+    // DATA LOADING
+    "text_cleaner": "phoneme_cleaners",
+    "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
+    "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_val_loader_workers": 4,    // number of evaluation data loader processes.
+    "batch_group_size": 4,  //Number of batches to shuffle after bucketing.
+    "min_seq_len": 6,       // DATASET-RELATED: minimum text length to use in training
+    "max_seq_len": 153,     // DATASET-RELATED: maximum text length
+    "compute_input_seq_cache": false,  // if true, text sequences are computed before starting training. If phonemes are enabled, they are also computed at this stage.
+
+    // PATHS
+    "output_path": "/home/erogol/Models/LJSpeech/",
+
+    // PHONEMES
+    "phoneme_cache_path": "/home/erogol/Models/phoneme_cache/",  // phoneme computation is slow, therefore, it caches results in the given folder.
+    "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
+    "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
+
+    // MULTI-SPEAKER and GST
+    "use_speaker_embedding": false,      // use speaker embedding to enable multi-speaker learning.
+    "use_gst": false,       			    // use global style tokens
+    "use_external_speaker_embedding_file": false, // if true, forces the model to use external embedding per sample instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+    "external_speaker_embedding_file": "../../speakers-vctk-en.json", // if not null and use_external_speaker_embedding_file is true, it is used to load a specific embedding file and thus uses these embeddings instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+    "gst":	{			                // gst parameter if gst is enabled
+        "gst_style_input": null,        // Condition the style input either on a
+                                        // -> wave file [path to wave] or
+                                        // -> dictionary using the style tokens {'token1': 'value', 'token2': 'value'} example {"0": 0.15, "1": 0.15, "5": -0.15}
+                                        // with the dictionary being len(dict) <= len(gst_style_tokens).
+        "gst_embedding_dim": 512,
+        "gst_num_heads": 4,
+        "gst_style_tokens": 10,
+        "gst_use_speaker_embedding": false
+	},
+
+    // DATASETS
+    "datasets":   // List of datasets. They all merged and they get different speaker_ids.
+        [
+            {
+                "name": "ljspeech",
+                "path": "/home/erogol/Data/LJSpeech-1.1/",
+                "meta_file_train": "metadata.csv", // for vtck if list, ignore speakers id in list for train, its useful for test cloning with new speakers
+                "meta_file_val": null
+            }
+        ]
+}
+

@@ -18,7 +18,7 @@ from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.utils.generic_utils import check_config_tts, setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
-from TTS.tts.utils.speakers import load_speaker_mapping, parse_speakers
+from TTS.tts.utils.speakers import parse_speakers
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -29,7 +29,7 @@ from TTS.utils.distribute import (DistributedSampler, apply_gradient_allreduce,
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      create_experiment_folder, get_git_branch,
                                      remove_experiment_folder, set_init_dict)
-from TTS.utils.io import copy_config_file, load_config
+from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.radam import RAdam
 from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
@@ -39,28 +39,35 @@ from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 
-def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
+def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
     if is_val and not c.run_eval:
         loader = None
     else:
-        dataset = MyDataset(
-            r,
-            c.text_cleaner,
-            compute_linear_spec=c.model.lower() == 'tacotron',
-            meta_data=meta_data_eval if is_val else meta_data_train,
-            ap=ap,
-            tp=c.characters if 'characters' in c.keys() else None,
-            add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
-            batch_group_size=0 if is_val else c.batch_group_size *
-            c.batch_size,
-            min_seq_len=c.min_seq_len,
-            max_seq_len=c.max_seq_len,
-            phoneme_cache_path=c.phoneme_cache_path,
-            use_phonemes=c.use_phonemes,
-            phoneme_language=c.phoneme_language,
-            enable_eos_bos=c.enable_eos_bos_chars,
-            verbose=verbose,
-            speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+        if dataset is None:
+            dataset = MyDataset(
+                r,
+                c.text_cleaner,
+                compute_linear_spec=c.model.lower() == 'tacotron',
+                meta_data=meta_data_eval if is_val else meta_data_train,
+                ap=ap,
+                tp=c.characters if 'characters' in c.keys() else None,
+                add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
+                batch_group_size=0 if is_val else c.batch_group_size *
+                c.batch_size,
+                min_seq_len=c.min_seq_len,
+                max_seq_len=c.max_seq_len,
+                phoneme_cache_path=c.phoneme_cache_path,
+                use_phonemes=c.use_phonemes,
+                phoneme_language=c.phoneme_language,
+                enable_eos_bos=c.enable_eos_bos_chars,
+                verbose=verbose,
+                speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+
+            if c.use_phonemes and c.compute_input_seq_cache:
+                # precompute phonemes to have a better estimate of sequence lengths.
+                dataset.compute_input_seq(c.num_loader_workers)
+            dataset.sort_items()
+
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -74,10 +81,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, speaker_mapping=None):
             pin_memory=False)
     return loader
 
-def format_data(data, speaker_mapping=None):
-    if speaker_mapping is None and c.use_speaker_embedding and not c.use_external_speaker_embedding_file:
-        speaker_mapping = load_speaker_mapping(OUT_PATH)
-
+def format_data(data):
     # setup input data
     text_input = data[0]
     text_lengths = data[1]
@@ -126,10 +130,8 @@ def format_data(data, speaker_mapping=None):
     return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length
 
 
-def train(model, criterion, optimizer, optimizer_st, scheduler,
-          ap, global_step, epoch, scaler, scaler_st, speaker_mapping=None):
-    data_loader = setup_loader(ap, model.decoder.r, is_val=False,
-                               verbose=(epoch == 0), speaker_mapping=speaker_mapping)
+def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
+          ap, global_step, epoch, scaler, scaler_st):
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -144,7 +146,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
         start_time = time.time()
 
         # format data
-        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length = format_data(data, speaker_mapping)
+        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length = format_data(data)
         loader_time = time.time() - end_time
 
         global_step += 1
@@ -327,8 +329,7 @@ def train(model, criterion, optimizer, optimizer_st, scheduler,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=None):
-    data_loader = setup_loader(ap, model.decoder.r, is_val=True, speaker_mapping=speaker_mapping)
+def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     model.eval()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -338,7 +339,7 @@ def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=None):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, _, _ = format_data(data, speaker_mapping)
+            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, _, _ = format_data(data)
             assert mel_input.shape[1] % model.decoder.r == 0
 
             # forward pass model
@@ -493,7 +494,7 @@ def evaluate(model, criterion, ap, global_step, epoch, speaker_mapping=None):
 # FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, symbols, phonemes
+    global meta_data_train, meta_data_eval, symbols, phonemes, speaker_mapping
     # Audio processor
     ap = AudioProcessor(**c.audio)
     if 'characters' in c.keys():
@@ -586,6 +587,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     if 'best_loss' not in locals():
         best_loss = float('inf')
 
+    # define data loaders
+    train_loader = setup_loader(ap,
+                                model.decoder.r,
+                                is_val=False,
+                                verbose=True)
+    eval_loader = setup_loader(ap, model.decoder.r, is_val=True)
+
     global_step = args.restore_step
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
@@ -596,17 +604,40 @@ def main(args):  # pylint: disable=redefined-outer-name
             model.decoder.set_r(r)
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
+            train_loader.dataset.outputs_per_step = r
+            eval_loader.dataset.outputs_per_step = r
+            train_loader = setup_loader(ap,
+                                        model.decoder.r,
+                                        is_val=False,
+                                        dataset=train_loader.dataset)
+            eval_loader = setup_loader(ap,
+                                       model.decoder.r,
+                                       is_val=True,
+                                       dataset=eval_loader.dataset)
             print("\n > Number of output frames:", model.decoder.r)
-        train_avg_loss_dict, global_step = train(model, criterion, optimizer,
+        # train one epoch
+        train_avg_loss_dict, global_step = train(train_loader, model,
+                                                 criterion, optimizer,
                                                  optimizer_st, scheduler, ap,
-                                                 global_step, epoch, scaler, scaler_st, speaker_mapping)
-        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch, speaker_mapping)
+                                                 global_step, epoch, scaler,
+                                                 scaler_st)
+        # eval one epoch
+        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
+                                      global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_postnet_loss']
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_postnet_loss']
-        best_loss = save_best_model(target_loss, best_loss, model, optimizer, global_step, epoch, c.r,
-                                    OUT_PATH, scaler=scaler.state_dict() if c.mixed_precision else None)
+        best_loss = save_best_model(
+            target_loss,
+            best_loss,
+            model,
+            optimizer,
+            global_step,
+            epoch,
+            c.r,
+            OUT_PATH,
+            scaler=scaler.state_dict() if c.mixed_precision else None)
 
 
 if __name__ == '__main__':
@@ -675,8 +706,8 @@ if __name__ == '__main__':
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
-        copy_config_file(args.config_path,
-                         os.path.join(OUT_PATH, 'config.json'), new_fields)
+        copy_model_files(c,  args.config_path,
+                         OUT_PATH, new_fields)
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 

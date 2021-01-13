@@ -1,0 +1,151 @@
+{
+    "model": "speedy_speech",
+    "run_name": "speedy-speech-ljspeech",
+    "run_description": "speedy-speech model for LJSpeech dataset.",
+
+    // AUDIO PARAMETERS
+    "audio":{
+         // stft parameters
+         "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
+         "win_length": 1024,      // stft window length in ms.
+         "hop_length": 256,       // stft window hop-lengh in ms.
+         "frame_length_ms": null, // stft window length in ms.If null, 'win_length' is used.
+         "frame_shift_ms": null,  // stft window hop-lengh in ms. If null, 'hop_length' is used.
+
+         // Audio processing parameters
+         "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate.
+         "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+         "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+
+         // Silence trimming
+         "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (true), TWEB (false), Nancy (true)
+         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
+
+         // Griffin-Lim
+         "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+         "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+
+         // MelSpectrogram parameters
+         "num_mels": 80,         // size of the mel spec frame.
+         "mel_fmin": 50.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+         "mel_fmax": 7600.0,     // maximum freq level for mel-spec. Tune for dataset!!
+         "spec_gain": 1,
+
+         // Normalization parameters
+         "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
+         "min_level_db": -100,   // lower bound for normalization
+         "symmetric_norm": true, // move normalization to range [-1, 1]
+         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+         "clip_norm": true,      // clip normalized values into the range.
+         "stats_path": "/home/erogol/Data/LJSpeech-1.1/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+    },
+
+    // VOCABULARY PARAMETERS
+    // if custom character set is not defined,
+    // default set in symbols.py is used
+    // "characters":{
+    //     "pad": "_",
+    //     "eos": "&",
+    //     "bos": "*",
+    //     "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZÇÃÀÁÂÊÉÍÓÔÕÚÛabcdefghijklmnopqrstuvwxyzçãàáâêéíóôõúû!(),-.:;? ",
+    //     "punctuations":"!'(),-.:;? ",
+    //     "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫ'̃' "
+    // },
+
+    "add_blank": false, // if true add a new token after each token of the sentence. This increases the size of the input sequence, but has considerably improved the prosody of the GlowTTS model.
+
+    // DISTRIBUTED TRAINING
+    "distributed":{
+        "backend": "nccl",
+        "url": "tcp:\/\/localhost:54321"
+    },
+
+    "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
+
+    // MODEL PARAMETERS
+    "positional_encoding": true,
+    "hidden_channels": 128,  // defined globally all the hidden channels of the model - 128 default
+    "encoder_type": "residual_conv_bn",
+    "encoder_params":{
+        "kernel_size": 4,
+        "dilations": [1, 2, 4, 1, 2, 4, 1, 2, 4, 1, 2, 4, 1],
+        "num_conv_blocks": 2,
+        "num_res_blocks": 13
+    },
+    "decoder_type": "residual_conv_bn",
+    "decoder_params":{
+        "kernel_size": 4,
+        "dilations": [1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1],
+        "num_conv_blocks": 2,
+        "num_res_blocks": 17
+    },
+
+    // TRAINING
+    "batch_size":64,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "eval_batch_size":32,
+    "r": 1,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
+    "loss_masking": true,   // enable / disable loss masking against the sequence padding.
+
+    // LOSS PARAMETERS
+    "ssim_alpha": 1,
+    "l1_alpha": 1,
+    "huber_alpha": 1,
+
+    // VALIDATION
+    "run_eval": true,
+    "test_delay_epochs": -1,       //Until attention is aligned, testing only wastes computation time.
+    "test_sentences_file": null,  // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
+
+    // OPTIMIZER
+    "noam_schedule": true,         // use noam warmup and lr schedule.
+    "grad_clip": 1.0,              // upper limit for gradients for clipping.
+    "epochs": 10000,               // total number of epochs to train.
+    "lr": 0.002,                    // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "warmup_steps": 4000,          // Noam decay steps to increase the learning rate from 0 to "lr"
+
+   // TENSORBOARD and LOGGING
+   "print_step": 25,       // Number of steps to log training on console.
+   "tb_plot_step": 100,    // Number of steps to plot TB training figures.
+   "print_eval": false,     // If True, it prints intermediate loss values in evalulation.
+   "save_step": 5000,      // Number of training steps expected to save traninpg stats and checkpoints.
+   "checkpoint": true,     // If true, it saves checkpoints per "save_step"
+   "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.:set n
+   "mixed_precision": false,
+
+   // DATA LOADING
+   "text_cleaner": "english_cleaners",
+   "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
+   "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+   "num_val_loader_workers": 8,    // number of evaluation data loader processes.
+   "batch_group_size": 4,  //Number of batches to shuffle after bucketing.
+   "min_seq_len": 2,       // DATASET-RELATED: minimum text length to use in training
+   "max_seq_len": 300,     // DATASET-RELATED: maximum text length
+   "compute_f0": false,     // compute f0 values in data-loader
+   "compute_input_seq_cache": false,  // if true, text sequences are computed before starting training. If phonemes are enabled, they are also computed at this stage.
+
+   // PATHS
+   "output_path": "/home/erogol/Models/ljspeech/",
+
+   // PHONEMES
+   "phoneme_cache_path": "/home/erogol/Models/ljspeech_phonemes/",  // phoneme computation is slow, therefore, it caches results in the given folder.
+   "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronoun[ciation.
+   "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
+
+   // MULTI-SPEAKER and GST
+   "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
+   "use_external_speaker_embedding_file": false, // if true, forces the model to use external embedding per sample instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+   "external_speaker_embedding_file": "/home/erogol/Data/libritts/speakers.json", // if not null and use_external_speaker_embedding_file is true, it is used to load a specific embedding file and thus uses these embeddings instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+
+
+    // DATASETS
+    "datasets":   // List of datasets. They all merged and they get different s$
+    [
+        {
+            "name": "ljspeech",
+            "path": "/home/erogol/Data/LJSpeech-1.1/",
+            "meta_file_train": "metadata.csv",
+            "meta_file_val": null,
+            "meta_file_attn_mask": "/home/erogol/Data/LJSpeech-1.1/metadata_attn_mask.txt"  // created by bin/compute_attention_masks.py
+        }
+    ]
+}

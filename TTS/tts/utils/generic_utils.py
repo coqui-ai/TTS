@@ -103,15 +103,13 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "glow_tts":
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
-                        hidden_channels=192,
-                        filter_channels=768,
-                        filter_channels_dp=256,
-                        out_channels=80,
-                        kernel_size=3,
-                        num_heads=2,
-                        num_layers_enc=6,
+                        hidden_channels_enc=c['hidden_channels_encoder'],
+                        hidden_channels_dec=c['hidden_channels_decoder'],
+                        hidden_channels_dp=c['hidden_channels_duration_predictor'],
+                        out_channels=c.audio['num_mels'],
                         encoder_type=c.encoder_type,
-                        dropout_p=0.1,
+                        encoder_params=c.encoder_params,
+                        use_encoder_prenet=c["use_encoder_prenet"],
                         num_flow_blocks_dec=12,
                         kernel_size_dec=5,
                         dilation_rate=1,
@@ -120,20 +118,27 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         num_speakers=num_speakers,
                         c_in_channels=0,
                         num_splits=4,
-                        num_sqz=2,
+                        num_squeeze=2,
                         sigmoid_scale=False,
                         mean_only=True,
-                        hidden_channels_enc=192,
-                        hidden_channels_dec=192,
-                        use_encoder_prenet=True,
                         external_speaker_embedding_dim=speaker_embedding_dim)
+    elif c.model.lower() == "speedy_speech":
+        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
+                        out_channels=c.audio['num_mels'],
+                        hidden_channels=c['hidden_channels'],
+                        positional_encoding=c['positional_encoding'],
+                        encoder_type=c['encoder_type'],
+                        encoder_params=c['encoder_params'],
+                        decoder_type=c['decoder_type'],
+                        decoder_params=c['decoder_params'],
+                        c_in_channels=0)
     return model
 
 def is_tacotron(c):
-    return False if 'glow_tts' in c['model'] else True
+    return False if c['model'] in ['speedy_speech', 'glow_tts'] else True
 
 def check_config_tts(c):
-    check_argument('model', c, enum_list=['tacotron', 'tacotron2', 'glow_tts'], restricted=True, val_type=str)
+    check_argument('model', c, enum_list=['tacotron', 'tacotron2', 'glow_tts', 'speedy_speech'], restricted=True, val_type=str)
     check_argument('run_name', c, restricted=True, val_type=str)
     check_argument('run_description', c, val_type=str)
 
@@ -177,7 +182,7 @@ def check_config_tts(c):
     check_argument('eval_batch_size', c, restricted=True, val_type=int, min_val=1)
     check_argument('r', c, restricted=True, val_type=int, min_val=1)
     check_argument('gradual_training', c, restricted=False, val_type=list)
-    check_argument('apex_amp_level', c, restricted=False, val_type=str)
+    check_argument('mixed_precision', c, restricted=False, val_type=bool)
     # check_argument('grad_accum', c, restricted=True, val_type=int, min_val=1, max_val=100)
 
     # loss parameters
@@ -190,6 +195,10 @@ def check_config_tts(c):
         check_argument('decoder_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
         check_argument('postnet_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
         check_argument('ga_alpha', c, restricted=True, val_type=float, min_val=0)
+    if c['model'].lower == "speedy_speech":
+        check_argument('ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('l1_alpha', c, restricted=True, val_type=float, min_val=0)
+        check_argument('huber_alpha', c, restricted=True, val_type=float, min_val=0)
 
     # validation parameters
     check_argument('run_eval', c, restricted=True, val_type=bool)
@@ -201,9 +210,9 @@ def check_config_tts(c):
     check_argument('grad_clip', c, restricted=True, val_type=float, min_val=0.0)
     check_argument('epochs', c, restricted=True, val_type=int, min_val=1)
     check_argument('lr', c, restricted=True, val_type=float, min_val=0)
-    check_argument('wd', c, restricted=True, val_type=float, min_val=0)
+    check_argument('wd', c, restricted=is_tacotron(c), val_type=float, min_val=0)
     check_argument('warmup_steps', c, restricted=True, val_type=int, min_val=0)
-    check_argument('seq_len_norm', c, restricted=True, val_type=bool)
+    check_argument('seq_len_norm', c, restricted=is_tacotron(c), val_type=bool)
 
     # tacotron prenet
     check_argument('memory_size', c, restricted=is_tacotron(c), val_type=int, min_val=-1)
@@ -211,7 +220,7 @@ def check_config_tts(c):
     check_argument('prenet_dropout', c, restricted=is_tacotron(c), val_type=bool)
 
     # attention
-    check_argument('attention_type', c, restricted=is_tacotron(c), val_type=str, enum_list=['graves', 'original'])
+    check_argument('attention_type', c, restricted=is_tacotron(c), val_type=str, enum_list=['graves', 'original', 'dynamic_convolution'])
     check_argument('attention_heads', c, restricted=is_tacotron(c), val_type=int)
     check_argument('attention_norm', c, restricted=is_tacotron(c), val_type=str, enum_list=['sigmoid', 'softmax'])
     check_argument('windowing', c, restricted=is_tacotron(c), val_type=bool)
@@ -224,9 +233,17 @@ def check_config_tts(c):
     check_argument('double_decoder_consistency', c, restricted=is_tacotron(c), val_type=bool)
     check_argument('ddc_r', c, restricted='double_decoder_consistency' in c.keys(), min_val=1, max_val=7, val_type=int)
 
-    # stopnet
-    check_argument('stopnet', c, restricted=is_tacotron(c), val_type=bool)
-    check_argument('separate_stopnet', c, restricted=is_tacotron(c), val_type=bool)
+    if c['model'].lower() in ['tacotron', 'tacotron2']:
+        # stopnet
+        check_argument('stopnet', c, restricted=is_tacotron(c), val_type=bool)
+        check_argument('separate_stopnet', c, restricted=is_tacotron(c), val_type=bool)
+
+    # Model Parameters for non-tacotron models
+    if c['model'].lower == "speedy_speech":
+        check_argument('positional_encoding', c, restricted=True, val_type=type)
+        check_argument('encoder_type', c, restricted=True, val_type=str)
+        check_argument('encoder_params', c, restricted=True, val_type=dict)
+        check_argument('decoder_residual_conv_bn_params', c, restricted=True, val_type=dict)
 
     # GlowTTS parameters
     check_argument('encoder_type', c, restricted=not is_tacotron(c), val_type=str)
@@ -248,6 +265,7 @@ def check_config_tts(c):
     check_argument('batch_group_size', c, restricted=True, val_type=int, min_val=0)
     check_argument('min_seq_len', c, restricted=True, val_type=int, min_val=0)
     check_argument('max_seq_len', c, restricted=True, val_type=int, min_val=10)
+    check_argument('compute_input_seq_cache', c, restricted=True, val_type=bool)
 
     # paths
     check_argument('output_path', c, restricted=True, val_type=str)
@@ -256,8 +274,8 @@ def check_config_tts(c):
     check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
     check_argument('use_external_speaker_embedding_file', c, restricted=c['use_speaker_embedding'], val_type=bool)
     check_argument('external_speaker_embedding_file', c, restricted=c['use_external_speaker_embedding_file'], val_type=str)
-    check_argument('use_gst', c, restricted=is_tacotron(c), val_type=bool)
     if c['model'].lower() in ['tacotron', 'tacotron2'] and c['use_gst']:
+        check_argument('use_gst', c, restricted=is_tacotron(c), val_type=bool)
         check_argument('gst', c, restricted=is_tacotron(c), val_type=dict)
         check_argument('gst_style_input', c['gst'], restricted=is_tacotron(c), val_type=[str, dict])
         check_argument('gst_embedding_dim', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=0, max_val=1000)

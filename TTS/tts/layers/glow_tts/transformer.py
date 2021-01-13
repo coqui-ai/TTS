@@ -7,8 +7,46 @@ from TTS.tts.layers.glow_tts.glow import LayerNorm
 
 
 class RelativePositionMultiHeadAttention(nn.Module):
-    """Implementation of Relative Position Encoding based on
+    """Multi-head attention with Relative Positional embedding.
     https://arxiv.org/pdf/1809.04281.pdf
+
+    It learns positional embeddings for a window of neighbours. For keys and values,
+    it learns different set of embeddings. Key embeddings are agregated with the attention
+    scores and value embeddings are aggregated with the output.
+
+    Note:
+        Example with relative attention window size 2
+        input = [a, b, c, d, e]
+        rel_attn_embeddings = [e(t-2), e(t-1), e(t+1), e(t+2)]
+
+        So it learns 4 embedding vectors (in total 8) separately for key and value vectors.
+
+        Considering the input c
+            e(t-2) corresponds to c -> a
+            e(t-2) corresponds to c -> b
+            e(t-2) corresponds to c -> d
+            e(t-2) corresponds to c -> e
+
+        These embeddings are shared among different time steps. So input a, b, d and e also uses
+        the same embeddings.
+
+        Embeddings are ignored when the relative window is out of limit for the first and the last
+        n items.
+
+    Args:
+        channels (int): input and inner layer channels.
+        out_channels (int): output channels.
+        num_heads (int): number of attention heads.
+        rel_attn_window_size (int, optional): relation attention window size.
+            If 4, for each time step next and previous 4 time steps are attended.
+            If default, relative encoding is disabled and it is a regular transformer.
+            Defaults to None.
+        heads_share (bool, optional): [description]. Defaults to True.
+        dropout_p (float, optional): dropout rate. Defaults to 0..
+        input_length (int, optional): intput length for positional encoding. Defaults to None.
+        proximal_bias (bool, optional): enable/disable proximal bias as in the paper. Defaults to False.
+        proximal_init (bool, optional): enable/disable poximal init as in the paper.
+            Init key and query layer weights the same. Defaults to False.
     """
     def __init__(self,
                  channels,
@@ -20,6 +58,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
                  input_length=None,
                  proximal_bias=False,
                  proximal_init=False):
+
         super().__init__()
         assert channels % num_heads == 0, " [!] channels should be divisible by num_heads."
         # class attributes
@@ -81,7 +120,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         # compute raw attention scores
         scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(
             self.k_channels)
-        # relative positional encoding
+        # relative positional encoding for scores
         if self.rel_attn_window_size is not None:
             assert t_s == t_t, "Relative attention is only available for self-attention."
             # get relative key embeddings
@@ -225,27 +264,35 @@ class RelativePositionMultiHeadAttention(nn.Module):
         return diff.unsqueeze(0).unsqueeze(0)
 
 
-class FFN(nn.Module):
+class FeedForwardNetwork(nn.Module):
+    """Feed Forward Inner layers for Transformer.
+
+        Args:
+            in_channels (int): input tensor channels.
+            out_channels (int): output tensor channels.
+            hidden_channels (int): inner layers hidden channels.
+            kernel_size (int): conv1d filter kernel size.
+            dropout_p (float, optional): dropout rate. Defaults to 0.
+    """
     def __init__(self,
                  in_channels,
                  out_channels,
-                 filter_channels,
+                 hidden_channels,
                  kernel_size,
-                 dropout_p=0.,
-                 activation=None):
+                 dropout_p=0.):
+
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.filter_channels = filter_channels
+        self.hidden_channels = hidden_channels
         self.kernel_size = kernel_size
         self.dropout_p = dropout_p
-        self.activation = activation
 
         self.conv_1 = nn.Conv1d(in_channels,
-                                filter_channels,
+                                hidden_channels,
                                 kernel_size,
                                 padding=kernel_size // 2)
-        self.conv_2 = nn.Conv1d(filter_channels,
+        self.conv_2 = nn.Conv1d(hidden_channels,
                                 out_channels,
                                 kernel_size,
                                 padding=kernel_size // 2)
@@ -253,19 +300,36 @@ class FFN(nn.Module):
 
     def forward(self, x, x_mask):
         x = self.conv_1(x * x_mask)
-        if self.activation == "gelu":
-            x = x * torch.sigmoid(1.702 * x)
-        else:
-            x = torch.relu(x)
+        x = torch.relu(x)
         x = self.dropout(x)
         x = self.conv_2(x * x_mask)
         return x * x_mask
 
 
-class Transformer(nn.Module):
+class RelativePositionTransformer(nn.Module):
+    """Transformer with Relative Potional Encoding.
+        https://arxiv.org/abs/1803.02155
+
+        Args:
+            in_channels (int): number of channels of the input tensor.
+            out_chanels (int): number of channels of the output tensor.
+            hidden_channels (int): model hidden channels.
+            hidden_channels_ffn (int): hidden channels of FeedForwardNetwork.
+            num_heads (int): number of attention heads.
+            num_layers (int): number of transformer layers.
+            kernel_size (int, optional): kernel size of feed-forward inner layers. Defaults to 1.
+            dropout_p (float, optional): dropout rate for self-attention and feed-forward inner layers_per_stack. Defaults to 0.
+            rel_attn_window_size (int, optional): relation attention window size.
+                If 4, for each time step next and previous 4 time steps are attended.
+                If default, relative encoding is disabled and it is a regular transformer.
+                Defaults to None.
+            input_length (int, optional): input lenght to limit position encoding. Defaults to None.
+    """
     def __init__(self,
+                 in_channels,
+                 out_channels,
                  hidden_channels,
-                 filter_channels,
+                 hidden_channels_ffn,
                  num_heads,
                  num_layers,
                  kernel_size=1,
@@ -274,7 +338,7 @@ class Transformer(nn.Module):
                  input_length=None):
         super().__init__()
         self.hidden_channels = hidden_channels
-        self.filter_channels = filter_channels
+        self.hidden_channels_ffn = hidden_channels_ffn
         self.num_heads = num_heads
         self.num_layers = num_layers
         self.kernel_size = kernel_size
@@ -286,25 +350,38 @@ class Transformer(nn.Module):
         self.norm_layers_1 = nn.ModuleList()
         self.ffn_layers = nn.ModuleList()
         self.norm_layers_2 = nn.ModuleList()
-        for _ in range(self.num_layers):
+
+        for idx in range(self.num_layers):
             self.attn_layers.append(
                 RelativePositionMultiHeadAttention(
-                    hidden_channels,
+                    hidden_channels if idx != 0 else in_channels,
                     hidden_channels,
                     num_heads,
                     rel_attn_window_size=rel_attn_window_size,
                     dropout_p=dropout_p,
                     input_length=input_length))
             self.norm_layers_1.append(LayerNorm(hidden_channels))
+
+            if hidden_channels != out_channels and (idx + 1) == self.num_layers:
+                self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
+
             self.ffn_layers.append(
-                FFN(hidden_channels,
-                    hidden_channels,
-                    filter_channels,
+                FeedForwardNetwork(hidden_channels,
+                    hidden_channels if (idx + 1) != self.num_layers else out_channels,
+                    hidden_channels_ffn,
                     kernel_size,
                     dropout_p=dropout_p))
-            self.norm_layers_2.append(LayerNorm(hidden_channels))
+
+            self.norm_layers_2.append(
+                LayerNorm(hidden_channels if (
+                    idx + 1) != self.num_layers else out_channels))
 
     def forward(self, x, x_mask):
+        """
+        Shapes:
+            x: [B, C, T]
+            x_mask: [B, 1, T]
+        """
         attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
         for i in range(self.num_layers):
             x = x * x_mask
@@ -314,6 +391,10 @@ class Transformer(nn.Module):
 
             y = self.ffn_layers[i](x, x_mask)
             y = self.dropout(y)
+
+            if (i + 1) == self.num_layers and hasattr(self, 'proj'):
+                x = self.proj(x)
+
             x = self.norm_layers_2[i](x + y)
         x = x * x_mask
         return x

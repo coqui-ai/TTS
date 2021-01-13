@@ -8,6 +8,45 @@ from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
 
 class Tacotron(TacotronAbstract):
+    """Tacotron as in https://arxiv.org/abs/1703.10135
+
+    It's an autoregressive encoder-attention-decoder-postnet architecture.
+
+    Args:
+        num_chars (int): number of input characters to define the size of embedding layer.
+        num_speakers (int): number of speakers in the dataset. >1 enables multi-speaker training and model learns speaker embeddings.
+        r (int): initial model reduction rate.
+        postnet_output_dim (int, optional): postnet output channels. Defaults to 80.
+        decoder_output_dim (int, optional): decoder output channels. Defaults to 80.
+        attn_type (str, optional): attention type. Check ```TTS.tts.layers.attentions.init_attn```. Defaults to 'original'.
+        attn_win (bool, optional): enable/disable attention windowing.
+            It especially useful at inference to keep attention alignment diagonal. Defaults to False.
+        attn_norm (str, optional): Attention normalization method. "sigmoid" or "softmax". Defaults to "softmax".
+        prenet_type (str, optional): prenet type for the decoder. Defaults to "original".
+        prenet_dropout (bool, optional): prenet dropout rate. Defaults to True.
+        forward_attn (bool, optional): enable/disable forward attention.
+            It is only valid if ```attn_type``` is ```original```.  Defaults to False.
+        trans_agent (bool, optional): enable/disable transition agent in forward attention. Defaults to False.
+        forward_attn_mask (bool, optional): enable/disable extra masking over forward attention. Defaults to False.
+        location_attn (bool, optional): enable/disable location sensitive attention.
+            It is only valid if ```attn_type``` is ```original```. Defaults to True.
+        attn_K (int, optional): Number of attention heads for GMM attention. Defaults to 5.
+        separate_stopnet (bool, optional): enable/disable separate stopnet training without only gradient
+            flow from stopnet to the rest of the model.  Defaults to True.
+        bidirectional_decoder (bool, optional): enable/disable bidirectional decoding. Defaults to False.
+        double_decoder_consistency (bool, optional): enable/disable double decoder consistency. Defaults to False.
+        ddc_r (int, optional): reduction rate for the coarse decoder of double decoder consistency. Defaults to None.
+        encoder_in_features (int, optional): input channels for the encoder. Defaults to 512.
+        decoder_in_features (int, optional): input channels for the decoder. Defaults to 512.
+        speaker_embedding_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
+        gst (bool, optional): enable/disable global style token learning. Defaults to False.
+        gst_embedding_dim (int, optional): size of channels for GST vectors. Defaults to 512.
+        gst_num_heads (int, optional): number of attention heads for GST. Defaults to 4.
+        gst_style_tokens (int, optional): number of GST tokens. Defaults to 10.
+        gst_use_speaker_embedding (bool, optional): enable/disable inputing speaker embedding to GST. Defaults to False.
+        memory_size (int, optional): size of the history queue fed to the prenet. Model feeds the last ```memory_size```
+            output frames to the prenet.
+    """
     def __init__(self,
                  num_chars,
                  num_speakers,
@@ -95,10 +134,12 @@ class Tacotron(TacotronAbstract):
     def forward(self, characters, text_lengths, mel_specs, mel_lengths=None, speaker_ids=None, speaker_embeddings=None):
         """
         Shapes:
-            - characters: B x T_in
-            - text_lengths: B
-            - mel_specs: B x T_out x D
-            - speaker_ids: B x 1
+            characters: [B, T_in]
+            text_lengths: [B]
+            mel_specs: [B, T_out, C]
+            mel_lengths: [B]
+            speaker_ids: [B, 1]
+            speaker_embeddings: [B, C]
         """
         input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)
         # B x T_in x embed_dim
