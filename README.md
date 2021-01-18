@@ -3,7 +3,7 @@
 
 # TTS: Text-to-Speech for all.
 
-TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to be achive the best trade-off among ease-of-training, speed and quality.
+TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to be achieve the best trade-off among ease-of-training, speed and quality.
 TTS comes with [pretrained models](https://github.com/mozilla/TTS/wiki/Released-Models), tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
 
 [![CircleCI](<https://circleci.com/gh/mozilla/TTS/tree/dev.svg?style=svg>)]()
