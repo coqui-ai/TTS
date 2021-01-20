@@ -4,6 +4,7 @@ import os
 
 from flask import Flask, request, render_template, send_file
 from TTS.server.synthesizer import Synthesizer
+from TTS.utils.io import load_config
 
 
 def create_argparser():
@@ -23,6 +24,7 @@ def create_argparser():
     parser.add_argument('--port', type=int, default=5002, help='port to listen on.')
     parser.add_argument('--use_cuda', type=convert_boolean, default=False, help='true to use CUDA.')
     parser.add_argument('--debug', type=convert_boolean, default=False, help='true to enable Flask debug mode.')
+    parser.add_argument('--show_details', type=convert_boolean, default=False, help='Generate model detail page.')
     return parser
 
 
@@ -69,6 +71,22 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/details')
+def details():
+    if args.tts_config is not None and os.path.isfile(args.tts_config):
+        taco2_config = load_config(args.tts_config)
+
+    if args.vocoder_config is not None and os.path.isfile(args.vocoder_config):
+        vocoder_config = load_config(args.vocoder_config)
+    else:
+        vocoder_config = None
+
+    return render_template('details.html',
+                           show_details=args.show_details
+                           , taco2_config=taco2_config
+                           , vocoder_config=vocoder_config
+                           , args=args.__dict__
+                          )
 
 @app.route('/api/tts', methods=['GET'])
 def tts():
