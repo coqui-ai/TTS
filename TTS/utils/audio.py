@@ -35,9 +35,9 @@ class AudioProcessor(object):
                  trim_db=60,
                  do_sound_norm=False,
                  stats_path=None,
+                 verbose=True,
                  **_):
 
-        print(" > Setting up Audio Processor...")
         # setup class attributed
         self.sample_rate = sample_rate
         self.resample = resample
@@ -73,8 +73,10 @@ class AudioProcessor(object):
         assert min_level_db != 0.0, " [!] min_level_db is 0"
         assert self.win_length <= self.fft_size, " [!] win_length cannot be larger than fft_size"
         members = vars(self)
-        for key, value in members.items():
-            print(" | > {}:{}".format(key, value))
+        if verbose:
+            print(" > Setting up Audio Processor...")
+            for key, value in members.items():
+                print(" | > {}:{}".format(key, value))
         # create spectrogram utils
         self.mel_basis = self._build_mel_basis()
         self.inv_mel_basis = np.linalg.pinv(self._build_mel_basis())
