@@ -175,3 +175,22 @@ class Wavegrad(nn.Module):
         self.x_conv = weight_norm(self.x_conv)
         self.out_conv = weight_norm(self.out_conv)
         self.y_conv = weight_norm(self.y_conv)
+
+
+    def load_checkpoint(self, config, checkpoint_path, eval=False):
+        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+        self.load_state_dict(state['model'])
+        if eval:
+            self.eval()
+            assert not self.training
+            if self.use_weight_norm:
+                self.remove_weight_norm()
+            betas = np.linspace(config['test_noise_schedule']['min_val'],
+                                config['test_noise_schedule']['max_val'],
+                                config['test_noise_schedule']['num_steps'])
+            self.compute_noise_level(betas)
+        else:
+            betas = np.linspace(config['train_noise_schedule']['min_val'],
+                                config['train_noise_schedule']['max_val'],
+                                config['train_noise_schedule']['num_steps'])
+            self.compute_noise_level(betas)
