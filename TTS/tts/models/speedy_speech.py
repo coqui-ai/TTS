@@ -190,3 +190,10 @@ class SpeedySpeech(nn.Module):
         y_lengths = o_dr.sum(1)
         o_de, attn= self._forward_decoder(o_en, o_en_dp, o_dr, x_mask, y_lengths, g=g)
         return o_de, attn
+
+    def load_checkpoint(self, config, checkpoint_path, eval=False):
+        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+        self.load_state_dict(state['model'])
+        if eval:
+            self.eval()
+            assert not self.training
