@@ -7,7 +7,7 @@ from TTS.utils.io import RenamingUnpickler
 
 
 
-def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False):
+def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False, eval=False):
     """Load ```TTS.tts.models``` checkpoints.
 
     Args:
@@ -33,6 +33,8 @@ def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False):
     if hasattr(model.decoder, 'r'):
         model.decoder.set_r(state['r'])
         print(" > Model r: ", state['r'])
+    if eval:
+        model.eval()
     return model, state
 
 
