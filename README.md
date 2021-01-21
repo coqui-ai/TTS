@@ -91,7 +91,7 @@ You can also help us implement more models. Some TTS related work can be found [
 ## Install TTS
 TTS supports **python >= 3.6**.
 
-```python setup.py install``` or ```python setup.py develop``` to keep your installation in your working directory.
+```pip install .``` or ```pip install -e .``` to keep your installation in your working directory.
 
 ## Directory Structure
 ```
