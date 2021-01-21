@@ -2,10 +2,11 @@
 import argparse
 import os
 import sys
+import io
 from pathlib import Path
 
 from flask import Flask, render_template, request, send_file
-from TTS.server.synthesizer import Synthesizer
+from TTS.utils.synthesizer import Synthesizer
 from TTS.utils.manage import ModelManager
 
 
@@ -71,9 +72,10 @@ if not args.vocoder_checkpoint and os.path.isfile(vocoder_checkpoint_file):
 if not args.vocoder_config and os.path.isfile(vocoder_config_file):
     args.vocoder_config = vocoder_config_file
 
-synthesizer = Synthesizer(args)
+synthesizer = Synthesizer(args.tts_checkpoint, args.tts_config, args.vocoder_checkpoint, args.vocoder_config, args.use_cuda)
 
 app = Flask(__name__)
+
 
 @app.route('/')
 def index():
@@ -84,8 +86,10 @@ def index():
 def tts():
     text = request.args.get('text')
     print(" > Model input: {}".format(text))
-    data = synthesizer.tts(text)
-    return send_file(data, mimetype='audio/wav')
+    wavs = synthesizer.tts(text)
+    out = io.BytesIO()
+    synthesizer.save_wav(wavs, out)
+    return send_file(out, mimetype='audio/wav')
 
 
 def main():

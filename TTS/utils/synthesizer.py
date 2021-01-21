@@ -1,5 +1,3 @@
-import io
-import sys
 import time
 
 import numpy as np
@@ -19,20 +17,35 @@ from TTS.tts.utils.text import make_symbols, phonemes, symbols
 
 
 class Synthesizer(object):
-    def __init__(self, config):
+    def __init__(self, tts_checkpoint, tts_config, vocoder_checkpoint, vocoder_config, use_cuda):
+        """Encapsulation of tts and vocoder models for inference.
+
+        TODO: handle multi-speaker and GST inference.
+
+        Args:
+            tts_checkpoint (str): path to the tts model file.
+            tts_config (str): path to the tts config file.
+            vocoder_checkpoint (str): path to the vocoder model file.
+            vocoder_config (str): path to the vocoder config file.
+            use_cuda (bool): enable/disable cuda.
+        """
+        self.tts_checkpoint = tts_checkpoint
+        self.tts_config = tts_config
+        self.vocoder_checkpoint = vocoder_checkpoint
+        self.vocoder_config = vocoder_config
+        self.use_cuda = use_cuda
         self.wavernn = None
         self.vocoder_model = None
         self.num_speakers = 0
         self.tts_speakers = None
-        self.config = config
         self.seg = self.get_segmenter("en")
-        self.use_cuda = self.config.use_cuda
+        self.use_cuda = use_cuda
         if self.use_cuda:
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
-        self.load_tts(self.config.tts_checkpoint, self.config.tts_config,
-                      self.config.use_cuda)
-        if self.config.vocoder_checkpoint:
-            self.load_vocoder(self.config.vocoder_checkpoint, self.config.vocoder_config, self.config.use_cuda)
+        self.load_tts(tts_checkpoint, tts_config,
+                      use_cuda)
+        if vocoder_checkpoint:
+            self.load_vocoder(vocoder_checkpoint, vocoder_config, use_cuda)
 
     @staticmethod
     def get_segmenter(lang):
@@ -41,7 +54,7 @@ class Synthesizer(object):
     def load_speakers(self):
         # load speakers
         if self.model_config.use_speaker_embedding is not None:
-            self.tts_speakers = load_speaker_mapping(self.config.tts_speakers)
+            self.tts_speakers = load_speaker_mapping(self.tts_config.tts_speakers_json)
             self.num_speakers = len(self.tts_speakers)
         else:
             self.num_speakers = 0
@@ -147,12 +160,9 @@ class Synthesizer(object):
             wavs += list(waveform)
             wavs += [0] * 10000
 
-        out = io.BytesIO()
-        self.save_wav(wavs, out)
-
         # compute stats
         process_time = time.time() - start_time
         audio_time = len(wavs) / self.tts_config.audio['sample_rate']
         print(f" > Processing time: {process_time}")
         print(f" > Real-time factor: {process_time / audio_time}")
-        return out
+        return wavs
