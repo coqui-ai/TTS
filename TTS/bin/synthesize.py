@@ -106,7 +106,6 @@ def tts(model,
         model_config.enable_eos_bos_chars,
         use_gl,
         speaker_embedding=speaker_embedding)
-
     # grab spectrogram (thx to the nice guys at mozilla discourse for codesnippet)
     if args.save_spectogram:
         spec_file_name = args.text.replace(" ", "_")[0:10]
@@ -157,7 +156,7 @@ if __name__ == "__main__":
     '''You can either use your trained model or choose a model from the provided list.\n'''
 
     '''
-Example runs:
+    Example runs:
 
     # list provided models
     ./TTS/bin/synthesize.py --list_models
@@ -172,7 +171,7 @@ Example runs:
     ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
         --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
 
-''',
+    ''',
         formatter_class=RawTextHelpFormatter)
 
     parser.add_argument(
