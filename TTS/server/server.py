@@ -1,9 +1,12 @@
 #!flask/bin/python
 import argparse
 import os
+import sys
+from pathlib import Path
 
-from flask import Flask, request, render_template, send_file
+from flask import Flask, render_template, request, send_file
 from TTS.server.synthesizer import Synthesizer
+from TTS.utils.manage import ModelManager
 
 
 def create_argparser():
@@ -11,20 +14,18 @@ def create_argparser():
         return x.lower() in ['true', '1', 'yes']
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tts_checkpoint', type=str, help='path to TTS checkpoint file')
-    parser.add_argument('--tts_config', type=str, help='path to TTS config.json file')
+    parser.add_argument('--list_models', type=convert_boolean, nargs='?', const=True, default=False, help='list available pre-trained tts and vocoder models.')
+    parser.add_argument('--model_name', type=str, help='name of one of the released tts models.')
+    parser.add_argument('--vocoder_name', type=str, help='name of one of the released vocoder models.')
+    parser.add_argument('--tts_checkpoint', type=str, help='path to custom tts checkpoint file')
+    parser.add_argument('--tts_config', type=str, help='path to custom tts config.json file')
     parser.add_argument('--tts_speakers', type=str, help='path to JSON file containing speaker ids, if speaker ids are used in the model')
-    parser.add_argument('--wavernn_lib_path', type=str, default=None, help='path to WaveRNN project folder to be imported. If this is not passed, model uses Griffin-Lim for synthesis.')
-    parser.add_argument('--wavernn_checkpoint', type=str, default=None, help='path to WaveRNN checkpoint file.')
-    parser.add_argument('--wavernn_config', type=str, default=None, help='path to WaveRNN config file.')
-    parser.add_argument('--is_wavernn_batched', type=convert_boolean, default=False, help='true to use batched WaveRNN.')
-    parser.add_argument('--vocoder_config', type=str, default=None, help='path to TTS.vocoder config file.')
-    parser.add_argument('--vocoder_checkpoint', type=str, default=None, help='path to TTS.vocoder checkpoint file.')
+    parser.add_argument('--vocoder_config', type=str, default=None, help='path to vocoder config file.')
+    parser.add_argument('--vocoder_checkpoint', type=str, default=None, help='path to vocoder checkpoint file.')
     parser.add_argument('--port', type=int, default=5002, help='port to listen on.')
     parser.add_argument('--use_cuda', type=convert_boolean, default=False, help='true to use CUDA.')
     parser.add_argument('--debug', type=convert_boolean, default=False, help='true to enable Flask debug mode.')
     return parser
-
 
 synthesizer = None
 
@@ -45,6 +46,20 @@ wavernn_config_file = os.path.join(embedded_wavernn_folder, 'config.json')
 
 args = create_argparser().parse_args()
 
+path = Path(__file__).parent / "../../.models.json"
+manager = ModelManager(path)
+
+if args.list_models:
+    manager.list_models()
+    sys.exit()
+
+# set models by the released models
+if args.model_name is not None:
+    tts_checkpoint_file, tts_config_file = manager.download_model(args.model_name)
+
+if args.vocoder_name is not None:
+    vocoder_checkpoint_file, vocoder_config_file = manager.download_model(args.vocoder_name)
+
 # If these were not specified in the CLI args, use default values with embedded model files
 if not args.tts_checkpoint and os.path.isfile(tts_checkpoint_file):
     args.tts_checkpoint = tts_checkpoint_file
@@ -55,11 +70,6 @@ if not args.vocoder_checkpoint and os.path.isfile(vocoder_checkpoint_file):
     args.vocoder_checkpoint = vocoder_checkpoint_file
 if not args.vocoder_config and os.path.isfile(vocoder_config_file):
     args.vocoder_config = vocoder_config_file
-
-if not args.wavernn_checkpoint and os.path.isfile(wavernn_checkpoint_file):
-    args.wavernn_checkpoint = wavernn_checkpoint_file
-if not args.wavernn_config and os.path.isfile(wavernn_config_file):
-    args.wavernn_config = wavernn_config_file
 
 synthesizer = Synthesizer(args)
 
