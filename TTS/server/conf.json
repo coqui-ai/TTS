@@ -5,10 +5,6 @@
     "tts_speakers": null,           // json file listing speaker ids. null if no speaker embedding.
     "vocoder_config":null,
     "vocoder_file": null,
-    "wavernn_lib_path": null,   // Rootpath to wavernn project folder to be imported. If this is null, model uses GL for speech synthesis.
-    "wavernn_path":null,  // wavernn model root path
-    "wavernn_file":null, // wavernn checkpoint file name
-    "wavernn_config": null, // wavernn config file
     "is_wavernn_batched":true,
     "port": 5002,
     "use_cuda": true,
