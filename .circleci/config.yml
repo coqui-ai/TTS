@@ -26,7 +26,6 @@ jobs:
       - run: |
           sudo apt update
           sudo apt install espeak git
-        # so we can take advantage of pyproject.toml build-dependency support
       - run: sudo pip install --upgrade pip
       - run: sudo pip install -e .
       - run: |
@@ -34,14 +33,14 @@ jobs:
           cardboardlinter --refspec ${CIRCLE_BRANCH} -n auto
       - run: nosetests tests --nocapture
       - run: |
-          ./tests/test_server_package.sh
-          ./tests/test_glow-tts_train.sh
-          ./tests/test_server_package.sh
-          ./tests/test_tacotron_train.sh
-          ./tests/test_vocoder_gan_train.sh
-          ./tests/test_vocoder_wavegrad_train.sh
-          ./tests/test_vocoder_wavernn_train.sh
-          ./tests/test_speedy_speech_train.sh
+          sudo ./tests/test_server_package.sh
+          sudo ./tests/test_glow-tts_train.sh
+          sudo ./tests/test_server_package.sh
+          sudo ./tests/test_tacotron_train.sh
+          sudo ./tests/test_vocoder_gan_train.sh
+          sudo ./tests/test_vocoder_wavegrad_train.sh
+          sudo ./tests/test_vocoder_wavernn_train.sh
+          sudo ./tests/test_speedy_speech_train.sh
 
   test-3.7:
     <<: *test-template
