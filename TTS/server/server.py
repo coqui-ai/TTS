@@ -73,9 +73,7 @@ def index():
 
 @app.route('/details')
 def details():
-    if args.tts_config is not None and os.path.isfile(args.tts_config):
-        taco2_config = load_config(args.tts_config)
-
+    model_config = load_config(args.tts_config)
     if args.vocoder_config is not None and os.path.isfile(args.vocoder_config):
         vocoder_config = load_config(args.vocoder_config)
     else:
@@ -83,7 +81,7 @@ def details():
 
     return render_template('details.html',
                            show_details=args.show_details
-                           , taco2_config=taco2_config
+                           , model_config=model_config
                            , vocoder_config=vocoder_config
                            , args=args.__dict__
                           )
