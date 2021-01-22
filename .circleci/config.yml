@@ -27,13 +27,9 @@ jobs:
           sudo apt update
           sudo apt install espeak git
         # so we can take advantage of pyproject.toml build-dependency support
-      - run: python3 -m pip install --upgrade pip
-      - run: python3 -m pip install numpy Cython
-      - run: |
-          python3 setup.py egg_info
-          python3 -m pip install -e .
-      - run: |
-          python3 -m pip install --quiet --upgrade cardboardlint pylint
+      - run: sudo pip install --upgrade pip
+      - run: sudo pip install -e .
+      - run: sudo pip install --quiet --upgrade cardboardlint pylint
           cardboardlinter --refspec ${CIRCLE_BRANCH} -n auto
       - run: nosetests tests --nocapture
       - run: |
