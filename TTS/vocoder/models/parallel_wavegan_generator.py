@@ -158,7 +158,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         return self._get_receptive_field_size(self.layers, self.stacks,
                                               self.kernel_size)
 
-    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument
+    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
         state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
         self.load_state_dict(state['model'])
         if eval:

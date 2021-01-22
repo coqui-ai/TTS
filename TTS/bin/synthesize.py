@@ -2,26 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import json
 import os
 import sys
 import string
-import time
 from argparse import RawTextHelpFormatter
 # pylint: disable=redefined-outer-name, unused-argument
 from pathlib import Path
 
-import numpy as np
-import torch
-from TTS.tts.utils.generic_utils import is_tacotron, setup_model
-from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
-from TTS.tts.utils.io import load_checkpoint
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
-from TTS.vocoder.utils.generic_utils import setup_generator, interpolate_vocoder_input
 
 
 def str2bool(v):
@@ -29,17 +18,16 @@ def str2bool(v):
         return v
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    if v.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+    raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 if __name__ == "__main__":
-
+    # pylint: disable=bad-continuation
     parser = argparse.ArgumentParser(description='''Synthesize speech on command line.\n\n'''
 
-    '''You can either use your trained model or choose a model from the provided list.\n'''
+    '''You can either use your trained model or choose a model from the provided list.\n'''\
 
     '''
     Example runs:

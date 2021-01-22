@@ -224,7 +224,7 @@ class GlowTts(nn.Module):
     def store_inverse(self):
         self.decoder.store_inverse()
 
-    def load_checkpoint(self, config, checkpoint_path, eval=False):
+    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
         state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
         self.load_state_dict(state['model'])
         if eval:

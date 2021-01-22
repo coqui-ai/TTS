@@ -500,7 +500,7 @@ class WaveRNN(nn.Module):
 
         return unfolded
 
-     def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument
+    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
         state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
         self.load_state_dict(state['model'])
         if eval:
