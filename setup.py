@@ -106,10 +106,10 @@ def pip_install(package_name):
 
 
 reqs_from_file = open('requirements.txt').readlines()
-reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
-tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
+# reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
+# tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
 
-requirements = {'install_requires': reqs_without_tf, 'pip_install': tf_req}
+# requirements = {'install_requires': reqs_without_tf, 'pip_install': tf_req}
 
 setup(
     name='TTS',
@@ -132,7 +132,7 @@ setup(
         'build_py': build_py,
         'develop': develop,
     },
-    install_requires=requirements['install_requires'],
+    install_requires=reqs_from_file,
     python_requires='>=3.6.0',
     classifiers=[
         "Programming Language :: Python",
@@ -149,6 +149,6 @@ setup(
 
 # for some reason having tensorflow in 'install_requires'
 # breaks some of the dependencies.
-if 'bdist_wheel' not in unknown_args:
-    for module in requirements['pip_install']:
-        pip_install(module)
+# if 'bdist_wheel' not in unknown_args:
+#     for module in requirements['pip_install']:
+#         pip_install(module)
