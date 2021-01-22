@@ -29,7 +29,8 @@ jobs:
         # so we can take advantage of pyproject.toml build-dependency support
       - run: sudo pip install --upgrade pip
       - run: sudo pip install -e .
-      - run: sudo pip install --quiet --upgrade cardboardlint pylint
+      - run: |
+          sudo pip install --quiet --upgrade cardboardlint pylint
           cardboardlinter --refspec ${CIRCLE_BRANCH} -n auto
       - run: nosetests tests --nocapture
       - run: |
