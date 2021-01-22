@@ -109,7 +109,7 @@ class AudioProcessor(object):
         return hop_length, win_length
 
     ### normalization ###
-    def _normalize(self, S):
+    def normalize(self, S):
         """Put values in [0, self.max_norm] or [-self.max_norm, self.max_norm]"""
         #pylint: disable=no-else-return
         S = S.copy()
@@ -138,7 +138,7 @@ class AudioProcessor(object):
         else:
             return S
 
-    def _denormalize(self, S):
+    def denormalize(self, S):
         """denormalize values"""
         #pylint: disable=no-else-return
         S_denorm = S.copy()
@@ -223,7 +223,7 @@ class AudioProcessor(object):
         else:
             D = self._stft(y)
         S = self._amp_to_db(np.abs(D))
-        return self._normalize(S)
+        return self.normalize(S)
 
     def melspectrogram(self, y):
         if self.preemphasis != 0:
@@ -231,11 +231,11 @@ class AudioProcessor(object):
         else:
             D = self._stft(y)
         S = self._amp_to_db(self._linear_to_mel(np.abs(D)))
-        return self._normalize(S)
+        return self.normalize(S)
 
     def inv_spectrogram(self, spectrogram):
         """Converts spectrogram to waveform using librosa"""
-        S = self._denormalize(spectrogram)
+        S = self.denormalize(spectrogram)
         S = self._db_to_amp(S)
         # Reconstruct phase
         if self.preemphasis != 0:
@@ -244,7 +244,7 @@ class AudioProcessor(object):
 
     def inv_melspectrogram(self, mel_spectrogram):
         '''Converts melspectrogram to waveform using librosa'''
-        D = self._denormalize(mel_spectrogram)
+        D = self.denormalize(mel_spectrogram)
         S = self._db_to_amp(D)
         S = self._mel_to_linear(S)  # Convert back to linear
         if self.preemphasis != 0:
@@ -252,11 +252,11 @@ class AudioProcessor(object):
         return self._griffin_lim(S**self.power)
 
     def out_linear_to_mel(self, linear_spec):
-        S = self._denormalize(linear_spec)
+        S = self.denormalize(linear_spec)
         S = self._db_to_amp(S)
         S = self._linear_to_mel(np.abs(S))
         S = self._amp_to_db(S)
-        mel = self._normalize(S)
+        mel = self.normalize(S)
         return mel
 
     ### STFT and ISTFT ###
