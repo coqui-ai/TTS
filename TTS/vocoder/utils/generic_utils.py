@@ -20,7 +20,7 @@ def interpolate_vocoder_input(scale_factor, spec):
         torch.tensor: interpolated spectrogram.
     """
     print(" > before interpolation :", spec.shape)
-    spec = torch.tensor(spec).unsqueeze(0).unsqueeze(0)
+    spec = torch.tensor(spec).unsqueeze(0).unsqueeze(0)  # pylint: disable=not-callable
     spec = torch.nn.functional.interpolate(spec,
                                            scale_factor=scale_factor,
                                            recompute_scale_factor=True,

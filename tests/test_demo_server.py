@@ -2,7 +2,7 @@ import os
 import unittest
 
 from tests import get_tests_input_path, get_tests_output_path
-from TTS.server.synthesizer import Synthesizer
+from TTS.utils.synthesizer import Synthesizer
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
@@ -29,7 +29,7 @@ class DemoServerTest(unittest.TestCase):
         tts_root_path = get_tests_output_path()
         config['tts_checkpoint'] = os.path.join(tts_root_path, config['tts_checkpoint'])
         config['tts_config'] = os.path.join(tts_root_path, config['tts_config'])
-        synthesizer = Synthesizer(config)
+        synthesizer = Synthesizer(config['tts_checkpoint'], config['tts_config'], None, None)
         synthesizer.tts("Better this test works!!")
 
     def test_split_into_sentences(self):

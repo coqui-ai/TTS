@@ -17,7 +17,7 @@ from TTS.tts.utils.text import make_symbols, phonemes, symbols
 
 
 class Synthesizer(object):
-    def __init__(self, tts_checkpoint, tts_config, vocoder_checkpoint, vocoder_config, use_cuda):
+    def __init__(self, tts_checkpoint, tts_config, vocoder_checkpoint=None, vocoder_config=None, use_cuda=False):
         """Encapsulation of tts and vocoder models for inference.
 
         TODO: handle multi-speaker and GST inference.
@@ -25,9 +25,9 @@ class Synthesizer(object):
         Args:
             tts_checkpoint (str): path to the tts model file.
             tts_config (str): path to the tts config file.
-            vocoder_checkpoint (str): path to the vocoder model file.
-            vocoder_config (str): path to the vocoder config file.
-            use_cuda (bool): enable/disable cuda.
+            vocoder_checkpoint (str, optional): path to the vocoder model file. Defaults to None.
+            vocoder_config (str, optional): path to the vocoder config file. Defaults to None.
+            use_cuda (bool, optional): enable/disable cuda. Defaults to False.
         """
         self.tts_checkpoint = tts_checkpoint
         self.tts_config = tts_config
@@ -38,6 +38,7 @@ class Synthesizer(object):
         self.vocoder_model = None
         self.num_speakers = 0
         self.tts_speakers = None
+        self.speaker_embedding_dim = None
         self.seg = self.get_segmenter("en")
         self.use_cuda = use_cuda
         if self.use_cuda:
@@ -116,7 +117,7 @@ class Synthesizer(object):
         print(sens)
 
         speaker_embedding = self.init_speaker(speaker_idx)
-        use_gl = not hasattr(self, 'vocoder_model')
+        use_gl = self.vocoder_model is None
 
         for sen in sens:
             # synthesize voice
@@ -134,17 +135,17 @@ class Synthesizer(object):
                 speaker_embedding=speaker_embedding)
             if not use_gl:
                 # denormalize tts output based on tts audio config
-                mel_postnet_spec = self.ap._denormalize(mel_postnet_spec.T).T
+                mel_postnet_spec = self.ap.denormalize(mel_postnet_spec.T).T
                 device_type = "cuda" if self.use_cuda else "cpu"
                 # renormalize spectrogram based on vocoder config
-                vocoder_input = self.vocoder_ap._normalize(mel_postnet_spec.T)
+                vocoder_input = self.vocoder_ap.normalize(mel_postnet_spec.T)
                 # compute scale factor for possible sample rate mismatch
-                scale_factor = [1,  self.vocoder_config['audio']['sample_rate'] / self.ap.sample_rate]
+                scale_factor = [1, self.vocoder_config['audio']['sample_rate'] / self.ap.sample_rate]
                 if scale_factor[1] != 1:
                     print(" > interpolating tts model output.")
                     vocoder_input = interpolate_vocoder_input(scale_factor, vocoder_input)
                 else:
-                    vocoder_input = torch.tensor(vocoder_input).unsqueeze(0)
+                    vocoder_input = torch.tensor(vocoder_input).unsqueeze(0)  # pylint: disable=not-callable
                 # run vocoder model
                 # [1, T, C]
                 waveform = self.vocoder_model.inference(vocoder_input.to(device_type))
