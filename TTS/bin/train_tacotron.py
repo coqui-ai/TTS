@@ -549,7 +549,7 @@ def main(args):  # pylint: disable=redefined-outer-name
                 scaler.load_state_dict(checkpoint["scaler"])
             if c.reinit_layers:
                 raise RuntimeError
-        except KeyError:
+        except (KeyError, RuntimeError):
             print(" > Partial model initialization.")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)
