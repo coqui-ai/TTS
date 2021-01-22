@@ -62,10 +62,10 @@
 
   <div class="container">
 
-    {% if taco2_config != None %}
+    {% if model_config != None %}
 
     <details>
-      <summary>Tacotron2 model config:</summary>
+      <summary>Model config:</summary>
 
       <table border="1" align="center" width="75%">
         <tr>
@@ -74,7 +74,7 @@
         </tr>
 
 
-        {% for key, value in taco2_config.items() %}
+        {% for key, value in model_config.items() %}
 
         <tr>
           <td>{{ key }}</td>
