@@ -23,7 +23,7 @@ def str2bool(v):
     raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-if __name__ == "__main__":
+def main():
     # pylint: disable=bad-continuation
     parser = argparse.ArgumentParser(description='''Synthesize speech on command line.\n\n'''
 
@@ -216,3 +216,7 @@ if __name__ == "__main__":
     out_path = os.path.join(args.out_path, file_name)
     print(" > Saving output to {}".format(out_path))
     synthesizer.save_wav(wav, out_path)
+
+
+if __name__ == "__main__":
+    main()

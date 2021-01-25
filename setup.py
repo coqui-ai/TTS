@@ -33,22 +33,8 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.9'
-
-# Adapted from https://github.com/pytorch/pytorch
+version = '0.0.9a0'
 cwd = os.path.dirname(os.path.abspath(__file__))
-if os.getenv('TTS_PYTORCH_BUILD_VERSION'):
-    version = os.getenv('TTS_PYTORCH_BUILD_VERSION')
-else:
-    try:
-        sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
-                                      cwd=cwd).decode('ascii').strip()
-        version += '+' + sha[:7]
-    except subprocess.CalledProcessError:
-        pass
-    except IOError:  # FileNotFoundError for python 3
-        pass
-
 
 # Handle Cython code
 def find_pyx(path='.'):
@@ -108,8 +94,10 @@ def pip_install(package_name):
 reqs_from_file = open('requirements.txt').readlines()
 # reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
 # tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
-
 # requirements = {'install_requires': reqs_without_tf, 'pip_install': tf_req}
+
+with open('README.md', "r", encoding="utf-8") as readme_file:
+    README = readme_file.read()
 
 setup(
     name='TTS',
@@ -118,8 +106,8 @@ setup(
     author='Eren Gölge',
     author_email='egolge@mozilla.com',
     description='Text to Speech with Deep Learning',
+    # long_description=README,
     license='MPL-2.0',
-    entry_points={'console_scripts': ['tts-server = TTS.server.server:main']},
     ext_modules=find_cython_extensions(),
     packages=find_packages(include=['TTS*']),
     project_urls={
@@ -134,17 +122,30 @@ setup(
     },
     install_requires=reqs_from_file,
     python_requires='>=3.6.0',
+    entry_points={
+        'console_scripts': [
+            'tts=TTS.bin.synthesize:main',
+            'tts-server = TTS.server.server:main'
+        ]
+    },
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         'Development Status :: 3 - Alpha',
-        "Intended Audience :: Science/Research :: Developers",
+        "Intended Audience :: Science/Research",
+        "Intended Audience :: Developers",
         "Operating System :: POSIX :: Linux",
         'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
-        "Topic :: Software Development :: Libraries :: Python Modules :: Speech :: Sound/Audio :: Multimedia :: Artificial Intelligence",
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Multimedia :: Sound/Audio :: Speech",
+        "Topic :: Multimedia :: Sound/Audio",
+        "Topic :: Multimedia",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence"
     ])
 
 # for some reason having tensorflow in 'install_requires'

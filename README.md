@@ -141,20 +141,21 @@ Some of the public datasets that we successfully applied TTS:
 
 ## Example: Synthesizing Speech on Terminal Using the Released Models.
 
-TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under the TTS project.
+After the installation, TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under the TTS project.
 
 Listing released TTS models.
-```./TTS/bin/synthesize.py --list_models```
+```tts --list_models```
 
 Run a tts and a vocoder model from the released model list. (Simply copy and paste the full model names from the list as arguments for the command below.)
-```./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<type>/<language>/<dataset>/<model_name>" --vocoder_name "<type>/<language>/<dataset>/<model_name>" --output_path```
+```tts --text "Text for TTS" --model_name "<type>/<language>/<dataset>/<model_name>" --vocoder_name "<type>/<language>/<dataset>/<model_name>" --output_path```
 
 Run your own TTS model (Using Griffin-Lim Vocoder)
-```./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav```
+```tts --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav```
 
 Run your own TTS and Vocoder models
-```./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json```
+```tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json```
 
+**Note:** You can use ```./TTS/bin/synthesize.py``` if you prefer running ```tts``` from the TTS project folder.
 
 ## Example: Training and Fine-tuning LJ-Speech Dataset
 Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below.
