@@ -9,6 +9,8 @@ Instructions below are based on a Ubuntu 18.04 machine, but it should be simple 
 ##### Using server.py
 If you have the environment set already for TTS, then you can directly call ```server.py```.
 
+**Note:** After installing TTS as a package you can use ```tts-server``` to call the commands below.
+
 Examples runs:
 
 List officially released models.
