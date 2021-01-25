@@ -1,0 +1,4 @@
+include README.md
+include LICENSE.txt
+include requirements.txt
+include TTS/.models.json
