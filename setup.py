@@ -33,7 +33,7 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.9a4'
+version = '0.0.9a9'
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 # Handle Cython code
@@ -105,6 +105,7 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     license='MPL-2.0',
+    include_package_data = True,
     ext_modules=find_cython_extensions(),
     packages=find_packages(include=['TTS*']),
     project_urls={
