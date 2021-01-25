@@ -1,4 +1,10 @@
 include README.md
 include LICENSE.txt
 include requirements.txt
-include TTS/.models.json
+recursive-include TTS *.json
+recursive-include TTS *.html
+recursive-include TTS *.png
+recursive-include TTS *.md
+recursive-include notebooks *.ipynb
+recursive-include images *.png
+

@@ -143,7 +143,7 @@ def main():
     args = parser.parse_args()
 
     # load model manager
-    path = Path(__file__).parent / "../../.models.json"
+    path = Path(__file__).parent / "../.models.json"
     manager = ModelManager(path)
 
     model_path = None
