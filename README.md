@@ -91,7 +91,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
 ## Install TTS
-TTS supports **python >= 3.6**.
+TTS supports **python >= 3.6, <3.9**.
 
 ```pip install .``` or ```pip install -e .``` to keep your installation in your working directory.
 

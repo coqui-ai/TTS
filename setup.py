@@ -7,7 +7,7 @@ import subprocess
 import sys
 import numpy
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 import setuptools.command.develop
 import setuptools.command.build_py
 
@@ -33,7 +33,7 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.9a0'
+version = '0.0.9a4'
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 # Handle Cython code
@@ -91,11 +91,7 @@ def pip_install(package_name):
     subprocess.call([sys.executable, '-m', 'pip', 'install', package_name])
 
 
-reqs_from_file = open('requirements.txt').readlines()
-# reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
-# tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
-# requirements = {'install_requires': reqs_without_tf, 'pip_install': tf_req}
-
+requirements = open(os.path.join(cwd, 'requirements.txt'), 'r').readlines()
 with open('README.md', "r", encoding="utf-8") as readme_file:
     README = readme_file.read()
 
@@ -106,7 +102,8 @@ setup(
     author='Eren Gölge',
     author_email='egolge@mozilla.com',
     description='Text to Speech with Deep Learning',
-    # long_description=README,
+    long_description=README,
+    long_description_content_type="text/markdown",
     license='MPL-2.0',
     ext_modules=find_cython_extensions(),
     packages=find_packages(include=['TTS*']),
@@ -120,8 +117,8 @@ setup(
         'build_py': build_py,
         'develop': develop,
     },
-    install_requires=reqs_from_file,
-    python_requires='>=3.6.0',
+    install_requires=requirements,
+    python_requires='>=3.6.0, <3.9',
     entry_points={
         'console_scripts': [
             'tts=TTS.bin.synthesize:main',
@@ -147,9 +144,3 @@ setup(
         "Topic :: Multimedia",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"
     ])
-
-# for some reason having tensorflow in 'install_requires'
-# breaks some of the dependencies.
-# if 'bdist_wheel' not in unknown_args:
-#     for module in requirements['pip_install']:
-#         pip_install(module)
