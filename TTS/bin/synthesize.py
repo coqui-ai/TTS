@@ -2,114 +2,138 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import json
-# pylint: disable=redefined-outer-name, unused-argument
 import os
+import sys
 import string
-import time
+from argparse import RawTextHelpFormatter
+# pylint: disable=redefined-outer-name, unused-argument
+from pathlib import Path
 
-import torch
-import numpy as np
-
-from TTS.tts.utils.generic_utils import setup_model, is_tacotron
-from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
-from TTS.vocoder.utils.generic_utils import setup_generator
+from TTS.utils.manage import ModelManager
+from TTS.utils.synthesizer import Synthesizer
 
 
-def tts(model, vocoder_model, text, CONFIG, use_cuda, ap, use_gl, speaker_fileid, speaker_embedding=None, gst_style=None):
-    t_1 = time.time()
-    waveform, _, _, mel_postnet_spec, _, _ = synthesis(model, text, CONFIG, use_cuda, ap, speaker_fileid, gst_style, False, CONFIG.enable_eos_bos_chars, use_gl, speaker_embedding=speaker_embedding)
-
-    # grab spectrogram (thx to the nice guys at mozilla discourse for codesnipplet)
-    if args.save_spectogram:
-        spec_file_name = args.text.replace(" ", "_")[0:10]
-        spec_file_name = spec_file_name.translate(
-            str.maketrans('', '', string.punctuation.replace('_', ''))) + '.npy'
-        spec_file_name = os.path.join(args.out_path, spec_file_name)
-        spectrogram = torch.FloatTensor(mel_postnet_spec.T)
-        spectrogram = spectrogram.unsqueeze(0)
-        np.save(spec_file_name, spectrogram)
-        print(" > Saving raw spectogram to " + spec_file_name)
-
-    if CONFIG.model == "Tacotron" and not use_gl:
-        mel_postnet_spec = ap.out_linear_to_mel(mel_postnet_spec.T).T
-    if not use_gl:
-        # Use if not computed noise schedule with tune_wavegrad
-        beta = np.linspace(1e-6, 0.01, 50)
-        vocoder_model.compute_noise_level(beta)
-
-        # Use alternative when using output npy file from tune_wavegrad
-        # beta = np.load("output-tune-wavegrad.npy", allow_pickle=True).item()
-        # vocoder_model.compute_noise_level(beta['beta'])
-
-        device_type = "cuda" if use_cuda else "cpu"
-        waveform = vocoder_model.inference(torch.FloatTensor(mel_postnet_spec.T).to(device_type).unsqueeze(0))
-    if use_cuda and not use_gl:
-        waveform = waveform.cpu()
-    if not use_gl:
-        waveform = waveform.numpy()
-    waveform = waveform.squeeze()
-    rtf = (time.time() - t_1) / (len(waveform) / ap.sample_rate)
-    tps = (time.time() - t_1) / len(waveform)
-    print(" > Run-time: {}".format(time.time() - t_1))
-    print(" > Real-time factor: {}".format(rtf))
-    print(" > Time per step: {}".format(tps))
-    return waveform
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    if v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-if __name__ == "__main__":
+def main():
+    # pylint: disable=bad-continuation
+    parser = argparse.ArgumentParser(description='''Synthesize speech on command line.\n\n'''
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('text', type=str, help='Text to generate speech.')
-    parser.add_argument('config_path',
-                        type=str,
-                        help='Path to model config file.')
+    '''You can either use your trained model or choose a model from the provided list.\n'''\
+
+    '''
+    Example runs:
+
+    # list provided models
+    ./TTS/bin/synthesize.py --list_models
+
+    # run a model from the list
+    ./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
+
+    # run your own TTS model (Using Griffin-Lim Vocoder)
+    ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
+
+    # run your own TTS and Vocoder models
+    ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
+        --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
+
+    ''',
+        formatter_class=RawTextHelpFormatter)
+
     parser.add_argument(
-        'model_path',
+        '--list_models',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='list available pre-trained tts and vocoder models.'
+        )
+    parser.add_argument(
+        '--text',
         type=str,
+        default=None,
+        help='Text to generate speech.'
+        )
+
+    # Args for running pre-trained TTS models.
+    parser.add_argument(
+        '--model_name',
+        type=str,
+        default=None,
+        help=
+        'Name of one of the pre-trained tts models in format <language>/<dataset>/<model_name>'
+    )
+    parser.add_argument(
+        '--vocoder_name',
+        type=str,
+        default=None,
+        help=
+        'Name of one of the pre-trained  vocoder models in format <language>/<dataset>/<model_name>'
+    )
+
+    # Args for running custom models
+    parser.add_argument(
+        '--config_path',
+        default=None,
+        type=str,
+        help='Path to model config file.'
+        )
+    parser.add_argument(
+        '--model_path',
+        type=str,
+        default=None,
         help='Path to model file.',
     )
     parser.add_argument(
-        'out_path',
+        '--out_path',
         type=str,
-        help='Path to save final wav file. Wav file will be names as the text given.',
+        default=Path(__file__).resolve().parent,
+        help='Path to save final wav file. Wav file will be named as the given text.',
     )
-    parser.add_argument('--use_cuda',
-                        type=bool,
-                        help='Run model on CUDA.',
-                        default=False)
+    parser.add_argument(
+        '--use_cuda',
+        type=bool,
+        help='Run model on CUDA.',
+        default=False
+        )
     parser.add_argument(
         '--vocoder_path',
         type=str,
         help=
         'Path to vocoder model file. If it is not defined, model uses GL as vocoder. Please make sure that you installed vocoder library before (WaveRNN).',
-        default="",
+        default=None,
     )
-    parser.add_argument('--vocoder_config_path',
-                        type=str,
-                        help='Path to vocoder model config file.',
-                        default="")
     parser.add_argument(
-        '--batched_vocoder',
-        type=bool,
-        help="If True, vocoder model uses faster batch processing.",
-        default=True)
-    parser.add_argument('--speakers_json',
-                        type=str,
-                        help="JSON file for multi-speaker model.",
-                        default="")
-    parser.add_argument(
-        '--speaker_fileid',
+        '--vocoder_config_path',
         type=str,
-        help="if CONFIG.use_external_speaker_embedding_file is true, name of speaker embedding reference file present in speakers.json, else target speaker_fileid if the model is multi-speaker.",
+        help='Path to vocoder model config file.',
+        default=None)
+
+    # args for multi-speaker synthesis
+    parser.add_argument(
+        '--speakers_json',
+        type=str,
+        help="JSON file for multi-speaker model.",
+        default=None)
+    parser.add_argument(
+        '--speaker_idx',
+        type=str,
+        help="if the tts model is trained with x-vectors, then speaker_idx is a file present in speakers.json else speaker_idx is the speaker id corresponding to a speaker in the speaker embedding layer.",
         default=None)
     parser.add_argument(
         '--gst_style',
         help="Wav path file for GST stylereference.",
         default=None)
+
+    # aux args
     parser.add_argument(
         '--save_spectogram',
         type=bool,
@@ -118,88 +142,77 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # load the config
-    C = load_config(args.config_path)
-    C.forward_attn_mask = True
+    # load model manager
+    path = Path(__file__).parent / "../.models.json"
+    manager = ModelManager(path)
 
-    # load the audio processor
-    ap = AudioProcessor(**C.audio)
+    model_path = None
+    config_path = None
+    vocoder_path = None
+    vocoder_config_path = None
 
-    # if the vocabulary was passed, replace the default
-    if 'characters' in C.keys():
-        symbols, phonemes = make_symbols(**C.characters)
+    # CASE1: list pre-trained TTS models
+    if args.list_models:
+        manager.list_models()
+        sys.exit()
 
-    speaker_embedding = None
-    speaker_embedding_dim = None
-    num_speakers = 0
+    # CASE2: load pre-trained models
+    if args.model_name is not None:
+        model_path, config_path = manager.download_model(args.model_name)
 
-    # load speakers
-    if args.speakers_json != '':
-        speaker_mapping = json.load(open(args.speakers_json, 'r'))
-        num_speakers = len(speaker_mapping)
-        if C.use_external_speaker_embedding_file:
-            if args.speaker_fileid is not None:
-                speaker_embedding = speaker_mapping[args.speaker_fileid]['embedding']
-            else: # if speaker_fileid is not specificated use the first sample in speakers.json
-                speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[0]]['embedding']
-            speaker_embedding_dim = len(speaker_embedding)
+    if args.vocoder_name is not None:
+        vocoder_path, vocoder_config_path = manager.download_model(args.vocoder_name)
 
-    # load the model
-    num_chars = len(phonemes) if C.use_phonemes else len(symbols)
-    model = setup_model(num_chars, num_speakers, C, speaker_embedding_dim)
-    cp = torch.load(args.model_path, map_location=torch.device('cpu'))
-    model.load_state_dict(cp['model'])
-    model.eval()
-    if args.use_cuda:
-        model.cuda()
-    if is_tacotron(C):
-        model.decoder.set_r(cp['r'])
+    # CASE3: load custome models
+    if args.model_path is not None:
+        model_path = args.model_path
+        config_path = args.config_path
 
-    # load vocoder model
-    if args.vocoder_path != "":
-        VC = load_config(args.vocoder_config_path)
-        vocoder_model = setup_generator(VC)
-        vocoder_model.load_state_dict(torch.load(args.vocoder_path, map_location="cpu")["model"])
-        vocoder_model.remove_weight_norm()
-        if args.use_cuda:
-            vocoder_model.cuda()
-        vocoder_model.eval()
-    else:
-        vocoder_model = None
-        VC = None
+    if args.vocoder_path is not None:
+        vocoder_path = args.vocoder_path
+        vocoder_config_path = args.vocoder_config_path
 
-    # synthesize voice
-    use_griffin_lim = args.vocoder_path == ""
+    # RUN THE SYNTHESIS
+    # load models
+    synthesizer = Synthesizer(model_path, config_path, vocoder_path, vocoder_config_path, args.use_cuda)
+
+    use_griffin_lim = vocoder_path is None
     print(" > Text: {}".format(args.text))
 
-    if not C.use_external_speaker_embedding_file:
-        if args.speaker_fileid.isdigit():
-            args.speaker_fileid = int(args.speaker_fileid)
-        else:
-            args.speaker_fileid = None
-    else:
-        args.speaker_fileid = None
+    # # handle multi-speaker setting
+    # if not model_config.use_external_speaker_embedding_file and args.speaker_idx is not None:
+    #     if args.speaker_idx.isdigit():
+    #         args.speaker_idx = int(args.speaker_idx)
+    #     else:
+    #         args.speaker_idx = None
+    # else:
+    #     args.speaker_idx = None
 
-    if args.gst_style is None:
-        if is_tacotron(C):
-            gst_style = C.gst['gst_style_input']
-        else:
-            gst_style = None
-    else:
-        # check if gst_style string is a dict, if is dict convert  else use string
-        try:
-            gst_style = json.loads(args.gst_style)
-            if max(map(int, gst_style.keys())) >= C.gst['gst_style_tokens']:
-                raise RuntimeError("The highest value of the gst_style dictionary key must be less than the number of GST Tokens, \n Highest dictionary key value: {} \n Number of GST tokens: {}".format(max(map(int, gst_style.keys())), C.gst['gst_style_tokens']))
-        except ValueError:
-            gst_style = args.gst_style
+    # if args.gst_style is None:
+    #     if 'gst' in model_config.keys() and model_config.gst['gst_style_input'] is not None:
+    #         gst_style = model_config.gst['gst_style_input']
+    #     else:
+    #         gst_style = None
+    # else:
+    #     # check if gst_style string is a dict, if is dict convert  else use string
+    #     try:
+    #         gst_style = json.loads(args.gst_style)
+    #         if max(map(int, gst_style.keys())) >= model_config.gst['gst_style_tokens']:
+    #             raise RuntimeError("The highest value of the gst_style dictionary key must be less than the number of GST Tokens, \n Highest dictionary key value: {} \n Number of GST tokens: {}".format(max(map(int, gst_style.keys())), model_config.gst['gst_style_tokens']))
+    #     except ValueError:
+    #         gst_style = args.gst_style
 
-    wav = tts(model, vocoder_model, args.text, C, args.use_cuda, ap, use_griffin_lim, args.speaker_fileid, speaker_embedding=speaker_embedding, gst_style=gst_style)
+    # kick it
+    wav = synthesizer.tts(args.text)
 
     # save the results
-    file_name = args.text.replace(" ", "_")[0:10]
+    file_name = args.text.replace(" ", "_")[0:20]
     file_name = file_name.translate(
         str.maketrans('', '', string.punctuation.replace('_', ''))) + '.wav'
     out_path = os.path.join(args.out_path, file_name)
     print(" > Saving output to {}".format(out_path))
-    ap.save_wav(wav, out_path)
+    synthesizer.save_wav(wav, out_path)
+
+
+if __name__ == "__main__":
+    main()

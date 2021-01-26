@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>TTS engine</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
+    integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous"
+    rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+  <style>
+    body {
+      padding-top: 54px;
+    }
+
+    @media (min-width: 992px) {
+      body {
+        padding-top: 56px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a href="https://github.com/mozilla/TTS"><img style="position: absolute; z-index:1000; top: 0; left: 0; border: 0;"
+      src="https://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png" alt="Fork me on GitHub"></a>
+
+  {% if show_details == true %}
+
+  <div class="container">
+    <b>Model details</b>
+  </div>
+
+  <div class="container">
+    <details>
+      <summary>CLI arguments:</summary>
+      <table border="1" align="center" width="75%">
+        <tr>
+          <td> CLI key </td>
+          <td> Value </td>
+        </tr>
+
+        {% for key, value in args.items() %}
+
+        <tr>
+          <td>{{ key }}</td>
+          <td>{{ value }}</td>
+        </tr>
+
+        {% endfor %}
+      </table>
+    </details>
+  </div></br>
+
+  <div class="container">
+
+    {% if model_config != None %}
+
+    <details>
+      <summary>Model config:</summary>
+
+      <table border="1" align="center" width="75%">
+        <tr>
+          <td> Key </td>
+          <td> Value </td>
+        </tr>
+
+
+        {% for key, value in model_config.items() %}
+
+        <tr>
+          <td>{{ key }}</td>
+          <td>{{ value }}</td>
+        </tr>
+
+        {% endfor %}
+
+      </table>
+    </details>
+
+    {% endif %}
+
+  </div></br>
+
+
+
+  <div class="container">
+    {% if vocoder_config != None %}
+    <details>
+      <summary>Vocoder model config:</summary>
+
+      <table border="1" align="center" width="75%">
+        <tr>
+          <td> Key </td>
+          <td> Value </td>
+        </tr>
+
+
+        {% for key, value in vocoder_config.items() %}
+
+        <tr>
+          <td>{{ key }}</td>
+          <td>{{ value }}</td>
+        </tr>
+
+        {% endfor %}
+
+
+      </table>
+    </details>
+    {% endif %}
+  </div></br>
+
+  {% else %}
+  <div class="container">
+    <b>Please start server with --show_details=true to see details.</b>
+  </div>
+
+  {% endif %}
+
+</body>
+
+</html>

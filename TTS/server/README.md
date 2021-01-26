@@ -9,6 +9,22 @@ Instructions below are based on a Ubuntu 18.04 machine, but it should be simple 
 ##### Using server.py
 If you have the environment set already for TTS, then you can directly call ```server.py```.
 
+**Note:** After installing TTS as a package you can use ```tts-server``` to call the commands below.
+
+Examples runs:
+
+List officially released models.
+```python TTS/server/server.py  --list_models ```
+
+Run the server with the official models.
+```python TTS/server/server.py  --model_name tts_models/en/ljspeech/tacotron2-DCA --vocoder_name vocoder_models/en/ljspeech/mulitband-melgan```
+
+Run the server with the official models on a GPU.
+```CUDA_VISIBLE_DEVICES="0" python TTS/server/server.py  --model_name tts_models/en/ljspeech/tacotron2-DCA --vocoder_name vocoder_models/en/ljspeech/mulitband-melgan --use_cuda True```
+
+Run the server with a custom models.
+```python TTS/server/server.py  --tts_checkpoint /path/to/tts/model.pth.tar --tts_config /path/to/tts/config.json --vocoder_checkpoint /path/to/vocoder/model.pth.tar --vocoder_config /path/to/vocoder/config.json```
+
 ##### Using .whl
 1. apt-get install -y espeak libsndfile1 python3-venv
 2. python3 -m venv /tmp/venv
@@ -20,6 +36,8 @@ If you have the environment set already for TTS, then you can directly call ```s
 You can now open http://localhost:5002 in a browser
 
 #### Running with nginx/uwsgi:
+
+**Note:** This method uses an old TTS model, so quality might be low.
 
 1. apt-get install -y uwsgi uwsgi-plugin-python3 nginx espeak libsndfile1 python3-venv
 2. python3 -m venv /tmp/venv

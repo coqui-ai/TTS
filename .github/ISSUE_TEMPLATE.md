@@ -6,9 +6,11 @@ labels: ''
 assignees: ''
 
 ---
-<b>Questions</b> will not be answered here!! 
+<b>Questions</b> will not be answered here!!
 
-Please consider posting on [TTS Discourse](https://discourse.mozilla.org/c/tts) page if your issue is not directly related to TTS development (Bugs, code updates etc.). 
+Help is much more valuable if it's shared publicly, so that more people can benefit from it.
+
+Please consider posting on [TTS Discourse](https://discourse.mozilla.org/c/tts) page or matrix [chat room](https://matrix.to/#/!KTePhNahjgiVumkqca:matrix.org?via=matrix.org) if your issue is not directly related to TTS development (Bugs, code updates etc.).
 
 You can also check https://github.com/mozilla/TTS/wiki/FAQ for common questions and answers.
 
