@@ -81,7 +81,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', show_details=args.show_details)
 
 @app.route('/details')
 def details():
