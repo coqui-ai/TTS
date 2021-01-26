@@ -50,7 +50,7 @@ def plot_spectrogram(spectrogram,
     spectrogram_ = spectrogram_.astype(
         np.float32) if spectrogram_.dtype == np.float16 else spectrogram_
     if ap is not None:
-        spectrogram_ = ap._denormalize(spectrogram_)  # pylint: disable=protected-access
+        spectrogram_ = ap.denormalize(spectrogram_)  # pylint: disable=protected-access
     fig = plt.figure(figsize=fig_size)
     plt.imshow(spectrogram_, aspect="auto", origin="lower")
     plt.colorbar()

@@ -5,22 +5,16 @@ import os
 import shutil
 import subprocess
 import sys
+
 import numpy
-
-from setuptools import setup, find_packages, Extension
-import setuptools.command.develop
 import setuptools.command.build_py
+import setuptools.command.develop
 
-# handle import if cython is not already installed.
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    # create closure for deferred import
-    def cythonize(*args, **kwargs):  #pylint: disable=redefined-outer-name
-        from Cython.Build import cythonize  #pylint: disable=redefined-outer-name, import-outside-toplevel
-        return cythonize(*args, **kwargs)
+from setuptools import find_packages, setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
 
-
+# parameters for wheeling server.
 parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
 parser.add_argument('--checkpoint',
                     type=str,
@@ -33,38 +27,25 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.8'
-
-# Adapted from https://github.com/pytorch/pytorch
+version = '0.0.9'
 cwd = os.path.dirname(os.path.abspath(__file__))
-if os.getenv('TTS_PYTORCH_BUILD_VERSION'):
-    version = os.getenv('TTS_PYTORCH_BUILD_VERSION')
-else:
-    try:
-        sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
-                                      cwd=cwd).decode('ascii').strip()
-        version += '+' + sha[:7]
-    except subprocess.CalledProcessError:
-        pass
-    except IOError:  # FileNotFoundError for python 3
-        pass
-
 
 # Handle Cython code
-def find_pyx(path='.'):
-    pyx_files = []
-    for root, _, filenames in os.walk(path):
-        for fname in filenames:
-            if fname.endswith('.pyx'):
-                pyx_files.append(os.path.join(root, fname))
-    return pyx_files
+# def find_pyx(path='.'):
+#     pyx_files = []
+#     for root, _, filenames in os.walk(path):
+#         for fname in filenames:
+#             if fname.endswith('.pyx'):
+#                 pyx_files.append(os.path.join(root, fname))
+#     return pyx_files
 
 
-def find_cython_extensions(path="."):
-    exts = cythonize(find_pyx(path), language_level=3)
-    for ext in exts:
-        ext.include_dirs = [numpy.get_include()]
-    return exts
+# def find_cython_extensions(path="."):
+#     exts = cythonize(find_pyx(path), language_level=3)
+#     for ext in exts:
+#         ext.include_dirs = [numpy.get_include()]
+
+#     return exts
 
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
@@ -105,12 +86,12 @@ def pip_install(package_name):
     subprocess.call([sys.executable, '-m', 'pip', 'install', package_name])
 
 
-reqs_from_file = open('requirements.txt').readlines()
-reqs_without_tf = [r for r in reqs_from_file if not r.startswith('tensorflow')]
-tf_req = [r for r in reqs_from_file if r.startswith('tensorflow')]
+requirements = open(os.path.join(cwd, 'requirements.txt'), 'r').readlines()
+with open('README.md', "r", encoding="utf-8") as readme_file:
+    README = readme_file.read()
 
-requirements = {'install_requires': reqs_without_tf, 'pip_install': tf_req}
-
+exts = [Extension(name='TTS.tts.layers.glow_tts.monotonic_align.core',
+                  sources=["TTS/tts/layers/glow_tts/monotonic_align/core.pyx"])]
 setup(
     name='TTS',
     version=version,
@@ -118,9 +99,15 @@ setup(
     author='Eren Gölge',
     author_email='egolge@mozilla.com',
     description='Text to Speech with Deep Learning',
+    long_description=README,
+    long_description_content_type="text/markdown",
     license='MPL-2.0',
-    entry_points={'console_scripts': ['tts-server = TTS.server.server:main']},
-    ext_modules=find_cython_extensions(),
+    # cython
+    include_dirs=numpy.get_include(),
+    ext_modules=cythonize(exts, language_level=3),
+    # ext_modules=find_cython_extensions(),
+    # package
+    include_package_data=True,
     packages=find_packages(include=['TTS*']),
     project_urls={
         'Documentation': 'https://github.com/mozilla/TTS/wiki',
@@ -131,9 +118,16 @@ setup(
     cmdclass={
         'build_py': build_py,
         'develop': develop,
+        # 'build_ext': build_ext
     },
-    install_requires=requirements['install_requires'],
-    python_requires='>=3.6.0',
+    install_requires=requirements,
+    python_requires='>=3.6.0, <3.9',
+    entry_points={
+        'console_scripts': [
+            'tts=TTS.bin.synthesize:main',
+            'tts-server = TTS.server.server:main'
+        ]
+    },
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
@@ -141,14 +135,16 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         'Development Status :: 3 - Alpha',
-        "Intended Audience :: Science/Research :: Developers",
+        "Intended Audience :: Science/Research",
+        "Intended Audience :: Developers",
         "Operating System :: POSIX :: Linux",
         'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
-        "Topic :: Software Development :: Libraries :: Python Modules :: Speech :: Sound/Audio :: Multimedia :: Artificial Intelligence",
-    ])
-
-# for some reason having tensorflow in 'install_requires'
-# breaks some of the dependencies.
-if 'bdist_wheel' not in unknown_args:
-    for module in requirements['pip_install']:
-        pip_install(module)
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Multimedia :: Sound/Audio :: Speech",
+        "Topic :: Multimedia :: Sound/Audio",
+        "Topic :: Multimedia",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence"
+    ],
+    zip_safe=False
+)

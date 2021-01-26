@@ -39,6 +39,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         self.upsample_factors = upsample_factors
         self.upsample_scale = np.prod(upsample_factors)
         self.inference_padding = inference_padding
+        self.use_weight_norm = use_weight_norm
 
         # check the number of layers and stacks
         assert num_res_blocks % stacks == 0
@@ -156,3 +157,12 @@ class ParallelWaveganGenerator(torch.nn.Module):
     def receptive_field_size(self):
         return self._get_receptive_field_size(self.layers, self.stacks,
                                               self.kernel_size)
+
+    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+        self.load_state_dict(state['model'])
+        if eval:
+            self.eval()
+            assert not self.training
+            if self.use_weight_norm:
+                self.remove_weight_norm()

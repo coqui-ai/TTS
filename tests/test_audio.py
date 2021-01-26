@@ -67,21 +67,21 @@ class TestAudio(unittest.TestCase):
         self.ap.symmetric_norm = False
         self.ap.clip_norm = False
         self.ap.max_norm = 4.0
-        x_norm = self.ap._normalize(x)
+        x_norm = self.ap.normalize(x)
         print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm + 1, x_norm.max()
         assert x_norm.min() >= 0 - 1, x_norm.min()
         # check denorm.
-        x_ = self.ap._denormalize(x_norm)
+        x_ = self.ap.denormalize(x_norm)
         assert (x - x_).sum() < 1e-3, (x - x_).mean()
 
         self.ap.signal_norm = True
         self.ap.symmetric_norm = False
         self.ap.clip_norm = True
         self.ap.max_norm = 4.0
-        x_norm = self.ap._normalize(x)
+        x_norm = self.ap.normalize(x)
         print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
 
 
@@ -90,14 +90,14 @@ class TestAudio(unittest.TestCase):
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
         assert x_norm.min() >= 0, x_norm.min()
         # check denorm.
-        x_ = self.ap._denormalize(x_norm)
+        x_ = self.ap.denormalize(x_norm)
         assert (x - x_).sum() < 1e-3, (x - x_).mean()
 
         self.ap.signal_norm = True
         self.ap.symmetric_norm = True
         self.ap.clip_norm = False
         self.ap.max_norm = 4.0
-        x_norm = self.ap._normalize(x)
+        x_norm = self.ap.normalize(x)
         print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
 
 
@@ -107,14 +107,14 @@ class TestAudio(unittest.TestCase):
         assert x_norm.min() >= -self.ap.max_norm - 2, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
-        x_ = self.ap._denormalize(x_norm)
+        x_ = self.ap.denormalize(x_norm)
         assert (x - x_).sum() < 1e-3, (x - x_).mean()
 
         self.ap.signal_norm = True
         self.ap.symmetric_norm = True
         self.ap.clip_norm = True
         self.ap.max_norm = 4.0
-        x_norm = self.ap._normalize(x)
+        x_norm = self.ap.normalize(x)
         print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
 
 
@@ -124,26 +124,26 @@ class TestAudio(unittest.TestCase):
         assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
-        x_ = self.ap._denormalize(x_norm)
+        x_ = self.ap.denormalize(x_norm)
         assert (x - x_).sum() < 1e-3, (x - x_).mean()
 
         self.ap.signal_norm = True
         self.ap.symmetric_norm = False
         self.ap.max_norm = 1.0
-        x_norm = self.ap._normalize(x)
+        x_norm = self.ap.normalize(x)
         print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
 
 
         assert (x_old - x).sum() == 0
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
         assert x_norm.min() >= 0, x_norm.min()
-        x_ = self.ap._denormalize(x_norm)
+        x_ = self.ap.denormalize(x_norm)
         assert (x - x_).sum() < 1e-3
 
         self.ap.signal_norm = True
         self.ap.symmetric_norm = True
         self.ap.max_norm = 1.0
-        x_norm = self.ap._normalize(x)
+        x_norm = self.ap.normalize(x)
         print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
 
 
@@ -151,7 +151,7 @@ class TestAudio(unittest.TestCase):
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
         assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
         assert x_norm.min() < 0, x_norm.min()
-        x_ = self.ap._denormalize(x_norm)
+        x_ = self.ap.denormalize(x_norm)
         assert (x - x_).sum() < 1e-3
 
     def test_scaler(self):
@@ -172,5 +172,5 @@ class TestAudio(unittest.TestCase):
         wav = self.ap.load_wav(WAV_FILE)
         mel_reference = self.ap.melspectrogram(wav)
         mel_norm = ap.melspectrogram(wav)
-        mel_denorm = ap._denormalize(mel_norm)
+        mel_denorm = ap.denormalize(mel_norm)
         assert abs(mel_reference - mel_denorm).max() < 1e-4

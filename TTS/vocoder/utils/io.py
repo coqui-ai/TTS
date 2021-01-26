@@ -6,7 +6,7 @@ import pickle as pickle_tts
 from TTS.utils.io import RenamingUnpickler
 
 
-def load_checkpoint(model, checkpoint_path, use_cuda=False):
+def load_checkpoint(model, checkpoint_path, use_cuda=False, eval=False):
     try:
         state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
     except ModuleNotFoundError:
@@ -15,6 +15,8 @@ def load_checkpoint(model, checkpoint_path, use_cuda=False):
     model.load_state_dict(state['model'])
     if use_cuda:
         model.cuda()
+    if eval:
+        model.eval()
     return model, state
 
 

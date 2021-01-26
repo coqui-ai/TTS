@@ -121,6 +121,14 @@ class TacotronAbstract(ABC, nn.Module):
     def inference(self):
         pass
 
+    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+        self.load_state_dict(state['model'])
+        self.decoder.set_r(state['r'])
+        if eval:
+            self.eval()
+            assert not self.training
+
     #############################
     # COMMON COMPUTE FUNCTIONS
     #############################

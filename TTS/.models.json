@@ -1,0 +1,77 @@
+{
+    "tts_models":{
+        "en":{
+            "ljspeech":{
+                "glow-tts":{
+                    "description": "",
+                    "model_file": "1NFsfhH8W8AgcfJ-BsL8CYAwQfZ5k4T-n",
+                    "config_file": "1IAROF3yy9qTK43vG_-R67y3Py9yYbD6t",
+                    "stats_file": null,
+                    "commit": ""
+                },
+                "tacotron2-DCA": {
+                    "description": "",
+                    "model_file": "1CFoPDQBnhfBFu2Gc0TBSJn8o-TuNKQn7",
+                    "config_file": "1lWSscNfKet1zZSJCNirOn7v9bigUZ8C1",
+                    "stats_file": "1qevpGRVHPmzfiRBNuugLMX62x1k7B5vK",
+                    "commit": ""
+                },
+                "speedy-speech-wn":{
+                    "description": "Speedy Speech model with wavenet decoder.",
+                    "model_file": "1VXAwiq6N-Viq3rsSXlf43bdoi0jSvMAJ",
+                    "config_file": "1KvZilhsNP3EumVggDcD46yd834eO5hR3",
+                    "stats_file": "1Ju7apZ5JlgsVECcETL-GEx3DRoNzWfkR",
+                    "commit": "77b6145"
+                }
+            }
+        },
+        "es":{
+            "mai":{
+                "tacotron2-DDC":{
+                    "model_file": "1jZ4HvYcAXI5ZClke2iGA7qFQQJBXIovw",
+                    "config_file": "1s7g4n-B73ChCB48AQ88_DV_8oyLth8r0",
+                    "stats_file": "13st0CZ743v6Br5R5Qw_lH1OPQOr3M-Jv",
+                    "commit": ""
+                }
+            }
+        },
+        "fr":{
+            "mai":{
+                "tacotron2-DDC":{
+                    "model_file": "1qyxrrCyoXUvBG2lqVd0KqAlHj-2nZCgS",
+                    "config_file": "1yECKeP2LI7tNv4E8yVNx1yLmCfTCpkqG",
+                    "stats_file": "13st0CZ743v6Br5R5Qw_lH1OPQOr3M-Jv",
+                    "commit": ""
+                }
+            }
+        }
+    },
+    "vocoder_models":{
+        "universal":{
+            "libri-tts":{
+                "wavegrad":{
+                    "model_file": "1r2g90JaZsfCj9dJkI9ioIU6JCFMPRqi6",
+                    "config_file": "1POrrLf5YEpZyjvWyMccj1nGCVc94mR6s",
+                    "stats_file": "1Vwbv4t-N1i3jXqI0bgKAhShAEO097sK0",
+                    "commit": "ea976b0"
+                },
+                "fullband-melgan":{
+                    "model_file": "1Ty5DZdOc0F7OTGj9oJThYbL5iVu_2G0K",
+                    "config_file": "1Rd0R_nRCrbjEdpOwq6XwZAktvugiBvmu",
+                    "stats_file": "11oY3Tv0kQtxK_JPgxrfesa99maVXHNxU",
+                    "commit": "4132240"
+                }
+            }
+        },
+        "en": {
+            "ljspeech":{
+                "mulitband-melgan":{
+                    "model_file": "1Ty5DZdOc0F7OTGj9oJThYbL5iVu_2G0K",
+                    "config_file": "1Rd0R_nRCrbjEdpOwq6XwZAktvugiBvmu",
+                    "stats_file": "11oY3Tv0kQtxK_JPgxrfesa99maVXHNxU",
+                    "commit": "ea976b0"
+                }
+            }
+        }
+    }
+}
