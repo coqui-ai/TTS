@@ -51,7 +51,7 @@ class ModelManager(object):
         for model_type in self.models_dict:
             for lang in self.models_dict[model_type]:
                 for dataset in self.models_dict[model_type][lang]:
-                   for model in self.models_dict[model_type][lang][dataset]:
+                    for model in self.models_dict[model_type][lang][dataset]:
                         print(f" >: {model_type}/{lang}/{dataset}/{model} ")
 
     def download_model(self, model_name):
@@ -66,9 +66,9 @@ class ModelManager(object):
         TODO: support multi-speaker models
         """
         # fetch model info from the dict
-        type, lang, dataset, model = model_name.split("/")
-        model_full_name = f"{type}--{lang}--{dataset}--{model}"
-        model_item = self.models_dict[type][lang][dataset][model]
+        model_type, lang, dataset, model = model_name.split("/")
+        model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
+        model_item = self.models_dict[model_type][lang][dataset][model]
         # set the model specific output path
         output_path = os.path.join(self.output_prefix, model_full_name)
         output_model_path = os.path.join(output_path, "model_file.pth.tar")
@@ -93,8 +93,8 @@ class ModelManager(object):
                     json.dump(config, jf)
         return output_model_path, output_config_path
 
-    def _download_file(self, id, output):
-        gdown.download(f"{self.url_prefix}{id}", output=output)
+    def _download_file(self, idx, output):
+        gdown.download(f"{self.url_prefix}{idx}", output=output)
 
 
 

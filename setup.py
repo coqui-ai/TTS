@@ -5,22 +5,16 @@ import os
 import shutil
 import subprocess
 import sys
+
 import numpy
-
-from setuptools import setup, find_packages
-import setuptools.command.develop
 import setuptools.command.build_py
+import setuptools.command.develop
 
-# handle import if cython is not already installed.
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    # create closure for deferred import
-    def cythonize(*args, **kwargs):  #pylint: disable=redefined-outer-name
-        from Cython.Build import cythonize  #pylint: disable=redefined-outer-name, import-outside-toplevel
-        return cythonize(*args, **kwargs)
+from setuptools import find_packages, setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
 
-
+# parameters for wheeling server.
 parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
 parser.add_argument('--checkpoint',
                     type=str,
@@ -33,24 +27,24 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.9a9'
+version = '0.0.9a10'
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 # Handle Cython code
-def find_pyx(path='.'):
-    pyx_files = []
-    for root, _, filenames in os.walk(path):
-        for fname in filenames:
-            if fname.endswith('.pyx'):
-                pyx_files.append(os.path.join(root, fname))
-    return pyx_files
+# def find_pyx(path='.'):
+#     pyx_files = []
+#     for root, _, filenames in os.walk(path):
+#         for fname in filenames:
+#             if fname.endswith('.pyx'):
+#                 pyx_files.append(os.path.join(root, fname))
+#     return pyx_files
 
 
-def find_cython_extensions(path="."):
-    exts = cythonize(find_pyx(path), language_level=3)
-    for ext in exts:
-        ext.include_dirs = [numpy.get_include()]
-    return exts
+# def find_cython_extensions(path="."):
+#     exts = cythonize(find_pyx(path), language_level=3)
+#     for ext in exts:
+#         ext.include_dirs = [numpy.get_include()]
+#     return exts
 
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
@@ -95,6 +89,8 @@ requirements = open(os.path.join(cwd, 'requirements.txt'), 'r').readlines()
 with open('README.md', "r", encoding="utf-8") as readme_file:
     README = readme_file.read()
 
+exts = [Extension(name='TTS.tts.layers.glow_tts.monotonic_align.core',
+                  sources=["TTS/tts/layers/glow_tts/monotonic_align/core.pyx"])]
 setup(
     name='TTS',
     version=version,
@@ -105,8 +101,12 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     license='MPL-2.0',
-    include_package_data = True,
-    ext_modules=find_cython_extensions(),
+    # cython
+    include_dirs=numpy.get_include(),
+    ext_modules=cythonize(exts, language_level=3),
+    # ext_modules=find_cython_extensions(),
+    # package
+    include_package_data=True,
     packages=find_packages(include=['TTS*']),
     project_urls={
         'Documentation': 'https://github.com/mozilla/TTS/wiki',
@@ -117,6 +117,7 @@ setup(
     cmdclass={
         'build_py': build_py,
         'develop': develop,
+        # 'build_ext': build_ext
     },
     install_requires=requirements,
     python_requires='>=3.6.0, <3.9',
@@ -144,4 +145,6 @@ setup(
         "Topic :: Multimedia :: Sound/Audio",
         "Topic :: Multimedia",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"
-    ])
+    ],
+    zip_safe=False
+)
