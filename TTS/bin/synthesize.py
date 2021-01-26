@@ -150,10 +150,6 @@ def main():
     config_path = None
     vocoder_path = None
     vocoder_config_path = None
-    model = None
-    vocoder_model = None
-    vocoder_config = None
-    vocoder_ap = None
 
     # CASE1: list pre-trained TTS models
     if args.list_models:
