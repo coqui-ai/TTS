@@ -3,6 +3,8 @@ import glob
 import os
 import shutil
 import subprocess
+import sys
+from pathlib import Path
 
 import torch
 
@@ -67,6 +69,22 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+def get_user_data_dir(appname):
+    if sys.platform == "win32":
+        import winreg  # pylint: disable=import-outside-toplevel
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+        )
+        dir_, _ = winreg.QueryValueEx(key, "Local AppData")
+        ans = Path(dir_).resolve(strict=False)
+    elif sys.platform == 'darwin':
+        ans = Path('~/Library/Application Support/').expanduser()
+    else:
+        ans = Path.home().joinpath('.local/share')
+    return ans.joinpath(appname)
+
+
 def set_init_dict(model_dict, checkpoint_state, c):
     # Partial initialization: if there is a mismatch with new and old layer, it is skipped.
     for k, v in checkpoint_state.items():
@@ -96,6 +114,7 @@ def set_init_dict(model_dict, checkpoint_state, c):
     print(" | > {} / {} layers are restored.".format(len(pretrained_dict),
                                                      len(model_dict)))
     return model_dict
+
 
 class KeepAverage():
     def __init__(self):

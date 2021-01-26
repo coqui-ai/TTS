@@ -4,7 +4,7 @@ from pathlib import Path
 import os
 
 from TTS.utils.io import load_config
-
+from TTS.utils.generic_utils import get_user_data_dir
 
 class ModelManager(object):
     """Manage TTS models defined in .models.json.
@@ -19,7 +19,7 @@ class ModelManager(object):
     """
     def __init__(self, models_file):
         super().__init__()
-        self.output_prefix = os.path.join(str(Path.home()), '.tts')
+        self.output_prefix = get_user_data_dir('tts')
         self.url_prefix = "https://drive.google.com/uc?id="
         self.models_dict = None
         self.read_models_file(models_file)
