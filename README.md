@@ -35,6 +35,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 ## 🔗 Links and Resources
 | Type                            | Links                               |
 | ------------------------------- | --------------------------------------- |
+| 💾 **Installation** | [TTS/README.md](https://github.com/mozilla/TTS/tree/dev#install-tts)|
 | 👩🏾‍🏫 **Tutorials and Examples**  | [TTS/Wiki](https://github.com/mozilla/TTS/wiki/TTS-Notebooks-and-Tutorials) |
 | 🚀 **Released Models**         | [TTS/Wiki](https://github.com/mozilla/TTS/wiki/Released-Models)|
 | 💻 **Docker Image**            | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-mozillatts)|
