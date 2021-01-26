@@ -44,6 +44,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 #     exts = cythonize(find_pyx(path), language_level=3)
 #     for ext in exts:
 #         ext.include_dirs = [numpy.get_include()]
+
 #     return exts
 
 
@@ -133,7 +134,6 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         'Development Status :: 3 - Alpha',
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
