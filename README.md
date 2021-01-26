@@ -93,6 +93,13 @@ You can also help us implement more models. Some TTS related work can be found [
 ## Install TTS
 TTS supports **python >= 3.6, <3.9**.
 
+If you are only interested in [synthesizing speech](https://github.com/mozilla/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released TTS models, installing from PyPI is the easiest option.
+
+```pip install TTS```
+
+If you plan to code or train models, clone TTS and install it locally.
+
+```git clone https://github.com/mozilla/TTS```
 ```pip install .``` or ```pip install -e .``` to keep your installation in your working directory.
 
 ## Directory Structure
