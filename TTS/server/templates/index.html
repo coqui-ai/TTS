@@ -62,6 +62,9 @@
           </ul>
           <input id="text" placeholder="Type here..." size=45 type="text" name="text">
           <button id="speak-button" name="speak">Speak</button><br/><br/>
+          {%if show_details%}
+            <button id="details-button" onclick="location.href = 'details'" name="model-details">Model Details</button><br/><br/>
+          {%endif%}
           <audio id="audio" controls autoplay hidden></audio>
           <p id="message"></p>
         </div>
