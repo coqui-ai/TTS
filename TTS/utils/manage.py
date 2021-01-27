@@ -52,7 +52,12 @@ class ModelManager(object):
             for lang in self.models_dict[model_type]:
                 for dataset in self.models_dict[model_type][lang]:
                     for model in self.models_dict[model_type][lang][dataset]:
-                        print(f" >: {model_type}/{lang}/{dataset}/{model} ")
+                        model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
+                        output_path = os.path.join(self.output_prefix, model_full_name)
+                        if os.path.exists(output_path):
+                            print(f" >: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
+                        else:
+                            print(f" >: {model_type}/{lang}/{dataset}/{model}")
 
     def download_model(self, model_name):
         """Download model files given the full model name.
