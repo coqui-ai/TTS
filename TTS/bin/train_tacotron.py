@@ -534,7 +534,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         optimizer_st = None
 
     # setup criterion
-    criterion = TacotronLoss(c, stopnet_pos_weight=10.0, ga_sigma=0.4)
+    criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
