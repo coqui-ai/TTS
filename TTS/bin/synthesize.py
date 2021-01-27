@@ -35,6 +35,9 @@ def main():
     # list provided models
     ./TTS/bin/synthesize.py --list_models
 
+    # run tts with default models.
+    ./TTS/bin synthesize.py --text "Text for TTS"
+
     # run a model from the list
     ./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
 
@@ -67,14 +70,14 @@ def main():
     parser.add_argument(
         '--model_name',
         type=str,
-        default=None,
+        default="tts_models/en/ljspeech/speedy-speech-wn",
         help=
         'Name of one of the pre-trained tts models in format <language>/<dataset>/<model_name>'
     )
     parser.add_argument(
         '--vocoder_name',
         type=str,
-        default=None,
+        default="vocoder_models/en/ljspeech/mulitband-melgan",
         help=
         'Name of one of the pre-trained  vocoder models in format <language>/<dataset>/<model_name>'
     )
