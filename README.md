@@ -97,13 +97,13 @@ TTS supports **python >= 3.6, <3.9**.
 
 If you are only interested in [synthesizing speech](https://github.com/mozilla/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released TTS models, installing from PyPI is the easiest option.
 
-```
+```bash
 pip install TTS
 ```
 
 If you plan to code or train models, clone TTS and install it locally.
 
-```
+```bash
 git clone https://github.com/mozilla/TTS
 pip install -e .
 ```
@@ -157,12 +157,12 @@ Some of the public datasets that we successfully applied TTS:
 After the installation, TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under the TTS project.
 
 Listing released TTS models.
-```
+```bash
 tts --list_models
 ```
 
 Run a tts and a vocoder model from the released model list. (Simply copy and paste the full model names from the list as arguments for the command below.)
-```console
+```bash
 tts --text "Text for TTS" \
     --model_name "<type>/<language>/<dataset>/<model_name>" \
     --vocoder_name "<type>/<language>/<dataset>/<model_name>" \
@@ -170,7 +170,7 @@ tts --text "Text for TTS" \
 ```
 
 Run your own TTS model (Using Griffin-Lim Vocoder)
-```console
+```bash
 tts --text "Text for TTS" \
     --model_path path/to/model.pth.tar \
     --config_path path/to/config.json \
@@ -178,7 +178,7 @@ tts --text "Text for TTS" \
 ```
 
 Run your own TTS and Vocoder models
-```console
+```bash
 tts --text "Text for TTS" \
     --model_path path/to/config.json \
     --config_path path/to/model.pth.tar \
@@ -204,19 +204,27 @@ To train a new model, you need to define your own ```config.json``` to define mo
 
 For instance, in order to train a tacotron or tacotron2 model on LJSpeech dataset, follow these steps.
 
-```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json```
+```bash
+python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json
+```
 
 To fine-tune a model, use ```--restore_path```.
 
-```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
+```bash
+python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar
+```
 
 To continue an old training run, use ```--continue_path```.
 
-```python TTS/bin/train_tacotron.py --continue_path /path/to/your/run_folder/```
+```bash
+python TTS/bin/train_tacotron.py --continue_path /path/to/your/run_folder/
+```
 
 For multi-GPU training, call ```distribute.py```. It runs any provided train script in multi-GPU setting.
 
-```CUDA_VISIBLE_DEVICES="0,1,4" python TTS/bin/distribute.py --script train_tacotron.py --config_path TTS/tts/configs/config.json```
+```bash
+CUDA_VISIBLE_DEVICES="0,1,4" python TTS/bin/distribute.py --script train_tacotron.py --config_path TTS/tts/configs/config.json
+```
 
 Each run creates a new output folder accomodating used ```config.json```, model checkpoints and tensorboard logs.
 
