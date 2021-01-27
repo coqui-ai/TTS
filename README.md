@@ -8,11 +8,11 @@
 [![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
 [![Covenant](https://camo.githubusercontent.com/7d620efaa3eac1c5b060ece5d6aacfcc8b81a74a04d05cd0398689c01c4463bb/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f436f6e7472696275746f72253230436f76656e616e742d76322e3025323061646f707465642d6666363962342e737667)](https://github.com/coqui-ai/TTS/blob/master/CODE_OF_CONDUCT.md)
 
-:loudspeaker: [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
+📢 [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
 
-:man_cook:  [TTS training recipes](https://github.com/erogol/TTS_recipes)
+👩🏽‍🍳  [TTS training recipes](https://github.com/erogol/TTS_recipes)
 
-:page_facing_up: [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
+📄 [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
 
 ## 💬 Where to ask questions
 Please use our dedicated channels for questions and discussion. Help is much more valuable if it's shared publicly, so that more people can benefit from it.
