@@ -11,7 +11,7 @@ from TTS.tts.utils.speakers import load_speaker_mapping
 from TTS.vocoder.utils.generic_utils import setup_generator, interpolate_vocoder_input
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
-from TTS.tts.utils.synthesis import *
+from TTS.tts.utils.synthesis import synthesis, trim_silence
 
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
 

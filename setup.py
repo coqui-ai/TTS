@@ -5,14 +5,20 @@ import os
 import shutil
 import subprocess
 import sys
+from distutils.extension import Extension
+from distutils.version import LooseVersion
 
 import numpy
 import setuptools.command.build_py
 import setuptools.command.develop
-
-from setuptools import find_packages, setup
-from distutils.extension import Extension
 from Cython.Build import cythonize
+from setuptools import find_packages, setup
+
+if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.9"):
+    raise RuntimeError(
+        "TTS requires python >= 3.6 and <3.9 "
+        "but your Python version is {}".format(sys.version)
+    )
 
 # parameters for wheeling server.
 parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
