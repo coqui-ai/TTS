@@ -5,13 +5,12 @@ import os
 import shutil
 import subprocess
 import sys
-from distutils.extension import Extension
 from distutils.version import LooseVersion
 
 import numpy
 import setuptools.command.build_py
 import setuptools.command.develop
-from setuptools import find_packages, setup
+from setuptools import setup, Extension, find_packages
 from Cython.Build import cythonize
 
 
