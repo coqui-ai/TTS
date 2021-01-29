@@ -11,8 +11,9 @@ from distutils.version import LooseVersion
 import numpy
 import setuptools.command.build_py
 import setuptools.command.develop
-from Cython.Build import cythonize
 from setuptools import find_packages, setup
+from Cython.Build import cythonize
+
 
 if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.9"):
     raise RuntimeError(
