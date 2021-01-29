@@ -344,6 +344,10 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup criterion
     criterion = torch.nn.L1Loss().cuda()
+    
+    if use_cuda:
+        model.cuda()
+        criterion.cuda()
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
@@ -377,10 +381,6 @@ def main(args):  # pylint: disable=redefined-outer-name
         args.restore_step = checkpoint['step']
     else:
         args.restore_step = 0
-
-    if use_cuda:
-        model.cuda()
-        criterion.cuda()
 
     # DISTRUBUTED
     if num_gpus > 1:
