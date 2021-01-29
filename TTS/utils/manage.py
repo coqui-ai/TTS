@@ -1,10 +1,11 @@
 import json
-import gdown
-from pathlib import Path
 import os
+from pathlib import Path
 
-from TTS.utils.io import load_config
+import gdown
 from TTS.utils.generic_utils import get_user_data_dir
+from TTS.utils.io import load_config
+
 
 class ModelManager(object):
     """Manage TTS models defined in .models.json.
@@ -17,12 +18,17 @@ class ModelManager(object):
     Args:
         models_file (str): path to .model.json
     """
-    def __init__(self, models_file):
+    def __init__(self, models_file=None):
         super().__init__()
         self.output_prefix = get_user_data_dir('tts')
         self.url_prefix = "https://drive.google.com/uc?id="
         self.models_dict = None
-        self.read_models_file(models_file)
+        if models_file is not None:
+            self.read_models_file(models_file)
+        else:
+            # try the default location
+            path = Path(__file__).parent / "../.models.json"
+            self.read_models_file(path)
 
     def read_models_file(self, file_path):
         """Read .models.json as a dict
