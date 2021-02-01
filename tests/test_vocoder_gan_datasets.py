@@ -61,7 +61,8 @@ def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_segments, us
                     mel = ap.melspectrogram(audio)
                     # the first 2 and the last 2 frames are skipped due to the padding
                     # differences in stft
-                    assert (feat - mel[:, :feat1.shape[-1]])[:, 2:-2].sum() <= 0, f' [!] {(feat - mel[:, :feat1.shape[-1]])[:, 2:-2].sum()}'
+                    max_diff = abs((feat - mel[:, :feat1.shape[-1]])[:, 2:-2]).max()
+                    assert max_diff <= 0, f' [!] {max_diff}'
 
             count_iter += 1
             # if count_iter == max_iter:
