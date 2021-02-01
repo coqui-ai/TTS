@@ -344,7 +344,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup criterion
     criterion = torch.nn.L1Loss().cuda()
-    
+
     if use_cuda:
         model.cuda()
         criterion.cuda()
