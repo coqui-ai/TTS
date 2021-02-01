@@ -1,12 +1,11 @@
 torch>=1.5
 tensorflow==2.3.1
-numpy>=1.16.0
+numpy==1.17.5
 scipy>=0.19.0
 numba==0.48
 librosa==0.7.2
 phonemizer>=2.2.0
 unidecode==0.4.20
-attrdict
 tensorboardX
 matplotlib
 Pillow
