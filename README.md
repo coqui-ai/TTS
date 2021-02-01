@@ -91,7 +91,11 @@ Underlined "TTS*" and "Judy*" are :frog:TTS models
 You can also help us implement more models. Some :frog: TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
 ## Install TTS
+<<<<<<< HEAD
 :frog: TTS is tested on Ubuntu 18.04 with **python >= 3.6, < 3.9**.
+=======
+TTS is tested on Ubuntu 18.04 with **python >= 3.6, <3.9**.
+>>>>>>> readme update for espeak install
 
 If you are only interested in [synthesizing speech](https://github.com/coqui-ai/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released :frog: TTS models, installing from PyPI is the easiest option.
 
@@ -104,6 +108,11 @@ If you plan to code or train models, clone :frog: TTS and install it locally.
 ```bash
 git clone https://github.com/coqui-ai/TTS
 pip install -e .
+```
+
+We use ```espeak``` to convert graphemes to phonemes. You might need to install separately.
+```bash
+sudo apt-get install espeak 
 ```
 
 ## Directory Structure
