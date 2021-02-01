@@ -292,6 +292,7 @@ class AudioProcessor(object):
         return pad // 2, pad // 2 + pad % 2
 
     ### Compute F0 ###
+    # TODO: pw causes some dep issues
     # def compute_f0(self, x):
     #     f0, t = pw.dio(
     #         x.astype(np.double),
