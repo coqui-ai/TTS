@@ -200,7 +200,7 @@ def train(model, optimizer, criterion, scheduler, scaler, ap, global_step, epoch
                 train_data[rand_idx], (tuple, list)) else train_data[rand_idx][0]
             wav = ap.load_wav(wav_path)
             ground_mel = ap.melspectrogram(wav)
-            sample_wav = model.generate(ground_mel,
+            sample_wav = model.inference(ground_mel,
                                         c.batched,
                                         c.target_samples,
                                         c.overlap_samples,
@@ -287,7 +287,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
             eval_data[rand_idx], (tuple, list)) else eval_data[rand_idx][0]
         wav = ap.load_wav(wav_path)
         ground_mel = ap.melspectrogram(wav)
-        sample_wav = model.generate(ground_mel,
+        sample_wav = model.inference(ground_mel,
                                     c.batched,
                                     c.target_samples,
                                     c.overlap_samples,
