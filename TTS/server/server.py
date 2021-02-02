@@ -17,8 +17,8 @@ def create_argparser():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--list_models', type=convert_boolean, nargs='?', const=True, default=False, help='list available pre-trained tts and vocoder models.')
-    parser.add_argument('--model_name', type=str, help='name of one of the released tts models.')
-    parser.add_argument('--vocoder_name', type=str, help='name of one of the released vocoder models.')
+    parser.add_argument('--model_name', type=str, default="tts_models/en/ljspeech/speedy-speech-wn", help='name of one of the released tts models.')
+    parser.add_argument('--vocoder_name', type=str, default="vocoder_models/en/ljspeech/mulitband-melgan", help='name of one of the released vocoder models.')
     parser.add_argument('--tts_checkpoint', type=str, help='path to custom tts checkpoint file')
     parser.add_argument('--tts_config', type=str, help='path to custom tts config.json file')
     parser.add_argument('--tts_speakers', type=str, help='path to JSON file containing speaker ids, if speaker ids are used in the model')

@@ -10,11 +10,11 @@ TTS comes with [pretrained models](https://github.com/mozilla/TTS/wiki/Released-
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 [![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
 
-:loudspeaker: [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
+📢 [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
 
-:man_cook:  [TTS training recipes](https://github.com/erogol/TTS_recipes)
+👩🏽‍🍳  [TTS training recipes](https://github.com/erogol/TTS_recipes)
 
-:page_facing_up: [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
+📄 [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
 
 ## 💬 Where to ask questions
 Please use our dedicated channels for questions and discussion. Help is much more valuable if it's shared publicly, so that more people can benefit from it.
@@ -93,19 +93,24 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 You can also help us implement more models. Some TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
 ## Install TTS
-TTS supports **python >= 3.6, <3.9**.
+TTS is tested on Ubuntu 18.04 with **python >= 3.6, <3.9**.
 
 If you are only interested in [synthesizing speech](https://github.com/mozilla/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released TTS models, installing from PyPI is the easiest option.
 
-```
+```bash
 pip install TTS
 ```
 
 If you plan to code or train models, clone TTS and install it locally.
 
-```
+```bash
 git clone https://github.com/mozilla/TTS
 pip install -e .
+```
+
+We use ```espeak``` to convert graphemes to phonemes. You might need to install separately.
+```bash
+sudo apt-get install espeak 
 ```
 
 ## Directory Structure
@@ -157,16 +162,35 @@ Some of the public datasets that we successfully applied TTS:
 After the installation, TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under the TTS project.
 
 Listing released TTS models.
-```tts --list_models```
+```bash
+tts --list_models
+```
 
 Run a tts and a vocoder model from the released model list. (Simply copy and paste the full model names from the list as arguments for the command below.)
-```tts --text "Text for TTS" --model_name "<type>/<language>/<dataset>/<model_name>" --vocoder_name "<type>/<language>/<dataset>/<model_name>" --output_path```
+```bash
+tts --text "Text for TTS" \
+    --model_name "<type>/<language>/<dataset>/<model_name>" \
+    --vocoder_name "<type>/<language>/<dataset>/<model_name>" \
+    --out_path folder/to/save/output/
+```
 
 Run your own TTS model (Using Griffin-Lim Vocoder)
-```tts --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav```
+```bash
+tts --text "Text for TTS" \
+    --model_path path/to/model.pth.tar \
+    --config_path path/to/config.json \
+    --out_path output/path/speech.wav
+```
 
 Run your own TTS and Vocoder models
-```tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json```
+```bash
+tts --text "Text for TTS" \
+    --model_path path/to/config.json \
+    --config_path path/to/model.pth.tar \
+    --out_path output/path/speech.wav \
+    --vocoder_path path/to/vocoder.pth.tar \
+    --vocoder_config_path path/to/vocoder_config.json
+```
 
 **Note:** You can use ```./TTS/bin/synthesize.py``` if you prefer running ```tts``` from the TTS project folder.
 
@@ -185,19 +209,27 @@ To train a new model, you need to define your own ```config.json``` to define mo
 
 For instance, in order to train a tacotron or tacotron2 model on LJSpeech dataset, follow these steps.
 
-```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json```
+```bash
+python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json
+```
 
 To fine-tune a model, use ```--restore_path```.
 
-```python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar```
+```bash
+python TTS/bin/train_tacotron.py --config_path TTS/tts/configs/config.json --restore_path /path/to/your/model.pth.tar
+```
 
 To continue an old training run, use ```--continue_path```.
 
-```python TTS/bin/train_tacotron.py --continue_path /path/to/your/run_folder/```
+```bash
+python TTS/bin/train_tacotron.py --continue_path /path/to/your/run_folder/
+```
 
 For multi-GPU training, call ```distribute.py```. It runs any provided train script in multi-GPU setting.
 
-```CUDA_VISIBLE_DEVICES="0,1,4" python TTS/bin/distribute.py --script train_tacotron.py --config_path TTS/tts/configs/config.json```
+```bash
+CUDA_VISIBLE_DEVICES="0,1,4" python TTS/bin/distribute.py --script train_tacotron.py --config_path TTS/tts/configs/config.json
+```
 
 Each run creates a new output folder accomodating used ```config.json```, model checkpoints and tensorboard logs.
 

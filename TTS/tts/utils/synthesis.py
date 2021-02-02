@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import pkg_resources
 installed = {pkg.key for pkg in pkg_resources.working_set}  #pylint: disable=not-an-iterable
 if 'tensorflow' in installed or 'tensorflow-gpu' in installed:

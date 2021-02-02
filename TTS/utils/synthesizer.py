@@ -11,7 +11,7 @@ from TTS.tts.utils.speakers import load_speaker_mapping
 from TTS.vocoder.utils.generic_utils import setup_generator, interpolate_vocoder_input
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
-from TTS.tts.utils.synthesis import *
+from TTS.tts.utils.synthesis import synthesis, trim_silence
 
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
 
@@ -79,7 +79,7 @@ class Synthesizer(object):
 
         self.tts_config = load_config(tts_config)
         self.use_phonemes = self.tts_config.use_phonemes
-        self.ap = AudioProcessor(**self.tts_config.audio)
+        self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
         if 'characters' in self.tts_config.keys():
             symbols, phonemes = make_symbols(**self.tts_config.characters)
@@ -96,7 +96,7 @@ class Synthesizer(object):
 
     def load_vocoder(self, model_file, model_config, use_cuda):
         self.vocoder_config = load_config(model_config)
-        self.vocoder_ap = AudioProcessor(**self.vocoder_config['audio'])
+        self.vocoder_ap = AudioProcessor(verbose=False, **self.vocoder_config['audio'])
         self.vocoder_model = setup_generator(self.vocoder_config)
         self.vocoder_model.load_checkpoint(self.vocoder_config, model_file, eval=True)
         if use_cuda:
