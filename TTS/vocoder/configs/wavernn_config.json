@@ -56,6 +56,9 @@
         "upsample_factors": [4, 8, 8] 	// this needs to correctly factorise hop_length
     },
 
+// GENERATOR - for backward compatibility
+    "generator_model": "WaveRNN",
+
 // DATASET
     //"use_gta": true,								// use computed gta features from the tts model
     "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/", // path containing training wav files
