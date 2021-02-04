@@ -32,7 +32,7 @@ from TTS.vocoder.datasets.preprocess import (
     load_wav_feat_data
 )
 from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
-from TTS.vocoder.utils.generic_utils import setup_wavernn
+from TTS.vocoder.utils.generic_utils import setup_generator
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
 
 
@@ -200,9 +200,14 @@ def train(model, optimizer, criterion, scheduler, scaler, ap, global_step, epoch
                 train_data[rand_idx], (tuple, list)) else train_data[rand_idx][0]
             wav = ap.load_wav(wav_path)
             ground_mel = ap.melspectrogram(wav)
-            sample_wav = model.inference(ground_mel, c.batched,
-                                         c.target_samples, c.overlap_samples,
-                                         use_cuda)
+            ground_mel = torch.FloatTensor(ground_mel)
+            if use_cuda:
+                ground_mel = ground_mel.cuda(non_blocking=True)
+            sample_wav = model.inference(ground_mel,
+                                         c.batched,
+                                         c.target_samples,
+                                         c.overlap_samples,
+                                         )
             predict_mel = ap.melspectrogram(sample_wav)
 
             # compute spectrograms
@@ -284,8 +289,14 @@ def evaluate(model, criterion, ap, global_step, epoch):
             eval_data[rand_idx], (tuple, list)) else eval_data[rand_idx][0]
         wav = ap.load_wav(wav_path)
         ground_mel = ap.melspectrogram(wav)
-        sample_wav = model.inference(ground_mel, c.batched, c.target_samples,
-                                     c.overlap_samples, use_cuda)
+        ground_mel = torch.FloatTensor(ground_mel)
+        if use_cuda:
+            ground_mel = ground_mel.cuda(non_blocking=True)
+        sample_wav = model.inference(ground_mel,
+                                     c.batched,
+                                     c.target_samples,
+                                     c.overlap_samples,
+                                     )
         predict_mel = ap.melspectrogram(sample_wav)
 
         # Sample audio
@@ -343,7 +354,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         eval_data, train_data = load_wav_data(
             c.data_path, c.eval_split_size)
     # setup model
-    model_wavernn = setup_wavernn(c)
+    model_wavernn = setup_generator(c)
 
     # setup amp scaler
     scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
