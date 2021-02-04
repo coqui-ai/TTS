@@ -83,7 +83,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 - Angular Loss: [paper](https://arxiv.org/pdf/2003.11982.pdf)
 
 ### Vocoders
-- MelGAN: [paper](https://arxiv.org/abs/1710.10467)
+- MelGAN: [paper](https://arxiv.org/abs/1910.06711)
 - MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
 - ParallelWaveGAN: [paper](https://arxiv.org/abs/1910.11480)
 - GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
