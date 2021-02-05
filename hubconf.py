@@ -1,11 +1,11 @@
-dependencies = ['torch', 'gdown', 'pysbd']
+dependencies = ['torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode']  # apt install espeak
 import torch
 
 from TTS.utils.synthesizer import Synthesizer
 from TTS.utils.manage import ModelManager
 
 
-def tts(model_name='tts_models/en/ljspeech/tacotron2-DCA', vocoder_name='vocoder_models/en/ljspeech/mulitband-melgan'):
+def tts(model_name='tts_models/en/ljspeech/tacotron2-DCA', vocoder_name='vocoder_models/en/ljspeech/mulitband-melgan', use_cuda=False):
     """TTS entry point for PyTorch Hub that provides a Synthesizer object to synthesize speech from a give text.
 
     Example:
@@ -27,7 +27,7 @@ def tts(model_name='tts_models/en/ljspeech/tacotron2-DCA', vocoder_name='vocoder
     vocoder_path, vocoder_config_path = manager.download_model(vocoder_name)
 
     # create synthesizer
-    synt = Synthesizer(model_path, config_path, vocoder_path, vocoder_config_path)
+    synt = Synthesizer(model_path, config_path, vocoder_path, vocoder_config_path, use_cuda)
     return synt
 
 
