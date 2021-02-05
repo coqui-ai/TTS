@@ -105,7 +105,7 @@ class ModelManager(object):
         return output_model_path, output_config_path
 
     def _download_file(self, idx, output):
-        gdown.download(f"{self.url_prefix}{idx}", output=output)
+        gdown.download(f"{self.url_prefix}{idx}", output=output, quiet=False)
 
 
 
