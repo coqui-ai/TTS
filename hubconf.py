@@ -1,4 +1,4 @@
-dependencies = ['torch', 'gdown']
+dependencies = ['torch', 'gdown', 'pysbd']
 import torch
 
 from TTS.utils.synthesizer import Synthesizer
