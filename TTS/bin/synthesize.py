@@ -179,7 +179,6 @@ def main():
     # load models
     synthesizer = Synthesizer(model_path, config_path, vocoder_path, vocoder_config_path, args.use_cuda)
 
-    use_griffin_lim = vocoder_path is None
     print(" > Text: {}".format(args.text))
 
     # # handle multi-speaker setting

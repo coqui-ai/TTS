@@ -178,10 +178,10 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
 
             # compute loss
             loss_dict = criterion(postnet_output, decoder_output, mel_input,
-                                linear_input, stop_tokens, stop_targets,
-                                mel_lengths, decoder_backward_output,
-                                alignments, alignment_lengths, alignments_backward,
-                                text_lengths)
+                                  linear_input, stop_tokens, stop_targets,
+                                  mel_lengths, decoder_backward_output,
+                                  alignments, alignment_lengths,
+                                  alignments_backward, text_lengths)
 
         # check nan loss
         if torch.isnan(loss_dict['loss']).any():
@@ -199,7 +199,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
 
             # stopnet optimizer step
             if c.separate_stopnet:
-                scaler_st.scale( loss_dict['stopnet_loss']).backward()
+                scaler_st.scale(loss_dict['stopnet_loss']).backward()
                 scaler.unscale_(optimizer_st)
                 optimizer_st, _ = adam_weight_decay(optimizer_st)
                 grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0)
@@ -535,7 +535,6 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup criterion
     criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
-
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
         try:
@@ -706,8 +705,7 @@ if __name__ == '__main__':
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c,  args.config_path,
-                         OUT_PATH, new_fields)
+        copy_model_files(c, args.config_path, OUT_PATH, new_fields)
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 
