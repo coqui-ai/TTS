@@ -34,7 +34,9 @@ print(" > Using CUDA: ", use_cuda)
 print(" > Number of GPUs: ", num_gpus)
 
 
-def setup_loader(ap: AudioProcessor, is_val: bool=False, verbose: bool=False):
+def setup_loader(ap: AudioProcessor,
+                 is_val: bool = False,
+                 verbose: bool = False):
     if is_val:
         loader = None
     else:
@@ -254,8 +256,7 @@ if __name__ == '__main__':
     if args.restore_path:
         new_fields["restore_path"] = args.restore_path
     new_fields["github_branch"] = get_git_branch()
-    copy_model_files(c,  args.config_path, OUT_PATH,
-                     new_fields)
+    copy_model_files(c, args.config_path, OUT_PATH, new_fields)
 
     LOG_DIR = OUT_PATH
     tb_logger = TensorboardLogger(LOG_DIR, model_name='Speaker_Encoder')

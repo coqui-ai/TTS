@@ -175,13 +175,13 @@ def train(data_loader, model, criterion, optimizer, scheduler,
             scaler.scale(loss_dict['loss']).backward()
             scaler.unscale_(optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           c.grad_clip)
+                                                       c.grad_clip)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss_dict['loss'].backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           c.grad_clip)
+                                                       c.grad_clip)
             optimizer.step()
 
         # setup lr
@@ -518,7 +518,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         train_avg_loss_dict, global_step = train(train_loader, model, criterion, optimizer,
                                                  scheduler, ap, global_step,
                                                  epoch)
-        eval_avg_loss_dict = evaluate(eval_loader , model, criterion, ap, global_step, epoch)
+        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
+                                      global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:
