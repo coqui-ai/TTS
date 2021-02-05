@@ -61,7 +61,7 @@ def plot_results(y_hat, y, ap, global_step, name_prefix):
     return figures
 
 
-def to_camel(text, cap=True):
+def to_camel(text):
     text = text.capitalize()
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
