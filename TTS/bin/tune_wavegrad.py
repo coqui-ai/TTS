@@ -87,5 +87,3 @@ for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=tot
             best_schedule = {'beta': beta}
             print(f" > Found a better schedule. - MSE: {mse.item()}")
             np.save(args.output_path, best_schedule)
-
-

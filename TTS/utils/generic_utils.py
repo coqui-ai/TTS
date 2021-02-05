@@ -6,8 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import torch
-
 
 def get_git_branch():
     try:
