@@ -260,7 +260,7 @@ class WaveRNN(nn.Module):
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
-    def inference(self, mels, batched, target, overlap):
+    def inference(self, mels, batched=None, target=None, overlap=None):
 
         self.eval()
         device = mels.device
@@ -350,10 +350,11 @@ class WaveRNN(nn.Module):
                     self.gen_display(i, seq_len, b_size, start)
 
         output = torch.stack(output).transpose(0, 1)
-        output = output.cpu().numpy()
-        output = output.astype(np.float64)
-
+        output = output.cpu()
         if batched:
+            output = output.numpy()
+            output = output.astype(np.float64)
+
             output = self.xfade_and_unfold(output, target, overlap)
         else:
             output = output[0]
