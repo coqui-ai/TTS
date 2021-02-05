@@ -54,6 +54,9 @@
     "mulaw": false,         		// apply mulaw if mode is bits
     "padding": 2,			// pad the input for resnet to see wider input length
 
+    // GENERATOR - for backward compatibility
+    "generator_model": "WaveRNN",
+
     // DATASET
     //"use_gta": true,				// use computed gta features from the tts model
     "data_path": "tests/data/ljspeech/wavs/",	// path containing training wav files

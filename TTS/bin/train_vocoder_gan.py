@@ -33,9 +33,8 @@ use_cuda, num_gpus = setup_torch_training_env(True, True)
 
 
 def setup_loader(ap, is_val=False, verbose=False):
-    if is_val and not c.run_eval:
-        loader = None
-    else:
+    loader = None
+    if not is_val or c.run_eval:
         dataset = GANDataset(ap=ap,
                              items=eval_data if is_val else train_data,
                              seq_len=c.seq_len,
@@ -274,14 +273,14 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
 
                 # compute spectrograms
                 figures = plot_results(y_hat_vis, y_G, ap, global_step,
-                                    'train')
+                                       'train')
                 tb_logger.tb_train_figures(global_step, figures)
 
                 # Sample audio
                 sample_voice = y_hat_vis[0].squeeze(0).detach().cpu().numpy()
                 tb_logger.tb_train_audios(global_step,
-                                        {'train/audio': sample_voice},
-                                        c.audio["sample_rate"])
+                                          {'train/audio': sample_voice},
+                                          c.audio["sample_rate"])
         end_time = time.time()
 
     # print epoch stats
@@ -430,11 +429,11 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
         # Sample audio
         sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
         tb_logger.tb_eval_audios(global_step, {'eval/audio': sample_voice},
-                                c.audio["sample_rate"])
+                                 c.audio["sample_rate"])
 
         tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
 
-     # synthesize a full voice
+    # synthesize a full voice
     data_loader.return_segments = False
 
     return keep_avg.avg_values
@@ -639,8 +638,7 @@ if __name__ == '__main__':
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c,  args.config_path,
-                         OUT_PATH, new_fields)
+        copy_model_files(c, args.config_path, OUT_PATH, new_fields)
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 

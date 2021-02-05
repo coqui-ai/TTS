@@ -1,10 +1,9 @@
-import numpy
-import numpy as np
 import queue
-import torch
 import random
+
+import numpy as np
+import torch
 from torch.utils.data import Dataset
-from tqdm import tqdm
 
 
 class MyDataset(Dataset):
@@ -155,7 +154,7 @@ class MyDataset(Dataset):
 
             # add random gaussian noise
             if self.additive_noise > 0:
-                noises_ = [numpy.random.normal(0, self.additive_noise, size=len(w)) for w in wavs_]
+                noises_ = [np.random.normal(0, self.additive_noise, size=len(w)) for w in wavs_]
                 wavs_ = [wavs_[i] + noises_[i] for i in range(len(wavs_))]
 
             # get a random subset of each of the wavs and convert to MFCC.

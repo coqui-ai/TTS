@@ -16,6 +16,7 @@ from TTS.utils.io import load_config
 
 
 if __name__ == '__main__':
+    # pylint: disable=bad-continuation
     parser = argparse.ArgumentParser(
         description='''Extract attention masks from trained Tacotron/Tacotron2 models.
 These masks can be used for different purposes including training a TTS model with a Duration Predictor.\n\n'''

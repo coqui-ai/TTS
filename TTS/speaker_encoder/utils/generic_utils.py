@@ -114,4 +114,3 @@ def check_config_speaker_encoder(c):
         check_argument('path', dataset_entry, restricted=True, val_type=str)
         check_argument('meta_file_train', dataset_entry, restricted=True, val_type=[str, list])
         check_argument('meta_file_val', dataset_entry, restricted=True, val_type=str)
-

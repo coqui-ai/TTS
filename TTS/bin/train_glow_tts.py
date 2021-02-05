@@ -119,7 +119,7 @@ def format_data(data):
          avg_text_length, avg_spec_length, attn_mask, item_idx
 
 
-def data_depended_init(data_loader, model, ap):
+def data_depended_init(data_loader, model):
     """Data depended initialization for activation normalization."""
     if hasattr(model, 'module'):
         for f in model.module.decoder.flows:
@@ -138,7 +138,7 @@ def data_depended_init(data_loader, model, ap):
 
             # format data
             text_input, text_lengths, mel_input, mel_lengths, spekaer_embed,\
-                _, _, attn_mask, item_idx = format_data(data)
+                _, _, attn_mask, _ = format_data(data)
 
             # forward pass model
             _ = model.forward(
@@ -177,7 +177,7 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
         # format data
         text_input, text_lengths, mel_input, mel_lengths, speaker_c,\
-            avg_text_length, avg_spec_length, attn_mask, item_idx = format_data(data)
+            avg_text_length, avg_spec_length, attn_mask, _ = format_data(data)
 
         loader_time = time.time() - end_time
 
@@ -191,20 +191,20 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
             # compute loss
             loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                                o_dur_log, o_total_dur, text_lengths)
+                                  o_dur_log, o_total_dur, text_lengths)
 
         # backward pass with loss scaling
         if c.mixed_precision:
             scaler.scale(loss_dict['loss']).backward()
             scaler.unscale_(optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           c.grad_clip)
+                                                       c.grad_clip)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss_dict['loss'].backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           c.grad_clip)
+                                                       c.grad_clip)
             optimizer.step()
 
         # setup lr
@@ -332,7 +332,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
             # format data
             text_input, text_lengths, mel_input, mel_lengths, speaker_c,\
-                _, _, attn_mask, item_idx = format_data(data)
+                _, _, attn_mask, _ = format_data(data)
 
             # forward pass model
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
@@ -550,13 +550,14 @@ def main(args):  # pylint: disable=redefined-outer-name
     eval_loader = setup_loader(ap, 1, is_val=True, verbose=True)
 
     global_step = args.restore_step
-    model = data_depended_init(train_loader, model, ap)
+    model = data_depended_init(train_loader, model)
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
         train_avg_loss_dict, global_step = train(train_loader, model, criterion, optimizer,
                                                  scheduler, ap, global_step,
                                                  epoch)
-        eval_avg_loss_dict = evaluate(eval_loader , model, criterion, ap, global_step, epoch)
+        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
+                                      global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:
@@ -632,8 +633,7 @@ if __name__ == '__main__':
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c,  args.config_path,
-                         OUT_PATH, new_fields)
+        copy_model_files(c, args.config_path, OUT_PATH, new_fields)
         os.chmod(AUDIO_PATH, 0o775)
         os.chmod(OUT_PATH, 0o775)
 
