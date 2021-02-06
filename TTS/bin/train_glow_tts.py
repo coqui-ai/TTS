@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""Train Glow TTS model."""
 
-import argparse
-import glob
 import os
 import sys
 import time
@@ -14,10 +12,12 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import GlowTTSLoss
-from TTS.tts.utils.generic_utils import check_config_tts, setup_model
+from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import parse_speakers
@@ -25,17 +25,14 @@ from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.distribute import init_distributed, reduce_tensor
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
-                                     create_experiment_folder, get_git_branch,
                                      remove_experiment_folder, set_init_dict)
-from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.radam import RAdam
-from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import NoamLR, setup_torch_training_env
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
+
 
 def setup_loader(ap, r, is_val=False, verbose=False):
     if is_val and not c.run_eval:
@@ -119,7 +116,7 @@ def format_data(data):
          avg_text_length, avg_spec_length, attn_mask, item_idx
 
 
-def data_depended_init(data_loader, model):
+def data_depended_init(data_loader, model, ap):
     """Data depended initialization for activation normalization."""
     if hasattr(model, 'module'):
         for f in model.module.decoder.flows:
@@ -138,7 +135,7 @@ def data_depended_init(data_loader, model):
 
             # format data
             text_input, text_lengths, mel_input, mel_lengths, spekaer_embed,\
-                _, _, attn_mask, _ = format_data(data)
+                _, _, attn_mask, item_idx = format_data(data)
 
             # forward pass model
             _ = model.forward(
@@ -177,7 +174,7 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
         # format data
         text_input, text_lengths, mel_input, mel_lengths, speaker_c,\
-            avg_text_length, avg_spec_length, attn_mask, _ = format_data(data)
+            avg_text_length, avg_spec_length, attn_mask, item_idx = format_data(data)
 
         loader_time = time.time() - end_time
 
@@ -191,20 +188,20 @@ def train(data_loader, model, criterion, optimizer, scheduler,
 
             # compute loss
             loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
-                                  o_dur_log, o_total_dur, text_lengths)
+                                o_dur_log, o_total_dur, text_lengths)
 
         # backward pass with loss scaling
         if c.mixed_precision:
             scaler.scale(loss_dict['loss']).backward()
             scaler.unscale_(optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                                       c.grad_clip)
+                                           c.grad_clip)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss_dict['loss'].backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                                       c.grad_clip)
+                                           c.grad_clip)
             optimizer.step()
 
         # setup lr
@@ -332,7 +329,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
             # format data
             text_input, text_lengths, mel_input, mel_lengths, speaker_c,\
-                _, _, attn_mask, _ = format_data(data)
+                _, _, attn_mask, item_idx = format_data(data)
 
             # forward pass model
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
@@ -468,7 +465,6 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     return keep_avg.avg_values
 
 
-# FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global meta_data_train, meta_data_eval, symbols, phonemes, speaker_mapping
@@ -550,14 +546,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     eval_loader = setup_loader(ap, 1, is_val=True, verbose=True)
 
     global_step = args.restore_step
-    model = data_depended_init(train_loader, model)
+    model = data_depended_init(train_loader, model, ap)
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
         train_avg_loss_dict, global_step = train(train_loader, model, criterion, optimizer,
                                                  scheduler, ap, global_step,
                                                  epoch)
-        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
-                                      global_step, epoch)
+        eval_avg_loss_dict = evaluate(eval_loader , model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:
@@ -567,81 +562,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--continue_path',
-        type=str,
-        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
-        default='',
-        required='--config_path' not in sys.argv)
-    parser.add_argument(
-        '--restore_path',
-        type=str,
-        help='Model file to be restored. Use to finetune a model.',
-        default='')
-    parser.add_argument(
-        '--config_path',
-        type=str,
-        help='Path to config file for training.',
-        required='--continue_path' not in sys.argv
-    )
-    parser.add_argument('--debug',
-                        type=bool,
-                        default=False,
-                        help='Do not verify commit integrity to run training.')
-
-    # DISTRUBUTED
-    parser.add_argument(
-        '--rank',
-        type=int,
-        default=0,
-        help='DISTRIBUTED: process rank for distributed training.')
-    parser.add_argument('--group_id',
-                        type=str,
-                        default="",
-                        help='DISTRIBUTED: process group id.')
-    args = parser.parse_args()
-
-    if args.continue_path != '':
-        args.output_path = args.continue_path
-        args.config_path = os.path.join(args.continue_path, 'config.json')
-        list_of_files = glob.glob(args.continue_path + "/*.pth.tar") # * means all if need specific format then *.csv
-        latest_model_file = max(list_of_files, key=os.path.getctime)
-        args.restore_path = latest_model_file
-        print(f" > Training continues for {args.restore_path}")
-
-    # setup output paths and read configs
-    c = load_config(args.config_path)
-    # check_config(c)
-    check_config_tts(c)
-    _ = os.path.dirname(os.path.realpath(__file__))
-
-    if c.mixed_precision:
-        print("   > Mixed precision enabled.")
-
-    OUT_PATH = args.continue_path
-    if args.continue_path == '':
-        OUT_PATH = create_experiment_folder(c.output_path, c.run_name, args.debug)
-
-    AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
-
-    c_logger = ConsoleLogger()
-
-    if args.rank == 0:
-        os.makedirs(AUDIO_PATH, exist_ok=True)
-        new_fields = {}
-        if args.restore_path:
-            new_fields["restore_path"] = args.restore_path
-        new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c, args.config_path, OUT_PATH, new_fields)
-        os.chmod(AUDIO_PATH, 0o775)
-        os.chmod(OUT_PATH, 0o775)
-
-        LOG_DIR = OUT_PATH
-        tb_logger = TensorboardLogger(LOG_DIR, model_name='TTS')
-
-        # write model desc to tensorboard
-        tb_logger.tb_add_text('model-description', c['run_description'], 0)
+    args = parse_arguments(sys.argv)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
+        args, model_type='glow_tts')
 
     try:
         main(args)
