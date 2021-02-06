@@ -11,6 +11,7 @@ import numpy as np
 from random import randrange
 
 import torch
+from TTS.utils.arguments import parse_arguments, process_args
 # DISTRIBUTED
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
@@ -18,7 +19,7 @@ from torch.utils.data.distributed import DistributedSampler
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import SpeedySpeechLoss
-from TTS.tts.utils.generic_utils import check_config_tts, setup_model
+from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import parse_speakers
@@ -26,14 +27,10 @@ from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.distribute import init_distributed, reduce_tensor
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
-                                     create_experiment_folder, get_git_branch,
                                      remove_experiment_folder, set_init_dict)
-from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.radam import RAdam
-from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import NoamLR, setup_torch_training_env
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
@@ -175,13 +172,13 @@ def train(data_loader, model, criterion, optimizer, scheduler,
             scaler.scale(loss_dict['loss']).backward()
             scaler.unscale_(optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                                       c.grad_clip)
+                                           c.grad_clip)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss_dict['loss'].backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                                       c.grad_clip)
+                                           c.grad_clip)
             optimizer.step()
 
         # setup lr
@@ -518,8 +515,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         train_avg_loss_dict, global_step = train(train_loader, model, criterion, optimizer,
                                                  scheduler, ap, global_step,
                                                  epoch)
-        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
-                                      global_step, epoch)
+        eval_avg_loss_dict = evaluate(eval_loader , model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:
@@ -529,81 +525,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--continue_path',
-        type=str,
-        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
-        default='',
-        required='--config_path' not in sys.argv)
-    parser.add_argument(
-        '--restore_path',
-        type=str,
-        help='Model file to be restored. Use to finetune a model.',
-        default='')
-    parser.add_argument(
-        '--config_path',
-        type=str,
-        help='Path to config file for training.',
-        required='--continue_path' not in sys.argv
-    )
-    parser.add_argument('--debug',
-                        type=bool,
-                        default=False,
-                        help='Do not verify commit integrity to run training.')
-
-    # DISTRUBUTED
-    parser.add_argument(
-        '--rank',
-        type=int,
-        default=0,
-        help='DISTRIBUTED: process rank for distributed training.')
-    parser.add_argument('--group_id',
-                        type=str,
-                        default="",
-                        help='DISTRIBUTED: process group id.')
-    args = parser.parse_args()
-
-    if args.continue_path != '':
-        args.output_path = args.continue_path
-        args.config_path = os.path.join(args.continue_path, 'config.json')
-        list_of_files = glob.glob(args.continue_path + "/*.pth.tar") # * means all if need specific format then *.csv
-        latest_model_file = max(list_of_files, key=os.path.getctime)
-        args.restore_path = latest_model_file
-        print(f" > Training continues for {args.restore_path}")
-
-    # setup output paths and read configs
-    c = load_config(args.config_path)
-    # check_config(c)
-    check_config_tts(c)
-    _ = os.path.dirname(os.path.realpath(__file__))
-
-    if c.mixed_precision:
-        print("   > Mixed precision enabled.")
-
-    OUT_PATH = args.continue_path
-    if args.continue_path == '':
-        OUT_PATH = create_experiment_folder(c.output_path, c.run_name, args.debug)
-
-    AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
-
-    c_logger = ConsoleLogger()
-
-    if args.rank == 0:
-        os.makedirs(AUDIO_PATH, exist_ok=True)
-        new_fields = {}
-        if args.restore_path:
-            new_fields["restore_path"] = args.restore_path
-        new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c, args.config_path, OUT_PATH, new_fields)
-        os.chmod(AUDIO_PATH, 0o775)
-        os.chmod(OUT_PATH, 0o775)
-
-        LOG_DIR = OUT_PATH
-        tb_logger = TensorboardLogger(LOG_DIR, model_name='TTS')
-
-        # write model desc to tensorboard
-        tb_logger.tb_add_text('model-description', c['run_description'], 0)
+    args = parse_arguments(sys.argv)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
+        args, model_type='tts')
 
     try:
         main(args)
