@@ -35,7 +35,7 @@ def parse_arguments(argv):
         "--continue_path",
         type=str,
         help=("Training output folder to continue training. Used to continue "
-              "a training. If it is used, "config_path" is ignored."),
+              "a training. If it is used, 'config_path' is ignored."),
         default="",
         required="--config_path" not in argv)
     parser.add_argument(
@@ -151,6 +151,7 @@ def process_args(args, model_type):
             os.path.join(args.continue_path, "*.pth.tar")
             )  # * means all if need specific format then *.csv
         args.restore_path = max(list_of_files, key=os.path.getctime)
+        # checkpoint number based continuing
         # args.restore_path = get_last_checkpoint(args.continue_path)
         print(f" > Training continues for {args.restore_path}")
 
