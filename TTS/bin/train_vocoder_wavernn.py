@@ -178,18 +178,19 @@ def train(model, optimizer, criterion, scheduler, scaler, ap, global_step, epoch
         if global_step % c.save_step == 0:
             if c.checkpoint:
                 # save model
-                save_checkpoint(model,
-                                optimizer,
-                                scheduler,
-                                None,
-                                None,
-                                None,
-                                global_step,
-                                epoch,
-                                OUT_PATH,
-                                model_losses=loss_dict,
-                                scaler=scaler.state_dict() if c.mixed_precision else None
-                                )
+                save_checkpoint(
+                    model,
+                    optimizer,
+                    scheduler,
+                    None,
+                    None,
+                    None,
+                    global_step,
+                    epoch,
+                    OUT_PATH,
+                    model_losses=loss_dict,
+                    scaler=scaler.state_dict() if c.mixed_precision else None
+                )
 
             # synthesize a full voice
             rand_idx = random.randrange(0, len(train_data))
@@ -204,14 +205,7 @@ def train(model, optimizer, criterion, scheduler, scaler, ap, global_step, epoch
                                          c.batched,
                                          c.target_samples,
                                          c.overlap_samples,
-                                         # use_cuda
                                          )
-            # sample_wav = model.generate(ground_mel,
-            #                             c.batched,
-            #                             c.target_samples,
-            #                             c.overlap_samples,
-            #                             use_cuda
-            #                             )
             predict_mel = ap.melspectrogram(sample_wav)
 
             # compute spectrograms
@@ -300,7 +294,6 @@ def evaluate(model, criterion, ap, global_step, epoch):
                                      c.batched,
                                      c.target_samples,
                                      c.overlap_samples,
-                                     # use_cuda
                                      )
         predict_mel = ap.melspectrogram(sample_wav)
 
@@ -311,9 +304,10 @@ def evaluate(model, criterion, ap, global_step, epoch):
         )
 
         # compute spectrograms
-        figures = {"eval/ground_truth": plot_spectrogram(ground_mel.T),
-                   "eval/prediction": plot_spectrogram(predict_mel.T)
-                   }
+        figures = {
+            "eval/ground_truth": plot_spectrogram(ground_mel.T),
+            "eval/prediction": plot_spectrogram(predict_mel.T)
+        }
         tb_logger.tb_eval_figures(global_step, figures)
 
     tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
