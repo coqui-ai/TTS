@@ -8,8 +8,8 @@ import traceback
 from inspect import signature
 
 import torch
-from TTS.utils.arguments import parse_arguments, process_args
 from torch.utils.data import DataLoader
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      remove_experiment_folder, set_init_dict)
@@ -33,9 +33,8 @@ use_cuda, num_gpus = setup_torch_training_env(True, True)
 
 
 def setup_loader(ap, is_val=False, verbose=False):
-    if is_val and not c.run_eval:
-        loader = None
-    else:
+    loader = None
+    if not is_val or c.run_eval:
         dataset = GANDataset(ap=ap,
                              items=eval_data if is_val else train_data,
                              seq_len=c.seq_len,
@@ -114,7 +113,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
         y_hat = model_G(c_G)
         y_hat_sub = None
         y_G_sub = None
-        y_hat_vis = y_hat  # for visualization # FIXME! .clone().detach()
+        y_hat_vis = y_hat  # for visualization
 
         # PQMF formatting
         if y_hat.shape[1] > 1:
@@ -274,14 +273,14 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
 
                 # compute spectrograms
                 figures = plot_results(y_hat_vis, y_G, ap, global_step,
-                                    'train')
+                                       'train')
                 tb_logger.tb_train_figures(global_step, figures)
 
                 # Sample audio
                 sample_voice = y_hat_vis[0].squeeze(0).detach().cpu().numpy()
                 tb_logger.tb_train_audios(global_step,
-                                        {'train/audio': sample_voice},
-                                        c.audio["sample_rate"])
+                                          {'train/audio': sample_voice},
+                                          c.audio["sample_rate"])
         end_time = time.time()
 
     # print epoch stats
