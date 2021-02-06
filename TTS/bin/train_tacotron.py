@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""Trains Tacotron based TTS models."""
 
-import argparse
-import glob
 import os
 import sys
 import time
@@ -11,11 +9,12 @@ from random import randrange
 
 import numpy as np
 import torch
+from TTS.utils.arguments import parse_arguments, process_args
 from torch.utils.data import DataLoader
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import TacotronLoss
-from TTS.tts.utils.generic_utils import check_config_tts, setup_model
+from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import parse_speakers
@@ -23,15 +22,11 @@ from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.distribute import (DistributedSampler, apply_gradient_allreduce,
                                   init_distributed, reduce_tensor)
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
-                                     create_experiment_folder, get_git_branch,
                                      remove_experiment_folder, set_init_dict)
-from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.radam import RAdam
-from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
                                 gradual_training_scheduler, set_weight_decay,
                                 setup_torch_training_env)
@@ -61,7 +56,13 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
                 phoneme_language=c.phoneme_language,
                 enable_eos_bos=c.enable_eos_bos_chars,
                 verbose=verbose,
-                speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+                speaker_mapping=(
+                    speaker_mapping if (
+                        c.use_speaker_embedding and
+                        c.use_external_speaker_embedding_file
+                        ) else None
+                    )
+                    )
 
             if c.use_phonemes and c.compute_input_seq_cache:
                 # precompute phonemes to have a better estimate of sequence lengths.
@@ -178,10 +179,10 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
 
             # compute loss
             loss_dict = criterion(postnet_output, decoder_output, mel_input,
-                                  linear_input, stop_tokens, stop_targets,
-                                  mel_lengths, decoder_backward_output,
-                                  alignments, alignment_lengths,
-                                  alignments_backward, text_lengths)
+                                linear_input, stop_tokens, stop_targets,
+                                mel_lengths, decoder_backward_output,
+                                alignments, alignment_lengths, alignments_backward,
+                                text_lengths)
 
         # check nan loss
         if torch.isnan(loss_dict['loss']).any():
@@ -199,7 +200,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
 
             # stopnet optimizer step
             if c.separate_stopnet:
-                scaler_st.scale(loss_dict['stopnet_loss']).backward()
+                scaler_st.scale( loss_dict['stopnet_loss']).backward()
                 scaler.unscale_(optimizer_st)
                 optimizer_st, _ = adam_weight_decay(optimizer_st)
                 grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0)
@@ -491,7 +492,6 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     return keep_avg.avg_values
 
 
-# FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global meta_data_train, meta_data_eval, symbols, phonemes, speaker_mapping
@@ -534,7 +534,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         optimizer_st = None
 
     # setup criterion
-    criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
+    criterion = TacotronLoss(c, stopnet_pos_weight=10.0, ga_sigma=0.4)
+
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
         try:
@@ -640,80 +641,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--continue_path',
-        type=str,
-        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
-        default='',
-        required='--config_path' not in sys.argv)
-    parser.add_argument(
-        '--restore_path',
-        type=str,
-        help='Model file to be restored. Use to finetune a model.',
-        default='')
-    parser.add_argument(
-        '--config_path',
-        type=str,
-        help='Path to config file for training.',
-        required='--continue_path' not in sys.argv
-    )
-    parser.add_argument('--debug',
-                        type=bool,
-                        default=False,
-                        help='Do not verify commit integrity to run training.')
-
-    # DISTRUBUTED
-    parser.add_argument(
-        '--rank',
-        type=int,
-        default=0,
-        help='DISTRIBUTED: process rank for distributed training.')
-    parser.add_argument('--group_id',
-                        type=str,
-                        default="",
-                        help='DISTRIBUTED: process group id.')
-    args = parser.parse_args()
-
-    if args.continue_path != '':
-        print(f" > Training continues for {args.continue_path}")
-        args.output_path = args.continue_path
-        args.config_path = os.path.join(args.continue_path, 'config.json')
-        list_of_files = glob.glob(args.continue_path + "/*.pth.tar") # * means all if need specific format then *.csv
-        latest_model_file = max(list_of_files, key=os.path.getctime)
-        args.restore_path = latest_model_file
-
-    # setup output paths and read configs
-    c = load_config(args.config_path)
-    check_config_tts(c)
-    _ = os.path.dirname(os.path.realpath(__file__))
-
-    if c.mixed_precision:
-        print("   >  Mixed precision mode is ON")
-
-    OUT_PATH = args.continue_path
-    if args.continue_path == '':
-        OUT_PATH = create_experiment_folder(c.output_path, c.run_name, args.debug)
-
-    AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
-
-    c_logger = ConsoleLogger()
-
-    if args.rank == 0:
-        os.makedirs(AUDIO_PATH, exist_ok=True)
-        new_fields = {}
-        if args.restore_path:
-            new_fields["restore_path"] = args.restore_path
-        new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c, args.config_path, OUT_PATH, new_fields)
-        os.chmod(AUDIO_PATH, 0o775)
-        os.chmod(OUT_PATH, 0o775)
-
-        LOG_DIR = OUT_PATH
-        tb_logger = TensorboardLogger(LOG_DIR, model_name='TTS')
-
-        # write model desc to tensorboard
-        tb_logger.tb_add_text('model-description', c['run_description'], 0)
+    args = parse_arguments(sys.argv)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
+        args, model_type='tacotron')
 
     try:
         main(args)
