@@ -9,8 +9,8 @@ from random import randrange
 
 import numpy as np
 import torch
-from TTS.utils.arguments import parse_arguments, process_args
 from torch.utils.data import DataLoader
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import TacotronLoss
@@ -62,7 +62,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
                         c.use_external_speaker_embedding_file
                         ) else None
                     )
-                    )
+                )
 
             if c.use_phonemes and c.compute_input_seq_cache:
                 # precompute phonemes to have a better estimate of sequence lengths.
@@ -179,10 +179,10 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
 
             # compute loss
             loss_dict = criterion(postnet_output, decoder_output, mel_input,
-                                linear_input, stop_tokens, stop_targets,
-                                mel_lengths, decoder_backward_output,
-                                alignments, alignment_lengths, alignments_backward,
-                                text_lengths)
+                                  linear_input, stop_tokens, stop_targets,
+                                  mel_lengths, decoder_backward_output,
+                                  alignments, alignment_lengths,
+                                  alignments_backward, text_lengths)
 
         # check nan loss
         if torch.isnan(loss_dict['loss']).any():
@@ -200,7 +200,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
 
             # stopnet optimizer step
             if c.separate_stopnet:
-                scaler_st.scale( loss_dict['stopnet_loss']).backward()
+                scaler_st.scale(loss_dict['stopnet_loss']).backward()
                 scaler.unscale_(optimizer_st)
                 optimizer_st, _ = adam_weight_decay(optimizer_st)
                 grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0)
@@ -534,8 +534,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         optimizer_st = None
 
     # setup criterion
-    criterion = TacotronLoss(c, stopnet_pos_weight=10.0, ga_sigma=0.4)
-
+    criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
         try:
@@ -637,7 +636,8 @@ def main(args):  # pylint: disable=redefined-outer-name
             epoch,
             c.r,
             OUT_PATH,
-            scaler=scaler.state_dict() if c.mixed_precision else None)
+            scaler=scaler.state_dict() if c.mixed_precision else None
+        )
 
 
 if __name__ == '__main__':
