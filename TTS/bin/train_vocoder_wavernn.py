@@ -1,9 +1,10 @@
-import argparse
+#!/usr/bin/env python3
+"""Train WaveRNN vocoder model."""
+
 import os
 import sys
 import traceback
 import time
-import glob
 import random
 
 import torch
@@ -11,18 +12,14 @@ from torch.utils.data import DataLoader
 
 # from torch.utils.data.distributed import DistributedSampler
 
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.tts.utils.visual import plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.radam import RAdam
-from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.training import setup_torch_training_env
-from TTS.utils.console_logger import ConsoleLogger
-from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.generic_utils import (
     KeepAverage,
     count_parameters,
-    create_experiment_folder,
-    get_git_branch,
     remove_experiment_folder,
     set_init_dict,
 )
@@ -207,7 +204,14 @@ def train(model, optimizer, criterion, scheduler, scaler, ap, global_step, epoch
                                          c.batched,
                                          c.target_samples,
                                          c.overlap_samples,
+                                         # use_cuda
                                          )
+            # sample_wav = model.generate(ground_mel,
+            #                             c.batched,
+            #                             c.target_samples,
+            #                             c.overlap_samples,
+            #                             use_cuda
+            #                             )
             predict_mel = ap.melspectrogram(sample_wav)
 
             # compute spectrograms
@@ -296,6 +300,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
                                      c.batched,
                                      c.target_samples,
                                      c.overlap_samples,
+                                     # use_cuda
                                      )
         predict_mel = ap.melspectrogram(sample_wav)
 
@@ -306,10 +311,9 @@ def evaluate(model, criterion, ap, global_step, epoch):
         )
 
         # compute spectrograms
-        figures = {
-            "eval/ground_truth": plot_spectrogram(ground_mel.T),
-            "eval/prediction": plot_spectrogram(predict_mel.T)
-        }
+        figures = {"eval/ground_truth": plot_spectrogram(ground_mel.T),
+                   "eval/prediction": plot_spectrogram(predict_mel.T)
+                   }
         tb_logger.tb_eval_figures(global_step, figures)
 
     tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
@@ -448,87 +452,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--continue_path",
-        type=str,
-        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
-        default="",
-        required="--config_path" not in sys.argv,
-    )
-    parser.add_argument(
-        "--restore_path",
-        type=str,
-        help="Model file to be restored. Use to finetune a model.",
-        default="",
-    )
-    parser.add_argument(
-        "--config_path",
-        type=str,
-        help="Path to config file for training.",
-        required="--continue_path" not in sys.argv,
-    )
-    parser.add_argument(
-        "--debug",
-        type=bool,
-        default=False,
-        help="Do not verify commit integrity to run training.",
-    )
-
-    # DISTRUBUTED
-    parser.add_argument(
-        "--rank",
-        type=int,
-        default=0,
-        help="DISTRIBUTED: process rank for distributed training.",
-    )
-    parser.add_argument(
-        "--group_id", type=str, default="", help="DISTRIBUTED: process group id."
-    )
-    args = parser.parse_args()
-
-    if args.continue_path != "":
-        args.output_path = args.continue_path
-        args.config_path = os.path.join(args.continue_path, "config.json")
-        list_of_files = glob.glob(
-            args.continue_path + "/*.pth.tar"
-        )  # * means all if need specific format then *.csv
-        latest_model_file = max(list_of_files, key=os.path.getctime)
-        args.restore_path = latest_model_file
-        print(f" > Training continues for {args.restore_path}")
-
-    # setup output paths and read configs
-    c = load_config(args.config_path)
-    # check_config(c)
-    _ = os.path.dirname(os.path.realpath(__file__))
-
-    OUT_PATH = args.continue_path
-    if args.continue_path == "":
-        OUT_PATH = create_experiment_folder(
-            c.output_path, c.run_name, args.debug
-        )
-
-    AUDIO_PATH = os.path.join(OUT_PATH, "test_audios")
-
-    c_logger = ConsoleLogger()
-
-    if args.rank == 0:
-        os.makedirs(AUDIO_PATH, exist_ok=True)
-        new_fields = {}
-        if args.restore_path:
-            new_fields["restore_path"] = args.restore_path
-        new_fields["github_branch"] = get_git_branch()
-        copy_model_files(
-            c, args.config_path, OUT_PATH, new_fields
-        )
-        os.chmod(AUDIO_PATH, 0o775)
-        os.chmod(OUT_PATH, 0o775)
-
-        LOG_DIR = OUT_PATH
-        tb_logger = TensorboardLogger(LOG_DIR, model_name="VOCODER")
-
-        # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", c["run_description"], 0)
+    args = parse_arguments(sys.argv)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
+        args, model_type='wavernn')
 
     try:
         main(args)
