@@ -8,12 +8,12 @@ import traceback
 import numpy as np
 
 import torch
-from TTS.utils.arguments import parse_arguments, process_args
 # DISTRIBUTED
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
@@ -32,16 +32,16 @@ def setup_loader(ap, is_val=False, verbose=False):
         loader = None
     else:
         dataset = WaveGradDataset(ap=ap,
-                                items=eval_data if is_val else train_data,
-                                seq_len=c.seq_len,
-                                hop_len=ap.hop_length,
-                                pad_short=c.pad_short,
-                                conv_pad=c.conv_pad,
-                                is_training=not is_val,
-                                return_segments=True,
-                                use_noise_augment=False,
-                                use_cache=c.use_cache,
-                                verbose=verbose)
+                                  items=eval_data if is_val else train_data,
+                                  seq_len=c.seq_len,
+                                  hop_len=ap.hop_length,
+                                  pad_short=c.pad_short,
+                                  conv_pad=c.conv_pad,
+                                  is_training=not is_val,
+                                  return_segments=True,
+                                  use_noise_augment=False,
+                                  use_cache=c.use_cache,
+                                  verbose=verbose)
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(dataset,
                             batch_size=c.batch_size,
@@ -77,8 +77,8 @@ def format_test_data(data):
     return m, x
 
 
-def train(model, criterion, optimizer,
-          scheduler, scaler, ap, global_step, epoch):
+def train(model, criterion, optimizer, scheduler, scaler, ap, global_step,
+          epoch):
     data_loader = setup_loader(ap, is_val=False, verbose=(epoch == 0))
     model.train()
     epoch_time = 0
@@ -92,7 +92,8 @@ def train(model, criterion, optimizer,
     c_logger.print_train_start()
     # setup noise schedule
     noise_schedule = c['train_noise_schedule']
-    betas = np.linspace(noise_schedule['min_val'], noise_schedule['max_val'], noise_schedule['num_steps'])
+    betas = np.linspace(noise_schedule['min_val'], noise_schedule['max_val'],
+                        noise_schedule['num_steps'])
     if hasattr(model, 'module'):
         model.module.compute_noise_level(betas)
     else:
@@ -118,7 +119,7 @@ def train(model, criterion, optimizer,
 
             # compute losses
             loss = criterion(noise, noise_hat)
-        loss_wavegrad_dict = {'wavegrad_loss':loss}
+        loss_wavegrad_dict = {'wavegrad_loss': loss}
 
         # check nan loss
         if torch.isnan(loss).any():
@@ -131,13 +132,13 @@ def train(model, criterion, optimizer,
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           c.clip_grad)
+                                                       c.clip_grad)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss.backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           c.clip_grad)
+                                                       c.clip_grad)
             optimizer.step()
 
         # schedule update
@@ -193,17 +194,19 @@ def train(model, criterion, optimizer,
             if global_step % c.save_step == 0:
                 if c.checkpoint:
                     # save model
-                    save_checkpoint(model,
-                                    optimizer,
-                                    scheduler,
-                                    None,
-                                    None,
-                                    None,
-                                    global_step,
-                                    epoch,
-                                    OUT_PATH,
-                                    model_losses=loss_dict,
-                                    scaler=scaler.state_dict() if c.mixed_precision else None)
+                    save_checkpoint(
+                        model,
+                        optimizer,
+                        scheduler,
+                        None,
+                        None,
+                        None,
+                        global_step,
+                        epoch,
+                        OUT_PATH,
+                        model_losses=loss_dict,
+                        scaler=scaler.state_dict() if c.mixed_precision else None
+                    )
 
         end_time = time.time()
 
@@ -250,7 +253,7 @@ def evaluate(model, criterion, ap, global_step, epoch):
 
         # compute losses
         loss = criterion(noise, noise_hat)
-        loss_wavegrad_dict = {'wavegrad_loss':loss}
+        loss_wavegrad_dict = {'wavegrad_loss': loss}
 
 
         loss_dict = dict()
@@ -282,7 +285,9 @@ def evaluate(model, criterion, ap, global_step, epoch):
 
         # setup noise schedule and inference
         noise_schedule = c['test_noise_schedule']
-        betas = np.linspace(noise_schedule['min_val'], noise_schedule['max_val'], noise_schedule['num_steps'])
+        betas = np.linspace(noise_schedule['min_val'],
+                            noise_schedule['max_val'],
+                            noise_schedule['num_steps'])
         if hasattr(model, 'module'):
             model.module.compute_noise_level(betas)
             # compute voice
@@ -313,7 +318,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     print(f" > Loading wavs from: {c.data_path}")
     if c.feature_path is not None:
         print(f" > Loading features from: {c.feature_path}")
-        eval_data, train_data = load_wav_feat_data(c.data_path, c.feature_path, c.eval_split_size)
+        eval_data, train_data = load_wav_feat_data(c.data_path, c.feature_path,
+                                                   c.eval_split_size)
     else:
         eval_data, train_data = load_wav_data(c.data_path, c.eval_split_size)
 
@@ -342,6 +348,10 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup criterion
     criterion = torch.nn.L1Loss().cuda()
+
+    if use_cuda:
+        model.cuda()
+        criterion.cuda()
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path, map_location='cpu')
@@ -376,10 +386,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         args.restore_step = 0
 
-    if use_cuda:
-        model.cuda()
-        criterion.cuda()
-
     # DISTRUBUTED
     if num_gpus > 1:
         model = DDP_th(model, device_ids=[args.rank])
@@ -393,26 +399,26 @@ def main(args):  # pylint: disable=redefined-outer-name
     global_step = args.restore_step
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
-        _, global_step = train(model, criterion, optimizer,
-                               scheduler, scaler, ap, global_step,
-                               epoch)
-        eval_avg_loss_dict = evaluate(model, criterion, ap,
-                                      global_step, epoch)
+        _, global_step = train(model, criterion, optimizer, scheduler, scaler,
+                               ap, global_step, epoch)
+        eval_avg_loss_dict = evaluate(model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = eval_avg_loss_dict[c.target_loss]
-        best_loss = save_best_model(target_loss,
-                                    best_loss,
-                                    model,
-                                    optimizer,
-                                    scheduler,
-                                    None,
-                                    None,
-                                    None,
-                                    global_step,
-                                    epoch,
-                                    OUT_PATH,
-                                    model_losses=eval_avg_loss_dict,
-                                    scaler=scaler.state_dict() if c.mixed_precision else None)
+        best_loss = save_best_model(
+            target_loss,
+            best_loss,
+            model,
+            optimizer,
+            scheduler,
+            None,
+            None,
+            None,
+            global_step,
+            epoch,
+            OUT_PATH,
+            model_losses=eval_avg_loss_dict,
+            scaler=scaler.state_dict() if c.mixed_precision else None
+        )
 
 
 if __name__ == '__main__':
