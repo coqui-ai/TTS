@@ -44,8 +44,8 @@ class GlowTTSTrainTest(unittest.TestCase):
         # model to train
         model = GlowTts(
             num_chars=32,
-            hidden_channels_enc=128,
-            hidden_channels_dec=128,
+            hidden_channels_enc=48,
+            hidden_channels_dec=48,
             hidden_channels_dp=32,
             out_channels=80,
             encoder_type='rel_pos_transformer',
@@ -54,7 +54,7 @@ class GlowTTSTrainTest(unittest.TestCase):
                 'dropout_p': 0.1,
                 'num_layers': 6,
                 'num_heads': 2,
-                'hidden_channels_ffn': 768,  # 4 times the hidden_channels
+                'hidden_channels_ffn': 16,  # 4 times the hidden_channels
                 'input_length': None
             },
             use_encoder_prenet=True,
@@ -73,8 +73,8 @@ class GlowTTSTrainTest(unittest.TestCase):
         # reference model to compare model weights
         model_ref = GlowTts(
             num_chars=32,
-            hidden_channels_enc=128,
-            hidden_channels_dec=128,
+            hidden_channels_enc=48,
+            hidden_channels_dec=48,
             hidden_channels_dp=32,
             out_channels=80,
             encoder_type='rel_pos_transformer',
@@ -83,7 +83,7 @@ class GlowTTSTrainTest(unittest.TestCase):
                 'dropout_p': 0.1,
                 'num_layers': 6,
                 'num_heads': 2,
-                'hidden_channels_ffn': 768,  # 4 times the hidden_channels
+                'hidden_channels_ffn': 16,  # 4 times the hidden_channels
                 'input_length': None
             },
             use_encoder_prenet=True,
