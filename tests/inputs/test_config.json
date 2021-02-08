@@ -43,7 +43,7 @@
     "batch_size": 2,
     "r": 5,
     "mk": 1.0,
-    "num_loader_workers": 4,
+    "num_loader_workers": 0,
     "memory_size": 5,
 
     "save_step": 200,
