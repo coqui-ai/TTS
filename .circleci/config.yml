@@ -31,7 +31,7 @@ jobs:
       - run: |
           sudo pip install --quiet --upgrade cardboardlint pylint
           cardboardlinter --refspec ${CIRCLE_BRANCH} -n auto
-      - run: nosetests tests --nocapture
+      - run: nosetests tests --nocapture --processes=0 --process-timeout=20 --process-restartworker
       - run: |
           sudo ./tests/test_server_package.sh
           sudo ./tests/test_glow-tts_train.sh
