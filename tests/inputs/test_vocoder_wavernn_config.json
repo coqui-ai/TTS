@@ -100,8 +100,8 @@
     "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
     // DATA LOADING
-    "num_loader_workers": 4,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
-    "num_val_loader_workers": 4,    // number of evaluation data loader processes.
+    "num_loader_workers": 0,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_val_loader_workers": 0,    // number of evaluation data loader processes.
     "eval_split_size": 10,	    // number of samples for testing
 
     // PATHS
