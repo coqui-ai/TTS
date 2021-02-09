@@ -104,8 +104,7 @@ def get_last_checkpoint(path):
             pass
     if last_checkpoint is None:
         raise ValueError(f"No checkpoints in {path}!")
-    else:
-        return last_checkpoint
+    return last_checkpoint
 
 
 def process_args(args, model_type):
@@ -193,7 +192,7 @@ def process_args(args, model_type):
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c,  args.config_path,
+        copy_model_files(c, args.config_path,
                          out_path, new_fields)
         os.chmod(audio_path, 0o775)
         os.chmod(out_path, 0o775)
