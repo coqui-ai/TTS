@@ -33,7 +33,7 @@ args, unknown_args = parser.parse_known_args()
 # Remove our arguments from argv so that setuptools doesn't see them
 sys.argv = [sys.argv[0]] + unknown_args
 
-version = '0.0.9.1'
+version = '0.0.10'
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 # Handle Cython code
