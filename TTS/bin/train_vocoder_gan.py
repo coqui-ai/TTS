@@ -1,5 +1,6 @@
-import argparse
-import glob
+#!/usr/bin/env python3
+"""Trains GAN based vocoder model."""
+
 import os
 import sys
 import time
@@ -8,14 +9,13 @@ from inspect import signature
 
 import torch
 from torch.utils.data import DataLoader
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
-                                     create_experiment_folder, get_git_branch,
                                      remove_experiment_folder, set_init_dict)
-from TTS.utils.io import copy_model_files, load_config
+
 from TTS.utils.radam import RAdam
-from TTS.utils.tensorboard_logger import TensorboardLogger
+
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
@@ -439,7 +439,6 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
     return keep_avg.avg_values
 
 
-# FIXME: move args definition/parsing inside of main?
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global train_data, eval_data
@@ -506,7 +505,7 @@ def main(args):  # pylint: disable=redefined-outer-name
                 scheduler_disc.load_state_dict(checkpoint['scheduler_disc'])
                 scheduler_disc.optimizer = optimizer_disc
         except RuntimeError:
-            # retore only matching layers.
+            # restore only matching layers.
             print(" > Partial model initialization...")
             model_dict = model_gen.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)
@@ -556,7 +555,8 @@ def main(args):  # pylint: disable=redefined-outer-name
                                model_disc, criterion_disc, optimizer_disc,
                                scheduler_gen, scheduler_disc, ap, global_step,
                                epoch)
-        eval_avg_loss_dict = evaluate(model_gen, criterion_gen, model_disc, criterion_disc, ap,
+        eval_avg_loss_dict = evaluate(model_gen, criterion_gen, model_disc,
+                                      criterion_disc, ap,
                                       global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = eval_avg_loss_dict[c.target_loss]
@@ -575,78 +575,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--continue_path',
-        type=str,
-        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
-        default='',
-        required='--config_path' not in sys.argv)
-    parser.add_argument(
-        '--restore_path',
-        type=str,
-        help='Model file to be restored. Use to finetune a model.',
-        default='')
-    parser.add_argument('--config_path',
-                        type=str,
-                        help='Path to config file for training.',
-                        required='--continue_path' not in sys.argv)
-    parser.add_argument('--debug',
-                        type=bool,
-                        default=False,
-                        help='Do not verify commit integrity to run training.')
-
-    # DISTRUBUTED
-    parser.add_argument(
-        '--rank',
-        type=int,
-        default=0,
-        help='DISTRIBUTED: process rank for distributed training.')
-    parser.add_argument('--group_id',
-                        type=str,
-                        default="",
-                        help='DISTRIBUTED: process group id.')
-    args = parser.parse_args()
-
-    if args.continue_path != '':
-        args.output_path = args.continue_path
-        args.config_path = os.path.join(args.continue_path, 'config.json')
-        list_of_files = glob.glob(
-            args.continue_path +
-            "/*.pth.tar")  # * means all if need specific format then *.csv
-        latest_model_file = max(list_of_files, key=os.path.getctime)
-        args.restore_path = latest_model_file
-        print(f" > Training continues for {args.restore_path}")
-
-    # setup output paths and read configs
-    c = load_config(args.config_path)
-    # check_config(c)
-    _ = os.path.dirname(os.path.realpath(__file__))
-
-    OUT_PATH = args.continue_path
-    if args.continue_path == '':
-        OUT_PATH = create_experiment_folder(c.output_path, c.run_name,
-                                            args.debug)
-
-    AUDIO_PATH = os.path.join(OUT_PATH, 'test_audios')
-
-    c_logger = ConsoleLogger()
-
-    if args.rank == 0:
-        os.makedirs(AUDIO_PATH, exist_ok=True)
-        new_fields = {}
-        if args.restore_path:
-            new_fields["restore_path"] = args.restore_path
-        new_fields["github_branch"] = get_git_branch()
-        copy_model_files(c, args.config_path, OUT_PATH, new_fields)
-        os.chmod(AUDIO_PATH, 0o775)
-        os.chmod(OUT_PATH, 0o775)
-
-        LOG_DIR = OUT_PATH
-        tb_logger = TensorboardLogger(LOG_DIR, model_name='VOCODER')
-
-        # write model desc to tensorboard
-        tb_logger.tb_add_text('model-description', c['run_description'], 0)
+    args = parse_arguments(sys.argv)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
+        args, model_type='gan')
 
     try:
         main(args)
