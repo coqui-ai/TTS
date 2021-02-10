@@ -30,7 +30,7 @@ _vowels = 'iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻ'
 _non_pulmonic_consonants = 'ʘɓǀɗǃʄǂɠǁʛ'
 _pulmonic_consonants = 'pbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟ'
 _suprasegmentals = 'ˈˌːˑ'
-_other_symbols = 'ʍwɥʜʢʡɕʑɺɧ'
+_other_symbols = 'ʍwɥʜʢʡɕʑɺɧʲ'
 _diacrilics = 'ɚ˞ɫ'
 _phonemes = _vowels + _non_pulmonic_consonants + _pulmonic_consonants + _suprasegmentals + _other_symbols + _diacrilics
 
