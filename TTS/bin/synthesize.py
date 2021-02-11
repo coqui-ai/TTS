@@ -219,7 +219,7 @@ def main():
         str.maketrans('', '', string.punctuation.replace('_', ''))) + '.wav'
     out_path = os.path.join(args.out_path, file_name)
     print(" > Saving output to {}".format(out_path))
-    synthesizer.save_wav(wav, out_path)
+    synthesizer.save_wav(wav, out_path,)
 
 
 if __name__ == "__main__":

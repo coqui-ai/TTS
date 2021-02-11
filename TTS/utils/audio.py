@@ -342,9 +342,10 @@ class AudioProcessor(object):
             x = self.sound_norm(x)
         return x
 
-    def save_wav(self, wav, path):
+    def save_wav(self, wav, path, sample_rate=None):
+        sample_rate = self.sample_rate if sample_rate is None else sample_rate
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
-        scipy.io.wavfile.write(path, self.sample_rate, wav_norm.astype(np.int16))
+        scipy.io.wavfile.write(path, sample_rate, wav_norm.astype(np.int16))
 
     @staticmethod
     def mulaw_encode(wav, qc):
