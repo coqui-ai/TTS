@@ -10,7 +10,7 @@ def make_symbols(characters, phonemes=None, punctuations='!\'(),-.:;? ', pad='_'
     _symbols = [pad, eos, bos] + list(characters)
     _phonemes = None
     if phonemes is not None:
-        _phonemes_sorted = sorted(list(phonemes))
+        _phonemes_sorted = sorted(list(set(phonemes)))
         # Prepend "@" to ARPAbet symbols to ensure uniqueness (some are the same as uppercase letters):
         _arpabet = ['@' + s for s in _phonemes_sorted]
         # Export all symbols:
@@ -45,4 +45,4 @@ if __name__ == '__main__':
     print(" > TTS symbols {}".format(len(symbols)))
     print(symbols)
     print(" > TTS phonemes {}".format(len(phonemes)))
-    print(phonemes)
+    print(''.join(sorted(phonemes)))
