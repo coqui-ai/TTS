@@ -40,7 +40,10 @@ def main():
     # run tts with default models.
     ./TTS/bin synthesize.py --text "Text for TTS"
 
-    # run a model from the list
+    # run a tts model with its default vocoder model.
+     ./TTS/bin synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>"
+
+    # run with specific tts and vocoder models from the list
     ./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
 
     # run your own TTS model (Using Griffin-Lim Vocoder)
@@ -79,7 +82,7 @@ def main():
     parser.add_argument(
         '--vocoder_name',
         type=str,
-        default="vocoder_models/en/ljspeech/multiband-melgan",
+        default=None,
         help=
         'Name of one of the pre-trained  vocoder models in format <language>/<dataset>/<model_name>'
     )
@@ -163,10 +166,11 @@ def main():
 
     # CASE2: load pre-trained models
     if args.model_name is not None:
-        model_path, config_path = manager.download_model(args.model_name)
+        model_path, config_path, model_item = manager.download_model(args.model_name)
+        args.vocoder_name = model_item['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
 
     if args.vocoder_name is not None:
-        vocoder_path, vocoder_config_path = manager.download_model(args.vocoder_name)
+        vocoder_path, vocoder_config_path, vocoder_item = manager.download_model(args.vocoder_name)
 
     # CASE3: load custome models
     if args.model_path is not None:
