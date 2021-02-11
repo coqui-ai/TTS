@@ -107,7 +107,7 @@ class ModelManager(object):
                 # download from gdrive
                 self._download_gdrive_file(model_item['model_file'], output_model_path)
                 self._download_gdrive_file(model_item['config_file'], output_config_path)
-            if self._check_dict_key(model_item, 'scale_stats'):
+            if self._check_dict_key(model_item, 'stats_file'):
                 output_stats_path = os.path.join(output_path, 'scale_stats.npy')
                 self._download_gdrive_file(model_item['stats_file'], output_stats_path)
                 # set scale stats path in config.json
