@@ -7,6 +7,7 @@
                     "model_file": "1NFsfhH8W8AgcfJ-BsL8CYAwQfZ5k4T-n",
                     "config_file": "1IAROF3yy9qTK43vG_-R67y3Py9yYbD6t",
                     "stats_file": null,
+                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
                     "commit": ""
                 },
                 "tacotron2-DCA": {
@@ -15,6 +16,7 @@
                     "config_file": "1lWSscNfKet1zZSJCNirOn7v9bigUZ8C1",
                     "stats_file": "1qevpGRVHPmzfiRBNuugLMX62x1k7B5vK",
                     "github_rls_url": null,
+                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
                     "commit": ""
                 },
                 "speedy-speech-wn":{
@@ -22,6 +24,7 @@
                     "model_file": "1VXAwiq6N-Viq3rsSXlf43bdoi0jSvMAJ",
                     "config_file": "1KvZilhsNP3EumVggDcD46yd834eO5hR3",
                     "stats_file": "1Ju7apZ5JlgsVECcETL-GEx3DRoNzWfkR",
+                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
                     "commit": "77b6145"
                 }
             }
@@ -32,6 +35,7 @@
                     "model_file": "1jZ4HvYcAXI5ZClke2iGA7qFQQJBXIovw",
                     "config_file": "1s7g4n-B73ChCB48AQ88_DV_8oyLth8r0",
                     "stats_file": "13st0CZ743v6Br5R5Qw_lH1OPQOr3M-Jv",
+                    "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
                     "commit": ""
                 }
             }
@@ -42,6 +46,7 @@
                     "model_file": "1qyxrrCyoXUvBG2lqVd0KqAlHj-2nZCgS",
                     "config_file": "1yECKeP2LI7tNv4E8yVNx1yLmCfTCpkqG",
                     "stats_file": "13st0CZ743v6Br5R5Qw_lH1OPQOr3M-Jv",
+                    "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
                     "commit": ""
                 }
             }
