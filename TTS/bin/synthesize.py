@@ -77,7 +77,7 @@ def main():
     parser.add_argument(
         '--vocoder_name',
         type=str,
-        default="vocoder_models/en/ljspeech/mulitband-melgan",
+        default="vocoder_models/en/ljspeech/multiband-melgan",
         help=
         'Name of one of the pre-trained  vocoder models in format <language>/<dataset>/<model_name>'
     )
