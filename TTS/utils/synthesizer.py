@@ -45,8 +45,10 @@ class Synthesizer(object):
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
         self.load_tts(tts_checkpoint, tts_config,
                       use_cuda)
+        self.output_sample_rate = self.tts_config.audio['sample_rate']
         if vocoder_checkpoint:
             self.load_vocoder(vocoder_checkpoint, vocoder_config, use_cuda)
+            self.output_sample_rate = self.vocoder_config.audio['sample_rate']
 
     @staticmethod
     def get_segmenter(lang):
@@ -75,6 +77,7 @@ class Synthesizer(object):
 
     def load_tts(self, tts_checkpoint, tts_config, use_cuda):
         # pylint: disable=global-statement
+
         global symbols, phonemes
 
         self.tts_config = load_config(tts_config)
@@ -104,7 +107,7 @@ class Synthesizer(object):
 
     def save_wav(self, wav, path):
         wav = np.array(wav)
-        self.ap.save_wav(wav, path)
+        self.ap.save_wav(wav, path, self.output_sample_rate)
 
     def split_into_sentences(self, text):
         return self.seg.segment(text)
