@@ -18,7 +18,7 @@ def create_argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--list_models', type=convert_boolean, nargs='?', const=True, default=False, help='list available pre-trained tts and vocoder models.')
     parser.add_argument('--model_name', type=str, default="tts_models/en/ljspeech/speedy-speech-wn", help='name of one of the released tts models.')
-    parser.add_argument('--vocoder_name', type=str, default="vocoder_models/en/ljspeech/multiband-melgan", help='name of one of the released vocoder models.')
+    parser.add_argument('--vocoder_name', type=str, default=None, help='name of one of the released vocoder models.')
     parser.add_argument('--tts_checkpoint', type=str, help='path to custom tts checkpoint file')
     parser.add_argument('--tts_config', type=str, help='path to custom tts config.json file')
     parser.add_argument('--tts_speakers', type=str, help='path to JSON file containing speaker ids, if speaker ids are used in the model')
@@ -58,10 +58,11 @@ if args.list_models:
 
 # set models by the released models
 if args.model_name is not None:
-    tts_checkpoint_file, tts_config_file = manager.download_model(args.model_name)
+    tts_checkpoint_file, tts_config_file, tts_json_dict = manager.download_model(args.model_name)
+    args.vocoder_name =  tts_json_dict['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
 
 if args.vocoder_name is not None:
-    vocoder_checkpoint_file, vocoder_config_file = manager.download_model(args.vocoder_name)
+    vocoder_checkpoint_file, vocoder_config_file, vocoder_json_dict = manager.download_model(args.vocoder_name)
 
 # If these were not specified in the CLI args, use default values with embedded model files
 if not args.tts_checkpoint and os.path.isfile(tts_checkpoint_file):
