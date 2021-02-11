@@ -5,18 +5,19 @@ Defines the set of symbols used in text input to the model.
 The default is a set of ASCII characters that works well for English or text that has been run
 through Unidecode. For other data, you can modify _characters. See TRAINING_DATA.md for details.
 '''
-def make_symbols(characters, phonemes, punctuations='!\'(),-.:;? ', pad='_', eos='~', bos='^'):# pylint: disable=redefined-outer-name
+def make_symbols(characters, phonemes=None, punctuations='!\'(),-.:;? ', pad='_', eos='~', bos='^'):# pylint: disable=redefined-outer-name
     ''' Function to create symbols and phonemes '''
-    _phonemes_sorted = sorted(list(phonemes))
-
-    # Prepend "@" to ARPAbet symbols to ensure uniqueness (some are the same as uppercase letters):
-    _arpabet = ['@' + s for s in _phonemes_sorted]
-
-    # Export all symbols:
-    _symbols = [pad, eos, bos] + list(characters) + _arpabet
-    _phonemes = [pad, eos, bos] + list(_phonemes_sorted) + list(punctuations)
-
+    _symbols = [pad, eos, bos] + list(characters)
+    _phonemes = None
+    if phonemes is not None:
+        _phonemes_sorted = sorted(list(phonemes))
+        # Prepend "@" to ARPAbet symbols to ensure uniqueness (some are the same as uppercase letters):
+        _arpabet = ['@' + s for s in _phonemes_sorted]
+        # Export all symbols:
+        _phonemes = [pad, eos, bos] + list(_phonemes_sorted) + list(punctuations)
+        _symbols += _arpabet
     return _symbols, _phonemes
+
 
 _pad = '_'
 _eos = '~'
