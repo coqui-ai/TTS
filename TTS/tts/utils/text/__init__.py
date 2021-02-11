@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import re
-from packaging import version
+
 import phonemizer
+from packaging import version
 from phonemizer.phonemize import phonemize
 from TTS.tts.utils.text import cleaners
-from TTS.tts.utils.text.symbols import make_symbols, symbols, phonemes, _phoneme_punctuations, _bos, \
-    _eos
+from TTS.tts.utils.text.symbols import (_bos, _eos, _phoneme_punctuations,
+                                        make_symbols, phonemes, symbols)
+
 
 # pylint: disable=unnecessary-comprehension
 # Mappings from symbol to numeric ID and vice versa:
