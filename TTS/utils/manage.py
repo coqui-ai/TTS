@@ -116,7 +116,7 @@ class ModelManager(object):
                 config["audio"]['stats_path'] = output_stats_path
                 with open(config_path, "w") as jf:
                     json.dump(config, jf)
-        return output_model_path, output_config_path
+        return output_model_path, output_config_path, model_item
 
     def _download_gdrive_file(self, gdrive_idx, output):
         """Download files from GDrive using their file ids"""
