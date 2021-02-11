@@ -66,7 +66,7 @@
         },
         "en": {
             "ljspeech":{
-                "mulitband-melgan":{
+                "multiband-melgan":{
                     "model_file": "1Ty5DZdOc0F7OTGj9oJThYbL5iVu_2G0K",
                     "config_file": "1Rd0R_nRCrbjEdpOwq6XwZAktvugiBvmu",
                     "stats_file": "11oY3Tv0kQtxK_JPgxrfesa99maVXHNxU",
