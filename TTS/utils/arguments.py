@@ -169,7 +169,6 @@ def process_args(args, model_type):
         args.restore_path, best_model = get_last_models(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-        print(f" > Training continues for {args.restore_path}")
 
     # setup output paths and read configs
     c = load_config(args.config_path)
@@ -184,8 +183,7 @@ def process_args(args, model_type):
     if model_class == "TTS":
         check_config_tts(c)
     elif model_class == "VOCODER":
-        print("Vocoder config checker not implemented, "
-              "skipping ...")
+        print("Vocoder config checker not implemented, skipping ...")
     else:
         raise ValueError(f"model type {model_type} not recognized!")
 

@@ -534,12 +534,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     # setup criterion
     criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
     if args.restore_path:
+        print(f" > Restoring from {os.path.basename(args.restore_path)}...")
         checkpoint = torch.load(args.restore_path, map_location='cpu')
         try:
-            print(" > Restoring Model.")
+            print(" > Restoring Model...")
             model.load_state_dict(checkpoint['model'])
             # optimizer restore
-            print(" > Restoring Optimizer.")
+            print(" > Restoring Optimizer...")
             optimizer.load_state_dict(checkpoint['optimizer'])
             if "scaler" in checkpoint and c.mixed_precision:
                 print(" > Restoring AMP Scaler...")
@@ -547,7 +548,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.reinit_layers:
                 raise RuntimeError
         except (KeyError, RuntimeError):
-            print(" > Partial model initialization.")
+            print(" > Partial model initialization...")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)
             # torch.save(model_dict, os.path.join(OUT_PATH, 'state_dict.pt'))
@@ -585,7 +586,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         best_loss = float('inf')
         print(" > Starting with inf best loss.")
     else:
-        print(args.best_path)
+        print(" > Restoring best loss from "
+              f"{os.path.basename(args.best_path)} ...")
         best_loss = torch.load(args.best_path,
                                map_location='cpu')['model_loss']
         print(f" > Starting with loaded last best loss {best_loss}.")
