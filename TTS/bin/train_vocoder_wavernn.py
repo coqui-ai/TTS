@@ -383,6 +383,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # restore any checkpoint
     if args.restore_path:
+        print(f" > Restoring from {os.path.basename(args.restore_path)}...")
         checkpoint = torch.load(args.restore_path, map_location="cpu")
         try:
             print(" > Restoring Model...")
@@ -420,7 +421,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         best_loss = float('inf')
         print(" > Starting with inf best loss.")
     else:
-        print(args.best_path)
+        print(" > Restoring best loss from "
+              f"{os.path.basename(args.best_path)} ...")
         best_loss = torch.load(args.best_path,
                                map_location='cpu')['model_loss']
         print(f" > Starting with loaded last best loss {best_loss}.")
