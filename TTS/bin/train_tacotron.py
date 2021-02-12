@@ -284,6 +284,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
                     save_checkpoint(model, optimizer, global_step, epoch, model.decoder.r, OUT_PATH,
                                     optimizer_st=optimizer_st,
                                     model_loss=loss_dict['postnet_loss'],
+                                    characters=model_characters,
                                     scaler=scaler.state_dict() if c.mixed_precision else None)
 
                 # Diagnostic visualizations
@@ -492,9 +493,11 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, symbols, phonemes, speaker_mapping
+    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters
     # Audio processor
     ap = AudioProcessor(**c.audio)
+
+    # setup custom characters if set in config file.
     if 'characters' in c.keys():
         symbols, phonemes = make_symbols(**c.characters)
 
@@ -503,6 +506,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         init_distributed(args.rank, num_gpus, args.group_id,
                          c.distributed["backend"], c.distributed["url"])
     num_chars = len(phonemes) if c.use_phonemes else len(symbols)
+    model_characters = phonemes if c.use_phonemes else symbols
 
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
@@ -634,6 +638,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             epoch,
             c.r,
             OUT_PATH,
+            model_characters,
             scaler=scaler.state_dict() if c.mixed_precision else None
         )
 
