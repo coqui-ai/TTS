@@ -39,6 +39,7 @@ class MyDataset(Dataset):
             compute_linear_spec (bool): compute linear spectrogram if True.
             ap (TTS.tts.utils.AudioProcessor): audio processor object.
             meta_data (list): list of dataset instances.
+            tp (dict): dict of custom text characters used for converting texts to sequences.
             batch_group_size (int): (0) range of batch randomization after sorting
                 sequences by length.
             min_seq_len (int): (0) minimum sequence length to be processed
