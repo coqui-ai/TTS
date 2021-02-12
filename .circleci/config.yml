@@ -25,7 +25,7 @@ jobs:
       - checkout
       - run: |
           sudo apt update
-          sudo apt install espeak git
+          sudo apt install espeak-ng git
       - run: sudo pip install --upgrade pip
       - run: sudo pip install -e .
       - run: |
