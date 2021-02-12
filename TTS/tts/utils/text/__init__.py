@@ -24,7 +24,7 @@ _phonemes = phonemes
 _CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 # Regular expression matching punctuations, ignoring empty space
-PHONEME_PUNCTUATION_PATTERN = r'['+_punctuations+']+'
+PHONEME_PUNCTUATION_PATTERN = r'['+_punctuations.replace(' ', '')+']+'
 
 
 def text2phone(text, language):
