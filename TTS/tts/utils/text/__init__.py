@@ -6,7 +6,7 @@ import phonemizer
 from packaging import version
 from phonemizer.phonemize import phonemize
 from TTS.tts.utils.text import cleaners
-from TTS.tts.utils.text.symbols import (_bos, _eos, _phoneme_punctuations,
+from TTS.tts.utils.text.symbols import (_bos, _eos, _punctuations,
                                         make_symbols, phonemes, symbols)
 
 
@@ -24,7 +24,7 @@ _phonemes = phonemes
 _CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 # Regular expression matching punctuations, ignoring empty space
-PHONEME_PUNCTUATION_PATTERN = r'['+_phoneme_punctuations+']+'
+PHONEME_PUNCTUATION_PATTERN = r'['+_punctuations+']+'
 
 
 def text2phone(text, language):
