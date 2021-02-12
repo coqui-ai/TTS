@@ -44,6 +44,11 @@ def parse_arguments(argv):
         help="Model file to be restored. Use to finetune a model.",
         default="")
     parser.add_argument(
+        "--best_path",
+        type=str,
+        help="Best model file to be used for extracting best loss.",
+        default="")
+    parser.add_argument(
         "--config_path",
         type=str,
         help="Path to config file for training.",
@@ -67,11 +72,11 @@ def parse_arguments(argv):
     return parser.parse_args()
 
 
-def get_last_checkpoint(path):
-    """Get latest checkpoint from a list of filenames.
+def get_last_models(path):
+    """Get latest checkpoint or/and best model in path.
 
     It is based on globbing for `*.pth.tar` and the RegEx
-    `checkpoint_([0-9]+)`.
+    `(checkpoint|best_model)_([0-9]+)`.
 
     Parameters
     ----------
@@ -81,7 +86,7 @@ def get_last_checkpoint(path):
     Raises
     ------
     ValueError
-        If no checkpoint files are found.
+        If no checkpoint or best_model files are found.
 
     Returns
     -------
@@ -89,22 +94,37 @@ def get_last_checkpoint(path):
         Last checkpoint filename.
 
     """
-    last_checkpoint_num = 0
-    last_checkpoint = None
-    filenames = glob.glob(
-        os.path.join(path, "/*.pth.tar"))
-    for filename in filenames:
-        try:
-            checkpoint_num = int(
-                re.search(r"checkpoint_([0-9]+)", filename).groups()[0])
-            if checkpoint_num > last_checkpoint_num:
-                last_checkpoint_num = checkpoint_num
-                last_checkpoint = filename
-        except AttributeError:  # if there's no match in the filename
-            pass
-    if last_checkpoint is None:
-        raise ValueError(f"No checkpoints in {path}!")
-    return last_checkpoint
+    file_names = glob.glob(os.path.join(path, "*.pth.tar"))
+    last_models = {}
+    last_model_nums = {}
+    for key in ['checkpoint', 'best_model']:
+        last_model_num = 0
+        last_model = None
+        for file_name in file_names:
+            try:
+                model_num = int(re.search(
+                    f"{key}_([0-9]+)", file_name).groups()[0])
+                if model_num > last_model_num:
+                    last_model_num = model_num
+                    last_model = file_name
+            except AttributeError:  # if there's no match in the filename
+                continue
+        last_models[key] = last_model
+        last_model_nums[key] = last_model_num
+
+    # check what models were found
+    if not last_models:
+        raise ValueError(f"No models found in continue path {path}!")
+    elif 'checkpoint' not in last_models:  # no checkpoint just best model
+        last_models['checkpoint'] = last_models['best_model']
+    elif 'best_model' not in last_models:  # no best model
+        # this shouldn't happen, but let's handle it just in case
+        last_models['best_model'] = None
+    # finally check if last best model is more recent than checkpoint
+    elif last_model_nums['best_model'] > last_model_nums['checkpoint']:
+        last_models['checkpoint'] = last_models['best_model']
+
+    return last_models['checkpoint'], last_models['best_model']
 
 
 def process_args(args, model_type):
@@ -143,15 +163,12 @@ def process_args(args, model_type):
         Class that does the TensorBoard loggind.
 
     """
-    if args.continue_path != "":
+    if args.continue_path:
         args.output_path = args.continue_path
         args.config_path = os.path.join(args.continue_path, "config.json")
-        list_of_files = glob.glob(
-            os.path.join(args.continue_path, "*.pth.tar")
-            )  # * means all if need specific format then *.csv
-        args.restore_path = max(list_of_files, key=os.path.getctime)
-        # checkpoint number based continuing
-        # args.restore_path = get_last_checkpoint(args.continue_path)
+        args.restore_path, best_model = get_last_models(args.continue_path)
+        if not args.best_path:
+            args.best_path = best_model
         print(f" > Training continues for {args.restore_path}")
 
     # setup output paths and read configs
@@ -178,7 +195,7 @@ def process_args(args, model_type):
         print("   >  Mixed precision mode is ON")
 
     out_path = args.continue_path
-    if args.continue_path == "":
+    if not out_path:
         out_path = create_experiment_folder(c.output_path, c.run_name,
                                             args.debug)
 

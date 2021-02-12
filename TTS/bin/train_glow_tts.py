@@ -538,8 +538,16 @@ def main(args):  # pylint: disable=redefined-outer-name
     num_params = count_parameters(model)
     print("\n > Model has {} parameters".format(num_params), flush=True)
 
-    if 'best_loss' not in locals():
+    if args.restore_step == 0 or not args.best_path:
         best_loss = float('inf')
+        print(" > Starting with inf best loss.")
+    else:
+        print(args.best_path)
+        best_loss = torch.load(args.best_path,
+                               map_location='cpu')['model_loss']
+        print(f" > Starting with loaded last best loss {best_loss}.")
+    keep_best = c.get('keep_best', False)
+    keep_after = c.get('keep_after', 10000)  # void if keep_best False
 
     # define dataloaders
     train_loader = setup_loader(ap, 1, is_val=False, verbose=True)
@@ -549,7 +557,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     model = data_depended_init(train_loader, model)
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
-        train_avg_loss_dict, global_step = train(train_loader, model, criterion, optimizer,
+        train_avg_loss_dict, global_step = train(train_loader, model,
+                                                 criterion, optimizer,
                                                  scheduler, ap, global_step,
                                                  epoch)
         eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
@@ -558,8 +567,9 @@ def main(args):  # pylint: disable=redefined-outer-name
         target_loss = train_avg_loss_dict['avg_loss']
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_loss']
-        best_loss = save_best_model(target_loss, best_loss, model, optimizer, global_step, epoch, c.r,
-                                    OUT_PATH)
+        best_loss = save_best_model(target_loss, best_loss, model, optimizer,
+                                    global_step, epoch, c.r, OUT_PATH,
+                                    keep_best=keep_best, keep_after=keep_after)
 
 
 if __name__ == '__main__':
