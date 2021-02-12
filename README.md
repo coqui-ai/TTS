@@ -42,6 +42,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 💻 **Docker Image**            | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-mozillatts)|
 | 🖥️ **Demo Server**             | [TTS/server](https://github.com/mozilla/TTS/tree/master/TTS/server)|
 | 🤖 **Running TTS on Terminal** | [TTS/README.md](https://github.com/mozilla/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
+| ✨ **How to contribute**       |[TTS/README.md](#contribution-guidelines)|
 
 ## 🥇 TTS Performance
 <p align="center"><img src="https://discourse-prod-uploads-81679984178418.s3.dualstack.us-west-2.amazonaws.com/optimized/3X/6/4/6428f980e9ec751c248e591460895f7881aec0c6_2_1035x591.png" width="800" /></p>
@@ -232,15 +233,27 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
-## Contribution guidelines
+## Contribution Guidelines
 This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
 
-Please send your Pull Request to ```dev``` branch. Before making a Pull Request, check your changes for basic mistakes and style problems by using a linter. We have cardboardlinter setup in this repository, so for example, if you've made some changes and would like to run the linter on just the changed code, you can use the follow command:
-
+1. Create a new branch.
+2. Implement your changes.
+3. (if applicable) Add [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
+4. (if applicable) Implement a test case under ```tests``` folder.
+5. (Optional but Prefered) Run tests. 
+```bash
+./run_tests.sh
+```
+6. Run the linter.
 ```bash
 pip install pylint cardboardlint
 cardboardlinter --refspec master
 ```
+7. Send a PR to ```dev``` branch, explain what the change is about.
+8. Let us discuss until we make it perfect :). 
+9. We merge it to the ```dev``` branch once things look good. 
+
+Feel free to ping us at any step you need help using our communication channels.
 
 ## Collaborative Experimentation Guide
 If you like to use TTS to try a new idea and like to share your experiments with the community, we urge you to use the following guideline for a better collaboration.
