@@ -41,6 +41,16 @@ symbols, phonemes = make_symbols(_characters, _phonemes, _punctuations, _pad, _e
 # from random import shuffle
 # shuffle(phonemes)
 
+
+def parse_symbols():
+    return {'pad': _pad,
+            'eos': _eos,
+            'bos': _bos,
+            'characters': _characters,
+            'punctuations': _punctuations,
+            'phonemes': _phonemes}
+
+
 if __name__ == '__main__':
     print(" > TTS symbols {}".format(len(symbols)))
     print(symbols)
