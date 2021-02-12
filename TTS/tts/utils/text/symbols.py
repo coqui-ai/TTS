@@ -5,6 +5,8 @@ Defines the set of symbols used in text input to the model.
 The default is a set of ASCII characters that works well for English or text that has been run
 through Unidecode. For other data, you can modify _characters. See TRAINING_DATA.md for details.
 '''
+
+
 def make_symbols(characters, phonemes=None, punctuations='!\'(),-.:;? ', pad='_', eos='~', bos='^'):# pylint: disable=redefined-outer-name
     ''' Function to create symbols and phonemes '''
     _symbols = [pad, eos, bos] + list(characters)
@@ -18,15 +20,14 @@ def make_symbols(characters, phonemes=None, punctuations='!\'(),-.:;? ', pad='_'
         _symbols += _arpabet
     return _symbols, _phonemes
 
-
 _pad = '_'
 _eos = '~'
 _bos = '^'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _punctuations = '!\'(),-.:;? '
-_phoneme_punctuations = '.!;:,?'
+# _phoneme_punctuations = '.!;:,?'
 
-# Phonemes definition
+# Phonemes definition (All IPA characters)
 _vowels = 'iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻ'
 _non_pulmonic_consonants = 'ʘɓǀɗǃʄǂɠǁʛ'
 _pulmonic_consonants = 'pbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟ'
