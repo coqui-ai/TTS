@@ -6,15 +6,13 @@ import argparse
 import glob
 import os
 import re
-import json
 
 from TTS.tts.utils.generic_utils import check_config_tts
+from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
-from TTS.utils.io import (copy_model_files, load_config,
-                          save_characters_to_config)
+from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.tensorboard_logger import TensorboardLogger
-from TTS.tts.utils.text.symbols import parse_symbols
 
 
 def parse_arguments(argv):

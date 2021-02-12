@@ -7,16 +7,15 @@ from TTS.tts.datasets.preprocess import get_preprocessor_by_name
 
 
 def main():
+    # pylint: disable=bad-continuation
     parser = argparse.ArgumentParser(description='''Find all the unique characters or phonemes in a dataset.\n\n'''
 
     '''Target dataset must be defined in TTS.tts.datasets.preprocess\n\n'''\
-
     '''
     Example runs:
 
     python TTS/bin/find_unique_chars.py --dataset ljspeech --meta_file /path/to/LJSpeech/metadata.csv
-    ''',
-        formatter_class=RawTextHelpFormatter)
+    ''', formatter_class=RawTextHelpFormatter)
 
     parser.add_argument(
         '--dataset',
