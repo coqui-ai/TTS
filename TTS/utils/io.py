@@ -67,7 +67,7 @@ def copy_model_files(c, config_file, out_path, new_fields):
         if isinstance(value, str):
             new_line = '"{}":"{}",\n'.format(key, value)
         else:
-            new_line = '"{}":{},\n'.format(key, value)
+            new_line = '"{}":{},\n'.format(key, json.dumps(value, ensure_ascii=False))
         config_lines.insert(1, new_line)
     config_out_file = open(copy_config_path, "w")
     config_out_file.writelines(config_lines)
