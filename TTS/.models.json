@@ -1,6 +1,16 @@
 {
     "tts_models":{
         "en":{
+            "ek1":{
+                "tacotron2": {
+                    "description": "EK1 en-rp tacotron2 by NMStoker",
+                    "model_file": "1OJ5sLYmB03dQAf1FcY06b5X-0hiR0SNZ",
+                    "config_file": "1hSnodL--5AFJTWvlU96e0pCnCfNU3yM_",
+                    "stats_file": null,
+                    "default_vocoder": "vocoder_models/en/ek1/wavegrad",
+                    "commit": "c802255"
+                }
+            },
             "ljspeech":{
                 "glow-tts":{
                     "description": "",
@@ -70,6 +80,15 @@
             }
         },
         "en": {
+            "ek1":{
+                "wavegrad": {
+                    "description": "EK1 en-rp wavegrad by NMStoker",
+                    "model_file": "1ShaCSrQfSRjM66vo45Bgo019uJDDloLS",
+                    "config_file": "1otnQR5yTfN5A77yMKmUSzwh_VNvYwKai",
+                    "stats_file": null,
+                    "commit": "c802255"
+                }
+            },
             "ljspeech":{
                 "multiband-melgan":{
                     "model_file": "1Ty5DZdOc0F7OTGj9oJThYbL5iVu_2G0K",
