@@ -1,5 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import pkg_resources
 installed = {pkg.key for pkg in pkg_resources.working_set}  #pylint: disable=not-an-iterable
 if 'tensorflow' in installed or 'tensorflow-gpu' in installed:
@@ -220,6 +220,7 @@ def synthesis(model,
                 model outputs.
             speaker_id (int): id of speaker
             style_wav (str | Dict[str, float]): Uses for style embedding of GST.
+            style_wav (str): Uses for style embedding of GST.
             truncated (bool): keep model states after inference. It can be used
                 for continuous inference at long texts.
             enable_eos_bos_chars (bool): enable special chars for end of sentence and start of sentence.
