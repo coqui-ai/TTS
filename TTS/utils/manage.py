@@ -128,7 +128,8 @@ class ModelManager(object):
         """Download files from GDrive using their file ids"""
         gdown.download(f"{self.url_prefix}{gdrive_idx}", output=output, quiet=False)
 
-    def _download_zip_file(self, file_url, output):
+    @staticmethod
+    def _download_zip_file(file_url, output):
         """Download the target zip file and extract the files
         to a folder with the same name as the zip file."""
         r = requests.get(file_url)
