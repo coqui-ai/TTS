@@ -25,7 +25,6 @@ _eos = '~'
 _bos = '^'
 _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _punctuations = '!\'(),-.:;? '
-# _phoneme_punctuations = '.!;:,?'
 
 # Phonemes definition (All IPA characters)
 _vowels = 'iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻ'
