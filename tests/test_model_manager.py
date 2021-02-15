@@ -2,7 +2,6 @@
 import os
 import shutil
 import glob
-import unittest
 from tests import get_tests_output_path
 from TTS.utils.manage import ModelManager
 
