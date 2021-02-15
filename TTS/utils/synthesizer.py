@@ -122,6 +122,13 @@ class Synthesizer(object):
         speaker_embedding = self.init_speaker(speaker_idx)
         use_gl = self.vocoder_model is None
 
+
+        # check if compute gst style
+        gst_style_input = None
+        if self.tts_config.use_gst:
+            if self.tts_config.gst["gst_style_input"] not in ["", {}]:
+                style_wav = self.tts_config.gst["gst_style_input"]
+
         for sen in sens:
             # synthesize voice
             waveform, _, _, mel_postnet_spec, _, _ = synthesis(
@@ -131,7 +138,7 @@ class Synthesizer(object):
                 self.use_cuda,
                 self.ap,
                 speaker_idx,
-                None,
+                gst_style_input,
                 False,
                 self.tts_config.enable_eos_bos_chars,
                 use_gl,
