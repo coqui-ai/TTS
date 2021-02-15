@@ -352,3 +352,19 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
 
     with open(str(cache_to), 'r') as f:
         return [x.strip().split('|') for x in f.readlines()]
+
+
+
+
+# ======================================== Baker (chinese mandarin single speaker) ===========================================
+def baker(root_path, meta_file):
+    """Normalizes the Baker meta data file to TTS format"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = "baker"
+    with open(txt_file, 'r') as ttf:
+        for line in ttf:
+            wav_name, text = line.rstrip('\n').split("|")
+            wav_path = os.path.join(root_path, "clips_22", wav_name)
+            items.append([text, wav_path, speaker_name])
+    return items 
