@@ -182,7 +182,7 @@ def process_args(args, model_type):
         # if model characters are not set in the config file
         # save the default set to the config file for future
         # compatibility.
-        if model_class == 'TTS' and not 'characters' in c:
+        if model_class == 'TTS' and 'characters' not in c:
             used_characters = parse_symbols()
             new_fields['characters'] = used_characters
         copy_model_files(c, args.config_path,
