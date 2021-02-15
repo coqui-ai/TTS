@@ -35,9 +35,9 @@ def main():
 
     preprocessor = get_preprocessor_by_name(args.dataset)
     items = preprocessor(os.path.dirname(args.meta_file), os.path.basename(args.meta_file))
-    texts = " ".join([item[0] for item in items])
+    texts = "".join(item[0] for item in items)
     chars = set(texts)
-    lower_chars = set(texts.lower())
+    lower_chars = filter(lambda c: c.islower(), chars)
     print(f" > Number of unique characters: {len(chars)}")
     print(f" > Unique characters: {''.join(sorted(chars))}")
     print(f" > Unique lower characters: {''.join(sorted(lower_chars))}")
