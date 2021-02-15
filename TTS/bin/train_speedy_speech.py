@@ -512,8 +512,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         best_loss = torch.load(args.best_path,
                                map_location='cpu')['model_loss']
         print(f" > Starting with loaded last best loss {best_loss}.")
-    keep_best = c.get('keep_best', False)
-    keep_after = c.get('keep_after', 10000)  # void if keep_best False
+    keep_all_best = c.get('keep_all_best', False)
+    keep_after = c.get('keep_after', 10000)  # void if keep_all_best False
 
     # define dataloaders
     train_loader = setup_loader(ap, 1, is_val=False, verbose=True)
@@ -533,7 +533,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             target_loss = eval_avg_loss_dict['avg_loss']
         best_loss = save_best_model(target_loss, best_loss, model, optimizer,
                                     global_step, epoch, c.r, OUT_PATH,
-                                    keep_best=keep_best, keep_after=keep_after)
+                                    keep_all_best=keep_all_best, keep_after=keep_after)
 
 
 if __name__ == '__main__':

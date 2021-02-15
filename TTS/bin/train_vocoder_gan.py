@@ -555,8 +555,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         best_loss = torch.load(args.best_path,
                                map_location='cpu')['model_loss']
         print(f" > Starting with best loss of {best_loss}.")
-    keep_best = c.get('keep_best', False)
-    keep_after = c.get('keep_after', 10000)  # void if keep_best False
+    keep_all_best = c.get('keep_all_best', False)
+    keep_after = c.get('keep_after', 10000)  # void if keep_all_best False
 
     global_step = args.restore_step
     for epoch in range(0, c.epochs):
@@ -581,7 +581,7 @@ def main(args):  # pylint: disable=redefined-outer-name
                                     global_step,
                                     epoch,
                                     OUT_PATH,
-                                    keep_best=keep_best,
+                                    keep_all_best=keep_all_best,
                                     keep_after=keep_after,
                                     model_losses=eval_avg_loss_dict,
                                     )

@@ -64,7 +64,7 @@ def save_checkpoint(model, optimizer, scheduler, model_disc, optimizer_disc,
 
 def save_best_model(current_loss, best_loss, model, optimizer, scheduler,
                     model_disc, optimizer_disc, scheduler_disc, current_step,
-                    epoch, out_path, keep_best=False, keep_after=10000,
+                    epoch, out_path, keep_all_best=False, keep_after=10000,
                     **kwargs):
     if current_loss < best_loss:
         best_model_name = f'best_model_{current_step}.pth.tar'
@@ -82,7 +82,7 @@ def save_best_model(current_loss, best_loss, model, optimizer, scheduler,
                    model_loss=current_loss,
                    **kwargs)
         # only delete previous if current is saved successfully
-        if not keep_best or (current_step < keep_after):
+        if not keep_all_best or (current_step < keep_after):
             model_names = glob.glob(
                 os.path.join(out_path, 'best_model*.pth.tar'))
             for model_name in model_names:

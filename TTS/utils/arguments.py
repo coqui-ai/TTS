@@ -68,7 +68,7 @@ def parse_arguments(argv):
     return parser.parse_args()
 
 
-def get_last_models(path):
+def get_last_checkpoint(path):
     """Get latest checkpoint or/and best model in path.
 
     It is based on globbing for `*.pth.tar` and the RegEx
@@ -145,7 +145,7 @@ def process_args(args, model_type):
     if args.continue_path:
         args.output_path = args.continue_path
         args.config_path = os.path.join(args.continue_path, "config.json")
-        args.restore_path, best_model = get_last_models(args.continue_path)
+        args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
 
