@@ -172,6 +172,7 @@ def process_args(args, model_type):
     audio_path = os.path.join(out_path, "test_audios")
 
     c_logger = ConsoleLogger()
+    tb_logger = None
 
     if args.rank == 0:
         os.makedirs(audio_path, exist_ok=True)
