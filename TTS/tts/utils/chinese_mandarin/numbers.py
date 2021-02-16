@@ -10,16 +10,24 @@ import re
 import itertools
 
 
-def _num2chinese(num :str, big=False, simp=True, o=False, twoalt=False):
+def _num2chinese(num :str, big=False, simp=True, o=False, twoalt=False) -> str:
+    """Convert numerical arabic numbers (0->9) to chinese hanzi numbers (〇 -> 九)
+
+    Args:
+        num (str): arabic number to convert
+        big (bool, optional): use financial characters. Defaults to False.
+        simp (bool, optional): use simplified characters instead of tradictional characters. Defaults to True.
+        o (bool, optional): use 〇 for 'zero'. Defaults to False.
+        twoalt (bool, optional): use 两/兩 for 'two' when appropriate. Defaults to False.
+
+    Raises:
+        ValueError: if number is more than 1e48
+        ValueError: if 'e' exposent in number
+
+    Returns:
+        str: converted number as hanzi characters
     """
-    Converts numbers to Chinese representations.
-    `big`   : use financial characters.
-    `simp`  : use simplified characters instead of traditional characters.
-    `o`     : use 〇 for zero.
-    `twoalt`: use 两/兩 for two when appropriate.
-    Note that `o` and `twoalt` is ignored when `big` is used, 
-    and `twoalt` is ignored when `o` is used for formal representations.
-    """
+
     # check num first
     nd = str(num)
     if abs(float(nd)) >= 1e48:
@@ -97,11 +105,27 @@ def _num2chinese(num :str, big=False, simp=True, o=False, twoalt=False):
 
 
 
-def _number_replace(match : re.Match):
+def _number_replace(match: re.Match) -> str:
+    """function to apply in a match, transform all numbers in a match by chinese characters
+
+    Args:
+        match (re.Match): numbers regex matches
+
+    Returns:
+        str: replaced characters for the numbers
+    """
     match_str: str = match.group()
     return _num2chinese(match_str)
 
 
-def replace_numbers_to_characters_in_text(text : str):
+def replace_numbers_to_characters_in_text(text: str) -> str:
+    """Replace all arabic numbers in a text by their equivalent in chinese characters (simplified)
+
+    Args:
+        text (str): input text to transform
+
+    Returns:
+        str: output text
+    """
     text = re.sub(r'[0-9]+', _number_replace, text)
     return text

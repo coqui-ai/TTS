@@ -29,16 +29,15 @@ PHONEME_PUNCTUATION_PATTERN = r'['+_punctuations.replace(' ', '')+']+'
 
 
 def text2phone(text, language):
-    '''
-    Convert graphemes to phonemes. For most of the languages, it calls
+    '''Convert graphemes to phonemes. For most of the languages, it calls
     the phonemizer python library that calls espeak/espeak-ng. For chinese
     mandarin, it calls pypinyin + custom function for phonemizing
-            Parameters:
-                    text (str): text to phonemize
-                    language (str): language of the text
-            Returns:
-                    ph (str): phonemes as a string seperated by "|"
-                            ph = "ɪ|g|ˈ|z|æ|m|p|ə|l"
+        Parameters:
+                text (str): text to phonemize
+                language (str): language of the text
+        Returns:
+                ph (str): phonemes as a string seperated by "|"
+                        ph = "ɪ|g|ˈ|z|æ|m|p|ə|l"
     '''
 
     # TO REVIEW : How to have a good implementation for this?
