@@ -105,7 +105,7 @@ def _num2chinese(num :str, big=False, simp=True, o=False, twoalt=False) -> str:
 
 
 
-def _number_replace(match: re.Match) -> str:
+def _number_replace(match) -> str:
     """function to apply in a match, transform all numbers in a match by chinese characters
 
     Args:
