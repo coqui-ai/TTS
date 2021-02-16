@@ -127,7 +127,7 @@ class Synthesizer(object):
         gst_style_input = None
         if self.tts_config.use_gst:
             if self.tts_config.gst["gst_style_input"] not in ["", {}]:
-                style_wav = self.tts_config.gst["gst_style_input"]
+                gst_style_input = self.tts_config.gst["gst_style_input"]
 
         for sen in sens:
             # synthesize voice

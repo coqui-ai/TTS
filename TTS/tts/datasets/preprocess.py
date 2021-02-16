@@ -3,6 +3,7 @@ from glob import glob
 import re
 import sys
 from pathlib import Path
+from typing import List, Tuple
 
 from tqdm import tqdm
 
@@ -371,10 +372,15 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
 
 
 
+def baker(root_path: str, meta_file: str) ->  List[List[str]]:
+    """Normalizes the Baker meta data file to TTS format
 
-# ======================================== Baker (chinese mandarin single speaker) ===========================================
-def baker(root_path, meta_file):
-    """Normalizes the Baker meta data file to TTS format"""
+    Args:
+        root_path (str): path to the baker dataset
+        meta_file (str): name of the meta dataset containing names of wav to select and the transcript of the sentence  
+    Returns:
+        List[List[str]]: List of (text, wav_path, speaker_name) associated with each sentences
+    """
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "baker"
