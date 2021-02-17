@@ -24,6 +24,14 @@ class ResStack(nn.Module):
       return  x1 + x2
 
     def remove_weight_norm(self):
+        # nn.utils.remove_weight_norm(self.resstack[2])
+        # nn.utils.remove_weight_norm(self.resstack[4])
+        for idx, layer in enumerate(self.resstack):
+            if len(layer.state_dict()) != 0:
+                try:
+                    nn.utils.remove_weight_norm(layer)
+                except:
+                    layer.remove_weight_norm()
         nn.utils.remove_weight_norm(self.shortcut)
 
 class MRF(nn.Module):
@@ -38,3 +46,8 @@ class MRF(nn.Module):
       x2 = self.resblock2(x)
       x3 = self.resblock3(x)
       return x1 + x2 + x3
+
+    def remove_weight_norm(self):
+        self.resblock1.remove_weight_norm()
+        self.resblock2.remove_weight_norm()
+        self.resblock3.remove_weight_norm()
