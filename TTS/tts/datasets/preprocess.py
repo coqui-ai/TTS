@@ -153,7 +153,8 @@ def mailabs(root_path, meta_files=None):
 
 
 def ljspeech(root_path, meta_file):
-    """Normalizes the Nancy meta data file to TTS format"""
+    """Normalizes the LJSpeech meta data file to TTS format
+    https://keithito.com/LJ-Speech-Dataset/"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "ljspeech"
@@ -161,6 +162,21 @@ def ljspeech(root_path, meta_file):
         for line in ttf:
             cols = line.split('|')
             wav_file = os.path.join(root_path, 'wavs', cols[0] + '.wav')
+            text = cols[1]
+            items.append([text, wav_file, speaker_name])
+    return items
+
+
+def ruslan(root_path, meta_file):
+    """Normalizes the RUSLAN meta data file to TTS format
+    https://ruslan-corpus.github.io/"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = "ljspeech"
+    with open(txt_file, 'r') as ttf:
+        for line in ttf:
+            cols = line.split('|')
+            wav_file = os.path.join(root_path, 'RUSLAN', cols[0] + '.wav')
             text = cols[1]
             items.append([text, wav_file, speaker_name])
     return items
