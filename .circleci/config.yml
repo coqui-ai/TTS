@@ -33,9 +33,7 @@ jobs:
           cardboardlinter --refspec ${CIRCLE_BRANCH} -n auto
       - run: nosetests tests --nocapture --processes=0 --process-timeout=20 --process-restartworker
       - run: |
-          sudo ./tests/test_server_package.sh
           sudo ./tests/test_glow-tts_train.sh
-          sudo ./tests/test_server_package.sh
           sudo ./tests/test_tacotron_train.sh
           sudo ./tests/test_vocoder_gan_train.sh
           sudo ./tests/test_vocoder_wavegrad_train.sh
