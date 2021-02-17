@@ -538,12 +538,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     # setup criterion
     criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
     if args.restore_path:
+        print(f" > Restoring from {os.path.basename(args.restore_path)}...")
         checkpoint = torch.load(args.restore_path, map_location='cpu')
         try:
-            print(" > Restoring Model.")
+            print(" > Restoring Model...")
             model.load_state_dict(checkpoint['model'])
             # optimizer restore
-            print(" > Restoring Optimizer.")
+            print(" > Restoring Optimizer...")
             optimizer.load_state_dict(checkpoint['optimizer'])
             if "scaler" in checkpoint and c.mixed_precision:
                 print(" > Restoring AMP Scaler...")
@@ -551,7 +552,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.reinit_layers:
                 raise RuntimeError
         except (KeyError, RuntimeError):
-            print(" > Partial model initialization.")
+            print(" > Partial model initialization...")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint['model'], c)
             # torch.save(model_dict, os.path.join(OUT_PATH, 'state_dict.pt'))
@@ -585,8 +586,17 @@ def main(args):  # pylint: disable=redefined-outer-name
     num_params = count_parameters(model)
     print("\n > Model has {} parameters".format(num_params), flush=True)
 
-    if 'best_loss' not in locals():
+    if args.restore_step == 0 or not args.best_path:
         best_loss = float('inf')
+        print(" > Starting with inf best loss.")
+    else:
+        print(" > Restoring best loss from "
+              f"{os.path.basename(args.best_path)} ...")
+        best_loss = torch.load(args.best_path,
+                               map_location='cpu')['model_loss']
+        print(f" > Starting with loaded last best loss {best_loss}.")
+    keep_all_best = c.get('keep_all_best', False)
+    keep_after = c.get('keep_after', 10000)  # void if keep_all_best False
 
     # define data loaders
     train_loader = setup_loader(ap,
@@ -639,6 +649,8 @@ def main(args):  # pylint: disable=redefined-outer-name
             c.r,
             OUT_PATH,
             model_characters,
+            keep_all_best=keep_all_best,
+            keep_after=keep_after,
             scaler=scaler.state_dict() if c.mixed_precision else None
         )
 
