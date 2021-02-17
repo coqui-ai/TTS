@@ -9,6 +9,40 @@ from TTS.tts.utils.data import StandardScaler
 
 #pylint: disable=too-many-public-methods
 class AudioProcessor(object):
+    """Audio Processor for TTS used by all the data pipelines.
+
+    Note:
+        All the class arguments are set to default values to enable a flexible initialization
+        of the class with the model config. They are not meaningful for all the arguments.
+
+    Args:
+        sample_rate (int, optional): target audio sampling rate. Defaults to None.
+        resample (bool, optional): enable/disable resampling of the audio clips when the target sampling rate does not match the original sampling rate. Defaults to False.
+        num_mels (int, optional): number of melspectrogram dimensions. Defaults to None.
+        min_level_db (int, optional): minimum db threshold for the computed melspectrograms. Defaults to None.
+        frame_shift_ms (int, optional): milliseconds of frames between STFT columns. Defaults to None.
+        frame_length_ms (int, optional): milliseconds of STFT window length. Defaults to None.
+        hop_length (int, optional): number of frames between STFT columns. Used if ```frame_shift_ms``` is None. Defaults to None.
+        win_length (int, optional): STFT window length. Used if ```frame_length_ms``` is None. Defaults to None.
+        ref_level_db (int, optional): reference DB level to avoid background noise. In general <20DB corresponds to the air noise. Defaults to None.
+        fft_size (int, optional): FFT window size for STFT. Defaults to 1024.
+        power (int, optional): Exponent value applied to the spectrogram before GriffinLim. Defaults to None.
+        preemphasis (float, optional): Preemphasis coefficient. Preemphasis is disabled if == 0.0. Defaults to 0.0.
+        signal_norm (bool, optional): enable/disable signal normalization. Defaults to None.
+        symmetric_norm (bool, optional): enable/disable symmetric normalization. If set True normalization is performed in the range [-k, k] else [0, k], Defaults to None.
+        max_norm (float, optional): ```k``` defining the normalization range. Defaults to None.
+        mel_fmin (int, optional): minimum filter frequency for computing melspectrograms. Defaults to None.
+        mel_fmax (int, optional): maximum filter frequency for computing melspectrograms.. Defaults to None.
+        spec_gain (int, optional): gain applied when converting amplitude to DB. Defaults to 20.
+        stft_pad_mode (str, optional): Padding mode for STFT. Defaults to 'reflect'.
+        clip_norm (bool, optional): enable/disable clipping the our of range values in the normalized audio signal. Defaults to True.
+        griffin_lim_iters (int, optional): Number of GriffinLim iterations. Defaults to None.
+        do_trim_silence (bool, optional): enable/disable silence trimming when loading the audio signal. Defaults to False.
+        trim_db (int, optional): DB threshold used for silence trimming. Defaults to 60.
+        do_sound_norm (bool, optional): enable/disable signal normalization. Defaults to False.
+        stats_path (str, optional): Path to the computed stats file. Defaults to None.
+        verbose (bool, optional): enable/disable logging. Defaults to True.
+    """
     def __init__(self,
                  sample_rate=None,
                  resample=False,
