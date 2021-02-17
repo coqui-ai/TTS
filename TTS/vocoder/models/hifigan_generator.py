@@ -18,7 +18,7 @@ class Generator(nn.Module):
             out = int(inp / 2)
             generator += [
                 nn.LeakyReLU(0.2),
-                nn.ConvTranspose1d(inp, out, k, k // 2),
+                nn.utils.weight_norm(nn.ConvTranspose1d(inp, out, k, k//2)),
                 MRF(kr, out, Dr)
             ]
             hu = out
@@ -37,3 +37,24 @@ class Generator(nn.Module):
         x2 = self.generator(x1)
         out = self.output(x2)
         return out
+
+    def remove_weight_norm(self):
+        for idx, layer in enumerate(self.input):
+            if len(layer.state_dict()) != 0:
+                try:
+                    nn.utils.remove_weight_norm(layer)
+                except:
+                    layer.remove_weight_norm()
+
+        for idx, layer in enumerate(self.output):
+            if len(layer.state_dict()) != 0:
+                try:
+                    nn.utils.remove_weight_norm(layer)
+                except:
+                    layer.remove_weight_norm()
+        for idx, layer in enumerate(self.generator):
+            if len(layer.state_dict()) != 0:
+                try:
+                    nn.utils.remove_weight_norm(layer)
+                except:
+                    layer.remove_weight_norm()
