@@ -464,6 +464,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     criterion = SpeedySpeechLoss(c)
 
     if args.restore_path:
+        print(f" > Restoring from {os.path.basename(args.restore_path)} ...")
         checkpoint = torch.load(args.restore_path, map_location='cpu')
         try:
             # TODO: fix optimizer init, model.cuda() needs to be called before
@@ -505,8 +506,17 @@ def main(args):  # pylint: disable=redefined-outer-name
     num_params = count_parameters(model)
     print("\n > Model has {} parameters".format(num_params), flush=True)
 
-    if 'best_loss' not in locals():
+    if args.restore_step == 0 or not args.best_path:
         best_loss = float('inf')
+        print(" > Starting with inf best loss.")
+    else:
+        print(" > Restoring best loss from "
+              f"{os.path.basename(args.best_path)} ...")
+        best_loss = torch.load(args.best_path,
+                               map_location='cpu')['model_loss']
+        print(f" > Starting with loaded last best loss {best_loss}.")
+    keep_all_best = c.get('keep_all_best', False)
+    keep_after = c.get('keep_after', 10000)  # void if keep_all_best False
 
     # define dataloaders
     train_loader = setup_loader(ap, 1, is_val=False, verbose=True)
@@ -525,8 +535,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_loss']
         best_loss = save_best_model(target_loss, best_loss, model, optimizer,
-                                    global_step, epoch, c.r,
-                                    OUT_PATH, model_characters)
+                                    global_step, epoch, c.r, OUT_PATH, model_characters,
+                                    keep_all_best=keep_all_best, keep_after=keep_after)
 
 
 if __name__ == '__main__':

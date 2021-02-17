@@ -1,4 +1,5 @@
 import os
+import glob
 import torch
 import datetime
 import pickle as pickle_tts
@@ -61,12 +62,13 @@ def save_checkpoint(model, optimizer, scheduler, model_disc, optimizer_disc,
                scheduler_disc, current_step, epoch, checkpoint_path, **kwargs)
 
 
-def save_best_model(target_loss, best_loss, model, optimizer, scheduler,
+def save_best_model(current_loss, best_loss, model, optimizer, scheduler,
                     model_disc, optimizer_disc, scheduler_disc, current_step,
-                    epoch, output_folder, **kwargs):
-    if target_loss < best_loss:
-        file_name = 'best_model.pth.tar'
-        checkpoint_path = os.path.join(output_folder, file_name)
+                    epoch, out_path, keep_all_best=False, keep_after=10000,
+                    **kwargs):
+    if current_loss < best_loss:
+        best_model_name = f'best_model_{current_step}.pth.tar'
+        checkpoint_path = os.path.join(out_path, best_model_name)
         print(" > BEST MODEL : {}".format(checkpoint_path))
         save_model(model,
                    optimizer,
@@ -77,7 +79,21 @@ def save_best_model(target_loss, best_loss, model, optimizer, scheduler,
                    current_step,
                    epoch,
                    checkpoint_path,
-                   model_loss=target_loss,
+                   model_loss=current_loss,
                    **kwargs)
-        best_loss = target_loss
+        # only delete previous if current is saved successfully
+        if not keep_all_best or (current_step < keep_after):
+            model_names = glob.glob(
+                os.path.join(out_path, 'best_model*.pth.tar'))
+            for model_name in model_names:
+                if os.path.basename(model_name) == best_model_name:
+                    continue
+                os.remove(model_name)
+        # create symlink to best model for convinience
+        link_name = 'best_model.pth.tar'
+        link_path = os.path.join(out_path, link_name)
+        if os.path.islink(link_path) or os.path.isfile(link_path):
+            os.remove(link_path)
+        os.symlink(best_model_name, os.path.join(out_path, link_name))
+        best_loss = current_loss
     return best_loss

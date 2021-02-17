@@ -111,6 +111,8 @@
    "print_eval": false,     // If True, it prints intermediate loss values in evalulation.
    "save_step": 5000,      // Number of training steps expected to save traninpg stats and checkpoints.
    "checkpoint": true,     // If true, it saves checkpoints per "save_step"
+   "keep_all_best": true,  // If true, keeps all best_models after keep_after steps
+   "keep_after": 10000,    // Global step after which to keep best models if keep_all_best is true
    "tb_model_param_stats": false,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.:set n
    "mixed_precision": false,
 
