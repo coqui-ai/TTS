@@ -67,7 +67,7 @@ def main():
     parser.add_argument(
         '--text',
         type=str,
-        default=None,
+        required=True,
         help='Text to generate speech.'
         )
 
