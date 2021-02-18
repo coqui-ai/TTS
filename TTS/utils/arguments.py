@@ -94,7 +94,7 @@ def get_last_checkpoint(path):
             match = re.search(f"{key}_([0-9]+)", file_name)
             if match is not None:
                 model_num = int(match.groups()[0])
-                if model_num > last_model_num or last_model_num is None:
+                if last_model_num is None or model_num > last_model_num:
                     last_model_num = model_num
                     last_model = file_name
 
