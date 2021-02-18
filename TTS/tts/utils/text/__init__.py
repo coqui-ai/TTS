@@ -8,6 +8,7 @@ from phonemizer.phonemize import phonemize
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.symbols import (_bos, _eos, _punctuations,
                                         make_symbols, phonemes, symbols)
+from TTS.tts.utils.chinese_mandarin.phonemizer import chinese_text_to_phonemes
 
 
 # pylint: disable=unnecessary-comprehension
@@ -28,9 +29,23 @@ PHONEME_PUNCTUATION_PATTERN = r'['+_punctuations.replace(' ', '')+']+'
 
 
 def text2phone(text, language):
+    '''Convert graphemes to phonemes. For most of the languages, it calls
+    the phonemizer python library that calls espeak/espeak-ng. For chinese
+    mandarin, it calls pypinyin + custom function for phonemizing
+        Parameters:
+                text (str): text to phonemize
+                language (str): language of the text
+        Returns:
+                ph (str): phonemes as a string seperated by "|"
+                        ph = "ɪ|g|ˈ|z|æ|m|p|ə|l"
     '''
-    Convert graphemes to phonemes.
-    '''
+
+    # TO REVIEW : How to have a good implementation for this?
+    if language == "chinese-mandarin":
+        ph = chinese_text_to_phonemes(text)
+        return ph
+
+
     seperator = phonemizer.separator.Separator(' |', '', '|')
     #try:
     punctuations = re.findall(PHONEME_PUNCTUATION_PATTERN, text)
