@@ -219,7 +219,7 @@ def synthesis(model,
             ap (TTS.tts.utils.audio.AudioProcessor): audio processor to process
                 model outputs.
             speaker_id (int): id of speaker
-            style_wav (str): Uses for style embedding of GST.
+            style_wav (str | Dict[str, float]): Uses for style embedding of GST.
             truncated (bool): keep model states after inference. It can be used
                 for continuous inference at long texts.
             enable_eos_bos_chars (bool): enable special chars for end of sentence and start of sentence.
