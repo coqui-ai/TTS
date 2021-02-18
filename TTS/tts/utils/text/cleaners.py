@@ -15,6 +15,8 @@ from unidecode import unidecode
 from .number_norm import normalize_numbers
 from .abbreviations import abbreviations_en, abbreviations_fr
 from .time import expand_time_english
+from TTS.tts.utils.chinese_mandarin.numbers import replace_numbers_to_characters_in_text
+
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
@@ -121,6 +123,13 @@ def portuguese_cleaners(text):
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
     return text
+
+def chinese_mandarin_cleaners(text: str) -> str:
+    '''Basic pipeline for chinese'''
+    text = replace_numbers_to_characters_in_text(text)
+    return text
+
+
 
 def phoneme_cleaners(text):
     '''Pipeline for phonemes mode, including number and abbreviation expansion.'''
