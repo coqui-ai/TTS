@@ -8,6 +8,8 @@ import torch
 import numpy as np
 from .text import text_to_sequence, phoneme_to_sequence
 
+from TTS.utils.io import AttrDict
+from TTS.tts.models.tts_abstract import TTSAbstract
 
 def text_to_seqvec(text, CONFIG):
     text_cleaner = [CONFIG.text_cleaner]
@@ -50,25 +52,26 @@ def compute_style_mel(style_wav, ap, cuda=False):
     return style_mel
 
 
-def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, speaker_embeddings=None):
+def run_model_torch(model: TTSAbstract, inputs, CONFIG: AttrDict, truncated: bool, speaker_id=None, style_mel=None, speaker_embeddings=None):
+    speaker_embedding_g = speaker_id if speaker_id is not None else speaker_embeddings
+    
     if 'tacotron' in CONFIG.model.lower():
-        if CONFIG.use_gst:
+        if not CONFIG.use_gst:
+            style_mel = None
+        
+        if truncated:
+            decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
+                inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings)
+        else:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
                 inputs, style_mel=style_mel, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings)
-        else:
-            if truncated:
-                decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
-                    inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings)
-            else:
-                decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-                    inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings)
     elif 'glow' in CONFIG.model.lower():
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, 'module'):
             # distributed model
-            postnet_output, _, _, _, alignments, _, _ = model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+            postnet_output, _, _, _, alignments, _, _ = model.module.inference(inputs, inputs_lengths, speaker_embedding_g)
         else:
-            postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+            postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths, speaker_embedding_g)
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.
         decoder_output = None
@@ -77,9 +80,9 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, 'module'):
             # distributed model
-            postnet_output, alignments= model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+            postnet_output, alignments= model.module.inference(inputs, inputs_lengths, speaker_embedding_g)
         else:
-            postnet_output, alignments= model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+            postnet_output, alignments= model.inference(inputs, inputs_lengths, speaker_embedding_g)
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.
         decoder_output = None
@@ -196,10 +199,10 @@ def apply_griffin_lim(inputs, input_lens, CONFIG, ap):
     return wavs
 
 
-def synthesis(model,
-              text,
-              CONFIG,
-              use_cuda,
+def synthesis(model: TTSAbstract,
+              text: str,
+              CONFIG: AttrDict,
+              use_cuda: bool,
               ap,
               speaker_id=None,
               style_wav=None,

@@ -60,6 +60,14 @@
 
           <ul class="list-unstyled">
           </ul>
+          {%if use_speaker_embedding%}
+          <input id="speaker-json-key" placeholder="speaker json key.." size=45 type="text" name="speaker-json-key">
+          {%endif%}
+
+          {%if use_gst%}
+          <input value="{'0': 0.1}" id="style-wav" placeholder="style wav (dict or path ot wav).." size=45 type="text" name="style-wav">
+          {%endif%}
+
           <input id="text" placeholder="Type here..." size=45 type="text" name="text">
           <button id="speak-button" name="speak">Speak</button><br/><br/>
           {%if show_details%}
@@ -73,15 +81,24 @@
 
     <!-- Bootstrap core JavaScript -->
     <script>
+            function getTextValue(textId) {
+              const container = q(textId)
+              if (container) {
+                return container.value
+              } 
+              return ""
+            }
             function q(selector) {return document.querySelector(selector)}
             q('#text').focus()
             function do_tts(e) {
-                text = q('#text').value
+                const text = q('#text').value
+                const speakerJsonKey = getTextValue('#speaker-json-key')
+                const styleWav = getTextValue('#style-wav')
                 if (text) {
                     q('#message').textContent = 'Synthesizing...'
                     q('#speak-button').disabled = true
                     q('#audio').hidden = true
-                    synthesize(text)
+                    synthesize(text, speakerJsonKey, styleWav)
                 }
                 e.preventDefault()
                 return false
@@ -92,8 +109,8 @@
                 do_tts(e)
               }
             })
-            function synthesize(text) {
-                fetch('/api/tts?text=' + encodeURIComponent(text), {cache: 'no-cache'})
+            function synthesize(text, speakerJsonKey="", styleWav="") {
+                fetch(`/api/tts?text=${encodeURIComponent(text)}&speaker=${encodeURIComponent(speakerJsonKey)}&style-wav=${encodeURIComponent(styleWav)}` , {cache: 'no-cache'})
                     .then(function(res) {
                         if (!res.ok) throw Error(res.statusText)
                             return res.blob()

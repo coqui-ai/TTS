@@ -2,22 +2,25 @@ import os
 import json
 
 
-def make_speakers_json_path(out_path):
+def make_speakers_json_path(out_path: str) -> str:
     """Returns conventional speakers.json location."""
     return os.path.join(out_path, "speakers.json")
 
 
-def load_speaker_mapping(out_path):
+def load_speaker_mapping(out_path: str) -> dict:
     """Loads speaker mapping if already present."""
-    try:
-        if os.path.splitext(out_path)[1] == '.json':
-            json_file = out_path
-        else:
-            json_file = make_speakers_json_path(out_path)
+    speakers_json = {}
+    if os.path.splitext(out_path)[1] == '.json':
+        json_file = out_path
+    else:
+        json_file = make_speakers_json_path(out_path)
+
+    if os.path.isfile(json_file):
         with open(json_file) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
+            speakers_json = json.load(f)
+    else:
+        print(f"speaker json file was not found in path '{out_path}'")
+    return speakers_json
 
 def save_speaker_mapping(out_path, speaker_mapping):
     """Saves speaker mapping if not yet present."""

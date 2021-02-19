@@ -1,10 +1,12 @@
 import datetime
 import glob
+import json
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Union
 
 
 def get_git_branch():
@@ -173,3 +175,20 @@ def check_argument(name, c, enum_list=None, max_val=None, min_val=None, restrict
             assert is_valid or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
         elif val_type:
             assert isinstance(c[name], val_type) or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
+
+
+def style_wav_uri_to_dict(style_wav: str) -> Union[str, dict]:
+    """Transform an uri style_wav, in either a string (path to wav file to be use for style transfer)
+    or a dict (gst tokens/values to be use for styling) 
+
+    Args:
+        style_wav (str): uri
+
+    Returns:
+        Union[str, dict]: path to file (str) or gst style (dict)
+    """
+    if os.path.isfile(style_wav) and style_wav.endswith(".wav"): 
+        return style_wav # style_wav is a .wav file located on the server
+    
+    style_wav = json.loads(style_wav)
+    return style_wav # style_wav is a gst dictionary with {token1_id : token1_weigth, ...}

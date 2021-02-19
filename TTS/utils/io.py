@@ -20,7 +20,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def read_json_with_comments(json_path):
+def read_json_with_comments(json_path: str) -> AttrDict:
     # fallback to json
     with open(json_path, "r", encoding = "utf-8") as f:
         input_str = f.read()
@@ -44,6 +44,7 @@ def load_config(config_path: str) -> AttrDict:
             data = yaml.safe_load(f)
     else:
         data = read_json_with_comments(config_path)
+        
     config.update(data)
     return config
 

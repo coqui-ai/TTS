@@ -160,6 +160,8 @@ def process_args(args, model_type):
 
     # setup output paths and read configs
     c = load_config(args.config_path)
+    if c.get("restore_path"):
+        args.restore_path = c.get("restore_path")
     if model_type in "tacotron glow_tts speedy_speech":
         model_class = "TTS"
     elif model_type in "gan wavegrad wavernn":
@@ -192,8 +194,6 @@ def process_args(args, model_type):
     if args.rank == 0:
         os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
-        if args.restore_path:
-            new_fields["restore_path"] = args.restore_path
         new_fields["github_branch"] = get_git_branch()
         # if model characters are not set in the config file
         # save the default set to the config file for future

@@ -1,13 +1,12 @@
 import copy
-from abc import ABC, abstractmethod
 
 import torch
-from torch import nn
 
 from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.utils.io import AttrDict
+from TTS.tts.models.tts_abstract import TTSAbstract
 
-
-class TacotronAbstract(ABC, nn.Module):
+class TacotronAbstract(TTSAbstract):
     def __init__(self,
                  num_chars,
                  num_speakers,
@@ -71,6 +70,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.encoder = None
         self.decoder = None
         self.postnet = None
+        
 
         # multispeaker
         if self.speaker_embedding_dim is None:
@@ -113,15 +113,8 @@ class TacotronAbstract(ABC, nn.Module):
     # CORE FUNCTIONS
     #############################
 
-    @abstractmethod
-    def forward(self):
-        pass
 
-    @abstractmethod
-    def inference(self):
-        pass
-
-    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
+    def load_checkpoint(self, config: AttrDict, checkpoint_path: str, eval: bool = False):  # pylint: disable=unused-argument, redefined-builtin
         state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
         self.load_state_dict(state['model'])
         self.decoder.set_r(state['r'])

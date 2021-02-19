@@ -7,9 +7,10 @@ from TTS.tts.layers.glow_tts.encoder import Encoder
 from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.layers.glow_tts.monotonic_align import maximum_path, generate_path
+from TTS.tts.models.tts_abstract import TTSAbstract
 
 
-class GlowTts(nn.Module):
+class GlowTts(TTSAbstract):
     """Glow TTS models from https://arxiv.org/abs/2005.11129
 
     Args:
@@ -179,7 +180,8 @@ class GlowTts(nn.Module):
         return z, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
 
     @torch.no_grad()
-    def inference(self, x, x_lengths, g=None):
+    def inference(self, x, x_lengths, g=None, *args, **kwargs):  # pylint: disable=unused-argument,keyword-arg-before-vararg
+
         if g is not None:
             if self.external_speaker_embedding_dim:
                 g = F.normalize(g).unsqueeze(-1)

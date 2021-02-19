@@ -4,9 +4,10 @@ from torch import nn
 from torch.nn.utils import weight_norm
 
 from ..layers.wavegrad import DBlock, FiLM, UBlock, Conv1d
+from TTS.vocoder.models.vocoder_abstract import VocoderAbstract
 
 
-class Wavegrad(nn.Module):
+class Wavegrad(VocoderAbstract):
     # pylint: disable=dangerous-default-value
     def __init__(self,
                  in_channels=80,

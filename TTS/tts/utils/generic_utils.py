@@ -5,6 +5,7 @@ import numpy as np
 from collections import Counter
 
 from TTS.utils.generic_utils import check_argument
+from TTS.tts.models.tts_abstract import TTSAbstract
 
 
 def split_dataset(items):
@@ -44,12 +45,12 @@ def to_camel(text):
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
 
-def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
+def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None) -> TTSAbstract:
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
     MyModel = getattr(MyModel, to_camel(c.model))
     if c.model.lower() in "tacotron":
-        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
+        model: TTSAbstract = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=int(c.audio['fft_size'] / 2 + 1),
@@ -76,7 +77,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "tacotron2":
-        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
+        model: TTSAbstract = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         num_speakers=num_speakers,
                         r=c.r,
                         postnet_output_dim=c.audio['num_mels'],
@@ -102,7 +103,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "glow_tts":
-        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
+        model: TTSAbstract = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         hidden_channels_enc=c['hidden_channels_encoder'],
                         hidden_channels_dec=c['hidden_channels_decoder'],
                         hidden_channels_dp=c['hidden_channels_duration_predictor'],
@@ -123,7 +124,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         mean_only=True,
                         external_speaker_embedding_dim=speaker_embedding_dim)
     elif c.model.lower() == "speedy_speech":
-        model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
+        model: TTSAbstract = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         out_channels=c.audio['num_mels'],
                         hidden_channels=c['hidden_channels'],
                         positional_encoding=c['positional_encoding'],
@@ -132,6 +133,8 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         decoder_type=c['decoder_type'],
                         decoder_params=c['decoder_params'],
                         c_in_channels=0)
+    else:
+        return BaseException("Model type is not allowed : ", c.model.lower())
     return model
 
 def is_tacotron(c):

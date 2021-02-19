@@ -4,9 +4,9 @@ import torch
 
 from TTS.vocoder.layers.parallel_wavegan import ResidualBlock
 from TTS.vocoder.layers.upsample import ConvUpsample
+from TTS.vocoder.models.vocoder_abstract import VocoderAbstract
 
-
-class ParallelWaveganGenerator(torch.nn.Module):
+class ParallelWaveganGenerator(VocoderAbstract):
     """PWGAN generator as in https://arxiv.org/pdf/1910.11480.pdf.
     It is similar to WaveNet with no causal convolution.
         It is conditioned on an aux feature (spectrogram) to generate

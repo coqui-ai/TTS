@@ -2,10 +2,11 @@ import torch
 from torch import nn
 from torch.nn.utils import weight_norm
 
+from TTS.vocoder.models.vocoder_abstract import VocoderAbstract
 from TTS.vocoder.layers.melgan import ResidualStack
 
 
-class MelganGenerator(nn.Module):
+class MelganGenerator(VocoderAbstract):
     def __init__(self,
                  in_channels=80,
                  out_channels=1,

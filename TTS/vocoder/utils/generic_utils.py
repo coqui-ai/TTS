@@ -1,3 +1,4 @@
+from TTS.utils.io import AttrDict
 import re
 import torch
 import importlib
@@ -5,6 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from TTS.tts.utils.visual import plot_spectrogram
+from TTS.vocoder.models.vocoder_abstract import VocoderAbstract
 
 
 def interpolate_vocoder_input(scale_factor, spec):
@@ -61,12 +63,25 @@ def plot_results(y_hat, y, ap, global_step, name_prefix):
     return figures
 
 
-def to_camel(text):
+def to_camel(text: str) -> str:
     text = text.capitalize()
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
 
-def setup_generator(c):
+def setup_generator(vocoder_config: AttrDict) -> VocoderAbstract:
+    """Generate the vocoder model
+
+    Args:
+        vocoder_config (AttrDict): vocoder config as a AttrDict object
+
+    Raises:
+        ValueError: if requested model is not available anymore
+        NotImplementedError: if requested model is not implemented yet
+
+    Returns:
+        VocoderAbstract: Return a vocoder that heritate from VocoderAbstract
+    """
+    c = vocoder_config
     print(" > Generator Model: {}".format(c.generator_model))
     MyModel = importlib.import_module('TTS.vocoder.models.' +
                                       c.generator_model.lower())
@@ -76,7 +91,7 @@ def setup_generator(c):
     else:
         MyModel = getattr(MyModel, to_camel(c.generator_model))
     if c.generator_model.lower() in 'wavernn':
-        model = MyModel(
+        model: VocoderAbstract = MyModel(
             rnn_dims=c.wavernn_model_params['rnn_dims'],
             fc_dims=c.wavernn_model_params['fc_dims'],
             mode=c.mode,
@@ -92,7 +107,7 @@ def setup_generator(c):
             hop_length=c.audio["hop_length"],
             sample_rate=c.audio["sample_rate"],)
     elif c.generator_model.lower() in 'melgan_generator':
-        model = MyModel(
+        model: VocoderAbstract = MyModel(
             in_channels=c.audio['num_mels'],
             out_channels=1,
             proj_kernel=7,
@@ -104,7 +119,7 @@ def setup_generator(c):
         raise ValueError(
             'melgan_fb_generator is now fullband_melgan_generator')
     elif c.generator_model.lower() in 'multiband_melgan_generator':
-        model = MyModel(
+        model: VocoderAbstract = MyModel(
             in_channels=c.audio['num_mels'],
             out_channels=4,
             proj_kernel=7,
@@ -113,7 +128,7 @@ def setup_generator(c):
             res_kernel=3,
             num_res_blocks=c.generator_model_params['num_res_blocks'])
     elif c.generator_model.lower() in 'fullband_melgan_generator':
-        model = MyModel(
+        model: VocoderAbstract = MyModel(
             in_channels=c.audio['num_mels'],
             out_channels=1,
             proj_kernel=7,
@@ -122,7 +137,7 @@ def setup_generator(c):
             res_kernel=3,
             num_res_blocks=c.generator_model_params['num_res_blocks'])
     elif c.generator_model.lower() in 'parallel_wavegan_generator':
-        model = MyModel(
+        model: VocoderAbstract = MyModel(
             in_channels=1,
             out_channels=1,
             kernel_size=3,
@@ -137,7 +152,7 @@ def setup_generator(c):
             use_weight_norm=True,
             upsample_factors=c.generator_model_params['upsample_factors'])
     elif c.generator_model.lower() in 'wavegrad':
-        model = MyModel(
+        model: VocoderAbstract = MyModel(
             in_channels=c['audio']['num_mels'],
             out_channels=1,
             use_weight_norm=c['model_params']['use_weight_norm'],
@@ -210,8 +225,3 @@ def setup_discriminator(c):
             bias=True
         )
     return model
-
-
-# def check_config(c):
-#     c = None
-#     pass
