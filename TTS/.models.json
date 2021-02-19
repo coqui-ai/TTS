@@ -85,6 +85,16 @@
                     "commit": ""
                 }
             }
+        },
+        "nl":{
+            "mai":{
+                "tacotron2-DDC":{
+                    "model_file": "1cJWpKflkvchVidn0oyUZdv9CPDOUMi_Q",
+                    "config_file": "1SY61VgvMNafrb76BgxP-ulsG8rhTE1we",
+                    "stats_file": null,
+                    "commit": "540d811"
+                }
+            }
         }
     },
     "vocoder_models":{
