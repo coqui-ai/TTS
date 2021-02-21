@@ -17,21 +17,6 @@ class GradientReversalFunction(torch.autograd.Function):
         grad_output = grad_output.clamp(-ctx.c, ctx.c)
         return ctx.l * grad_output.neg(), None, None
 
-
-class GradientClippingFunction(torch.autograd.Function):
-    """Clip gradient without any further input modification."""
-
-    @staticmethod
-    def forward(ctx, x, c):
-        ctx.c = c
-        return x.view_as(x)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        grad_output = grad_output.clamp(-ctx.c, ctx.c)
-        return grad_output, None
-
-
 class ReversalClassifier(torch.nn.Module):
     """Adversarial classifier (with two FC layers) with a gradient reversal layer.
     
