@@ -3,6 +3,7 @@ from torch import nn
 
 from TTS.tts.layers.gst_layers import GST
 from TTS.tts.layers.tacotron2 import Decoder, Encoder, Postnet
+from TTS.tts.multispeaker.adverserial_classifier import ReversalClassifier
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
 # TODO: match function arguments with tacotron
@@ -71,7 +72,11 @@ class Tacotron2(TacotronAbstract):
                  gst_embedding_dim=512,
                  gst_num_heads=4,
                  gst_style_tokens=10,
-                 gst_use_speaker_embedding=False):
+                 gst_use_speaker_embedding=False,
+                 reversal_classifier=True,
+                 reversal_classifier_dim=256,
+                 reversal_classifier_w=0.125,
+                 reversal_gradient_clipping=0.25):
         super(Tacotron2,
               self).__init__(num_chars, num_speakers, r, postnet_output_dim,
                              decoder_output_dim, attn_type, attn_win,
@@ -81,7 +86,9 @@ class Tacotron2(TacotronAbstract):
                              bidirectional_decoder, double_decoder_consistency,
                              ddc_r, encoder_in_features, decoder_in_features,
                              speaker_embedding_dim, gst, gst_embedding_dim,
-                             gst_num_heads, gst_style_tokens, gst_use_speaker_embedding)
+                             gst_num_heads, gst_style_tokens, gst_use_speaker_embedding,
+                             reversal_classifier, reversal_classifier_dim, 
+                             reversal_classifier_w, reversal_gradient_clipping)
 
         # speaker embedding layer
         if self.num_speakers > 1:
@@ -89,6 +96,13 @@ class Tacotron2(TacotronAbstract):
                 speaker_embedding_dim = 512
                 self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
+
+        # adverserial speaker classifier
+        if self.reversal_classifier:
+            self.speaker_classifier = ReversalClassifier(input_dim=self.decoder_in_features,
+                                                         hidden_dim=self.reversal_classifier_dim,
+                                                         output_dim=self.num_speakers,
+                                                         gradient_clipping_bounds=self.reversal_gradient_clipping)
 
         # speaker and gst embeddings is concat in decoder input
         if self.num_speakers > 1:
@@ -146,6 +160,9 @@ class Tacotron2(TacotronAbstract):
         embedded_inputs = self.embedding(text).transpose(1, 2)
         # B x T_in_max x D_en
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
+
+        speaker_prediction = self.speaker_classifier(encoder_outputs) if self.reversal_classifier else None
+
         if self.gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs,
@@ -179,11 +196,11 @@ class Tacotron2(TacotronAbstract):
             decoder_outputs, postnet_outputs, alignments)
         if self.bidirectional_decoder:
             decoder_outputs_backward, alignments_backward = self._backward_pass(mel_specs, encoder_outputs, input_mask)
-            return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
+            return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward, speaker_prediction
         if self.double_decoder_consistency:
             decoder_outputs_backward, alignments_backward = self._coarse_decoder_pass(mel_specs, encoder_outputs, alignments, input_mask)
-            return  decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
-        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+            return  decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward, speaker_prediction
+        return decoder_outputs, postnet_outputs, alignments, stop_tokens, speaker_prediction
 
     @torch.no_grad()
     def inference(self, text, speaker_ids=None, style_mel=None, speaker_embeddings=None):
