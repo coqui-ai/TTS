@@ -98,8 +98,9 @@ class Tacotron2(TacotronAbstract):
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
 
         # adverserial speaker classifier
+        self._reversal_classifier
         if self.reversal_classifier:
-            self.speaker_classifier = ReversalClassifier(input_dim=self.decoder_in_features,
+            self._reversal_classifier = ReversalClassifier(input_dim=self.decoder_in_features,
                                                          hidden_dim=self.reversal_classifier_dim,
                                                          output_dim=self.num_speakers,
                                                          gradient_clipping_bounds=self.reversal_gradient_clipping)
@@ -161,7 +162,7 @@ class Tacotron2(TacotronAbstract):
         # B x T_in_max x D_en
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
 
-        speaker_prediction = self.speaker_classifier(encoder_outputs) if self.reversal_classifier else None
+        speaker_prediction = self._reversal_classifier(encoder_outputs) if self.reversal_classifier else None
 
         if self.gst:
             # B x gst_dim

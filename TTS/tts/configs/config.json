@@ -159,6 +159,10 @@
         "gst_style_tokens": 10,
         "gst_use_speaker_embedding": false
 	},
+    "reversal_classifier": false,
+    "reversal_classifier_dim": 256,
+    "reversal_classifier_w": 0.125,
+    "reversal_gradient_clipping": 0.25,
 
     // DATASETS
     "datasets":   // List of datasets. They all merged and they get different speaker_ids.

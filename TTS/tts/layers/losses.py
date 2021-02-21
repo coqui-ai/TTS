@@ -6,6 +6,7 @@ from inspect import signature
 from torch.nn import functional
 from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.utils.ssim import ssim
+from TTS.tts.multispeaker.adverserial_classifier import ReversalClassifier
 
 
 # pylint: disable=abstract-method Method
@@ -296,7 +297,8 @@ class TacotronLoss(torch.nn.Module):
 
     def forward(self, postnet_output, decoder_output, mel_input, linear_input,
                 stopnet_output, stopnet_target, output_lens, decoder_b_output,
-                alignments, alignment_lens, alignments_backwards, input_lens):
+                alignments, alignment_lens, alignments_backwards, input_lens,
+                speaker_prediction, speaker_ids):
 
         return_dict = {}
         # remove lengths if no masking is applied
@@ -389,6 +391,11 @@ class TacotronLoss(torch.nn.Module):
             postnet_ssim_loss = self.criterion_ssim(postnet_output, mel_input, output_lens)
             loss += postnet_ssim_loss * self.postnet_ssim_alpha
             return_dict['postnet_ssim_loss'] = postnet_ssim_loss
+
+        # adversarial classifier loss (if enabled)
+        if self.config.reversal_classifier:
+            return_dict['reversal_classifier_loss'] = ReversalClassifier.loss(input_lens, speaker_ids, speaker_prediction) 
+            losses['reversal_classifier_loss'] *= self.config.reversal_classifier_w / (self.config.audio.num_mels + 2)
 
         return_dict['loss'] = loss
 

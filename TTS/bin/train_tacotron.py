@@ -161,10 +161,10 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             # forward pass model
             if c.bidirectional_decoder or c.double_decoder_consistency:
-                decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
+                decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward, speaker_prediction = model(
                     text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
             else:
-                decoder_output, postnet_output, alignments, stop_tokens = model(
+                decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
                     text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
                 decoder_backward_output = None
                 alignments_backward = None
@@ -180,7 +180,8 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
                                   linear_input, stop_tokens, stop_targets,
                                   mel_lengths, decoder_backward_output,
                                   alignments, alignment_lengths,
-                                  alignments_backward, text_lengths)
+                                  alignments_backward, text_lengths, 
+                                  speaker_prediction, speaker_ids)
 
         # check nan loss
         if torch.isnan(loss_dict['loss']).any():
