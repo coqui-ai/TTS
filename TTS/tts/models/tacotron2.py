@@ -86,9 +86,7 @@ class Tacotron2(TacotronAbstract):
                              bidirectional_decoder, double_decoder_consistency,
                              ddc_r, encoder_in_features, decoder_in_features,
                              speaker_embedding_dim, gst, gst_embedding_dim,
-                             gst_num_heads, gst_style_tokens, gst_use_speaker_embedding,
-                             reversal_classifier, reversal_classifier_dim, 
-                             reversal_classifier_w, reversal_gradient_clipping)
+                             gst_num_heads, gst_style_tokens, gst_use_speaker_embedding)
 
         # speaker embedding layer
         if self.num_speakers > 1:
@@ -97,13 +95,13 @@ class Tacotron2(TacotronAbstract):
                 self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
 
+        self.reversal_classifier = reversal_classifier
         # adverserial speaker classifier
-        self._reversal_classifier
         if self.reversal_classifier:
             self._reversal_classifier = ReversalClassifier(input_dim=self.decoder_in_features,
-                                                         hidden_dim=self.reversal_classifier_dim,
+                                                         hidden_dim=reversal_classifier_dim,
                                                          output_dim=self.num_speakers,
-                                                         gradient_clipping_bounds=self.reversal_gradient_clipping)
+                                                         gradient_clipping_bounds=reversal_gradient_clipping)
 
         # speaker and gst embeddings is concat in decoder input
         if self.num_speakers > 1:

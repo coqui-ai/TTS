@@ -100,7 +100,11 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         bidirectional_decoder=c.bidirectional_decoder,
                         double_decoder_consistency=c.double_decoder_consistency,
                         ddc_r=c.ddc_r,
-                        speaker_embedding_dim=speaker_embedding_dim)
+                        speaker_embedding_dim=speaker_embedding_dim,
+                        reversal_classifier=c.reversal_classifier,
+                        reversal_classifier_dim=c.reversal_classifier_dim,
+                        reversal_classifier_w=c.reversal_classifier_w,
+                        reversal_gradient_clipping=c.reversal_gradient_clipping)
     elif c.model.lower() == "glow_tts":
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         hidden_channels_enc=c['hidden_channels_encoder'],
