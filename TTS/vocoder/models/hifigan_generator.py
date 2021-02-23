@@ -39,19 +39,9 @@ class Generator(nn.Module):
         return out
 
     def remove_weight_norm(self):
-        for idx, layer in enumerate(self.input):
-            if len(layer.state_dict()) != 0:
-                try:
-                    nn.utils.remove_weight_norm(layer)
-                except:
-                    layer.remove_weight_norm()
+        nn.utils.remove_weight_norm(self.input[1])
+        nn.utils.remove_weight_norm(self.output[2])
 
-        for idx, layer in enumerate(self.output):
-            if len(layer.state_dict()) != 0:
-                try:
-                    nn.utils.remove_weight_norm(layer)
-                except:
-                    layer.remove_weight_norm()
         for idx, layer in enumerate(self.generator):
             if len(layer.state_dict()) != 0:
                 try:
