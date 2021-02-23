@@ -46,9 +46,20 @@ class PeriodDiscriminator(nn.Module):
         return features[-1], features[:-1]
 
 
-class HiFiDiscriminator(nn.Module):
-    def __init__(self, periods=[2, 3, 5, 7, 11]):
-        super(HiFiDiscriminator, self).__init__()
+class MultiPeriodDiscriminator(nn.Module):
+    def __init__(self,
+                 periods=[2, 3, 5, 7, 11],
+                 in_channels=1,
+                 out_channels=1,
+                 num_scales=3,
+                 kernel_sizes=(5, 3),
+                 base_channels=16,
+                 max_channels=1024,
+                 downsample_factors=(4, 4, 4),
+                 pooling_kernel_size=4,
+                 pooling_stride=2,
+                 pooling_padding=1):
+        super(MultiPeriodDiscriminator, self).__init__()
         self.discriminators = nn.ModuleList([ PeriodDiscriminator(periods[0]),
                                               PeriodDiscriminator(periods[1]),
                                               PeriodDiscriminator(periods[2]),
@@ -56,7 +67,18 @@ class HiFiDiscriminator(nn.Module):
                                               PeriodDiscriminator(periods[4]),
                                             ])
 
-        self.msd = MelganMultiscaleDiscriminator()
+        self.msd = MelganMultiscaleDiscriminator(
+                                             in_channels=1,
+                                             out_channels=1,
+                                             num_scales=3,
+                                             kernel_sizes=(5, 3),
+                                             base_channels=16,
+                                             max_channels=1024,
+                                             downsample_factors=(4, 4, 4),
+                                             pooling_kernel_size=4,
+                                             pooling_stride=2,
+                                             pooling_padding=1
+        )
 
     def forward(self, x):
         scores, feats = self.msd(x)

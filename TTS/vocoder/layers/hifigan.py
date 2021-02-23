@@ -24,15 +24,13 @@ class ResStack(nn.Module):
       return  x1 + x2
 
     def remove_weight_norm(self):
-        # nn.utils.remove_weight_norm(self.resstack[2])
-        # nn.utils.remove_weight_norm(self.resstack[4])
-        for idx, layer in enumerate(self.resstack):
-            if len(layer.state_dict()) != 0:
-                try:
-                    nn.utils.remove_weight_norm(layer)
-                except:
-                    layer.remove_weight_norm()
         nn.utils.remove_weight_norm(self.shortcut)
+        nn.utils.remove_weight_norm(self.resstack[2])
+        nn.utils.remove_weight_norm(self.resstack[5])
+        nn.utils.remove_weight_norm(self.resstack[8])
+        nn.utils.remove_weight_norm(self.resstack[11])
+        nn.utils.remove_weight_norm(self.resstack[14])
+        nn.utils.remove_weight_norm(self.resstack[17])
 
 class MRF(nn.Module):
     def __init__(self, kernels, channel, dilations = [[1,1], [3,1], [5,1]]):
