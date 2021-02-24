@@ -91,6 +91,14 @@ def setup_generator(c):
             num_res_blocks=c.wavernn_model_params['num_res_blocks'],
             hop_length=c.audio["hop_length"],
             sample_rate=c.audio["sample_rate"],)
+    elif c.generator_model.lower() in 'hifigan_generator':
+        model = MyModel(
+            in_channels=c.audio['num_mels'],
+            out_channels=1,
+            base_channels=c.generator_model_params['upsample_initial_channel'],
+            upsample_kernel=c.generator_model_params['upsample_kernel_sizes'],
+            resblock_kernel_sizes=c.generator_model_params['resblock_kernel_sizes'],
+            resblock_dilation_sizes=c.generator_model_params['resblock_dilation_sizes'])
     elif c.generator_model.lower() in 'melgan_generator':
         model = MyModel(
             in_channels=c.audio['num_mels'],
@@ -162,6 +170,16 @@ def setup_discriminator(c):
         MyModel = importlib.import_module('TTS.vocoder.models.' +
                                           c.discriminator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
+    if c.discriminator_model in 'multi_period_discriminator':
+        model = MyModel(
+            periods=c.discriminator_model_params['peroids'],
+            in_channels=1,
+            out_channels=1,
+            kernel_sizes=(5, 3),
+            base_channels=c.discriminator_model_params['base_channels'],
+            max_channels=c.discriminator_model_params['max_channels'],
+            downsample_factors=c.
+            discriminator_model_params['downsample_factors'])
     if c.discriminator_model in 'random_window_discriminator':
         model = MyModel(
             cond_channels=c.audio['num_mels'],
