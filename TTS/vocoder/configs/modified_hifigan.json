@@ -112,11 +112,13 @@
     "disc_clip_grad": -1,     // Discriminator gradient clipping threshold.
     "lr_scheduler_gen": "ExponentialLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
     "lr_scheduler_gen_params": {
-       "gamma": 0.999
+       "gamma": 0.999,
+        "last_epoch": -1
     },
     "lr_scheduler_disc": "ExponentialLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
     "lr_scheduler_disc_params": {
-    	  "gamma": 0.999
+    	  "gamma": 0.999,
+        "last_epoch": -1
     },
     "lr_gen": 0.0002,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
     "lr_disc": 0.0002,
