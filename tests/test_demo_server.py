@@ -36,8 +36,8 @@ class DemoServerTest(unittest.TestCase):
         """Check demo server sentences split as expected"""
         print("\n > Testing demo server sentence splitting")
         # pylint: disable=attribute-defined-outside-init
-        self.seg = Synthesizer.get_segmenter("en")
-        sis = Synthesizer.split_into_sentences
+        self.seg = Synthesizer._get_segmenter("en")
+        sis = Synthesizer._split_into_sentences
         assert sis(self, 'Hello. Two sentences') == ['Hello.', 'Two sentences']
         assert sis(self, 'He went to meet the adviser from Scott, Waltman & Co. next morning.') == ['He went to meet the adviser from Scott, Waltman & Co. next morning.']
         assert sis(self, 'Let\'s run it past Sarah and co. They\'ll want to see this.') == ['Let\'s run it past Sarah and co.', 'They\'ll want to see this.']
