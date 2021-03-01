@@ -9,6 +9,7 @@ from flask import Flask, render_template, request, send_file
 from TTS.utils.synthesizer import Synthesizer
 from TTS.utils.manage import ModelManager
 from TTS.utils.io import load_config
+from TTS.utils.generic_utils import style_wav_uri_to_dict
 
 
 def create_argparser():
@@ -75,14 +76,22 @@ if not args.vocoder_checkpoint and os.path.isfile(vocoder_checkpoint_file):
 if not args.vocoder_config and os.path.isfile(vocoder_config_file):
     args.vocoder_config = vocoder_config_file
 
+
 synthesizer = Synthesizer(args.tts_checkpoint, args.tts_config, args.vocoder_checkpoint, args.vocoder_config, args.use_cuda)
 
+use_speaker_embedding = synthesizer.tts_config.get("use_external_speaker_embedding_file", False)
+use_gst = synthesizer.tts_config.get("use_gst", False)
 app = Flask(__name__)
 
 
 @app.route('/')
 def index():
-    return render_template('index.html', show_details=args.show_details)
+    return render_template(
+        'index.html', 
+        show_details=args.show_details, 
+        use_speaker_embedding=use_speaker_embedding,
+        use_gst = use_gst
+        )
 
 @app.route('/details')
 def details():
@@ -102,8 +111,12 @@ def details():
 @app.route('/api/tts', methods=['GET'])
 def tts():
     text = request.args.get('text')
+    speaker_json_key = request.args.get('speaker', "")
+    style_wav = request.args.get('style-wav', "")
+    
+    style_wav = style_wav_uri_to_dict(style_wav)
     print(" > Model input: {}".format(text))
-    wavs = synthesizer.tts(text)
+    wavs = synthesizer.tts(text, speaker_json_key=speaker_json_key, style_wav=style_wav)
     out = io.BytesIO()
     synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype='audio/wav')
