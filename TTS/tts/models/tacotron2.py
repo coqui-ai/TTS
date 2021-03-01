@@ -186,7 +186,7 @@ class Tacotron2(TacotronAbstract):
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
     @torch.no_grad()
-    def inference(self, text, speaker_ids=None, style_mel=None, speaker_embeddings=None):
+    def inference(self, text, *args, speaker_ids=None, style_mel=None, speaker_embeddings=None, **kwargs):
         embedded_inputs = self.embedding(text).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
 
