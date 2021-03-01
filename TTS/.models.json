@@ -76,12 +76,12 @@
                 }
             }
         },
-        "zh":{
+        "zh-CN":{
             "baker":{
                 "tacotron2-DDC-GST":{
-                    "model_file": "1RR9rZdV_FMm8yvtCHALtUbJf1nxbUiAw",
-                    "config_file": "1daY1JHGXEozJ-MGYLiWEUmzEwEvM5xpz",
-                    "stats_file": "1vl9c-D3dW_E7pdhNpDFQLX-giJc0jOtV",
+                    "model_file": "1SYpv7V__QYDjKXa_vJmNXo1CSkcoZovy",
+                    "config_file": "14BIvfJXnFHi3jcxYNX40__TR6RwJOZqi",
+                    "stats_file": "1ECRlXybT6rAWp269CkhjUPwcZ10CkcqD",
                     "commit": ""
                 }
             }
