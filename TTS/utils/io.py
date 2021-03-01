@@ -20,7 +20,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def read_json_with_comments(json_path):
+def read_json_with_comments(json_path: str) -> AttrDict:
     # fallback to json
     with open(json_path, "r", encoding = "utf-8") as f:
         input_str = f.read()

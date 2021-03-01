@@ -8,6 +8,8 @@ import torch
 import numpy as np
 from .text import text_to_sequence, phoneme_to_sequence
 
+from TTS.utils.io import AttrDict
+from TTS.tts.models.tts_abstract import TTSAbstract
 
 def text_to_seqvec(text, CONFIG):
     text_cleaner = [CONFIG.text_cleaner]
@@ -50,7 +52,7 @@ def compute_style_mel(style_wav, ap, cuda=False):
     return style_mel
 
 
-def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, speaker_embeddings=None):
+def run_model_torch(model: TTSAbstract, inputs, CONFIG: AttrDict, truncated: bool, speaker_id=None, style_mel=None, speaker_embeddings=None):
     if 'tacotron' in CONFIG.model.lower():
         if CONFIG.use_gst:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
@@ -196,10 +198,10 @@ def apply_griffin_lim(inputs, input_lens, CONFIG, ap):
     return wavs
 
 
-def synthesis(model,
-              text,
-              CONFIG,
-              use_cuda,
+def synthesis(model: TTSAbstract,
+              text: str,
+              CONFIG: AttrDict,
+              use_cuda: bool,
               ap,
               speaker_id=None,
               style_wav=None,

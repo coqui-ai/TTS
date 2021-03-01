@@ -2,12 +2,12 @@ import os
 import json
 
 
-def make_speakers_json_path(out_path):
+def make_speakers_json_path(out_path: str) -> str:
     """Returns conventional speakers.json location."""
     return os.path.join(out_path, "speakers.json")
 
 
-def load_speaker_mapping(out_path):
+def load_speaker_mapping(out_path: str) -> dict:
     """Loads speaker mapping if already present."""
     try:
         if os.path.splitext(out_path)[1] == '.json':
