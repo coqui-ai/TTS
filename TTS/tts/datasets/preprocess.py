@@ -159,7 +159,7 @@ def ljspeech(root_path, meta_file):
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "ljspeech"
-    with open(txt_file, 'r') as ttf:
+    with open(txt_file, 'r', encoding="utf-8") as ttf:
         for line in ttf:
             cols = line.split('|')
             wav_file = os.path.join(root_path, 'wavs', cols[0] + '.wav')
@@ -174,7 +174,7 @@ def ruslan(root_path, meta_file):
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "ljspeech"
-    with open(txt_file, 'r') as ttf:
+    with open(txt_file, 'r', encoding="utf-8") as ttf:
         for line in ttf:
             cols = line.split('|')
             wav_file = os.path.join(root_path, 'RUSLAN', cols[0] + '.wav')
