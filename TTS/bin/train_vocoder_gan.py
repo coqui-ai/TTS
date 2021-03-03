@@ -502,10 +502,14 @@ def main(args):  # pylint: disable=redefined-outer-name
                 scheduler_gen.load_state_dict(checkpoint['scheduler'])
                 # NOTE: Not sure if necessary
                 scheduler_gen.optimizer = optimizer_gen
+                if c.lr_scheduler_gen == "ExponentialLR":
+                    scheduler_gen.last_epoch = checkpoint['epoch']
             if 'scheduler_disc' in checkpoint:
                 print(" > Restoring Discriminator LR Scheduler...")
                 scheduler_disc.load_state_dict(checkpoint['scheduler_disc'])
                 scheduler_disc.optimizer = optimizer_disc
+                if c.lr_scheduler_disc == "ExponentialLR":
+                    scheduler_disc.last_epoch = checkpoint['epoch']
         except RuntimeError:
             # retore only matching layers.
             print(" > Partial model initialization...")
