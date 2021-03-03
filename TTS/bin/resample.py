@@ -66,4 +66,3 @@ if __name__ == '__main__':
                 pbar.update()
 
     print('Done !')
-                
