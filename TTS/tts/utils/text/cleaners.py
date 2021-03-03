@@ -94,6 +94,7 @@ def basic_turkish_cleaners(text):
     text = collapse_whitespace(text)
     return text
 
+
 def english_cleaners(text):
     '''Pipeline for English text, including number and abbreviation expansion.'''
     text = convert_to_ascii(text)
@@ -106,6 +107,7 @@ def english_cleaners(text):
     text = collapse_whitespace(text)
     return text
 
+
 def french_cleaners(text):
     '''Pipeline for French text. There is no need to expand numbers, phonemizer already does that'''
     text = expand_abbreviations(text, lang='fr')
@@ -114,6 +116,7 @@ def french_cleaners(text):
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
     return text
+
 
 def portuguese_cleaners(text):
     '''Basic pipeline for Portuguese text. There is no need to expand abbreviation and
@@ -124,10 +127,12 @@ def portuguese_cleaners(text):
     text = collapse_whitespace(text)
     return text
 
+
 def chinese_mandarin_cleaners(text: str) -> str:
     '''Basic pipeline for chinese'''
     text = replace_numbers_to_characters_in_text(text)
     return text
+
 
 def phoneme_cleaners(text):
     '''Pipeline for phonemes mode, including number and abbreviation expansion.'''
