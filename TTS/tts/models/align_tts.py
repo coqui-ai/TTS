@@ -1,15 +1,20 @@
 import torch
+import math
 from torch import nn
 from TTS.tts.layers.feed_forward.decoder import Decoder
 from TTS.tts.layers.feed_forward.duration_predictor import DurationPredictor
 from TTS.tts.layers.feed_forward.encoder import Encoder, PositionalEncoding
 from TTS.tts.utils.generic_utils import sequence_mask
-from TTS.tts.layers.glow_tts.monotonic_align import generate_path
+from TTS.tts.layers.glow_tts.monotonic_align import maximum_path, generate_path
+from TTS.tts.layers.align_tts.mdn import MDNBlock
 
 
-class SpeedySpeech(nn.Module):
-    """Speedy Speech model
+
+
+class AlignTTS(nn.Module):
+    """Speedy Speech model with Monotonic Alignment Search
     https://arxiv.org/abs/2008.03802
+    https://arxiv.org/pdf/2005.11129.pdf
 
     Encoder -> DurationPredictor -> Decoder
 
@@ -36,40 +41,46 @@ class SpeedySpeech(nn.Module):
     # pylint: disable=dangerous-default-value
 
     def __init__(
-            self,
-            num_chars,
-            out_channels,
-            hidden_channels,
-            positional_encoding=True,
-            length_scale=1,
-            encoder_type='residual_conv_bn',
-            encoder_params={
-                "kernel_size": 4,
-                "dilations": 4 * [1, 2, 4] + [1],
-                "num_conv_blocks": 2,
-                "num_res_blocks": 13
-            },
-            decoder_type='residual_conv_bn',
-            decoder_params={
-                "kernel_size": 4,
-                "dilations": 4 * [1, 2, 4, 8] + [1],
-                "num_conv_blocks": 2,
-                "num_res_blocks": 17
-            },
-            num_speakers=0,
-            external_c=False,
-            c_in_channels=0):
+        self,
+        num_chars,
+        out_channels,
+        hidden_channels,
+        positional_encoding=True,
+        length_scale=1,
+        encoder_type='residual_conv_bn',
+        encoder_params={
+            "kernel_size": 4,
+            "dilations": 4 * [1, 2, 4] + [1],
+            "num_conv_blocks": 2,
+            "num_res_blocks": 13
+        },
+        decoder_type='residual_conv_bn',
+        decoder_params={
+            "kernel_size": 4,
+            "dilations": 4 * [1, 2, 4, 8] + [1],
+            "num_conv_blocks": 2,
+            "num_res_blocks": 17
+        },
+        num_speakers=0,
+        external_c=False,
+        c_in_channels=0):
 
         super().__init__()
-        self.length_scale = float(length_scale) if isinstance(length_scale, int) else length_scale
+        self.length_scale = float(length_scale) if isinstance(
+            length_scale, int) else length_scale
         self.emb = nn.Embedding(num_chars, hidden_channels)
         self.encoder = Encoder(hidden_channels, hidden_channels, encoder_type,
                                encoder_params, c_in_channels)
         if positional_encoding:
             self.pos_encoder = PositionalEncoding(hidden_channels)
-        self.decoder = Decoder(out_channels, hidden_channels,
-                               decoder_type, decoder_params)
-        self.duration_predictor = DurationPredictor(hidden_channels + c_in_channels)
+        self.decoder = Decoder(out_channels, hidden_channels, decoder_type,
+                               decoder_params)
+        self.duration_predictor = DurationPredictor(hidden_channels +
+                                                    c_in_channels)
+
+        self.mod_layer = nn.Conv1d(hidden_channels, hidden_channels, 1)
+        # self.wn_spec_encoder = WNSpecEncoder(out_channels, hidden_channels, c_in_channels=c_in_channels)
+        self.mdn_block = MDNBlock(hidden_channels, 2*out_channels)
 
         if num_speakers > 1 and not external_c:
             # speaker embedding layer
@@ -78,6 +89,33 @@ class SpeedySpeech(nn.Module):
 
         if c_in_channels > 0 and c_in_channels != hidden_channels:
             self.proj_g = nn.Conv1d(c_in_channels, hidden_channels, 1)
+
+    def compute_mas_path(self, mu, log_sigma, y, x_mask, y_mask):
+        # find the max alignment path
+        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+        with torch.no_grad():
+            scale = torch.exp(-2 * log_sigma)
+            # [B, T_en, 1]
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - log_sigma,
+                                [1]).unsqueeze(-1)
+            # [B, T_en, D] x [B, D, T_dec] = [B, T_en, T_dec]
+            logp2 = torch.matmul(scale.transpose(1, 2), -0.5 * (y**2))
+            # [B, T_en, D] x [B, D, T_dec] = [B, T_en, T_dec]
+            logp3 = torch.matmul((mu * scale).transpose(1, 2), y)
+            # [B, T_en, 1]
+            logp4 = torch.sum(-0.5 * (mu**2) * scale,
+                                [1]).unsqueeze(-1)
+            # [B, T_en, T_dec]
+            logp = logp1 + logp2 + logp3 + logp4
+            # import pdb; pdb.set_trace()
+            # [B, T_en, T_dec]
+            attn = maximum_path(logp,
+                                attn_mask.squeeze(1)).unsqueeze(1).detach()
+        # logp_max_path = logp.new_ones(logp.shape) * -1e4
+        # logp_max_path += logp * attn.squeeze(1)
+        logp_max_path = None
+        dr_mas = torch.sum(attn, -1)
+        return dr_mas.squeeze(1), logp_max_path
 
     @staticmethod
     def expand_encoder_outputs(en, dr, x_mask, y_mask):
@@ -158,9 +196,26 @@ class SpeedySpeech(nn.Module):
             o_en_ex = self._sum_speaker_embedding(o_en_ex, g)
         # decoder pass
         o_de = self.decoder(o_en_ex, y_mask, g=g)
+
         return o_de, attn.transpose(1, 2)
 
-    def forward(self, x, x_lengths, y_lengths, dr, g=None):  # pylint: disable=unused-argument
+    # def _forward_mas(self, o_en, y, y_lengths, x_mask):
+    #      # MAS potentials and alignment
+    #     o_en_mean = self.mod_layer(o_en)
+    #     y_mask = torch.unsqueeze(sequence_mask(y_lengths, None),
+    #                              1).to(o_en.dtype)
+    #     z = self.wn_spec_encoder(y)
+    #     dr_mas, y_mean, y_scale = self.compute_mas_path(o_en_mean, z, x_mask, y_mask)
+    #     return dr_mas, z, y_mean, y_scale
+
+    def _forward_mdn(self, o_en, y, y_lengths, x_mask):
+         # MAS potentials and alignment
+        mu, log_sigma = self.mdn_block(o_en)
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).to(o_en.dtype)
+        dr_mas, logp_max_path = self.compute_mas_path(mu, log_sigma, y, x_mask, y_mask)
+        return dr_mas, mu, log_sigma, logp_max_path
+
+    def forward(self, x, x_lengths, y, y_lengths, g=None):  # pylint: disable=unused-argument
         """
         Shapes:
             x: [B, T_max]
@@ -170,9 +225,12 @@ class SpeedySpeech(nn.Module):
             g: [B, C]
         """
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
+        dr_mas, mu, log_sigma, logp_max_path = self._forward_mdn(o_en, y, y_lengths, x_mask)
         o_dr_log = self.duration_predictor(o_en_dp.detach(), x_mask)
-        o_de, attn = self._forward_decoder(o_en, o_en_dp, dr, x_mask, y_lengths, g=g)
-        return o_de, o_dr_log.squeeze(1), attn
+        # TODO: compute attn once
+        o_de, attn = self._forward_decoder(o_en, o_en_dp, dr_mas, x_mask, y_lengths, g=g)
+        dr_mas_log = torch.log(1 + dr_mas).squeeze(1)
+        return o_de, o_dr_log.squeeze(1), dr_mas_log, attn, mu, log_sigma, logp_max_path
 
     def inference(self, x, x_lengths, g=None):  # pylint: disable=unused-argument
         """
@@ -181,12 +239,8 @@ class SpeedySpeech(nn.Module):
             x_lengths: [B]
             g: [B, C]
         """
-        # input sequence should be greated than the max convolution size
-        inference_padding = 5
-        if x.shape[1] < 13:
-            inference_padding += 13 - x.shape[1]
         # pad input to prevent dropping the last word
-        x = torch.nn.functional.pad(x, pad=(0, inference_padding), mode='constant', value=0)
+        x = torch.nn.functional.pad(x, pad=(0, 5), mode='constant', value=0)
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
         # duration predictor pass
         o_dr_log = self.duration_predictor(o_en_dp.detach(), x_mask)
