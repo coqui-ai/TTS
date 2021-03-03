@@ -23,7 +23,6 @@ def generate_path(duration, mask):
     mask: [b, t_x, t_y]
     """
     device = duration.device
-
     b, t_x, t_y = mask.shape
     cum_duration = torch.cumsum(duration, 1)
     path = torch.zeros(b, t_x, t_y, dtype=mask.dtype).to(device=device)

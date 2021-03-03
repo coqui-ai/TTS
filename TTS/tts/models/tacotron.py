@@ -2,8 +2,8 @@
 import torch
 from torch import nn
 
-from TTS.tts.layers.gst_layers import GST
-from TTS.tts.layers.tacotron import Decoder, Encoder, PostCBHG
+from TTS.tts.layers.tacotron.gst_layers import GST
+from TTS.tts.layers.tacotron.tacotron import Decoder, Encoder, PostCBHG
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
 
