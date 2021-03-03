@@ -3,11 +3,11 @@ from torch import nn
 from TTS.vocoder.layers.hifigan import MRF
 
 
-class Generator(nn.Module):
+class HifiganGenerator(nn.Module):
 
     def __init__(self, in_channels=80, out_channels=1, base_channels=512, upsample_kernel=[16, 16, 4, 4],
                  resblock_kernel_sizes=[3, 7, 11], resblock_dilation_sizes=[1, 3, 5]):
-        super(Generator, self).__init__()
+        super(HifiganGenerator, self).__init__()
 
         self.inference_padding = 2
 

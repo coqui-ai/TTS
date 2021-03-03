@@ -31,7 +31,7 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": "/home/erogol/Data/libritts/LibriTTS/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
 
     // DISTRIBUTED TRAINING
@@ -44,11 +44,11 @@
     "use_pqmf": false,
 
     // LOSS PARAMETERS
-    "use_stft_loss": false,
+    "use_stft_loss": true,
     "use_subband_stft_loss": false,
     "use_mse_gan_loss": true,
     "use_hinge_gan_loss": false,
-    "use_feat_match_loss": false,  // use only with melgan discriminators
+    "use_feat_match_loss": true,  // use only with melgan discriminators
 
     // loss weights
     "stft_loss_weight": 0.5,
@@ -67,14 +67,14 @@
     "target_loss": "avg_G_loss",  // loss value to pick the best model to save after each epoch
 
     // DISCRIMINATOR
-    "discriminator_model": "hifigan_mpd_discriminator",
+    "discriminator_model": "multi_period_discriminator",
     "discriminator_model_params":{
         "peroids": [2, 3, 5, 7, 11],
         "base_channels": 16,
         "max_channels":512,
         "downsample_factors":[4, 4, 4]
     },
-    "steps_to_start_discriminator": 1,      // steps required to start GAN trainining.1
+    "steps_to_start_discriminator": 0,      // steps required to start GAN trainining.1
 
     // GENERATOR
     "generator_model": "hifigan_generator",
@@ -87,7 +87,7 @@
     },
 
     // DATASET
-    "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/",
+    "data_path": "/workspace/LJSpeech-1.1/",
     "feature_path": null,
     "seq_len": 16384,
     "pad_short": 2000,
@@ -98,7 +98,7 @@
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 48,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "batch_size": 16,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
 
     // VALIDATION
     "run_eval": true,
@@ -136,7 +136,7 @@
     "eval_split_size": 10,
 
     // PATHS
-    "output_path": "/home/erogol/Models/"
+    "output_path": "/workspace/Models/"
 }
 
 

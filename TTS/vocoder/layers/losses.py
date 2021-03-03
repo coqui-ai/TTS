@@ -233,7 +233,7 @@ class GeneratorLoss(nn.Module):
 
         # STFT Loss
         if self.use_stft_loss:
-            stft_loss_mg, stft_loss_sc = self.stft_loss(y_hat.squeeze(1), y.squeeze(1))
+            stft_loss_mg, stft_loss_sc = self.stft_loss(y_hat[:, :, :y.size(2)].squeeze(1), y.squeeze(1))
             return_dict['G_stft_loss_mg'] = stft_loss_mg
             return_dict['G_stft_loss_sc'] = stft_loss_sc
             gen_loss += self.stft_loss_weight * (stft_loss_mg + stft_loss_sc)
