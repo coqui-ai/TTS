@@ -1,11 +1,7 @@
-# %%
-# %%
 import argparse
 from difflib import SequenceMatcher
 import os
 import sys
-# %%
-# print variable match
 from pprint import pprint
 
 import numpy as np
