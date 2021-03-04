@@ -447,7 +447,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
-        speaker_id = 0 if c.use_speaker_embedding else None
+        speaker_id = [0] if c.use_speaker_embedding else None
         speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding'] if c.use_external_speaker_embedding_file and c.use_speaker_embedding else None
         style_wav = c.get("gst_style_input")
         if style_wav is None and c.use_gst:
