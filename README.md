@@ -262,7 +262,6 @@ cardboardlinter --refspec master
 Feel free to ping us at any step you need help using our communication channels.
 [Here](https://github.com/firstcontributions/first-contributions) is a good resource for complete beginners.
 
-
 ### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
