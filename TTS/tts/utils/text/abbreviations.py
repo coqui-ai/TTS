@@ -24,7 +24,7 @@ abbreviations_en = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1])
                   ]]
 
 # List of (regular expression, replacement) pairs for abbreviations in french:
-abbreviations_fr = [(re.compile('\\b%s\\.?' % x[0], re.IGNORECASE), x[1])
+abbreviations_fr = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1])
                   for x in [
                       ('M', 'monsieur'),
                       ('Mlle', 'mademoiselle'),
@@ -58,4 +58,10 @@ abbreviations_fr = [(re.compile('\\b%s\\.?' % x[0], re.IGNORECASE), x[1])
                       ('ex', 'exemple'),
                       ('excl', 'exclusivement'),
                       ('boul', 'boulevard'),
+                  ]] + [(re.compile('\\b%s' % x[0]), x[1])
+                  for x in [
+                      ('Mlle', 'mademoiselle'),
+                      ('Mlles', 'mesdemoiselles'),
+                      ('Mme', 'Madame'),
+                      ('Mmes', 'Mesdames'),
                   ]]
