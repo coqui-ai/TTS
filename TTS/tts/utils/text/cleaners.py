@@ -108,8 +108,8 @@ def english_cleaners(text):
 
 def french_cleaners(text):
     '''Pipeline for French text. There is no need to expand numbers, phonemizer already does that'''
-    text = lowercase(text)
     text = expand_abbreviations(text, lang='fr')
+    text = lowercase(text)
     text = replace_symbols(text, lang='fr')
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
@@ -128,8 +128,6 @@ def chinese_mandarin_cleaners(text: str) -> str:
     '''Basic pipeline for chinese'''
     text = replace_numbers_to_characters_in_text(text)
     return text
-
-
 
 def phoneme_cleaners(text):
     '''Pipeline for phonemes mode, including number and abbreviation expansion.'''
