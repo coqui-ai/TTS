@@ -40,11 +40,11 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 🖥️ **Demo Server**             | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
 | 🤖 **Running TTS on Terminal** | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
 
-<!-- ## TODO -- 🥇 TTS Performance
-<p align="center"><img src="" width="800" /></p>
+## 🥇 TTS Performance
+<p align="center"><img src="images/TTS-performance.png" width="800" /></p>
 
-"TTS*" and "Judy*" are our models.
-[Details...](https://github.com/coqui-ai/TTS/wiki/Mean-Opinion-Score-Results) -->
+Underlined "TTS*" and "Judy*" are :frog:TTS models
+<!-- [Details...](https://github.com/coqui-ai/TTS/wiki/Mean-Opinion-Score-Results) -->
 
 ## Features
 - High performance Deep Learning models for Text2Speech tasks.
