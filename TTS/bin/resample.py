@@ -1,8 +1,8 @@
 import argparse
 import glob
 import os
-import shutil
 import librosa
+from distutils.dir_util import copy_tree
 from argparse import RawTextHelpFormatter
 from multiprocessing import Pool
 from tqdm import tqdm
