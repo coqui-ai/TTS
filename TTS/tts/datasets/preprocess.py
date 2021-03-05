@@ -377,7 +377,7 @@ def baker(root_path: str, meta_file: str) ->  List[List[str]]:
 
     Args:
         root_path (str): path to the baker dataset
-        meta_file (str): name of the meta dataset containing names of wav to select and the transcript of the sentence  
+        meta_file (str): name of the meta dataset containing names of wav to select and the transcript of the sentence
     Returns:
         List[List[str]]: List of (text, wav_path, speaker_name) associated with each sentences
     """

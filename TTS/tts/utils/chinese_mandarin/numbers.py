@@ -10,7 +10,7 @@ import re
 import itertools
 
 
-def _num2chinese(num :str, big=False, simp=True, o=False, twoalt=False) -> str:
+def _num2chinese(num: str, big=False, simp=True, o=False, twoalt=False) -> str:
     """Convert numerical arabic numbers (0->9) to chinese hanzi numbers (〇 -> 九)
 
     Args:
@@ -32,7 +32,7 @@ def _num2chinese(num :str, big=False, simp=True, o=False, twoalt=False) -> str:
     nd = str(num)
     if abs(float(nd)) >= 1e48:
         raise ValueError('number out of range')
-    elif 'e' in nd:
+    if 'e' in nd:
         raise ValueError('scientific notation is not supported')
     c_symbol = '正负点' if simp else '正負點'
     if o:  # formal
@@ -69,7 +69,7 @@ def _num2chinese(num :str, big=False, simp=True, o=False, twoalt=False) -> str:
             if int(unit) == 0:  # 0000
                 intresult.append(c_basic[0])
                 continue
-            elif nu > 0 and int(unit) == 2:  # 0002
+            if nu > 0 and int(unit) == 2:  # 0002
                 intresult.append(c_twoalt + c_unit2[nu - 1])
                 continue
             ulist = []
