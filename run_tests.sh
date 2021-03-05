@@ -5,6 +5,7 @@ TF_CPP_MIN_LOG_LEVEL=3
 nosetests tests -x &&\
 
 # runtime tests
+./tests/test_resample.sh && \
 ./tests/test_server_package.sh && \
 ./tests/test_tacotron_train.sh && \
 ./tests/test_glow-tts_train.sh && \
