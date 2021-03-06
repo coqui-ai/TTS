@@ -230,17 +230,27 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Contribution guidelines
-Please send your Pull Request to ```dev``` branch. Before making a Pull Request, check your changes for basic mistakes and style problems by using a linter. We have cardboardlinter setup in this repository, so for example, if you've made some changes and would like to run the linter on just the changed code, you can use the follow command:
+his repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
 
+1. Create a new branch.
+2. Implement your changes.
+3. (if applicable) Add [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
+4. (if applicable) Implement a test case under ```tests``` folder.
+5. (Optional but Prefered) Run tests. 
+```bash
+./run_tests.sh
+```
+6. Run the linter.
 ```bash
 pip install pylint cardboardlint
 cardboardlinter --refspec master
 ```
 7. Send a PR to ```dev``` branch, explain what the change is about.
-8. Let us discuss until we make it perfect :).
-9. We merge it to the ```dev``` branch once things look good.
+8. Let us discuss until we make it perfect :). 
+9. We merge it to the ```dev``` branch once things look good. 
 
 Feel free to ping us at any step you need help using our communication channels.
+[Here](https://github.com/firstcontributions/first-contributions) is a good resource for complete beginners.
 
 ## Collaborative Experimentation Guide
 If you like to use TTS to try a new idea and like to share your experiments with the community, we urge you to use the following guideline for a better collaboration.
