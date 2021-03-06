@@ -7,9 +7,9 @@ from argparse import RawTextHelpFormatter
 from multiprocessing import Pool
 from tqdm import tqdm
 
-def resample_file(filename):
-    global args
-    y, sr = librosa.load(filename, sr=args.output_sr)
+def resample_file(func_args):
+    filename, output_sr = func_args
+    y, sr = librosa.load(filename, sr=output_sr)
     librosa.output.write_wav(filename, y, sr)
 
 if __name__ == '__main__':
@@ -59,6 +59,7 @@ if __name__ == '__main__':
     print('Resampling the audio files...')
     audio_files = glob.glob(os.path.join(args.input_dir, '**/*.wav'), recursive=True)
     print(f'Found {len(audio_files)} files...')
+    audio_files = list(zip(audio_files, len(audio_files)*[args.output_sr]))
     with Pool(processes=args.n_jobs) as p:
         with tqdm(total=len(audio_files)) as pbar:
             for i, _ in enumerate(p.imap_unordered(resample_file, audio_files)):
