@@ -6,6 +6,7 @@ TTS comes with [pretrained models](https://github.com/coqui-ai/TTS/wiki/Released
 <!-- [![CircleCI](TODO)]() -->
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 [![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
+[![Covenant](https://camo.githubusercontent.com/7d620efaa3eac1c5b060ece5d6aacfcc8b81a74a04d05cd0398689c01c4463bb/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f436f6e7472696275746f72253230436f76656e616e742d76322e3025323061646f707465642d6666363962342e737667)]
 
 :loudspeaker: [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
 
@@ -230,7 +231,7 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Contribution guidelines
-his repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines.](https://www.mozilla.org/about/governance/policies/participation/)
+Please follow the steps below as you send a PR for :frog:. It helps us to keep things organized. 
 
 1. Create a new branch.
 2. Implement your changes.
@@ -252,13 +253,6 @@ cardboardlinter --refspec master
 Feel free to ping us at any step you need help using our communication channels.
 [Here](https://github.com/firstcontributions/first-contributions) is a good resource for complete beginners.
 
-## Collaborative Experimentation Guide
-If you like to use TTS to try a new idea and like to share your experiments with the community, we urge you to use the following guideline for a better collaboration.
-(If you have an idea for better collaboration, let us know)
-- Create a new branch.
-- Open an issue pointing your branch.
-- Explain your idea and experiment.
-- Share your results regularly. (Tensorboard log files, audio results, visuals etc.)
 
 ### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)
