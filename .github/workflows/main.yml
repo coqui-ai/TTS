@@ -33,7 +33,6 @@ jobs:
           python3 setup.py egg_info
       - name: Lint check
         run: |
-          python3 -m pip install --quiet --upgrade cardboardlint pylint
           cardboardlinter --refspec ${GITHUB_BASE_REF} -n auto
       - name: Unit tests
         run: nosetests tests --nocapture --processes=0 --process-timeout=20 --process-restartworker
