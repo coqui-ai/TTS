@@ -36,24 +36,6 @@ sys.argv = [sys.argv[0]] + unknown_args
 version = '0.0.10'
 cwd = os.path.dirname(os.path.abspath(__file__))
 
-# Handle Cython code
-# def find_pyx(path='.'):
-#     pyx_files = []
-#     for root, _, filenames in os.walk(path):
-#         for fname in filenames:
-#             if fname.endswith('.pyx'):
-#                 pyx_files.append(os.path.join(root, fname))
-#     return pyx_files
-
-
-# def find_cython_extensions(path="."):
-#     exts = cythonize(find_pyx(path), language_level=3)
-#     for ext in exts:
-#         ext.include_dirs = [numpy.get_include()]
-
-#     return exts
-
-
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
     def run(self):
         self.create_version_file()
@@ -66,7 +48,6 @@ class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-man
         with open(version_path, 'w') as f:
             f.write("__version__ = '{}'\n".format(version))
 
-
 class develop(setuptools.command.develop.develop):
     def run(self):
         build_py.create_version_file()
@@ -75,17 +56,6 @@ class develop(setuptools.command.develop.develop):
 
 # The documentation for this feature is in server/README.md
 package_data = ['TTS/server/templates/*']
-
-if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
-    print('Embedding model in wheel file...')
-    model_dir = os.path.join('TTS', 'server', 'model')
-    tts_dir = os.path.join(model_dir, 'tts')
-    os.makedirs(tts_dir, exist_ok=True)
-    embedded_checkpoint_path = os.path.join(tts_dir, 'checkpoint.pth.tar')
-    shutil.copy(args.checkpoint, embedded_checkpoint_path)
-    embedded_config_path = os.path.join(tts_dir, 'config.json')
-    shutil.copy(args.model_config, embedded_config_path)
-    package_data.extend([embedded_checkpoint_path, embedded_config_path])
 
 
 def pip_install(package_name):
