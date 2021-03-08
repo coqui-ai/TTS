@@ -91,11 +91,7 @@ Underlined "TTS*" and "Judy*" are :frog:TTS models
 You can also help us implement more models. Some :frog: TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
 ## Install TTS
-<<<<<<< HEAD
 :frog: TTS is tested on Ubuntu 18.04 with **python >= 3.6, < 3.9**.
-=======
-TTS is tested on Ubuntu 18.04 with **python >= 3.6, <3.9**.
->>>>>>> readme update for espeak install
 
 If you are only interested in [synthesizing speech](https://github.com/coqui-ai/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released :frog: TTS models, installing from PyPI is the easiest option.
 
@@ -110,9 +106,9 @@ git clone https://github.com/coqui-ai/TTS
 pip install -e .
 ```
 
-We use ```espeak``` to convert graphemes to phonemes. You might need to install separately.
+We use ```espeak-ng``` to convert graphemes to phonemes. You might need to install separately.
 ```bash
-sudo apt-get install espeak 
+sudo apt-get install espeak-ng
 ```
 
 ## Directory Structure
@@ -240,13 +236,13 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Contribution guidelines
-Please follow the steps below as you send a PR for :frog:. It helps us to keep things organized. 
+Please follow the steps below as you send a PR for :frog:. It helps us to keep things organized.
 
 1. Create a new branch.
 2. Implement your changes.
 3. (if applicable) Add [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
 4. (if applicable) Implement a test case under ```tests``` folder.
-5. (Optional but Prefered) Run tests. 
+5. (Optional but Prefered) Run tests.
 ```bash
 ./run_tests.sh
 ```
@@ -256,8 +252,8 @@ pip install pylint cardboardlint
 cardboardlinter --refspec master
 ```
 7. Send a PR to ```dev``` branch, explain what the change is about.
-8. Let us discuss until we make it perfect :). 
-9. We merge it to the ```dev``` branch once things look good. 
+8. Let us discuss until we make it perfect :) 💪.
+9. We merge it to the ```dev``` branch once things look good.
 
 Feel free to ping us at any step you need help using our communication channels.
 [Here](https://github.com/firstcontributions/first-contributions) is a good resource for complete beginners.
