@@ -17,6 +17,7 @@ class MyDataset(Dataset):
             seq_len (int): voice segment length in seconds.
             verbose (bool): print diagnostic information.
         """
+        super().__init__()
         self.items = meta_data
         self.sample_rate = ap.sample_rate
         self.voice_len = voice_len
