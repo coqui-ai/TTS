@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import argparse
 import os
-import shutil
 import subprocess
 import sys
 from distutils.version import LooseVersion
@@ -20,18 +18,6 @@ if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) 
         "but your Python version is {}".format(sys.version)
     )
 
-# parameters for wheeling server.
-parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
-parser.add_argument('--checkpoint',
-                    type=str,
-                    help='Path to checkpoint file to embed in wheel.')
-parser.add_argument('--model_config',
-                    type=str,
-                    help='Path to model configuration file to embed in wheel.')
-args, unknown_args = parser.parse_known_args()
-
-# Remove our arguments from argv so that setuptools doesn't see them
-sys.argv = [sys.argv[0]] + unknown_args
 
 version = '0.0.10'
 cwd = os.path.dirname(os.path.abspath(__file__))
