@@ -9,7 +9,7 @@ from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.io import load_config
 
 
-class DemoServerTest(unittest.TestCase):
+class SynthesizerTest(unittest.TestCase):
     # pylint: disable=R0201
     def _create_random_model(self):
         # pylint: disable=global-statement
