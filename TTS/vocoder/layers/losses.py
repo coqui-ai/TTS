@@ -4,7 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 
 
-class TorchSTFT(nn.Module):
+class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
     def __init__(self, n_fft, hop_length, win_length, window='hann_window'):
         """ Torch based STFT operation """
         super(TorchSTFT, self).__init__()

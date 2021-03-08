@@ -144,8 +144,3 @@ class ModelManager(object):
             if isinstance(key, str) and len(my_dict[key]) > 0:
                 return True
         return False
-
-
-
-
-

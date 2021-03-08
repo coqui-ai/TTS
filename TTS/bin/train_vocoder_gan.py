@@ -50,7 +50,7 @@ def setup_loader(ap, is_val=False, verbose=False):
         sampler = DistributedSampler(dataset, shuffle=True) if num_gpus > 1 else None
         loader = DataLoader(dataset,
                             batch_size=1 if is_val else c.batch_size,
-                            shuffle=False if num_gpus > 1 else True,
+                            shuffle=num_gpus == 0,
                             drop_last=False,
                             sampler=sampler,
                             num_workers=c.num_val_loader_workers

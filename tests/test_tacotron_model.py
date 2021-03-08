@@ -356,4 +356,3 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
             ), "param {} with shape {} not updated!! \n{}\n{}".format(
                 count, param.shape, param, param_ref)
             count += 1
-

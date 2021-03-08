@@ -2,13 +2,12 @@ import math
 import numpy as np
 import torch
 from torch import nn
-from inspect import signature
 from torch.nn import functional
 from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.utils.ssim import ssim
 
 
-# pylint: disable=abstract-method Method
+# pylint: disable=abstract-method
 # relates https://github.com/pytorch/pytorch/issues/42305
 class L1LossMasked(nn.Module):
     def __init__(self, seq_len_norm):
@@ -165,7 +164,7 @@ class BCELossMasked(nn.Module):
         target.requires_grad = False
         if length is not None:
             mask = sequence_mask(sequence_length=length,
-                                max_len=target.size(1)).float()
+                                 max_len=target.size(1)).float()
             x = x * mask
             target = target * mask
             num_items = mask.sum()
@@ -310,10 +309,10 @@ class TacotronLoss(torch.nn.Module):
             if self.postnet_alpha > 0:
                 if self.config.model in ["Tacotron", "TacotronGST"]:
                     postnet_loss = self.criterion(postnet_output, linear_input,
-                                                output_lens)
+                                                  output_lens)
                 else:
                     postnet_loss = self.criterion(postnet_output, mel_input,
-                                                output_lens)
+                                                  output_lens)
         else:
             if self.decoder_alpha > 0:
                 decoder_loss = self.criterion(decoder_output, mel_input)

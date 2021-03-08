@@ -367,18 +367,18 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         beta (float, optional): [description]. Defaults to 0.9 from the paper.
     """
     def __init__(
-        self,
-        query_dim,
-        embedding_dim,  # pylint: disable=unused-argument
-        attention_dim,
-        static_filter_dim,
-        static_kernel_size,
-        dynamic_filter_dim,
-        dynamic_kernel_size,
-        prior_filter_len=11,
-        alpha=0.1,
-        beta=0.9,
-    ):
+            self,
+            query_dim,
+            embedding_dim,  # pylint: disable=unused-argument
+            attention_dim,
+            static_filter_dim,
+            static_kernel_size,
+            dynamic_filter_dim,
+            dynamic_kernel_size,
+            prior_filter_len=11,
+            alpha=0.1,
+            beta=0.9,
+        ):
         super().__init__()
         self._mask_value = 1e-8
         self.dynamic_filter_dim = dynamic_filter_dim
@@ -402,7 +402,7 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         self.v = nn.Linear(attention_dim, 1, bias=False)
 
         prior = betabinom.pmf(range(prior_filter_len), prior_filter_len - 1,
-                          alpha, beta)
+                              alpha, beta)
         self.register_buffer("prior", torch.FloatTensor(prior).flip(0))
 
     # pylint: disable=unused-argument

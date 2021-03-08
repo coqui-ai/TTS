@@ -366,8 +366,10 @@ class RelativePositionTransformer(nn.Module):
                 self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
 
             self.ffn_layers.append(
-                FeedForwardNetwork(hidden_channels,
-                    hidden_channels if (idx + 1) != self.num_layers else out_channels,
+                FeedForwardNetwork(
+                    hidden_channels,
+                    hidden_channels if
+                    (idx + 1) != self.num_layers else out_channels,
                     hidden_channels_ffn,
                     kernel_size,
                     dropout_p=dropout_p))

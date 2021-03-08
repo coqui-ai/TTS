@@ -73,15 +73,15 @@ class Stretch2d(nn.Module):
 
 class UpsampleNetwork(nn.Module):
     def __init__(
-        self,
-        feat_dims,
-        upsample_scales,
-        compute_dims,
-        num_res_blocks,
-        res_out_dims,
-        pad,
-        use_aux_net,
-    ):
+            self,
+            feat_dims,
+            upsample_scales,
+            compute_dims,
+            num_res_blocks,
+            res_out_dims,
+            pad,
+            use_aux_net,
+        ):
         super().__init__()
         self.total_scale = np.cumproduct(upsample_scales)[-1]
         self.indent = pad * self.total_scale
@@ -118,9 +118,8 @@ class UpsampleNetwork(nn.Module):
 
 
 class Upsample(nn.Module):
-    def __init__(
-        self, scale, pad, num_res_blocks, feat_dims, compute_dims, res_out_dims, use_aux_net
-    ):
+    def __init__(self, scale, pad, num_res_blocks, feat_dims, compute_dims,
+                 res_out_dims, use_aux_net):
         super().__init__()
         self.scale = scale
         self.pad = pad
