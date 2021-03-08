@@ -21,6 +21,7 @@ class WaveRNNDataset(Dataset):
                  verbose=False,
                  ):
 
+        super(WaveRNNDataset, self).__init__()
         self.ap = ap
         self.compute_feat = not isinstance(items[0], (tuple, list))
         self.item_list = items
