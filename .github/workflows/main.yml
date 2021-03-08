@@ -2,9 +2,14 @@ name: Test
 
 on:
   push:
+    branches:
+      - master
+      - dev
   pull_request:
-    types: [opened, synchronize, reopened]
-
+    types: [opened, reopened]
+    branches:
+      - master
+      - dev
 jobs:
   test:
 
