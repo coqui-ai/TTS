@@ -25,7 +25,7 @@ class GANDataset(Dataset):
                  use_noise_augment=False,
                  use_cache=False,
                  verbose=False):
-
+        super(GANDataset, self).__init__()
         self.ap = ap
         self.item_list = items
         self.compute_feat = not isinstance(items[0], (tuple, list))
