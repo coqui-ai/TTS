@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import argparse
-import glob
 import os
 import sys
 import time
@@ -535,7 +533,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         if c.run_eval:
             target_loss = eval_avg_loss_dict['avg_loss']
         best_loss = save_best_model(target_loss, best_loss, model, optimizer,
-                                    global_step, epoch, c.r, OUT_PATH,
+                                    global_step, epoch, c.r, OUT_PATH, model_characters,
                                     keep_all_best=keep_all_best, keep_after=keep_after)
 
 

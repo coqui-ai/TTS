@@ -135,7 +135,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     return model
 
 def is_tacotron(c):
-    return False if c['model'] in ['speedy_speech', 'glow_tts'] else True
+    return not c['model'] in ['speedy_speech', 'glow_tts']
 
 def check_config_tts(c):
     check_argument('model', c, enum_list=['tacotron', 'tacotron2', 'glow_tts', 'speedy_speech'], restricted=True, val_type=str)

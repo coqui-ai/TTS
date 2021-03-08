@@ -648,10 +648,12 @@ def main(args):  # pylint: disable=redefined-outer-name
             epoch,
             c.r,
             OUT_PATH,
+            model_characters,
             keep_all_best=keep_all_best,
             keep_after=keep_after,
             scaler=scaler.state_dict() if c.mixed_precision else None
         )
+
 
 
 if __name__ == '__main__':

@@ -146,17 +146,17 @@ class Decoder(nn.Module):
 
     # pylint: disable=dangerous-default-value
     def __init__(
-        self,
-        out_channels,
-        in_hidden_channels,
-        decoder_type='residual_conv_bn',
-        decoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4, 8] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 17
-        },
-        c_in_channels=0):
+            self,
+            out_channels,
+            in_hidden_channels,
+            decoder_type='residual_conv_bn',
+            decoder_params={
+                "kernel_size": 4,
+                "dilations": 4 * [1, 2, 4, 8] + [1],
+                "num_conv_blocks": 2,
+                "num_res_blocks": 17
+            },
+            c_in_channels=0):
         super().__init__()
 
         if decoder_type == 'transformer':

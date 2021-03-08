@@ -59,7 +59,7 @@ if args.list_models:
 # set models by the released models
 if args.model_name is not None:
     tts_checkpoint_file, tts_config_file, tts_json_dict = manager.download_model(args.model_name)
-    args.vocoder_name =  tts_json_dict['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
+    args.vocoder_name = tts_json_dict['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
 
 if args.vocoder_name is not None:
     vocoder_checkpoint_file, vocoder_config_file, vocoder_json_dict = manager.download_model(args.vocoder_name)

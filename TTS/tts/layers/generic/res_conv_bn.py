@@ -97,7 +97,7 @@ class ResidualConv1dBNBlock(nn.Module):
         assert len(dilations) == num_res_blocks
         self.res_blocks = nn.ModuleList()
         for idx, dilation in enumerate(dilations):
-            block = Conv1dBNBlock(in_channels if idx==0 else hidden_channels,
+            block = Conv1dBNBlock(in_channels if idx == 0 else hidden_channels,
                                   out_channels if (idx + 1) == len(dilations) else hidden_channels,
                                   hidden_channels,
                                   kernel_size,

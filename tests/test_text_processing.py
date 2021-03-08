@@ -17,7 +17,7 @@ def test_phoneme_to_sequence():
     lang = "en-us"
     sequence = phoneme_to_sequence(text, text_cleaner, lang)
     text_hat = sequence_to_phoneme(sequence)
-    sequence_with_params = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
+    _ = phoneme_to_sequence(text, text_cleaner, lang, tp=conf.characters)
     text_hat_with_params = sequence_to_phoneme(sequence, tp=conf.characters)
     gt = 'ɹiːsənt ɹᵻsɜːtʃ æt hɑːɹvɚd hɐz ʃoʊn mɛdᵻteɪɾɪŋ fɔːɹ æz lɪɾəl æz eɪt wiːks kæn æktʃuːəli ɪŋkɹiːs, ðə ɡɹeɪ mæɾɚɹ ɪnðə pɑːɹts ʌvðə bɹeɪn ɹᵻspɑːnsᵻbəl fɔːɹ ɪmoʊʃənəl ɹɛɡjʊleɪʃən ænd lɜːnɪŋ!'
     assert text_hat == text_hat_with_params == gt

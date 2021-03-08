@@ -166,7 +166,7 @@ class SSIMLossTests(unittest.TestCase):
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
-        assert abs(output.item() - 1.0) < 1e-4 , "1.0 vs {}".format(output.item())
+        assert abs(output.item() - 1.0) < 1e-4, "1.0 vs {}".format(output.item())
 
         # test if padded values of input makes any difference
         dummy_input = T.ones(4, 8, 128).float()
@@ -217,4 +217,3 @@ class SSIMLossTests(unittest.TestCase):
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
         assert output.item() == 0, "0 vs {}".format(output.item())
-

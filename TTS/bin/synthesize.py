@@ -170,7 +170,7 @@ def main():
         args.vocoder_name = model_item['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
 
     if args.vocoder_name is not None:
-        vocoder_path, vocoder_config_path, vocoder_item = manager.download_model(args.vocoder_name)
+        vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
     # CASE3: load custome models
     if args.model_path is not None:

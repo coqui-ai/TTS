@@ -98,11 +98,11 @@ class Encoder(nn.Module):
         if encoder_type.lower() == "rel_pos_transformer":
             if use_prenet:
                 self.prenet = ResidualConv1dLayerNormBlock(hidden_channels,
-                                         hidden_channels,
-                                         hidden_channels,
-                                         kernel_size=5,
-                                         num_layers=3,
-                                         dropout_p=0.5)
+                                                           hidden_channels,
+                                                           hidden_channels,
+                                                           kernel_size=5,
+                                                           num_layers=3,
+                                                           dropout_p=0.5)
             self.encoder = RelativePositionTransformer(hidden_channels,
                                                        hidden_channels,
                                                        hidden_channels,
@@ -125,11 +125,11 @@ class Encoder(nn.Module):
         elif encoder_type.lower() == 'time_depth_separable':
             if use_prenet:
                 self.prenet = ResidualConv1dLayerNormBlock(hidden_channels,
-                                         hidden_channels,
-                                         hidden_channels,
-                                         kernel_size=5,
-                                         num_layers=3,
-                                         dropout_p=0.5)
+                                                           hidden_channels,
+                                                           hidden_channels,
+                                                           kernel_size=5,
+                                                           num_layers=3,
+                                                           dropout_p=0.5)
             self.encoder = TimeDepthSeparableConvBlock(hidden_channels,
                                                        hidden_channels,
                                                        hidden_channels,
