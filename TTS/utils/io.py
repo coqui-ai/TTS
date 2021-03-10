@@ -75,4 +75,5 @@ def copy_model_files(c, config_file, out_path, new_fields):
     # copy model stats file if available
     if c.audio['stats_path'] is not None:
         copy_stats_path = os.path.join(out_path, 'scale_stats.npy')
-        copyfile(c.audio['stats_path'], copy_stats_path)
+        if not os.path.exists(copy_stats_path):
+            copyfile(c.audio['stats_path'], copy_stats_path, )
