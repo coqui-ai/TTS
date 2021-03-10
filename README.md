@@ -1,7 +1,7 @@
 # <img src="images/coqui-log-green-TTS.png" height="56"/>
 
-:frog: TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
-:frog: TTS comes with [pretrained models](https://github.com/coqui-ai/TTS/wiki/Released-Models), tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
+🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
+🐸TTS comes with [pretrained models](https://github.com/coqui-ai/TTS/wiki/Released-Models), tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
 
 <!-- [![CircleCI](TODO)]() -->
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
@@ -44,7 +44,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 ## 🥇 TTS Performance
 <p align="center"><img src="images/TTS-performance.png" width="800" /></p>
 
-Underlined "TTS*" and "Judy*" are :frog:TTS models
+Underlined "TTS*" and "Judy*" are 🐸TTS models
 <!-- [Details...](https://github.com/coqui-ai/TTS/wiki/Mean-Opinion-Score-Results) -->
 
 ## Features
@@ -88,18 +88,18 @@ Underlined "TTS*" and "Judy*" are :frog:TTS models
 - WaveRNN: [origin](https://github.com/fatchord/WaveRNN/)
 - WaveGrad: [paper](https://arxiv.org/abs/2009.00713)
 
-You can also help us implement more models. Some :frog: TTS related work can be found [here](https://github.com/erogol/TTS-papers).
+You can also help us implement more models. Some 🐸TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
 ## Install TTS
-:frog: TTS is tested on Ubuntu 18.04 with **python >= 3.6, < 3.9**.
+🐸TTS is tested on Ubuntu 18.04 with **python >= 3.6, < 3.9**.
 
-If you are only interested in [synthesizing speech](https://github.com/coqui-ai/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released :frog: TTS models, installing from PyPI is the easiest option.
+If you are only interested in [synthesizing speech](https://github.com/coqui-ai/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released 🐸TTS models, installing from PyPI is the easiest option.
 
 ```bash
 pip install TTS
 ```
 
-If you plan to code or train models, clone :frog: TTS and install it locally.
+If you plan to code or train models, clone 🐸TTS and install it locally.
 
 ```bash
 git clone https://github.com/coqui-ai/TTS
@@ -142,11 +142,11 @@ Audio examples: [soundcloud](https://soundcloud.com/user-565970875/pocket-articl
 <img src="images/example_model_output.png?raw=true" alt="example_output" width="400"/>
 
 ## Datasets and Data-Loading
-:frog: TTS provides a generic dataloader easy to use for your custom dataset.
+🐸TTS provides a generic dataloader easy to use for your custom dataset.
 You just need to write a simple function to format the dataset. Check ```datasets/preprocess.py``` to see some examples.
 After that, you need to set ```dataset``` fields in ```config.json```.
 
-Some of the public datasets that we successfully applied :frog: TTS:
+Some of the public datasets that we successfully applied 🐸TTS:
 
 - [LJ Speech](https://keithito.com/LJ-Speech-Dataset/)
 - [Nancy](http://www.cstr.ed.ac.uk/projects/blizzard/2011/lessac_blizzard2011/)
@@ -157,9 +157,9 @@ Some of the public datasets that we successfully applied :frog: TTS:
 
 ## Example: Synthesizing Speech on Terminal Using the Released Models.
 
-After the installation, :frog: TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under :frog: TTS.
+After the installation, 🐸TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under 🐸TTS.
 
-Listing released :frog: TTS models.
+Listing released 🐸TTS models.
 ```bash
 tts --list_models
 ```
@@ -236,7 +236,7 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
 ## Contribution guidelines
-Please follow the steps below as you send a PR for :frog:. It helps us to keep things organized.
+Please follow the steps below as you send a PR to 🐸. It helps us to keep things organized.
 
 1. Create a new branch.
 2. Implement your changes.
