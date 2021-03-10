@@ -150,6 +150,10 @@ def main():
 
     args = parser.parse_args()
 
+    # print the description if either text or list_models is not set
+    if args.text is None and not args.list_models:
+        parser.parse_args(['-h'])
+
     # load model manager
     path = Path(__file__).parent / "../.models.json"
     manager = ModelManager(path)

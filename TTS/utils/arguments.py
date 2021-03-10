@@ -10,7 +10,6 @@ import torch
 
 from TTS.tts.utils.generic_utils import check_config_tts
 from TTS.tts.utils.text.symbols import parse_symbols
-from TTS.tts.utils.io import load_checkpoint
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
 from TTS.utils.io import copy_model_files, load_config
