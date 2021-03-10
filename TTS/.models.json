@@ -4,9 +4,7 @@
             "ek1":{
                 "tacotron2": {
                     "description": "EK1 en-rp tacotron2 by NMStoker",
-                    "model_file": "1OJ5sLYmB03dQAf1FcY06b5X-0hiR0SNZ",
-                    "config_file": "1hSnodL--5AFJTWvlU96e0pCnCfNU3yM_",
-                    "stats_file": null,
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--en--ek1--tacotron2.zip",
                     "default_vocoder": "vocoder_models/en/ek1/wavegrad",
                     "commit": "c802255"
                 }
@@ -33,9 +31,7 @@
                 },
                 "speedy-speech-wn":{
                     "description": "Speedy Speech model with wavenet decoder.",
-                    "model_file": "1VXAwiq6N-Viq3rsSXlf43bdoi0jSvMAJ",
-                    "config_file": "1KvZilhsNP3EumVggDcD46yd834eO5hR3",
-                    "stats_file": "1Ju7apZ5JlgsVECcETL-GEx3DRoNzWfkR",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--en--ljspeech--speedy-speech-wn.zip",
                     "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
                     "commit": "77b6145",
                     "author": "Eren Gölge @erogol",
@@ -71,18 +67,16 @@
         "zh-CN":{
             "baker":{
                 "tacotron2-DDC-GST":{
-                    "model_file": "1SYpv7V__QYDjKXa_vJmNXo1CSkcoZovy",
-                    "config_file": "14BIvfJXnFHi3jcxYNX40__TR6RwJOZqi",
-                    "stats_file": "1ECRlXybT6rAWp269CkhjUPwcZ10CkcqD",
-                    "commit": ""
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--zh-CN--baker--tacotron2-DDC-GST.zip",
+                    "commit": "unknown",
+                    "author": "@kirianguiller"
                 }
             }
         },
         "nl":{
             "mai":{
                 "tacotron2-DDC":{
-                    "model_file": "1cJWpKflkvchVidn0oyUZdv9CPDOUMi_Q",
-                    "config_file": "1SY61VgvMNafrb76BgxP-ulsG8rhTE1we",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--nl--mai--tacotron2-DDC.zip",
                     "author": "@r-dh",
                     "default_vocoder": "vocoder_models/nl/mai/parallel-wavegan",
                     "stats_file": null,
@@ -114,9 +108,7 @@
             "ek1":{
                 "wavegrad": {
                     "description": "EK1 en-rp wavegrad by NMStoker",
-                    "model_file": "1ShaCSrQfSRjM66vo45Bgo019uJDDloLS",
-                    "config_file": "1otnQR5yTfN5A77yMKmUSzwh_VNvYwKai",
-                    "stats_file": null,
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/vocoder_models--en--ek1--wavegrad.zip",
                     "commit": "c802255"
                 }
             },
@@ -133,11 +125,8 @@
         "nl":{
             "mai":{
                 "parallel-wavegan":{
-                    "model_file": "1zYFHElvYW_oTeilvbZVLMLscColWRbck",
-                    "config_file": "1ye9kVDbatAKMncRMui7watrLQ_5DaJ3e",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/vocoder_models--nl--mai--parallel-wavegan.zip",
                     "author": "@r-dh",
-                    "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
-                    "stats_file": "1QD40bU_M7CWrj9k0MEACNBRqwqVTSLDc",
                     "commit": "unknown"
                 }
             }
