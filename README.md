@@ -1,4 +1,4 @@
-# <img src="images/coqui-log-green-TTS.png" height="56"/>
+# <img src="https://github.com/coqui-ai/TTS/raw/master/images/coqui-log-green-TTS.png" height="56"/>
 
 🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
 🐸TTS comes with [pretrained models](https://github.com/coqui-ai/TTS/wiki/Released-Models), tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
@@ -42,7 +42,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 🤖 **Running TTS on Terminal** | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
 
 ## 🥇 TTS Performance
-<p align="center"><img src="images/TTS-performance.png" width="800" /></p>
+<p align="center"><img src="https://github.com/coqui-ai/TTS/raw/master/images/TTS-performance.png" width="800" /></p>
 
 Underlined "TTS*" and "Judy*" are 🐸TTS models
 <!-- [Details...](https://github.com/coqui-ai/TTS/wiki/Mean-Opinion-Score-Results) -->
