@@ -3,6 +3,7 @@ import json
 import os
 import zipfile
 from pathlib import Path
+from shutil import copyfile
 
 import gdown
 import requests
@@ -130,11 +131,14 @@ class ModelManager(object):
 
     @staticmethod
     def _download_zip_file(file_url, output):
-        """Download the target zip file and extract the files
-        to a folder with the same name as the zip file."""
+        """Download the github releases"""
         r = requests.get(file_url)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extractall(output)
+        for file_path in z.namelist()[1:]:
+            src_path = os.path.join(output, file_path)
+            dst_path = os.path.join(output, os.path.basename(file_path))
+            copyfile(src_path, dst_path)
 
     @staticmethod
     def _check_dict_key(my_dict, key):
