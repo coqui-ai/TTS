@@ -6,7 +6,6 @@ import argparse
 import glob
 import os
 import re
-import torch
 
 from TTS.tts.utils.generic_utils import check_config_tts
 from TTS.tts.utils.text.symbols import parse_symbols
