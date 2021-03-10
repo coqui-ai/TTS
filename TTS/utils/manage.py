@@ -104,7 +104,7 @@ class ModelManager(object):
         else:
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
-            output_stats_path = None
+            output_stats_path = os.path.join(output_path, 'scale_stats.npy')
             # download files to the output path
             if self._check_dict_key(model_item, 'github_rls_url'):
                 # download from github release
@@ -118,8 +118,7 @@ class ModelManager(object):
                     self._download_gdrive_file(model_item['stats_file'], output_stats_path)
 
             # set the scale_path.npy file path in the model config.json
-            if self._check_dict_key(model_item, 'stats_file') or os.path.exists(os.path.join(output_path, 'scale_stats.npy')):
-                output_stats_path = os.path.join(output_path, 'scale_stats.npy')
+            if self._check_dict_key(model_item, 'stats_file') or os.path.exists(output_stats_path):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
