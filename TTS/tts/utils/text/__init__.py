@@ -41,7 +41,7 @@ def text2phone(text, language):
     '''
 
     # TO REVIEW : How to have a good implementation for this?
-    if language == "chinese-mandarin":
+    if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
         return ph
 

@@ -7,7 +7,7 @@ from TTS.utils.io import RenamingUnpickler
 
 
 
-def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False, eval=False):
+def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False, eval=False):  # pylint: disable=redefined-builtin
     """Load ```TTS.tts.models``` checkpoints.
 
     Args:
@@ -98,7 +98,7 @@ def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder,
 
 
 def save_best_model(target_loss, best_loss, model, optimizer, current_step,
-                    epoch, r, output_folder, characters,  **kwargs):
+                    epoch, r, output_folder, characters, **kwargs):
     """Save model checkpoint, intended for saving the best model after each epoch.
     It compares the current model loss with the best loss so far and saves the
     model if the current loss is better.

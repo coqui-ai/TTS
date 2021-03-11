@@ -73,13 +73,12 @@ class RelativePositionTransformerEncoder(nn.Module):
     def __init__(self, in_channels, out_channels, hidden_channels, params):
         super().__init__()
         self.prenet = ResidualConv1dBNBlock(in_channels,
-                                     hidden_channels,
-                                     hidden_channels,
-                                     kernel_size=5,
-                                     num_res_blocks=3,
-                                     num_conv_blocks=1,
-                                     dilations=[1, 1, 1]
-                                     )
+                                            hidden_channels,
+                                            hidden_channels,
+                                            kernel_size=5,
+                                            num_res_blocks=3,
+                                            num_conv_blocks=1,
+                                            dilations=[1, 1, 1])
         self.rel_pos_transformer = RelativePositionTransformer(
             hidden_channels, out_channels, hidden_channels, **params)
 
@@ -104,9 +103,8 @@ class ResidualConv1dBNEncoder(nn.Module):
     """
     def __init__(self, in_channels, out_channels, hidden_channels, params):
         super().__init__()
-        self.prenet =  nn.Sequential(
-                nn.Conv1d(in_channels, hidden_channels, 1),
-                nn.ReLU())
+        self.prenet = nn.Sequential(nn.Conv1d(in_channels, hidden_channels, 1),
+                                    nn.ReLU())
         self.res_conv_block = ResidualConv1dBNBlock(hidden_channels,
                                                     hidden_channels,
                                                     hidden_channels, **params)
@@ -162,17 +160,17 @@ class Encoder(nn.Module):
             }
     """
     def __init__(
-        self,
-        in_hidden_channels,
-        out_channels,
-        encoder_type='residual_conv_bn',
-        encoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 13
-        },
-        c_in_channels=0):
+            self,
+            in_hidden_channels,
+            out_channels,
+            encoder_type='residual_conv_bn',
+            encoder_params={
+                "kernel_size": 4,
+                "dilations": 4 * [1, 2, 4] + [1],
+                "num_conv_blocks": 2,
+                "num_res_blocks": 13
+            },
+            c_in_channels=0):
         super().__init__()
         self.out_channels = out_channels
         self.in_channels = in_hidden_channels
@@ -183,10 +181,9 @@ class Encoder(nn.Module):
         # init encoder
         if encoder_type.lower() == "transformer":
             # text encoder
-            self.encoder = RelativePositionTransformerEncoder(in_hidden_channels,
-                                                   out_channels,
-                                                   in_hidden_channels,
-                                                   encoder_params)  # pylint: disable=unexpected-keyword-arg
+            self.encoder = RelativePositionTransformerEncoder(
+                in_hidden_channels, out_channels, in_hidden_channels,
+                encoder_params)  # pylint: disable=unexpected-keyword-arg
         elif encoder_type.lower() == 'residual_conv_bn':
             self.encoder = ResidualConv1dBNEncoder(in_hidden_channels,
                                                    out_channels,

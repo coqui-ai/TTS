@@ -67,7 +67,7 @@ def main():
     parser.add_argument(
         '--text',
         type=str,
-        required=True,
+        default=None,
         help='Text to generate speech.'
         )
 
@@ -150,6 +150,10 @@ def main():
 
     args = parser.parse_args()
 
+    # print the description if either text or list_models is not set
+    if args.text is None and not args.list_models:
+        parser.parse_args(['-h'])
+
     # load model manager
     path = Path(__file__).parent / "../.models.json"
     manager = ModelManager(path)
@@ -170,7 +174,7 @@ def main():
         args.vocoder_name = model_item['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
 
     if args.vocoder_name is not None:
-        vocoder_path, vocoder_config_path, vocoder_item = manager.download_model(args.vocoder_name)
+        vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
     # CASE3: load custome models
     if args.model_path is not None:

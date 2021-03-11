@@ -9,7 +9,7 @@ PINYIN_DICT = {
     "bai": ["bai"],
     "ban": ["ban"],
     "bang": ["bɑŋ"],
-    "bao": ["baʌ"], 
+    "bao": ["baʌ"],
     # "be": ["be"], doesnt exist
     "bei": ["bɛi"],
     "ben": ["bœn"],
@@ -377,7 +377,7 @@ PINYIN_DICT = {
     "yong": ["ioŋ"],
     "you": ["io"],
     "yu": ["y"],
-    "yuan": ["yɛn"], 
+    "yuan": ["yɛn"],
     "yue": ["ye"],
     "yun": ["yn"],
     "za": ["dza"],

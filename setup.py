@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import argparse
 import os
-import shutil
 import subprocess
 import sys
 from distutils.version import LooseVersion
@@ -20,39 +18,9 @@ if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) 
         "but your Python version is {}".format(sys.version)
     )
 
-# parameters for wheeling server.
-parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
-parser.add_argument('--checkpoint',
-                    type=str,
-                    help='Path to checkpoint file to embed in wheel.')
-parser.add_argument('--model_config',
-                    type=str,
-                    help='Path to model configuration file to embed in wheel.')
-args, unknown_args = parser.parse_known_args()
 
-# Remove our arguments from argv so that setuptools doesn't see them
-sys.argv = [sys.argv[0]] + unknown_args
-
-version = '0.0.10'
+version = '0.0.11'
 cwd = os.path.dirname(os.path.abspath(__file__))
-
-# Handle Cython code
-# def find_pyx(path='.'):
-#     pyx_files = []
-#     for root, _, filenames in os.walk(path):
-#         for fname in filenames:
-#             if fname.endswith('.pyx'):
-#                 pyx_files.append(os.path.join(root, fname))
-#     return pyx_files
-
-
-# def find_cython_extensions(path="."):
-#     exts = cythonize(find_pyx(path), language_level=3)
-#     for ext in exts:
-#         ext.include_dirs = [numpy.get_include()]
-
-#     return exts
-
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
     def run(self):
@@ -66,7 +34,6 @@ class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-man
         with open(version_path, 'w') as f:
             f.write("__version__ = '{}'\n".format(version))
 
-
 class develop(setuptools.command.develop.develop):
     def run(self):
         build_py.create_version_file()
@@ -75,17 +42,6 @@ class develop(setuptools.command.develop.develop):
 
 # The documentation for this feature is in server/README.md
 package_data = ['TTS/server/templates/*']
-
-if 'bdist_wheel' in unknown_args and args.checkpoint and args.model_config:
-    print('Embedding model in wheel file...')
-    model_dir = os.path.join('TTS', 'server', 'model')
-    tts_dir = os.path.join(model_dir, 'tts')
-    os.makedirs(tts_dir, exist_ok=True)
-    embedded_checkpoint_path = os.path.join(tts_dir, 'checkpoint.pth.tar')
-    shutil.copy(args.checkpoint, embedded_checkpoint_path)
-    embedded_config_path = os.path.join(tts_dir, 'config.json')
-    shutil.copy(args.model_config, embedded_config_path)
-    package_data.extend([embedded_checkpoint_path, embedded_config_path])
 
 
 def pip_install(package_name):
@@ -101,10 +57,10 @@ exts = [Extension(name='TTS.tts.layers.glow_tts.monotonic_align.core',
 setup(
     name='TTS',
     version=version,
-    url='https://github.com/mozilla/TTS',
+    url='https://github.com/coqui-ai/TTS',
     author='Eren Gölge',
-    author_email='egolge@mozilla.com',
-    description='Text to Speech with Deep Learning',
+    author_email='egolge@coqui.ai',
+    description='Deep learning for Text to Speech by Coqui.',
     long_description=README,
     long_description_content_type="text/markdown",
     license='MPL-2.0',
@@ -116,10 +72,10 @@ setup(
     include_package_data=True,
     packages=find_packages(include=['TTS*']),
     project_urls={
-        'Documentation': 'https://github.com/mozilla/TTS/wiki',
-        'Tracker': 'https://github.com/mozilla/TTS/issues',
-        'Repository': 'https://github.com/mozilla/TTS',
-        'Discussions': 'https://discourse.mozilla.org/c/tts',
+        'Documentation': 'https://github.com/coqui-ai/TTS/wiki',
+        'Tracker': 'https://github.com/coqui-ai/TTS/issues',
+        'Repository': 'https://github.com/coqui-ai/TTS',
+        'Discussions': 'https://github.com/coqui-ai/TTS/discussions',
     },
     cmdclass={
         'build_py': build_py,

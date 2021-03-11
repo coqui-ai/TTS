@@ -22,7 +22,7 @@ class AttrDict(dict):
 
 def read_json_with_comments(json_path):
     # fallback to json
-    with open(json_path, "r", encoding = "utf-8") as f:
+    with open(json_path, "r", encoding="utf-8") as f:
         input_str = f.read()
     # handle comments
     input_str = re.sub(r'\\\n', '', input_str)
@@ -40,7 +40,7 @@ def load_config(config_path: str) -> AttrDict:
 
     ext = os.path.splitext(config_path)[1]
     if ext in (".yml", ".yaml"):
-        with open(config_path, "r", encoding = "utf-8") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
     else:
         data = read_json_with_comments(config_path)
@@ -61,7 +61,7 @@ def copy_model_files(c, config_file, out_path, new_fields):
     """
     # copy config.json
     copy_config_path = os.path.join(out_path, 'config.json')
-    config_lines = open(config_file, "r", encoding = "utf-8").readlines()
+    config_lines = open(config_file, "r", encoding="utf-8").readlines()
     # add extra information fields
     for key, value in new_fields.items():
         if isinstance(value, str):
@@ -75,4 +75,5 @@ def copy_model_files(c, config_file, out_path, new_fields):
     # copy model stats file if available
     if c.audio['stats_path'] is not None:
         copy_stats_path = os.path.join(out_path, 'scale_stats.npy')
-        copyfile(c.audio['stats_path'], copy_stats_path)
+        if not os.path.exists(copy_stats_path):
+            copyfile(c.audio['stats_path'], copy_stats_path, )

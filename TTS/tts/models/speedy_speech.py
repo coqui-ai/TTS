@@ -33,32 +33,32 @@ class SpeedySpeech(nn.Module):
         external_c (bool, optional): enable external speaker embeddings. Defaults to False.
         c_in_channels (int, optional): number of channels in speaker embedding vectors. Defaults to 0.
     """
-# pylint: disable=dangerous-default-value
+    # pylint: disable=dangerous-default-value
 
     def __init__(
-        self,
-        num_chars,
-        out_channels,
-        hidden_channels,
-        positional_encoding=True,
-        length_scale=1,
-        encoder_type='residual_conv_bn',
-        encoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 13
-        },
-        decoder_type='residual_conv_bn',
-        decoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4, 8] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 17
-        },
-        num_speakers=0,
-        external_c=False,
-        c_in_channels=0):
+            self,
+            num_chars,
+            out_channels,
+            hidden_channels,
+            positional_encoding=True,
+            length_scale=1,
+            encoder_type='residual_conv_bn',
+            encoder_params={
+                "kernel_size": 4,
+                "dilations": 4 * [1, 2, 4] + [1],
+                "num_conv_blocks": 2,
+                "num_res_blocks": 13
+            },
+            decoder_type='residual_conv_bn',
+            decoder_params={
+                "kernel_size": 4,
+                "dilations": 4 * [1, 2, 4, 8] + [1],
+                "num_conv_blocks": 2,
+                "num_res_blocks": 17
+            },
+            num_speakers=0,
+            external_c=False,
+            c_in_channels=0):
 
         super().__init__()
         self.length_scale = float(length_scale) if isinstance(length_scale, int) else length_scale
@@ -171,7 +171,7 @@ class SpeedySpeech(nn.Module):
         """
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
         o_dr_log = self.duration_predictor(o_en_dp.detach(), x_mask)
-        o_de, attn= self._forward_decoder(o_en, o_en_dp, dr, x_mask, y_lengths, g=g)
+        o_de, attn = self._forward_decoder(o_en, o_en_dp, dr, x_mask, y_lengths, g=g)
         return o_de, o_dr_log.squeeze(1), attn
 
     def inference(self, x, x_lengths, g=None):  # pylint: disable=unused-argument
