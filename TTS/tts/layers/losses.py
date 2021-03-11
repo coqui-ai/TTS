@@ -297,6 +297,11 @@ class TacotronLoss(torch.nn.Module):
                 stopnet_output, stopnet_target, output_lens, decoder_b_output,
                 alignments, alignment_lens, alignments_backwards, input_lens):
 
+
+        # decoder outputs linear or mel spectrograms for Tacotron and Tacotron2
+        # the target should be set acccordingly
+        postnet_target = linear_input if self.config.model.lower() in ["tacotron"] else mel_input
+
         return_dict = {}
         # remove lengths if no masking is applied
         if not self.config.loss_masking:
@@ -307,20 +312,13 @@ class TacotronLoss(torch.nn.Module):
                 decoder_loss = self.criterion(decoder_output, mel_input,
                                               output_lens)
             if self.postnet_alpha > 0:
-                if self.config.model in ["Tacotron", "TacotronGST"]:
-                    postnet_loss = self.criterion(postnet_output, linear_input,
-                                                  output_lens)
-                else:
-                    postnet_loss = self.criterion(postnet_output, mel_input,
-                                                  output_lens)
+                postnet_loss = self.criterion(postnet_output, postnet_target,
+                                                output_lens)
         else:
             if self.decoder_alpha > 0:
                 decoder_loss = self.criterion(decoder_output, mel_input)
             if self.postnet_alpha > 0:
-                if self.config.model in ["Tacotron", "TacotronGST"]:
-                    postnet_loss = self.criterion(postnet_output, linear_input)
-                else:
-                    postnet_loss = self.criterion(postnet_output, mel_input)
+                postnet_loss = self.criterion(postnet_output, postnet_target)
         loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
         return_dict['decoder_loss'] = decoder_loss
         return_dict['postnet_loss'] = postnet_loss
@@ -373,7 +371,7 @@ class TacotronLoss(torch.nn.Module):
 
         # postnet differential spectral loss
         if self.config.postnet_diff_spec_alpha > 0:
-            postnet_diff_spec_loss = self.criterion_diff_spec(postnet_output, mel_input, output_lens)
+            postnet_diff_spec_loss = self.criterion_diff_spec(postnet_output, postnet_target, output_lens)
             loss += postnet_diff_spec_loss * self.postnet_diff_spec_alpha
             return_dict['postnet_diff_spec_loss'] = postnet_diff_spec_loss
 
@@ -385,7 +383,7 @@ class TacotronLoss(torch.nn.Module):
 
         # postnet ssim loss
         if self.config.postnet_ssim_alpha > 0:
-            postnet_ssim_loss = self.criterion_ssim(postnet_output, mel_input, output_lens)
+            postnet_ssim_loss = self.criterion_ssim(postnet_output, postnet_target, output_lens)
             loss += postnet_ssim_loss * self.postnet_ssim_alpha
             return_dict['postnet_ssim_loss'] = postnet_ssim_loss
 
