@@ -35,8 +35,8 @@ jobs:
         run: cat /etc/os-release
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install espeak-ng git
+          apt update
+          apt install -y espeak-ng git
       - name: Upgrade pip
         # so we can take advantage of pyproject.toml build-dependency support
         run: python3 -m pip install --upgrade pip
