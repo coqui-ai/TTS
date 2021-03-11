@@ -130,3 +130,4 @@ TODO.txt
 data/*
 notebooks/data/*
 TTS/tts/layers/glow_tts/monotonic_align/core.c
+temp_build/*

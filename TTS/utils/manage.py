@@ -3,6 +3,7 @@ import json
 import os
 import zipfile
 from pathlib import Path
+from shutil import copyfile
 
 import gdown
 import requests
@@ -103,7 +104,7 @@ class ModelManager(object):
         else:
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
-            output_stats_path = None
+            output_stats_path = os.path.join(output_path, 'scale_stats.npy')
             # download files to the output path
             if self._check_dict_key(model_item, 'github_rls_url'):
                 # download from github release
@@ -113,9 +114,11 @@ class ModelManager(object):
                 # download from gdrive
                 self._download_gdrive_file(model_item['model_file'], output_model_path)
                 self._download_gdrive_file(model_item['config_file'], output_config_path)
-            if self._check_dict_key(model_item, 'stats_file'):
-                output_stats_path = os.path.join(output_path, 'scale_stats.npy')
-                self._download_gdrive_file(model_item['stats_file'], output_stats_path)
+                if self._check_dict_key(model_item, 'stats_file'):
+                    self._download_gdrive_file(model_item['stats_file'], output_stats_path)
+
+            # set the scale_path.npy file path in the model config.json
+            if self._check_dict_key(model_item, 'stats_file') or os.path.exists(output_stats_path):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
@@ -130,11 +133,14 @@ class ModelManager(object):
 
     @staticmethod
     def _download_zip_file(file_url, output):
-        """Download the target zip file and extract the files
-        to a folder with the same name as the zip file."""
+        """Download the github releases"""
         r = requests.get(file_url)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extractall(output)
+        for file_path in z.namelist()[1:]:
+            src_path = os.path.join(output, file_path)
+            dst_path = os.path.join(output, os.path.basename(file_path))
+            copyfile(src_path, dst_path)
 
     @staticmethod
     def _check_dict_key(my_dict, key):
@@ -144,8 +150,3 @@ class ModelManager(object):
             if isinstance(key, str) and len(my_dict[key]) > 0:
                 return True
         return False
-
-
-
-
-

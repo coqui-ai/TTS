@@ -44,9 +44,11 @@ def log_sum_exp(x):
 
 
 # It is adapted from https://github.com/r9y9/wavenet_vocoder/blob/master/wavenet_vocoder/mixture.py
-def discretized_mix_logistic_loss(
-    y_hat, y, num_classes=65536, log_scale_min=None, reduce=True
-):
+def discretized_mix_logistic_loss(y_hat,
+                                  y,
+                                  num_classes=65536,
+                                  log_scale_min=None,
+                                  reduce=True):
     if log_scale_min is None:
         log_scale_min = float(np.log(1e-14))
     y_hat = y_hat.permute(0, 2, 1)

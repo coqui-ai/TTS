@@ -22,8 +22,10 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x, noise_level):
         if x.shape[2] > self.pe.shape[1]:
-            self.init_pe_matrix(x.shape[1] ,x.shape[2], x)
-        return x + noise_level[..., None, None] + self.pe[:, :x.size(2)].repeat(x.shape[0], 1, 1) / self.C
+            self.init_pe_matrix(x.shape[1], x.shape[2], x)
+        return x + noise_level[..., None,
+                               None] + self.pe[:, :x.size(2)].repeat(
+                                   x.shape[0], 1, 1) / self.C
 
     def init_pe_matrix(self, n_channels, max_len, x):
         pe = torch.zeros(max_len, n_channels)
@@ -171,5 +173,4 @@ class DBlock(nn.Module):
         self.res_block = weight_norm(self.res_block)
         for idx, layer in enumerate(self.main_block):
             if len(layer.state_dict()) != 0:
-               self.main_block[idx] = weight_norm(layer)
-
+                self.main_block[idx] = weight_norm(layer)

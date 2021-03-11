@@ -79,7 +79,7 @@ class Wavegrad(nn.Module):
         return x
 
     def load_noise_schedule(self, path):
-        beta = np.load(path, allow_pickle=True).item()['beta']
+        beta = np.load(path, allow_pickle=True).item()['beta']  # pylint: disable=unexpected-keyword-arg
         self.compute_noise_level(beta)
 
     @torch.no_grad()
@@ -91,8 +91,8 @@ class Wavegrad(nn.Module):
             y_n = torch.FloatTensor(y_n).unsqueeze(0).unsqueeze(0).to(x)
         sqrt_alpha_hat = self.noise_level.to(x)
         for n in range(len(self.alpha) - 1, -1, -1):
-            y_n = self.c1[n] * (y_n -
-                        self.c2[n] * self.forward(y_n, x, sqrt_alpha_hat[n].repeat(x.shape[0])))
+            y_n = self.c1[n] * (y_n - self.c2[n] * self.forward(
+                y_n, x, sqrt_alpha_hat[n].repeat(x.shape[0])))
             if n > 0:
                 z = torch.randn_like(y_n)
                 y_n += self.sigma[n - 1] * z

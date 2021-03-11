@@ -1,5 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import pkg_resources
 installed = {pkg.key for pkg in pkg_resources.working_set}  #pylint: disable=not-an-iterable
 if 'tensorflow' in installed or 'tensorflow-gpu' in installed:
@@ -20,9 +20,13 @@ def text_to_seqvec(text, CONFIG):
                                 add_blank=CONFIG['add_blank'] if 'add_blank' in CONFIG.keys() else False),
             dtype=np.int32)
     else:
-        seq = np.asarray(
-            text_to_sequence(text, text_cleaner, tp=CONFIG.characters if 'characters' in CONFIG.keys() else None,
-            add_blank=CONFIG['add_blank'] if 'add_blank' in CONFIG.keys() else False), dtype=np.int32)
+        seq = np.asarray(text_to_sequence(
+            text,
+            text_cleaner,
+            tp=CONFIG.characters if 'characters' in CONFIG.keys() else None,
+            add_blank=CONFIG['add_blank']
+            if 'add_blank' in CONFIG.keys() else False),
+                         dtype=np.int32)
     return seq
 
 
@@ -77,9 +81,9 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, 'module'):
             # distributed model
-            postnet_output, alignments= model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+            postnet_output, alignments = model.module.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
         else:
-            postnet_output, alignments= model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
+            postnet_output, alignments = model.inference(inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings)
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.
         decoder_output = None

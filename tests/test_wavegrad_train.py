@@ -20,18 +20,18 @@ class WavegradTrainTest(unittest.TestCase):
 
         criterion = torch.nn.L1Loss().to(device)
         model = Wavegrad(in_channels=80,
-                     out_channels=1,
-                     upsample_factors=[5, 5, 3, 2, 2],
-                     upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2],
-                                         [1, 2, 4, 8], [1, 2, 4, 8],
-                                         [1, 2, 4, 8]])
+                         out_channels=1,
+                         upsample_factors=[5, 5, 3, 2, 2],
+                         upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2],
+                                             [1, 2, 4, 8], [1, 2, 4, 8],
+                                             [1, 2, 4, 8]])
 
         model_ref = Wavegrad(in_channels=80,
-                     out_channels=1,
-                     upsample_factors=[5, 5, 3, 2, 2],
-                     upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2],
-                                         [1, 2, 4, 8], [1, 2, 4, 8],
-                                         [1, 2, 4, 8]])
+                             out_channels=1,
+                             upsample_factors=[5, 5, 3, 2, 2],
+                             upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2],
+                                                 [1, 2, 4, 8], [1, 2, 4, 8],
+                                                 [1, 2, 4, 8]])
         model.train()
         model.to(device)
         betas = np.linspace(1e-6, 1e-2, 1000)

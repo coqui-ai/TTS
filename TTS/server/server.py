@@ -30,23 +30,7 @@ def create_argparser():
     parser.add_argument('--show_details', type=convert_boolean, default=False, help='Generate model detail page.')
     return parser
 
-synthesizer = None
-
-embedded_models_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'model')
-
-embedded_tts_folder = os.path.join(embedded_models_folder, 'tts')
-tts_checkpoint_file = os.path.join(embedded_tts_folder, 'checkpoint.pth.tar')
-tts_config_file = os.path.join(embedded_tts_folder, 'config.json')
-
-embedded_vocoder_folder = os.path.join(embedded_models_folder, 'vocoder')
-vocoder_checkpoint_file = os.path.join(embedded_vocoder_folder, 'checkpoint.pth.tar')
-vocoder_config_file = os.path.join(embedded_vocoder_folder, 'config.json')
-
-# These models are soon to be deprecated
-embedded_wavernn_folder = os.path.join(embedded_models_folder, 'wavernn')
-wavernn_checkpoint_file = os.path.join(embedded_wavernn_folder, 'checkpoint.pth.tar')
-wavernn_config_file = os.path.join(embedded_wavernn_folder, 'config.json')
-
+# parse the args
 args = create_argparser().parse_args()
 
 path = Path(__file__).parent / "../.models.json"
@@ -56,10 +40,10 @@ if args.list_models:
     manager.list_models()
     sys.exit()
 
-# set models by the released models
+# update in-use models to the specified released models.
 if args.model_name is not None:
     tts_checkpoint_file, tts_config_file, tts_json_dict = manager.download_model(args.model_name)
-    args.vocoder_name =  tts_json_dict['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
+    args.vocoder_name = tts_json_dict['default_vocoder'] if args.vocoder_name is None else args.vocoder_name
 
 if args.vocoder_name is not None:
     vocoder_checkpoint_file, vocoder_config_file, vocoder_json_dict = manager.download_model(args.vocoder_name)

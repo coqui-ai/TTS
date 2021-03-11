@@ -3,7 +3,7 @@ from glob import glob
 import re
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 from tqdm import tqdm
 
@@ -389,4 +389,4 @@ def baker(root_path: str, meta_file: str) ->  List[List[str]]:
             wav_name, text = line.rstrip('\n').split("|")
             wav_path = os.path.join(root_path, "clips_22", wav_name)
             items.append([text, wav_path, speaker_name])
-    return items 
+    return items

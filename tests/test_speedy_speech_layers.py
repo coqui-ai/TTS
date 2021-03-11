@@ -161,7 +161,7 @@ def test_speedy_speech():
                   x_lengths,
                   y_lengths,
                   durations,
-                  g=torch.rand((B,256)).to(device))
+                  g=torch.rand((B, 256)).to(device))
 
     assert list(o_de.shape) == [B, 80, T_de], f"{list(o_de.shape)}"
     assert list(attn.shape) == [B, T_de, T_en]
