@@ -31,6 +31,11 @@ def get_speakers(items):
     speakers = {e[2] for e in items}
     return sorted(speakers)
 
+def get_languages(items):
+    """Returns a sorted, unique list of languages in a given dataset."""
+    languages = {e[3] for e in items}
+    return sorted(languages)
+
 def parse_speakers(c, args, meta_data_train, OUT_PATH):
     """ Returns number of speakers, speaker embedding shape and speaker mapping"""
     if c.use_speaker_embedding:
@@ -71,3 +76,9 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
         speaker_mapping = None
 
     return num_speakers, speaker_embedding_dim, speaker_mapping
+
+def parse_languages(c, meta_data_train):
+    if c.use_language_embedding:
+        languages = get_languages()
+        language_mapping = {name: i for i, name in enumerate(languages)}
+        return language_mapping

@@ -21,11 +21,14 @@ def load_meta_data(datasets, eval_split=True):
         root_path = dataset['path']
         meta_file_train = dataset['meta_file_train']
         meta_file_val = dataset['meta_file_val']
+        #language = dataset['language']
         # setup the right data processor
         preprocessor = get_preprocessor_by_name(name)
         # load train set
         meta_data_train = preprocessor(root_path, meta_file_train)
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
+        #if language:
+        #    meta_data_train = [[*item, language] for item in meta_data_train]
         # load evaluation split if set
         if eval_split:
             if meta_file_val is None:

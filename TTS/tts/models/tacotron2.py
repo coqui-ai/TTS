@@ -98,7 +98,7 @@ class Tacotron2(TacotronAbstract):
         self.reversal_classifier = reversal_classifier
         # adverserial speaker classifier
         if self.reversal_classifier:
-            self._reversal_classifier = ReversalClassifier(input_dim=self.decoder_in_features,
+            self._reversal_classifier = ReversalClassifier(input_dim=self.decoder_in_features if not gst else self.decoder_in_features - self.gst_embedding_dim,
                                                          hidden_dim=reversal_classifier_dim,
                                                          output_dim=self.num_speakers,
                                                          gradient_clipping_bounds=reversal_gradient_clipping)

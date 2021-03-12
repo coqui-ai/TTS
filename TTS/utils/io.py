@@ -47,6 +47,19 @@ def load_config(config_path: str) -> AttrDict:
     config.update(data)
     return config
 
+def read_config(config_path: str) -> AttrDict:
+    """Read config files and discard comments
+
+    Args:
+        config_path (str): path to config file.
+    """
+    ext = os.path.splitext(config_path)[1]
+    if ext in (".yml", ".yaml"):
+        with open(config_path, "r", encoding = "utf-8") as f:
+            data = yaml.safe_load(f)
+    else:
+        data = read_json_with_comments(config_path)
+    return data
 
 def copy_model_files(c, config_file, out_path, new_fields):
     """Copy config.json and other model files to training folder and add
@@ -69,7 +82,7 @@ def copy_model_files(c, config_file, out_path, new_fields):
         else:
             new_line = '"{}":{},\n'.format(key, json.dumps(value, ensure_ascii=False))
         config_lines.insert(1, new_line)
-    config_out_file = open(copy_config_path, "w")
+    config_out_file = open(copy_config_path, "w", encoding='utf-8')
     config_out_file.writelines(config_lines)
     config_out_file.close()
     # copy model stats file if available

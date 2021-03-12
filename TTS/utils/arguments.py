@@ -4,6 +4,7 @@
 
 import argparse
 import glob
+import json
 import os
 import re
 
@@ -11,7 +12,7 @@ from TTS.tts.utils.generic_utils import check_config_tts
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
-from TTS.utils.io import copy_model_files, load_config
+from TTS.utils.io import copy_model_files, load_config, read_config
 from TTS.utils.tensorboard_logger import TensorboardLogger
 
 
@@ -193,7 +194,7 @@ def process_args(args, model_type):
         os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
         if args.restore_path:
-            new_fields["restore_path"] = args.restore_path
+            new_fields["restore_path"] = args.restore_path if os.name != 'nt' else args.restore_path.replace('\\','\\\\') #Fixes windows compatibility
         new_fields["github_branch"] = get_git_branch()
         # if model characters are not set in the config file
         # save the default set to the config file for future
@@ -211,6 +212,6 @@ def process_args(args, model_type):
         tb_logger = TensorboardLogger(log_path, model_name=model_class)
 
         # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", c["run_description"], 0)
+        tb_logger.tb_add_text("config", json.dumps(read_config(args.config_path), indent=2), 0)
 
     return c, out_path, audio_path, c_logger, tb_logger
