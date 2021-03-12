@@ -1,19 +1,14 @@
 ---
-name: 'TTS Discourse '
-about: Pls consider to use TTS Discourse page.
+name: 'TTS channels '
+about: Pls consider to use other TTS channels.
 title: ''
 labels: ''
 assignees: ''
 
 ---
-<b>Questions</b> will not be answered here!!
 
-Help is much more valuable if it's shared publicly, so that more people can benefit from it.
+If this is not a real BUG or something about 🐸TTS development, pls consider posting on Github Discussions and Gitter Chat room.
 
-Please consider posting on [TTS Discourse](https://discourse.mozilla.org/c/tts) page or matrix [chat room](https://matrix.to/#/!KTePhNahjgiVumkqca:matrix.org?via=matrix.org) if your issue is not directly related to TTS development (Bugs, code updates etc.).
+It helps us with keeping things organized and you to reach the right people asap.
 
-You can also check https://github.com/mozilla/TTS/wiki/FAQ for common questions and answers.
-
-Happy posting!
-
-https://discourse.mozilla.org/c/tts
+Thx for your contribution!! 👑
