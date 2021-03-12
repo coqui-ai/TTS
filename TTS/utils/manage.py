@@ -43,7 +43,7 @@ class ModelManager(object):
         Args:
             file_path (str): path to .models.json.
         """
-        with open(file_path) as json_file:
+        with open(file_path, "r", encoding="utf-8") as json_file:
             self.models_dict = json.load(json_file)
 
     def list_langs(self):
