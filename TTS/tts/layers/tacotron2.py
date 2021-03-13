@@ -100,7 +100,7 @@ class Encoder(nn.Module):
         self.rnn_state = None
 
     def forward(self, x, input_lengths, lang_ids):
-        l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1,-1,x.shape[-1])
+        l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
         o = torch.cat((x, l), dim=-1)
         for layer in self.convolutions:
             o = layer(o)
@@ -114,7 +114,7 @@ class Encoder(nn.Module):
         return o
 
     def inference(self, x):
-        l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1,x.shape[-1])
+        l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
         o = torch.cat((x, l), dim=-1)
         for layer in self.convolutions:
             o = layer(o)
