@@ -180,7 +180,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
                                   linear_input, stop_tokens, stop_targets,
                                   mel_lengths, decoder_backward_output,
                                   alignments, alignment_lengths,
-                                  alignments_backward, text_lengths, 
+                                  alignments_backward, text_lengths,
                                   speaker_prediction, speaker_ids)
 
         # check nan loss

@@ -194,7 +194,7 @@ def process_args(args, model_type):
         os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
         if args.restore_path:
-            new_fields["restore_path"] = args.restore_path if os.name != 'nt' else args.restore_path.replace('\\','\\\\') #Fixes windows compatibility
+            new_fields["restore_path"] = args.restore_path if os.name != 'nt' else args.restore_path.replace('\\', '\\\\') #Fixes windows compatibility
         new_fields["github_branch"] = get_git_branch()
         # if model characters are not set in the config file
         # save the default set to the config file for future

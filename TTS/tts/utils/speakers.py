@@ -79,6 +79,12 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
 
 def parse_languages(c, meta_data_train):
     if c.use_language_embedding:
-        languages = get_languages()
-        language_mapping = {name: i for i, name in enumerate(languages)}
-        return language_mapping
+        languages = get_languages(meta_data_train)
+        langs_mapping = {name: i for i, name in enumerate(languages)}
+        num_langs = len(languages)
+    # TODO: implement if args.restore_path
+    else:
+        num_langs = 0
+        langs_mapping = None
+        langs_embedding_dim = None
+    return num_langs, langs_embedding_dim, langs_mapping

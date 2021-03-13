@@ -55,7 +55,7 @@ def read_config(config_path: str) -> AttrDict:
     """
     ext = os.path.splitext(config_path)[1]
     if ext in (".yml", ".yaml"):
-        with open(config_path, "r", encoding = "utf-8") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
     else:
         data = read_json_with_comments(config_path)
