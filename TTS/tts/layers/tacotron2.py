@@ -83,9 +83,11 @@ class Encoder(nn.Module):
         - input: (B, C_in, T)
         - output: (B, C_in, T)
     """
-    def __init__(self, in_out_channels=512):
+    def __init__(self, in_out_channels=512, num_langs=None, langs_embedding_dim=None):
         super(Encoder, self).__init__()
         self.convolutions = nn.ModuleList()
+        if num_langs and langs_embedding_dim:
+            self._language_embedding = Embedding(num_langs, langs_embedding_dim)
         for _ in range(3):
             self.convolutions.append(
                 ConvBNBlock(in_out_channels, in_out_channels, 5, 'relu'))
@@ -97,8 +99,9 @@ class Encoder(nn.Module):
                             bidirectional=True)
         self.rnn_state = None
 
-    def forward(self, x, input_lengths):
-        o = x
+    def forward(self, x, input_lengths, lang_ids):
+        l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1,-1,x.shape[-1])
+        o = torch.cat((x, l), dim=-1)
         for layer in self.convolutions:
             o = layer(o)
         o = o.transpose(1, 2)
@@ -111,7 +114,8 @@ class Encoder(nn.Module):
         return o
 
     def inference(self, x):
-        o = x
+        l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1,x.shape[-1])
+        o = torch.cat((x, l), dim=-1)
         for layer in self.convolutions:
             o = layer(o)
         o = o.transpose(1, 2)

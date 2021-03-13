@@ -76,7 +76,9 @@ class Tacotron2(TacotronAbstract):
                  reversal_classifier=True,
                  reversal_classifier_dim=256,
                  reversal_classifier_w=0.125,
-                 reversal_gradient_clipping=0.25):
+                 reversal_gradient_clipping=0.25,
+                 num_langs=1,
+                 langs_embedding_dim=4):
         super(Tacotron2,
               self).__init__(num_chars, num_speakers, r, postnet_output_dim,
                              decoder_output_dim, attn_type, attn_win,
@@ -111,7 +113,10 @@ class Tacotron2(TacotronAbstract):
         self.embedding = nn.Embedding(num_chars, 512, padding_idx=0)
 
         # base model layers
-        self.encoder = Encoder(self.encoder_in_features)
+        if num_langs >= 1:
+            self.encoder = Encoder(self.encoder_in_features, num_langs, langs_embedding_dim)
+        else:
+            self.encoder = Encoder(self.encoder_in_features)
         self.decoder = Decoder(self.decoder_in_features, self.decoder_output_dim, r, attn_type, attn_win,
                                attn_norm, prenet_type, prenet_dropout,
                                forward_attn, trans_agent, forward_attn_mask,
