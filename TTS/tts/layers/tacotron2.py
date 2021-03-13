@@ -87,7 +87,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.convolutions = nn.ModuleList()
         if num_langs and langs_embedding_dim:
-            self._language_embedding = Embedding(num_langs, langs_embedding_dim)
+            self._language_embedding = nn.Embedding(num_langs, langs_embedding_dim)
         for _ in range(3):
             self.convolutions.append(
                 ConvBNBlock(in_out_channels, in_out_channels, 5, 'relu'))
@@ -99,7 +99,7 @@ class Encoder(nn.Module):
                             bidirectional=True)
         self.rnn_state = None
 
-    def forward(self, x, input_lengths, lang_ids):
+    def forward(self, x, input_lengths, lang_ids=None):
         l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
         o = torch.cat((x, l), dim=-1)
         for layer in self.convolutions:
@@ -113,7 +113,7 @@ class Encoder(nn.Module):
         o, _ = nn.utils.rnn.pad_packed_sequence(o, batch_first=True)
         return o
 
-    def inference(self, x):
+    def inference(self, x, lang_ids=None):
         l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
         o = torch.cat((x, l), dim=-1)
         for layer in self.convolutions:
