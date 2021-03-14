@@ -123,16 +123,16 @@ window = tk.Tk()
 window.geometry('')
 window.title("Coqui TTS GUI")
 window.resizable(False, False)
-# Label 
+# Label
 ttk.Label(window, text="Enter text here", font=("Tahoma", 10)).grid(column=0, columnspan=3, row=12, padx=10, pady=12)
 # Text
 inputbox = scrolledtext.ScrolledText(window, height=15, width=70, undo=True)
 inputbox.grid(column=0, columnspan=3, row=13, padx=10, pady=12)
-# Label 
+# Label
 ttk.Label(window, text="Select the tts_model", font=("Tahoma", 10)).grid(column=0, row=14, padx=10, pady=12)
 n = tk.StringVar()
 ttsmodelbox = ttk.Combobox(window, width=32, textvariable=n, state="readonly")
-# Adding combobox drop down list 
+# Adding combobox drop down list
 ttsmodelbox['values'] = ('en/ljspeech/glow-tts',  
                          'en/ljspeech/tacotron2-DCA', 
                          'en/ljspeech/speedy-speech-wn', 
@@ -140,18 +140,18 @@ ttsmodelbox['values'] = ('en/ljspeech/glow-tts',
                          'fr/mai/tacotron2-DDC')
 ttsmodelbox.grid(column=0, row=15, padx=10, pady=12)
 ttsmodelbox.current(0)
-# Label 
+# Label
 ttk.Label(window, text="Select the vocoder_model", font=("Tahoma", 10)).grid(column=2, row=14, padx=10, pady=12)
 r = tk.StringVar()
 vocodermodelbox = ttk.Combobox(window, width=32, textvariable=r, state="readonly")
 # Checkbutton
-# Label 
+# Label
 ttk.Label(window, text="Use CUDA (Nvidia GPUs only)", font=("Tahoma", 10)).grid(column=1, columnspan=1, row=14, padx=10, pady=12)
 cudacheckbutton = ttk.Checkbutton(window)
 cudacheckbutton.grid(column=1, columnspan=1, row=15, padx=10, pady=12)
 cudacheckbutton.state(['!alternate'])
 cudacheckbutton.state(['!selected'])
-# Adding combobox drop down list 
+# Adding combobox drop down list
 vocodermodelbox['values'] = ('universal/libri-tts/wavegrad',  
                              'universal/libri-tts/fullband-melgan', 
                              'en/ljspeech/multiband-melgan')
