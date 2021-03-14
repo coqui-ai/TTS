@@ -140,21 +140,21 @@ inputbox.grid(column=0, columnspan=3, row=13, padx=10, pady=12)
 
 # Label 
 ttk.Label(window, text="Select the tts_model", font=("Tahoma", 10)).grid(column=0, row=14, padx=10, pady=12) 
-  
+
 n = tk.StringVar() 
 ttsmodelbox = ttk.Combobox(window, width=32, textvariable=n, state="readonly") 
 # Adding combobox drop down list 
 ttsmodelbox['values'] = ('en/ljspeech/glow-tts',  
-                        'en/ljspeech/tacotron2-DCA', 
-                        'en/ljspeech/speedy-speech-wn', 
-                        'es/mai/tacotron2-DDC', 
-                        'fr/mai/tacotron2-DDC') 
+                         'en/ljspeech/tacotron2-DCA', 
+                         'en/ljspeech/speedy-speech-wn', 
+                         'es/mai/tacotron2-DDC', 
+                         'fr/mai/tacotron2-DDC') 
 
 ttsmodelbox.grid(column=0, row=15, padx=10, pady=12)
 ttsmodelbox.current(0)
 # Label 
 ttk.Label(window, text="Select the vocoder_model", font=("Tahoma", 10)).grid(column=2, row=14, padx=10, pady=12) 
-  
+
 r = tk.StringVar() 
 vocodermodelbox = ttk.Combobox(window, width=32, textvariable=r, state="readonly")
 
@@ -170,8 +170,8 @@ cudacheckbutton.state(['!selected'])
 
 # Adding combobox drop down list 
 vocodermodelbox['values'] = ('universal/libri-tts/wavegrad',  
-                            'universal/libri-tts/fullband-melgan', 
-                            'en/ljspeech/multiband-melgan') 
+                             'universal/libri-tts/fullband-melgan', 
+                             'en/ljspeech/multiband-melgan') 
 
 vocodermodelbox.grid(column=2, row=15, padx=10, pady=12)
 vocodermodelbox.current(0)
