@@ -24,11 +24,12 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | ❔ **FAQ**                       | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/FAQ)                              |
 | 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
 | 👩‍💻 **Usage Questions**          | [Github Discussions]                    |
-| 🗯 **General Discussion**        | [Github Discussions] and [Gitter Room]  |
+| 🗯 **General Discussion**        | [Github Discussions] or [Gitter Room] or [Matrix Room]  |
 
 [github issue tracker]: https://github.com/coqui-ai/tts/issues
 [github discussions]: https://github.com/coqui-ai/TTS/discussions
 [gitter room]: https://gitter.im/coqui-ai/TTS?utm_source=share-link&utm_medium=link&utm_campaign=share-link
+[matrix room]: https://matrix.to/#/!KTePhNahjgiVumkqca:matrix.org?via=matrix.org&via=bethselamin.de&via=lossy.network
 [Tutorials and Examples]: https://github.com/coqui-ai/TTS/wiki/TTS-Notebooks-and-Tutorials
 
 
