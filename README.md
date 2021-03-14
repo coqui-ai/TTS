@@ -248,7 +248,7 @@ Please follow the steps below as you send a PR to 🐸. It helps us to keep thin
 ```bash
 ./run_tests.sh
 ```
-6. Run the linter.
+6. Run the ```pylint``` linter.
 ```bash
 pip install pylint cardboardlint
 cardboardlinter --refspec master
