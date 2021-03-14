@@ -114,12 +114,9 @@ sudo apt-get install espeak-ng
 
 ## The GUI
 ![GUI](./images/gui.png)
-```bash
-pip install playsound
-```
 WARNING: DO NOT run this from IDLE or directly in Python such as double-clicking the file, it will be stuck loading. To be safe:
 ```bash
-python mozilla-tts-gui.py
+python coqui_tts_gui.py
 ```
 To add new models to the GUI, run `TTS --list_models` and compare the output to the lists in the dropdown boxes, and add what's missing in the latter:
 ```python
