@@ -7,14 +7,11 @@ from tkinter import ttk
 from tkinter import scrolledtext
 from tkinter import filedialog
 from tkinter import messagebox
-import subprocess
-import sys
 import playsound
 from playsound import playsound
 from TTS.utils.synthesizer import Synthesizer
 from TTS.utils.manage import ModelManager
-import pathlib
-from pathlib import Path, PurePath
+from pathlib import Path
 import os
 
 def generate():
@@ -119,7 +116,7 @@ def opentext():
 
 def checkopentext():
     if inputbox.edit_modified() == True:
-        response=messagebox.askyesnocancel(message="You have unsaved changes. Do you want to save?")
+        response = messagebox.askyesnocancel(message="You have unsaved changes. Do you want to save?")
         if response == True:
             savetextandopen()
         elif response == False:
@@ -128,7 +125,7 @@ def checkopentext():
             return
     else:
         opentext()
-    
+
 # Creating tkinter window
 window = tk.Tk()
 window.geometry('')
@@ -152,7 +149,7 @@ ttsmodelbox['values'] = ('en/ljspeech/glow-tts',
                         'en/ljspeech/speedy-speech-wn', 
                         'es/mai/tacotron2-DDC', 
                         'fr/mai/tacotron2-DDC') 
-  
+
 ttsmodelbox.grid(column=0, row=15, padx=10, pady=12)
 ttsmodelbox.current(0)
 # Label 
@@ -175,7 +172,7 @@ cudacheckbutton.state(['!selected'])
 vocodermodelbox['values'] = ('universal/libri-tts/wavegrad',  
                             'universal/libri-tts/fullband-melgan', 
                             'en/ljspeech/multiband-melgan') 
-  
+
 vocodermodelbox.grid(column=2, row=15, padx=10, pady=12)
 vocodermodelbox.current(0)
 
