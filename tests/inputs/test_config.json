@@ -65,5 +65,9 @@
         "gst_embedding_dim": 512,
         "gst_num_heads": 4,
         "gst_style_tokens": 10
-        }
+    },
+    "reversal_classifier": false,
+    "reversal_classifier_dim": 256,
+    "reversal_classifier_w": 0.125,
+    "reversal_gradient_clipping": 0.25
 }

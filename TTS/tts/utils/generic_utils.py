@@ -103,7 +103,6 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         speaker_embedding_dim=speaker_embedding_dim,
                         reversal_classifier=c.reversal_classifier,
                         reversal_classifier_dim=c.reversal_classifier_dim,
-                        reversal_classifier_w=c.reversal_classifier_w,
                         reversal_gradient_clipping=c.reversal_gradient_clipping)
     elif c.model.lower() == "glow_tts":
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),

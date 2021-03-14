@@ -54,7 +54,7 @@ class TacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
+            mel_out, mel_postnet_out, align, stop_tokens, speaker_prediction = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
             assert torch.sigmoid(stop_tokens).data.min() >= 0.0
@@ -108,7 +108,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
+            mel_out, mel_postnet_out, align, stop_tokens, speaker_prediction = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_embeddings=speaker_embeddings)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
             assert torch.sigmoid(stop_tokens).data.min() >= 0.0
@@ -161,7 +161,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(10):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
+            mel_out, mel_postnet_out, align, stop_tokens, speaker_prediction = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
             assert torch.sigmoid(stop_tokens).data.min() >= 0.0
@@ -215,7 +215,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(10):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
+            mel_out, mel_postnet_out, align, stop_tokens, speaker_prediction = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
             assert torch.sigmoid(stop_tokens).data.min() >= 0.0
@@ -270,7 +270,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
+            mel_out, mel_postnet_out, align, stop_tokens, speaker_prediction = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_embeddings=speaker_embeddings)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
             assert torch.sigmoid(stop_tokens).data.min() >= 0.0

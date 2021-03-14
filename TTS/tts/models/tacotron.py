@@ -182,11 +182,11 @@ class Tacotron(TacotronAbstract):
         decoder_outputs = decoder_outputs.transpose(1, 2).contiguous()
         if self.bidirectional_decoder:
             decoder_outputs_backward, alignments_backward = self._backward_pass(mel_specs, encoder_outputs, input_mask)
-            return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
+            return decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward, None
         if self.double_decoder_consistency:
             decoder_outputs_backward, alignments_backward = self._coarse_decoder_pass(mel_specs, encoder_outputs, alignments, input_mask)
-            return  decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward
-        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+            return  decoder_outputs, postnet_outputs, alignments, stop_tokens, decoder_outputs_backward, alignments_backward, None
+        return decoder_outputs, postnet_outputs, alignments, stop_tokens, None
 
     @torch.no_grad()
     def inference(self, characters, speaker_ids=None, style_mel=None, speaker_embeddings=None):
@@ -210,4 +210,4 @@ class Tacotron(TacotronAbstract):
         postnet_outputs = self.postnet(decoder_outputs)
         postnet_outputs = self.last_linear(postnet_outputs)
         decoder_outputs = decoder_outputs.transpose(1, 2)
-        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+        return decoder_outputs, postnet_outputs, alignments, stop_tokens, None
