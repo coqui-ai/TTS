@@ -12,6 +12,7 @@ from TTS.utils.synthesizer import Synthesizer
 from TTS.utils.manage import ModelManager
 from pathlib import Path
 import os
+import errno
 def generate():
     if inputbox.get("1.0", "end-1c") == "":
         messagebox.showerror(message="TTS will give a division by zero error if the text field is blank.")
