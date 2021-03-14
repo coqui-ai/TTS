@@ -112,6 +112,28 @@ We use ```espeak-ng``` to convert graphemes to phonemes. You might need to insta
 sudo apt-get install espeak-ng
 ```
 
+## The GUI
+![GUI](./images/gui.png)
+```bash
+pip install playsound
+```
+WARNING: DO NOT run this from IDLE or directly in Python such as double-clicking the file, it will be stuck loading. To be safe:
+```bash
+python mozilla-tts-gui.py
+```
+To add new models to the GUI, run `TTS --list_models` and compare the output to the lists in the dropdown boxes, and add what's missing in the latter:
+```python
+ttsmodelbox['values'] = ('en/ljspeech/glow-tts',  
+                          'en/ljspeech/tacotron2-DCA', 
+                          'en/ljspeech/speedy-speech-wn', 
+                          'es/mai/tacotron2-DDC', 
+                          'fr/mai/tacotron2-DDC') 
+                          
+vocodermodelbox['values'] = ('universal/libri-tts/wavegrad',  
+                          'universal/libri-tts/fullband-melgan', 
+                          'en/ljspeech/multiband-melgan')
+```
+
 ## Directory Structure
 ```
 |- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)

@@ -1,4 +1,4 @@
-# GUI solution for Mozilla TTS made by AceOfSpadesProduc100.
+# GUI solution for Coqui TTS made by AceOfSpadesProduc100.
 # WARNING: DO NOT run this from IDLE or double-clicking, it will be stuck loading. To be safe, you should enter "python mozilla-tts-gui.py" in your terminal such as command prompt or Powershell.
 # Make sure to edit this script to add TTS models and vocoders on the ['values'] of ttsmodelbox and vocodermodelbox.
 
@@ -21,9 +21,9 @@ def generate():
     if inputbox.get("1.0","end-1c") == "":
         messagebox.showerror(message = "TTS will give a division by zero error if the text field is blank.")
     else:
-        if not os.path.exists('mozilla-tts-output'):
+        if not os.path.exists('coqui-tts-output'):
             try:
-                os.makedirs('mozilla-tts-output')
+                os.makedirs('coqui-tts-output')
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise 
@@ -38,19 +38,19 @@ def generate():
         model_name = 'tts_models/' + ttsmodelbox.get()
         print(f'model_name is {model_name}')
         # for dev
-        #model_path, config_path, model_item = manager.download_model(model_name)
+        model_path, config_path, model_item = manager.download_model(model_name)
         # for master
-        model_path, config_path = manager.download_model(model_name)
+        #model_path, config_path = manager.download_model(model_name)
         vocoder_name = 'vocoder_models/' + vocodermodelbox.get()
         print(f'vocoder_name is {vocoder_name}')
         # for dev
-        #vocoder_path, vocoder_config_path, model_item = manager.download_model(vocoder_name)
+        vocoder_path, vocoder_config_path, model_item = manager.download_model(vocoder_name)
         # for master
-        vocoder_path, vocoder_config_path = manager.download_model(vocoder_name)
+        #vocoder_path, vocoder_config_path = manager.download_model(vocoder_name)
         synthesizer = Synthesizer(model_path, config_path, vocoder_path, vocoder_config_path, cudacheckbutton.instate(['selected']))
         wav = synthesizer.tts(inputbox.get("1.0","end-1c"))
-        synthesizer.save_wav(wav, "mozilla-tts-output/generated.wav")
-        playsound("mozilla-tts-output/generated.wav")
+        synthesizer.save_wav(wav, "coqui-tts-output/generated.wav")
+        playsound("coqui-tts-output/generated.wav")
         generatebutton.config(state="enabled")
         exportbutton.config(state="enabled")
         print("All done!")
@@ -92,15 +92,15 @@ def exportaudio():
     model_name = 'tts_models/' + ttsmodelbox.get()
     print(f'model_name is {model_name}')
     # for dev
-    #model_path, config_path, model_item = manager.download_model(model_name)
+    model_path, config_path, model_item = manager.download_model(model_name)
     # for master
-    model_path, config_path = manager.download_model(model_name)
+    #model_path, config_path = manager.download_model(model_name)
     vocoder_name = 'vocoder_models/' + vocodermodelbox.get()
     print(f'vocoder_name is {vocoder_name}')
     # for dev
-    #vocoder_path, vocoder_config_path, model_item = manager.download_model(vocoder_name)
+    vocoder_path, vocoder_config_path, model_item = manager.download_model(vocoder_name)
     # for master
-    vocoder_path, vocoder_config_path = manager.download_model(vocoder_name)
+    #vocoder_path, vocoder_config_path = manager.download_model(vocoder_name)
     synthesizer = Synthesizer(model_path, config_path, vocoder_path, vocoder_config_path, cudacheckbutton.instate(['selected']))
     wav = synthesizer.tts(inputbox.get("1.0","end-1c"))
     synthesizer.save_wav(wav, str(f.name))
@@ -132,7 +132,7 @@ def checkopentext():
 # Creating tkinter window
 window = tk.Tk()
 window.geometry('')
-window.title("Mozilla TTS GUI")
+window.title("Coqui TTS GUI")
 window.resizable(False, False)
 # Label 
 ttk.Label(window, text = "Enter text here",  
