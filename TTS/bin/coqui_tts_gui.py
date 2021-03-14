@@ -20,7 +20,7 @@ def generate():
             try:
                 os.makedirs('coqui-tts-output')
             except OSError as e:
-                if e.errno != errno.EEXIST:
+                if e.errno != e.errno.EEXIST:
                     raise
         generatebutton.config(state="disabled")
         exportbutton.config(state="disabled")
