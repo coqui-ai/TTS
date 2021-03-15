@@ -13,6 +13,8 @@ from TTS.utils.manage import ModelManager
 from pathlib import Path
 import os
 import errno
+import io
+import json
 def generate():
     if inputbox.get("1.0", "end-1c") == "":
         messagebox.showerror(message="TTS will give a division by zero error if the text field is blank.")
@@ -132,6 +134,7 @@ inputbox.grid(column=0, columnspan=3, row=13, padx=10, pady=12)
 # Label
 ttk.Label(window, text="Select the tts_model", font=("Tahoma", 10)).grid(column=0, row=14, padx=10, pady=12)
 n = tk.StringVar()
+self.models_dict = json.load("../.models.json")
 ttsmodelbox = ttk.Combobox(window, width=32, textvariable=n, state="readonly")
 # Adding combobox drop down list
 ttsmodelbox['values'] = ('en/ljspeech/glow-tts',
