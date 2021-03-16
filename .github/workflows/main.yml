@@ -3,8 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - master
-      - dev
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
