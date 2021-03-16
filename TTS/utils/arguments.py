@@ -176,7 +176,7 @@ def process_args(args, model_type):
 
     _ = os.path.dirname(os.path.realpath(__file__))
 
-    if c.mixed_precision:
+    if 'mixed_precision' in c and c.mixed_precision:
         print("   >  Mixed precision mode is ON")
 
     out_path = args.continue_path
