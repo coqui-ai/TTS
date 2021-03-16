@@ -83,6 +83,17 @@
                     "commit": "540d811"
                 }
             }
+        },
+        "ru":{
+            "ruslan":{
+                "tacotron2-DDC":{
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--ru--ruslan--tacotron2-DDC.zip",
+                    "author": "@erogol",
+                    "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
+                    "license":"",
+                    "contact": "egolge@coqui.com"
+                }
+            }
         }
     },
     "vocoder_models":{
