@@ -1,4 +1,4 @@
-dependencies = ['torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode']  # apt install espeak-ng
+dependencies = ['torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode', 'pypinyin']  # apt install espeak-ng
 import torch
 
 from TTS.utils.synthesizer import Synthesizer
