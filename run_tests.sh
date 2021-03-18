@@ -16,4 +16,4 @@ nosetests tests -x &&\
 ./tests/test_compute_statistics.sh && \
 
 # linter check
-cardboardlinter --refspec master
+cardboardlinter --refspec main

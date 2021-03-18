@@ -181,8 +181,12 @@ class SpeedySpeech(nn.Module):
             x_lengths: [B]
             g: [B, C]
         """
+        # input sequence should be greated than the max convolution size
+        inference_padding = 5
+        if x.shape[1] < 13:
+            inference_padding += 13 - x.shape[1]
         # pad input to prevent dropping the last word
-        x = torch.nn.functional.pad(x, pad=(0, 5), mode='constant', value=0)
+        x = torch.nn.functional.pad(x, pad=(0, inference_padding), mode='constant', value=0)
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
         # duration predictor pass
         o_dr_log = self.duration_predictor(o_en_dp.detach(), x_mask)
