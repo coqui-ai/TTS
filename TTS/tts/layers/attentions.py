@@ -14,6 +14,7 @@ class LocationLayer(nn.Module):
         attention_n_filters (int, optional): number of filters in convolution. Defaults to 32.
         attention_kernel_size (int, optional): kernel size of convolution filter. Defaults to 31.
     """
+
     def __init__(self,
                  attention_dim,
                  attention_n_filters=32,
@@ -153,7 +154,7 @@ class OriginalAttention(nn.Module):
 
     Args:
         query_dim (int): number of channels in the query tensor.
-        embedding_dim (int): number of channels in the vakue tensor. In general, the value tensor is the output of the encoder layer.
+        embedding_dim (int): number of channels in the value tensor. In general, the value tensor is the output of the encoder layer.
         attention_dim (int): number of channels of the inner attention layers.
         location_attention (bool): enable/disable location sensitive attention.
         attention_location_n_filters (int): number of location attention filters.
@@ -166,6 +167,7 @@ class OriginalAttention(nn.Module):
     """
     # Pylint gets confused by PyTorch conventions here
     #pylint: disable=attribute-defined-outside-init
+
     def __init__(self, query_dim, embedding_dim, attention_dim,
                  location_attention, attention_location_n_filters,
                  attention_location_kernel_size, windowing, norm, forward_attn,
@@ -366,19 +368,20 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         alpha (float, optional): [description]. Defaults to 0.1 from the paper.
         beta (float, optional): [description]. Defaults to 0.9 from the paper.
     """
+
     def __init__(
-            self,
-            query_dim,
-            embedding_dim,  # pylint: disable=unused-argument
-            attention_dim,
-            static_filter_dim,
-            static_kernel_size,
-            dynamic_filter_dim,
-            dynamic_kernel_size,
-            prior_filter_len=11,
-            alpha=0.1,
-            beta=0.9,
-        ):
+        self,
+        query_dim,
+        embedding_dim,  # pylint: disable=unused-argument
+        attention_dim,
+        static_filter_dim,
+        static_kernel_size,
+        dynamic_filter_dim,
+        dynamic_kernel_size,
+        prior_filter_len=11,
+        alpha=0.1,
+        beta=0.9,
+    ):
         super().__init__()
         self._mask_value = 1e-8
         self.dynamic_filter_dim = dynamic_filter_dim

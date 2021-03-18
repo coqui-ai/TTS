@@ -3,16 +3,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class VAE(nn.Module):
-    """Global Style Token Module for factorizing prosody in speech.
+class CapacitronVAE(nn.Module):
+    """Effective Use of Variational Embedding Capacity for prosody transfer.
 
-    See https://arxiv.org/pdf/1803.09017"""
+    See https://arxiv.org/abs/1906.03402 """
 
     def __init__(self, num_mel, num_heads, num_style_tokens, gst_embedding_dim, speaker_embedding_dim=None):
         super().__init__()
         self.encoder = ReferenceEncoder(num_mel, gst_embedding_dim)
-        # self.style_token_layer = StyleTokenLayer(num_heads, num_style_tokens,
-        #                                          gst_embedding_dim, speaker_embedding_dim)
+        self.style_token_layer = StyleTokenLayer(num_heads, num_style_tokens,
+                                                 gst_embedding_dim, speaker_embedding_dim)
 
     def forward(self, inputs, speaker_embedding=None):
         enc_out = self.encoder(inputs)
@@ -54,10 +54,10 @@ class ReferenceEncoder(nn.Module):
         post_conv_height = self.calculate_post_conv_height(
             num_mel, 3, 2, 1, num_layers)
         # Here comes the LSTM
-        # self.recurrence = nn.GRU(
-        #     input_size=filters[-1] * post_conv_height,
-        #     hidden_size=embedding_dim // 2,
-        #     batch_first=True)
+        self.recurrence = nn.GRU(
+            input_size=filters[-1] * post_conv_height,
+            hidden_size=embedding_dim // 2,
+            batch_first=True)
 
     def forward(self, inputs):
         batch_size = inputs.size(0)

@@ -59,6 +59,12 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         gst_num_heads=c.gst['gst_num_heads'],
                         gst_style_tokens=c.gst['gst_style_tokens'],
                         gst_use_speaker_embedding=c.gst['gst_use_speaker_embedding'],
+                        capacitron=c.use_capacitron,
+                        capacitron_VAE_embedding_dim=c.capacitron['capacitron_VAE_embedding_dim'],
+                        capacitron_use_text_summary_embeddings=c.capacitron['capacitron_use_text_summary_embeddings'],
+                        capacitron_text_summary_embedding_dim=c.capacitron['capacitron_text_summary_embedding_dim'],
+                        capacitron_capacity=c.capacitron['capacitron_capacity'],
+                        capacitron_use_speaker_embedding=c.capacitron['capacitron_use_speaker_embedding'],
                         memory_size=c.memory_size,
                         attn_type=c.attention_type,
                         attn_win=c.windowing,
@@ -270,7 +276,7 @@ def check_config_tts(c):
     # paths
     check_argument('output_path', c, restricted=True, val_type=str)
 
-    # multi-speaker and gst
+    # multi-speaker, gst and capacitron
     check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
     check_argument('use_external_speaker_embedding_file', c, restricted=c['use_speaker_embedding'], val_type=bool)
     check_argument('external_speaker_embedding_file', c, restricted=c['use_external_speaker_embedding_file'], val_type=str)
@@ -282,6 +288,14 @@ def check_config_tts(c):
         check_argument('gst_use_speaker_embedding', c['gst'], restricted=is_tacotron(c), val_type=bool)
         check_argument('gst_num_heads', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=2, max_val=10)
         check_argument('gst_style_tokens', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=1, max_val=1000)
+    if c['model'].lower() in 'tacotron' and c['use_capacitron']:
+        check_argument('use_capacitron', c, restricted=is_tacotron(c), val_type=bool)
+        check_argument('capacitron', c, restricted=is_tacotron(c), val_type=dict)
+        check_argument('capacitron_VAE_embedding_dim', c['capacitron'], restricted=is_tacotron(c), val_type=int, min_val=0, max_val=1000)
+        check_argument('capacitron_use_text_summary_embeddings', c['capacitron'], restricted=is_tacotron(c), val_type=bool)
+        check_argument('capacitron_text_summary_embedding_dim', c['capacitron'], restricted=is_tacotron(c), val_type=int, min_val=0, max_val=1000)
+        check_argument('capacitron_capacity', c['capacitron'], restricted=is_tacotron(c), val_type=int, min_val=1, max_val=500)
+        check_argument('capacitron_use_speaker_embedding', c['capacitron'], restricted=is_tacotron(c), val_type=bool)
 
     # datasets - checking only the first entry
     check_argument('datasets', c, restricted=True, val_type=list)

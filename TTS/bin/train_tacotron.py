@@ -449,6 +449,8 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         speaker_id = 0 if c.use_speaker_embedding else None
         speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding'] if c.use_external_speaker_embedding_file and c.use_speaker_embedding else None
         style_wav = c.get("gst_style_input")
+        # TODO: Figure how to put capacitron here
+        reference_wav = c.get("capacitron_reference_wav")
         if style_wav is None and c.use_gst:
             # inicialize GST with zero dict.
             style_wav = {}
@@ -467,6 +469,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     speaker_id=speaker_id,
                     speaker_embedding=speaker_embedding,
                     style_wav=style_wav,
+                    reference_wav=reference_wav,
                     truncated=False,
                     enable_eos_bos_chars=c.enable_eos_bos_chars, #pylint: disable=unused-argument
                     use_griffin_lim=True,

@@ -35,7 +35,14 @@ class TacotronAbstract(ABC, nn.Module):
                  gst_embedding_dim=512,
                  gst_num_heads=4,
                  gst_style_tokens=10,
-                 gst_use_speaker_embedding=False):
+                 gst_use_speaker_embedding=False,
+                 capacitron=False,
+                 capacitron_VAE_embedding_dim=128,
+                 capacitron_use_text_summary_embeddings=True,
+                 capacitron_text_summary_size=128,
+                 capacitron_capacity=150,
+                 capacitron_use_speaker_embedding=False,
+                 ):
         """ Abstract Tacotron class """
         super().__init__()
         self.num_chars = num_chars
@@ -47,6 +54,12 @@ class TacotronAbstract(ABC, nn.Module):
         self.gst_num_heads = gst_num_heads
         self.gst_style_tokens = gst_style_tokens
         self.gst_use_speaker_embedding = gst_use_speaker_embedding
+        self.capacitron = capacitron
+        self.capacitron_VAE_embedding_dim = capacitron_VAE_embedding_dim
+        self.capacitron_use_text_summary_embeddings = capacitron_use_text_summary_embeddings
+        self.capacitron_text_summary_size = capacitron_text_summary_size
+        self.capacitron_capacity = capacitron_capacity
+        self.capacitron_use_speaker_embedding = capacitron_use_speaker_embedding
         self.num_speakers = num_speakers
         self.bidirectional_decoder = bidirectional_decoder
         self.double_decoder_consistency = double_decoder_consistency
@@ -82,8 +95,13 @@ class TacotronAbstract(ABC, nn.Module):
 
         # global style token
         if self.gst:
-            self.decoder_in_features += gst_embedding_dim # add gst embedding dim
+            self.decoder_in_features += gst_embedding_dim  # add gst embedding dim
             self.gst_layer = None
+
+        # capacitron
+        if self.capacitron:
+            self.decoder_in_features += capacitron_VAE_embedding_dim  # add gst embedding dim
+            self.capacitron_layer = None
 
         # model states
         self.speaker_embeddings = None
@@ -207,6 +225,31 @@ class TacotronAbstract(ABC, nn.Module):
             gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
         else:
             gst_outputs = self.gst_layer(style_input, speaker_embedding) # pylint: disable=not-callable
+        inputs = self._concat_speaker_embedding(inputs, gst_outputs)
+        return inputs
+
+    def compute_VAE_reference_embedding(self, inputs, reference_mel, sample_from_prior=False, speaker_embedding=None):
+        # TODO: This is still just gst for now, capacitron to come
+        """ Compute global style token """
+        device = inputs.device
+        if isinstance(reference_mel, dict):
+            query = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim // 2).to(device)
+            if speaker_embedding is not None:
+                query = torch.cat(
+                    [query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
+
+            _GST = torch.tanh(
+                self.capacitron_layer.style_token_layer.style_tokens)
+            gst_outputs = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim).to(device)
+            for k_token, v_amplifier in reference_mel.items():
+                key = _GST[int(k_token)].unsqueeze(0).expand(1, -1, -1)
+                gst_outputs_att = self.capacitron_layer.style_token_layer.attention(
+                    query, key)
+                gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
+        elif reference_mel is None:
+            gst_outputs = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim).to(device)
+        else:
+            gst_outputs = self.capacitron_layer(reference_mel, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
 

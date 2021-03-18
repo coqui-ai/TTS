@@ -29,7 +29,7 @@
         "num_mels": 80, // size of the mel spec frame.
         "mel_fmin": 95.0, // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 12000.0, // maximum freq level for mel-spec. Tune for dataset!!
-        "spec_gain": 1,
+        "spec_gain": 20, // scaler value appplied after log transform of spectrogram.
 
         // Normalization parameters
         "signal_norm": true, // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
@@ -37,25 +37,8 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0, // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true, // clip normalized values into the range.
-        "stats_path": null // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
-    },
-
-    // VOCABULARY PARAMETERS
-    // if custom character set is not defined,
-    // default set in symbols.py is used
-    // "characters":{
-    //     "pad": "_",
-    //     "eos": "~",
-    //     "bos": "^",
-    //     "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? ",
-    //     "punctuations":"!'(),-.:;? ",
-    //     "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫ"
-    // },
-
-    // DISTRIBUTED TRAINING
-    "distributed": {
-        "backend": "nccl",
-        "url": "tcp:\/\/localhost:54321"
+        "stats_path": null
+        // "stats_path": "/home/big-boy/Data/blizzard2013/segmented/scale_stats.npy" // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
 
     "reinit_layers": [], // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
@@ -105,7 +88,7 @@
     "prenet_dropout": true, // enable/disable dropout at prenet.
 
     // TACOTRON ATTENTION
-    "attention_type": "graves", // 'original' , 'graves', 'dynamic_convolution'
+    "attention_type": "original", // 'original' , 'graves', 'dynamic_convolution'
     "attention_heads": 4, // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid", // softmax or sigmoid.
     "windowing": false, // Enables attention windowing. Used only in eval mode.
@@ -162,6 +145,16 @@
         "gst_num_heads": 4,
         "gst_style_tokens": 10,
         "gst_use_speaker_embedding": false
+    },
+    "use_capacitron": false, // this changes the loss function to that of eq. (9) in https://arxiv.org/abs/1906.03402 
+    "capacitron": {
+        // Capacitron - Variational Autoencoder (VAE)
+        "capacitron_VAE_embedding_dim": 128, // Used for the output of the VAE encoder's LSTM size and for the posterior/prior distributions
+        "capacitron_use_text_summary_embeddings": true,
+        "capacitron_text_summary_embedding_dim": 128, // size for the LSTM accounting for the text summary conditional input
+        "capacitron_capacity": 300, // capacity target
+        "capacitron_use_speaker_embedding": false,
+        "capacitron_reference_wav": "/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-5.wav" // path to referebce wav file to be used in capacitron inference.
     },
 
     // DATASETS
