@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import List
 
 
 def get_git_branch():
@@ -139,7 +140,21 @@ class KeepAverage:
             self.update_value(key, value)
 
 
-def check_argument(name, c, enum_list=None, max_val=None, min_val=None, restricted=False, alternative=None, allow_none=False):
+def check_argument(name,
+                   c,
+                   prerequest=None,
+                   enum_list=None,
+                   max_val=None,
+                   min_val=None,
+                   restricted=False,
+                   alternative=None,
+                   allow_none=False):
+    if isinstance(prerequest, List()):
+        if any([f not in c.keys() for f in prerequest]):
+            return
+    else:
+        if prerequest not in c.keys():
+            return
     if alternative in c.keys() and c[alternative] is not None:
         return
     if allow_none and c[name] is None:
