@@ -105,7 +105,7 @@ class AudioProcessor(object):
             self.hop_length = hop_length
             self.win_length = win_length
         assert min_level_db != 0.0, " [!] min_level_db is 0"
-        assert self.win_length <= self.fft_size, " [!] win_length cannot be larger than fft_size"
+        assert self.win_length <= self.fft_size, f" [!] win_length ({self.win_length}) cannot be larger than fft_size ({self.fft_size})"
         members = vars(self)
         if verbose:
             print(" > Setting up Audio Processor...")
@@ -150,12 +150,15 @@ class AudioProcessor(object):
         if self.signal_norm:
             # mean-var scaling
             if hasattr(self, 'mel_scaler'):
-                if S.shape[0] == self.num_mels:
+                signal_shape = S.shape[0]
+                if signal_shape == self.num_mels:
                     return self.mel_scaler.transform(S.T).T
-                elif S.shape[0] == self.fft_size / 2:
+                elif signal_shape == self.fft_size / 2:
                     return self.linear_scaler.transform(S.T).T
                 else:
-                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
+                    raise RuntimeError(
+                        f' [!] Mean-Var stats shape ({signal_shape}) does not match the given feature dimensions.'
+                    )
             # range normalization
             S -= self.ref_level_db  # discard certain range of DB assuming it is air noise
             S_norm = ((S - self.min_level_db) / (-self.min_level_db))
@@ -179,12 +182,15 @@ class AudioProcessor(object):
         if self.signal_norm:
             # mean-var scaling
             if hasattr(self, 'mel_scaler'):
-                if S_denorm.shape[0] == self.num_mels:
+                signal_shape = S_denorm.shape[0]
+                if signal_shape == self.num_mels:
                     return self.mel_scaler.inverse_transform(S_denorm.T).T
-                elif S_denorm.shape[0] == self.fft_size / 2:
+                elif signal_shape == self.fft_size / 2:
                     return self.linear_scaler.inverse_transform(S_denorm.T).T
                 else:
-                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
+                    raise RuntimeError(
+                        f' [!] Mean-Var stats shape ({signal_shape}) does not match the given feature dimensions.'
+                    )
             if self.symmetric_norm:
                 if self.clip_norm:
                     S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)  #pylint: disable=invalid-unary-operand-type
