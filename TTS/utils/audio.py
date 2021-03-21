@@ -153,7 +153,7 @@ class AudioProcessor(object):
                 signal_shape = S.shape[0]
                 if signal_shape == self.num_mels:
                     return self.mel_scaler.transform(S.T).T
-                elif signal_shape == self.fft_size / 2:
+                elif signal_shape == ((self.fft_size // 2) + 1):
                     return self.linear_scaler.transform(S.T).T
                 else:
                     raise RuntimeError(
@@ -185,7 +185,7 @@ class AudioProcessor(object):
                 signal_shape = S_denorm.shape[0]
                 if signal_shape == self.num_mels:
                     return self.mel_scaler.inverse_transform(S_denorm.T).T
-                elif signal_shape == self.fft_size / 2:
+                elif signal_shape == ((self.fft_size // 2) + 1):
                     return self.linear_scaler.inverse_transform(S_denorm.T).T
                 else:
                     raise RuntimeError(
