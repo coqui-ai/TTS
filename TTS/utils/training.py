@@ -102,11 +102,9 @@ class NoamLR(torch.optim.lr_scheduler._LRScheduler):
         ]
 
 class StepwiseGradualLR(torch.optim.lr_scheduler._LRScheduler):
-    def __init__(self, optimizer, config, warmup_steps=0.1, last_epoch=-1):
-        self.warmup_steps = float(warmup_steps)
+    def __init__(self, optimizer, config, last_epoch=-1):
         self.config = config
         super(StepwiseGradualLR, self).__init__(optimizer, last_epoch)
-        print(self.config)
 
     def get_lr(self):
         step = max(self.last_epoch, 1)

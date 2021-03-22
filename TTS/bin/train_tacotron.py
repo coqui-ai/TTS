@@ -589,7 +589,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     if c.use_gradual_lr:
         scheduler = StepwiseGradualLR(optimizer,
                                       config=c,
-                                      warmup_steps=c.warmup_steps,
                                       last_epoch=args.restore_step - 1)
 
     num_params = count_parameters(model)
