@@ -218,6 +218,8 @@ def check_config_tts(c):
     check_argument('lr', c, restricted=True, val_type=float, min_val=0)
     check_argument('wd', c, restricted=is_tacotron(c), val_type=float, min_val=0)
     check_argument('warmup_steps', c, restricted=True, val_type=int, min_val=0)
+    check_argument('use_gradual_lr', c, restricted=False, val_type=bool)
+    check_argument('gradual_learning_rates', c, restricted=False, val_type=list)
     check_argument('seq_len_norm', c, restricted=is_tacotron(c), val_type=bool)
 
     # tacotron prenet

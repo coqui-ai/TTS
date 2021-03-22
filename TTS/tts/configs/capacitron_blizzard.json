@@ -55,7 +55,6 @@
         [290000, 1, 32]
     ], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
     "mixed_precision": true, // level of optimization with NVIDIA's apex feature for automatic mixed FP16/FP32 precision (AMP), NOTE: currently only O1 is supported, and use "O1" to activate.
-
     // LOSS SETTINGS
     "loss_masking": false, // enable / disable loss masking against the sequence padding.
     "decoder_loss_alpha": 0.5, // original decoder loss weight. If > 0, it is enabled
@@ -67,12 +66,11 @@
     "ga_alpha": 5.0, // weight for guided attention loss. If > 0, guided attention is enabled.
     "stopnet_pos_weight": 15.0, // pos class weight for stopnet loss since there are way more negative samples than positive samples.
 
-
     // VALIDATION
     "run_eval": true,
     "test_delay_epochs": 10, //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null, // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
-
+    
     // OPTIMIZER
     "noam_schedule": false, // use noam warmup and lr schedule.
     "grad_clip": 1.0, // upper limit for gradients for clipping.
@@ -81,6 +79,14 @@
     "wd": 0.000001, // Weight decay weight.
     "warmup_steps": 4000, // Noam decay steps to increase the learning rate from 0 to "lr"
     "seq_len_norm": false, // Normalize eash sample loss with its length to alleviate imbalanced datasets. Use it if your dataset is small or has skewed distribution of sequence lengths.
+    "use_gradual_lr": true, // Hardcoded step-wise learning rate scheduling. Overrides noam schedule if noam is true
+    "gradual_learning_rates": [
+        [0, 1e-3],
+        [5e4, 5e-4], 
+        [1e5, 3e-4],
+        [15e4, 1e-4], 
+        [3e5, 5e-5]
+    ],
 
     // TACOTRON PRENET
     "memory_size": -1, // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.

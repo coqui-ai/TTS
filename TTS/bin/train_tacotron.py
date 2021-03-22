@@ -29,7 +29,7 @@ from TTS.utils.generic_utils import (KeepAverage, count_parameters,
 from TTS.utils.radam import RAdam
 from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
                                 gradual_training_scheduler, set_weight_decay,
-                                setup_torch_training_env)
+                                setup_torch_training_env, StepwiseGradualLR)
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
@@ -59,8 +59,8 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
                 speaker_mapping=(speaker_mapping if (
                     c.use_speaker_embedding
                     and c.use_external_speaker_embedding_file
-                    ) else None)
-                )
+                ) else None)
+            )
 
             if c.use_phonemes and c.compute_input_seq_cache:
                 # precompute phonemes to have a better estimate of sequence lengths.
@@ -106,7 +106,6 @@ def format_data(data):
         speaker_embeddings = None
         speaker_ids = None
 
-
     # set stop targets view, we predict a single stop token per iteration.
     stop_targets = stop_targets.view(text_input.shape[0],
                                      stop_targets.size(1) // c.r, -1)
@@ -149,9 +148,11 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
         loader_time = time.time() - end_time
 
         global_step += 1
-
         # setup lr
         if c.noam_schedule:
+            scheduler.step()
+
+        if c.use_gradual_lr:
             scheduler.step()
 
         optimizer.zero_grad()
@@ -173,7 +174,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
             if mel_lengths.max() % model.decoder.r != 0:
                 alignment_lengths = (mel_lengths + (model.decoder.r - (mel_lengths.max() % model.decoder.r))) // model.decoder.r
             else:
-                alignment_lengths = mel_lengths //  model.decoder.r
+                alignment_lengths = mel_lengths // model.decoder.r
 
             # compute loss
             loss_dict = criterion(postnet_output, decoder_output, mel_input,
@@ -356,7 +357,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             if mel_lengths.max() % model.decoder.r != 0:
                 alignment_lengths = (mel_lengths + (model.decoder.r - (mel_lengths.max() % model.decoder.r))) // model.decoder.r
             else:
-                alignment_lengths = mel_lengths //  model.decoder.r
+                alignment_lengths = mel_lengths // model.decoder.r
 
             # compute loss
             loss_dict = criterion(postnet_output, decoder_output, mel_input,
@@ -579,12 +580,17 @@ def main(args):  # pylint: disable=redefined-outer-name
     if num_gpus > 1:
         model = apply_gradient_allreduce(model)
 
+    scheduler = None
+
     if c.noam_schedule:
         scheduler = NoamLR(optimizer,
                            warmup_steps=c.warmup_steps,
                            last_epoch=args.restore_step - 1)
-    else:
-        scheduler = None
+    if c.use_gradual_lr:
+        scheduler = StepwiseGradualLR(optimizer,
+                                      config=c,
+                                      warmup_steps=c.warmup_steps,
+                                      last_epoch=args.restore_step - 1)
 
     num_params = count_parameters(model)
     print("\n > Model has {} parameters".format(num_params), flush=True)
