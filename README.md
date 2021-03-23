@@ -39,7 +39,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | Type                            | Links                               |
 | ------------------------------- | --------------------------------------- |
 | 💾 **Installation** | [TTS/README.md](https://github.com/coqui-ai/TTS/tree/dev#install-tts)|
-| 👩🏾‍🏫 **Tutorials and Examples**  | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/TTS-Notebooks-and-Tutorials) |
+| 👩🏾‍🏫 **Tutorials and Examples**  | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/%F0%9F%90%B8-TTS-Notebooks,-Examples-and-Tutorials) |
 | 🚀 **Released Models**         | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
 | 💻 **Docker Image**            | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-coqui-aitts)|
 | 🖥️ **Demo Server**             | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
