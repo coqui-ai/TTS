@@ -90,7 +90,7 @@ def exportaudio():
     config_path = None
     vocoder_path = None
     vocoder_config_path = None
-    path = Path(__file__).parent / "TTS/.models.json"
+    path = Path(__file__).parent / "../.models.json"
     manager = ModelManager(path)
     model_name = 'tts_models/' + ttsmodelbox.get()
     print(f'model_name is {model_name}')
