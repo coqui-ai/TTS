@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+
 
 # adapted from https://github.com/cvqluu/GE2E-Loss
 class GE2ELoss(nn.Module):

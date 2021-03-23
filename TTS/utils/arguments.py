@@ -7,7 +7,6 @@ import glob
 import os
 import re
 
-from TTS.tts.utils.generic_utils import check_config_tts
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
@@ -125,19 +124,13 @@ def get_last_checkpoint(path):
     return last_models['checkpoint'], last_models['best_model']
 
 
-def process_args(args, model_type):
-    """Process parsed comand line arguments.
+def process_args(args, model_class):
+    """Process parsed comand line arguments based on model class (tts or vocoder).
 
     Args:
         args (argparse.Namespace or dict like): Parsed input arguments.
         model_type (str): Model type used to check config parameters and setup
-            the TensorBoard logger. One of:
-                - tacotron
-                - glow_tts
-                - speedy_speech
-                - gan
-                - wavegrad
-                - wavernn
+            the TensorBoard logger. One of ['tts', 'vocoder'].
 
     Raises:
         ValueError: If `model_type` is not one of implemented choices.
@@ -160,20 +153,6 @@ def process_args(args, model_type):
 
     # setup output paths and read configs
     c = load_config(args.config_path)
-    if model_type in "tacotron glow_tts speedy_speech":
-        model_class = "TTS"
-    elif model_type in "gan wavegrad wavernn":
-        model_class = "VOCODER"
-    else:
-        raise ValueError("model type {model_type} not recognized!")
-
-    if model_class == "TTS":
-        check_config_tts(c)
-    elif model_class == "VOCODER":
-        print("Vocoder config checker not implemented, skipping ...")
-    else:
-        raise ValueError(f"model type {model_type} not recognized!")
-
     _ = os.path.dirname(os.path.realpath(__file__))
 
     if 'mixed_precision' in c and c.mixed_precision:
@@ -198,7 +177,7 @@ def process_args(args, model_type):
         # if model characters are not set in the config file
         # save the default set to the config file for future
         # compatibility.
-        if model_class == 'TTS' and 'characters' not in c:
+        if model_class == 'tts' and 'characters' not in c:
             used_characters = parse_symbols()
             new_fields['characters'] = used_characters
         copy_model_files(c, args.config_path,
@@ -208,7 +187,7 @@ def process_args(args, model_type):
 
         log_path = out_path
 
-        tb_logger = TensorboardLogger(log_path, model_name=model_class)
+        tb_logger = TensorboardLogger(log_path, model_name=model_class.upper())
 
         # write model desc to tensorboard
         tb_logger.tb_add_text("model-description", c["run_description"], 0)

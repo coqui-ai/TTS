@@ -658,7 +658,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 if __name__ == '__main__':
     args = parse_arguments(sys.argv)
     c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
-        args, model_type='tacotron')
+        args, model_class='tts')
 
     try:
         main(args)

@@ -138,7 +138,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         out_channels=c.audio['num_mels'],
                         hidden_channels=c['hidden_channels'],
-                        positional_encoding=c['positional_encoding'],
+                        hidden_channels_dp=c['hidden_channels_dp'],
                         encoder_type=c['encoder_type'],
                         encoder_params=c['encoder_params'],
                         decoder_type=c['decoder_type'],

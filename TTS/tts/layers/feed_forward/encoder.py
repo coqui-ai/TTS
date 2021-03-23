@@ -1,10 +1,8 @@
-import math
-import torch
 from torch import nn
 
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.layers.generic.res_conv_bn import  ResidualConv1dBNBlock
-from TTS.tts.layers.generic.transformer import FFTransformersBlock
+from TTS.tts.layers.generic.transformer import FFTransformerBlock
 
 
 class RelativePositionTransformerEncoder(nn.Module):
@@ -88,32 +86,34 @@ class Encoder(nn.Module):
     Note:
         Default encoder_params to be set in config.json...
 
-        for 'relative_position_transformer'
-            encoder_params={
-                'hidden_channels_ffn': 128,
-                'num_heads': 2,
-                "kernel_size": 3,
-                "dropout_p": 0.1,
-                "num_layers": 6,
-                "rel_attn_window_size": 4,
-                "input_length": None
-            },
+        ```python
+        # for 'relative_position_transformer'
+        encoder_params={
+            'hidden_channels_ffn': 128,
+            'num_heads': 2,
+            "kernel_size": 3,
+            "dropout_p": 0.1,
+            "num_layers": 6,
+            "rel_attn_window_size": 4,
+            "input_length": None
+        },
 
-        for 'residual_conv_bn'
-            encoder_params = {
-                "kernel_size": 4,
-                "dilations": 4 * [1, 2, 4] + [1],
-                "num_conv_blocks": 2,
-                "num_res_blocks": 13
-            }
+        # for 'residual_conv_bn'
+        encoder_params = {
+            "kernel_size": 4,
+            "dilations": 4 * [1, 2, 4] + [1],
+            "num_conv_blocks": 2,
+            "num_res_blocks": 13
+        }
 
-        for 'transformer_decoder'
-            encoder_params = {
-                hidden_channels_ffn: 1024 ,
-                num_heads: 2,
-                num_layers: 6,
-                dropout_p: 0.1
-            }
+        # for 'fftransformer'
+        encoder_params = {
+            "hidden_channels_ffn": 1024 ,
+            "num_heads": 2,
+            "num_layers": 6,
+            "dropout_p": 0.1
+        }
+        ```
     """
     def __init__(
             self,
@@ -145,8 +145,10 @@ class Encoder(nn.Module):
                                                    out_channels,
                                                    in_hidden_channels,
                                                    encoder_params)
-        elif encoder_type.lower() == 'transformer':
-            self.encoder = FFTransformersBlock(in_hidden_channels, **encoder_params) # pylint: disable=unexpected-keyword-arg
+        elif encoder_type.lower() == 'fftransformer':
+            assert in_hidden_channels == out_channels, \
+                "[!] must be `in_channels` == `out_channels` when encoder type is 'fftransformer'"
+            self.encoder = FFTransformerBlock(in_hidden_channels, **encoder_params) # pylint: disable=unexpected-keyword-arg
         else:
             raise NotImplementedError(' [!] unknown encoder type.')
 
