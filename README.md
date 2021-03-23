@@ -73,6 +73,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
 - Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
 - Speedy-Speech: [paper](https://arxiv.org/abs/2008.03802)
+- Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)

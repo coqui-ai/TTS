@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import argparse
-import glob
 import os
 import sys
 import time
 import traceback
-import numpy as np
 from random import randrange
 
+import numpy as np
 import torch
-from TTS.utils.arguments import parse_arguments, process_args
-# DISTRIBUTED
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -26,13 +22,13 @@ from TTS.tts.utils.speakers import parse_speakers
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed, reduce_tensor
 from TTS.utils.generic_utils import (KeepAverage, count_parameters,
                                      remove_experiment_folder, set_init_dict)
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, setup_torch_training_env
-
 
 if __name__ == '__main__':
     use_cuda, num_gpus = setup_torch_training_env(True, False)
@@ -60,7 +56,8 @@ if __name__ == '__main__':
                 enable_eos_bos=c.enable_eos_bos_chars,
                 use_noise_augment=not is_val,
                 verbose=verbose,
-                speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+                speaker_mapping=speaker_mapping if c.use_speaker_embedding
+                and c.use_external_speaker_embedding_file else None)
 
             if c.use_phonemes and c.compute_input_seq_cache:
                 # precompute phonemes to have a better estimate of sequence lengths.
@@ -80,7 +77,6 @@ if __name__ == '__main__':
                 pin_memory=False)
         return loader
 
-
     def format_data(data):
         # setup input data
         text_input = data[0]
@@ -89,7 +85,6 @@ if __name__ == '__main__':
         mel_input = data[4].permute(0, 2, 1)  # B x D x T
         mel_lengths = data[5]
         item_idx = data[7]
-        attn_mask = data[9]
         avg_text_length = torch.mean(text_lengths.float())
         avg_spec_length = torch.mean(mel_lengths.float())
 
@@ -100,7 +95,8 @@ if __name__ == '__main__':
             else:
                 # return speaker_id to be used by an embedding layer
                 speaker_c = [
-                    speaker_mapping[speaker_name] for speaker_name in speaker_names
+                    speaker_mapping[speaker_name]
+                    for speaker_name in speaker_names
                 ]
                 speaker_c = torch.LongTensor(speaker_c)
         else:
@@ -116,9 +112,8 @@ if __name__ == '__main__':
         return text_input, text_lengths, mel_input, mel_lengths, speaker_c,\
             avg_text_length, avg_spec_length, item_idx
 
-
-    def train(data_loader, model, criterion, optimizer, scheduler,
-            ap, global_step, epoch):
+    def train(data_loader, model, criterion, optimizer, scheduler, ap,
+              global_step, epoch, training_phase):
 
         model.train()
         epoch_time = 0
@@ -145,24 +140,39 @@ if __name__ == '__main__':
 
             # forward pass model
             with torch.cuda.amp.autocast(enabled=c.mixed_precision):
-                decoder_output, dur_output, dur_mas_output, alignments, mu, log_sigma, logp_max_path = model.forward(
-                    text_input, text_lengths, mel_targets, mel_lengths, g=speaker_c)
+                decoder_output, dur_output, dur_mas_output, alignments, mu, log_sigma, logp = model.forward(
+                    text_input,
+                    text_lengths,
+                    mel_targets,
+                    mel_lengths,
+                    g=speaker_c,
+                    phase=training_phase)
 
                 # compute loss
-                loss_dict = criterion(mu, log_sigma, logp_max_path, decoder_output, mel_targets, mel_lengths, dur_output, dur_mas_output, text_lengths, global_step)
+                loss_dict = criterion(mu,
+                                      log_sigma,
+                                      logp,
+                                      decoder_output,
+                                      mel_targets,
+                                      mel_lengths,
+                                      dur_output,
+                                      dur_mas_output,
+                                      text_lengths,
+                                      global_step,
+                                      phase=training_phase)
 
             # backward pass with loss scaling
             if c.mixed_precision:
                 scaler.scale(loss_dict['loss']).backward()
                 scaler.unscale_(optimizer)
-                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                                        c.grad_clip)
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), c.grad_clip)
                 scaler.step(optimizer)
                 scaler.update()
             else:
                 loss_dict['loss'].backward()
-                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                                        c.grad_clip)
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), c.grad_clip)
                 optimizer.step()
 
             # setup lr
@@ -181,10 +191,14 @@ if __name__ == '__main__':
 
             # aggregate losses from processes
             if num_gpus > 1:
-                loss_dict['loss_l1'] = reduce_tensor(loss_dict['loss_l1'].data, num_gpus)
-                loss_dict['loss_ssim'] = reduce_tensor(loss_dict['loss_ssim'].data, num_gpus)
-                loss_dict['loss_dur'] = reduce_tensor(loss_dict['loss_dur'].data, num_gpus)
-                loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
+                loss_dict['loss_l1'] = reduce_tensor(loss_dict['loss_l1'].data,
+                                                     num_gpus)
+                loss_dict['loss_ssim'] = reduce_tensor(
+                    loss_dict['loss_ssim'].data, num_gpus)
+                loss_dict['loss_dur'] = reduce_tensor(
+                    loss_dict['loss_dur'].data, num_gpus)
+                loss_dict['loss'] = reduce_tensor(loss_dict['loss'].data,
+                                                  num_gpus)
 
             # detach loss values
             loss_dict_new = dict()
@@ -206,15 +220,16 @@ if __name__ == '__main__':
             # print training progress
             if global_step % c.print_step == 0:
                 log_dict = {
-
-                    "avg_spec_length": [avg_spec_length, 1],  # value, precision
+                    "avg_spec_length": [avg_spec_length,
+                                        1],  # value, precision
                     "avg_text_length": [avg_text_length, 1],
                     "step_time": [step_time, 4],
                     "loader_time": [loader_time, 2],
                     "current_lr": current_lr,
                 }
                 c_logger.print_train_step(batch_n_iter, num_iter, global_step,
-                                        log_dict, loss_dict, keep_avg.avg_values)
+                                          log_dict, loss_dict,
+                                          keep_avg.avg_values)
 
             if args.rank == 0:
                 # Plot Training Iter Stats
@@ -231,35 +246,44 @@ if __name__ == '__main__':
                 if global_step % c.save_step == 0:
                     if c.checkpoint:
                         # save model
-                        save_checkpoint(model, optimizer, global_step, epoch, 1, OUT_PATH, model_characters,
+                        save_checkpoint(model,
+                                        optimizer,
+                                        global_step,
+                                        epoch,
+                                        1,
+                                        OUT_PATH,
+                                        model_characters,
                                         model_loss=loss_dict['loss'])
 
                     # wait all kernels to be completed
                     torch.cuda.synchronize()
 
                     # Diagnostic visualizations
-                    idx = np.random.randint(mel_targets.shape[0])
-                    pred_spec = decoder_output[idx].detach().data.cpu().numpy().T
-                    gt_spec = mel_targets[idx].data.cpu().numpy().T
-                    align_img = alignments[idx].data.cpu()
+                    if decoder_output is not None:
+                        idx = np.random.randint(mel_targets.shape[0])
+                        pred_spec = decoder_output[idx].detach().data.cpu(
+                        ).numpy().T
+                        gt_spec = mel_targets[idx].data.cpu().numpy().T
+                        align_img = alignments[idx].data.cpu()
 
-                    figures = {
-                        "prediction": plot_spectrogram(pred_spec, ap),
-                        "ground_truth": plot_spectrogram(gt_spec, ap),
-                        "alignment": plot_alignment(align_img),
-                    }
+                        figures = {
+                            "prediction": plot_spectrogram(pred_spec, ap),
+                            "ground_truth": plot_spectrogram(gt_spec, ap),
+                            "alignment": plot_alignment(align_img),
+                        }
 
-                    tb_logger.tb_train_figures(global_step, figures)
+                        tb_logger.tb_train_figures(global_step, figures)
 
-                    # Sample audio
-                    train_audio = ap.inv_melspectrogram(pred_spec.T)
-                    tb_logger.tb_train_audios(global_step,
-                                            {'TrainAudio': train_audio},
-                                            c.audio["sample_rate"])
+                        # Sample audio
+                        train_audio = ap.inv_melspectrogram(pred_spec.T)
+                        tb_logger.tb_train_audios(global_step,
+                                                  {'TrainAudio': train_audio},
+                                                  c.audio["sample_rate"])
             end_time = time.time()
 
         # print epoch stats
-        c_logger.print_train_epoch_end(global_step, epoch, epoch_time, keep_avg)
+        c_logger.print_train_epoch_end(global_step, epoch, epoch_time,
+                                       keep_avg)
 
         # Plot Epoch Stats
         if args.rank == 0:
@@ -270,9 +294,9 @@ if __name__ == '__main__':
                 tb_logger.tb_model_weights(model, global_step)
         return keep_avg.avg_values, global_step
 
-
     @torch.no_grad()
-    def evaluate(data_loader, model, criterion, ap, global_step, epoch):
+    def evaluate(data_loader, model, criterion, ap, global_step, epoch,
+                 training_phase):
         model.eval()
         epoch_time = 0
         keep_avg = KeepAverage()
@@ -283,30 +307,43 @@ if __name__ == '__main__':
 
                 # format data
                 text_input, text_lengths, mel_targets, mel_lengths, speaker_c,\
-                avg_text_length, avg_spec_length, _ = format_data(data)
+                _, _, _ = format_data(data)
 
                 # forward pass model
                 with torch.cuda.amp.autocast(enabled=c.mixed_precision):
                     decoder_output, dur_output, dur_mas_output, alignments, mu, log_sigma, logp_max_path = model.forward(
-                        text_input, text_lengths, mel_targets, mel_lengths, g=speaker_c)
+                        text_input,
+                        text_lengths,
+                        mel_targets,
+                        mel_lengths,
+                        g=speaker_c)
 
                     # compute loss
-                    loss_dict = criterion(mu, log_sigma, logp_max_path, decoder_output, mel_targets, mel_lengths, dur_output, dur_mas_output, text_lengths, global_step)
+                    loss_dict = criterion(mu, log_sigma, logp_max_path,
+                                          decoder_output, mel_targets,
+                                          mel_lengths, dur_output,
+                                          dur_mas_output, text_lengths,
+                                          global_step, training_phase)
 
                 # step time
                 step_time = time.time() - start_time
                 epoch_time += step_time
 
                 # compute alignment score
-                align_error = 1 - alignment_diagonal_score(alignments, binary=True)
+                align_error = 1 - alignment_diagonal_score(alignments,
+                                                           binary=True)
                 loss_dict['align_error'] = align_error
 
                 # aggregate losses from processes
                 if num_gpus > 1:
-                    loss_dict['loss_l1'] = reduce_tensor(loss_dict['loss_l1'].data, num_gpus)
-                    loss_dict['loss_ssim'] = reduce_tensor(loss_dict['loss_ssim'].data, num_gpus)
-                    loss_dict['loss_dur'] = reduce_tensor(loss_dict['loss_dur'].data, num_gpus)
-                    loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
+                    loss_dict['loss_l1'] = reduce_tensor(
+                        loss_dict['loss_l1'].data, num_gpus)
+                    loss_dict['loss_ssim'] = reduce_tensor(
+                        loss_dict['loss_ssim'].data, num_gpus)
+                    loss_dict['loss_dur'] = reduce_tensor(
+                        loss_dict['loss_dur'].data, num_gpus)
+                    loss_dict['loss'] = reduce_tensor(loss_dict['loss'].data,
+                                                      num_gpus)
 
                 # detach loss values
                 loss_dict_new = dict()
@@ -324,7 +361,8 @@ if __name__ == '__main__':
                 keep_avg.update_values(update_train_values)
 
                 if c.print_eval:
-                    c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
+                    c_logger.print_eval_step(num_iter, loss_dict,
+                                             keep_avg.avg_values)
 
             if args.rank == 0:
                 # Diagnostic visualizations
@@ -334,15 +372,19 @@ if __name__ == '__main__':
                 align_img = alignments[idx].data.cpu()
 
                 eval_figures = {
-                    "prediction": plot_spectrogram(pred_spec, ap, output_fig=False),
-                    "ground_truth": plot_spectrogram(gt_spec, ap, output_fig=False),
+                    "prediction": plot_spectrogram(pred_spec,
+                                                   ap,
+                                                   output_fig=False),
+                    "ground_truth": plot_spectrogram(gt_spec,
+                                                     ap,
+                                                     output_fig=False),
                     "alignment": plot_alignment(align_img, output_fig=False)
                 }
 
                 # Sample audio
                 eval_audio = ap.inv_melspectrogram(pred_spec.T)
                 tb_logger.tb_eval_audios(global_step, {"ValAudio": eval_audio},
-                                        c.audio["sample_rate"])
+                                         c.audio["sample_rate"])
 
                 # Plot Validation Stats
                 tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
@@ -367,7 +409,9 @@ if __name__ == '__main__':
             print(" | > Synthesizing test sentences")
             if c.use_speaker_embedding:
                 if c.use_external_speaker_embedding_file:
-                    speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding']
+                    speaker_embedding = speaker_mapping[list(
+                        speaker_mapping.keys())[randrange(
+                            len(speaker_mapping) - 1)]]['embedding']
                     speaker_id = None
                 else:
                     speaker_id = 0
@@ -389,30 +433,28 @@ if __name__ == '__main__':
                         speaker_embedding=speaker_embedding,
                         style_wav=style_wav,
                         truncated=False,
-                        enable_eos_bos_chars=c.enable_eos_bos_chars, #pylint: disable=unused-argument
+                        enable_eos_bos_chars=c.enable_eos_bos_chars,  #pylint: disable=unused-argument
                         use_griffin_lim=True,
                         do_trim_silence=False)
 
                     file_path = os.path.join(AUDIO_PATH, str(global_step))
                     os.makedirs(file_path, exist_ok=True)
                     file_path = os.path.join(file_path,
-                                            "TestSentence_{}.wav".format(idx))
+                                             "TestSentence_{}.wav".format(idx))
                     ap.save_wav(wav, file_path)
                     test_audios['{}-audio'.format(idx)] = wav
-                    test_figures['{}-prediction'.format(idx)] = plot_spectrogram(
-                        postnet_output, ap)
+                    test_figures['{}-prediction'.format(
+                        idx)] = plot_spectrogram(postnet_output, ap)
                     test_figures['{}-alignment'.format(idx)] = plot_alignment(
                         alignment)
-                except: #pylint: disable=bare-except
+                except:  #pylint: disable=bare-except
                     print(" !! Error creating Test Sentence -", idx)
                     traceback.print_exc()
             tb_logger.tb_test_audios(global_step, test_audios,
-                                    c.audio['sample_rate'])
+                                     c.audio['sample_rate'])
             tb_logger.tb_test_figures(global_step, test_figures)
         return keep_avg.avg_values
 
-
-    # FIXME: move args definition/parsing inside of main?
     def main(args):  # pylint: disable=redefined-outer-name
         # pylint: disable=global-variable-undefined
         global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping
@@ -424,31 +466,43 @@ if __name__ == '__main__':
         # DISTRUBUTED
         if num_gpus > 1:
             init_distributed(args.rank, num_gpus, args.group_id,
-                            c.distributed["backend"], c.distributed["url"])
+                             c.distributed["backend"], c.distributed["url"])
 
         # set model characters
         model_characters = phonemes if c.use_phonemes else symbols
         num_chars = len(model_characters)
 
         # load data instances
-        meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=True)
+        meta_data_train, meta_data_eval = load_meta_data(c.datasets,
+                                                         eval_split=True)
 
         # set the portion of the data used for training if set in config.json
         if 'train_portion' in c.keys():
-            meta_data_train = meta_data_train[:int(len(meta_data_train) * c.train_portion)]
+            meta_data_train = meta_data_train[:int(
+                len(meta_data_train) * c.train_portion)]
         if 'eval_portion' in c.keys():
-            meta_data_eval = meta_data_eval[:int(len(meta_data_eval) * c.eval_portion)]
+            meta_data_eval = meta_data_eval[:int(
+                len(meta_data_eval) * c.eval_portion)]
 
         # parse speakers
-        num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
+        num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(
+            c, args, meta_data_train, OUT_PATH)
 
         # setup model
-        model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim=speaker_embedding_dim)
-        optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
+        model = setup_model(num_chars,
+                            num_speakers,
+                            c,
+                            speaker_embedding_dim=speaker_embedding_dim)
+        optimizer = RAdam(model.parameters(),
+                          lr=c.lr,
+                          weight_decay=0,
+                          betas=(0.9, 0.98),
+                          eps=1e-9)
         criterion = AlignTTSLoss(c)
 
         if args.restore_path:
-            print(f" > Restoring from {os.path.basename(args.restore_path)} ...")
+            print(
+                f" > Restoring from {os.path.basename(args.restore_path)} ...")
             checkpoint = torch.load(args.restore_path, map_location='cpu')
             try:
                 # TODO: fix optimizer init, model.cuda() needs to be called before
@@ -457,7 +511,7 @@ if __name__ == '__main__':
                 if c.reinit_layers:
                     raise RuntimeError
                 model.load_state_dict(checkpoint['model'])
-            except: #pylint: disable=bare-except
+            except:  #pylint: disable=bare-except
                 print(" > Partial model initialization.")
                 model_dict = model.state_dict()
                 model_dict = set_init_dict(model_dict, checkpoint['model'], c)
@@ -467,7 +521,7 @@ if __name__ == '__main__':
             for group in optimizer.param_groups:
                 group['initial_lr'] = c.lr
             print(" > Model restored from step %d" % checkpoint['step'],
-                flush=True)
+                  flush=True)
             args.restore_step = checkpoint['step']
         else:
             args.restore_step = 0
@@ -482,8 +536,8 @@ if __name__ == '__main__':
 
         if c.noam_schedule:
             scheduler = NoamLR(optimizer,
-                            warmup_steps=c.warmup_steps,
-                            last_epoch=args.restore_step - 1)
+                               warmup_steps=c.warmup_steps,
+                               last_epoch=args.restore_step - 1)
         else:
             scheduler = None
 
@@ -495,9 +549,9 @@ if __name__ == '__main__':
             print(" > Starting with inf best loss.")
         else:
             print(" > Restoring best loss from "
-                f"{os.path.basename(args.best_path)} ...")
+                  f"{os.path.basename(args.best_path)} ...")
             best_loss = torch.load(args.best_path,
-                                map_location='cpu')['model_loss']
+                                   map_location='cpu')['model_loss']
             print(f" > Starting with loaded last best loss {best_loss}.")
         keep_all_best = c.get('keep_all_best', False)
         keep_after = c.get('keep_after', 10000)  # void if keep_all_best False
@@ -507,25 +561,51 @@ if __name__ == '__main__':
         eval_loader = setup_loader(ap, 1, is_val=True, verbose=True)
 
         global_step = args.restore_step
+
+        def set_phase():
+            """Set AlignTTS training phase"""
+            if isinstance(c.phase_start_steps, list):
+                vals = [i < global_step for i in c.phase_start_steps]
+                if not True in vals:
+                    phase = 0
+                else:
+                    phase = len(c.phase_start_steps) - [
+                        i < global_step for i in c.phase_start_steps
+                    ][::-1].index(True) - 1
+            else:
+                phase = None
+            return phase
+
         for epoch in range(0, c.epochs):
+            cur_phase = set_phase()
+            print(f"\n > Current AlignTTS phase: {cur_phase}")
             c_logger.print_epoch_start(epoch, c.epochs)
-            train_avg_loss_dict, global_step = train(train_loader, model, criterion, optimizer,
-                                                    scheduler, ap, global_step,
-                                                    epoch)
+            train_avg_loss_dict, global_step = train(train_loader, model,
+                                                     criterion, optimizer,
+                                                     scheduler, ap,
+                                                     global_step, epoch,
+                                                     cur_phase)
             eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap,
-                                        global_step, epoch)
+                                          global_step, epoch, cur_phase)
             c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
             target_loss = train_avg_loss_dict['avg_loss']
             if c.run_eval:
                 target_loss = eval_avg_loss_dict['avg_loss']
-            best_loss = save_best_model(target_loss, best_loss, model, optimizer,
-                                        global_step, epoch, c.r, OUT_PATH, model_characters,
-                                        keep_all_best=keep_all_best, keep_after=keep_after)
-
+            best_loss = save_best_model(target_loss,
+                                        best_loss,
+                                        model,
+                                        optimizer,
+                                        global_step,
+                                        epoch,
+                                        1,
+                                        OUT_PATH,
+                                        model_characters,
+                                        keep_all_best=keep_all_best,
+                                        keep_after=keep_after)
 
     args = parse_arguments(sys.argv)
     c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
-        args, model_type='tts')
+        args, model_class='tts')
 
     try:
         main(args)

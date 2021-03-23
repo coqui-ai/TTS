@@ -12,7 +12,6 @@ from TTS.vocoder.utils.generic_utils import setup_generator, interpolate_vocoder
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, trim_silence
-
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
 
 
