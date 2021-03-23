@@ -114,22 +114,10 @@ sudo apt-get install espeak-ng
 
 ## The GUI
 ![GUI](./images/gui.png)
-WARNING: DO NOT run this from IDLE or directly in Python such as double-clicking the file, it will be stuck loading. To be safe:
 ```bash
-python coqui_tts_gui.py
+tts --start_gui
 ```
-To add new models to the GUI, run `TTS --list_models` and compare the output to the lists in the dropdown boxes, and add what's missing in the latter:
-```python
-ttsmodelbox['values'] = ('en/ljspeech/glow-tts',  
-                          'en/ljspeech/tacotron2-DCA', 
-                          'en/ljspeech/speedy-speech-wn', 
-                          'es/mai/tacotron2-DDC', 
-                          'fr/mai/tacotron2-DDC') 
-                          
-vocodermodelbox['values'] = ('universal/libri-tts/wavegrad',  
-                          'universal/libri-tts/fullband-melgan', 
-                          'en/ljspeech/multiband-melgan')
-```
+The graphical user interface is a user-friendly alternative to the command line if you want to synthesize speech using pre-trained models, and is in the form of a full-fledged text editor which lets you hear what you input right away by clicking the generate button, or generate into your chosen directory by clicking the export audio button.
 
 ## Directory Structure
 ```

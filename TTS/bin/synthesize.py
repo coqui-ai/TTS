@@ -11,6 +11,7 @@ from pathlib import Path
 
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
+import TTS.bin.gui as gui
 
 
 def str2bool(v):
@@ -36,6 +37,9 @@ def main():
 
     # list provided models
     ./TTS/bin/synthesize.py --list_models
+
+    # run the GUI
+    ./TTS/bin/synthesize.py --start_gui
 
     # run tts with default models.
     ./TTS/bin synthesize.py --text "Text for TTS"
@@ -63,6 +67,14 @@ def main():
         const=True,
         default=False,
         help='list available pre-trained tts and vocoder models.'
+        )
+    parser.add_argument(
+        '--start_gui',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='Open the text editor-based interface for using TTS instead of the command line.'
         )
     parser.add_argument(
         '--text',
@@ -151,7 +163,7 @@ def main():
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
-    if args.text is None and not args.list_models:
+    if args.text is None and not args.list_models and not args.start_gui:
         parser.parse_args(['-h'])
 
     # load model manager
@@ -166,6 +178,10 @@ def main():
     # CASE1: list pre-trained TTS models
     if args.list_models:
         manager.list_models()
+        sys.exit()
+
+    if args.start_gui:
+        gui.loadgui()
         sys.exit()
 
     # CASE2: load pre-trained models

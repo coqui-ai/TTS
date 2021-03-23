@@ -25,4 +25,4 @@ gdown
 umap-learn
 cython
 pyyaml
-playsound
+simpleaudio
