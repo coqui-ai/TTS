@@ -464,11 +464,6 @@ class MDNLoss(nn.Module):
         '''
         B, _, L = mu.size()
         T = melspec.size(2)
-        # x = melspec.transpose(1, 2).unsqueeze(1) # [B, 1, T1, D]
-        # mu = mu.transpose(1, 2).unsqueeze(2) # [B, T2, 1, D]
-        # log_sigma = log_sigma.transpose(1, 2).unsqueeze(2) # [B, T2, 1, D]
-        # exponential = -0.5*torch.mean(mse_loss_custom(x, mu)/torch.pow(log_sigma.exp(), 2), dim=-1) # B, L, T
-        # log_prob_matrix = exponential -0.5 * log_sigma.mean(dim=-1)
         log_alpha = logp.new_ones(B, L, T)*(-1e4)
         log_alpha[:, 0, 0] = logp[:, 0, 0]
         for t in range(1, T):
