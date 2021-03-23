@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
             # forward pass model
             with torch.cuda.amp.autocast(enabled=c.mixed_precision):
-                decoder_output, dur_output, dur_mas_output, alignments, mu, log_sigma, logp = model.forward(
+                decoder_output, dur_output, dur_mas_output, alignments, _, _, logp = model.forward(
                     text_input,
                     text_lengths,
                     mel_targets,
@@ -149,9 +149,7 @@ if __name__ == '__main__':
                     phase=training_phase)
 
                 # compute loss
-                loss_dict = criterion(mu,
-                                      log_sigma,
-                                      logp,
+                loss_dict = criterion(logp,
                                       decoder_output,
                                       mel_targets,
                                       mel_lengths,

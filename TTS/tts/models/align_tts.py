@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn as nn
 from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
