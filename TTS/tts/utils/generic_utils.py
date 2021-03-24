@@ -43,6 +43,17 @@ def to_camel(text):
     text = text.capitalize()
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
+def extract_axis_1(data, ind):
+    """
+    Get specified elements along the first axis of tensor
+    :param data: Tensor that will be subsetted [N, T_in, embed_dim]
+    :param ind: Indices to take [N]
+    :return: Subsetted tensor [N, embed_dim]
+    """
+    ind = torch.LongTensor(ind) - 1
+    select_idx = data.index_select(1, ind) # select indices
+    extracted_axis = torch.diagonal(select_idx) # diagonal contains the extracted data
+    return torch.transpose(extracted_axis, 0, 1) # reshape into [N, embed_dim]
 
 def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     print(" > Using model: {}".format(c.model))

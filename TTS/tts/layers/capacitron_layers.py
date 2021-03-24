@@ -1,27 +1,33 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from TTS.tts.utils.generic_utils import extract_axis_1
 
 class CapacitronVAE(nn.Module):
     """Effective Use of Variational Embedding Capacity for prosody transfer.
 
     See https://arxiv.org/abs/1906.03402 """
 
-    def __init__(self, num_mel, num_heads, num_style_tokens, gst_embedding_dim, speaker_embedding_dim=None):
+    def __init__(self, num_mel, capacitron_embedding_dim, speaker_embedding_dim=None, text_summary_embedding_dim=None):
         super().__init__()
-        self.encoder = ReferenceEncoder(num_mel, gst_embedding_dim)
-        self.style_token_layer = StyleTokenLayer(num_heads, num_style_tokens,
-                                                 gst_embedding_dim, speaker_embedding_dim)
+        self.encoder = ReferenceEncoder(num_mel, capacitron_embedding_dim)
+        # TODO: Figure out what to do with speaker_embedding_dim
 
-    def forward(self, inputs, speaker_embedding=None):
+        if text_summary_embedding_dim is not None:
+            self.text_summary_net = TextSummary(text_summary_embedding_dim)
+
+    def forward(self, inputs, text_info=None, speaker_embedding=None):
         enc_out = self.encoder(inputs)
-        # concat speaker_embedding
+        # concat speaker_embedding and/or text summary embedding
+        if text_info is not None:
+            text_inputs = text_info[0]
+            input_lengths = text_info[1]
+            text_summary_out = self.text_summary_net(text_inputs, input_lengths).cuda()
+            enc_out = torch.cat([enc_out, text_summary_out], dim=-1)
         if speaker_embedding is not None:
             enc_out = torch.cat([enc_out, speaker_embedding], dim=-1)
-        reference_embed = self.style_token_layer(enc_out)
-
-        return reference_embed
+        # reshape to [batch_size, 1, speaker_embed_dim + text_embed_dim]
+        return torch.unsqueeze(enc_out, 1)
 
 
 class ReferenceEncoder(nn.Module):
@@ -53,10 +59,10 @@ class ReferenceEncoder(nn.Module):
 
         post_conv_height = self.calculate_post_conv_height(
             num_mel, 3, 2, 1, num_layers)
-        # Here comes the LSTM
+        # TODO: Here comes the LSTM
         self.recurrence = nn.GRU(
             input_size=filters[-1] * post_conv_height,
-            hidden_size=embedding_dim // 2,
+            hidden_size=embedding_dim,
             batch_first=True)
 
     def forward(self, inputs):
@@ -89,91 +95,15 @@ class ReferenceEncoder(nn.Module):
             height = (height - kernel_size + 2 * pad) // stride + 1
         return height
 
+class TextSummary(nn.Module):
+    def __init__(self, embedding_dim):
+        super(TextSummary, self).__init__()
+        self.lstm = nn.LSTM(256, # 256 is the hardcoded text embedding dimension from the text encoder
+                            embedding_dim, # fixed length output summary the lstm creates from the input
+                            batch_first=True,
+                            bidirectional=False)
 
-class StyleTokenLayer(nn.Module):
-    """NN Module attending to style tokens based on prosody encodings."""
-
-    def __init__(self, num_heads, num_style_tokens,
-                 embedding_dim, speaker_embedding_dim=None):
-        super().__init__()
-
-        self.query_dim = embedding_dim // 2
-
-        if speaker_embedding_dim:
-            self.query_dim += speaker_embedding_dim
-
-        self.key_dim = embedding_dim // num_heads
-        self.style_tokens = nn.Parameter(
-            torch.FloatTensor(num_style_tokens, self.key_dim))
-        nn.init.normal_(self.style_tokens, mean=0, std=0.5)
-        self.attention = MultiHeadAttention(
-            query_dim=self.query_dim,
-            key_dim=self.key_dim,
-            num_units=embedding_dim,
-            num_heads=num_heads)
-
-    def forward(self, inputs):
-        batch_size = inputs.size(0)
-        prosody_encoding = inputs.unsqueeze(1)
-        # prosody_encoding: 3D tensor [batch_size, 1, encoding_size==128]
-        tokens = torch.tanh(self.style_tokens) \
-            .unsqueeze(0) \
-            .expand(batch_size, -1, -1)
-        # tokens: 3D tensor [batch_size, num tokens, token embedding size]
-        style_embed = self.attention(prosody_encoding, tokens)
-
-        return style_embed
-
-
-class MultiHeadAttention(nn.Module):
-    '''
-    input:
-        query --- [N, T_q, query_dim]
-        key --- [N, T_k, key_dim]
-    output:
-        out --- [N, T_q, num_units]
-    '''
-
-    def __init__(self, query_dim, key_dim, num_units, num_heads):
-
-        super().__init__()
-        self.num_units = num_units
-        self.num_heads = num_heads
-        self.key_dim = key_dim
-
-        self.W_query = nn.Linear(
-            in_features=query_dim, out_features=num_units, bias=False)
-        self.W_key = nn.Linear(
-            in_features=key_dim, out_features=num_units, bias=False)
-        self.W_value = nn.Linear(
-            in_features=key_dim, out_features=num_units, bias=False)
-
-    def forward(self, query, key):
-        queries = self.W_query(query)  # [N, T_q, num_units]
-        keys = self.W_key(key)  # [N, T_k, num_units]
-        values = self.W_value(key)
-
-        split_size = self.num_units // self.num_heads
-        queries = torch.stack(
-            torch.split(queries, split_size, dim=2),
-            dim=0)  # [h, N, T_q, num_units/h]
-        keys = torch.stack(
-            torch.split(keys, split_size, dim=2),
-            dim=0)  # [h, N, T_k, num_units/h]
-        values = torch.stack(
-            torch.split(values, split_size, dim=2),
-            dim=0)  # [h, N, T_k, num_units/h]
-
-        # score = softmax(QK^T / (d_k ** 0.5))
-        scores = torch.matmul(
-            queries, keys.transpose(2, 3))  # [h, N, T_q, T_k]
-        scores = scores / (self.key_dim**0.5)
-        scores = F.softmax(scores, dim=3)
-
-        # out = score * V
-        out = torch.matmul(scores, values)  # [h, N, T_q, num_units/h]
-        out = torch.cat(
-            torch.split(out, 1, dim=0),
-            dim=3).squeeze(0)  # [N, T_q, num_units]
-
-        return out
+    def forward(self, inputs, input_lengths):
+        o, _ = self.lstm(inputs)
+        last_output = extract_axis_1(o.cpu(), input_lengths.cpu())
+        return last_output
