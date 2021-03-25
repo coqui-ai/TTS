@@ -48,7 +48,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.gst = gst
         self.gst_embedding_dim = gst_embedding_dim
         self.gst_num_heads = gst_num_heads
-        self.gst_style_tokens = gst_style_tokens
+        self.gst_num_style_tokens = gst_num_style_tokens
         self.gst_use_speaker_embedding = gst_use_speaker_embedding
         self.num_speakers = num_speakers
         self.bidirectional_decoder = bidirectional_decoder

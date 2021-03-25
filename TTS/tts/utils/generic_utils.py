@@ -176,29 +176,19 @@ def check_config_tts(c):
     check_argument("run_description", c, val_type=str)
 
     # AUDIO
-    check_argument("audio", c, restricted=True, val_type=dict)
+    # check_argument('audio', c, restricted=True, val_type=dict)
 
     # audio processing parameters
-    check_argument("num_mels", c["audio"], restricted=True, val_type=int, min_val=10, max_val=2056)
-    check_argument("fft_size", c["audio"], restricted=True, val_type=int, min_val=128, max_val=4058)
-    check_argument("sample_rate", c["audio"], restricted=True, val_type=int, min_val=512, max_val=100000)
-    check_argument(
-        "frame_length_ms",
-        c["audio"],
-        restricted=True,
-        val_type=float,
-        min_val=10,
-        max_val=1000,
-        alternative="win_length",
-    )
-    check_argument(
-        "frame_shift_ms", c["audio"], restricted=True, val_type=float, min_val=1, max_val=1000, alternative="hop_length"
-    )
-    check_argument("preemphasis", c["audio"], restricted=True, val_type=float, min_val=0, max_val=1)
-    check_argument("min_level_db", c["audio"], restricted=True, val_type=int, min_val=-1000, max_val=10)
-    check_argument("ref_level_db", c["audio"], restricted=True, val_type=int, min_val=0, max_val=1000)
-    check_argument("power", c["audio"], restricted=True, val_type=float, min_val=1, max_val=5)
-    check_argument("griffin_lim_iters", c["audio"], restricted=True, val_type=int, min_val=10, max_val=1000)
+    # check_argument('num_mels', c['audio'], restricted=True, val_type=int, min_val=10, max_val=2056)
+    # check_argument('fft_size', c['audio'], restricted=True, val_type=int, min_val=128, max_val=4058)
+    # check_argument('sample_rate', c['audio'], restricted=True, val_type=int, min_val=512, max_val=100000)
+    # check_argument('frame_length_ms', c['audio'], restricted=True, val_type=float, min_val=10, max_val=1000, alternative='win_length')
+    # check_argument('frame_shift_ms', c['audio'], restricted=True, val_type=float, min_val=1, max_val=1000, alternative='hop_length')
+    # check_argument('preemphasis', c['audio'], restricted=True, val_type=float, min_val=0, max_val=1)
+    # check_argument('min_level_db', c['audio'], restricted=True, val_type=int, min_val=-1000, max_val=10)
+    # check_argument('ref_level_db', c['audio'], restricted=True, val_type=int, min_val=0, max_val=1000)
+    # check_argument('power', c['audio'], restricted=True, val_type=float, min_val=1, max_val=5)
+    # check_argument('griffin_lim_iters', c['audio'], restricted=True, val_type=int, min_val=10, max_val=1000)
 
     # vocabulary parameters
     check_argument("characters", c, restricted=False, val_type=dict)
@@ -231,34 +221,34 @@ def check_config_tts(c):
     )
 
     # normalization parameters
-    check_argument("signal_norm", c["audio"], restricted=True, val_type=bool)
-    check_argument("symmetric_norm", c["audio"], restricted=True, val_type=bool)
-    check_argument("max_norm", c["audio"], restricted=True, val_type=float, min_val=0.1, max_val=1000)
-    check_argument("clip_norm", c["audio"], restricted=True, val_type=bool)
-    check_argument("mel_fmin", c["audio"], restricted=True, val_type=float, min_val=0.0, max_val=1000)
-    check_argument("mel_fmax", c["audio"], restricted=True, val_type=float, min_val=500.0)
-    check_argument("spec_gain", c["audio"], restricted=True, val_type=[int, float], min_val=1, max_val=100)
-    check_argument("do_trim_silence", c["audio"], restricted=True, val_type=bool)
-    check_argument("trim_db", c["audio"], restricted=True, val_type=int)
+    # check_argument('signal_norm', c['audio'], restricted=True, val_type=bool)
+    # check_argument('symmetric_norm', c['audio'], restricted=True, val_type=bool)
+    # check_argument('max_norm', c['audio'], restricted=True, val_type=float, min_val=0.1, max_val=1000)
+    # check_argument('clip_norm', c['audio'], restricted=True, val_type=bool)
+    # check_argument('mel_fmin', c['audio'], restricted=True, val_type=float, min_val=0.0, max_val=1000)
+    # check_argument('mel_fmax', c['audio'], restricted=True, val_type=float, min_val=500.0)
+    # check_argument('spec_gain', c['audio'], restricted=True, val_type=[int, float], min_val=1, max_val=100)
+    # check_argument('do_trim_silence', c['audio'], restricted=True, val_type=bool)
+    # check_argument('trim_db', c['audio'], restricted=True, val_type=int)
 
     # training parameters
     # check_argument('batch_size', c, restricted=True, val_type=int, min_val=1)
     # check_argument('eval_batch_size', c, restricted=True, val_type=int, min_val=1)
-    check_argument('r', c, restricted=True, val_type=int, min_val=1)
-    check_argument('gradual_training', c, restricted=False, val_type=list)
+    # check_argument('r', c, restricted=True, val_type=int, min_val=1)
+    # check_argument('gradual_training', c, restricted=False, val_type=list)
     # check_argument('mixed_precision', c, restricted=False, val_type=bool)
     # check_argument('grad_accum', c, restricted=True, val_type=int, min_val=1, max_val=100)
 
     # loss parameters
     # check_argument('loss_masking', c, restricted=True, val_type=bool)
-    if c['model'].lower() in ['tacotron', 'tacotron2']:
-        check_argument('decoder_loss_alpha', c, restricted=True, val_type=float, min_val=0)
-        check_argument('postnet_loss_alpha', c, restricted=True, val_type=float, min_val=0)
-        check_argument('postnet_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
-        check_argument('decoder_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
-        check_argument('decoder_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
-        check_argument('postnet_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
-        check_argument('ga_alpha', c, restricted=True, val_type=float, min_val=0)
+    # if c['model'].lower() in ['tacotron', 'tacotron2']:
+    #     check_argument('decoder_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+    #     check_argument('postnet_loss_alpha', c, restricted=True, val_type=float, min_val=0)
+    #     check_argument('postnet_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+    #     check_argument('decoder_diff_spec_alpha', c, restricted=True, val_type=float, min_val=0)
+    #     check_argument('decoder_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+    #     check_argument('postnet_ssim_alpha', c, restricted=True, val_type=float, min_val=0)
+    #     check_argument('ga_alpha', c, restricted=True, val_type=float, min_val=0)
     if c['model'].lower in ["speedy_speech", "align_tts"]:
         check_argument('ssim_alpha', c, restricted=True, val_type=float, min_val=0)
         check_argument('l1_alpha', c, restricted=True, val_type=float, min_val=0)
@@ -279,9 +269,9 @@ def check_config_tts(c):
     check_argument("seq_len_norm", c, restricted=is_tacotron(c), val_type=bool)
 
     # tacotron prenet
-    check_argument("memory_size", c, restricted=is_tacotron(c), val_type=int, min_val=-1)
-    check_argument("prenet_type", c, restricted=is_tacotron(c), val_type=str, enum_list=["original", "bn"])
-    check_argument("prenet_dropout", c, restricted=is_tacotron(c), val_type=bool)
+    # check_argument('memory_size', c, restricted=is_tacotron(c), val_type=int, min_val=-1)
+    # check_argument('prenet_type', c, restricted=is_tacotron(c), val_type=str, enum_list=['original', 'bn'])
+    # check_argument('prenet_dropout', c, restricted=is_tacotron(c), val_type=bool)
 
     # attention
     check_argument(
@@ -305,8 +295,8 @@ def check_config_tts(c):
 
     if c["model"].lower() in ["tacotron", "tacotron2"]:
         # stopnet
-        check_argument("stopnet", c, restricted=is_tacotron(c), val_type=bool)
-        check_argument("separate_stopnet", c, restricted=is_tacotron(c), val_type=bool)
+        # check_argument('stopnet', c, restricted=is_tacotron(c), val_type=bool)
+        # check_argument('separate_stopnet', c, restricted=is_tacotron(c), val_type=bool)
 
     # Model Parameters for non-tacotron models
     if c["model"].lower in ["speedy_speech", "align_tts"]:
@@ -338,27 +328,25 @@ def check_config_tts(c):
     # check_argument('compute_input_seq_cache', c, restricted=True, val_type=bool)
 
     # paths
-    check_argument("output_path", c, restricted=True, val_type=str)
+    # check_argument('output_path', c, restricted=True, val_type=str)
 
     # multi-speaker and gst
-    check_argument("use_speaker_embedding", c, restricted=True, val_type=bool)
-    check_argument("use_external_speaker_embedding_file", c, restricted=c["use_speaker_embedding"], val_type=bool)
-    check_argument(
-        "external_speaker_embedding_file", c, restricted=c["use_external_speaker_embedding_file"], val_type=str
-    )
-    if c["model"].lower() in ["tacotron", "tacotron2"] and c["use_gst"]:
-        check_argument("use_gst", c, restricted=is_tacotron(c), val_type=bool)
-        check_argument("gst", c, restricted=is_tacotron(c), val_type=dict)
-        check_argument("gst_style_input", c["gst"], restricted=is_tacotron(c), val_type=[str, dict])
-        check_argument("gst_embedding_dim", c["gst"], restricted=is_tacotron(c), val_type=int, min_val=0, max_val=1000)
-        check_argument("gst_use_speaker_embedding", c["gst"], restricted=is_tacotron(c), val_type=bool)
-        check_argument("gst_num_heads", c["gst"], restricted=is_tacotron(c), val_type=int, min_val=2, max_val=10)
-        check_argument("gst_style_tokens", c["gst"], restricted=is_tacotron(c), val_type=int, min_val=1, max_val=1000)
+    # check_argument('use_speaker_embedding', c, restricted=True, val_type=bool)
+    # check_argument('use_external_speaker_embedding_file', c, restricted=c['use_speaker_embedding'], val_type=bool)
+    # check_argument('external_speaker_embedding_file', c, restricted=c['use_external_speaker_embedding_file'], val_type=str)
+    if c['model'].lower() in ['tacotron', 'tacotron2'] and c['use_gst']:
+        # check_argument('use_gst', c, restricted=is_tacotron(c), val_type=bool)
+        # check_argument('gst', c, restricted=is_tacotron(c), val_type=dict)
+        # check_argument('gst_style_input', c['gst'], restricted=is_tacotron(c), val_type=[str, dict])
+        # check_argument('gst_embedding_dim', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=0, max_val=1000)
+        # check_argument('gst_use_speaker_embedding', c['gst'], restricted=is_tacotron(c), val_type=bool)
+        # check_argument('gst_num_heads', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=2, max_val=10)
+        # check_argument('gst_num_style_tokens', c['gst'], restricted=is_tacotron(c), val_type=int, min_val=1, max_val=1000)
 
     # datasets - checking only the first entry
-    check_argument("datasets", c, restricted=True, val_type=list)
-    for dataset_entry in c["datasets"]:
-        check_argument("name", dataset_entry, restricted=True, val_type=str)
-        check_argument("path", dataset_entry, restricted=True, val_type=str)
-        check_argument("meta_file_train", dataset_entry, restricted=True, val_type=[str, list])
-        check_argument("meta_file_val", dataset_entry, restricted=True, val_type=str)
+    # check_argument('datasets', c, restricted=True, val_type=list)
+    # for dataset_entry in c['datasets']:
+    #     check_argument('name', dataset_entry, restricted=True, val_type=str)
+    #     check_argument('path', dataset_entry, restricted=True, val_type=str)
+    #     check_argument('meta_file_train', dataset_entry, restricted=True, val_type=[str, list])
+    #     check_argument('meta_file_val', dataset_entry, restricted=True, val_type=str)
