@@ -44,7 +44,7 @@ class Tacotron(TacotronAbstract):
         gst (bool, optional): enable/disable global style token learning. Defaults to False.
         gst_embedding_dim (int, optional): size of channels for GST vectors. Defaults to 512.
         gst_num_heads (int, optional): number of attention heads for GST. Defaults to 4.
-        gst_style_tokens (int, optional): number of GST tokens. Defaults to 10.
+        gst_num_style_tokens (int, optional): number of GST tokens. Defaults to 10.
         gst_use_speaker_embedding (bool, optional): enable/disable inputing speaker embedding to GST. Defaults to False.
         memory_size (int, optional): size of the history queue fed to the prenet. Model feeds the last ```memory_size```
             output frames to the prenet.
