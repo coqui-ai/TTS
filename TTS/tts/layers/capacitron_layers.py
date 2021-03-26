@@ -16,8 +16,8 @@ class CapacitronVAE(nn.Module):
         if text_summary_embedding_dim is not None:
             self.text_summary_net = TextSummary(text_summary_embedding_dim)
 
-    def forward(self, inputs, text_info=None, speaker_embedding=None):
-        enc_out = self.encoder(inputs)
+    def forward(self, inputs, mel_lengths, text_info=None, speaker_embedding=None):
+        enc_out = self.encoder(inputs, mel_lengths)
         # concat speaker_embedding and/or text summary embedding
         if text_info is not None:
             text_inputs = text_info[0]
@@ -59,13 +59,14 @@ class ReferenceEncoder(nn.Module):
 
         post_conv_height = self.calculate_post_conv_height(
             num_mel, 3, 2, 1, num_layers)
-        # TODO: Here comes the LSTM
-        self.recurrence = nn.GRU(
+        # TODO post_conv_lenght also needs to be calculated
+        self.recurrence = nn.LSTM(
             input_size=filters[-1] * post_conv_height,
             hidden_size=embedding_dim,
-            batch_first=True)
+            batch_first=True,
+            bidirectional=False)
 
-    def forward(self, inputs):
+    def forward(self, inputs, input_lengths):
         batch_size = inputs.size(0)
         x = inputs.view(batch_size, 1, -1, self.num_mel)
         # x: 4D tensor [batch_size, num_channels==1, num_frames, num_mel]
@@ -81,11 +82,12 @@ class ReferenceEncoder(nn.Module):
         x = x.contiguous().view(batch_size, post_conv_width, -1)
         # x: 3D tensor [batch_size, post_conv_width,
         #               num_channels*post_conv_height]
-        self.recurrence.flatten_parameters()
-        _, out = self.recurrence(x)
-        # out: 3D tensor [seq_len==1, batch_size, encoding_size=128]
 
-        return out.squeeze(0)
+        # Get last value of LSTM
+        post_conv_input_lengths = [post_conv_width] * batch_size
+        o, _ = self.recurrence(x)
+        last_output = extract_axis_1(o.cpu(), torch.LongTensor(post_conv_input_lengths).cpu())
+        return last_output.cuda()
 
     @staticmethod
     def calculate_post_conv_height(height, kernel_size, stride, pad,
@@ -104,6 +106,9 @@ class TextSummary(nn.Module):
                             bidirectional=False)
 
     def forward(self, inputs, input_lengths):
-        o, _ = self.lstm(inputs)
-        last_output = extract_axis_1(o.cpu(), input_lengths.cpu())
+        # Routine for fetching the last valid output of a dynamic LSTM with varying input lengths and padding
+        packed_seqs = nn.utils.rnn.pack_padded_sequence(inputs, input_lengths.tolist(), batch_first=True, enforce_sorted=False) # dynamic rnn sequence padding
+        o, _ = self.lstm(packed_seqs)
+        out_dynamic, _ = nn.utils.rnn.pad_packed_sequence(o, batch_first=True) # inverse repadding
+        last_output = extract_axis_1(out_dynamic.cpu(), input_lengths.cpu())
         return last_output

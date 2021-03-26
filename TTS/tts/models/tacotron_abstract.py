@@ -229,7 +229,7 @@ class TacotronAbstract(ABC, nn.Module):
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
 
-    def compute_VAE_reference_embedding(self, inputs, reference_mel, text_info=None, speaker_embedding=None):
+    def compute_VAE_reference_embedding(self, inputs, reference_mel, mel_length, text_info=None, speaker_embedding=None):
         # TODO This is still just gst for now, capacitron to come
         """ Compute global style token """
         device = inputs.device
@@ -251,7 +251,7 @@ class TacotronAbstract(ABC, nn.Module):
             # TODO SAMPLE FROM PRIOR
             gst_outputs = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim).to(device)
         else:
-            gst_outputs = self.capacitron_layer(reference_mel, text_info, speaker_embedding)  # pylint: disable=not-callable
+            gst_outputs = self.capacitron_layer(reference_mel, mel_length, text_info, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs) #concatenate to the output of the basic tacotron encoder
         return inputs
 

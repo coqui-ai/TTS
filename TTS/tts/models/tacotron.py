@@ -182,6 +182,7 @@ class Tacotron(TacotronAbstract):
             # B x capacitron_VAE_embedding_dim
             encoder_outputs = self.compute_VAE_reference_embedding(encoder_outputs,
                                                                    mel_specs,
+                                                                   mel_lengths,
                                                                    text_info=[inputs, text_lengths] if self.capacitron_use_text_summary_embeddings else None,
                                                                    speaker_embedding=speaker_embeddings if self.capacitron_use_speaker_embedding else None)
         # speaker embedding
@@ -222,6 +223,7 @@ class Tacotron(TacotronAbstract):
     def inference(self, characters, speaker_ids=None, style_mel=None, reference_mel=None, speaker_embeddings=None):
         inputs = self.embedding(characters)
         text_length = len(inputs)
+        mel_length = len(reference_mel)
         encoder_outputs = self.encoder(inputs)
         if self.gst:
             # B x gst_dim
@@ -232,6 +234,7 @@ class Tacotron(TacotronAbstract):
             # B x capacitron_VAE_embedding_dim
             encoder_outputs = self.compute_VAE_reference_embedding(encoder_outputs,
                                                                    reference_mel,
+                                                                   mel_length,
                                                                    text_info=[inputs, text_length] if self.capacitron_use_text_summary_embeddings else None,
                                                                    speaker_embedding=speaker_embeddings if self.capacitron_use_speaker_embedding else None)
 
