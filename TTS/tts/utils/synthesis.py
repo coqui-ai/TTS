@@ -1,12 +1,12 @@
+from .text import text_to_sequence, phoneme_to_sequence
+import numpy as np
+import torch
+import pkg_resources
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import pkg_resources
 installed = {pkg.key for pkg in pkg_resources.working_set}  #pylint: disable=not-an-iterable
 if 'tensorflow' in installed or 'tensorflow-gpu' in installed:
     import tensorflow as tf
-import torch
-import numpy as np
-from .text import text_to_sequence, phoneme_to_sequence
 
 
 def text_to_seqvec(text, CONFIG):
@@ -26,7 +26,7 @@ def text_to_seqvec(text, CONFIG):
             tp=CONFIG.characters if 'characters' in CONFIG.keys() else None,
             add_blank=CONFIG['add_blank']
             if 'add_blank' in CONFIG.keys() else False),
-                         dtype=np.int32)
+            dtype=np.int32)
     return seq
 
 
@@ -234,8 +234,8 @@ def synthesis(model,
             ap (TTS.tts.utils.audio.AudioProcessor): audio processor to process
                 model outputs.
             speaker_id (int): id of speaker
-            style_wav (str | Dict[str, float]): Uses for style embedding of GST.
-            reference_wav (str | Dict[str, float]): Uses for reference embedding of Capacitron.
+            style_wav (str | Dict[str, float]): Used for style embedding of GST.
+            reference_wav (str | Dict[str, float]): Used for reference embedding of Capacitron.
             truncated (bool): keep model states after inference. It can be used
                 for continuous inference at long texts.
             enable_eos_bos_chars (bool): enable special chars for end of sentence and start of sentence.
@@ -252,7 +252,7 @@ def synthesis(model,
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
     if 'use_capacitron' in CONFIG.keys() and CONFIG.use_capacitron and reference_wav is not None:
         if isinstance(reference_wav, dict):
-            style_mel = reference_wav
+            reference_mel = reference_wav
         else:
             reference_mel = compute_reference_mel(style_wav, ap, cuda=use_cuda)
     # preprocess the given text

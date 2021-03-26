@@ -6,7 +6,6 @@ from torch import nn
 
 from TTS.tts.utils.generic_utils import sequence_mask
 
-
 class TacotronAbstract(ABC, nn.Module):
     def __init__(self,
                  num_chars,
@@ -102,8 +101,6 @@ class TacotronAbstract(ABC, nn.Module):
         if self.capacitron:
             self.decoder_in_features += capacitron_VAE_embedding_dim  # add capacitron embedding dim
             self.capacitron_layer = None
-            if self.capacitron_use_text_summary_embeddings:
-                self.decoder_in_features += capacitron_text_summary_embedding_dim # add capacitron text summary embedding dim
 
         # model states
         self.speaker_embeddings = None
@@ -229,9 +226,10 @@ class TacotronAbstract(ABC, nn.Module):
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
 
-    def compute_VAE_reference_embedding(self, inputs, reference_mel, mel_length, text_info=None, speaker_embedding=None):
-        # TODO This is still just gst for now, capacitron to come
-        """ Compute global style token """
+    def compute_VAE_embedding(self, inputs, reference_mel_info, text_info=None, speaker_embedding=None):
+        """ Capacitron Variational Autoencoder  """
+        reference_mel = reference_mel_info[0]
+        # TODO Figure out what to do with all this below
         device = inputs.device
         if isinstance(reference_mel, dict):
             query = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim // 2).to(device)
@@ -247,12 +245,9 @@ class TacotronAbstract(ABC, nn.Module):
             #     gst_outputs_att = self.capacitron_layer.style_token_layer.attention(
             #         query, key)
             #     gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
-        elif reference_mel is None:
-            # TODO SAMPLE FROM PRIOR
-            gst_outputs = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim).to(device)
         else:
-            gst_outputs = self.capacitron_layer(reference_mel, mel_length, text_info, speaker_embedding)  # pylint: disable=not-callable
-        inputs = self._concat_speaker_embedding(inputs, gst_outputs) #concatenate to the output of the basic tacotron encoder
+            VAE_outputs = self.capacitron_layer(reference_mel_info, text_info, speaker_embedding)  # pylint: disable=not-callable
+        inputs = self._concat_speaker_embedding(inputs, VAE_outputs) # concatenate to the output of the basic tacotron encoder
         return inputs
 
     @staticmethod
