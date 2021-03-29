@@ -94,6 +94,16 @@
                     "contact": "egolge@coqui.com"
                 }
             }
+        },
+        "de":{
+            "thorsten":{
+                "tacotron2-DCA":{
+                    "github_rls_url": "",
+                    "default_vocoder": "vocoder_models/de/thorsten/wavegrad",
+                    "author": "@thorstenMueller",
+                    "commit": "unknown"
+                }
+            }
         }
     },
     "vocoder_models":{
@@ -138,6 +148,15 @@
                 "parallel-wavegan":{
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/vocoder_models--nl--mai--parallel-wavegan.zip",
                     "author": "@r-dh",
+                    "commit": "unknown"
+                }
+            }
+        },
+        "de":{
+            "thorsten":{
+                "wavegrad":{
+                    "github_rls_url": "",
+                    "author": "@thorstenMueller",
                     "commit": "unknown"
                 }
             }
