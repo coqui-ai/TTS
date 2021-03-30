@@ -175,7 +175,7 @@ Run a tts and a vocoder model from the released model list. (Simply copy and pas
 tts --text "Text for TTS" \
     --model_name "<type>/<language>/<dataset>/<model_name>" \
     --vocoder_name "<type>/<language>/<dataset>/<model_name>" \
-    --out_path folder/to/save/output/
+    --out_path folder/to/save/output.wav
 ```
 
 Run your own TTS model (Using Griffin-Lim Vocoder)
@@ -183,7 +183,7 @@ Run your own TTS model (Using Griffin-Lim Vocoder)
 tts --text "Text for TTS" \
     --model_path path/to/model.pth.tar \
     --config_path path/to/config.json \
-    --out_path output/path/speech.wav
+    --out_path folder/to/save/output.wav
 ```
 
 Run your own TTS and Vocoder models
@@ -191,7 +191,7 @@ Run your own TTS and Vocoder models
 tts --text "Text for TTS" \
     --model_path path/to/config.json \
     --config_path path/to/model.pth.tar \
-    --out_path output/path/speech.wav \
+    --out_path folder/to/save/output.wav \
     --vocoder_path path/to/vocoder.pth.tar \
     --vocoder_config_path path/to/vocoder_config.json
 ```
