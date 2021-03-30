@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import os
 import sys
-import string
 from argparse import RawTextHelpFormatter
 # pylint: disable=redefined-outer-name, unused-argument
 from pathlib import Path
