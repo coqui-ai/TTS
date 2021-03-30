@@ -103,8 +103,8 @@ def main():
     parser.add_argument(
         '--out_path',
         type=str,
-        default=Path(__file__).resolve().parent,
-        help='Path to save final wav file. Wav file will be named as the given text.',
+        default='tts_output.wav',
+        help='Output wav file path.',
     )
     parser.add_argument(
         '--use_cuda',
@@ -218,12 +218,8 @@ def main():
     wav = synthesizer.tts(args.text)
 
     # save the results
-    file_name = args.text.replace(" ", "_")[0:20]
-    file_name = file_name.translate(
-        str.maketrans('', '', string.punctuation.replace('_', ''))) + '.wav'
-    out_path = os.path.join(args.out_path, file_name)
-    print(" > Saving output to {}".format(out_path))
-    synthesizer.save_wav(wav, out_path,)
+    print(" > Saving output to {}".format(args.out_path))
+    synthesizer.save_wav(wav, args.out_path)
 
 
 if __name__ == "__main__":
