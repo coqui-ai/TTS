@@ -23,33 +23,32 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def read_json_with_comments(json_path):
-    # fallback to json
-    with open(json_path, "r", encoding="utf-8") as f:
-        input_str = f.read()
-    # handle comments
-    input_str = re.sub(r"\\\n", "", input_str)
-    input_str = re.sub(r"//.*\n", "\n", input_str)
-    data = json.loads(input_str)
-    return data
+# def read_json_with_comments(json_path):
+#     # fallback to json
+#     with open(json_path, "r", encoding="utf-8") as f:
+#         input_str = f.read()
+#     # handle comments
+#     input_str = re.sub(r'\\\n', '', input_str)
+#     input_str = re.sub(r'//.*\n', '\n', input_str)
+#     data = json.loads(input_str)
+#     return data
 
+# def load_config(config_path: str) -> AttrDict:
+#     """Load config files and discard comments
 
-def load_config(config_path: str) -> AttrDict:
-    """Load config files and discard comments
+#     Args:
+#         config_path (str): path to config file.
+#     """
+#     config = AttrDict()
 
-    Args:
-        config_path (str): path to config file.
-    """
-    config = AttrDict()
-
-    ext = os.path.splitext(config_path)[1]
-    if ext in (".yml", ".yaml"):
-        with open(config_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-    else:
-        data = read_json_with_comments(config_path)
-    config.update(data)
-    return config
+#     ext = os.path.splitext(config_path)[1]
+#     # if ext in (".yml", ".yaml"):
+#     #     with open(config_path, "r", encoding="utf-8") as f:
+#     #         data = yaml.safe_load(f)
+#     # else:
+#         data = read_json_with_comments(config_path)
+#     config.update(data)
+#     return config
 
 
 def copy_model_files(c, config_file, out_path, new_fields):
