@@ -117,16 +117,11 @@ def get_last_checkpoint(path):
     return last_models["checkpoint"], last_models["best_model"]
 
 
-def process_args(args, model_class):
-    """Process parsed comand line arguments based on model class (tts or vocoder).
+def process_args(args, config, tb_prefix):
+    """Process parsed comand line arguments.
 
     Args:
         args (argparse.Namespace or dict like): Parsed input arguments.
-        model_type (str): Model type used to check config parameters and setup
-            the TensorBoard logger. One of ['tts', 'vocoder'].
-
-    Raises:
-        ValueError: If `model_type` is not one of implemented choices.
 
     Returns:
         c (TTS.utils.io.AttrDict): Config paramaters.
@@ -138,28 +133,21 @@ def process_args(args, model_class):
             the TensorBoard loggind.
     """
     if args.continue_path:
+        # continue a previous training from its output folder
         args.output_path = args.continue_path
         args.config_path = os.path.join(args.continue_path, "config.json")
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-
     # setup output paths and read configs
-    c = load_config(args.config_path)
-    _ = os.path.dirname(os.path.realpath(__file__))
-
-    if "mixed_precision" in c and c.mixed_precision:
+    c = config.load_json(args.config_path)
+    if c.mixed_precision:
         print("   >  Mixed precision mode is ON")
-
-    out_path = args.continue_path
-    if not out_path:
-        out_path = create_experiment_folder(c.output_path, c.run_name, args.debug)
-
+    if not os.path.exists(c.output_path):
+        out_path = create_experiment_folder(c.output_path, c.run_name,
+                                            args.debug)
     audio_path = os.path.join(out_path, "test_audios")
-
-    c_logger = ConsoleLogger()
-    tb_logger = None
-
+    # setup rank 0 process in distributed training
     if args.rank == 0:
         os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
@@ -169,18 +157,15 @@ def process_args(args, model_class):
         # if model characters are not set in the config file
         # save the default set to the config file for future
         # compatibility.
-        if model_class == "tts" and "characters" not in c:
+        if c.has('characters_config'):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(c, args.config_path, out_path, new_fields)
         os.chmod(audio_path, 0o775)
         os.chmod(out_path, 0o775)
-
         log_path = out_path
-
-        tb_logger = TensorboardLogger(log_path, model_name=model_class.upper())
-
-        # write model config to tensorboard
-        tb_logger.tb_add_text("model-config", f"<pre>{json.dumps(c, indent=4)}</pre>", 0)
-
+        tb_logger = TensorboardLogger(log_path, model_name=tb_prefix)
+        # write model desc to tensorboard
+        tb_logger.tb_add_text("model-description", c["run_description"], 0)
+    c_logger = ConsoleLogger()
     return c, out_path, audio_path, c_logger, tb_logger
