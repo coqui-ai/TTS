@@ -8,12 +8,10 @@ import json
 import os
 import re
 
-import torch
-
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
-from TTS.utils.io import copy_model_files, load_config
+from TTS.utils.io import copy_model_files
 from TTS.utils.tensorboard_logger import TensorboardLogger
 
 
@@ -140,11 +138,11 @@ def process_args(args, config, tb_prefix):
         if not args.best_path:
             args.best_path = best_model
     # setup output paths and read configs
-    c = config.load_json(args.config_path)
-    if c.mixed_precision:
+    config.load_json(args.config_path)
+    if config.mixed_precision:
         print("   >  Mixed precision mode is ON")
-    if not os.path.exists(c.output_path):
-        out_path = create_experiment_folder(c.output_path, c.run_name,
+    if not os.path.exists(config.output_path):
+        out_path = create_experiment_folder(config.output_path, config.run_name,
                                             args.debug)
     audio_path = os.path.join(out_path, "test_audios")
     # setup rank 0 process in distributed training
@@ -157,7 +155,7 @@ def process_args(args, config, tb_prefix):
         # if model characters are not set in the config file
         # save the default set to the config file for future
         # compatibility.
-        if c.has('characters_config'):
+        if config.has('characters_config'):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(c, args.config_path, out_path, new_fields)
@@ -166,6 +164,6 @@ def process_args(args, config, tb_prefix):
         log_path = out_path
         tb_logger = TensorboardLogger(log_path, model_name=tb_prefix)
         # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", c["run_description"], 0)
+        tb_logger.tb_add_text("model-description", config["run_description"], 0)
     c_logger = ConsoleLogger()
     return c, out_path, audio_path, c_logger, tb_logger

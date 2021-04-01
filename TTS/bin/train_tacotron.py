@@ -10,11 +10,9 @@ from random import randrange
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import TacotronLoss
-from TTS.tts.configs.tacotron_config import TacotronConfig
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
@@ -24,8 +22,11 @@ from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.distribute import DistributedSampler, apply_gradient_allreduce, init_distributed, reduce_tensor
-from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
+from TTS.utils.config_manager import ConfigManager
+from TTS.utils.distribute import (DistributedSampler, apply_gradient_allreduce,
+                                  init_distributed, reduce_tensor)
+from TTS.utils.generic_utils import (KeepAverage, count_parameters,
+                                     remove_experiment_folder, set_init_dict)
 from TTS.utils.radam import RAdam
 from TTS.utils.training import (
     NoamLR,
@@ -739,7 +740,10 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 if __name__ == "__main__":
     args = parse_arguments(sys.argv)
-    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args, model_class="tts")
+    c = TacotronConfig()
+    args = c.init_argparse(args)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
+        args, c, model_type='tacotron')
 
     try:
         main(args)
