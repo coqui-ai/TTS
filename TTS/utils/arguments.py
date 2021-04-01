@@ -7,6 +7,7 @@ import glob
 import os
 import re
 
+import torch
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
@@ -103,7 +104,7 @@ def get_last_checkpoint(path):
         key_file_names = [fn for fn in file_names if key in fn]
         if last_model is None and len(key_file_names) > 0:
             last_model = max(key_file_names, key=os.path.getctime)
-            last_model_num = os.path.getctime(last_model)
+            last_model_num = torch.load(last_model)['step']
 
         if last_model is not None:
             last_models[key] = last_model
