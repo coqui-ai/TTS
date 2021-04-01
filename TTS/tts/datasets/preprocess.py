@@ -1,12 +1,12 @@
 import os
-from glob import glob
 import re
 import sys
+import xml.etree.ElementTree as ET
+from glob import glob
 from pathlib import Path
 from typing import List
 
 from tqdm import tqdm
-
 from TTS.tts.utils.generic_utils import split_dataset
 
 ####################
@@ -165,6 +165,23 @@ def ljspeech(root_path, meta_file):
             wav_file = os.path.join(root_path, 'wavs', cols[0] + '.wav')
             text = cols[1]
             items.append([text, wav_file, speaker_name])
+    return items
+
+
+def sam_accenture(root_path, meta_file):
+    """Normalizes the sam-accenture meta data file to TTS format
+    https://github.com/Sam-Accenture-Non-Binary-Voice/non-binary-voice-files"""
+    xml_file = os.path.join(root_path, 'voice_over_recordings', meta_file)
+    xml_root = ET.parse(xml_file).getroot()
+    items = []
+    speaker_name = "sam_accenture"
+    for item in xml_root.findall('./fileid'):
+        text = item.text
+        wav_file = os.path.join(root_path, 'vo_voice_quality_transformation', item.get('id')+'.wav')
+        if not os.path.exists(wav_file):
+            print(f' [!] {wav_file} in metafile does not exist. Skipping...')
+            continue
+        items.append([text, wav_file, speaker_name])
     return items
 
 
