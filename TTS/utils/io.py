@@ -3,6 +3,7 @@ import os
 import pickle as pickle_tts
 import re
 from shutil import copyfile
+from TTS.utils.generic_utils import find_module
 
 import yaml
 
@@ -23,32 +24,37 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-# def read_json_with_comments(json_path):
-#     # fallback to json
-#     with open(json_path, "r", encoding="utf-8") as f:
-#         input_str = f.read()
-#     # handle comments
-#     input_str = re.sub(r'\\\n', '', input_str)
-#     input_str = re.sub(r'//.*\n', '\n', input_str)
-#     data = json.loads(input_str)
-#     return data
+def read_json_with_comments(json_path):
+    """DEPRECATED"""
+    # fallback to json
+    with open(json_path, "r", encoding="utf-8") as f:
+        input_str = f.read()
+    # handle comments
+    input_str = re.sub(r'\\\n', '', input_str)
+    input_str = re.sub(r'//.*\n', '\n', input_str)
+    data = json.loads(input_str)
+    return data
 
-# def load_config(config_path: str) -> AttrDict:
-#     """Load config files and discard comments
+def load_config(config_path: str) -> AttrDict:
+    """DEPRECATED: Load config files and discard comments
 
-#     Args:
-#         config_path (str): path to config file.
-#     """
-#     config = AttrDict()
-
-#     ext = os.path.splitext(config_path)[1]
-#     # if ext in (".yml", ".yaml"):
-#     #     with open(config_path, "r", encoding="utf-8") as f:
-#     #         data = yaml.safe_load(f)
-#     # else:
-#         data = read_json_with_comments(config_path)
-#     config.update(data)
-#     return config
+    Args:
+        config_path (str): path to config file.
+    """
+    config_dict = AttrDict()
+    ext = os.path.splitext(config_path)[1]
+    if ext in (".yml", ".yaml"):
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    else:
+        with open(config_path, "r", encoding="utf-8") as f:
+            input_str = f.read()
+        data = json.loads(input_str)
+    config_dict.update(data)
+    config_class = find_module('TTS.tts.configs', config_dict.model.lower()+'_config')
+    config = config_class()
+    config.from_dict(config_dict)
+    return
 
 
 def copy_model_files(c, config_file, out_path, new_fields):

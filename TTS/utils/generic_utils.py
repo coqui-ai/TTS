@@ -1,6 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import datetime
 import glob
+import importlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -65,6 +69,20 @@ def remove_experiment_folder(experiment_path):
 def count_parameters(model):
     r"""Count number of trainable parameters in a network"""
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def to_camel(text):
+    text = text.capitalize()
+    text = re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
+    text = text.replace('Tts', 'TTS')
+    return text
+
+
+def find_module(module_path: str, module_name: str) -> object:
+    module_name = module_name.lower()
+    module = importlib.import_module(module_path+'.'+module_name)
+    class_name = to_camel(module_name)
+    return getattr(module, class_name)
 
 
 def get_user_data_dir(appname):
@@ -139,32 +157,3 @@ class KeepAverage:
         for key, value in value_dict.items():
             self.update_value(key, value)
 
-
-def check_argument(name,
-                   c,
-                   prerequest=None,
-                   enum_list=None,
-                   max_val=None,
-                   min_val=None,
-                   restricted=False,
-                   alternative=None,
-                   allow_none=False):
-    if isinstance(prerequest, List()):
-        if any([f not in c.keys() for f in prerequest]):
-            return
-    else:
-        if prerequest not in c.keys():
-            return
-    if alternative in c.keys() and c[alternative] is not None:
-        return
-    if allow_none and c[name] is None:
-        return
-    if restricted:
-        assert name in c.keys(), f" [!] {name} not defined in config.json"
-    if name in c.keys():
-        if max_val:
-            assert c[name] <= max_val, f" [!] {name} is larger than max value {max_val}"
-        if min_val:
-            assert c[name] >= min_val, f" [!] {name} is smaller than min value {min_val}"
-        if enum_list:
-            assert c[name].lower() in enum_list, f' [!] {name} is not a valid value'
