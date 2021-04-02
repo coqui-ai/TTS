@@ -6,16 +6,17 @@ import argparse
 import glob
 import json
 import os
+import sys
 import re
 
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
-from TTS.utils.io import copy_model_files
+from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.tensorboard_logger import TensorboardLogger
 
 
-def parse_arguments(argv):
+def init_arguments(argv):
     """Parse command line arguments of training scripts.
 
     Args:
@@ -45,16 +46,26 @@ def parse_arguments(argv):
             "Best model file to be used for extracting best loss."
             "If not specified, the latest best model in continue path is used"
         ),
-        default="",
-    )
+        default="")
+    parser.add_argument("--config_path",
+                        type=str,
+                        help="Path to config file for training.",
+                        required="--continue_path" not in argv)
+    parser.add_argument("--debug",
+                        type=bool,
+                        default=False,
+                        help="Do not verify commit integrity to run training.")
     parser.add_argument(
-        "--config_path", type=str, help="Path to config file for training.", required="--continue_path" not in argv
-    )
-    parser.add_argument("--debug", type=bool, default=False, help="Do not verify commit integrity to run training.")
-    parser.add_argument("--rank", type=int, default=0, help="DISTRIBUTED: process rank for distributed training.")
-    parser.add_argument("--group_id", type=str, default="", help="DISTRIBUTED: process group id.")
+        "--rank",
+        type=int,
+        default=0,
+        help="DISTRIBUTED: process rank for distributed training.")
+    parser.add_argument("--group_id",
+                        type=str,
+                        default="",
+                        help="DISTRIBUTED: process group id.")
 
-    return parser.parse_args()
+    return parser
 
 
 def get_last_checkpoint(path):
@@ -115,7 +126,7 @@ def get_last_checkpoint(path):
     return last_models["checkpoint"], last_models["best_model"]
 
 
-def process_args(args, config, tb_prefix):
+def process_args(args):
     """Process parsed comand line arguments.
 
     Args:
@@ -130,21 +141,27 @@ def process_args(args, config, tb_prefix):
         tb_logger (TTS.utils.tensorboard.TensorboardLogger): Class that does
             the TensorBoard loggind.
     """
+    if isinstance(args, tuple):
+        args, coqpit_overrides = args
     if args.continue_path:
         # continue a previous training from its output folder
-        args.output_path = args.continue_path
+        experiment_path = args.continue_path
         args.config_path = os.path.join(args.continue_path, "config.json")
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
     # setup output paths and read configs
-    config.load_json(args.config_path)
+    config = load_config(args.config_path)
+    # override values from command-line args
+    config.parse_args(coqpit_overrides)
     if config.mixed_precision:
         print("   >  Mixed precision mode is ON")
     if not os.path.exists(config.output_path):
-        out_path = create_experiment_folder(config.output_path, config.run_name,
-                                            args.debug)
-    audio_path = os.path.join(out_path, "test_audios")
+        experiment_path = create_experiment_folder(config.output_path,
+                                                   config.run_name, args.debug)
+    else:
+        experiment_path = config.output_path
+    audio_path = os.path.join(experiment_path, "test_audios")
     # setup rank 0 process in distributed training
     if args.rank == 0:
         os.makedirs(audio_path, exist_ok=True)
@@ -157,13 +174,22 @@ def process_args(args, config, tb_prefix):
         # compatibility.
         if config.has('characters_config'):
             used_characters = parse_symbols()
-            new_fields["characters"] = used_characters
-        copy_model_files(c, args.config_path, out_path, new_fields)
+            new_fields['characters'] = used_characters
+        copy_model_files(config, args.config_path, experiment_path, new_fields)
         os.chmod(audio_path, 0o775)
-        os.chmod(out_path, 0o775)
-        log_path = out_path
-        tb_logger = TensorboardLogger(log_path, model_name=tb_prefix)
+        os.chmod(experiment_path, 0o775)
+        tb_logger = TensorboardLogger(experiment_path,
+                                      model_name=config.model)
         # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", config["run_description"], 0)
+        tb_logger.tb_add_text("model-description", config["run_description"],
+                              0)
     c_logger = ConsoleLogger()
-    return c, out_path, audio_path, c_logger, tb_logger
+    return config, experiment_path, audio_path, c_logger, tb_logger
+
+
+def init_training(argv):
+    """Initialization of a training run."""
+    parser = init_arguments(argv)
+    args = parser.parse_known_args()
+    config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args)
+    return args[0], config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger

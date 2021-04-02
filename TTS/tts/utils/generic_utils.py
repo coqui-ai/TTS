@@ -38,7 +38,7 @@ def sequence_mask(sequence_length, max_len=None):
 
 def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     print(" > Using model: {}".format(c.model))
-    find_module("TTS.tts.models",  c.model.lower())
+    MyModel = find_module("TTS.tts.models",  c.model.lower())
     if c.model.lower() in "tacotron":
         model = MyModel(
             num_chars=num_chars + getattr(c, "add_blank", False),
@@ -76,11 +76,11 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             r=c.r,
             postnet_output_dim=c.audio["num_mels"],
             decoder_output_dim=c.audio["num_mels"],
-            gst=c.use_gst,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
-            gst_use_speaker_embedding=c.gst["gst_use_speaker_embedding"],
+            gst=c.gst is not None,
+            gst_embedding_dim=None if c.gst is  None else c.gst['gst_embedding_dim'],
+            gst_num_heads=None if c.gst is  None else c.gst['gst_num_heads'],
+            gst_num_style_tokens=None if c.gst is  None else c.gst['gst_num_style_tokens'],
+            gst_use_speaker_embedding=None if c.gst is  None else c.gst['gst_use_speaker_embedding'],
             attn_type=c.attention_type,
             attn_win=c.windowing,
             attn_norm=c.attention_norm,

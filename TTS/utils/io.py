@@ -3,9 +3,11 @@ import os
 import pickle as pickle_tts
 import re
 from shutil import copyfile
-from TTS.utils.generic_utils import find_module
 
 import yaml
+from TTS.utils.generic_utils import find_module
+
+from .generic_utils import find_module
 
 
 class RenamingUnpickler(pickle_tts.Unpickler):
@@ -35,26 +37,25 @@ def read_json_with_comments(json_path):
     data = json.loads(input_str)
     return data
 
-def load_config(config_path: str) -> AttrDict:
-    """DEPRECATED: Load config files and discard comments
 
-    Args:
-        config_path (str): path to config file.
-    """
-    config_dict = AttrDict()
+def load_config(config_path: str) -> None:
+    config_dict = {}
     ext = os.path.splitext(config_path)[1]
     if ext in (".yml", ".yaml"):
         with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-    else:
+    elif ext == '.json':
         with open(config_path, "r", encoding="utf-8") as f:
             input_str = f.read()
         data = json.loads(input_str)
+    else:
+        raise TypeError(f' [!] Unknown config file type {ext}')
     config_dict.update(data)
-    config_class = find_module('TTS.tts.configs', config_dict.model.lower()+'_config')
+    config_class = find_module('TTS.tts.configs', config_dict['model'].lower()+'_config')
     config = config_class()
     config.from_dict(config_dict)
-    return
+    return config
+
 
 
 def copy_model_files(c, config_file, out_path, new_fields):
