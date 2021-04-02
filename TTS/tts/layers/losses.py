@@ -297,6 +297,11 @@ class TacotronLoss(torch.nn.Module):
                 stopnet_output, stopnet_target, output_lens, decoder_b_output,
                 alignments, alignment_lens, alignments_backwards, input_lens):
 
+
+        # decoder outputs linear or mel spectrograms for Tacotron and Tacotron2
+        # the target should be set acccordingly
+        postnet_target = linear_input if self.config.model.lower() in ["tacotron"] else mel_input
+
         return_dict = {}
         # remove lengths if no masking is applied
         if not self.config.loss_masking:
@@ -307,20 +312,13 @@ class TacotronLoss(torch.nn.Module):
                 decoder_loss = self.criterion(decoder_output, mel_input,
                                               output_lens)
             if self.postnet_alpha > 0:
-                if self.config.model in ["Tacotron", "TacotronGST"]:
-                    postnet_loss = self.criterion(postnet_output, linear_input,
-                                                  output_lens)
-                else:
-                    postnet_loss = self.criterion(postnet_output, mel_input,
-                                                  output_lens)
+                postnet_loss = self.criterion(postnet_output, postnet_target,
+                                              output_lens)
         else:
             if self.decoder_alpha > 0:
                 decoder_loss = self.criterion(decoder_output, mel_input)
             if self.postnet_alpha > 0:
-                if self.config.model in ["Tacotron", "TacotronGST"]:
-                    postnet_loss = self.criterion(postnet_output, linear_input)
-                else:
-                    postnet_loss = self.criterion(postnet_output, mel_input)
+                postnet_loss = self.criterion(postnet_output, postnet_target)
         loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
         return_dict['decoder_loss'] = decoder_loss
         return_dict['postnet_loss'] = postnet_loss
@@ -373,7 +371,7 @@ class TacotronLoss(torch.nn.Module):
 
         # postnet differential spectral loss
         if self.config.postnet_diff_spec_alpha > 0:
-            postnet_diff_spec_loss = self.criterion_diff_spec(postnet_output, mel_input, output_lens)
+            postnet_diff_spec_loss = self.criterion_diff_spec(postnet_output, postnet_target, output_lens)
             loss += postnet_diff_spec_loss * self.postnet_diff_spec_alpha
             return_dict['postnet_diff_spec_loss'] = postnet_diff_spec_loss
 
@@ -385,7 +383,7 @@ class TacotronLoss(torch.nn.Module):
 
         # postnet ssim loss
         if self.config.postnet_ssim_alpha > 0:
-            postnet_ssim_loss = self.criterion_ssim(postnet_output, mel_input, output_lens)
+            postnet_ssim_loss = self.criterion_ssim(postnet_output, postnet_target, output_lens)
             loss += postnet_ssim_loss * self.postnet_ssim_alpha
             return_dict['postnet_ssim_loss'] = postnet_ssim_loss
 
@@ -442,5 +440,117 @@ class SpeedySpeechLoss(nn.Module):
         l1_loss = self.l1(decoder_output, decoder_target, decoder_output_lens)
         ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
         huber_loss = self.huber(dur_output, dur_target, input_lens)
-        loss = l1_loss + ssim_loss + huber_loss
+        loss = self.l1_alpha * l1_loss + self.ssim_alpha * ssim_loss + self.huber_alpha * huber_loss
         return {'loss': loss, 'loss_l1': l1_loss, 'loss_ssim': ssim_loss, 'loss_dur': huber_loss}
+
+
+def mse_loss_custom(x, y):
+    """MSE loss using the torch back-end without reduction.
+    It uses less VRAM than the raw code"""
+    expanded_x, expanded_y = torch.broadcast_tensors(x, y)
+    return torch._C._nn.mse_loss(expanded_x, expanded_y, 0)  # pylint: disable=protected-access, c-extension-no-member
+
+
+class MDNLoss(nn.Module):
+    """Mixture of Density Network Loss as described in https://arxiv.org/pdf/2003.01950.pdf.
+    """
+
+    def forward(self, logp, text_lengths, mel_lengths):  # pylint: disable=no-self-use
+        '''
+        Shapes:
+            mu: [B, D, T]
+            log_sigma: [B, D, T]
+            mel_spec: [B, D, T]
+        '''
+        B, T_seq, T_mel = logp.shape
+        log_alpha = logp.new_ones(B, T_seq, T_mel)*(-1e4)
+        log_alpha[:, 0, 0] = logp[:, 0, 0]
+        for t in range(1, T_mel):
+            prev_step = torch.cat([log_alpha[:, :, t-1:t], functional.pad(log_alpha[:, :, t-1:t],
+                                                                          (0, 0, 1, -1), value=-1e4)], dim=-1)
+            log_alpha[:, :, t] = torch.logsumexp(prev_step + 1e-4, dim=-1) + logp[:, :, t]
+        alpha_last = log_alpha[torch.arange(B), text_lengths-1, mel_lengths-1]
+        mdn_loss = -alpha_last.mean() / T_seq
+        return mdn_loss#, log_prob_matrix
+
+
+class AlignTTSLoss(nn.Module):
+    """Modified AlignTTS Loss.
+    Computes following losses
+        - L1 and SSIM losses from output spectrograms.
+        - Huber loss for duration predictor.
+        - MDNLoss for Mixture of Density Network.
+
+    All the losses are aggregated by a weighted sum with the loss alphas.
+    Alphas can be scheduled based on number of steps.
+
+    Args:
+        c (dict): TTS model configuration.
+    """
+    def __init__(self, c):
+        super().__init__()
+        self.mdn_loss = MDNLoss()
+        self.spec_loss = MSELossMasked(False)
+        self.ssim = SSIMLoss()
+        self.dur_loss = MSELossMasked(False)
+
+        self.ssim_alpha = c.ssim_alpha
+        self.dur_loss_alpha = c.dur_loss_alpha
+        self.spec_loss_alpha = c.spec_loss_alpha
+        self.mdn_alpha = c.mdn_alpha
+
+    def forward(self, logp, decoder_output, decoder_target, decoder_output_lens, dur_output, dur_target,
+                input_lens, step, phase):
+        ssim_alpha, dur_loss_alpha, spec_loss_alpha, mdn_alpha = self.set_alphas(
+            step)
+        spec_loss, ssim_loss, dur_loss, mdn_loss = 0, 0, 0, 0
+        if phase == 0:
+            mdn_loss = self.mdn_loss(logp, input_lens, decoder_output_lens)
+        elif phase == 1:
+            spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
+            ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
+        elif phase == 2:
+            mdn_loss = self.mdn_loss(logp, input_lens, decoder_output_lens)
+            spec_loss = self.spec_lossX(decoder_output, decoder_target, decoder_output_lens)
+            ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
+        elif phase == 3:
+            dur_loss = self.dur_loss(dur_output.unsqueeze(2), dur_target.unsqueeze(2), input_lens)
+        else:
+            mdn_loss = self.mdn_loss(logp, input_lens, decoder_output_lens)
+            spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
+            ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
+            dur_loss = self.dur_loss(dur_output.unsqueeze(2), dur_target.unsqueeze(2), input_lens)
+        loss = spec_loss_alpha * spec_loss + ssim_alpha * ssim_loss + dur_loss_alpha * dur_loss + mdn_alpha * mdn_loss
+        return {'loss': loss, 'loss_l1': spec_loss, 'loss_ssim': ssim_loss, 'loss_dur': dur_loss, 'mdn_loss': mdn_loss}
+
+    @staticmethod
+    def _set_alpha(step, alpha_settings):
+        '''Set the loss alpha wrt number of steps.
+        Return the corresponding value if no schedule is set.
+
+        Example:
+            Setting a alpha schedule.
+            if ```alpha_settings``` is ```[[0, 1], [10000, 0.1]]```  then ```return_alpha == 1``` until 10k steps, then set to 0.1.
+            if ```alpha_settings``` is a constant value then ```return_alpha``` is set to that constant.
+
+        Args:
+            step (int): number of training steps.
+            alpha_settings (int or list): constant alpha value or a list defining the schedule as explained above.
+        '''
+        return_alpha = None
+        if isinstance(alpha_settings, list):
+            for key, alpha in alpha_settings:
+                if key < step:
+                    return_alpha = alpha
+        elif isinstance(alpha_settings, (float, int)):
+            return_alpha = alpha_settings
+        return return_alpha
+
+    def set_alphas(self, step):
+        '''Set the alpha values for all the loss functions
+        '''
+        ssim_alpha = self._set_alpha(step, self.ssim_alpha)
+        dur_loss_alpha = self._set_alpha(step, self.dur_loss_alpha)
+        spec_loss_alpha = self._set_alpha(step, self.spec_loss_alpha)
+        mdn_alpha = self._set_alpha(step, self.mdn_alpha)
+        return ssim_alpha, dur_loss_alpha, spec_loss_alpha, mdn_alpha

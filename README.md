@@ -74,12 +74,14 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
 - Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
 - Speedy-Speech: [paper](https://arxiv.org/abs/2008.03802)
+- Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
 - Forward Backward Decoding: [paper](https://arxiv.org/abs/1907.09006)
 - Graves Attention: [paper](https://arxiv.org/abs/1907.09006)
 - Double Decoder Consistency: [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
+- Dynamic Convolutional Attention: [paper](https://arxiv.org/pdf/1910.10288.pdf)
 
 ### Speaker Encoder
 - GE2E: [paper](https://arxiv.org/abs/1710.10467)
@@ -174,7 +176,7 @@ Run a tts and a vocoder model from the released model list. (Simply copy and pas
 tts --text "Text for TTS" \
     --model_name "<type>/<language>/<dataset>/<model_name>" \
     --vocoder_name "<type>/<language>/<dataset>/<model_name>" \
-    --out_path folder/to/save/output/
+    --out_path folder/to/save/output.wav
 ```
 
 Run your own TTS model (Using Griffin-Lim Vocoder)
@@ -182,7 +184,7 @@ Run your own TTS model (Using Griffin-Lim Vocoder)
 tts --text "Text for TTS" \
     --model_path path/to/model.pth.tar \
     --config_path path/to/config.json \
-    --out_path output/path/speech.wav
+    --out_path folder/to/save/output.wav
 ```
 
 Run your own TTS and Vocoder models
@@ -190,7 +192,7 @@ Run your own TTS and Vocoder models
 tts --text "Text for TTS" \
     --model_path path/to/config.json \
     --config_path path/to/model.pth.tar \
-    --out_path output/path/speech.wav \
+    --out_path folder/to/save/output.wav \
     --vocoder_path path/to/vocoder.pth.tar \
     --vocoder_config_path path/to/vocoder_config.json
 ```
@@ -262,7 +264,6 @@ cardboardlinter --refspec master
 
 Feel free to ping us at any step you need help using our communication channels.
 [Here](https://github.com/firstcontributions/first-contributions) is a good resource for complete beginners.
-
 
 ### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)

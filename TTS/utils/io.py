@@ -69,7 +69,7 @@ def copy_model_files(c, config_file, out_path, new_fields):
         else:
             new_line = '"{}":{},\n'.format(key, json.dumps(value, ensure_ascii=False))
         config_lines.insert(1, new_line)
-    config_out_file = open(copy_config_path, "w")
+    config_out_file = open(copy_config_path, "w", encoding="utf-8")
     config_out_file.writelines(config_lines)
     config_out_file.close()
     # copy model stats file if available

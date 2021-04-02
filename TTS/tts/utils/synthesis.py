@@ -77,7 +77,7 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
         # these only belong to tacotron models.
         decoder_output = None
         stop_tokens = None
-    elif 'speedy_speech' in CONFIG.model.lower():
+    elif CONFIG.model.lower() in ['speedy_speech', 'align_tts']:
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, 'module'):
             # distributed model
@@ -88,6 +88,8 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
         # these only belong to tacotron models.
         decoder_output = None
         stop_tokens = None
+    else:
+        raise ValueError('[!] Unknown model name.')
     return decoder_output, postnet_output, alignments, stop_tokens
 
 

@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 
-from TTS.tts.tf.layers.tacotron2 import Encoder, Decoder, Postnet
+from TTS.tts.tf.layers.tacotron.tacotron2 import Encoder, Decoder, Postnet
 from TTS.tts.tf.utils.tf_utils import shape_list
 
 

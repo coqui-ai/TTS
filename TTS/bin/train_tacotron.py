@@ -85,7 +85,7 @@ def format_data(data):
     text_input = data[0]
     text_lengths = data[1]
     speaker_names = data[2]
-    linear_input = data[3] if c.model in ["Tacotron"] else None
+    linear_input = data[3] if c.model.lower() in ["tacotron"] else None
     mel_input = data[4]
     mel_lengths = data[5]
     stop_targets = data[6]
@@ -658,7 +658,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 if __name__ == '__main__':
     args = parse_arguments(sys.argv)
     c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
-        args, model_type='tacotron')
+        args, model_class='tts')
 
     try:
         main(args)

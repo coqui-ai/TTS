@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from TTS.tts.layers.common_layers import Linear
+from TTS.tts.layers.tacotron.common_layers import Linear
 from scipy.stats import betabinom
 
 

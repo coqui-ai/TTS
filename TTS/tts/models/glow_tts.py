@@ -9,7 +9,7 @@ from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.layers.glow_tts.monotonic_align import maximum_path, generate_path
 
 
-class GlowTts(nn.Module):
+class GlowTTS(nn.Module):
     """Glow TTS models from https://arxiv.org/abs/2005.11129
 
     Args:
