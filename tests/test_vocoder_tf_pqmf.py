@@ -4,7 +4,7 @@ import tensorflow as tf
 import soundfile as sf
 from librosa.core import load
 
-from tests import get_tests_path, get_tests_input_path
+from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from TTS.vocoder.tf.layers.pqmf import PQMF
 
 
@@ -25,4 +25,5 @@ def test_pqmf():
     print(w2_.max())
     print(w2_.min())
     print(w2_.mean())
-    sf.write('tf_pqmf_output.wav', w2_.flatten(), sr)
+    sf.write(os.path.join(get_tests_output_path(), 'tf_pqmf_output.wav'),
+             w2_.flatten(), sr)

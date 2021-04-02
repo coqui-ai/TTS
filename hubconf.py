@@ -1,4 +1,4 @@
-dependencies = ['torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode']  # apt install espeak-ng
+dependencies = ['torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode', 'pypinyin']  # apt install espeak-ng
 import torch
 
 from TTS.utils.synthesizer import Synthesizer
@@ -9,7 +9,7 @@ def tts(model_name='tts_models/en/ljspeech/tacotron2-DCA', vocoder_name=None, us
     """TTS entry point for PyTorch Hub that provides a Synthesizer object to synthesize speech from a give text.
 
     Example:
-        >>> synthesizer = torch.hub.load('mozilla/TTS', 'tts', source='github')
+        >>> synthesizer = torch.hub.load('coqui-ai/TTS', 'tts', source='github')
         >>> wavs = synthesizer.tts("This is a test! This is also a test!!")
             wavs - is a list of values of the synthesized speech.
 
@@ -33,5 +33,5 @@ def tts(model_name='tts_models/en/ljspeech/tacotron2-DCA', vocoder_name=None, us
 
 
 if __name__ == '__main__':
-    synthesizer = torch.hub.load('mozilla/TTS:hub_conf', 'tts', source='github')
+    synthesizer = torch.hub.load('coqui-ai/TTS:hub_conf', 'tts', source='github')
     synthesizer.tts("This is a test!")

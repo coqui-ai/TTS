@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 
-from TTS.tts.layers.gst_layers import GST
-from TTS.tts.layers.tacotron2 import Decoder, Encoder, Postnet
+from TTS.tts.layers.tacotron.gst_layers import GST
+from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
 # TODO: match function arguments with tacotron
@@ -17,7 +17,7 @@ class Tacotron2(TacotronAbstract):
         r (int): initial model reduction rate.
         postnet_output_dim (int, optional): postnet output channels. Defaults to 80.
         decoder_output_dim (int, optional): decoder output channels. Defaults to 80.
-        attn_type (str, optional): attention type. Check ```TTS.tts.layers.common_layers.init_attn```. Defaults to 'original'.
+        attn_type (str, optional): attention type. Check ```TTS.tts.layers.tacotron.common_layers.init_attn```. Defaults to 'original'.
         attn_win (bool, optional): enable/disable attention windowing.
             It especially useful at inference to keep attention alignment diagonal. Defaults to False.
         attn_norm (str, optional): Attention normalization method. "sigmoid" or "softmax". Defaults to "softmax".

@@ -149,8 +149,7 @@ class TacotronAbstract(ABC, nn.Module):
     def _backward_pass(self, mel_specs, encoder_outputs, mask):
         """ Run backwards decoder """
         decoder_outputs_b, alignments_b, _ = self.decoder_backward(
-            encoder_outputs, torch.flip(mel_specs, dims=(1,)), mask,
-            self.speaker_embeddings_projected)
+            encoder_outputs, torch.flip(mel_specs, dims=(1,)), mask)
         decoder_outputs_b = decoder_outputs_b.transpose(1, 2).contiguous()
         return decoder_outputs_b, alignments_b
 

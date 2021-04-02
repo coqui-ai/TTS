@@ -7,7 +7,7 @@ from tests import get_tests_input_path
 from torch import optim
 
 from TTS.tts.layers.losses import GlowTTSLoss
-from TTS.tts.models.glow_tts import GlowTts
+from TTS.tts.models.glow_tts import GlowTTS
 from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
 
@@ -35,14 +35,13 @@ class GlowTTSTrainTest(unittest.TestCase):
         input_lengths = torch.randint(100, 129, (8, )).long().to(device)
         input_lengths[-1] = 128
         mel_spec = torch.rand(8, c.audio['num_mels'], 30).to(device)
-        linear_spec = torch.rand(8, 30, c.audio['fft_size']).to(device)
         mel_lengths = torch.randint(20, 30, (8, )).long().to(device)
         speaker_ids = torch.randint(0, 5, (8, )).long().to(device)
 
-        criterion = criterion = GlowTTSLoss()
+        criterion = GlowTTSLoss()
 
         # model to train
-        model = GlowTts(
+        model = GlowTTS(
             num_chars=32,
             hidden_channels_enc=48,
             hidden_channels_dec=48,
@@ -60,7 +59,7 @@ class GlowTTSTrainTest(unittest.TestCase):
             use_encoder_prenet=True,
             num_flow_blocks_dec=12,
             kernel_size_dec=5,
-            dilation_rate=5,
+            dilation_rate=1,
             num_block_layers=4,
             dropout_p_dec=0.,
             num_speakers=0,
@@ -71,7 +70,7 @@ class GlowTTSTrainTest(unittest.TestCase):
             mean_only=False).to(device)
 
         # reference model to compare model weights
-        model_ref = GlowTts(
+        model_ref = GlowTTS(
             num_chars=32,
             hidden_channels_enc=48,
             hidden_channels_dec=48,
@@ -89,7 +88,7 @@ class GlowTTSTrainTest(unittest.TestCase):
             use_encoder_prenet=True,
             num_flow_blocks_dec=12,
             kernel_size_dec=5,
-            dilation_rate=5,
+            dilation_rate=1,
             num_block_layers=4,
             dropout_p_dec=0.,
             num_speakers=0,
@@ -112,11 +111,11 @@ class GlowTTSTrainTest(unittest.TestCase):
             assert (param - param_ref).sum() == 0, param
             count += 1
 
-        optimizer = optim.Adam(model.parameters(), lr=c.lr)
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
         for _ in range(5):
+            optimizer.zero_grad()
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, None)
-            optimizer.zero_grad()
             loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths,
                                   o_dur_log, o_total_dur, input_lengths)
             loss = loss_dict['loss']

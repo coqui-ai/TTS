@@ -1,7 +1,7 @@
 import unittest
 import torch as T
 
-from TTS.tts.layers.tacotron import Prenet, CBHG, Decoder, Encoder
+from TTS.tts.layers.tacotron.tacotron import Prenet, CBHG, Decoder, Encoder
 from TTS.tts.layers.losses import L1LossMasked, SSIMLoss
 from TTS.tts.utils.generic_utils import sequence_mask
 

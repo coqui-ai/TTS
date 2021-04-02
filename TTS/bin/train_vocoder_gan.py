@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# TODO: mixed precision training
 """Trains GAN based vocoder model."""
 
 import os
@@ -590,7 +591,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 if __name__ == '__main__':
     args = parse_arguments(sys.argv)
     c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
-        args, model_type='gan')
+        args, model_class='vocoder')
 
     try:
         main(args)

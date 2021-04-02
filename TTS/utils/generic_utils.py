@@ -15,6 +15,8 @@ def get_git_branch():
         current.replace("* ", "")
     except subprocess.CalledProcessError:
         current = "inside_docker"
+    except FileNotFoundError:
+        current = "unknown"
     return current
 
 
@@ -30,7 +32,7 @@ def get_commit_hash():
         commit = subprocess.check_output(
             ['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
     # Not copying .git folder into docker container
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         commit = "0000000"
     print(' > Git Hash: {}'.format(commit))
     return commit
