@@ -8,7 +8,6 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-from TTS.utils.config_manager import ConfigManager
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
@@ -16,8 +15,6 @@ from TTS.utils.io import load_config
 
 def main():
     """Run preprocessing process."""
-    CONFIG = ConfigManager()
-
     parser = argparse.ArgumentParser(
         description="Compute mean and variance of spectrogtram features.")
     parser.add_argument("config_path", type=str,
@@ -26,17 +23,17 @@ def main():
                         help="save path (directory and filename).")
     parser.add_argument("--data_path", type=str, required=False,
                         help="folder including the target set of wavs overriding dataset config.")
-    parser = CONFIG.init_argparse(parser)
-    args = parser.parse_args()
-    CONFIG.parse_argparse(args)
+    args, overrides = parser.parse_known_args()
+
+    CONFIG = load_config(args.config_path)
+    CONFIG.parse_args(overrides)
 
     # load config
-    CONFIG.load_config(args.config_path)
-    CONFIG.audio_config.signal_norm = False  # do not apply earlier normalization
-    CONFIG.audio_config.stats_path = None  # discard pre-defined stats
+    CONFIG.audio.signal_norm = False  # do not apply earlier normalization
+    CONFIG.audio.stats_path = None  # discard pre-defined stats
 
     # load audio processor
-    ap = AudioProcessor(**CONFIG.audio_config.to_dict())
+    ap = AudioProcessor(**CONFIG.audio.to_dict())
 
     # load the meta data of target dataset
     if args.data_path:
@@ -81,15 +78,14 @@ def main():
     print(f" > Avg lienar spec scale: {linear_scale.mean()}")
 
     # set default config values for mean-var scaling
-    CONFIG.audio_config.stats_path = output_file_path
-    CONFIG.audio_config.signal_norm = True
+    CONFIG.audio.stats_path = output_file_path
+    CONFIG.audio.signal_norm = True
     # remove redundant values
-    del CONFIG.audio_config.max_norm
-    del CONFIG.audio_config.min_level_db
-    del CONFIG.audio_config.symmetric_norm
-    del CONFIG.audio_config.clip_norm
-    breakpoint()
-    stats['audio_config'] = CONFIG.audio_config.to_dict()
+    del CONFIG.audio.max_norm
+    del CONFIG.audio.min_level_db
+    del CONFIG.audio.symmetric_norm
+    del CONFIG.audio.clip_norm
+    stats['audio_config'] = CONFIG.audio.to_dict()
     np.save(output_file_path, stats, allow_pickle=True)
     print(f" > stats saved to {output_file_path}")
 
