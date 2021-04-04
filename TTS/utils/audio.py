@@ -47,6 +47,7 @@ class AudioProcessor(object):
                  sample_rate=None,
                  resample=False,
                  num_mels=None,
+                 log_func='np.log10',
                  min_level_db=None,
                  frame_shift_ms=None,
                  frame_length_ms=None,
@@ -96,6 +97,15 @@ class AudioProcessor(object):
         self.trim_db = trim_db
         self.do_sound_norm = do_sound_norm
         self.stats_path = stats_path
+        # setup exp_func for db to amp conversion
+        print(f'self.log_func = {log_func}')
+        exec(f'self.log_func = {log_func}')  #pylint: disable=exec-used
+        if self.log_func.__name__ == 'log':
+            self.exp_func = np.exp
+        elif self.log_func.__name__ == 'log10':
+            self.exp_func = lambda x: 10 ** x
+        else:
+            raise ValueError(' [!] unknown `log_func` value.')
         # setup stft parameters
         if hop_length is None:
             # compute stft parameters from given time values
@@ -227,11 +237,12 @@ class AudioProcessor(object):
     ### DB and AMP conversion ###
     # pylint: disable=no-self-use
     def _amp_to_db(self, x):
-        return self.spec_gain * np.log10(np.maximum(1e-5, x))
+        return self.spec_gain * self.log_func(np.maximum(1e-5, x))
 
     # pylint: disable=no-self-use
     def _db_to_amp(self, x):
-        return np.power(10.0, x / self.spec_gain)
+        return self.exp_func(x / self.spec_gain)
+
 
     ### Preemphasis ###
     def apply_preemphasis(self, x):
