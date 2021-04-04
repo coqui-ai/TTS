@@ -354,6 +354,7 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         Dynamic convolution attention is an alternation of the location senstive attention with
     dynamically computed convolution filters from the previous attention scores and a set of
     constraints to keep the attention alignment diagonal.
+        DCA is sensitive to mixed precision training and might cause instable training.
 
     Args:
         query_dim (int): number of channels in the query tensor.
