@@ -51,11 +51,11 @@
     "use_feat_match_loss": true,  // use only with melgan discriminators
 
     // loss weights
-    "stft_loss_weight": 0.5,
-    "subband_stft_loss_weight": 0.5,
-    "mse_G_loss_weight": 2.5,
-    "hinge_G_loss_weight": 2.5,
-    "feat_match_loss_weight": 25,
+    "stft_loss_weight": 45,
+    "subband_stft_loss_weight": 0,
+    "mse_G_loss_weight": 1,
+    "hinge_G_loss_weight": 0,
+    "feat_match_loss_weight": 10,
 
     // multiscale stft loss parameters
     "stft_loss_params": {
