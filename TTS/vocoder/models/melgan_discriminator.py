@@ -10,7 +10,9 @@ class MelganDiscriminator(nn.Module):
                  kernel_sizes=(5, 3),
                  base_channels=16,
                  max_channels=1024,
-                 downsample_factors=(4, 4, 4, 4)):
+                 downsample_factors=(4, 4, 4, 4),
+                 groups_denominator=4,
+                 max_groups=256):
         super(MelganDiscriminator, self).__init__()
         self.layers = nn.ModuleList()
 
@@ -35,7 +37,7 @@ class MelganDiscriminator(nn.Module):
                                      max_channels)
             layer_kernel_size = downsample_factor * 10 + 1
             layer_padding = (layer_kernel_size - 1) // 2
-            layer_groups = layer_in_channels // 4
+            layer_groups = layer_in_channels // groups_denominator
             self.layers += [
                 nn.Sequential(
                     weight_norm(

@@ -14,7 +14,9 @@ class MelganMultiscaleDiscriminator(nn.Module):
                  downsample_factors=(4, 4, 4),
                  pooling_kernel_size=4,
                  pooling_stride=2,
-                 pooling_padding=1):
+                 pooling_padding=2,
+                 groups_denominator=4,
+                 max_groups=256):
         super(MelganMultiscaleDiscriminator, self).__init__()
 
         self.discriminators = nn.ModuleList([
@@ -23,12 +25,16 @@ class MelganMultiscaleDiscriminator(nn.Module):
                                 kernel_sizes=kernel_sizes,
                                 base_channels=base_channels,
                                 max_channels=max_channels,
-                                downsample_factors=downsample_factors)
+                                downsample_factors=downsample_factors,
+                                groups_denominator=groups_denominator,
+                                max_groups=max_groups)
             for _ in range(num_scales)
         ])
 
-        self.pooling = nn.AvgPool1d(kernel_size=pooling_kernel_size, stride=pooling_stride, padding=pooling_padding, count_include_pad=False)
-
+        self.pooling = nn.AvgPool1d(kernel_size=pooling_kernel_size,
+                                    stride=pooling_stride,
+                                    padding=pooling_padding,
+                                    count_include_pad=False)
 
     def forward(self, x):
         scores = list()

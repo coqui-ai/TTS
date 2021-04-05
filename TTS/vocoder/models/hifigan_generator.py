@@ -1,71 +1,174 @@
 import torch
-from torch import nn
-from TTS.vocoder.layers.hifigan import MRF
+import torch.nn.functional as F
+import torch.nn as nn
+from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
+from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
+
+LRELU_SLOPE = 0.1
 
 
-class HifiganGenerator(nn.Module):
+def get_padding(k, d):
+    return int((k * d - d) / 2)
 
-    def __init__(self, in_channels=80, out_channels=1, base_channels=512, upsample_kernel=[16, 16, 4, 4],
-                 resblock_kernel_sizes=[3, 7, 11], resblock_dilation_sizes=[1, 3, 5]):
-        super(HifiganGenerator, self).__init__()
 
-        self.inference_padding = 2
+class ResBlock1(torch.nn.Module):
+    def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5)):
+        super().__init__()
+        self.convs1 = nn.ModuleList([
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=dilation[0],
+                       padding=get_padding(kernel_size, dilation[0]))),
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=dilation[1],
+                       padding=get_padding(kernel_size, dilation[1]))),
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=dilation[2],
+                       padding=get_padding(kernel_size, dilation[2])))
+        ])
 
-        self.input = nn.Sequential(
-            nn.ReflectionPad1d(3),
-            nn.utils.weight_norm(nn.Conv1d(in_channels, base_channels, kernel_size=7))
-        )
-
-        generator = []
-
-        for k in upsample_kernel:
-            inp = base_channels
-            out = int(inp / 2)
-            generator += [
-                nn.LeakyReLU(0.2),
-                nn.utils.weight_norm(nn.ConvTranspose1d(inp, out, k, k//2)),
-                MRF(resblock_kernel_sizes, out, resblock_dilation_sizes)
-            ]
-            base_channels = out
-        self.generator = nn.Sequential(*generator)
-
-        self.output = nn.Sequential(
-            nn.LeakyReLU(0.2),
-            nn.ReflectionPad1d(3),
-            nn.utils.weight_norm(nn.Conv1d(base_channels, out_channels, kernel_size=7, stride=1)),
-            nn.Tanh()
-
-        )
+        self.convs2 = nn.ModuleList([
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=1,
+                       padding=get_padding(kernel_size, 1))),
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=1,
+                       padding=get_padding(kernel_size, 1))),
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=1,
+                       padding=get_padding(kernel_size, 1)))
+        ])
 
     def forward(self, x):
-        x1 = self.input(x)
-        x2 = self.generator(x1)
-        out = self.output(x2)
-        return out
+        for c1, c2 in zip(self.convs1, self.convs2):
+            xt = F.leaky_relu(x, LRELU_SLOPE)
+            xt = c1(xt)
+            xt = F.leaky_relu(xt, LRELU_SLOPE)
+            xt = c2(xt)
+            x = xt + x
+        return x
+
+    def remove_weight_norm(self):
+        for l in self.convs1:
+            remove_weight_norm(l)
+        for l in self.convs2:
+            remove_weight_norm(l)
+
+
+class ResBlock2(torch.nn.Module):
+    def __init__(self, channels, kernel_size=3, dilation=(1, 3)):
+        super().__init__()
+        self.convs = nn.ModuleList([
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=dilation[0],
+                       padding=get_padding(kernel_size, dilation[0]))),
+            weight_norm(
+                Conv1d(channels,
+                       channels,
+                       kernel_size,
+                       1,
+                       dilation=dilation[1],
+                       padding=get_padding(kernel_size, dilation[1])))
+        ])
+
+    def forward(self, x):
+        for c in self.convs:
+            xt = F.leaky_relu(x, LRELU_SLOPE)
+            xt = c(xt)
+            x = xt + x
+        return x
+
+    def remove_weight_norm(self):
+        for l in self.convs:
+            remove_weight_norm(l)
+
+
+class HifiganGenerator(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, resblock_type, resblock_dilation_sizes,
+                 resblock_kernel_sizes, upsample_kernel_sizes,
+                 upsample_initial_channel, upsample_factors):
+        super().__init__()
+        self.num_kernels = len(resblock_kernel_sizes)
+        self.num_upsamples = len(upsample_factors)
+        self.conv_pre = weight_norm(
+            Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
+        resblock = ResBlock1 if resblock_type == '1' else ResBlock2
+
+        self.ups = nn.ModuleList()
+        for i, (u, k) in enumerate(zip(upsample_factors,
+                                       upsample_kernel_sizes)):
+            self.ups.append(
+                weight_norm(
+                    ConvTranspose1d(upsample_initial_channel // (2**i),
+                                    upsample_initial_channel // (2**(i + 1)),
+                                    k,
+                                    u,
+                                    padding=(k - u) // 2)))
+
+        self.resblocks = nn.ModuleList()
+        for i in range(len(self.ups)):
+            ch = upsample_initial_channel // (2**(i + 1))
+            for j, (k, d) in enumerate(
+                    zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+                self.resblocks.append(resblock(ch, k, d))
+
+        self.conv_post = weight_norm(Conv1d(ch, out_channels, 7, 1, padding=3))
+
+    def forward(self, x):
+        x = self.conv_pre(x)
+        for i in range(self.num_upsamples):
+            x = F.leaky_relu(x, LRELU_SLOPE)
+            x = self.ups[i](x)
+            xs = None
+            for j in range(self.num_kernels):
+                if xs is None:
+                    xs = self.resblocks[i * self.num_kernels + j](x)
+                else:
+                    xs += self.resblocks[i * self.num_kernels + j](x)
+            x = xs / self.num_kernels
+        x = F.leaky_relu(x)
+        x = self.conv_post(x)
+        x = torch.tanh(x)
+        return x
 
     def inference(self, c):
-        c = c.to(self.layers[1].weight.device)
+        c = c.to(self.conv_pre.weight.device)
         c = torch.nn.functional.pad(
-            c,
-            (self.inference_padding, self.inference_padding),
-            'replicate')
+            c, (self.inference_padding, self.inference_padding), 'replicate')
         return self.forward(c)
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.input[1])
-        nn.utils.remove_weight_norm(self.output[2])
-
-        for idx, layer in enumerate(self.generator):
-            if len(layer.state_dict()) != 0:
-                try:
-                    nn.utils.remove_weight_norm(layer)
-                except:
-                    layer.remove_weight_norm()
-
-    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-        self.load_state_dict(state['model'])
-        if eval:
-            self.eval()
-            assert not self.training
-            self.remove_weight_norm()
+        print('Removing weight norm...')
+        for l in self.ups:
+            remove_weight_norm(l)
+        for l in self.resblocks:
+            l.remove_weight_norm()
+        remove_weight_norm(self.conv_pre)
+        remove_weight_norm(self.conv_post)
