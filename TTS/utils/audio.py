@@ -125,7 +125,7 @@ class AudioProcessor(object):
         self.mel_basis = self._build_mel_basis()
         self.inv_mel_basis = np.linalg.pinv(self._build_mel_basis())
         # setup scaler
-        if stats_path:
+        if stats_path and signal_norm:
             mel_mean, mel_std, linear_mean, linear_std, _ = self.load_stats(stats_path)
             self.setup_scaler(mel_mean, mel_std, linear_mean, linear_std)
             self.signal_norm = True
