@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
-from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
+from torch.nn import Conv1d, ConvTranspose1d
+from torch.nn.utils import weight_norm, remove_weight_norm
 
 LRELU_SLOPE = 0.1
 
@@ -115,6 +115,7 @@ class HifiganGenerator(torch.nn.Module):
                  resblock_kernel_sizes, upsample_kernel_sizes,
                  upsample_initial_channel, upsample_factors):
         super().__init__()
+        self.inference_padding = 5
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_factors)
         self.conv_pre = weight_norm(
