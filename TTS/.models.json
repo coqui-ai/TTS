@@ -122,6 +122,13 @@
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
+                },
+                "hifigan":{
+                    "github_rls_url": "",
+                    "commit": "4132240",
+                    "author": "",
+                    "license": "MIT",
+                    "contact":"egolge@coqui.com"
                 }
             }
         },
