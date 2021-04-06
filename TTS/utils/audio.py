@@ -306,17 +306,22 @@ class AudioProcessor(object):
 
     ### STFT and ISTFT ###
     def _stft(self, y):
-        return librosa.stft(
-            y=y,
-            n_fft=self.fft_size,
-            hop_length=self.hop_length,
-            win_length=self.win_length,
-            pad_mode=self.stft_pad_mode,
-        )
+        return librosa.stft(y=y,
+                            n_fft=self.fft_size,
+                            hop_length=self.hop_length,
+                            win_length=self.win_length,
+                            pad_mode=self.stft_pad_mode,
+                            window='hann',
+                            center=True,
+                            dtype=None)
 
     def _istft(self, y):
-        return librosa.istft(
-            y, hop_length=self.hop_length, win_length=self.win_length)
+        return librosa.istft(y,
+                             hop_length=self.hop_length,
+                             win_length=self.win_length,
+                             window='hann',
+                             center=True,
+                             dtype=None)
 
     def _griffin_lim(self, S):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
