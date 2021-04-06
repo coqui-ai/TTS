@@ -17,9 +17,14 @@ from TTS.tts.utils.text import make_symbols, phonemes, symbols
 
 class Synthesizer(object):
     def __init__(self, tts_checkpoint, tts_config, vocoder_checkpoint=None, vocoder_config=None, use_cuda=False):
-        """General TTS interface for inference. It takes a tts and a vocoder
-        model and synthesize speech from the provided text with a basic text
-        formatting.
+        """General 🐸 TTS interface for inference. It takes a tts and a vocoder
+        model and synthesize speech from the provided text.
+
+        The text is divided into a list of sentences using `pysbd` and synthesize 
+        speech on each sentence separately.
+
+        If you have certain special characters in your text, you need to handle
+        them before providing the text to Synthesizer.
 
         TODO: handle multi-speaker and GST inference.
 
