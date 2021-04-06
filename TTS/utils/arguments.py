@@ -6,6 +6,7 @@ import argparse
 import glob
 import os
 import re
+import json
 
 import torch
 from TTS.tts.utils.text.symbols import parse_symbols
@@ -190,7 +191,7 @@ def process_args(args, model_class):
 
         tb_logger = TensorboardLogger(log_path, model_name=model_class.upper())
 
-        # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", c["run_description"], 0)
+        # write model config to tensorboard
+        tb_logger.tb_add_text("model-config", f"<pre>{json.dumps(c, indent=4)}</pre>", 0)
 
     return c, out_path, audio_path, c_logger, tb_logger
