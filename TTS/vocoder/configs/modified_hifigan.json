@@ -11,12 +11,13 @@
         "frame_shift_ms": null,  // stft window hop-lengh in ms. If null, 'hop_length' is used.
 
         // Audio processing parameters
-        "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "sample_rate": 16000,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
         "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
-        "ref_level_db": 0,     // reference level db, theoretically 20db is the sound of air.
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "log_func": "np.log",
 
         // Silence trimming
-        "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": false,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
 
         // MelSpectrogram parameters
@@ -26,7 +27,7 @@
         "spec_gain": 1.0,         // scaler value appplied after log transform of spectrogram.
 
         // Normalization parameters
-        "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
+        "signal_norm": false,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
         "min_level_db": -100,   // lower bound for normalization
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
@@ -44,24 +45,37 @@
     "use_pqmf": false,
 
     // LOSS PARAMETERS
-    "use_stft_loss": true,
+    "use_stft_loss": false,
     "use_subband_stft_loss": false,
     "use_mse_gan_loss": true,
     "use_hinge_gan_loss": false,
     "use_feat_match_loss": true,  // use only with melgan discriminators
+    "use_l1_spec_loss": true,
 
     // loss weights
-    "stft_loss_weight": 45,
+    "stft_loss_weight": 0,
     "subband_stft_loss_weight": 0,
     "mse_G_loss_weight": 1,
     "hinge_G_loss_weight": 0,
     "feat_match_loss_weight": 10,
+    "l1_spec_loss_weight": 45,
 
     // multiscale stft loss parameters
-    "stft_loss_params": {
-        "n_ffts": [1024, 2048, 512],
-        "hop_lengths": [120, 240, 50],
-        "win_lengths": [600, 1200, 240]
+    // "stft_loss_params": {
+    //     "n_ffts": [1024, 2048, 512],
+    //     "hop_lengths": [120, 240, 50],
+    //     "win_lengths": [600, 1200, 240]
+    // },
+
+    "l1_spec_loss_params": {
+        "use_mel": true,
+        "sample_rate": 16000,
+        "n_fft": 1024,
+        "hop_length": 256,
+        "win_length": 1024,
+        "n_mels": 80,
+        "mel_fmin": 0.0,
+        "mel_fmax": null
     },
 
     "target_loss": "avg_G_loss",  // loss value to pick the best model to save after each epoch
@@ -89,8 +103,9 @@
 
     // DATASET
     "data_path": "/home/erogol/gdrive/Datasets/non-binary-voice-files/vo_voice_quality_transformation/",
-    "feature_path": "/home/erogol/gdrive/Datasets/non-binary-voice-files/tacotron-DCA/",
-    "seq_len": 16384,
+    "feature_path": null,
+    // "feature_path": "/home/erogol/gdrive/Datasets/non-binary-voice-files/tacotron-DCA/",
+    "seq_len": 8192,
     "pad_short": 2000,
     "conv_pad": 0,
     "use_noise_augment": false,
