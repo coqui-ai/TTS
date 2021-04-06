@@ -17,6 +17,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
                  mel_fmax=None,
                  n_mels=80,
                  use_mel=False):
+        """ Torch based STFT operation """
         super(TorchSTFT, self).__init__()
         self.n_fft = n_fft
         self.hop_length = hop_length
