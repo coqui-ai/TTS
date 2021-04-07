@@ -198,6 +198,17 @@ class HifiganGenerator(torch.nn.Module):
         self.conv_post = weight_norm(Conv1d(ch, out_channels, 7, 1, padding=3))
 
     def forward(self, x):
+        """
+        Args:
+            x (Tensor): conditioning input tensor.
+
+        Returns:
+            Tensor: output waveform.
+
+        Shapes:
+            x: [B, C, T]
+            Tensor: [B, 1, T]
+        """
         o = self.conv_pre(x)
         for i in range(self.num_upsamples):
             o = F.leaky_relu(o, LRELU_SLOPE)
@@ -212,10 +223,22 @@ class HifiganGenerator(torch.nn.Module):
         o = F.leaky_relu(o)
         o = self.conv_post(o)
         o = torch.tanh(o)
+        breakpoint()
         return o
 
     @torch.no_grad()
     def inference(self, c):
+        """
+        Args:
+            x (Tensor): conditioning input tensor.
+
+        Returns:
+            Tensor: output waveform.
+
+        Shapes:
+            x: [B, C, T]
+            Tensor: [B, 1, T]
+        """
         c = c.to(self.conv_pre.weight.device)
         c = torch.nn.functional.pad(
             c, (self.inference_padding, self.inference_padding), 'replicate')
