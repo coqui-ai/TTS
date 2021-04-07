@@ -372,7 +372,7 @@ class AudioProcessor(object):
 
     @staticmethod
     def sound_norm(x):
-        return x / abs(x).max() * 0.9
+        return x / abs(x).max() * 0.95
 
     ### save and load ###
     def load_wav(self, filename, sr=None):
