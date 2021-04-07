@@ -49,6 +49,7 @@
     "use_mse_gan_loss": true,
     "use_hinge_gan_loss": false,
     "use_feat_match_loss": false,  // use only with melgan discriminators
+    "use_l1_spec_loss": true,
 
     // loss weights
     "stft_loss_weight": 0.5,
@@ -56,6 +57,7 @@
     "mse_G_loss_weight": 2.5,
     "hinge_G_loss_weight": 2.5,
     "feat_match_loss_weight": 25,
+    "l1_spec_loss_weight": 2.5,
 
     // multiscale stft loss parameters
     "stft_loss_params": {
@@ -69,6 +71,17 @@
         "n_ffts": [384, 683, 171],
         "hop_lengths": [30, 60, 10],
         "win_lengths": [150, 300, 60]
+    },
+
+    "l1_spec_loss_params": {
+        "use_mel": true,
+        "sample_rate": 22050,
+        "n_fft": 1024,
+        "hop_length": 256,
+        "win_length": 1024,
+        "n_mels": 80,
+        "mel_fmin": 0.0,
+        "mel_fmax": null
     },
 
     "target_loss": "avg_G_loss",  // loss value to pick the best model to save after each epoch
