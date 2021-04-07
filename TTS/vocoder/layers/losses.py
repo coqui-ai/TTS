@@ -33,7 +33,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         self.mel_basis = None
         if use_mel:
             self._build_mel_basis()
-
+    @torch.no_grad()
     def __call__(self, x):
         """Compute spectrogram frames by torch based stft.
 
