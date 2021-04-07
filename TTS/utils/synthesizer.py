@@ -20,7 +20,7 @@ class Synthesizer(object):
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
         model and synthesize speech from the provided text.
 
-        The text is divided into a list of sentences using `pysbd` and synthesize 
+        The text is divided into a list of sentences using `pysbd` and synthesize
         speech on each sentence separately.
 
         If you have certain special characters in your text, you need to handle
