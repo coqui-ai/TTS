@@ -63,7 +63,7 @@ def adam_weight_decay(optimizer):
     return optimizer, current_lr
 
 # pylint: disable=dangerous-default-value
-def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn", "lstm", "gru", "embedding"}):
+def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn", "lstm", "gru", "embedding", "capacitron_layer"}):
     """
     Skip biases, BatchNorm parameters, rnns.
     and attention projection layer v
@@ -71,6 +71,9 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
     decay = []
     no_decay = []
     for name, param in model.named_parameters():
+        # skip beta because we're sending it to another optimizer
+        if name == 'capacitron_layer.beta':
+            continue
         if not param.requires_grad:
             continue
 

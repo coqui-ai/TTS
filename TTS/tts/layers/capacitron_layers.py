@@ -13,9 +13,13 @@ class CapacitronVAE(nn.Module):
     def __init__(self, num_mel, capacitron_embedding_dim, speaker_embedding_dim=None, text_summary_embedding_dim=None):
         super().__init__()
         # Init distributions
-        self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim), torch.eye(capacitron_embedding_dim))
+        self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim).to(device=torch.device('cuda')), torch.eye(capacitron_embedding_dim).to(device=torch.device('cuda')))
         self.approximate_posterior_distribution = None
         self.encoder = ReferenceEncoder(num_mel)
+
+        # Init beta, the lagrange-like term for the KL distribution
+
+        self.beta = torch.nn.Parameter(torch.log(torch.exp(torch.Tensor([1.0])) - 1), requires_grad=True)
 
         mlp_input_dimension = 128 # output size of the encoder
 
@@ -47,6 +51,8 @@ class CapacitronVAE(nn.Module):
             # Feed the output of the ref encoder and information about text/speaker into
             # an MLP to produce the parameteres for the approximate poterior distributions
             mu, sigma = self.post_encoder_mlp(enc_out)
+            mu.to(device=torch.device('cuda'))
+            sigma.to(device=torch.device('cuda'))
 
             # Sample from the posterior: z ~ q(z|x)
             self.approximate_posterior_distribution = MVN(mu, torch.diag_embed(sigma))
@@ -54,10 +60,10 @@ class CapacitronVAE(nn.Module):
         # Infer from the model, bypasses encoding
         else:
             # Sample from the prior: z ~ p(z)
-            VAE_embedding = self.prior_distribution.rsample()
+            VAE_embedding = self.prior_distribution.rsample().unsqueeze(0)
 
         # reshape to [batch_size, 1, capacitron_embedding_dim]
-        return torch.unsqueeze(VAE_embedding, 1)
+        return VAE_embedding.unsqueeze(1), self.approximate_posterior_distribution, self.prior_distribution, self.beta
 
 
 class ReferenceEncoder(nn.Module):
@@ -116,11 +122,12 @@ class ReferenceEncoder(nn.Module):
 
         # Get last value of LSTM
         post_conv_input_lengths = [post_conv_width] * batch_size
+        self.recurrence.flatten_parameters()
         o, _ = self.recurrence(x)
         last_output = extract_axis_1(o.cpu(), torch.LongTensor(post_conv_input_lengths).cpu())
         return last_output.cuda() # [B, 128]
 
-    @staticmethod
+    @ staticmethod
     def calculate_post_conv_height(height, kernel_size, stride, pad,
                                    n_convs):
         """Height of spec after n convolutions with fixed kernel/stride/pad."""
@@ -137,8 +144,10 @@ class TextSummary(nn.Module):
                             bidirectional=False)
 
     def forward(self, inputs, input_lengths):
+        # TODO deal with inference - input lengths is not a tensor but just a single number
         # Routine for fetching the last valid output of a dynamic LSTM with varying input lengths and padding
         packed_seqs = nn.utils.rnn.pack_padded_sequence(inputs, input_lengths.tolist(), batch_first=True, enforce_sorted=False) # dynamic rnn sequence padding
+        self.lstm.flatten_parameters()
         o, _ = self.lstm(packed_seqs)
         out_dynamic, _ = nn.utils.rnn.pad_packed_sequence(o, batch_first=True) # inverse repadding
         last_output = extract_axis_1(out_dynamic.cpu(), input_lengths.cpu())

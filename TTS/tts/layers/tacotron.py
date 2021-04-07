@@ -119,6 +119,7 @@ class CBHG(nn.Module):
             - output: (B, T_in, C*2)
     """
     #pylint: disable=dangerous-default-value
+
     def __init__(self,
                  in_features,
                  K=16,

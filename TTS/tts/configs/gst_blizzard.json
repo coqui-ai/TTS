@@ -1,6 +1,6 @@
 {
     "model": "Tacotron",
-    "run_name": "gts-blizzard",
+    "run_name": "gst-blizzard",
     "run_description": "GTS Tacotron with original T1 attention.",
 
     // AUDIO PARAMETERS

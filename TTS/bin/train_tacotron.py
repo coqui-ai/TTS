@@ -10,10 +10,12 @@ from random import randrange
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from torch.optim.sgd import SGD
+
 from TTS.utils.arguments import parse_arguments, process_args
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
-from TTS.tts.layers.losses import TacotronLoss
+from TTS.tts.layers.losses import TacotronLoss, CapacitronLoss
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
@@ -128,7 +130,7 @@ def format_data(data):
     return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length
 
 
-def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
+def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD, scheduler,
           ap, global_step, epoch, scaler, scaler_st):
     model.train()
     epoch_time = 0
@@ -159,14 +161,25 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
         if optimizer_st:
             optimizer_st.zero_grad()
 
+        if optimizer_SGD:
+            optimizer_SGD.zero_grad()
+
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             # forward pass model
-            if c.bidirectional_decoder or c.double_decoder_consistency:
+            if c.use_capacitron:
+                # TODO do we want to use bidirection decoder/ddc with capacitron?
+                decoder_output, postnet_output, alignments, stop_tokens, posterior_distribution, prior_distribution, capacitron_beta = model(
+                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                decoder_backward_output = None
+                alignments_backward = None
+            elif c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
                     text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                posterior_distribution, prior_distribution, capacitron_beta = None, None, None # capacitron stuff
             else:
                 decoder_output, postnet_output, alignments, stop_tokens = model(
                     text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                posterior_distribution, prior_distribution, capacitron_beta = None, None, None # capacitron stuff
                 decoder_backward_output = None
                 alignments_backward = None
 
@@ -177,11 +190,20 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
                 alignment_lengths = mel_lengths // model.decoder.r
 
             # compute loss
-            loss_dict = criterion(postnet_output, decoder_output, mel_input,
-                                  linear_input, stop_tokens, stop_targets,
-                                  mel_lengths, decoder_backward_output,
-                                  alignments, alignment_lengths,
-                                  alignments_backward, text_lengths)
+            if c.use_capacitron:
+                loss_dict = criterion(postnet_output, decoder_output, mel_input,
+                                      linear_input, stop_tokens, stop_targets,
+                                      mel_lengths, decoder_backward_output,
+                                      alignments, alignment_lengths,
+                                      alignments_backward, text_lengths,
+                                      c.capacitron['capacitron_capacity'], posterior_distribution,
+                                      prior_distribution, capacitron_beta)
+            else:
+                loss_dict = criterion(postnet_output, decoder_output, mel_input,
+                                      linear_input, stop_tokens, stop_targets,
+                                      mel_lengths, decoder_backward_output,
+                                      alignments, alignment_lengths,
+                                      alignments_backward, text_lengths)
 
         # check nan loss
         if torch.isnan(loss_dict['loss']).any():
@@ -197,6 +219,14 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
             scaler.step(optimizer)
             scaler.update()
 
+            # capacitron SGD optimizer step
+            if c.use_capacitron:
+                loss_dict['beta_loss'].backward()
+                grad_norm_SGD, _ = check_update(model.decoder.stopnet, 1.0)
+                optimizer_SGD.step()
+            else:
+                grad_norm_SGD = 0
+
             # stopnet optimizer step
             if c.separate_stopnet:
                 scaler_st.scale(loss_dict['stopnet_loss']).backward()
@@ -208,6 +238,17 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
             else:
                 grad_norm_st = 0
         else:
+            # capacitron SGD optimizer step
+            if c.use_capacitron:
+                loss_dict['beta_loss'].backward()
+                # TODO fix this below
+                grad_norm_SGD, _ = check_update(model.decoder.stopnet, 1.0)
+                optimizer_SGD.step()
+                optimizer_SGD.zero_grad()
+                optimizer.zero_grad()
+            else:
+                grad_norm_SGD = 0
+
             # main model optimizer step
             loss_dict['loss'].backward()
             optimizer, current_lr = adam_weight_decay(optimizer)
@@ -236,6 +277,8 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
             loss_dict['decoder_loss'] = reduce_tensor(loss_dict['decoder_loss'].data, num_gpus)
             loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
             loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data, num_gpus) if c.stopnet else loss_dict['stopnet_loss']
+            if c.use_capacitron:
+                loss_dict['beta_loss'] = reduce_tensor(loss_dict['beta_loss'].data, num_gpus)
 
         # detach loss values
         loss_dict_new = dict()
@@ -274,6 +317,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
                     "lr": current_lr,
                     "grad_norm": grad_norm,
                     "grad_norm_st": grad_norm_st,
+                    "grad_norm_SGD": grad_norm_SGD,
                     "step_time": step_time
                 }
                 iter_stats.update(loss_dict)
@@ -284,6 +328,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
                     # save model
                     save_checkpoint(model, optimizer, global_step, epoch, model.decoder.r, OUT_PATH,
                                     optimizer_st=optimizer_st,
+                                    optimizer_SGD=optimizer_SGD,
                                     model_loss=loss_dict['postnet_loss'],
                                     characters=model_characters,
                                     scaler=scaler.state_dict() if c.mixed_precision else None)
@@ -329,7 +374,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
     return keep_avg.avg_values, global_step
 
 
-@torch.no_grad()
+@ torch.no_grad()
 def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     model.eval()
     epoch_time = 0
@@ -344,12 +389,20 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             assert mel_input.shape[1] % model.decoder.r == 0
 
             # forward pass model
-            if c.bidirectional_decoder or c.double_decoder_consistency:
+            if c.use_capacitron:
+                # TODO do we want to use bidirection decoder/ddc with capacitron?
+                decoder_output, postnet_output, alignments, stop_tokens, posterior_distribution, prior_distribution, capacitron_beta = model(
+                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                decoder_backward_output = None
+                alignments_backward = None
+            elif c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward = model(
                     text_input, text_lengths, mel_input, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                posterior_distribution, prior_distribution, capacitron_beta = None, None, None # capacitron stuff
             else:
                 decoder_output, postnet_output, alignments, stop_tokens = model(
                     text_input, text_lengths, mel_input, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                posterior_distribution, prior_distribution, capacitron_beta = None, None, None # capacitron stuff
                 decoder_backward_output = None
                 alignments_backward = None
 
@@ -364,7 +417,8 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                                   linear_input, stop_tokens, stop_targets,
                                   mel_lengths, decoder_backward_output,
                                   alignments, alignment_lengths, alignments_backward,
-                                  text_lengths)
+                                  text_lengths, c.capacitron['capacitron_capacity'],
+                                  posterior_distribution, prior_distribution, capacitron_beta)
 
             # step time
             step_time = time.time() - start_time
@@ -378,6 +432,9 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             if num_gpus > 1:
                 loss_dict['postnet_loss'] = reduce_tensor(loss_dict['postnet_loss'].data, num_gpus)
                 loss_dict['decoder_loss'] = reduce_tensor(loss_dict['decoder_loss'].data, num_gpus)
+                if c.use_capacitron:
+                    loss_dict['reconstruction_loss'] = reduce_tensor(loss_dict['reconstruction_loss'].data, num_gpus)
+                    loss_dict['beta_loss'] = reduce_tensor(loss_dict['beta_loss'].data, num_gpus)
                 if c.stopnet:
                     loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data, num_gpus)
 
@@ -459,6 +516,10 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             for i in range(c.gst['gst_style_tokens']):
                 style_wav[str(i)] = 0
         style_wav = c.get("gst_style_input")
+        if reference_wav is None and c.use_capacitron:
+            # inicialize GST with zero dict.
+            reference_wav = None
+            print("No reference wav has been defined, sampling for the prior of Capacitron.")
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(
@@ -530,8 +591,24 @@ def main(args):  # pylint: disable=redefined-outer-name
     scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
     scaler_st = torch.cuda.amp.GradScaler() if c.mixed_precision and c.separate_stopnet else None
 
-    params = set_weight_decay(model, c.wd)
-    optimizer = RAdam(params, lr=c.lr, weight_decay=0)
+    if c.use_capacitron:
+        # split parameters for the two optimizers
+        SGD_params = []
+
+        # TODO clean this up, it's not obvious enough that it's a split here
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                if name == 'capacitron_layer.beta':
+                    SGD_params.append(param)
+        ADAM_params = set_weight_decay(model, c.wd)
+        # We're defining the two optimizers, one for the model, one for the weight on the
+        # kl-term when using capacitron
+        optimizer = RAdam(iter(ADAM_params), lr=c.lr, weight_decay=0)
+        optimizer_SGD = SGD(iter(SGD_params), lr=c.capacitron['capacitron_SGD_lr'], momentum=c.capacitron['capacitron_SGD_momentum'])
+    else:
+        optimizer_SGD = None
+        params = set_weight_decay(model, c.wd)
+        optimizer = RAdam(params, lr=c.lr, weight_decay=0)
     if c.stopnet and c.separate_stopnet:
         optimizer_st = RAdam(model.decoder.stopnet.parameters(),
                              lr=c.lr,
@@ -540,7 +617,10 @@ def main(args):  # pylint: disable=redefined-outer-name
         optimizer_st = None
 
     # setup criterion
-    criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
+    if c.use_capacitron:
+        criterion = CapacitronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
+    else:
+        criterion = TacotronLoss(c, stopnet_pos_weight=c.stopnet_pos_weight, ga_sigma=0.4)
     if args.restore_path:
         print(f" > Restoring from {os.path.basename(args.restore_path)}...")
         checkpoint = torch.load(args.restore_path, map_location='cpu')
@@ -637,7 +717,8 @@ def main(args):  # pylint: disable=redefined-outer-name
         # train one epoch
         train_avg_loss_dict, global_step = train(train_loader, model,
                                                  criterion, optimizer,
-                                                 optimizer_st, scheduler, ap,
+                                                 optimizer_st, optimizer_SGD,
+                                                 scheduler, ap,
                                                  global_step, epoch, scaler,
                                                  scaler_st)
         # eval one epoch
