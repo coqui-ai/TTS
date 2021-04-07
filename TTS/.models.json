@@ -148,6 +148,15 @@
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
                 }
+            },
+            "sam":{
+                "hifigan":{
+                    "github_rls_url": "",
+                    "commit": "",
+                    "author": "Eren Gölge @erogol",
+                    "license": "Apache 2.0",
+                    "contact":"egolge@coqui.com"
+                }
             }
         },
         "nl":{
