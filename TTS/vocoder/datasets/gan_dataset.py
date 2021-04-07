@@ -77,8 +77,8 @@ class GANDataset(Dataset):
         """Pad samples shorter than the output sequence length"""
         if len(audio) < self.seq_len:
             audio = np.pad(audio, (0, self.seq_len - len(audio)),
-                            mode='constant',
-                            constant_values=0.0)
+                           mode='constant',
+                           constant_values=0.0)
 
         if mel is not None and mel.shape[1] < self.feat_frame_len:
             pad_value = self.ap.melspectrogram(np.zeros([self.ap.win_length]))[:, 0]
