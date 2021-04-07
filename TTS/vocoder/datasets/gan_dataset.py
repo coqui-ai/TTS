@@ -20,6 +20,7 @@ class GANDataset(Dataset):
                  hop_len,
                  pad_short,
                  conv_pad=2,
+                 return_pairs=False,
                  is_training=True,
                  return_segments=True,
                  use_noise_augment=False,
@@ -33,6 +34,7 @@ class GANDataset(Dataset):
         self.hop_len = hop_len
         self.pad_short = pad_short
         self.conv_pad = conv_pad
+        self.return_pairs = return_pairs
         self.is_training = is_training
         self.return_segments = return_segments
         self.use_cache = use_cache
@@ -65,11 +67,17 @@ class GANDataset(Dataset):
     def __getitem__(self, idx):
         """ Return different items for Generator and Discriminator and
         cache acoustic features """
+
+        # set the seed differently for each worker
+        random.seed(torch.utils.data.get_worker_info().seed)
+
         if self.return_segments:
-            idx2 = self.G_to_D_mappings[idx]
             item1 = self.load_item(idx)
-            item2 = self.load_item(idx2)
-            return item1, item2
+            if self.return_pairs:
+                idx2 = self.G_to_D_mappings[idx]
+                item2 = self.load_item(idx2)
+                return item1, item2
+            return item1
         item1 = self.load_item(idx)
         return item1
 
