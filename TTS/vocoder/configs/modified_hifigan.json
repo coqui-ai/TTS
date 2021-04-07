@@ -15,6 +15,7 @@
         "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
         "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
         "log_func": "np.log",
+        "do_sound_norm": true,
 
         // Silence trimming
         "do_trim_silence": false,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
@@ -89,6 +90,7 @@
     //    "downsample_factors":[4, 4, 4]
     //},
     "steps_to_start_discriminator": 0,      // steps required to start GAN trainining.1
+    "diff_samples_for_G_and_D": false,   // draw a new sample from the dataset for the D pass.
 
     // GENERATOR
     "generator_model": "hifigan_generator",
