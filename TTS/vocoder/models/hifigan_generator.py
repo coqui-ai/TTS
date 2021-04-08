@@ -192,7 +192,7 @@ class HifiganGenerator(torch.nn.Module):
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2**(i + 1))
-            for j, (k, d) in enumerate(
+            for _, (k, d) in enumerate(
                     zip(resblock_kernel_sizes, resblock_dilation_sizes)):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer

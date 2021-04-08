@@ -1,6 +1,7 @@
 from torch import nn
 
 
+# pylint: disable=dangerous-default-value
 class ResStack(nn.Module):
     def __init__(self, kernel, channel, padding, dilations=[1, 3, 5]):
         super(ResStack, self).__init__()
@@ -40,7 +41,7 @@ class ResStack(nn.Module):
 
 
 class MRF(nn.Module):
-    def __init__(self, kernels, channel, dilations=[1, 3, 5]):
+    def __init__(self, kernels, channel, dilations=[1, 3, 5]):  # # pylint: disable=dangerous-default-value
         super().__init__()
         self.resblock1 = ResStack(kernels[0], channel, 0, dilations)
         self.resblock2 = ResStack(kernels[1], channel, 6, dilations)
