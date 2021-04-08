@@ -1,19 +1,19 @@
 import argparse
 import importlib
 import os
+from argparse import RawTextHelpFormatter
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from argparse import RawTextHelpFormatter
+
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
-
 
 if __name__ == "__main__":
     # pylint: disable=bad-option-value

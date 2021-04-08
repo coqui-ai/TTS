@@ -5,10 +5,10 @@ import re
 import phonemizer
 from packaging import version
 from phonemizer.phonemize import phonemize
+
+from TTS.tts.utils.chinese_mandarin.phonemizer import chinese_text_to_phonemes
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.symbols import _bos, _eos, _punctuations, make_symbols, phonemes, symbols
-from TTS.tts.utils.chinese_mandarin.phonemizer import chinese_text_to_phonemes
-
 
 # pylint: disable=unnecessary-comprehension
 # Mappings from symbol to numeric ID and vice versa:

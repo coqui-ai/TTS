@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import glob
 import argparse
+import glob
+import os
 
 import numpy as np
 from tqdm import tqdm
 
 from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_config
 
 
 def main():

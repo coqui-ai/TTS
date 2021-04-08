@@ -3,13 +3,13 @@ import os
 import unittest
 
 import torch
-from tests import get_tests_input_path
 from torch import optim
 
+from tests import get_tests_input_path
 from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.models.glow_tts import GlowTTS
-from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_config
 
 #pylint: disable=unused-variable
 

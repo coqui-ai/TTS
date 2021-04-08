@@ -1,8 +1,10 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from .common_layers import Prenet, Linear
+
 from .attentions import init_attn
+from .common_layers import Linear, Prenet
+
 
 # NOTE: linter has a problem with the current TF release
 # pylint: disable=no-value-for-parameter

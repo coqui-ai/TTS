@@ -1,10 +1,10 @@
 import os
+
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 # pylint: disable=unused-import
-from tests import get_tests_input_path
+from tests import get_tests_input_path, get_tests_path
 from TTS.tts.utils.text import *
-from tests import get_tests_path
 from TTS.utils.io import load_config
 
 conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))

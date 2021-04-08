@@ -3,14 +3,14 @@ import glob
 import os
 
 import numpy as np
+import torch
 from tqdm import tqdm
 
-import torch
 from TTS.speaker_encoder.model import SpeakerEncoder
+from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.utils.speakers import save_speaker_mapping
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
-from TTS.tts.utils.speakers import save_speaker_mapping
-from TTS.tts.datasets.preprocess import load_meta_data
 
 parser = argparse.ArgumentParser(
     description='Compute embedding vectors for each wav file in a dataset. If "target_dataset" is defined, it generates "speakers.json" necessary for training a multi-speaker model.'

@@ -1,8 +1,9 @@
-import numpy as np
 import math
+
+import numpy as np
 import torch
-from torch.distributions.normal import Normal
 import torch.nn.functional as F
+from torch.distributions.normal import Normal
 
 
 def gaussian_loss(y_hat, y, log_std_min=-7.0):

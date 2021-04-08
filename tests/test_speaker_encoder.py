@@ -2,9 +2,9 @@ import os
 import unittest
 
 import torch as T
-from tests import get_tests_input_path
 
-from TTS.speaker_encoder.losses import GE2ELoss, AngleProtoLoss
+from tests import get_tests_input_path
+from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss
 from TTS.speaker_encoder.model import SpeakerEncoder
 from TTS.utils.io import load_config
 

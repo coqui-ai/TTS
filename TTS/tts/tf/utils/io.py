@@ -1,5 +1,6 @@
-import pickle
 import datetime
+import pickle
+
 import tensorflow as tf
 
 

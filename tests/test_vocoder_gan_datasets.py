@@ -1,9 +1,9 @@
 import os
 
 import numpy as np
-from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from torch.utils.data import DataLoader
 
+from tests import get_tests_input_path, get_tests_output_path, get_tests_path
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
 from TTS.vocoder.datasets.gan_dataset import GANDataset

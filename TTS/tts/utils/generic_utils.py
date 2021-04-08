@@ -1,8 +1,9 @@
-import re
-import torch
 import importlib
-import numpy as np
+import re
 from collections import Counter
+
+import numpy as np
+import torch
 
 from TTS.utils.generic_utils import check_argument
 

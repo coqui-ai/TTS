@@ -1,7 +1,8 @@
-import re
-import torch
 import importlib
+import re
+
 import numpy as np
+import torch
 from matplotlib import pyplot as plt
 
 from TTS.tts.utils.visual import plot_spectrogram

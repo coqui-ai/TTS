@@ -5,8 +5,8 @@
 # This uses Python 3, but it's easy to port to Python 2 by changing
 # strings to u'xx'.
 
-import re
 import itertools
+import re
 
 
 def _num2chinese(num: str, big=False, simp=True, o=False, twoalt=False) -> str:

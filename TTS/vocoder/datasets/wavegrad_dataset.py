@@ -1,10 +1,11 @@
-import os
 import glob
-import torch
+import os
 import random
-import numpy as np
-from torch.utils.data import Dataset
 from multiprocessing import Manager
+
+import numpy as np
+import torch
+from torch.utils.data import Dataset
 
 
 class WaveGradDataset(Dataset):

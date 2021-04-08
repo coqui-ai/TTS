@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 
 def make_speakers_json_path(out_path):

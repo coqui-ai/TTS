@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
+
+from TTS.tts.tf.layers.tacotron.common_layers import Attention, Prenet
 from TTS.tts.tf.utils.tf_utils import shape_list
-from TTS.tts.tf.layers.tacotron.common_layers import Prenet, Attention
 
 
 # NOTE: linter has a problem with the current TF release

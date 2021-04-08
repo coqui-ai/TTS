@@ -1,16 +1,14 @@
 import sys
+import time
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 import torch.nn.functional as F
-import time
 
 # fix this
 from TTS.utils.audio import AudioProcessor as ap
-from TTS.vocoder.utils.distribution import (
-    sample_from_gaussian,
-    sample_from_discretized_mix_logistic,
-)
+from TTS.vocoder.utils.distribution import sample_from_discretized_mix_logistic, sample_from_gaussian
 
 
 def stream(string, variables):

@@ -2,32 +2,28 @@
 """Train WaveRNN vocoder model."""
 
 import os
-import sys
-import traceback
-import time
 import random
+import sys
+import time
+import traceback
 
 import torch
 from torch.utils.data import DataLoader
 
-# from torch.utils.data.distributed import DistributedSampler
-
-from TTS.utils.arguments import parse_arguments, process_args
 from TTS.tts.utils.visual import plot_spectrogram
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
 from TTS.utils.training import setup_torch_training_env
-from TTS.utils.generic_utils import (
-    KeepAverage,
-    count_parameters,
-    remove_experiment_folder,
-    set_init_dict,
-)
-from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
+from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
 from TTS.vocoder.utils.generic_utils import setup_generator
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
+
+# from torch.utils.data.distributed import DistributedSampler
+
 
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)

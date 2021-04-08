@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import pathlib
-import time
-import subprocess
 import argparse
+import os
+import pathlib
+import subprocess
+import sys
+import time
+
 import torch
 
 

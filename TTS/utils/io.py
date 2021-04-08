@@ -1,9 +1,10 @@
-import os
-import re
 import json
-import yaml
+import os
 import pickle as pickle_tts
+import re
 from shutil import copyfile
+
+import yaml
 
 
 class RenamingUnpickler(pickle_tts.Unpickler):

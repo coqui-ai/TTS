@@ -1,8 +1,8 @@
 dependencies = ['torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode', 'pypinyin']  # apt install espeak-ng
 import torch
 
-from TTS.utils.synthesizer import Synthesizer
 from TTS.utils.manage import ModelManager
+from TTS.utils.synthesizer import Synthesizer
 
 
 def tts(model_name='tts_models/en/ljspeech/tacotron2-DCA', vocoder_name=None, use_cuda=False):

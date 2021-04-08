@@ -1,9 +1,9 @@
 import torch
+from scipy.stats import betabinom
 from torch import nn
 from torch.nn import functional as F
 
 from TTS.tts.layers.tacotron.common_layers import Linear
-from scipy.stats import betabinom
 
 
 class LocationLayer(nn.Module):

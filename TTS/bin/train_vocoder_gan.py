@@ -9,24 +9,22 @@ import traceback
 from inspect import signature
 
 import torch
+# DISTRIBUTED
+from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
 from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
-
 from TTS.utils.radam import RAdam
-
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
 from TTS.vocoder.utils.generic_utils import plot_results, setup_discriminator, setup_generator
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
-
-# DISTRIBUTED
-from torch.nn.parallel import DistributedDataParallel as DDP_th
-from torch.utils.data.distributed import DistributedSampler
-from TTS.utils.distribute import init_distributed
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)
 

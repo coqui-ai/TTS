@@ -1,4 +1,5 @@
 import torch
+
 from TTS.tts.layers.feed_forward.decoder import Decoder
 from TTS.tts.layers.feed_forward.encoder import Encoder
 from TTS.tts.utils.generic_utils import sequence_mask

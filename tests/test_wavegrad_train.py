@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import torch
 from torch import optim
+
 from TTS.vocoder.models.wavegrad import Wavegrad
 
 #pylint: disable=unused-variable

@@ -1,6 +1,6 @@
 """Find all the unique characters in a dataset"""
-import os
 import argparse
+import os
 from argparse import RawTextHelpFormatter
 
 from TTS.tts.datasets.preprocess import get_preprocessor_by_name

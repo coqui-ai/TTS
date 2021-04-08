@@ -1,6 +1,6 @@
 import torch
 
-from TTS.vocoder.layers.wavegrad import PositionalEncoding, FiLM, UBlock, DBlock
+from TTS.vocoder.layers.wavegrad import DBlock, FiLM, PositionalEncoding, UBlock
 from TTS.vocoder.models.wavegrad import Wavegrad
 
 

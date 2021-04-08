@@ -10,7 +10,7 @@ from random import randrange
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from TTS.utils.arguments import parse_arguments, process_args
+
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import TacotronLoss
@@ -21,18 +21,13 @@ from TTS.tts.utils.speakers import parse_speakers
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import DistributedSampler, apply_gradient_allreduce, init_distributed, reduce_tensor
 from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
-from TTS.utils.training import (
-    NoamLR,
-    adam_weight_decay,
-    check_update,
-    gradual_training_scheduler,
-    set_weight_decay,
-    setup_torch_training_env,
-)
+from TTS.utils.training import (NoamLR, adam_weight_decay, check_update, gradual_training_scheduler, set_weight_decay,
+                                setup_torch_training_env)
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 

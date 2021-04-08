@@ -1,7 +1,8 @@
 import tensorflow as tf
 
-from TTS.vocoder.tf.models.melgan_generator import MelganGenerator
 from TTS.vocoder.tf.layers.pqmf import PQMF
+from TTS.vocoder.tf.models.melgan_generator import MelganGenerator
+
 
 # pylint: disable=too-many-ancestors
 # pylint: disable=abstract-method

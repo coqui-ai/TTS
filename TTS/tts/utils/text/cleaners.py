@@ -11,12 +11,14 @@ hyperparameter. Some cleaners are English-specific. You'll typically want to use
 """
 
 import re
+
 from unidecode import unidecode
-from .number_norm import normalize_numbers
-from .abbreviations import abbreviations_en, abbreviations_fr
-from .time import expand_time_english
+
 from TTS.tts.utils.chinese_mandarin.numbers import replace_numbers_to_characters_in_text
 
+from .abbreviations import abbreviations_en, abbreviations_fr
+from .number_norm import normalize_numbers
+from .time import expand_time_english
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r"\s+")
