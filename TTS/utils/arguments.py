@@ -4,11 +4,12 @@
 
 import argparse
 import glob
+import json
 import os
 import re
-import json
 
 import torch
+
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch

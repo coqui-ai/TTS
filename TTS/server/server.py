@@ -1,14 +1,15 @@
 #!flask/bin/python
 import argparse
+import io
 import os
 import sys
-import io
 from pathlib import Path
 
 from flask import Flask, render_template, request, send_file
-from TTS.utils.synthesizer import Synthesizer
-from TTS.utils.manage import ModelManager
+
 from TTS.utils.io import load_config
+from TTS.utils.manage import ModelManager
+from TTS.utils.synthesizer import Synthesizer
 
 
 def create_argparser():

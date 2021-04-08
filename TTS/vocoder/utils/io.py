@@ -1,8 +1,9 @@
-import os
-import glob
-import torch
 import datetime
+import glob
+import os
 import pickle as pickle_tts
+
+import torch
 
 from TTS.utils.io import RenamingUnpickler
 

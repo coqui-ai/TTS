@@ -3,13 +3,13 @@ import os
 import unittest
 
 import torch
-from tests import get_tests_input_path
 from torch import nn, optim
 
+from tests import get_tests_input_path
 from TTS.tts.layers.losses import L1LossMasked
 from TTS.tts.models.tacotron import Tacotron
-from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_config
 
 #pylint: disable=unused-variable
 

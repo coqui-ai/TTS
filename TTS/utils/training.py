@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 
 
 def setup_torch_training_env(cudnn_enable, cudnn_benchmark):

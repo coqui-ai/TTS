@@ -19,15 +19,17 @@
 # pylint: disable=too-many-locals, too-many-statements, too-many-arguments, too-many-instance-attributes
 """ voxceleb 1 & 2 """
 
+import hashlib
 import os
+import subprocess
 import sys
 import zipfile
-import subprocess
-import hashlib
-import pandas
-from absl import logging
-import tensorflow as tf
+
 import soundfile as sf
+import tensorflow as tf
+from absl import logging
+
+import pandas
 
 gfile = tf.compat.v1.gfile
 

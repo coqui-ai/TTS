@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.nn.utils import weight_norm
 
-from ..layers.wavegrad import DBlock, FiLM, UBlock, Conv1d
+from ..layers.wavegrad import Conv1d, DBlock, FiLM, UBlock
 
 
 class Wavegrad(nn.Module):

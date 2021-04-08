@@ -3,6 +3,7 @@ import os
 import re
 
 import torch
+
 from TTS.speaker_encoder.model import SpeakerEncoder
 from TTS.utils.generic_utils import check_argument
 

@@ -1,13 +1,15 @@
 # visualisation tools for mimic2
-import matplotlib.pyplot as plt
-from statistics import stdev, mode, mean, median
-from statistics import StatisticsError
 import argparse
-import os
 import csv
-import seaborn as sns
+import os
 import random
+from statistics import StatisticsError, mean, median, mode, stdev
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
 from text.cmudict import CMUDict
+
 
 def get_audio_seconds(frames):
     return (frames*12.5)/1000

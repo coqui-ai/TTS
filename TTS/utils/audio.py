@@ -1,12 +1,13 @@
 import librosa
-import soundfile as sf
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
+import soundfile as sf
+
+from TTS.tts.utils.data import StandardScaler
 
 # import pyworld as pw
 
-from TTS.tts.utils.data import StandardScaler
 
 # pylint: disable=too-many-public-methods
 class AudioProcessor(object):

@@ -1,4 +1,5 @@
 import re
+
 import inflect
 
 _inflect = inflect.engine()

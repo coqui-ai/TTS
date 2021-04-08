@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 
 from TTS.vocoder.models.random_window_discriminator import RandomWindowDiscriminator
 

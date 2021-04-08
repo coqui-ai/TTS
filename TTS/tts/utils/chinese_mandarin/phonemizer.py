@@ -1,11 +1,9 @@
 from typing import List
 
+import jieba
 import pypinyin
 
 from .pinyinToPhonemes import PINYIN_DICT
-
-
-import jieba
 
 
 def _chinese_character_to_pinyin(text: str) -> List[str]:

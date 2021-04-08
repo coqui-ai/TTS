@@ -1,8 +1,8 @@
 from torch import nn
 
-from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.layers.generic.res_conv_bn import ResidualConv1dBNBlock
 from TTS.tts.layers.generic.transformer import FFTransformerBlock
+from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 
 
 class RelativePositionTransformerEncoder(nn.Module):

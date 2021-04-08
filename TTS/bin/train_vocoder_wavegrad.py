@@ -5,15 +5,15 @@ import os
 import sys
 import time
 import traceback
+
 import numpy as np
-
 import torch
-
 # DISTRIBUTED
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+
 from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed

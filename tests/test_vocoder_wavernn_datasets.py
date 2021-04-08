@@ -2,13 +2,13 @@ import os
 import shutil
 
 import numpy as np
-from tests import get_tests_path, get_tests_input_path, get_tests_output_path
 from torch.utils.data import DataLoader
 
+from tests import get_tests_input_path, get_tests_output_path, get_tests_path
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
-from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 from TTS.vocoder.datasets.preprocess import load_wav_feat_data, preprocess_wav_files
+from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 from tqdm import tqdm
+
 from TTS.tts.utils.generic_utils import split_dataset
 
 ####################

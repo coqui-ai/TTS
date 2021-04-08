@@ -1,5 +1,5 @@
-import re
 import importlib
+import re
 
 
 def to_camel(text):

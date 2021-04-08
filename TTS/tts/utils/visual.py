@@ -1,11 +1,12 @@
 import librosa
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from TTS.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme
+
+matplotlib.use("Agg")
 
 
 def plot_alignment(alignment, info=None, fig_size=(16, 10), title=None, output_fig=False):

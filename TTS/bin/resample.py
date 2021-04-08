@@ -1,10 +1,11 @@
 import argparse
 import glob
 import os
-import librosa
-from distutils.dir_util import copy_tree
 from argparse import RawTextHelpFormatter
+from distutils.dir_util import copy_tree
 from multiprocessing import Pool
+
+import librosa
 from tqdm import tqdm
 
 

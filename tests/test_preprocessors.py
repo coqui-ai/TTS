@@ -1,7 +1,7 @@
-import unittest
 import os
-from tests import get_tests_input_path
+import unittest
 
+from tests import get_tests_input_path
 from TTS.tts.datasets.preprocess import common_voice
 
 

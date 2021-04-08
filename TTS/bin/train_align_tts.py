@@ -12,6 +12,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.layers.losses import AlignTTSLoss
