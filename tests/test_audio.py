@@ -10,7 +10,7 @@ OUT_PATH = os.path.join(get_tests_output_path(), "audio_tests")
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
 os.makedirs(OUT_PATH, exist_ok=True)
-conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
+conf = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
 
 
 # pylint: disable=protected-access
@@ -20,10 +20,10 @@ class TestAudio(unittest.TestCase):
         self.ap = AudioProcessor(**conf.audio)
 
     def test_audio_synthesis(self):
-        """ 1. load wav
-            2. set normalization parameters
-            3. extract mel-spec
-            4. invert to wav and save the output
+        """1. load wav
+        2. set normalization parameters
+        3. extract mel-spec
+        4. invert to wav and save the output
         """
         print(" > Sanity check for the process wav -> mel -> wav")
 
@@ -35,23 +35,24 @@ class TestAudio(unittest.TestCase):
             wav = self.ap.load_wav(WAV_FILE)
             mel = self.ap.melspectrogram(wav)
             wav_ = self.ap.inv_melspectrogram(mel)
-            file_name = "/audio_test-melspec_max_norm_{}-signal_norm_{}-symmetric_{}-clip_norm_{}.wav"\
-                .format(max_norm, signal_norm, symmetric_norm, clip_norm)
+            file_name = "/audio_test-melspec_max_norm_{}-signal_norm_{}-symmetric_{}-clip_norm_{}.wav".format(
+                max_norm, signal_norm, symmetric_norm, clip_norm
+            )
             print(" | > Creating wav file at : ", file_name)
             self.ap.save_wav(wav_, OUT_PATH + file_name)
 
         # maxnorm = 1.0
-        _test(1., False, False, False)
-        _test(1., True, False, False)
-        _test(1., True, True, False)
-        _test(1., True, False, True)
-        _test(1., True, True, True)
+        _test(1.0, False, False, False)
+        _test(1.0, True, False, False)
+        _test(1.0, True, True, False)
+        _test(1.0, True, False, True)
+        _test(1.0, True, True, True)
         # maxnorm = 4.0
-        _test(4., False, False, False)
-        _test(4., True, False, False)
-        _test(4., True, True, False)
-        _test(4., True, False, True)
-        _test(4., True, True, True)
+        _test(4.0, False, False, False)
+        _test(4.0, True, False, False)
+        _test(4.0, True, True, False)
+        _test(4.0, True, False, True)
+        _test(4.0, True, True, True)
 
     def test_normalize(self):
         """Check normalization and denormalization for range values and consistency """
@@ -67,7 +68,9 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = False
         self.ap.max_norm = 4.0
         x_norm = self.ap.normalize(x)
-        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
+        print(
+            f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}"
+        )
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm + 1, x_norm.max()
@@ -81,8 +84,9 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = True
         self.ap.max_norm = 4.0
         x_norm = self.ap.normalize(x)
-        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
-
+        print(
+            f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}"
+        )
 
         assert (x_old - x).sum() == 0
         # check value range
@@ -97,13 +101,14 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = False
         self.ap.max_norm = 4.0
         x_norm = self.ap.normalize(x)
-        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
-
+        print(
+            f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}"
+        )
 
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm + 1, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm - 2, x_norm.min()  #pylint: disable=invalid-unary-operand-type
+        assert x_norm.min() >= -self.ap.max_norm - 2, x_norm.min()  # pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
         x_ = self.ap.denormalize(x_norm)
@@ -114,13 +119,14 @@ class TestAudio(unittest.TestCase):
         self.ap.clip_norm = True
         self.ap.max_norm = 4.0
         x_norm = self.ap.normalize(x)
-        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
-
+        print(
+            f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}"
+        )
 
         assert (x_old - x).sum() == 0
         # check value range
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
+        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  # pylint: disable=invalid-unary-operand-type
         assert x_norm.min() <= 0, x_norm.min()
         # check denorm.
         x_ = self.ap.denormalize(x_norm)
@@ -130,8 +136,9 @@ class TestAudio(unittest.TestCase):
         self.ap.symmetric_norm = False
         self.ap.max_norm = 1.0
         x_norm = self.ap.normalize(x)
-        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
-
+        print(
+            f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}"
+        )
 
         assert (x_old - x).sum() == 0
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
@@ -143,22 +150,23 @@ class TestAudio(unittest.TestCase):
         self.ap.symmetric_norm = True
         self.ap.max_norm = 1.0
         x_norm = self.ap.normalize(x)
-        print(f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}")
-
+        print(
+            f" > MaxNorm: {self.ap.max_norm}, ClipNorm:{self.ap.clip_norm}, SymmetricNorm:{self.ap.symmetric_norm}, SignalNorm:{self.ap.signal_norm} Range-> {x_norm.max()} --  {x_norm.min()}"
+        )
 
         assert (x_old - x).sum() == 0
         assert x_norm.max() <= self.ap.max_norm, x_norm.max()
-        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  #pylint: disable=invalid-unary-operand-type
+        assert x_norm.min() >= -self.ap.max_norm, x_norm.min()  # pylint: disable=invalid-unary-operand-type
         assert x_norm.min() < 0, x_norm.min()
         x_ = self.ap.denormalize(x_norm)
         assert (x - x_).sum() < 1e-3
 
     def test_scaler(self):
-        scaler_stats_path = os.path.join(get_tests_input_path(), 'scale_stats.npy')
-        conf.audio['stats_path'] = scaler_stats_path
-        conf.audio['preemphasis'] = 0.0
-        conf.audio['do_trim_silence'] = True
-        conf.audio['signal_norm'] = True
+        scaler_stats_path = os.path.join(get_tests_input_path(), "scale_stats.npy")
+        conf.audio["stats_path"] = scaler_stats_path
+        conf.audio["preemphasis"] = 0.0
+        conf.audio["do_trim_silence"] = True
+        conf.audio["signal_norm"] = True
 
         ap = AudioProcessor(**conf.audio)
         mel_mean, mel_std, linear_mean, linear_std, _ = ap.load_stats(scaler_stats_path)
