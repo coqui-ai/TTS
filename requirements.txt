@@ -24,6 +24,7 @@ cython
 pyyaml
 # quality and style
 nose
+coverage
 black
 isort
 pylint==2.7.4
