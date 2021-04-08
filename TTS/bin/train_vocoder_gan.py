@@ -479,7 +479,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer_gen = getattr(torch.optim, c.optimizer)
     optimizer_gen = optimizer_gen(lr=c.lr_gen, **c.optimizer_params)
     optimizer_disc = getattr(torch.optim, c.optimizer)
-    optimizer_disc= optimizer_disc(lr=c.lr_gen, **c.optimizer_params)
+    optimizer_disc = optimizer_disc(lr=c.lr_gen, **c.optimizer_params)
 
     # schedulers
     scheduler_gen = None

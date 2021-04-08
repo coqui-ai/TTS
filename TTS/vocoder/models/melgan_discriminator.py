@@ -11,8 +11,7 @@ class MelganDiscriminator(nn.Module):
                  base_channels=16,
                  max_channels=1024,
                  downsample_factors=(4, 4, 4, 4),
-                 groups_denominator=4,
-                 max_groups=256):
+                 groups_denominator=4):
         super(MelganDiscriminator, self).__init__()
         self.layers = nn.ModuleList()
 
