@@ -204,8 +204,6 @@ class HifiganDiscriminator(nn.Module):
             List[Tensor]: discriminator scores.
             List[List[Tensor]]: list of list of features from each layers of each discriminator.
         """
-        scores, feats = self.msd(x)
-        scores_, feats_ = self.mpd(x)
-        scores += scores_
-        feats += feats_
-        return scores, feats
+        scores, feats = self.mpd(x)
+        scores_, feats_ = self.msd(x)
+        return scores + scores_, feats + feats_
