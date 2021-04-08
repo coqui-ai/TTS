@@ -89,4 +89,3 @@ def test_melgan_feature_loss():
     loss_func = MelganFeatureLoss()
     loss = loss_func(feats_fake, feats_real)
     assert loss.item() == 0
-

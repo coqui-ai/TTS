@@ -120,7 +120,7 @@ class GANDataset(Dataset):
             else:
                 audio = self.ap.load_wav(wavpath)
                 mel = np.load(feat_path)
-                audio, mel= self._pad_short_samples(audio, mel)
+                audio, mel = self._pad_short_samples(audio, mel)
 
         # correct the audio length wrt padding applied in stft
         audio = np.pad(audio, (0, self.hop_len), mode="edge")
