@@ -65,6 +65,7 @@
     // MODEL PARAMETERS
     "positional_encoding": true,
     "hidden_channels": 256,
+    "hidden_channels_dp": 128,
     "encoder_type": "fftransformer",
     "encoder_params":{
         "hidden_channels_ffn": 1024 ,

@@ -96,7 +96,7 @@ def setup_generator(c):
             in_channels=c.audio['num_mels'],
             out_channels=1,
             **c.generator_model_params)
-    if c.generator_model.lower() in 'melgan_generator':
+    elif c.generator_model.lower() in 'melgan_generator':
         model = MyModel(
             in_channels=c.audio['num_mels'],
             out_channels=1,
