@@ -9,7 +9,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # FATAL
 logging.getLogger("tensorflow").setLevel(logging.FATAL)
 
 
-
 # pylint: disable=too-many-ancestors
 # pylint: disable=abstract-method
 class MelganGenerator(tf.keras.models.Model):

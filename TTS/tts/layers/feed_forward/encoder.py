@@ -147,9 +147,7 @@ class Encoder(nn.Module):
                 in_hidden_channels == out_channels
             ), "[!] must be `in_channels` == `out_channels` when encoder type is 'fftransformer'"
             # pylint: disable=unexpected-keyword-arg
-            self.encoder = FFTransformerBlock(
-                in_hidden_channels, **encoder_params
-            )
+            self.encoder = FFTransformerBlock(in_hidden_channels, **encoder_params)
         else:
             raise NotImplementedError(" [!] unknown encoder type.")
 

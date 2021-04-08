@@ -6,6 +6,7 @@ import torch
 
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.speakers import load_speaker_mapping
+
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, trim_silence
