@@ -53,6 +53,7 @@ def test_multiscale_stft_loss():
     assert loss_sc < 1.0
     assert loss_m + loss_sc > 0
 
+
 def test_melgan_feature_loss():
     feats_real = []
     feats_fake = []
@@ -70,7 +71,6 @@ def test_melgan_feature_loss():
     loss_func = MelganFeatureLoss()
     loss = loss_func(feats_fake, feats_real)
     assert loss.item() <= 1.0
-
 
     feats_real = []
     feats_fake = []
