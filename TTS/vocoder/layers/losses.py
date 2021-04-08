@@ -4,7 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 
 
-class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
+class TorchSTFT():
     """TODO: Merge this with audio.py"""
     def __init__(self,
                  n_fft,
@@ -34,7 +34,6 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         if use_mel:
             self._build_mel_basis()
 
-    @torch.no_grad()
     def __call__(self, x):
         """Compute spectrogram frames by torch based stft.
 
