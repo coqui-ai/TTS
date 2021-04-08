@@ -313,7 +313,7 @@ class AudioProcessor(object):
                             pad_mode=self.stft_pad_mode,
                             window='hann',
                             center=True,
-                            dtype=None)
+                            )
 
     def _istft(self, y):
         return librosa.istft(y,
@@ -321,7 +321,7 @@ class AudioProcessor(object):
                              win_length=self.win_length,
                              window='hann',
                              center=True,
-                             dtype=None)
+                             )
 
     def _griffin_lim(self, S):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
