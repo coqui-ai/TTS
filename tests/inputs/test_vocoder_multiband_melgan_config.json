@@ -13,10 +13,12 @@
         // Audio processing parameters
         "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
         "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
-        "ref_level_db": 0,     // reference level db, theoretically 20db is the sound of air.
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "log_func": "np.log10",
+        "do_sound_norm": true,
 
         // Silence trimming
-        "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": false,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
 
         // MelSpectrogram parameters
@@ -31,7 +33,7 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": null
     },
 
     // DISTRIBUTED TRAINING
@@ -126,6 +128,11 @@
     "wd": 0.0,                // Weight decay weight.
     "gen_clip_grad": -1,      // Generator gradient clipping threshold. Apply gradient clipping if > 0
     "disc_clip_grad": -1,     // Discriminator gradient clipping threshold.
+    "optimizer": "AdamW",
+    "optimizer_params":{
+        "betas": [0.8, 0.99],
+        "weight_decay": 0.0
+    },
     "lr_scheduler_gen": "MultiStepLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
     "lr_scheduler_gen_params": {
         "gamma": 0.5,
