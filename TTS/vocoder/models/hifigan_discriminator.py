@@ -1,5 +1,4 @@
 # adopted from https://github.com/jik876/hifi-gan/blob/master/models.py
-
 import torch
 from torch import nn
 from torch.nn import functional as F
