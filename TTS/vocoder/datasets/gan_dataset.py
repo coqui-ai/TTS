@@ -69,7 +69,8 @@ class GANDataset(Dataset):
         cache acoustic features """
 
         # set the seed differently for each worker
-        random.seed(torch.utils.data.get_worker_info().seed)
+        if torch.utils.data.get_worker_info():
+            random.seed(torch.utils.data.get_worker_info().seed)
 
         if self.return_segments:
             item1 = self.load_item(idx)
