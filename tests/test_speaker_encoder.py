@@ -17,9 +17,7 @@ class SpeakerEncoderTests(unittest.TestCase):
     def test_in_out(self):
         dummy_input = T.rand(4, 20, 80)  # B x T x D
         dummy_hidden = [T.rand(2, 4, 128), T.rand(2, 4, 128)]
-        model = SpeakerEncoder(
-            input_dim=80, proj_dim=256, lstm_dim=768, num_lstm_layers=3
-        )
+        model = SpeakerEncoder(input_dim=80, proj_dim=256, lstm_dim=768, num_lstm_layers=3)
         # computing d vectors
         output = model.forward(dummy_input)
         assert output.shape[0] == 4
@@ -36,9 +34,7 @@ class SpeakerEncoderTests(unittest.TestCase):
         output_norm = T.nn.functional.normalize(output, dim=1, p=2)
         assert_diff = (output_norm - output).sum().item()
         assert output.type() == "torch.FloatTensor"
-        assert (
-            abs(assert_diff) < 1e-4
-        ), f" [!] output_norm has wrong values - {assert_diff}"
+        assert abs(assert_diff) < 1e-4, f" [!] output_norm has wrong values - {assert_diff}"
         # compute d for a given batch
         dummy_input = T.rand(1, 240, 80)  # B x T x D
         output = model.compute_embedding(dummy_input, num_frames=160, overlap=0.5)
@@ -74,6 +70,7 @@ class GE2ELossTests(unittest.TestCase):
         output = loss.forward(dummy_input)
         assert output.item() < 0.005
 
+
 class AngleProtoLossTests(unittest.TestCase):
     # pylint: disable=R0201
     def test_in_out(self):
@@ -102,6 +99,7 @@ class AngleProtoLossTests(unittest.TestCase):
         loss = AngleProtoLoss()
         output = loss.forward(dummy_input)
         assert output.item() < 0.005
+
 
 # class LoaderTest(unittest.TestCase):
 #     def test_output(self):

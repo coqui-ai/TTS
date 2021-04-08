@@ -10,11 +10,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def test_duration_predictor():
     input_dummy = torch.rand(8, 128, 27).to(device)
-    input_lengths = torch.randint(20, 27, (8, )).long().to(device)
+    input_lengths = torch.randint(20, 27, (8,)).long().to(device)
     input_lengths[-1] = 27
 
-    x_mask = torch.unsqueeze(sequence_mask(input_lengths, input_dummy.size(2)),
-                             1).to(device)
+    x_mask = torch.unsqueeze(sequence_mask(input_lengths, input_dummy.size(2)), 1).to(device)
 
     layer = DurationPredictor(hidden_channels=128).to(device)
 
@@ -29,7 +28,7 @@ def test_speedy_speech():
     T_de = 74
 
     x_dummy = torch.randint(0, 7, (B, T_en)).long().to(device)
-    x_lengths = torch.randint(31, T_en, (B, )).long().to(device)
+    x_lengths = torch.randint(31, T_en, (B,)).long().to(device)
     x_lengths[-1] = T_en
 
     # set durations. max total duration should be equal to T_de
@@ -53,34 +52,18 @@ def test_speedy_speech():
     assert list(o_dr.shape) == [B, T_en]
 
     # with speaker embedding
-    model = SpeedySpeech(num_chars,
-                         out_channels=80,
-                         hidden_channels=128,
-                         num_speakers=10,
-                         c_in_channels=256).to(device)
-    model.forward(x_dummy,
-                  x_lengths,
-                  y_lengths,
-                  durations,
-                  g=torch.randint(0, 10, (B,)).to(device))
+    model = SpeedySpeech(num_chars, out_channels=80, hidden_channels=128, num_speakers=10, c_in_channels=256).to(device)
+    model.forward(x_dummy, x_lengths, y_lengths, durations, g=torch.randint(0, 10, (B,)).to(device))
 
     assert list(o_de.shape) == [B, 80, T_de], f"{list(o_de.shape)}"
     assert list(attn.shape) == [B, T_de, T_en]
     assert list(o_dr.shape) == [B, T_en]
 
-
     # with speaker external embedding
-    model = SpeedySpeech(num_chars,
-                         out_channels=80,
-                         hidden_channels=128,
-                         num_speakers=10,
-                         external_c=True,
-                         c_in_channels=256).to(device)
-    model.forward(x_dummy,
-                  x_lengths,
-                  y_lengths,
-                  durations,
-                  g=torch.rand((B, 256)).to(device))
+    model = SpeedySpeech(
+        num_chars, out_channels=80, hidden_channels=128, num_speakers=10, external_c=True, c_in_channels=256
+    ).to(device)
+    model.forward(x_dummy, x_lengths, y_lengths, durations, g=torch.rand((B, 256)).to(device))
 
     assert list(o_de.shape) == [B, 80, T_de], f"{list(o_de.shape)}"
     assert list(attn.shape) == [B, T_de, T_en]

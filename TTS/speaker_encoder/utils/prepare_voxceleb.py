@@ -25,11 +25,10 @@ import subprocess
 import sys
 import zipfile
 
+import pandas
 import soundfile as sf
 import tensorflow as tf
 from absl import logging
-
-import pandas
 
 gfile = tf.compat.v1.gfile
 
