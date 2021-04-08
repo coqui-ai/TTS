@@ -74,7 +74,7 @@ def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_pairs, retur
                 check_item(feat2, wav2)
                 count_iter += 1
         else:
-             for item1 in loader:
+            for item1 in loader:
                 feat1, wav1 = item1
                 check_item(feat1, wav1)
                 count_iter += 1
