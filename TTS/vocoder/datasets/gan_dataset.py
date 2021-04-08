@@ -13,19 +13,22 @@ class GANDataset(Dataset):
     and converts them to acoustic features on the fly and returns
     random segments of (audio, feature) couples.
     """
-    def __init__(self,
-                 ap,
-                 items,
-                 seq_len,
-                 hop_len,
-                 pad_short,
-                 conv_pad=2,
-                 is_training=True,
-                 return_segments=True,
-                 use_noise_augment=False,
-                 use_cache=False,
-                 verbose=False):
-        super(GANDataset, self).__init__()
+
+    def __init__(
+        self,
+        ap,
+        items,
+        seq_len,
+        hop_len,
+        pad_short,
+        conv_pad=2,
+        is_training=True,
+        return_segments=True,
+        use_noise_augment=False,
+        use_cache=False,
+        verbose=False,
+    ):
+        super().__init__()
         self.ap = ap
         self.item_list = items
         self.compute_feat = not isinstance(items[0], (tuple, list))
@@ -57,14 +60,14 @@ class GANDataset(Dataset):
 
     @staticmethod
     def find_wav_files(path):
-        return glob.glob(os.path.join(path, '**', '*.wav'), recursive=True)
+        return glob.glob(os.path.join(path, "**", "*.wav"), recursive=True)
 
     def __len__(self):
         return len(self.item_list)
 
     def __getitem__(self, idx):
-        """ Return different items for Generator and Discriminator and
-        cache acoustic features """
+        """Return different items for Generator and Discriminator and
+        cache acoustic features"""
         if self.return_segments:
             idx2 = self.G_to_D_mappings[idx]
             item1 = self.load_item(idx)
@@ -76,13 +79,16 @@ class GANDataset(Dataset):
     def _pad_short_samples(self, audio, mel=None):
         """Pad samples shorter than the output sequence length"""
         if len(audio) < self.seq_len:
-            audio = np.pad(audio, (0, self.seq_len - len(audio)),
-                           mode='constant',
-                           constant_values=0.0)
+            audio = np.pad(audio, (0, self.seq_len - len(audio)), mode="constant", constant_values=0.0)
 
         if mel is not None and mel.shape[1] < self.feat_frame_len:
             pad_value = self.ap.melspectrogram(np.zeros([self.ap.win_length]))[:, 0]
-            mel = np.pad(mel, ([0, 0], [0, self.feat_frame_len - mel.shape[1]]), mode='constant', constant_values=pad_value.mean())
+            mel = np.pad(
+                mel,
+                ([0, 0], [0, self.feat_frame_len - mel.shape[1]]),
+                mode="constant",
+                constant_values=pad_value.mean(),
+            )
         return audio, mel
 
     def shuffle_mapping(self):
@@ -111,12 +117,14 @@ class GANDataset(Dataset):
             else:
                 audio = self.ap.load_wav(wavpath)
                 mel = np.load(feat_path)
-                audio, mel= self._pad_short_samples(audio, mel)
+                audio, mel = self._pad_short_samples(audio, mel)
 
         # correct the audio length wrt padding applied in stft
         audio = np.pad(audio, (0, self.hop_len), mode="edge")
-        audio = audio[:mel.shape[-1] * self.hop_len]
-        assert mel.shape[-1] * self.hop_len == audio.shape[-1], f' [!] {mel.shape[-1] * self.hop_len} vs {audio.shape[-1]}'
+        audio = audio[: mel.shape[-1] * self.hop_len]
+        assert (
+            mel.shape[-1] * self.hop_len == audio.shape[-1]
+        ), f" [!] {mel.shape[-1] * self.hop_len} vs {audio.shape[-1]}"
 
         audio = torch.from_numpy(audio).float().unsqueeze(0)
         mel = torch.from_numpy(mel).float().squeeze(0)
@@ -128,8 +136,7 @@ class GANDataset(Dataset):
             mel = mel[:, mel_start:mel_end]
 
             audio_start = mel_start * self.hop_len
-            audio = audio[:, audio_start:audio_start +
-                          self.seq_len]
+            audio = audio[:, audio_start : audio_start + self.seq_len]
 
         if self.use_noise_augment and self.is_training and self.return_segments:
             audio = audio + (1 / 32768) * torch.randn_like(audio)

@@ -31,15 +31,16 @@ class WaveNetDecoder(nn.Module):
         hidden_channels (int): number of hidden channels for prenet and postnet.
         params (dict): dictionary for residual convolutional blocks.
     """
+
     def __init__(self, in_channels, out_channels, hidden_channels, c_in_channels, params):
         super().__init__()
         # prenet
-        self.prenet = torch.nn.Conv1d(in_channels, params['hidden_channels'], 1)
+        self.prenet = torch.nn.Conv1d(in_channels, params["hidden_channels"], 1)
         # wavenet layers
-        self.wn = WNBlocks(params['hidden_channels'], c_in_channels=c_in_channels, **params)
+        self.wn = WNBlocks(params["hidden_channels"], c_in_channels=c_in_channels, **params)
         # postnet
         self.postnet = [
-            torch.nn.Conv1d(params['hidden_channels'], hidden_channels, 1),
+            torch.nn.Conv1d(params["hidden_channels"], hidden_channels, 1),
             torch.nn.ReLU(),
             torch.nn.Conv1d(hidden_channels, hidden_channels, 1),
             torch.nn.ReLU(),
@@ -77,12 +78,12 @@ class RelativePositionTransformerDecoder(nn.Module):
         hidden_channels (int): number of hidden channels including Transformer layers.
         params (dict): dictionary for residual convolutional blocks.
     """
+
     def __init__(self, in_channels, out_channels, hidden_channels, params):
 
         super().__init__()
         self.prenet = Conv1dBN(in_channels, hidden_channels, 1, 1)
-        self.rel_pos_transformer = RelativePositionTransformer(
-            in_channels, out_channels, hidden_channels, **params)
+        self.rel_pos_transformer = RelativePositionTransformer(in_channels, out_channels, hidden_channels, **params)
 
     def forward(self, x, x_mask=None, g=None):  # pylint: disable=unused-argument
         o = self.prenet(x) * x_mask
@@ -107,6 +108,7 @@ class FFTransformerDecoder(nn.Module):
         hidden_channels (int): number of hidden channels including Transformer layers.
         params (dict): dictionary for residual convolutional blocks.
     """
+
     def __init__(self, in_channels, out_channels, params):
 
         super().__init__()
@@ -117,7 +119,7 @@ class FFTransformerDecoder(nn.Module):
         # TODO: handle multi-speaker
         x_mask = 1 if x_mask is None else x_mask
         o = self.transformer_block(x) * x_mask
-        o = self.postnet(o)*  x_mask
+        o = self.postnet(o) * x_mask
         return o
 
 
@@ -141,19 +143,15 @@ class ResidualConv1dBNDecoder(nn.Module):
         hidden_channels (int): number of hidden channels including ResidualConv1dBNBlock layers.
         params (dict): dictionary for residual convolutional blocks.
     """
+
     def __init__(self, in_channels, out_channels, hidden_channels, params):
         super().__init__()
-        self.res_conv_block = ResidualConv1dBNBlock(in_channels,
-                                                    hidden_channels,
-                                                    hidden_channels, **params)
+        self.res_conv_block = ResidualConv1dBNBlock(in_channels, hidden_channels, hidden_channels, **params)
         self.post_conv = nn.Conv1d(hidden_channels, hidden_channels, 1)
         self.postnet = nn.Sequential(
-            Conv1dBNBlock(hidden_channels,
-                          hidden_channels,
-                          hidden_channels,
-                          params['kernel_size'],
-                          1,
-                          num_conv_blocks=2),
+            Conv1dBNBlock(
+                hidden_channels, hidden_channels, hidden_channels, params["kernel_size"], 1, num_conv_blocks=2
+            ),
             nn.Conv1d(hidden_channels, out_channels, 1),
         )
 
@@ -178,17 +176,18 @@ class Decoder(nn.Module):
 
     # pylint: disable=dangerous-default-value
     def __init__(
-            self,
-            out_channels,
-            in_hidden_channels,
-            decoder_type='residual_conv_bn',
-            decoder_params={
-                "kernel_size": 4,
-                "dilations": 4 * [1, 2, 4, 8] + [1],
-                "num_conv_blocks": 2,
-                "num_res_blocks": 17
-            },
-            c_in_channels=0):
+        self,
+        out_channels,
+        in_hidden_channels,
+        decoder_type="residual_conv_bn",
+        decoder_params={
+            "kernel_size": 4,
+            "dilations": 4 * [1, 2, 4, 8] + [1],
+            "num_conv_blocks": 2,
+            "num_res_blocks": 17,
+        },
+        c_in_channels=0,
+    ):
         super().__init__()
 
         if decoder_type.lower() == "relative_position_transformer":
@@ -196,23 +195,27 @@ class Decoder(nn.Module):
                 in_channels=in_hidden_channels,
                 out_channels=out_channels,
                 hidden_channels=in_hidden_channels,
-                params=decoder_params)
-        elif decoder_type.lower() == 'residual_conv_bn':
+                params=decoder_params,
+            )
+        elif decoder_type.lower() == "residual_conv_bn":
             self.decoder = ResidualConv1dBNDecoder(
                 in_channels=in_hidden_channels,
                 out_channels=out_channels,
                 hidden_channels=in_hidden_channels,
-                params=decoder_params)
-        elif decoder_type.lower() == 'wavenet':
-            self.decoder = WaveNetDecoder(in_channels=in_hidden_channels,
-                                          out_channels=out_channels,
-                                          hidden_channels=in_hidden_channels,
-                                          c_in_channels=c_in_channels,
-                                          params=decoder_params)
-        elif decoder_type.lower() == 'fftransformer':
+                params=decoder_params,
+            )
+        elif decoder_type.lower() == "wavenet":
+            self.decoder = WaveNetDecoder(
+                in_channels=in_hidden_channels,
+                out_channels=out_channels,
+                hidden_channels=in_hidden_channels,
+                c_in_channels=c_in_channels,
+                params=decoder_params,
+            )
+        elif decoder_type.lower() == "fftransformer":
             self.decoder = FFTransformerDecoder(in_hidden_channels, out_channels, decoder_params)
         else:
-            raise ValueError(f'[!] Unknown decoder type - {decoder_type}')
+            raise ValueError(f"[!] Unknown decoder type - {decoder_type}")
 
     def forward(self, x, x_mask, g=None):  # pylint: disable=unused-argument
         """

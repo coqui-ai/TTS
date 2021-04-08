@@ -10,15 +10,9 @@ from TTS.tts.tf.utils.tflite import convert_tacotron2_to_tflite
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--tf_model',
-                    type=str,
-                    help='Path to target torch model to be converted to TF.')
-parser.add_argument('--config_path',
-                    type=str,
-                    help='Path to config file of torch model.')
-parser.add_argument('--output_path',
-                    type=str,
-                    help='path to tflite output binary.')
+parser.add_argument("--tf_model", type=str, help="Path to target torch model to be converted to TF.")
+parser.add_argument("--config_path", type=str, help="Path to config file of torch model.")
+parser.add_argument("--output_path", type=str, help="path to tflite output binary.")
 args = parser.parse_args()
 
 # Set constants

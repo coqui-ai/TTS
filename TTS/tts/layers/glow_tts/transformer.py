@@ -48,16 +48,19 @@ class RelativePositionMultiHeadAttention(nn.Module):
         proximal_init (bool, optional): enable/disable poximal init as in the paper.
             Init key and query layer weights the same. Defaults to False.
     """
-    def __init__(self,
-                 channels,
-                 out_channels,
-                 num_heads,
-                 rel_attn_window_size=None,
-                 heads_share=True,
-                 dropout_p=0.,
-                 input_length=None,
-                 proximal_bias=False,
-                 proximal_init=False):
+
+    def __init__(
+        self,
+        channels,
+        out_channels,
+        num_heads,
+        rel_attn_window_size=None,
+        heads_share=True,
+        dropout_p=0.0,
+        input_length=None,
+        proximal_bias=False,
+        proximal_init=False,
+    ):
 
         super().__init__()
         assert channels % num_heads == 0, " [!] channels should be divisible by num_heads."
@@ -82,15 +85,15 @@ class RelativePositionMultiHeadAttention(nn.Module):
         # relative positional encoding layers
         if rel_attn_window_size is not None:
             n_heads_rel = 1 if heads_share else num_heads
-            rel_stddev = self.k_channels**-0.5
+            rel_stddev = self.k_channels ** -0.5
             emb_rel_k = nn.Parameter(
-                torch.randn(n_heads_rel, rel_attn_window_size * 2 + 1,
-                            self.k_channels) * rel_stddev)
+                torch.randn(n_heads_rel, rel_attn_window_size * 2 + 1, self.k_channels) * rel_stddev
+            )
             emb_rel_v = nn.Parameter(
-                torch.randn(n_heads_rel, rel_attn_window_size * 2 + 1,
-                            self.k_channels) * rel_stddev)
-            self.register_parameter('emb_rel_k', emb_rel_k)
-            self.register_parameter('emb_rel_v', emb_rel_v)
+                torch.randn(n_heads_rel, rel_attn_window_size * 2 + 1, self.k_channels) * rel_stddev
+            )
+            self.register_parameter("emb_rel_k", emb_rel_k)
+            self.register_parameter("emb_rel_v", emb_rel_v)
 
         # init layers
         nn.init.xavier_uniform_(self.conv_q.weight)
@@ -112,38 +115,30 @@ class RelativePositionMultiHeadAttention(nn.Module):
     def attention(self, query, key, value, mask=None):
         # reshape [b, d, t] -> [b, n_h, t, d_k]
         b, d, t_s, t_t = (*key.size(), query.size(2))
-        query = query.view(b, self.num_heads, self.k_channels,
-                           t_t).transpose(2, 3)
+        query = query.view(b, self.num_heads, self.k_channels, t_t).transpose(2, 3)
         key = key.view(b, self.num_heads, self.k_channels, t_s).transpose(2, 3)
-        value = value.view(b, self.num_heads, self.k_channels,
-                           t_s).transpose(2, 3)
+        value = value.view(b, self.num_heads, self.k_channels, t_s).transpose(2, 3)
         # compute raw attention scores
-        scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(
-            self.k_channels)
+        scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.k_channels)
         # relative positional encoding for scores
         if self.rel_attn_window_size is not None:
             assert t_s == t_t, "Relative attention is only available for self-attention."
             # get relative key embeddings
-            key_relative_embeddings = self._get_relative_embeddings(
-                self.emb_rel_k, t_s)
-            rel_logits = self._matmul_with_relative_keys(
-                query, key_relative_embeddings)
-            rel_logits = self._relative_position_to_absolute_position(
-                rel_logits)
+            key_relative_embeddings = self._get_relative_embeddings(self.emb_rel_k, t_s)
+            rel_logits = self._matmul_with_relative_keys(query, key_relative_embeddings)
+            rel_logits = self._relative_position_to_absolute_position(rel_logits)
             scores_local = rel_logits / math.sqrt(self.k_channels)
             scores = scores + scores_local
         # proximan bias
         if self.proximal_bias:
             assert t_s == t_t, "Proximal bias is only available for self-attention."
-            scores = scores + self._attn_proximity_bias(t_s).to(
-                device=scores.device, dtype=scores.dtype)
+            scores = scores + self._attn_proximity_bias(t_s).to(device=scores.device, dtype=scores.dtype)
         # attention score masking
         if mask is not None:
             # add small value to prevent oor error.
             scores = scores.masked_fill(mask == 0, -1e4)
             if self.input_length is not None:
-                block_mask = torch.ones_like(scores).triu(
-                    -1 * self.input_length).tril(self.input_length)
+                block_mask = torch.ones_like(scores).triu(-1 * self.input_length).tril(self.input_length)
                 scores = scores * block_mask + -1e4 * (1 - block_mask)
         # attention score normalization
         p_attn = F.softmax(scores, dim=-1)  # [b, n_h, t_t, t_s]
@@ -153,14 +148,10 @@ class RelativePositionMultiHeadAttention(nn.Module):
         output = torch.matmul(p_attn, value)
         # relative positional encoding for values
         if self.rel_attn_window_size is not None:
-            relative_weights = self._absolute_position_to_relative_position(
-                p_attn)
-            value_relative_embeddings = self._get_relative_embeddings(
-                self.emb_rel_v, t_s)
-            output = output + self._matmul_with_relative_values(
-                relative_weights, value_relative_embeddings)
-        output = output.transpose(2, 3).contiguous().view(
-            b, d, t_t)  # [b, n_h, t_t, d_k] -> [b, d, t_t]
+            relative_weights = self._absolute_position_to_relative_position(p_attn)
+            value_relative_embeddings = self._get_relative_embeddings(self.emb_rel_v, t_s)
+            output = output + self._matmul_with_relative_values(relative_weights, value_relative_embeddings)
+        output = output.transpose(2, 3).contiguous().view(b, d, t_t)  # [b, n_h, t_t, d_k] -> [b, d, t_t]
         return output, p_attn
 
     @staticmethod
@@ -195,20 +186,16 @@ class RelativePositionMultiHeadAttention(nn.Module):
         return logits
 
     def _get_relative_embeddings(self, relative_embeddings, length):
-        """Convert embedding vestors to a tensor of embeddings
-        """
+        """Convert embedding vestors to a tensor of embeddings"""
         # Pad first before slice to avoid using cond ops.
         pad_length = max(length - (self.rel_attn_window_size + 1), 0)
         slice_start_position = max((self.rel_attn_window_size + 1) - length, 0)
         slice_end_position = slice_start_position + 2 * length - 1
         if pad_length > 0:
-            padded_relative_embeddings = F.pad(
-                relative_embeddings, [0, 0, pad_length, pad_length, 0, 0])
+            padded_relative_embeddings = F.pad(relative_embeddings, [0, 0, pad_length, pad_length, 0, 0])
         else:
             padded_relative_embeddings = relative_embeddings
-        used_relative_embeddings = padded_relative_embeddings[:,
-                                                              slice_start_position:
-                                                              slice_end_position]
+        used_relative_embeddings = padded_relative_embeddings[:, slice_start_position:slice_end_position]
         return used_relative_embeddings
 
     @staticmethod
@@ -226,8 +213,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         x_flat = x.view([batch, heads, length * 2 * length])
         x_flat = F.pad(x_flat, [0, length - 1, 0, 0, 0, 0])
         # Reshape and slice out the padded elements.
-        x_final = x_flat.view([batch, heads, length + 1,
-                               2 * length - 1])[:, :, :length, length - 1:]
+        x_final = x_flat.view([batch, heads, length + 1, 2 * length - 1])[:, :, :length, length - 1 :]
         return x_final
 
     @staticmethod
@@ -239,7 +225,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         batch, heads, length, _ = x.size()
         # padd along column
         x = F.pad(x, [0, length - 1, 0, 0, 0, 0, 0, 0])
-        x_flat = x.view([batch, heads, length**2 + length * (length - 1)])
+        x_flat = x.view([batch, heads, length ** 2 + length * (length - 1)])
         # add 0's in the beginning that will skew the elements after reshape
         x_flat = F.pad(x_flat, [length, 0, 0, 0, 0, 0])
         x_final = x_flat.view([batch, heads, length, 2 * length])[:, :, :, 1:]
@@ -267,19 +253,15 @@ class RelativePositionMultiHeadAttention(nn.Module):
 class FeedForwardNetwork(nn.Module):
     """Feed Forward Inner layers for Transformer.
 
-        Args:
-            in_channels (int): input tensor channels.
-            out_channels (int): output tensor channels.
-            hidden_channels (int): inner layers hidden channels.
-            kernel_size (int): conv1d filter kernel size.
-            dropout_p (float, optional): dropout rate. Defaults to 0.
+    Args:
+        in_channels (int): input tensor channels.
+        out_channels (int): output tensor channels.
+        hidden_channels (int): inner layers hidden channels.
+        kernel_size (int): conv1d filter kernel size.
+        dropout_p (float, optional): dropout rate. Defaults to 0.
     """
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 hidden_channels,
-                 kernel_size,
-                 dropout_p=0.):
+
+    def __init__(self, in_channels, out_channels, hidden_channels, kernel_size, dropout_p=0.0):
 
         super().__init__()
         self.in_channels = in_channels
@@ -288,14 +270,8 @@ class FeedForwardNetwork(nn.Module):
         self.kernel_size = kernel_size
         self.dropout_p = dropout_p
 
-        self.conv_1 = nn.Conv1d(in_channels,
-                                hidden_channels,
-                                kernel_size,
-                                padding=kernel_size // 2)
-        self.conv_2 = nn.Conv1d(hidden_channels,
-                                out_channels,
-                                kernel_size,
-                                padding=kernel_size // 2)
+        self.conv_1 = nn.Conv1d(in_channels, hidden_channels, kernel_size, padding=kernel_size // 2)
+        self.conv_2 = nn.Conv1d(hidden_channels, out_channels, kernel_size, padding=kernel_size // 2)
         self.dropout = nn.Dropout(dropout_p)
 
     def forward(self, x, x_mask):
@@ -308,34 +284,37 @@ class FeedForwardNetwork(nn.Module):
 
 class RelativePositionTransformer(nn.Module):
     """Transformer with Relative Potional Encoding.
-        https://arxiv.org/abs/1803.02155
+    https://arxiv.org/abs/1803.02155
 
-        Args:
-            in_channels (int): number of channels of the input tensor.
-            out_chanels (int): number of channels of the output tensor.
-            hidden_channels (int): model hidden channels.
-            hidden_channels_ffn (int): hidden channels of FeedForwardNetwork.
-            num_heads (int): number of attention heads.
-            num_layers (int): number of transformer layers.
-            kernel_size (int, optional): kernel size of feed-forward inner layers. Defaults to 1.
-            dropout_p (float, optional): dropout rate for self-attention and feed-forward inner layers_per_stack. Defaults to 0.
-            rel_attn_window_size (int, optional): relation attention window size.
-                If 4, for each time step next and previous 4 time steps are attended.
-                If default, relative encoding is disabled and it is a regular transformer.
-                Defaults to None.
-            input_length (int, optional): input lenght to limit position encoding. Defaults to None.
+    Args:
+        in_channels (int): number of channels of the input tensor.
+        out_chanels (int): number of channels of the output tensor.
+        hidden_channels (int): model hidden channels.
+        hidden_channels_ffn (int): hidden channels of FeedForwardNetwork.
+        num_heads (int): number of attention heads.
+        num_layers (int): number of transformer layers.
+        kernel_size (int, optional): kernel size of feed-forward inner layers. Defaults to 1.
+        dropout_p (float, optional): dropout rate for self-attention and feed-forward inner layers_per_stack. Defaults to 0.
+        rel_attn_window_size (int, optional): relation attention window size.
+            If 4, for each time step next and previous 4 time steps are attended.
+            If default, relative encoding is disabled and it is a regular transformer.
+            Defaults to None.
+        input_length (int, optional): input lenght to limit position encoding. Defaults to None.
     """
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 hidden_channels,
-                 hidden_channels_ffn,
-                 num_heads,
-                 num_layers,
-                 kernel_size=1,
-                 dropout_p=0.,
-                 rel_attn_window_size=None,
-                 input_length=None):
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        hidden_channels,
+        hidden_channels_ffn,
+        num_heads,
+        num_layers,
+        kernel_size=1,
+        dropout_p=0.0,
+        rel_attn_window_size=None,
+        input_length=None,
+    ):
         super().__init__()
         self.hidden_channels = hidden_channels
         self.hidden_channels_ffn = hidden_channels_ffn
@@ -359,7 +338,9 @@ class RelativePositionTransformer(nn.Module):
                     num_heads,
                     rel_attn_window_size=rel_attn_window_size,
                     dropout_p=dropout_p,
-                    input_length=input_length))
+                    input_length=input_length,
+                )
+            )
             self.norm_layers_1.append(LayerNorm(hidden_channels))
 
             if hidden_channels != out_channels and (idx + 1) == self.num_layers:
@@ -368,15 +349,14 @@ class RelativePositionTransformer(nn.Module):
             self.ffn_layers.append(
                 FeedForwardNetwork(
                     hidden_channels,
-                    hidden_channels if
-                    (idx + 1) != self.num_layers else out_channels,
+                    hidden_channels if (idx + 1) != self.num_layers else out_channels,
                     hidden_channels_ffn,
                     kernel_size,
-                    dropout_p=dropout_p))
+                    dropout_p=dropout_p,
+                )
+            )
 
-            self.norm_layers_2.append(
-                LayerNorm(hidden_channels if (
-                    idx + 1) != self.num_layers else out_channels))
+            self.norm_layers_2.append(LayerNorm(hidden_channels if (idx + 1) != self.num_layers else out_channels))
 
     def forward(self, x, x_mask):
         """
@@ -394,7 +374,7 @@ class RelativePositionTransformer(nn.Module):
             y = self.ffn_layers[i](x, x_mask)
             y = self.dropout(y)
 
-            if (i + 1) == self.num_layers and hasattr(self, 'proj'):
+            if (i + 1) == self.num_layers and hasattr(self, "proj"):
                 x = self.proj(x)
 
             x = self.norm_layers_2[i](x + y)

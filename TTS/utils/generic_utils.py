@@ -10,8 +10,7 @@ from pathlib import Path
 def get_git_branch():
     try:
         out = subprocess.check_output(["git", "branch"]).decode("utf8")
-        current = next(line for line in out.split("\n")
-                       if line.startswith("*"))
+        current = next(line for line in out.split("\n") if line.startswith("*"))
         current.replace("* ", "")
     except subprocess.CalledProcessError:
         current = "inside_docker"
@@ -29,12 +28,11 @@ def get_commit_hash():
     #     raise RuntimeError(
     #         " !! Commit before training to get the commit hash.")
     try:
-        commit = subprocess.check_output(
-            ['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
+        commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
     # Not copying .git folder into docker container
     except (subprocess.CalledProcessError, FileNotFoundError):
         commit = "0000000"
-    print(' > Git Hash: {}'.format(commit))
+    print(" > Git Hash: {}".format(commit))
     return commit
 
 
@@ -42,11 +40,10 @@ def create_experiment_folder(root_path, model_name, debug):
     """ Create a folder with the current date and time """
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
     if debug:
-        commit_hash = 'debug'
+        commit_hash = "debug"
     else:
         commit_hash = get_commit_hash()
-    output_folder = os.path.join(
-        root_path, model_name + '-' + date_str + '-' + commit_hash)
+    output_folder = os.path.join(root_path, model_name + "-" + date_str + "-" + commit_hash)
     os.makedirs(output_folder, exist_ok=True)
     print(" > Experiment folder: {}".format(output_folder))
     return output_folder
@@ -72,16 +69,16 @@ def count_parameters(model):
 def get_user_data_dir(appname):
     if sys.platform == "win32":
         import winreg  # pylint: disable=import-outside-toplevel
+
         key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+            winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
         )
         dir_, _ = winreg.QueryValueEx(key, "Local AppData")
         ans = Path(dir_).resolve(strict=False)
-    elif sys.platform == 'darwin':
-        ans = Path('~/Library/Application Support/').expanduser()
+    elif sys.platform == "darwin":
+        ans = Path("~/Library/Application Support/").expanduser()
     else:
-        ans = Path.home().joinpath('.local/share')
+        ans = Path.home().joinpath(".local/share")
     return ans.joinpath(appname)
 
 
@@ -91,32 +88,20 @@ def set_init_dict(model_dict, checkpoint_state, c):
         if k not in model_dict:
             print(" | > Layer missing in the model definition: {}".format(k))
     # 1. filter out unnecessary keys
-    pretrained_dict = {
-        k: v
-        for k, v in checkpoint_state.items() if k in model_dict
-    }
+    pretrained_dict = {k: v for k, v in checkpoint_state.items() if k in model_dict}
     # 2. filter out different size layers
-    pretrained_dict = {
-        k: v
-        for k, v in pretrained_dict.items()
-        if v.numel() == model_dict[k].numel()
-    }
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if v.numel() == model_dict[k].numel()}
     # 3. skip reinit layers
     if c.reinit_layers is not None:
         for reinit_layer_name in c.reinit_layers:
-            pretrained_dict = {
-                k: v
-                for k, v in pretrained_dict.items()
-                if reinit_layer_name not in k
-            }
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if reinit_layer_name not in k}
     # 4. overwrite entries in the existing state dict
     model_dict.update(pretrained_dict)
-    print(" | > {} / {} layers are restored.".format(len(pretrained_dict),
-                                                     len(model_dict)))
+    print(" | > {} / {} layers are restored.".format(len(pretrained_dict), len(model_dict)))
     return model_dict
 
 
-class KeepAverage():
+class KeepAverage:
     def __init__(self):
         self.avg_values = {}
         self.iters = {}
@@ -141,8 +126,7 @@ class KeepAverage():
                 self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
                 self.iters[name] += 1
             else:
-                self.avg_values[name] = self.avg_values[name] * \
-                    self.iters[name] + value
+                self.avg_values[name] = self.avg_values[name] * self.iters[name] + value
                 self.iters[name] += 1
                 self.avg_values[name] /= self.iters[name]
 
@@ -155,23 +139,27 @@ class KeepAverage():
             self.update_value(key, value)
 
 
-def check_argument(name, c, enum_list=None, max_val=None, min_val=None, restricted=False, val_type=None, alternative=None):
+def check_argument(
+    name, c, enum_list=None, max_val=None, min_val=None, restricted=False, val_type=None, alternative=None
+):
     if alternative in c.keys() and c[alternative] is not None:
         return
     if restricted:
-        assert name in c.keys(), f' [!] {name} not defined in config.json'
+        assert name in c.keys(), f" [!] {name} not defined in config.json"
     if name in c.keys():
         if max_val:
-            assert c[name] <= max_val, f' [!] {name} is larger than max value {max_val}'
+            assert c[name] <= max_val, f" [!] {name} is larger than max value {max_val}"
         if min_val:
-            assert c[name] >= min_val, f' [!] {name} is smaller than min value {min_val}'
+            assert c[name] >= min_val, f" [!] {name} is smaller than min value {min_val}"
         if enum_list:
-            assert c[name].lower() in enum_list, f' [!] {name} is not a valid value'
+            assert c[name].lower() in enum_list, f" [!] {name} is not a valid value"
         if isinstance(val_type, list):
             is_valid = False
             for typ in val_type:
                 if isinstance(c[name], typ):
                     is_valid = True
-            assert is_valid or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
+            assert is_valid or c[name] is None, f" [!] {name} has wrong type - {type(c[name])} vs {val_type}"
         elif val_type:
-            assert isinstance(c[name], val_type) or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
+            assert (
+                isinstance(c[name], val_type) or c[name] is None
+            ), f" [!] {name} has wrong type - {type(c[name])} vs {val_type}"

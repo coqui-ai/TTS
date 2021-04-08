@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -31,38 +30,37 @@ def _num2chinese(num: str, big=False, simp=True, o=False, twoalt=False) -> str:
     # check num first
     nd = str(num)
     if abs(float(nd)) >= 1e48:
-        raise ValueError('number out of range')
-    if 'e' in nd:
-        raise ValueError('scientific notation is not supported')
-    c_symbol = '正负点' if simp else '正負點'
+        raise ValueError("number out of range")
+    if "e" in nd:
+        raise ValueError("scientific notation is not supported")
+    c_symbol = "正负点" if simp else "正負點"
     if o:  # formal
         twoalt = False
     if big:
-        c_basic = '零壹贰叁肆伍陆柒捌玖' if simp else '零壹貳參肆伍陸柒捌玖'
-        c_unit1 = '拾佰仟'
-        c_twoalt = '贰' if simp else '貳'
+        c_basic = "零壹贰叁肆伍陆柒捌玖" if simp else "零壹貳參肆伍陸柒捌玖"
+        c_unit1 = "拾佰仟"
+        c_twoalt = "贰" if simp else "貳"
     else:
-        c_basic = '〇一二三四五六七八九' if o else '零一二三四五六七八九'
-        c_unit1 = '十百千'
+        c_basic = "〇一二三四五六七八九" if o else "零一二三四五六七八九"
+        c_unit1 = "十百千"
         if twoalt:
-            c_twoalt = '两' if simp else '兩'
+            c_twoalt = "两" if simp else "兩"
         else:
-            c_twoalt = '二'
-    c_unit2 = '万亿兆京垓秭穰沟涧正载' if simp else '萬億兆京垓秭穰溝澗正載'
-    revuniq = lambda l: ''.join(k for k, g in itertools.groupby(reversed(l)))
+            c_twoalt = "二"
+    c_unit2 = "万亿兆京垓秭穰沟涧正载" if simp else "萬億兆京垓秭穰溝澗正載"
+    revuniq = lambda l: "".join(k for k, g in itertools.groupby(reversed(l)))
     nd = str(num)
     result = []
-    if nd[0] == '+':
+    if nd[0] == "+":
         result.append(c_symbol[0])
-    elif nd[0] == '-':
+    elif nd[0] == "-":
         result.append(c_symbol[1])
-    if '.' in nd:
-        integer, remainder = nd.lstrip('+-').split('.')
+    if "." in nd:
+        integer, remainder = nd.lstrip("+-").split(".")
     else:
-        integer, remainder = nd.lstrip('+-'), None
+        integer, remainder = nd.lstrip("+-"), None
     if int(integer):
-        splitted = [integer[max(i - 4, 0):i]
-                    for i in range(len(integer), 0, -4)]
+        splitted = [integer[max(i - 4, 0) : i] for i in range(len(integer), 0, -4)]
         intresult = []
         for nu, unit in enumerate(splitted):
             # special cases
@@ -75,17 +73,17 @@ def _num2chinese(num: str, big=False, simp=True, o=False, twoalt=False) -> str:
             ulist = []
             unit = unit.zfill(4)
             for nc, ch in enumerate(reversed(unit)):
-                if ch == '0':
+                if ch == "0":
                     if ulist:  # ???0
                         ulist.append(c_basic[0])
                 elif nc == 0:
                     ulist.append(c_basic[int(ch)])
-                elif nc == 1 and ch == '1' and unit[1] == '0':
+                elif nc == 1 and ch == "1" and unit[1] == "0":
                     # special case for tens
                     # edit the 'elif' if you don't like
                     # 十四, 三千零十四, 三千三百一十四
                     ulist.append(c_unit1[0])
-                elif nc > 1 and ch == '2':
+                elif nc > 1 and ch == "2":
                     ulist.append(c_twoalt + c_unit1[nc - 1])
                 else:
                     ulist.append(c_basic[int(ch)] + c_unit1[nc - 1])
@@ -99,10 +97,8 @@ def _num2chinese(num: str, big=False, simp=True, o=False, twoalt=False) -> str:
         result.append(c_basic[0])
     if remainder:
         result.append(c_symbol[2])
-        result.append(''.join(c_basic[int(ch)] for ch in remainder))
-    return ''.join(result)
-
-
+        result.append("".join(c_basic[int(ch)] for ch in remainder))
+    return "".join(result)
 
 
 def _number_replace(match) -> str:
@@ -127,5 +123,5 @@ def replace_numbers_to_characters_in_text(text: str) -> str:
     Returns:
         str: output text
     """
-    text = re.sub(r'[0-9]+', _number_replace, text)
+    text = re.sub(r"[0-9]+", _number_replace, text)
     return text

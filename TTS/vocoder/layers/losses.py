@@ -6,18 +6,21 @@ from torch.nn import functional as F
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
     """TODO: Merge this with audio.py"""
-    def __init__(self,
-                 n_fft,
-                 hop_length,
-                 win_length,
-                 pad_wav=False,
-                 window='hann_window',
-                 sample_rate=None,
-                 mel_fmin=0,
-                 mel_fmax=None,
-                 n_mels=80,
-                 use_mel=False):
-        super(TorchSTFT, self).__init__()
+
+    def __init__(
+        self,
+        n_fft,
+        hop_length,
+        win_length,
+        pad_wav=False,
+        window="hann_window",
+        sample_rate=None,
+        mel_fmin=0,
+        mel_fmax=None,
+        n_mels=80,
+        use_mel=False,
+    ):
+        super().__init__()
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
@@ -27,8 +30,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         self.mel_fmax = mel_fmax
         self.n_mels = n_mels
         self.use_mel = use_mel
-        self.window = nn.Parameter(getattr(torch, window)(win_length),
-                                   requires_grad=False)
+        self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
         self.mel_basis = None
         if use_mel:
             self._build_mel_basis()
@@ -49,7 +51,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
             x = x.unsqueeze(1)
         if self.pad_wav:
             padding = int((self.n_fft - self.hop_length) / 2)
-            x = torch.nn.functional.pad(x, (padding, padding), mode='reflect')
+            x = torch.nn.functional.pad(x, (padding, padding), mode="reflect")
         # B x D x T x 2
         o = torch.stft(
             x.squeeze(1),
@@ -61,22 +63,20 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
             pad_mode="reflect",  # compatible with audio.py
             normalized=False,
             onesided=True,
-            return_complex=False)
+            return_complex=False,
+        )
         M = o[:, :, :, 0]
         P = o[:, :, :, 1]
-        S = torch.sqrt(torch.clamp(M**2 + P**2, min=1e-8))
+        S = torch.sqrt(torch.clamp(M ** 2 + P ** 2, min=1e-8))
         if self.use_mel:
             S = torch.matmul(self.mel_basis.to(x), S)
         return S
 
     def _build_mel_basis(self):
-        mel_basis = librosa.filters.mel(self.sample_rate,
-                                        self.n_fft,
-                                        n_mels=self.n_mels,
-                                        fmin=self.mel_fmin,
-                                        fmax=self.mel_fmax)
+        mel_basis = librosa.filters.mel(
+            self.sample_rate, self.n_fft, n_mels=self.n_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
+        )
         self.mel_basis = torch.from_numpy(mel_basis).float()
-
 
 
 #################################
@@ -85,11 +85,12 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
 
 
 class STFTLoss(nn.Module):
-    """ STFT loss. Input generate and real waveforms are converted
+    """STFT loss. Input generate and real waveforms are converted
     to spectrograms compared with L1 and Spectral convergence losses.
     It is from ParallelWaveGAN paper https://arxiv.org/pdf/1910.11480.pdf"""
+
     def __init__(self, n_fft, hop_length, win_length):
-        super(STFTLoss, self).__init__()
+        super().__init__()
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
@@ -104,15 +105,14 @@ class STFTLoss(nn.Module):
         loss_sc = torch.norm(y_M - y_hat_M, p="fro") / torch.norm(y_M, p="fro")
         return loss_mag, loss_sc
 
+
 class MultiScaleSTFTLoss(torch.nn.Module):
-    """ Multi-scale STFT loss. Input generate and real waveforms are converted
+    """Multi-scale STFT loss. Input generate and real waveforms are converted
     to spectrograms compared with L1 and Spectral convergence losses.
     It is from ParallelWaveGAN paper https://arxiv.org/pdf/1910.11480.pdf"""
-    def __init__(self,
-                 n_ffts=(1024, 2048, 512),
-                 hop_lengths=(120, 240, 50),
-                 win_lengths=(600, 1200, 240)):
-        super(MultiScaleSTFTLoss, self).__init__()
+
+    def __init__(self, n_ffts=(1024, 2048, 512), hop_lengths=(120, 240, 50), win_lengths=(600, 1200, 240)):
+        super().__init__()
         self.loss_funcs = torch.nn.ModuleList()
         for n_fft, hop_length, win_length in zip(n_ffts, hop_lengths, win_lengths):
             self.loss_funcs.append(STFTLoss(n_fft, hop_length, win_length))
@@ -129,19 +129,25 @@ class MultiScaleSTFTLoss(torch.nn.Module):
         loss_mag /= N
         return loss_mag, loss_sc
 
+
 class L1SpecLoss(nn.Module):
     """ L1 Loss over Spectrograms as described in HiFiGAN paper https://arxiv.org/pdf/2010.05646.pdf"""
-    def __init__(self, sample_rate, n_fft, hop_length, win_length, mel_fmin=None, mel_fmax=None, n_mels=None, use_mel=True):
+
+    def __init__(
+        self, sample_rate, n_fft, hop_length, win_length, mel_fmin=None, mel_fmax=None, n_mels=None, use_mel=True
+    ):
         super().__init__()
         self.use_mel = use_mel
-        self.stft = TorchSTFT(n_fft,
-                              hop_length,
-                              win_length,
-                              sample_rate=sample_rate,
-                              mel_fmin=mel_fmin,
-                              mel_fmax=mel_fmax,
-                              n_mels=n_mels,
-                              use_mel=use_mel)
+        self.stft = TorchSTFT(
+            n_fft,
+            hop_length,
+            win_length,
+            sample_rate=sample_rate,
+            mel_fmin=mel_fmin,
+            mel_fmax=mel_fmax,
+            n_mels=n_mels,
+            use_mel=use_mel,
+        )
 
     def forward(self, y_hat, y):
         y_hat_M = self.stft(y_hat)
@@ -150,9 +156,11 @@ class L1SpecLoss(nn.Module):
         loss_mag = F.l1_loss(torch.log(y_M), torch.log(y_hat_M))
         return loss_mag
 
+
 class MultiScaleSubbandSTFTLoss(MultiScaleSTFTLoss):
-    """ Multiscale STFT loss for multi band model outputs.
+    """Multiscale STFT loss for multi band model outputs.
     From MultiBand-MelGAN paper https://arxiv.org/abs/2005.05106"""
+
     # pylint: disable=no-self-use
     def forward(self, y_hat, y):
         y_hat = y_hat.view(-1, 1, y_hat.shape[2])
@@ -162,6 +170,7 @@ class MultiScaleSubbandSTFTLoss(MultiScaleSTFTLoss):
 
 class MSEGLoss(nn.Module):
     """ Mean Squared Generator Loss """
+
     # pylint: disable=no-self-use
     def forward(self, score_real):
         loss_fake = F.mse_loss(score_real, score_real.new_ones(score_real.shape))
@@ -170,10 +179,11 @@ class MSEGLoss(nn.Module):
 
 class HingeGLoss(nn.Module):
     """ Hinge Discriminator Loss """
+
     # pylint: disable=no-self-use
     def forward(self, score_real):
         # TODO: this might be wrong
-        loss_fake = torch.mean(F.relu(1. - score_real))
+        loss_fake = torch.mean(F.relu(1.0 - score_real))
         return loss_fake
 
 
@@ -184,8 +194,11 @@ class HingeGLoss(nn.Module):
 
 class MSEDLoss(nn.Module):
     """ Mean Squared Discriminator Loss """
-    def __init__(self,):
-        super(MSEDLoss, self).__init__()
+
+    def __init__(
+        self,
+    ):
+        super().__init__()
         self.loss_func = nn.MSELoss()
 
     # pylint: disable=no-self-use
@@ -198,17 +211,20 @@ class MSEDLoss(nn.Module):
 
 class HingeDLoss(nn.Module):
     """ Hinge Discriminator Loss """
+
     # pylint: disable=no-self-use
     def forward(self, score_fake, score_real):
-        loss_real = torch.mean(F.relu(1. - score_real))
-        loss_fake = torch.mean(F.relu(1. + score_fake))
+        loss_real = torch.mean(F.relu(1.0 - score_real))
+        loss_fake = torch.mean(F.relu(1.0 + score_fake))
         loss_d = loss_real + loss_fake
         return loss_d, loss_real, loss_fake
 
 
 class MelganFeatureLoss(nn.Module):
-    def __init__(self,):
-        super(MelganFeatureLoss, self).__init__()
+    def __init__(
+        self,
+    ):
+        super().__init__()
         self.loss_func = nn.L1Loss()
 
     # pylint: disable=no-self-use
@@ -229,8 +245,8 @@ class MelganFeatureLoss(nn.Module):
 
 
 def _apply_G_adv_loss(scores_fake, loss_func):
-    """ Compute G adversarial loss function
-    and normalize values """
+    """Compute G adversarial loss function
+    and normalize values"""
     adv_loss = 0
     if isinstance(scores_fake, list):
         for score_fake in scores_fake:
@@ -279,24 +295,26 @@ class GeneratorLoss(nn.Module):
     Args:
         C (AttrDict): model configuration.
     """
+
     def __init__(self, C):
         super().__init__()
-        assert not(C.use_mse_gan_loss and C.use_hinge_gan_loss),\
-            " [!] Cannot use HingeGANLoss and MSEGANLoss together."
+        assert not (
+            C.use_mse_gan_loss and C.use_hinge_gan_loss
+        ), " [!] Cannot use HingeGANLoss and MSEGANLoss together."
 
-        self.use_stft_loss = C.use_stft_loss if 'use_stft_loss' in C else False
-        self.use_subband_stft_loss = C.use_subband_stft_loss if 'use_subband_stft_loss' in C else False
-        self.use_mse_gan_loss = C.use_mse_gan_loss if 'use_mse_gan_loss' in C else False
-        self.use_hinge_gan_loss = C.use_hinge_gan_loss if 'use_hinge_gan_loss' in C else False
-        self.use_feat_match_loss = C.use_feat_match_loss if 'use_feat_match_loss' in C else False
-        self.use_l1_spec_loss = C.use_l1_spec_loss if 'use_l1_spec_loss' in C else False
+        self.use_stft_loss = C.use_stft_loss if "use_stft_loss" in C else False
+        self.use_subband_stft_loss = C.use_subband_stft_loss if "use_subband_stft_loss" in C else False
+        self.use_mse_gan_loss = C.use_mse_gan_loss if "use_mse_gan_loss" in C else False
+        self.use_hinge_gan_loss = C.use_hinge_gan_loss if "use_hinge_gan_loss" in C else False
+        self.use_feat_match_loss = C.use_feat_match_loss if "use_feat_match_loss" in C else False
+        self.use_l1_spec_loss = C.use_l1_spec_loss if "use_l1_spec_loss" in C else False
 
-        self.stft_loss_weight = C.stft_loss_weight if 'stft_loss_weight' in C else 0.0
-        self.subband_stft_loss_weight = C.subband_stft_loss_weight if 'subband_stft_loss_weight' in C else 0.0
-        self.mse_gan_loss_weight = C.mse_G_loss_weight if 'mse_G_loss_weight' in C else 0.0
-        self.hinge_gan_loss_weight = C.hinge_G_loss_weight if 'hinde_G_loss_weight' in C else 0.0
-        self.feat_match_loss_weight = C.feat_match_loss_weight if 'feat_match_loss_weight' in C else 0.0
-        self.l1_spec_loss_weight = C.l1_spec_loss_weight if 'l1_spec_loss_weight' in C else 0.0
+        self.stft_loss_weight = C.stft_loss_weight if "stft_loss_weight" in C else 0.0
+        self.subband_stft_loss_weight = C.subband_stft_loss_weight if "subband_stft_loss_weight" in C else 0.0
+        self.mse_gan_loss_weight = C.mse_G_loss_weight if "mse_G_loss_weight" in C else 0.0
+        self.hinge_gan_loss_weight = C.hinge_G_loss_weight if "hinde_G_loss_weight" in C else 0.0
+        self.feat_match_loss_weight = C.feat_match_loss_weight if "feat_match_loss_weight" in C else 0.0
+        self.l1_spec_loss_weight = C.l1_spec_loss_weight if "l1_spec_loss_weight" in C else 0.0
 
         if C.use_stft_loss:
             self.stft_loss = MultiScaleSTFTLoss(**C.stft_loss_params)
@@ -309,63 +327,67 @@ class GeneratorLoss(nn.Module):
         if C.use_feat_match_loss:
             self.feat_match_loss = MelganFeatureLoss()
         if C.use_l1_spec_loss:
-            assert C.audio['sample_rate'] == C.l1_spec_loss_params['sample_rate']
+            assert C.audio["sample_rate"] == C.l1_spec_loss_params["sample_rate"]
             self.l1_spec_loss = L1SpecLoss(**C.l1_spec_loss_params)
 
-    def forward(self, y_hat=None, y=None, scores_fake=None, feats_fake=None, feats_real=None, y_hat_sub=None, y_sub=None):
+    def forward(
+        self, y_hat=None, y=None, scores_fake=None, feats_fake=None, feats_real=None, y_hat_sub=None, y_sub=None
+    ):
         gen_loss = 0
         adv_loss = 0
         return_dict = {}
 
         # STFT Loss
         if self.use_stft_loss:
-            stft_loss_mg, stft_loss_sc = self.stft_loss(y_hat[:, :, :y.size(2)].squeeze(1), y.squeeze(1))
-            return_dict['G_stft_loss_mg'] = stft_loss_mg
-            return_dict['G_stft_loss_sc'] = stft_loss_sc
+            stft_loss_mg, stft_loss_sc = self.stft_loss(y_hat[:, :, : y.size(2)].squeeze(1), y.squeeze(1))
+            return_dict["G_stft_loss_mg"] = stft_loss_mg
+            return_dict["G_stft_loss_sc"] = stft_loss_sc
             gen_loss = gen_loss + self.stft_loss_weight * (stft_loss_mg + stft_loss_sc)
 
         # L1 Spec loss
         if self.use_l1_spec_loss:
             l1_spec_loss = self.l1_spec_loss(y_hat, y)
-            return_dict['G_l1_spec_loss'] = l1_spec_loss
+            return_dict["G_l1_spec_loss"] = l1_spec_loss
             gen_loss = gen_loss + self.l1_spec_loss_weight * l1_spec_loss
 
         # subband STFT Loss
         if self.use_subband_stft_loss:
             subband_stft_loss_mg, subband_stft_loss_sc = self.subband_stft_loss(y_hat_sub, y_sub)
-            return_dict['G_subband_stft_loss_mg'] = subband_stft_loss_mg
-            return_dict['G_subband_stft_loss_sc'] = subband_stft_loss_sc
+            return_dict["G_subband_stft_loss_mg"] = subband_stft_loss_mg
+            return_dict["G_subband_stft_loss_sc"] = subband_stft_loss_sc
             gen_loss = gen_loss + self.subband_stft_loss_weight * (subband_stft_loss_mg + subband_stft_loss_sc)
 
         # multiscale MSE adversarial loss
         if self.use_mse_gan_loss and scores_fake is not None:
             mse_fake_loss = _apply_G_adv_loss(scores_fake, self.mse_loss)
-            return_dict['G_mse_fake_loss'] = mse_fake_loss
+            return_dict["G_mse_fake_loss"] = mse_fake_loss
             adv_loss = adv_loss + self.mse_gan_loss_weight * mse_fake_loss
 
         # multiscale Hinge adversarial loss
         if self.use_hinge_gan_loss and not scores_fake is not None:
             hinge_fake_loss = _apply_G_adv_loss(scores_fake, self.hinge_loss)
-            return_dict['G_hinge_fake_loss'] = hinge_fake_loss
+            return_dict["G_hinge_fake_loss"] = hinge_fake_loss
             adv_loss = adv_loss + self.hinge_gan_loss_weight * hinge_fake_loss
 
         # Feature Matching Loss
         if self.use_feat_match_loss and not feats_fake is None:
             feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
-            return_dict['G_feat_match_loss'] = feat_match_loss
+            return_dict["G_feat_match_loss"] = feat_match_loss
             adv_loss = adv_loss + self.feat_match_loss_weight * feat_match_loss
-        return_dict['G_loss'] = gen_loss + adv_loss
-        return_dict['G_gen_loss'] = gen_loss
-        return_dict['G_adv_loss'] = adv_loss
+        return_dict["G_loss"] = gen_loss + adv_loss
+        return_dict["G_gen_loss"] = gen_loss
+        return_dict["G_adv_loss"] = adv_loss
         return return_dict
 
 
 class DiscriminatorLoss(nn.Module):
     """Like ```GeneratorLoss```"""
+
     def __init__(self, C):
         super().__init__()
-        assert not(C.use_mse_gan_loss and C.use_hinge_gan_loss),\
-            " [!] Cannot use HingeGANLoss and MSEGANLoss together."
+        assert not (
+            C.use_mse_gan_loss and C.use_hinge_gan_loss
+        ), " [!] Cannot use HingeGANLoss and MSEGANLoss together."
 
         self.use_mse_gan_loss = C.use_mse_gan_loss
         self.use_hinge_gan_loss = C.use_hinge_gan_loss
@@ -381,23 +403,21 @@ class DiscriminatorLoss(nn.Module):
 
         if self.use_mse_gan_loss:
             mse_D_loss, mse_D_real_loss, mse_D_fake_loss = _apply_D_loss(
-                scores_fake=scores_fake,
-                scores_real=scores_real,
-                loss_func=self.mse_loss)
-            return_dict['D_mse_gan_loss'] = mse_D_loss
-            return_dict['D_mse_gan_real_loss'] = mse_D_real_loss
-            return_dict['D_mse_gan_fake_loss'] = mse_D_fake_loss
+                scores_fake=scores_fake, scores_real=scores_real, loss_func=self.mse_loss
+            )
+            return_dict["D_mse_gan_loss"] = mse_D_loss
+            return_dict["D_mse_gan_real_loss"] = mse_D_real_loss
+            return_dict["D_mse_gan_fake_loss"] = mse_D_fake_loss
             loss += mse_D_loss
 
         if self.use_hinge_gan_loss:
             hinge_D_loss, hinge_D_real_loss, hinge_D_fake_loss = _apply_D_loss(
-                scores_fake=scores_fake,
-                scores_real=scores_real,
-                loss_func=self.hinge_loss)
-            return_dict['D_hinge_gan_loss'] = hinge_D_loss
-            return_dict['D_hinge_gan_real_loss'] = hinge_D_real_loss
-            return_dict['D_hinge_gan_fake_loss'] = hinge_D_fake_loss
+                scores_fake=scores_fake, scores_real=scores_real, loss_func=self.hinge_loss
+            )
+            return_dict["D_hinge_gan_loss"] = hinge_D_loss
+            return_dict["D_hinge_gan_real_loss"] = hinge_D_real_loss
+            return_dict["D_hinge_gan_fake_loss"] = hinge_D_fake_loss
             loss += hinge_D_loss
 
-        return_dict['D_loss'] = loss
+        return_dict["D_loss"] = loss
         return return_dict

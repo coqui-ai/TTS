@@ -6,6 +6,7 @@ from TTS.tts.utils.generic_utils import sequence_mask
 try:
     # TODO: fix pypi cython installation problem.
     from TTS.tts.layers.glow_tts.monotonic_align.core import maximum_path_c
+
     CYTHON = True
 except ModuleNotFoundError:
     CYTHON = False
@@ -30,8 +31,7 @@ def generate_path(duration, mask):
     cum_duration_flat = cum_duration.view(b * t_x)
     path = sequence_mask(cum_duration_flat, t_y).to(mask.dtype)
     path = path.view(b, t_x, t_y)
-    path = path - F.pad(path, convert_pad_shape([[0, 0], [1, 0], [0, 0]
-                                                 ]))[:, :-1]
+    path = path - F.pad(path, convert_pad_shape([[0, 0], [1, 0], [0, 0]]))[:, :-1]
     path = path * mask
     return path
 
@@ -43,7 +43,7 @@ def maximum_path(value, mask):
 
 
 def maximum_path_cython(value, mask):
-    """ Cython optimised version.
+    """Cython optimised version.
     value: [b, t_x, t_y]
     mask: [b, t_x, t_y]
     """

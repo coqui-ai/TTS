@@ -14,7 +14,7 @@ class DistributedSampler(Sampler):
     """
 
     def __init__(self, dataset, num_replicas=None, rank=None):
-        super(DistributedSampler, self).__init__(dataset)
+        super().__init__(dataset)
         if num_replicas is None:
             if not dist.is_available():
                 raise RuntimeError("Requires distributed package to be available")
@@ -34,11 +34,11 @@ class DistributedSampler(Sampler):
         indices = torch.arange(len(self.dataset)).tolist()
 
         # add extra samples to make it evenly divisible
-        indices += indices[:(self.total_size - len(indices))]
+        indices += indices[: (self.total_size - len(indices))]
         assert len(indices) == self.total_size
 
         # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
 
         return iter(indices)
@@ -64,12 +64,7 @@ def init_distributed(rank, num_gpus, group_name, dist_backend, dist_url):
     torch.cuda.set_device(rank % torch.cuda.device_count())
 
     # Initialize distributed communication
-    dist.init_process_group(
-        dist_backend,
-        init_method=dist_url,
-        world_size=num_gpus,
-        rank=rank,
-        group_name=group_name)
+    dist.init_process_group(dist_backend, init_method=dist_url, world_size=num_gpus, rank=rank, group_name=group_name)
 
 
 def apply_gradient_allreduce(module):
@@ -97,14 +92,13 @@ def apply_gradient_allreduce(module):
                 coalesced = _flatten_dense_tensors(grads)
                 dist.all_reduce(coalesced, op=dist.reduce_op.SUM)
                 coalesced /= dist.get_world_size()
-                for buf, synced in zip(
-                        grads, _unflatten_dense_tensors(coalesced, grads)):
+                for buf, synced in zip(grads, _unflatten_dense_tensors(coalesced, grads)):
                     buf.copy_(synced)
 
     for param in list(module.parameters()):
 
         def allreduce_hook(*_):
-            Variable._execution_engine.queue_callback(allreduce_params)  #pylint: disable=protected-access
+            Variable._execution_engine.queue_callback(allreduce_params)  # pylint: disable=protected-access
 
         if param.requires_grad:
             param.register_hook(allreduce_hook)

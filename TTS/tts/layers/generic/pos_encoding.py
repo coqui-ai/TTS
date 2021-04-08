@@ -11,20 +11,20 @@ class PositionalEncoding(nn.Module):
        channels (int): embedding size
        dropout (float): dropout parameter
     """
+
     def __init__(self, channels, dropout_p=0.0, max_len=5000):
         super().__init__()
         if channels % 2 != 0:
             raise ValueError(
-                "Cannot use sin/cos positional encoding with "
-                "odd channels (got channels={:d})".format(channels))
+                "Cannot use sin/cos positional encoding with " "odd channels (got channels={:d})".format(channels)
+            )
         pe = torch.zeros(max_len, channels)
         position = torch.arange(0, max_len).unsqueeze(1)
-        div_term = torch.pow(10000,
-                             torch.arange(0, channels, 2).float() / channels)
+        div_term = torch.pow(10000, torch.arange(0, channels, 2).float() / channels)
         pe[:, 0::2] = torch.sin(position.float() * div_term)
         pe[:, 1::2] = torch.cos(position.float() * div_term)
         pe = pe.unsqueeze(0).transpose(1, 2)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
         if dropout_p > 0:
             self.dropout = nn.Dropout(p=dropout_p)
         self.channels = channels
@@ -43,14 +43,15 @@ class PositionalEncoding(nn.Module):
             if self.pe.size(2) < x.size(2):
                 raise RuntimeError(
                     f"Sequence is {x.size(2)} but PositionalEncoding is"
-                    f" limited to {self.pe.size(2)}. See max_len argument.")
+                    f" limited to {self.pe.size(2)}. See max_len argument."
+                )
             if mask is not None:
-                pos_enc = (self.pe[:, :, :x.size(2)] * mask)
+                pos_enc = self.pe[:, :, : x.size(2)] * mask
             else:
-                pos_enc = self.pe[:, :, :x.size(2)]
+                pos_enc = self.pe[:, :, : x.size(2)]
             x = x + pos_enc
         else:
             x = x + self.pe[:, :, first_idx:last_idx]
-        if hasattr(self, 'dropout'):
+        if hasattr(self, "dropout"):
             x = self.dropout(x)
         return x

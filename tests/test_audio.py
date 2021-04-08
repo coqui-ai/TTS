@@ -17,7 +17,7 @@ conf = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
 # pylint: disable=protected-access
 class TestAudio(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        super(TestAudio, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.ap = AudioProcessor(**conf.audio)
 
     def test_audio_synthesis(self):
