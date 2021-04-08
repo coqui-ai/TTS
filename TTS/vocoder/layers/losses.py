@@ -217,11 +217,7 @@ class MelganFeatureLoss(nn.Module):
     def forward(self, fake_feats, real_feats):
         loss_feats = 0
         num_feats = 0
-<<<<<<< HEAD
         for idx, _ in enumerate(fake_feats):
-=======
-        for idx in range(len(fake_feats)):
->>>>>>> fix #419
             for fake_feat, real_feat in zip(fake_feats[idx], real_feats[idx]):
                 loss_feats += self.loss_func(fake_feat, real_feat)
                 num_feats += 1
