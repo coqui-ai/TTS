@@ -1,3 +1,4 @@
+# adopted from https://github.com/jik876/hifi-gan/blob/master/models.py
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
