@@ -18,11 +18,7 @@ def preprocess_wav_files(out_path, config, ap):
         mel = ap.melspectrogram(y)
         np.save(mel_path, mel)
         if isinstance(config.mode, int):
-            quant = (
-                ap.mulaw_encode(y, qc=config.mode)
-                if config.mulaw
-                else ap.quantize(y, bits=config.mode)
-            )
+            quant = ap.mulaw_encode(y, qc=config.mode) if config.mulaw else ap.quantize(y, bits=config.mode)
             np.save(quant_path, quant)
 
 

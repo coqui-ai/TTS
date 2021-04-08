@@ -3,9 +3,10 @@ from torch import nn
 
 class ZeroTemporalPad(nn.Module):
     """Pad sequences to equal lentgh in the temporal dimension"""
+
     def __init__(self, kernel_size, dilation):
         super().__init__()
-        total_pad = (dilation * (kernel_size - 1))
+        total_pad = dilation * (kernel_size - 1)
         begin = total_pad // 2
         end = total_pad - begin
         self.pad_layer = nn.ZeroPad2d((0, 0, begin, end))
@@ -27,9 +28,10 @@ class Conv1dBN(nn.Module):
         kernel_size (int): kernel size for convolutional filters.
         dilation (int): dilation for convolution layers.
     """
+
     def __init__(self, in_channels, out_channels, kernel_size, dilation):
         super().__init__()
-        padding = (dilation * (kernel_size - 1))
+        padding = dilation * (kernel_size - 1)
         pad_s = padding // 2
         pad_e = padding - pad_s
         self.conv1d = nn.Conv1d(in_channels, out_channels, kernel_size, dilation=dilation)
@@ -55,14 +57,17 @@ class Conv1dBNBlock(nn.Module):
         dilation (int): dilation for convolution layers.
         num_conv_blocks (int, optional): number of convolutional blocks. Defaults to 2.
     """
+
     def __init__(self, in_channels, out_channels, hidden_channels, kernel_size, dilation, num_conv_blocks=2):
         super().__init__()
         self.conv_bn_blocks = []
         for idx in range(num_conv_blocks):
-            layer = Conv1dBN(in_channels if idx == 0 else hidden_channels,
-                             out_channels if idx == (num_conv_blocks - 1) else hidden_channels,
-                             kernel_size,
-                             dilation)
+            layer = Conv1dBN(
+                in_channels if idx == 0 else hidden_channels,
+                out_channels if idx == (num_conv_blocks - 1) else hidden_channels,
+                kernel_size,
+                dilation,
+            )
             self.conv_bn_blocks.append(layer)
         self.conv_bn_blocks = nn.Sequential(*self.conv_bn_blocks)
 
@@ -91,18 +96,23 @@ class ResidualConv1dBNBlock(nn.Module):
         num_res_blocks (int, optional): number of residual blocks. Defaults to 13.
         num_conv_blocks (int, optional): number of convolutional blocks in each residual block. Defaults to 2.
     """
-    def __init__(self, in_channels, out_channels, hidden_channels, kernel_size, dilations, num_res_blocks=13, num_conv_blocks=2):
+
+    def __init__(
+        self, in_channels, out_channels, hidden_channels, kernel_size, dilations, num_res_blocks=13, num_conv_blocks=2
+    ):
 
         super().__init__()
         assert len(dilations) == num_res_blocks
         self.res_blocks = nn.ModuleList()
         for idx, dilation in enumerate(dilations):
-            block = Conv1dBNBlock(in_channels if idx == 0 else hidden_channels,
-                                  out_channels if (idx + 1) == len(dilations) else hidden_channels,
-                                  hidden_channels,
-                                  kernel_size,
-                                  dilation,
-                                  num_conv_blocks)
+            block = Conv1dBNBlock(
+                in_channels if idx == 0 else hidden_channels,
+                out_channels if (idx + 1) == len(dilations) else hidden_channels,
+                hidden_channels,
+                kernel_size,
+                dilation,
+                num_conv_blocks,
+            )
             self.res_blocks.append(block)
 
     def forward(self, x, x_mask=None):

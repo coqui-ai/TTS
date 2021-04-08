@@ -1,4 +1,3 @@
-
 PINYIN_DICT = {
     "a": ["a"],
     "ai": ["ai"],

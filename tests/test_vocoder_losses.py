@@ -22,7 +22,7 @@ def test_torch_stft():
     torch_stft = TorchSTFT(ap.fft_size, ap.hop_length, ap.win_length)
     # librosa stft
     wav = ap.load_wav(WAV_FILE)
-    M_librosa = abs(ap._stft(wav)) # pylint: disable=protected-access
+    M_librosa = abs(ap._stft(wav))  # pylint: disable=protected-access
     # torch stft
     wav = torch.from_numpy(wav[None, :]).float()
     M_torch = torch_stft(wav)
@@ -42,9 +42,10 @@ def test_stft_loss():
 
 
 def test_multiscale_stft_loss():
-    stft_loss = MultiScaleSTFTLoss([ap.fft_size//2, ap.fft_size, ap.fft_size*2],
-                                   [ap.hop_length // 2, ap.hop_length, ap.hop_length * 2],
-                                   [ap.win_length // 2, ap.win_length, ap.win_length * 2])
+    stft_loss = MultiScaleSTFTLoss(
+        [ap.fft_size // 2, ap.fft_size, ap.fft_size * 2],
+        [ap.hop_length // 2, ap.hop_length, ap.hop_length * 2],
+        [ap.win_length // 2, ap.win_length, ap.win_length * 2])
     wav = ap.load_wav(WAV_FILE)
     wav = torch.from_numpy(wav[None, :]).float()
     loss_m, loss_sc = stft_loss(wav, wav)
@@ -52,6 +53,7 @@ def test_multiscale_stft_loss():
     loss_m, loss_sc = stft_loss(wav, torch.rand_like(wav))
     assert loss_sc < 1.0
     assert loss_m + loss_sc > 0
+
 
 def test_melgan_feature_loss():
     feats_real = []
@@ -71,7 +73,6 @@ def test_melgan_feature_loss():
     loss = loss_func(feats_fake, feats_real)
     assert loss.item() <= 1.0
 
-
     feats_real = []
     feats_fake = []
 
@@ -89,4 +90,3 @@ def test_melgan_feature_loss():
     loss_func = MelganFeatureLoss()
     loss = loss_func(feats_fake, feats_real)
     assert loss.item() == 0
-
