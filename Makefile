@@ -6,11 +6,16 @@ help:
 
 target_dirs := tests TTS notebooks
 
+system-deps:	## install linux system deps
+	sudo apt-get install espeak-ng
+	sudo apt-get install sndfilelib1-dev
+
 deps:	## install 🐸 requirements.
 	pip install -r requirements.txt
 
 test:	## run tests.
 	nosetests --with-cov -cov  --cover-erase --cover-package TTS tests
+	./run_bash_tests.sh
 
 style:	## update code style.
 	black ${target_dirs}
