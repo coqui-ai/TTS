@@ -39,12 +39,13 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 ## 🔗 Links and Resources
 | Type                            | Links                               |
 | ------------------------------- | --------------------------------------- |
-| 💾 **Installation** | [TTS/README.md](https://github.com/coqui-ai/TTS/tree/dev#install-tts)|
-| 👩🏾‍🏫 **Tutorials and Examples**  | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/%F0%9F%90%B8-TTS-Notebooks,-Examples-and-Tutorials) |
-| 🚀 **Released Models**         | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
-| 💻 **Docker Image**            | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-coqui-aitts)|
-| 🖥️ **Demo Server**             | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
-| 🤖 **Synthesize speech** | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
+| 💾 **Installation**               | [TTS/README.md](https://github.com/coqui-ai/TTS/tree/dev#install-tts)|
+| 👩‍💻 **Contributing**               | [CONTRIBUTING.md](https://github.com/coqui-ai/TTS/blob/main/CONTRIBUTING.md)
+| 👩🏾‍🏫 **Tutorials and Examples**     | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/%F0%9F%90%B8-TTS-Notebooks,-Examples-and-Tutorials) |
+| 🚀 **Released Models**            | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
+| 💻 **Docker Image**               | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-coqui-aitts)|
+| 🖥️ **Demo Server**                | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
+| 🤖 **Synthesize speech**          | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
 
 ## 🥇 TTS Performance
 <p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
@@ -114,17 +115,19 @@ pip install -e .
 ```
 
 We use ```espeak-ng``` to convert graphemes to phonemes. You might need to install separately.
+
 ```bash
 sudo apt-get install espeak-ng
 ```
 
 If you are on Ubuntu (Debian), you can also run following commands for installation.
+
 ```bash
 $ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
 $ make install
 ```
 
-If you are on Windows 👑@GuyPaddock wrote instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
+If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
 ## Directory Structure
 ```
 |- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
@@ -174,11 +177,13 @@ Some of the public datasets that we successfully applied 🐸TTS:
 After the installation, 🐸TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under 🐸TTS.
 
 Listing released 🐸TTS models.
+
 ```bash
 tts --list_models
 ```
 
 Run a tts and a vocoder model from the released model list. (Simply copy and paste the full model names from the list as arguments for the command below.)
+
 ```bash
 tts --text "Text for TTS" \
     --model_name "<type>/<language>/<dataset>/<model_name>" \
@@ -187,6 +192,7 @@ tts --text "Text for TTS" \
 ```
 
 Run your own TTS model (Using Griffin-Lim Vocoder)
+
 ```bash
 tts --text "Text for TTS" \
     --model_path path/to/model.pth.tar \
@@ -195,6 +201,7 @@ tts --text "Text for TTS" \
 ```
 
 Run your own TTS and Vocoder models
+
 ```bash
 tts --text "Text for TTS" \
     --model_path path/to/config.json \
@@ -249,50 +256,7 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
-## Contribution guidelines
-Please follow the steps below as you send a PR to 🐸. It helps us to keep things organized.
-
-Following steps are tested on an Ubuntu system.
-
-- Clone 🐸TTS.
-```bash
-$ git clone https://github.com/coqui-ai/TTS
-```
-- Install 🐸TTS for development.
-```bash
-$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
-$ make install
-```
-- Create a new branch
-```bash
-$ git checkout -b my_branch
-```
-- Implement your changes.
-- Use [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
-- Implement a test case under ```tests``` folder.
-- (Optional but Prefered) Run tests.
-```bash
-$ make tests
-```
-- Correct the style of your code.
-```bash
-$ make style
-```
-- Run the linter.
-```bash
-$ make lint
-```
-- Send a PR to ```dev``` branch, explain what the change is about.
-- Let's discuss until it is perfect. 💪
-- Once things look perfect, We merge it to the ```dev``` branch for the next version.
-
-Feel free to ping us at any step you need help using our communication channels.
-
-If you are new on Github or open-source contribution, here are good resources.
-
-- [Github Docs](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/proposing-changes-to-your-work-with-pull-requests)
-- [First-Contribution](https://github.com/firstcontributions/first-contributions)
-
+## [Contribution guidelines](https://github.com/coqui-ai/TTS/blob/main/CONTRIBUTING.md)
 ### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
