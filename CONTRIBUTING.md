@@ -14,13 +14,13 @@ If you like to contribute code, squash a bug but if you don't know where to star
 
     This is a place to find feature requests, bugs.
 
-    Threads with the ```good first issue``` tags are a good place to start for beginners.
+    Issues with the ```good first issue``` tag are good place for beginners to take on.
 
-- The next version's ✨**PR**✨ [page](https://github.com/coqui-ai/TTS/pulls) with the ```🚀new version``` tag.
+- ✨**PR**✨ [pages](https://github.com/coqui-ai/TTS/pulls) with the ```🚀new version``` tag.
 
-    We list all the improvements we like to target for the next version there. You can pick one of these and start to work on it with us.
+    We list all the target improvements for the next version. You can pick one of them and start contributing.
 
-- Also feel free to suggest new features, ideas and models.
+- Also feel free to suggest new features, ideas and models. We're always open for new things.
 ## Sending a ✨**PR**✨
 
 If you have a new feature, a model to implement, or a bug to squash, go ahead and send a ✨**PR**✨.
