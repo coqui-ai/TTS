@@ -118,6 +118,13 @@ We use ```espeak-ng``` to convert graphemes to phonemes. You might need to insta
 sudo apt-get install espeak-ng
 ```
 
+If you are on Ubuntu (Debian), you can also run following commands for installation.
+```bash
+$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
+$ make install
+```
+
+If you are on Windows 👑@GuyPaddock wrote instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
 ## Directory Structure
 ```
 |- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
@@ -245,25 +252,46 @@ You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir```
 ## Contribution guidelines
 Please follow the steps below as you send a PR to 🐸. It helps us to keep things organized.
 
-1. Create a new branch.
-2. Implement your changes.
-3. (if applicable) Add [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
-4. (if applicable) Implement a test case under ```tests``` folder.
-5. (Optional but Prefered) Run tests.
+Following steps are tested on an Ubuntu system.
+
+- Clone 🐸TTS.
 ```bash
-./run_tests.sh
+$ git clone https://github.com/coqui-ai/TTS
 ```
-6. Run the ```pylint``` linter.
+- Install 🐸TTS for development.
 ```bash
-pip install pylint cardboardlint
-cardboardlinter --refspec master
+$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
+$ make install
 ```
-7. Send a PR to ```dev``` branch, explain what the change is about.
-8. Let us discuss until we make it perfect :) 💪.
-9. We merge it to the ```dev``` branch once things look good.
+- Create a new branch
+```bash
+$ git checkout -b my_branch
+```
+- Implement your changes.
+- Use [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
+- Implement a test case under ```tests``` folder.
+- (Optional but Prefered) Run tests.
+```bash
+$ make tests
+```
+- Correct the style of your code.
+```bash
+$ make style
+```
+- Run the linter.
+```bash
+$ make lint
+```
+- Send a PR to ```dev``` branch, explain what the change is about.
+- Let's discuss until it is perfect. 💪
+- Once things look perfect, We merge it to the ```dev``` branch for the next version.
 
 Feel free to ping us at any step you need help using our communication channels.
-[Here](https://github.com/firstcontributions/first-contributions) is a good resource for complete beginners.
+
+If you are new on Github or open-source contribution, here are good resources.
+
+- [Github Docs](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/proposing-changes-to-your-work-with-pull-requests)
+- [First-Contribution](https://github.com/firstcontributions/first-contributions)
 
 ### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)
