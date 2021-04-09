@@ -1,0 +1,12 @@
+repos:
+  - repo: 'https://github.com/pre-commit/pre-commit-hooks'
+    rev: v2.3.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: 'https://github.com/psf/black'
+    rev: 20.8b1
+    hooks:
+      - id: black
+        language_version: python3
