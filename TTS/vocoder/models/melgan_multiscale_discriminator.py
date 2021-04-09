@@ -15,8 +15,7 @@ class MelganMultiscaleDiscriminator(nn.Module):
                  pooling_kernel_size=4,
                  pooling_stride=2,
                  pooling_padding=2,
-                 groups_denominator=4,
-                 max_groups=256):
+                 groups_denominator=4):
         super(MelganMultiscaleDiscriminator, self).__init__()
 
         self.discriminators = nn.ModuleList([
@@ -26,8 +25,7 @@ class MelganMultiscaleDiscriminator(nn.Module):
                                 base_channels=base_channels,
                                 max_channels=max_channels,
                                 downsample_factors=downsample_factors,
-                                groups_denominator=groups_denominator,
-                                max_groups=max_groups)
+                                groups_denominator=groups_denominator)
             for _ in range(num_scales)
         ])
 
