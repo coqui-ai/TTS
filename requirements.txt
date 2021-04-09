@@ -16,7 +16,6 @@ tqdm
 inflect
 bokeh==1.4.0
 pysbd
-# pyworld
 soundfile
 gdown
 umap-learn==0.4.6
