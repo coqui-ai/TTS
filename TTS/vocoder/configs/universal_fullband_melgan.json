@@ -106,18 +106,23 @@
     "wd": 0.0,                // Weight decay weight.
     "gen_clip_grad": -1,      // Generator gradient clipping threshold. Apply gradient clipping if > 0
     "disc_clip_grad": -1,     // Discriminator gradient clipping threshold.
-    "lr_scheduler_gen": "MultiStepLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    "lr_gen": 0.0002,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_disc": 0.0002,
+    "optimizer": "AdamW",
+    "optimizer_params":{
+        "betas": [0.8, 0.99],
+        "weight_decay": 0.0
+    },
+    "lr_scheduler_gen": "ExponentialLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
     "lr_scheduler_gen_params": {
-       "gamma": 0.5,
-       "milestones": [100000, 200000, 300000, 400000, 500000, 600000]
+       "gamma": 0.999,
+        "last_epoch": -1
     },
-    "lr_scheduler_disc": "MultiStepLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    "lr_scheduler_disc": "ExponentialLR",   // one of the schedulers from https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
     "lr_scheduler_disc_params": {
-    	  "gamma": 0.5,
-    	  "milestones": [100000, 200000, 300000, 400000, 500000, 600000]
+    	  "gamma": 0.999,
+        "last_epoch": -1
     },
-    "lr_gen": 0.000015625,                  // Initial learning rate. If Noam decay is active, maximum learning rate.
-    "lr_disc": 0.000015625,
 
     // TENSORBOARD and LOGGING
     "print_step": 25,       // Number of steps to log traning on console.
