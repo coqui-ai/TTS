@@ -472,14 +472,24 @@ def main(args):  # pylint: disable=redefined-outer-name
     model_gen = setup_generator(c)
     model_disc = setup_discriminator(c)
 
+    # setup criterion
+    criterion_gen = GeneratorLoss(c)
+    criterion_disc = DiscriminatorLoss(c)
+
+    if use_cuda:
+        model_gen.cuda()
+        criterion_gen.cuda()
+        model_disc.cuda()
+        criterion_disc.cuda()
+
     # setup optimizers
     # TODO: allow loading custom optimizers
     optimizer_gen = None
     optimizer_disc = None
     optimizer_gen = getattr(torch.optim, c.optimizer)
-    optimizer_gen = optimizer_gen(lr=c.lr_gen, **c.optimizer_params)
+    optimizer_gen = optimizer_gen(model_gen.parameters(), lr=c.lr_gen, **c.optimizer_params)
     optimizer_disc = getattr(torch.optim, c.optimizer)
-    optimizer_disc = optimizer_disc(lr=c.lr_gen, **c.optimizer_params)
+    optimizer_disc = optimizer_disc(model_disc.parameters(), lr=c.lr_disc, **c.optimizer_params)
 
     # schedulers
     scheduler_gen = None
@@ -492,10 +502,6 @@ def main(args):  # pylint: disable=redefined-outer-name
         scheduler_disc = getattr(torch.optim.lr_scheduler, c.lr_scheduler_disc)
         scheduler_disc = scheduler_disc(
             optimizer_disc, **c.lr_scheduler_disc_params)
-
-    # setup criterion
-    criterion_gen = GeneratorLoss(c)
-    criterion_disc = DiscriminatorLoss(c)
 
     if args.restore_path:
         print(f" > Restoring from {os.path.basename(args.restore_path)}...")
@@ -533,11 +539,12 @@ def main(args):  # pylint: disable=redefined-outer-name
             del model_dict
 
         # reset lr if not countinuining training.
-        for group in optimizer_gen.param_groups:
-            group['lr'] = c.lr_gen
+        if args.continue_path == '':
+            for group in optimizer_gen.param_groups:
+                group['lr'] = c.lr_gen
 
-        for group in optimizer_disc.param_groups:
-            group['lr'] = c.lr_disc
+            for group in optimizer_disc.param_groups:
+                group['lr'] = c.lr_disc
 
         print(f" > Model restored from step {checkpoint['step']:d}",
               flush=True)
@@ -545,11 +552,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         args.restore_step = 0
 
-    if use_cuda:
-        model_gen.cuda()
-        criterion_gen.cuda()
-        model_disc.cuda()
-        criterion_disc.cuda()
 
     # DISTRUBUTED
     if num_gpus > 1:
