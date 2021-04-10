@@ -11,4 +11,4 @@ TF_CPP_MIN_LOG_LEVEL=3
 ./tests/bash_tests/test_vocoder_wavegrad_train.sh && \
 ./tests/bash_tests/test_speedy_speech_train.sh && \
 ./tests/bash_tests/test_aligntts_train.sh && \
-./tests/bash_tests/test_compute_statistics.sh &&
+./tests/bash_tests/test_compute_statistics.sh
