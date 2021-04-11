@@ -79,7 +79,7 @@ class MyDataset(Dataset):
             print("\n > DataLoader initialization")
             print(" | > Use phonemes: {}".format(self.use_phonemes))
             if use_phonemes:
-                print("   | > phoneme language: {}".format(phoneme_language))
+                print("   | > Default phoneme language: {}".format(phoneme_language))
             print(" | > Number of instances : {}".format(len(self.items)))
 
     def load_wav(self, filename):
@@ -135,10 +135,10 @@ class MyDataset(Dataset):
     def load_data(self, idx):
         item = self.items[idx]
 
-        if len(item) == 4:
-            text, wav_file, speaker_name, attn_file = item
+        if len(item) == 5:
+            text, wav_file, speaker_name, lang_name, attn_file = item
         else:
-            text, wav_file, speaker_name = item
+            text, wav_file, speaker_name, lang_name = item
             attn = None
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
@@ -151,7 +151,8 @@ class MyDataset(Dataset):
             if self.use_phonemes:
                 text = self._load_or_generate_phoneme_sequence(
                     wav_file, text, self.phoneme_cache_path,
-                    self.enable_eos_bos, self.cleaners, self.phoneme_language,
+                    self.enable_eos_bos, self.cleaners, 
+                    lang_name if lang_name else self.phoneme_language,
                     self.tp, self.add_blank)
 
             else:
@@ -178,6 +179,7 @@ class MyDataset(Dataset):
             'attn': attn,
             'item_idx': self.items[idx][1],
             'speaker_name': speaker_name,
+            'lang_name': lang_name,
             'wav_file_name': os.path.basename(wav_file)
         }
         return sample
@@ -292,6 +294,10 @@ class MyDataset(Dataset):
             speaker_name = [
                 batch[idx]['speaker_name'] for idx in ids_sorted_decreasing
             ]
+
+            lang_name = [
+                batch[idx]['lang_name'] for idx in ids_sorted_decreasing
+            ]
             # get speaker embeddings
             if self.speaker_mapping is not None:
                 wav_files_names = [
@@ -363,7 +369,7 @@ class MyDataset(Dataset):
             else:
                 attns = None
             return text, text_lenghts, speaker_name, linear, mel, mel_lengths, \
-                   stop_targets, item_idxs, speaker_embedding, attns
+                   stop_targets, lang_name, item_idxs, speaker_embedding, attns
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}".format(type(batch[0]))))

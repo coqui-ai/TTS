@@ -6,6 +6,7 @@ import sys
 import time
 import traceback
 from random import randrange
+import random
 
 import numpy as np
 import torch
@@ -17,7 +18,7 @@ from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
-from TTS.tts.utils.speakers import parse_speakers
+from TTS.tts.utils.speakers import parse_speakers, parse_languages
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -89,12 +90,13 @@ def format_data(data):
     mel_input = data[4]
     mel_lengths = data[5]
     stop_targets = data[6]
+    lang_names = data[7]
     max_text_length = torch.max(text_lengths.float())
     max_spec_length = torch.max(mel_lengths.float())
 
     if c.use_speaker_embedding:
         if c.use_external_speaker_embedding_file:
-            speaker_embeddings = data[8]
+            speaker_embeddings = data[9]
             speaker_ids = None
         else:
             speaker_ids = [
@@ -494,7 +496,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters
+    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters, langs_mapping
     # Audio processor
     ap = AudioProcessor(**c.audio)
 
@@ -512,6 +514,8 @@ def main(args):  # pylint: disable=redefined-outer-name
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
+    meta_data_train = random.sample(meta_data_train, len(meta_data_train)//8) #to speedup train phase, TO REMOVE
+
     # set the portion of the data used for training
     if 'train_portion' in c.keys():
         meta_data_train = meta_data_train[:int(len(meta_data_train) * c.train_portion)]
@@ -520,8 +524,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # parse speakers
     num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
+    num_langs, langs_embedding_dim, langs_mapping = parse_languages(c, meta_data_train)
 
-    model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim)
+    model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, langs_embedding_dim)
 
     # scalers for mixed precision training
     scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None

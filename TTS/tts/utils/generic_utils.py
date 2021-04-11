@@ -44,7 +44,7 @@ def to_camel(text):
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
 
 
-def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
+def setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim=None, langs_embedding_dim=None):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
     MyModel = getattr(MyModel, to_camel(c.model))
@@ -78,6 +78,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     elif c.model.lower() == "tacotron2":
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
                         num_speakers=num_speakers,
+                        num_langs=num_langs,
                         r=c.r,
                         postnet_output_dim=c.audio['num_mels'],
                         decoder_output_dim=c.audio['num_mels'],
@@ -101,6 +102,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
                         double_decoder_consistency=c.double_decoder_consistency,
                         ddc_r=c.ddc_r,
                         speaker_embedding_dim=speaker_embedding_dim,
+                        langs_embedding_dim=langs_embedding_dim,
                         reversal_classifier=c.reversal_classifier,
                         reversal_classifier_dim=c.reversal_classifier_dim,
                         reversal_gradient_clipping=c.reversal_gradient_clipping)

@@ -48,6 +48,7 @@ class Tacotron2(TacotronAbstract):
     def __init__(self,
                  num_chars,
                  num_speakers,
+                 num_langs,
                  r,
                  postnet_output_dim=80,
                  decoder_output_dim=80,
@@ -68,6 +69,7 @@ class Tacotron2(TacotronAbstract):
                  encoder_in_features=512,
                  decoder_in_features=512,
                  speaker_embedding_dim=None,
+                 langs_embedding_dim=None,
                  gst=False,
                  gst_embedding_dim=512,
                  gst_num_heads=4,
@@ -75,9 +77,7 @@ class Tacotron2(TacotronAbstract):
                  gst_use_speaker_embedding=False,
                  reversal_classifier=True,
                  reversal_classifier_dim=256,
-                 reversal_gradient_clipping=0.25,
-                 num_langs=1,
-                 langs_embedding_dim=4):
+                 reversal_gradient_clipping=0.25):
         super(Tacotron2,
               self).__init__(num_chars, num_speakers, r, postnet_output_dim,
                              decoder_output_dim, attn_type, attn_win,
@@ -96,8 +96,8 @@ class Tacotron2(TacotronAbstract):
                 self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
 
-        self.reversal_classifier = reversal_classifier
         # adverserial speaker classifier
+        self.reversal_classifier = reversal_classifier
         if self.reversal_classifier:
             self._reversal_classifier = ReversalClassifier(input_dim=self.decoder_in_features if not gst else self.decoder_in_features - self.gst_embedding_dim,
                                                            hidden_dim=reversal_classifier_dim,
@@ -112,8 +112,8 @@ class Tacotron2(TacotronAbstract):
         self.embedding = nn.Embedding(num_chars, 512, padding_idx=0)
 
         # base model layers
-        if num_langs >= 1:
-            self.encoder = Encoder(self.encoder_in_features, num_langs, langs_embedding_dim)
+        if num_langs > 1:
+            self.encoder = Encoder(self.encoder_in_features, num_langs, langs_embedding_dim if langs_embedding_dim else num_langs)
         else:
             self.encoder = Encoder(self.encoder_in_features)
         self.decoder = Decoder(self.decoder_in_features, self.decoder_output_dim, r, attn_type, attn_win,
@@ -146,7 +146,7 @@ class Tacotron2(TacotronAbstract):
         mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
         return mel_outputs, mel_outputs_postnet, alignments
 
-    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, speaker_ids=None, speaker_embeddings=None):
+    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, speaker_ids=None, lang_ids=None, speaker_embeddings=None):
         """
         Shapes:
             text: [B, T_in]
@@ -154,6 +154,7 @@ class Tacotron2(TacotronAbstract):
             mel_specs: [B, T_out, C]
             mel_lengths: [B]
             speaker_ids: [B, 1]
+            lang_ids: [B, 1]
             speaker_embeddings: [B, C]
         """
         # compute mask for padding
@@ -162,7 +163,7 @@ class Tacotron2(TacotronAbstract):
         # B x D_embed x T_in_max
         embedded_inputs = self.embedding(text).transpose(1, 2)
         # B x T_in_max x D_en
-        encoder_outputs = self.encoder(embedded_inputs, text_lengths)
+        encoder_outputs = self.encoder(embedded_inputs, text_lengths, lang_ids=lang_ids)
 
         speaker_prediction = self._reversal_classifier(encoder_outputs) if self.reversal_classifier else None
 
@@ -206,9 +207,9 @@ class Tacotron2(TacotronAbstract):
         return decoder_outputs, postnet_outputs, alignments, stop_tokens, speaker_prediction
 
     @torch.no_grad()
-    def inference(self, text, speaker_ids=None, style_mel=None, speaker_embeddings=None):
+    def inference(self, text, speaker_ids=None, lang_ids=None, style_mel=None, speaker_embeddings=None):
         embedded_inputs = self.embedding(text).transpose(1, 2)
-        encoder_outputs = self.encoder.inference(embedded_inputs)
+        encoder_outputs = self.encoder.inference(embedded_inputs, lang_ids=lang_ids)
 
         if self.gst:
             # B x gst_dim
@@ -228,12 +229,12 @@ class Tacotron2(TacotronAbstract):
             decoder_outputs, postnet_outputs, alignments)
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
-    def inference_truncated(self, text, speaker_ids=None, style_mel=None, speaker_embeddings=None):
+    def inference_truncated(self, text, speaker_ids=None, lang_ids=None, style_mel=None, speaker_embeddings=None):
         """
         Preserve model states for continuous inference
         """
         embedded_inputs = self.embedding(text).transpose(1, 2)
-        encoder_outputs = self.encoder.inference_truncated(embedded_inputs)
+        encoder_outputs = self.encoder.inference_truncated(embedded_inputs, lang_ids=lang_ids)
 
         if self.gst:
             # B x gst_dim

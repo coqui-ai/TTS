@@ -82,9 +82,12 @@ def parse_languages(c, meta_data_train):
         languages = get_languages(meta_data_train)
         langs_mapping = {name: i for i, name in enumerate(languages)}
         num_langs = len(languages)
+        langs_embedding_dim = None
     # TODO: implement if args.restore_path
     else:
         num_langs = 0
         langs_mapping = None
         langs_embedding_dim = None
+    print(" > Training with {} languages: {}".format(
+            len(languages), ", ".join(languages)))
     return num_langs, langs_embedding_dim, langs_mapping

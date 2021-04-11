@@ -21,15 +21,15 @@ def load_meta_data(datasets, eval_split=True):
         root_path = dataset['path']
         meta_file_train = dataset['meta_file_train']
         meta_file_val = dataset['meta_file_val']
-        #language = dataset['language']
+        language = dataset['language']
         # setup the right data processor
         preprocessor = get_preprocessor_by_name(name)
         # load train set
         meta_data_train = preprocessor(root_path, meta_file_train)
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
-        #if language:
-        #    meta_data_train = [[*item, language] for item in meta_data_train]
-        # load evaluation split if set
+        if language:
+            meta_data_train = [[*item, language] for item in meta_data_train]
+        #load evaluation split if set
         if eval_split:
             if meta_file_val is None:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train)
@@ -151,8 +151,7 @@ def mailabs(root_path, meta_files=None):
                     text = cols[1].strip()
                     items.append([text, wav_file, speaker_name])
                 else:
-                    raise RuntimeError("> File %s does not exist!" %
-                                       (wav_file))
+                    print("> File %s does not exist!" %(wav_file))
     return items
 
 
@@ -372,7 +371,6 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
 
     with open(str(cache_to), 'r') as f:
         return [x.strip().split('|') for x in f.readlines()]
-
 
 
 def baker(root_path: str, meta_file: str) ->  List[List[str]]:
