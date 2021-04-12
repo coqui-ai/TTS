@@ -1,9 +1,9 @@
 # adopted from https://github.com/jik876/hifi-gan/blob/master/models.py
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn import Conv1d, ConvTranspose1d
-from torch.nn.utils import weight_norm, remove_weight_norm
+from torch.nn.utils import remove_weight_norm, weight_norm
 
 LRELU_SLOPE = 0.1
 
@@ -26,55 +26,57 @@ class ResBlock1(torch.nn.Module):
         kernel_size (int): size of the convolution filter in each layer.
         dilations (list): list of dilation value for each conv layer in a block.
     """
+
     def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5)):
         super().__init__()
-        self.convs1 = nn.ModuleList([
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=dilation[0],
-                       padding=get_padding(kernel_size, dilation[0]))),
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=dilation[1],
-                       padding=get_padding(kernel_size, dilation[1]))),
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=dilation[2],
-                       padding=get_padding(kernel_size, dilation[2])))
-        ])
+        self.convs1 = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[0],
+                        padding=get_padding(kernel_size, dilation[0]),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[1],
+                        padding=get_padding(kernel_size, dilation[1]),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[2],
+                        padding=get_padding(kernel_size, dilation[2]),
+                    )
+                ),
+            ]
+        )
 
-        self.convs2 = nn.ModuleList([
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=1,
-                       padding=get_padding(kernel_size, 1))),
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=1,
-                       padding=get_padding(kernel_size, 1))),
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=1,
-                       padding=get_padding(kernel_size, 1)))
-        ])
+        self.convs2 = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(channels, channels, kernel_size, 1, dilation=1, padding=get_padding(kernel_size, 1))
+                ),
+                weight_norm(
+                    Conv1d(channels, channels, kernel_size, 1, dilation=1, padding=get_padding(kernel_size, 1))
+                ),
+                weight_norm(
+                    Conv1d(channels, channels, kernel_size, 1, dilation=1, padding=get_padding(kernel_size, 1))
+                ),
+            ]
+        )
 
     def forward(self, x):
         """
@@ -114,24 +116,33 @@ class ResBlock2(torch.nn.Module):
         kernel_size (int): size of the convolution filter in each layer.
         dilations (list): list of dilation value for each conv layer in a block.
     """
+
     def __init__(self, channels, kernel_size=3, dilation=(1, 3)):
         super().__init__()
-        self.convs = nn.ModuleList([
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=dilation[0],
-                       padding=get_padding(kernel_size, dilation[0]))),
-            weight_norm(
-                Conv1d(channels,
-                       channels,
-                       kernel_size,
-                       1,
-                       dilation=dilation[1],
-                       padding=get_padding(kernel_size, dilation[1])))
-        ])
+        self.convs = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[0],
+                        padding=get_padding(kernel_size, dilation[0]),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[1],
+                        padding=get_padding(kernel_size, dilation[1]),
+                    )
+                ),
+            ]
+        )
 
     def forward(self, x):
         for c in self.convs:
@@ -146,10 +157,18 @@ class ResBlock2(torch.nn.Module):
 
 
 class HifiganGenerator(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, resblock_type,
-                 resblock_dilation_sizes, resblock_kernel_sizes,
-                 upsample_kernel_sizes, upsample_initial_channel,
-                 upsample_factors, inference_padding=5):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        resblock_type,
+        resblock_dilation_sizes,
+        resblock_kernel_sizes,
+        upsample_kernel_sizes,
+        upsample_initial_channel,
+        upsample_factors,
+        inference_padding=5,
+    ):
         r"""HiFiGAN Generator with Multi-Receptive Field Fusion (MRF)
 
         Network:
@@ -174,26 +193,27 @@ class HifiganGenerator(torch.nn.Module):
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_factors)
         # initial upsampling layers
-        self.conv_pre = weight_norm(
-            Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
-        resblock = ResBlock1 if resblock_type == '1' else ResBlock2
+        self.conv_pre = weight_norm(Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
+        resblock = ResBlock1 if resblock_type == "1" else ResBlock2
         # upsampling layers
         self.ups = nn.ModuleList()
-        for i, (u, k) in enumerate(zip(upsample_factors,
-                                       upsample_kernel_sizes)):
+        for i, (u, k) in enumerate(zip(upsample_factors, upsample_kernel_sizes)):
             self.ups.append(
                 weight_norm(
-                    ConvTranspose1d(upsample_initial_channel // (2**i),
-                                    upsample_initial_channel // (2**(i + 1)),
-                                    k,
-                                    u,
-                                    padding=(k - u) // 2)))
+                    ConvTranspose1d(
+                        upsample_initial_channel // (2 ** i),
+                        upsample_initial_channel // (2 ** (i + 1)),
+                        k,
+                        u,
+                        padding=(k - u) // 2,
+                    )
+                )
+            )
         # MRF blocks
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
-            ch = upsample_initial_channel // (2**(i + 1))
-            for _, (k, d) in enumerate(
-                    zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+            ch = upsample_initial_channel // (2 ** (i + 1))
+            for _, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer
         self.conv_post = weight_norm(Conv1d(ch, out_channels, 7, 1, padding=3))
@@ -240,12 +260,11 @@ class HifiganGenerator(torch.nn.Module):
             Tensor: [B, 1, T]
         """
         c = c.to(self.conv_pre.weight.device)
-        c = torch.nn.functional.pad(
-            c, (self.inference_padding, self.inference_padding), 'replicate')
+        c = torch.nn.functional.pad(c, (self.inference_padding, self.inference_padding), "replicate")
         return self.forward(c)
 
     def remove_weight_norm(self):
-        print('Removing weight norm...')
+        print("Removing weight norm...")
         for l in self.ups:
             remove_weight_norm(l)
         for l in self.resblocks:
@@ -253,9 +272,11 @@ class HifiganGenerator(torch.nn.Module):
         remove_weight_norm(self.conv_pre)
         remove_weight_norm(self.conv_post)
 
-    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-        self.load_state_dict(state['model'])
+    def load_checkpoint(
+        self, config, checkpoint_path, eval=False
+    ):  # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"])
         if eval:
             self.eval()
             assert not self.training

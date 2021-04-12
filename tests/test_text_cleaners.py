@@ -17,5 +17,5 @@ def test_currency() -> None:
 
 
 def test_expand_numbers() -> None:
-    assert phoneme_cleaners("-1") == 'minus one'
-    assert phoneme_cleaners("1") == 'one'
+    assert phoneme_cleaners("-1") == "minus one"
+    assert phoneme_cleaners("1") == "one"

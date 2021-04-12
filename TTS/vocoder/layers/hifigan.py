@@ -10,20 +10,14 @@ class ResStack(nn.Module):
             resstack += [
                 nn.LeakyReLU(0.2),
                 nn.ReflectionPad1d(dilation),
-                nn.utils.weight_norm(
-                    nn.Conv1d(channel,
-                              channel,
-                              kernel_size=kernel,
-                              dilation=dilation)),
+                nn.utils.weight_norm(nn.Conv1d(channel, channel, kernel_size=kernel, dilation=dilation)),
                 nn.LeakyReLU(0.2),
                 nn.ReflectionPad1d(padding),
-                nn.utils.weight_norm(nn.Conv1d(channel, channel,
-                                               kernel_size=1)),
+                nn.utils.weight_norm(nn.Conv1d(channel, channel, kernel_size=1)),
             ]
         self.resstack = nn.Sequential(*resstack)
 
-        self.shortcut = nn.utils.weight_norm(
-            nn.Conv1d(channel, channel, kernel_size=1))
+        self.shortcut = nn.utils.weight_norm(nn.Conv1d(channel, channel, kernel_size=1))
 
     def forward(self, x):
         x1 = self.shortcut(x)

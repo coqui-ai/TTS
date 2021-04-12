@@ -1,8 +1,9 @@
-import numpy as np
 import math
+
+import numpy as np
 import torch
-from torch.distributions.normal import Normal
 import torch.nn.functional as F
+from torch.distributions.normal import Normal
 
 
 def gaussian_loss(y_hat, y, log_std_min=-7.0):
@@ -11,11 +12,7 @@ def gaussian_loss(y_hat, y, log_std_min=-7.0):
     mean = y_hat[:, :, :1]
     log_std = torch.clamp(y_hat[:, :, 1:], min=log_std_min)
     # TODO: replace with pytorch dist
-    log_probs = -0.5 * (
-        -math.log(2.0 * math.pi)
-        - 2.0 * log_std
-        - torch.pow(y - mean, 2) * torch.exp((-2.0 * log_std))
-    )
+    log_probs = -0.5 * (-math.log(2.0 * math.pi) - 2.0 * log_std - torch.pow(y - mean, 2) * torch.exp((-2.0 * log_std)))
     return log_probs.squeeze().mean()
 
 
@@ -28,8 +25,7 @@ def sample_from_gaussian(y_hat, log_std_min=-7.0, scale_factor=1.0):
         torch.exp(log_std),
     )
     sample = dist.sample()
-    sample = torch.clamp(torch.clamp(
-        sample, min=-scale_factor), max=scale_factor)
+    sample = torch.clamp(torch.clamp(sample, min=-scale_factor), max=scale_factor)
     del dist
     return sample
 
@@ -44,11 +40,7 @@ def log_sum_exp(x):
 
 
 # It is adapted from https://github.com/r9y9/wavenet_vocoder/blob/master/wavenet_vocoder/mixture.py
-def discretized_mix_logistic_loss(y_hat,
-                                  y,
-                                  num_classes=65536,
-                                  log_scale_min=None,
-                                  reduce=True):
+def discretized_mix_logistic_loss(y_hat, y, num_classes=65536, log_scale_min=None, reduce=True):
     if log_scale_min is None:
         log_scale_min = float(np.log(1e-14))
     y_hat = y_hat.permute(0, 2, 1)
@@ -61,9 +53,8 @@ def discretized_mix_logistic_loss(y_hat,
 
     # unpack parameters. (B, T, num_mixtures) x 3
     logit_probs = y_hat[:, :, :nr_mix]
-    means = y_hat[:, :, nr_mix: 2 * nr_mix]
-    log_scales = torch.clamp(
-        y_hat[:, :, 2 * nr_mix: 3 * nr_mix], min=log_scale_min)
+    means = y_hat[:, :, nr_mix : 2 * nr_mix]
+    log_scales = torch.clamp(y_hat[:, :, 2 * nr_mix : 3 * nr_mix], min=log_scale_min)
 
     # B x T x 1 -> B x T x num_mixtures
     y = y.expand_as(means)
@@ -103,14 +94,11 @@ def discretized_mix_logistic_loss(y_hat,
     # for num_classes=65536 case? 1e-7? not sure..
     inner_inner_cond = (cdf_delta > 1e-5).float()
 
-    inner_inner_out = inner_inner_cond * torch.log(
-        torch.clamp(cdf_delta, min=1e-12)
-    ) + (1.0 - inner_inner_cond) * (log_pdf_mid - np.log((num_classes - 1) / 2))
-    inner_cond = (y > 0.999).float()
-    inner_out = (
-        inner_cond * log_one_minus_cdf_min +
-        (1.0 - inner_cond) * inner_inner_out
+    inner_inner_out = inner_inner_cond * torch.log(torch.clamp(cdf_delta, min=1e-12)) + (1.0 - inner_inner_cond) * (
+        log_pdf_mid - np.log((num_classes - 1) / 2)
     )
+    inner_cond = (y > 0.999).float()
+    inner_out = inner_cond * log_one_minus_cdf_min + (1.0 - inner_cond) * inner_inner_out
     cond = (y < -0.999).float()
     log_probs = cond * log_cdf_plus + (1.0 - cond) * inner_out
 
@@ -147,10 +135,8 @@ def sample_from_discretized_mix_logistic(y, log_scale_min=None):
     # (B, T) -> (B, T, nr_mix)
     one_hot = to_one_hot(argmax, nr_mix)
     # select logistic parameters
-    means = torch.sum(y[:, :, nr_mix: 2 * nr_mix] * one_hot, dim=-1)
-    log_scales = torch.clamp(
-        torch.sum(y[:, :, 2 * nr_mix: 3 * nr_mix] * one_hot, dim=-1), min=log_scale_min
-    )
+    means = torch.sum(y[:, :, nr_mix : 2 * nr_mix] * one_hot, dim=-1)
+    log_scales = torch.clamp(torch.sum(y[:, :, 2 * nr_mix : 3 * nr_mix] * one_hot, dim=-1), min=log_scale_min)
     # sample from logistic & clip to interval
     # we don't actually round to the nearest 8bit value when sampling
     u = means.data.new(means.size()).uniform_(1e-5, 1.0 - 1e-5)

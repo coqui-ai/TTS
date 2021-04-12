@@ -1,10 +1,11 @@
-import os
 import glob
-import torch
+import os
 import random
-import numpy as np
-from torch.utils.data import Dataset
 from multiprocessing import Manager
+
+import numpy as np
+import torch
+from torch.utils.data import Dataset
 
 
 class WaveGradDataset(Dataset):
@@ -13,18 +14,21 @@ class WaveGradDataset(Dataset):
     and converts them to acoustic features on the fly and returns
     random segments of (audio, feature) couples.
     """
-    def __init__(self,
-                 ap,
-                 items,
-                 seq_len,
-                 hop_len,
-                 pad_short,
-                 conv_pad=2,
-                 is_training=True,
-                 return_segments=True,
-                 use_noise_augment=False,
-                 use_cache=False,
-                 verbose=False):
+
+    def __init__(
+        self,
+        ap,
+        items,
+        seq_len,
+        hop_len,
+        pad_short,
+        conv_pad=2,
+        is_training=True,
+        return_segments=True,
+        use_noise_augment=False,
+        use_cache=False,
+        verbose=False,
+    ):
 
         super().__init__()
         self.ap = ap
@@ -54,7 +58,7 @@ class WaveGradDataset(Dataset):
 
     @staticmethod
     def find_wav_files(path):
-        return glob.glob(os.path.join(path, '**', '*.wav'), recursive=True)
+        return glob.glob(os.path.join(path, "**", "*.wav"), recursive=True)
 
     def __len__(self):
         return len(self.item_list)
@@ -86,13 +90,16 @@ class WaveGradDataset(Dataset):
             if self.return_segments:
                 # correct audio length wrt segment length
                 if audio.shape[-1] < self.seq_len + self.pad_short:
-                    audio = np.pad(audio, (0, self.seq_len + self.pad_short - len(audio)), \
-                            mode='constant', constant_values=0.0)
-                assert audio.shape[-1] >= self.seq_len + self.pad_short, f"{audio.shape[-1]} vs {self.seq_len + self.pad_short}"
+                    audio = np.pad(
+                        audio, (0, self.seq_len + self.pad_short - len(audio)), mode="constant", constant_values=0.0
+                    )
+                assert (
+                    audio.shape[-1] >= self.seq_len + self.pad_short
+                ), f"{audio.shape[-1]} vs {self.seq_len + self.pad_short}"
 
             # correct the audio length wrt hop length
             p = (audio.shape[-1] // self.hop_len + 1) * self.hop_len - audio.shape[-1]
-            audio = np.pad(audio, (0, p), mode='constant', constant_values=0.0)
+            audio = np.pad(audio, (0, p), mode="constant", constant_values=0.0)
 
             if self.use_cache:
                 self.cache[idx] = audio
@@ -126,7 +133,7 @@ class WaveGradDataset(Dataset):
         for idx, b in enumerate(batch):
             mel = b[0]
             audio = b[1]
-            mels[idx, :, :mel.shape[1]] = mel
-            audios[idx, :audio.shape[0]] = audio
+            mels[idx, :, : mel.shape[1]] = mel
+            audios[idx, : audio.shape[0]] = audio
 
         return mels, audios

@@ -1,6 +1,7 @@
 from torch import nn
-from TTS.tts.layers.generic.transformer import FFTransformerBlock
+
 from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
+from TTS.tts.layers.generic.transformer import FFTransformerBlock
 
 
 class DurationPredictor(nn.Module):

@@ -1,18 +1,19 @@
 import time
 
 import numpy as np
-import torch
 import pysbd
+import torch
 
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.speakers import load_speaker_mapping
-from TTS.vocoder.utils.generic_utils import setup_generator, interpolate_vocoder_input
+
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, trim_silence
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_config
+from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input, setup_generator
 
 
 class Synthesizer(object):
@@ -49,12 +50,11 @@ class Synthesizer(object):
         self.use_cuda = use_cuda
         if self.use_cuda:
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
-        self.load_tts(tts_checkpoint, tts_config,
-                      use_cuda)
-        self.output_sample_rate = self.tts_config.audio['sample_rate']
+        self.load_tts(tts_checkpoint, tts_config, use_cuda)
+        self.output_sample_rate = self.tts_config.audio["sample_rate"]
         if vocoder_checkpoint:
             self.load_vocoder(vocoder_checkpoint, vocoder_config, use_cuda)
-            self.output_sample_rate = self.vocoder_config.audio['sample_rate']
+            self.output_sample_rate = self.vocoder_config.audio["sample_rate"]
 
     @staticmethod
     def get_segmenter(lang):
@@ -69,16 +69,18 @@ class Synthesizer(object):
             self.num_speakers = 0
         # set external speaker embedding
         if self.tts_config.use_external_speaker_embedding_file:
-            speaker_embedding = self.tts_speakers[list(self.tts_speakers.keys())[0]]['embedding']
+            speaker_embedding = self.tts_speakers[list(self.tts_speakers.keys())[0]]["embedding"]
             self.speaker_embedding_dim = len(speaker_embedding)
 
     def init_speaker(self, speaker_idx):
         # load speakers
         speaker_embedding = None
-        if hasattr(self, 'tts_speakers') and speaker_idx is not None:
-            assert speaker_idx < len(self.tts_speakers), f" [!] speaker_idx is out of the range. {speaker_idx} vs {len(self.tts_speakers)}"
+        if hasattr(self, "tts_speakers") and speaker_idx is not None:
+            assert speaker_idx < len(
+                self.tts_speakers
+            ), f" [!] speaker_idx is out of the range. {speaker_idx} vs {len(self.tts_speakers)}"
             if self.tts_config.use_external_speaker_embedding_file:
-                speaker_embedding = self.tts_speakers[speaker_idx]['embedding']
+                speaker_embedding = self.tts_speakers[speaker_idx]["embedding"]
         return speaker_embedding
 
     def load_tts(self, tts_checkpoint, tts_config, use_cuda):
@@ -90,7 +92,7 @@ class Synthesizer(object):
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
-        if 'characters' in self.tts_config.keys():
+        if "characters" in self.tts_config.keys():
             symbols, phonemes = make_symbols(**self.tts_config.characters)
 
         if self.use_phonemes:
@@ -105,7 +107,7 @@ class Synthesizer(object):
 
     def load_vocoder(self, model_file, model_config, use_cuda):
         self.vocoder_config = load_config(model_config)
-        self.vocoder_ap = AudioProcessor(verbose=False, **self.vocoder_config['audio'])
+        self.vocoder_ap = AudioProcessor(verbose=False, **self.vocoder_config["audio"])
         self.vocoder_model = setup_generator(self.vocoder_config)
         self.vocoder_model.load_checkpoint(self.vocoder_config, model_file, eval=True)
         if use_cuda:
@@ -141,7 +143,8 @@ class Synthesizer(object):
                 False,
                 self.tts_config.enable_eos_bos_chars,
                 use_gl,
-                speaker_embedding=speaker_embedding)
+                speaker_embedding=speaker_embedding,
+            )
             if not use_gl:
                 # denormalize tts output based on tts audio config
                 mel_postnet_spec = self.ap.denormalize(mel_postnet_spec.T).T
@@ -149,7 +152,7 @@ class Synthesizer(object):
                 # renormalize spectrogram based on vocoder config
                 vocoder_input = self.vocoder_ap.normalize(mel_postnet_spec.T)
                 # compute scale factor for possible sample rate mismatch
-                scale_factor = [1, self.vocoder_config['audio']['sample_rate'] / self.ap.sample_rate]
+                scale_factor = [1, self.vocoder_config["audio"]["sample_rate"] / self.ap.sample_rate]
                 if scale_factor[1] != 1:
                     print(" > interpolating tts model output.")
                     vocoder_input = interpolate_vocoder_input(scale_factor, vocoder_input)
@@ -172,7 +175,7 @@ class Synthesizer(object):
 
         # compute stats
         process_time = time.time() - start_time
-        audio_time = len(wavs) / self.tts_config.audio['sample_rate']
+        audio_time = len(wavs) / self.tts_config.audio["sample_rate"]
         print(f" > Processing time: {process_time}")
         print(f" > Real-time factor: {process_time / audio_time}")
         return wavs

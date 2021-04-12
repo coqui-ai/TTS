@@ -5,12 +5,8 @@ from torch import nn
 class TimeDepthSeparableConv(nn.Module):
     """Time depth separable convolution as in https://arxiv.org/pdf/1904.02619.pdf
     It shows competative results with less computation and memory footprint."""
-    def __init__(self,
-                 in_channels,
-                 hid_channels,
-                 out_channels,
-                 kernel_size,
-                 bias=True):
+
+    def __init__(self, in_channels, hid_channels, out_channels, kernel_size, bias=True):
         super().__init__()
 
         self.in_channels = in_channels
@@ -62,28 +58,24 @@ class TimeDepthSeparableConv(nn.Module):
 
 
 class TimeDepthSeparableConvBlock(nn.Module):
-    def __init__(self,
-                 in_channels,
-                 hid_channels,
-                 out_channels,
-                 num_layers,
-                 kernel_size,
-                 bias=True):
+    def __init__(self, in_channels, hid_channels, out_channels, num_layers, kernel_size, bias=True):
         super().__init__()
         assert (kernel_size - 1) % 2 == 0
         assert num_layers > 1
 
         self.layers = nn.ModuleList()
         layer = TimeDepthSeparableConv(
-            in_channels, hid_channels,
-            out_channels if num_layers == 1 else hid_channels, kernel_size,
-            bias)
+            in_channels, hid_channels, out_channels if num_layers == 1 else hid_channels, kernel_size, bias
+        )
         self.layers.append(layer)
         for idx in range(num_layers - 1):
             layer = TimeDepthSeparableConv(
-                hid_channels, hid_channels, out_channels if
-                (idx + 1) == (num_layers - 1) else hid_channels, kernel_size,
-                bias)
+                hid_channels,
+                hid_channels,
+                out_channels if (idx + 1) == (num_layers - 1) else hid_channels,
+                kernel_size,
+                bias,
+            )
             self.layers.append(layer)
 
     def forward(self, x, mask):
