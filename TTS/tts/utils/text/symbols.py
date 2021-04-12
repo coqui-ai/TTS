@@ -11,7 +11,10 @@ def make_symbols(
     characters, phonemes=None, punctuations="!'(),-.:;? ", pad="_", eos="~", bos="^"
 ):  # pylint: disable=redefined-outer-name
     """ Function to create symbols and phonemes """
-    _symbols = [pad, eos, bos] + list(characters)
+    _symbols =  list(characters)
+    _symbols = [bos] + _symbols if len(bos) > 0 and bos is not None else _symbols
+    _symbols = [eos] + _symbols if len(bos) > 0 and eos is not None else _symbols
+    _symbols = [pad] + _symbols if len(bos) > 0 and pad is not None else _symbols
     _phonemes = None
     if phonemes is not None:
         _phonemes_sorted = sorted(list(set(phonemes)))
