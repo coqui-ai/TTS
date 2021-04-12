@@ -54,7 +54,7 @@ class MyDataset(Dataset):
             use_noise_augment (bool): enable adding random noise to wav for augmentation.
             verbose (bool): print diagnostic information.
         """
-        super(MyDataset, self).__init__()
+        super().__init__()
         self.batch_group_size = batch_group_size
         self.items = meta_data
         self.outputs_per_step = outputs_per_step

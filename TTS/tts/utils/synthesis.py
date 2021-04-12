@@ -1,16 +1,16 @@
 import os
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+import numpy as np
 import pkg_resources
+import torch
+
+from .text import phoneme_to_sequence, text_to_sequence
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 installed = {pkg.key for pkg in pkg_resources.working_set}  # pylint: disable=not-an-iterable
 if "tensorflow" in installed or "tensorflow-gpu" in installed:
     import tensorflow as tf
-
-import numpy as np
-import torch
-
-from .text import phoneme_to_sequence, text_to_sequence
 
 
 def text_to_seqvec(text, CONFIG):

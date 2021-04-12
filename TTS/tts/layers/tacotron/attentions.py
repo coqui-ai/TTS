@@ -16,7 +16,7 @@ class LocationLayer(nn.Module):
     """
 
     def __init__(self, attention_dim, attention_n_filters=32, attention_kernel_size=31):
-        super(LocationLayer, self).__init__()
+        super().__init__()
         self.location_conv1d = nn.Conv1d(
             in_channels=2,
             out_channels=attention_n_filters,
@@ -51,7 +51,7 @@ class GravesAttention(nn.Module):
 
     def __init__(self, query_dim, K):
 
-        super(GravesAttention, self).__init__()
+        super().__init__()
         self._mask_value = 1e-8
         self.K = K
         # self.attention_alignment = 0.05
@@ -178,7 +178,7 @@ class OriginalAttention(nn.Module):
         trans_agent,
         forward_attn_mask,
     ):
-        super(OriginalAttention, self).__init__()
+        super().__init__()
         self.query_layer = Linear(query_dim, attention_dim, bias=False, init_gain="tanh")
         self.inputs_layer = Linear(embedding_dim, attention_dim, bias=False, init_gain="tanh")
         self.v = Linear(attention_dim, 1, bias=True)

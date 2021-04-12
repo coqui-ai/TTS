@@ -10,7 +10,7 @@ from TTS.tts.tf.utils.tf_utils import shape_list
 # pylint: disable=unexpected-keyword-arg
 class ConvBNBlock(keras.layers.Layer):
     def __init__(self, filters, kernel_size, activation, **kwargs):
-        super(ConvBNBlock, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.convolution1d = keras.layers.Conv1D(filters, kernel_size, padding="same", name="convolution1d")
         self.batch_normalization = keras.layers.BatchNormalization(
             axis=2, momentum=0.90, epsilon=1e-5, name="batch_normalization"
@@ -28,7 +28,7 @@ class ConvBNBlock(keras.layers.Layer):
 
 class Postnet(keras.layers.Layer):
     def __init__(self, output_filters, num_convs, **kwargs):
-        super(Postnet, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.convolutions = []
         self.convolutions.append(ConvBNBlock(512, 5, "tanh", name="convolutions_0"))
         for idx in range(1, num_convs - 1):
@@ -44,7 +44,7 @@ class Postnet(keras.layers.Layer):
 
 class Encoder(keras.layers.Layer):
     def __init__(self, output_input_dim, **kwargs):
-        super(Encoder, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.convolutions = []
         for idx in range(3):
             self.convolutions.append(ConvBNBlock(output_input_dim, 5, "relu", name=f"convolutions_{idx}"))
@@ -81,7 +81,7 @@ class Decoder(keras.layers.Layer):
         enable_tflite,
         **kwargs,
     ):
-        super(Decoder, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.frame_dim = frame_dim
         self.r_init = tf.constant(r, dtype=tf.int32)
         self.r = tf.constant(r, dtype=tf.int32)

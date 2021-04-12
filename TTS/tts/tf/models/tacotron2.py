@@ -28,7 +28,11 @@ class Tacotron2(keras.models.Model):
         bidirectional_decoder=False,
         enable_tflite=False,
     ):
+<<<<<<< HEAD
         super(Tacotron2, self).__init__()
+=======
+        super().__init__()
+>>>>>>> reformat
         self.r = r
         self.decoder_output_dim = decoder_output_dim
         self.postnet_output_dim = postnet_output_dim

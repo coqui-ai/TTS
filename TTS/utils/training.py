@@ -74,7 +74,7 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
         if not param.requires_grad:
             continue
 
-        if len(param.shape) == 1 or any([skip_name in name for skip_name in skip_list]):
+        if len(param.shape) == 1 or any((skip_name in name for skip_name in skip_list)):
             no_decay.append(param)
         else:
             decay.append(param)
@@ -85,7 +85,7 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
 class NoamLR(torch.optim.lr_scheduler._LRScheduler):
     def __init__(self, optimizer, warmup_steps=0.1, last_epoch=-1):
         self.warmup_steps = float(warmup_steps)
-        super(NoamLR, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
         step = max(self.last_epoch, 1)

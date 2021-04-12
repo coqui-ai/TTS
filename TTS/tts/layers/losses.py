@@ -52,7 +52,7 @@ class L1LossMasked(nn.Module):
 
 class MSELossMasked(nn.Module):
     def __init__(self, seq_len_norm):
-        super(MSELossMasked, self).__init__()
+        super().__init__()
         self.seq_len_norm = seq_len_norm
 
     def forward(self, x, target, length):
@@ -132,7 +132,7 @@ class AttentionEntropyLoss(nn.Module):
 
 class BCELossMasked(nn.Module):
     def __init__(self, pos_weight):
-        super(BCELossMasked, self).__init__()
+        super().__init__()
         self.pos_weight = pos_weight
 
     def forward(self, x, target, length):
@@ -193,7 +193,7 @@ class DifferentailSpectralLoss(nn.Module):
 
 class GuidedAttentionLoss(torch.nn.Module):
     def __init__(self, sigma=0.4):
-        super(GuidedAttentionLoss, self).__init__()
+        super().__init__()
         self.sigma = sigma
 
     def _make_ga_masks(self, ilens, olens):
@@ -247,7 +247,7 @@ class TacotronLoss(torch.nn.Module):
     """Collection of Tacotron set-up based on provided config."""
 
     def __init__(self, c, stopnet_pos_weight=10, ga_sigma=0.4):
-        super(TacotronLoss, self).__init__()
+        super().__init__()
         self.stopnet_pos_weight = stopnet_pos_weight
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha

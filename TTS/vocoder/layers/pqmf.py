@@ -8,7 +8,7 @@ from scipy import signal as sig
 # https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/parallel_wavegan
 class PQMF(torch.nn.Module):
     def __init__(self, N=4, taps=62, cutoff=0.15, beta=9.0):
-        super(PQMF, self).__init__()
+        super().__init__()
 
         self.N = N
         self.taps = taps

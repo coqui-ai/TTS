@@ -4,7 +4,7 @@ from torch.nn.utils import weight_norm
 
 class ResidualStack(nn.Module):
     def __init__(self, channels, num_res_blocks, kernel_size):
-        super(ResidualStack, self).__init__()
+        super().__init__()
 
         assert (kernel_size - 1) % 2 == 0, " [!] kernel_size has to be odd."
         base_padding = (kernel_size - 1) // 2

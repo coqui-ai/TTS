@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class ReflectionPad1d(tf.keras.layers.Layer):
     def __init__(self, padding):
-        super(ReflectionPad1d, self).__init__()
+        super().__init__()
         self.padding = padding
 
     def call(self, x):
@@ -12,7 +12,7 @@ class ReflectionPad1d(tf.keras.layers.Layer):
 
 class ResidualStack(tf.keras.layers.Layer):
     def __init__(self, channels, num_res_blocks, kernel_size, name):
-        super(ResidualStack, self).__init__(name=name)
+        super().__init__(name=name)
 
         assert (kernel_size - 1) % 2 == 0, " [!] kernel_size has to be odd."
         base_padding = (kernel_size - 1) // 2

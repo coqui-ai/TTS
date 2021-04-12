@@ -28,7 +28,7 @@ print(" > Dynamic data loader test: {}".format(DATA_EXIST))
 
 class TestTTSDataset(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        super(TestTTSDataset, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.max_loader_iter = 4
         self.ap = AudioProcessor(**c.audio)
 
