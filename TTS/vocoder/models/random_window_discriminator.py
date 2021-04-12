@@ -4,7 +4,7 @@ from torch import nn
 
 class GBlock(nn.Module):
     def __init__(self, in_channels, cond_channels, downsample_factor):
-        super(GBlock, self).__init__()
+        super().__init__()
 
         self.in_channels = in_channels
         self.cond_channels = cond_channels
@@ -35,7 +35,7 @@ class GBlock(nn.Module):
 
 class DBlock(nn.Module):
     def __init__(self, in_channels, out_channels, downsample_factor):
-        super(DBlock, self).__init__()
+        super().__init__()
 
         self.in_channels = in_channels
         self.downsample_factor = downsample_factor
@@ -62,7 +62,7 @@ class DBlock(nn.Module):
 
 class ConditionalDiscriminator(nn.Module):
     def __init__(self, in_channels, cond_channels, downsample_factors=(2, 2, 2), out_channels=(128, 256)):
-        super(ConditionalDiscriminator, self).__init__()
+        super().__init__()
 
         assert len(downsample_factors) == len(out_channels) + 1
 
@@ -106,7 +106,7 @@ class ConditionalDiscriminator(nn.Module):
 
 class UnconditionalDiscriminator(nn.Module):
     def __init__(self, in_channels, base_channels=64, downsample_factors=(8, 4), out_channels=(128, 256)):
-        super(UnconditionalDiscriminator, self).__init__()
+        super().__init__()
 
         self.downsample_factors = downsample_factors
         self.in_channels = in_channels
@@ -148,7 +148,7 @@ class RandomWindowDiscriminator(nn.Module):
         window_sizes=(512, 1024, 2048, 4096, 8192),
     ):
 
-        super(RandomWindowDiscriminator, self).__init__()
+        super().__init__()
         self.cond_channels = cond_channels
         self.window_sizes = window_sizes
         self.hop_length = hop_length

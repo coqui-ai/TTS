@@ -23,7 +23,7 @@ def str2bool(v):
 
 
 def main():
-    # pylint: disable=bad-continuation
+    # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
         description="""Synthesize speech on command line.\n\n"""
         """You can either use your trained model or choose a model from the provided list.\n\n"""

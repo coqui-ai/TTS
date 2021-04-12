@@ -26,7 +26,7 @@ class BatchNormConv1d(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding, activation=None):
 
-        super(BatchNormConv1d, self).__init__()
+        super().__init__()
         self.padding = padding
         self.padder = nn.ConstantPad1d(padding, 0)
         self.conv1d = nn.Conv1d(
@@ -71,7 +71,7 @@ class Highway(nn.Module):
 
     # TODO: Try GLU layer
     def __init__(self, in_features, out_feature):
-        super(Highway, self).__init__()
+        super().__init__()
         self.H = nn.Linear(in_features, out_feature)
         self.H.bias.data.zero_()
         self.T = nn.Linear(in_features, out_feature)
@@ -118,7 +118,7 @@ class CBHG(nn.Module):
         gru_features=128,
         num_highways=4,
     ):
-        super(CBHG, self).__init__()
+        super().__init__()
         self.in_features = in_features
         self.conv_bank_features = conv_bank_features
         self.highway_features = highway_features
@@ -191,7 +191,7 @@ class EncoderCBHG(nn.Module):
     r"""CBHG module with Encoder specific arguments"""
 
     def __init__(self):
-        super(EncoderCBHG, self).__init__()
+        super().__init__()
         self.cbhg = CBHG(
             128,
             K=16,
@@ -217,7 +217,7 @@ class Encoder(nn.Module):
     """
 
     def __init__(self, in_features):
-        super(Encoder, self).__init__()
+        super().__init__()
         self.prenet = Prenet(in_features, out_features=[256, 128])
         self.cbhg = EncoderCBHG()
 
@@ -230,7 +230,7 @@ class Encoder(nn.Module):
 
 class PostCBHG(nn.Module):
     def __init__(self, mel_dim):
-        super(PostCBHG, self).__init__()
+        super().__init__()
         self.cbhg = CBHG(
             mel_dim,
             K=8,
@@ -290,7 +290,7 @@ class Decoder(nn.Module):
         attn_K,
         separate_stopnet,
     ):
-        super(Decoder, self).__init__()
+        super().__init__()
         self.r_init = r
         self.r = r
         self.in_channels = in_channels
@@ -491,7 +491,7 @@ class StopNet(nn.Module):
     """
 
     def __init__(self, in_features):
-        super(StopNet, self).__init__()
+        super().__init__()
         self.dropout = nn.Dropout(0.1)
         self.linear = nn.Linear(in_features, 1)
         torch.nn.init.xavier_uniform_(self.linear.weight, gain=torch.nn.init.calculate_gain("linear"))

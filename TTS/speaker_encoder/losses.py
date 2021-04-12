@@ -16,7 +16,7 @@ class GE2ELoss(nn.Module):
             - init_w (float): defines the initial value of w in Equation (5) of [1]
             - init_b (float): definies the initial value of b in Equation (5) of [1]
         """
-        super(GE2ELoss, self).__init__()
+        super().__init__()
         # pylint: disable=E1102
         self.w = nn.Parameter(torch.tensor(init_w))
         # pylint: disable=E1102
@@ -129,7 +129,7 @@ class AngleProtoLoss(nn.Module):
     """
 
     def __init__(self, init_w=10.0, init_b=-5.0):
-        super(AngleProtoLoss, self).__init__()
+        super().__init__()
         # pylint: disable=E1102
         self.w = nn.Parameter(torch.tensor(init_w))
         # pylint: disable=E1102

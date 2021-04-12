@@ -16,7 +16,7 @@ class MelganGenerator(nn.Module):
         res_kernel=3,
         num_res_blocks=3,
     ):
-        super(MelganGenerator, self).__init__()
+        super().__init__()
 
         # assert model parameters
         assert (proj_kernel - 1) % 2 == 0, " [!] proj_kernel should be an odd number."

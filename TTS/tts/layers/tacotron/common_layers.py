@@ -14,7 +14,7 @@ class Linear(nn.Module):
     """
 
     def __init__(self, in_features, out_features, bias=True, init_gain="linear"):
-        super(Linear, self).__init__()
+        super().__init__()
         self.linear_layer = torch.nn.Linear(in_features, out_features, bias=bias)
         self._init_w(init_gain)
 
@@ -38,7 +38,7 @@ class LinearBN(nn.Module):
     """
 
     def __init__(self, in_features, out_features, bias=True, init_gain="linear"):
-        super(LinearBN, self).__init__()
+        super().__init__()
         self.linear_layer = torch.nn.Linear(in_features, out_features, bias=bias)
         self.batch_normalization = nn.BatchNorm1d(out_features, momentum=0.1, eps=1e-5)
         self._init_w(init_gain)
@@ -87,7 +87,7 @@ class Prenet(nn.Module):
 
     # pylint: disable=dangerous-default-value
     def __init__(self, in_features, prenet_type="original", prenet_dropout=True, out_features=[256, 256], bias=True):
-        super(Prenet, self).__init__()
+        super().__init__()
         self.prenet_type = prenet_type
         self.prenet_dropout = prenet_dropout
         in_features = [in_features] + out_features[:-1]

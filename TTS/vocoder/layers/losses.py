@@ -20,8 +20,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         n_mels=80,
         use_mel=False,
     ):
-        """ Torch based STFT operation """
-        super(TorchSTFT, self).__init__()
+        super().__init__()
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
@@ -91,7 +90,7 @@ class STFTLoss(nn.Module):
     It is from ParallelWaveGAN paper https://arxiv.org/pdf/1910.11480.pdf"""
 
     def __init__(self, n_fft, hop_length, win_length):
-        super(STFTLoss, self).__init__()
+        super().__init__()
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
@@ -113,7 +112,7 @@ class MultiScaleSTFTLoss(torch.nn.Module):
     It is from ParallelWaveGAN paper https://arxiv.org/pdf/1910.11480.pdf"""
 
     def __init__(self, n_ffts=(1024, 2048, 512), hop_lengths=(120, 240, 50), win_lengths=(600, 1200, 240)):
-        super(MultiScaleSTFTLoss, self).__init__()
+        super().__init__()
         self.loss_funcs = torch.nn.ModuleList()
         for n_fft, hop_length, win_length in zip(n_ffts, hop_lengths, win_lengths):
             self.loss_funcs.append(STFTLoss(n_fft, hop_length, win_length))
@@ -199,7 +198,7 @@ class MSEDLoss(nn.Module):
     def __init__(
         self,
     ):
-        super(MSEDLoss, self).__init__()
+        super().__init__()
         self.loss_func = nn.MSELoss()
 
     # pylint: disable=no-self-use
@@ -225,7 +224,7 @@ class MelganFeatureLoss(nn.Module):
     def __init__(
         self,
     ):
-        super(MelganFeatureLoss, self).__init__()
+        super().__init__()
         self.loss_func = nn.L1Loss()
 
     # pylint: disable=no-self-use

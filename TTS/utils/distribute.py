@@ -14,7 +14,7 @@ class DistributedSampler(Sampler):
     """
 
     def __init__(self, dataset, num_replicas=None, rank=None):
-        super(DistributedSampler, self).__init__(dataset)
+        super().__init__(dataset)
         if num_replicas is None:
             if not dist.is_available():
                 raise RuntimeError("Requires distributed package to be available")

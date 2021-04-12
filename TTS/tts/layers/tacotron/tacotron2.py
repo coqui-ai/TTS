@@ -24,7 +24,7 @@ class ConvBNBlock(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, activation=None):
-        super(ConvBNBlock, self).__init__()
+        super().__init__()
         assert (kernel_size - 1) % 2 == 0
         padding = (kernel_size - 1) // 2
         self.convolution1d = nn.Conv1d(in_channels, out_channels, kernel_size, padding=padding)
@@ -57,7 +57,7 @@ class Postnet(nn.Module):
     """
 
     def __init__(self, in_out_channels, num_convs=5):
-        super(Postnet, self).__init__()
+        super().__init__()
         self.convolutions = nn.ModuleList()
         self.convolutions.append(ConvBNBlock(in_out_channels, 512, kernel_size=5, activation="tanh"))
         for _ in range(1, num_convs - 1):
@@ -83,7 +83,7 @@ class Encoder(nn.Module):
     """
 
     def __init__(self, in_out_channels=512):
-        super(Encoder, self).__init__()
+        super().__init__()
         self.convolutions = nn.ModuleList()
         for _ in range(3):
             self.convolutions.append(ConvBNBlock(in_out_channels, in_out_channels, 5, "relu"))
@@ -156,7 +156,7 @@ class Decoder(nn.Module):
         attn_K,
         separate_stopnet,
     ):
-        super(Decoder, self).__init__()
+        super().__init__()
         self.frame_channels = frame_channels
         self.r_init = r
         self.r = r

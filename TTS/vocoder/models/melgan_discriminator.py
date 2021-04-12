@@ -14,7 +14,7 @@ class MelganDiscriminator(nn.Module):
         downsample_factors=(4, 4, 4, 4),
         groups_denominator=4,
     ):
-        super(MelganDiscriminator, self).__init__()
+        super().__init__()
         self.layers = nn.ModuleList()
 
         layer_kernel_size = np.prod(kernel_sizes)

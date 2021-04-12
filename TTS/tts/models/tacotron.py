@@ -79,7 +79,7 @@ class Tacotron(TacotronAbstract):
         memory_size=5,
         gst_use_speaker_embedding=False,
     ):
-        super(Tacotron, self).__init__(
+        super().__init__(
             num_chars,
             num_speakers,
             r,

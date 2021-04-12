@@ -7,7 +7,7 @@ from TTS.tts.datasets.preprocess import get_preprocessor_by_name
 
 
 def main():
-    # pylint: disable=bad-continuation
+    # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
         description="""Find all the unique characters or phonemes in a dataset.\n\n"""
         """Target dataset must be defined in TTS.tts.datasets.preprocess\n\n"""

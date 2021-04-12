@@ -11,7 +11,7 @@ from tensorflow.python.ops import math_ops
 
 class Linear(keras.layers.Layer):
     def __init__(self, units, use_bias, **kwargs):
-        super(Linear, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.linear_layer = keras.layers.Dense(units, use_bias=use_bias, name="linear_layer")
         self.activation = keras.layers.ReLU()
 
@@ -25,7 +25,7 @@ class Linear(keras.layers.Layer):
 
 class LinearBN(keras.layers.Layer):
     def __init__(self, units, use_bias, **kwargs):
-        super(LinearBN, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.linear_layer = keras.layers.Dense(units, use_bias=use_bias, name="linear_layer")
         self.batch_normalization = keras.layers.BatchNormalization(
             axis=-1, momentum=0.90, epsilon=1e-5, name="batch_normalization"
@@ -44,7 +44,7 @@ class LinearBN(keras.layers.Layer):
 
 class Prenet(keras.layers.Layer):
     def __init__(self, prenet_type, prenet_dropout, units, bias, **kwargs):
-        super(Prenet, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.prenet_type = prenet_type
         self.prenet_dropout = prenet_dropout
         self.linear_layers = []
@@ -98,7 +98,7 @@ class Attention(keras.layers.Layer):
         use_forward_attn_mask,
         **kwargs,
     ):
-        super(Attention, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.use_loc_attn = use_loc_attn
         self.loc_attn_n_filters = loc_attn_n_filters
         self.loc_attn_kernel_size = loc_attn_kernel_size
@@ -244,8 +244,7 @@ class Attention(keras.layers.Layer):
 #                  location_attention_filters=32,
 #                  location_attention_kernel_size=31):
 
-#         super(LocationSensitiveAttention,
-#                     self).__init__(units=units,
+#         super(                     self).__init__(units=units,
 #                                     memory=memory,
 #                                     memory_sequence_length=memory_sequence_length,
 #                                     normalize=normalize,

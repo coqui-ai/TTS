@@ -1,13 +1,14 @@
 import logging
 import os
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # FATAL
-logging.getLogger("tensorflow").setLevel(logging.FATAL)
-
 import tensorflow as tf
 
 from TTS.vocoder.tf.layers.melgan import ReflectionPad1d, ResidualStack
 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # FATAL
+logging.getLogger("tensorflow").setLevel(logging.FATAL)
+
+from TTS.vocoder.tf.layers.melgan import ReflectionPad1d, ResidualStack
 
 # pylint: disable=too-many-ancestors
 # pylint: disable=abstract-method
@@ -25,7 +26,7 @@ class MelganGenerator(tf.keras.models.Model):
         res_kernel=3,
         num_res_blocks=3,
     ):
-        super(MelganGenerator, self).__init__()
+        super().__init__()
 
         self.in_channels = in_channels
 

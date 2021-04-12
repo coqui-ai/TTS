@@ -4,7 +4,7 @@ from torch.nn import functional as F
 
 class Stretch2d(torch.nn.Module):
     def __init__(self, x_scale, y_scale, mode="nearest"):
-        super(Stretch2d, self).__init__()
+        super().__init__()
         self.x_scale = x_scale
         self.y_scale = y_scale
         self.mode = mode
@@ -28,7 +28,7 @@ class UpsampleNetwork(torch.nn.Module):
         freq_axis_kernel_size=1,
         use_causal_conv=False,
     ):
-        super(UpsampleNetwork, self).__init__()
+        super().__init__()
         self.use_causal_conv = use_causal_conv
         self.up_layers = torch.nn.ModuleList()
         for scale in upsample_factors:
@@ -76,7 +76,7 @@ class ConvUpsample(torch.nn.Module):
         aux_context_window=0,
         use_causal_conv=False,
     ):
-        super(ConvUpsample, self).__init__()
+        super().__init__()
         self.aux_context_window = aux_context_window
         self.use_causal_conv = use_causal_conv and aux_context_window > 0
         # To capture wide-context information in conditional features

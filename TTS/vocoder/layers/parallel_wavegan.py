@@ -17,7 +17,7 @@ class ResidualBlock(torch.nn.Module):
         bias=True,
         use_causal_conv=False,
     ):
-        super(ResidualBlock, self).__init__()
+        super().__init__()
         self.dropout = dropout
         # no future time stamps available
         if use_causal_conv:

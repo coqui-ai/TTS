@@ -5,7 +5,7 @@ from scipy import signal as sig
 
 class PQMF(tf.keras.layers.Layer):
     def __init__(self, N=4, taps=62, cutoff=0.15, beta=9.0):
-        super(PQMF, self).__init__()
+        super().__init__()
         # define filter coefficient
         self.N = N
         self.taps = taps

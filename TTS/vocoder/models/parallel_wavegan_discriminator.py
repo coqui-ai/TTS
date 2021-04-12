@@ -26,7 +26,7 @@ class ParallelWaveganDiscriminator(nn.Module):
         nonlinear_activation_params={"negative_slope": 0.2},
         bias=True,
     ):
-        super(ParallelWaveganDiscriminator, self).__init__()
+        super().__init__()
         assert (kernel_size - 1) % 2 == 0, " [!] does not support even number kernel size."
         assert dilation_factor > 0, " [!] dilation factor must be > 0."
         self.conv_layers = nn.ModuleList()
@@ -100,7 +100,7 @@ class ResidualParallelWaveganDiscriminator(nn.Module):
         nonlinear_activation="LeakyReLU",
         nonlinear_activation_params={"negative_slope": 0.2},
     ):
-        super(ResidualParallelWaveganDiscriminator, self).__init__()
+        super().__init__()
         assert (kernel_size - 1) % 2 == 0, "Not support even number kernel size."
 
         self.in_channels = in_channels

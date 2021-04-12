@@ -136,18 +136,18 @@ class Encoder(nn.Module):
         # init encoder
         if encoder_type.lower() == "relative_position_transformer":
             # text encoder
+            # pylint: disable=unexpected-keyword-arg
             self.encoder = RelativePositionTransformerEncoder(
                 in_hidden_channels, out_channels, in_hidden_channels, encoder_params
-            )  # pylint: disable=unexpected-keyword-arg
+            )
         elif encoder_type.lower() == "residual_conv_bn":
             self.encoder = ResidualConv1dBNEncoder(in_hidden_channels, out_channels, in_hidden_channels, encoder_params)
         elif encoder_type.lower() == "fftransformer":
             assert (
                 in_hidden_channels == out_channels
             ), "[!] must be `in_channels` == `out_channels` when encoder type is 'fftransformer'"
-            self.encoder = FFTransformerBlock(
-                in_hidden_channels, **encoder_params
-            )  # pylint: disable=unexpected-keyword-arg
+            # pylint: disable=unexpected-keyword-arg
+            self.encoder = FFTransformerBlock(in_hidden_channels, **encoder_params)
         else:
             raise NotImplementedError(" [!] unknown encoder type.")
 

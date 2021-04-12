@@ -24,7 +24,10 @@ from TTS.vocoder.utils.io import save_best_model, save_checkpoint
 
 # from torch.utils.data.distributed import DistributedSampler
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> reformat
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)
 

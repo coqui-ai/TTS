@@ -17,7 +17,7 @@ class MultibandMelganGenerator(MelganGenerator):
         res_kernel=3,
         num_res_blocks=3,
     ):
-        super(MultibandMelganGenerator, self).__init__(
+        super().__init__(
             in_channels=in_channels,
             out_channels=out_channels,
             proj_kernel=proj_kernel,

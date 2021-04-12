@@ -179,8 +179,8 @@ class AudioProcessor(object):
                 S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
                 if self.clip_norm:
                     S_norm = np.clip(
-                        S_norm, -self.max_norm, self.max_norm
-                    )  # pylint: disable=invalid-unary-operand-type
+                        S_norm, -self.max_norm, self.max_norm  # pylint: disable=invalid-unary-operand-type
+                    )
                 return S_norm
             else:
                 S_norm = self.max_norm * S_norm
@@ -206,8 +206,8 @@ class AudioProcessor(object):
             if self.symmetric_norm:
                 if self.clip_norm:
                     S_denorm = np.clip(
-                        S_denorm, -self.max_norm, self.max_norm
-                    )  # pylint: disable=invalid-unary-operand-type
+                        S_denorm, -self.max_norm, self.max_norm  # pylint: disable=invalid-unary-operand-type
+                    )
                 S_denorm = ((S_denorm + self.max_norm) * -self.min_level_db / (2 * self.max_norm)) + self.min_level_db
                 return S_denorm + self.ref_level_db
             else:
@@ -326,13 +326,7 @@ class AudioProcessor(object):
         )
 
     def _istft(self, y):
-        return librosa.istft(
-            y,
-            hop_length=self.hop_length,
-            win_length=self.win_length,
-            window="hann",
-            center=True,
-        )
+        return librosa.istft(y, hop_length=self.hop_length, win_length=self.win_length)
 
     def _griffin_lim(self, S):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))

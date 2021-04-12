@@ -18,7 +18,7 @@ class MelganMultiscaleDiscriminator(nn.Module):
         pooling_padding=2,
         groups_denominator=4,
     ):
-        super(MelganMultiscaleDiscriminator, self).__init__()
+        super().__init__()
 
         self.discriminators = nn.ModuleList(
             [

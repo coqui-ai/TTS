@@ -57,7 +57,7 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
                 prev_out_path = os.path.dirname(args.restore_path)
                 speaker_mapping = load_speaker_mapping(prev_out_path)
                 speaker_embedding_dim = None
-                assert all([speaker in speaker_mapping for speaker in speakers]), (
+                assert all(speaker in speaker_mapping for speaker in speakers), (
                     "As of now you, you cannot " "introduce new speakers to " "a previously trained model."
                 )
         elif (
