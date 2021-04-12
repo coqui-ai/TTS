@@ -10,6 +10,15 @@
                 }
             },
             "ljspeech":{
+                "tacotron2-DDC": {
+                    "description": "Tacotron2 with Double Decoder Consistency.",
+                    "github_rls_url": "",
+                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
+                    "commit": "",
+                    "author": "Eren Gölge @erogol",
+                    "license": "",
+                    "contact":"egolge@coqui.com"
+                },
                 "glow-tts":{
                     "description": "",
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.9/tts_models--en--ljspeech--glow-tts.zip",
