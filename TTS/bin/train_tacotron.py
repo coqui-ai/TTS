@@ -466,6 +466,8 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         print(" | > Synthesizing test sentences")
         speaker_id = [0] if c.use_speaker_embedding else None
         speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding'] if c.use_external_speaker_embedding_file and c.use_speaker_embedding else None
+        lang_id = [1] if c.use_language_embedding else None
+        lang_embedding = None
         style_wav = c.get("gst_style_input")
         if style_wav is None and c.use_gst:
             # inicialize GST with zero dict.
@@ -483,6 +485,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     use_cuda,
                     ap,
                     speaker_id=speaker_id,
+                    lang_id=lang_id,
                     speaker_embedding=speaker_embedding,
                     style_wav=style_wav,
                     truncated=False,
@@ -529,7 +532,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
-    meta_data_train = random.sample(meta_data_train, len(meta_data_train)//16) #to speedup train phase, TO REMOVE
+    meta_data_train = random.sample(meta_data_train, len(meta_data_train)//64) #to speedup train phase, TO REMOVE
 
     # set the portion of the data used for training
     if 'train_portion' in c.keys():
