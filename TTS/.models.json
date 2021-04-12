@@ -141,12 +141,13 @@
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
                 },
-                "hifigan":{
+                "hifigan_v1":{
+                    "description": "HiFiGAN_v1 universal vocoder from https://arxiv.org/abs/2010.05646.",
                     "github_rls_url": "",
                     "commit": "4132240",
-                    "author": "",
+                    "author": "@jik876",
                     "license": "MIT",
-                    "contact":"egolge@coqui.com"
+                    "contact":""
                 }
             }
         },
