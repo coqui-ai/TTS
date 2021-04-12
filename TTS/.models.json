@@ -46,6 +46,15 @@
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
+                },
+                "align-tts":{
+                    "description": "AlignTTS models as explain in https://arxiv.org/abs/2003.01950",
+                    "github_rls_url": "",
+                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
+                    "commit": "",
+                    "author": "Eren Gölge @erogol",
+                    "license": "",
+                    "contact":"egolge@coqui.com"
                 }
             }
         },
