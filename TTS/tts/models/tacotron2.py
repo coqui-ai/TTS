@@ -96,6 +96,12 @@ class Tacotron2(TacotronAbstract):
                 self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
 
+        # 
+        if num_langs > 1:
+            if not langs_embedding_dim:
+                langs_embedding_dim = num_langs
+            self.decoder_in_features += langs_embedding_dim
+
         # adverserial speaker classifier
         self.reversal_classifier = reversal_classifier
         if self.reversal_classifier:

@@ -108,6 +108,17 @@ def format_data(data):
         speaker_embeddings = None
         speaker_ids = None
 
+    if c.use_language_embedding:
+        lang_ids = [
+            lang_mapping[lang_name] for lang_name in lang_names
+        ]
+        lang_ids = torch.LongTensor(lang_ids)
+        lang_embeddings = None
+    else:
+        lang_embeddings = None
+        lang_ids = None
+    
+
 
     # set stop targets view, we predict a single stop token per iteration.
     stop_targets = stop_targets.view(text_input.shape[0],
@@ -127,8 +138,12 @@ def format_data(data):
             speaker_ids = speaker_ids.cuda(non_blocking=True)
         if speaker_embeddings is not None:
             speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
+        if lang_ids is not None:
+            lang_ids = lang_ids.cuda(non_blocking=True)
+        if lang_embeddings is not None:
+            lang_embeddings = lang_embeddings.cuda(non_blocking=True)
 
-    return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length
+    return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, lang_ids, speaker_embeddings, lang_embeddings, max_text_length, max_spec_length
 
 
 def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
@@ -147,7 +162,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
         start_time = time.time()
 
         # format data
-        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length = format_data(data)
+        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, lang_ids, speaker_embeddings, lang_embeddings, max_text_length, max_spec_length = format_data(data)
         loader_time = time.time() - end_time
 
         global_step += 1
@@ -164,10 +179,10 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
             # forward pass model
             if c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
             else:
                 decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
                 decoder_backward_output = None
                 alignments_backward = None
 
@@ -342,16 +357,16 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, _, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, lang_ids, speaker_embeddings, lang_embeddings, _, _ = format_data(data)
             assert mel_input.shape[1] % model.decoder.r == 0
 
             # forward pass model
             if c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
             else:
                 decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
                 decoder_backward_output = None
                 alignments_backward = None
 
@@ -496,7 +511,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters, langs_mapping
+    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters, lang_mapping
     # Audio processor
     ap = AudioProcessor(**c.audio)
 
@@ -514,7 +529,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
-    meta_data_train = random.sample(meta_data_train, len(meta_data_train)//8) #to speedup train phase, TO REMOVE
+    meta_data_train = random.sample(meta_data_train, len(meta_data_train)//16) #to speedup train phase, TO REMOVE
 
     # set the portion of the data used for training
     if 'train_portion' in c.keys():
@@ -524,7 +539,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # parse speakers
     num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
-    num_langs, langs_embedding_dim, langs_mapping = parse_languages(c, meta_data_train)
+    num_langs, langs_embedding_dim, lang_mapping = parse_languages(c, meta_data_train)
 
     model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, langs_embedding_dim)
 
