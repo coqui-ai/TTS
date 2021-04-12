@@ -8,34 +8,36 @@ from TTS.tts.utils.generic_utils import sequence_mask
 
 
 class TacotronAbstract(ABC, nn.Module):
-    def __init__(self,
-                 num_chars,
-                 num_speakers,
-                 r,
-                 postnet_output_dim=80,
-                 decoder_output_dim=80,
-                 attn_type='original',
-                 attn_win=False,
-                 attn_norm="softmax",
-                 prenet_type="original",
-                 prenet_dropout=True,
-                 forward_attn=False,
-                 trans_agent=False,
-                 forward_attn_mask=False,
-                 location_attn=True,
-                 attn_K=5,
-                 separate_stopnet=True,
-                 bidirectional_decoder=False,
-                 double_decoder_consistency=False,
-                 ddc_r=None,
-                 encoder_in_features=512,
-                 decoder_in_features=512,
-                 speaker_embedding_dim=None,
-                 gst=False,
-                 gst_embedding_dim=512,
-                 gst_num_heads=4,
-                 gst_style_tokens=10,
-                 gst_use_speaker_embedding=False):
+    def __init__(
+        self,
+        num_chars,
+        num_speakers,
+        r,
+        postnet_output_dim=80,
+        decoder_output_dim=80,
+        attn_type="original",
+        attn_win=False,
+        attn_norm="softmax",
+        prenet_type="original",
+        prenet_dropout=True,
+        forward_attn=False,
+        trans_agent=False,
+        forward_attn_mask=False,
+        location_attn=True,
+        attn_K=5,
+        separate_stopnet=True,
+        bidirectional_decoder=False,
+        double_decoder_consistency=False,
+        ddc_r=None,
+        encoder_in_features=512,
+        decoder_in_features=512,
+        speaker_embedding_dim=None,
+        gst=False,
+        gst_embedding_dim=512,
+        gst_num_heads=4,
+        gst_style_tokens=10,
+        gst_use_speaker_embedding=False,
+    ):
         """ Abstract Tacotron class """
         super().__init__()
         self.num_chars = num_chars
@@ -82,7 +84,7 @@ class TacotronAbstract(ABC, nn.Module):
 
         # global style token
         if self.gst:
-            self.decoder_in_features += gst_embedding_dim # add gst embedding dim
+            self.decoder_in_features += gst_embedding_dim  # add gst embedding dim
             self.gst_layer = None
 
         # model states
@@ -121,10 +123,12 @@ class TacotronAbstract(ABC, nn.Module):
     def inference(self):
         pass
 
-    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-        self.load_state_dict(state['model'])
-        self.decoder.set_r(state['r'])
+    def load_checkpoint(
+        self, config, checkpoint_path, eval=False
+    ):  # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"])
+        self.decoder.set_r(state["r"])
         if eval:
             self.eval()
             assert not self.training
@@ -149,25 +153,24 @@ class TacotronAbstract(ABC, nn.Module):
     def _backward_pass(self, mel_specs, encoder_outputs, mask):
         """ Run backwards decoder """
         decoder_outputs_b, alignments_b, _ = self.decoder_backward(
-            encoder_outputs, torch.flip(mel_specs, dims=(1,)), mask)
+            encoder_outputs, torch.flip(mel_specs, dims=(1,)), mask
+        )
         decoder_outputs_b = decoder_outputs_b.transpose(1, 2).contiguous()
         return decoder_outputs_b, alignments_b
 
-    def _coarse_decoder_pass(self, mel_specs, encoder_outputs, alignments,
-                             input_mask):
+    def _coarse_decoder_pass(self, mel_specs, encoder_outputs, alignments, input_mask):
         """ Double Decoder Consistency """
         T = mel_specs.shape[1]
         if T % self.coarse_decoder.r > 0:
             padding_size = self.coarse_decoder.r - (T % self.coarse_decoder.r)
-            mel_specs = torch.nn.functional.pad(mel_specs,
-                                                (0, 0, 0, padding_size, 0, 0))
+            mel_specs = torch.nn.functional.pad(mel_specs, (0, 0, 0, padding_size, 0, 0))
         decoder_outputs_backward, alignments_backward, _ = self.coarse_decoder(
-            encoder_outputs.detach(), mel_specs, input_mask)
+            encoder_outputs.detach(), mel_specs, input_mask
+        )
         # scale_factor = self.decoder.r_init / self.decoder.r
         alignments_backward = torch.nn.functional.interpolate(
-            alignments_backward.transpose(1, 2),
-            size=alignments.shape[1],
-            mode='nearest').transpose(1, 2)
+            alignments_backward.transpose(1, 2), size=alignments.shape[1], mode="nearest"
+        ).transpose(1, 2)
         decoder_outputs_backward = decoder_outputs_backward.transpose(1, 2)
         decoder_outputs_backward = decoder_outputs_backward[:, :T, :]
         return decoder_outputs_backward, alignments_backward
@@ -179,20 +182,17 @@ class TacotronAbstract(ABC, nn.Module):
     def compute_speaker_embedding(self, speaker_ids):
         """ Compute speaker embedding vectors """
         if hasattr(self, "speaker_embedding") and speaker_ids is None:
-            raise RuntimeError(
-                " [!] Model has speaker embedding layer but speaker_id is not provided"
-            )
+            raise RuntimeError(" [!] Model has speaker embedding layer but speaker_id is not provided")
         if hasattr(self, "speaker_embedding") and speaker_ids is not None:
             self.speaker_embeddings = self.speaker_embedding(speaker_ids).unsqueeze(1)
         if hasattr(self, "speaker_project_mel") and speaker_ids is not None:
-            self.speaker_embeddings_projected = self.speaker_project_mel(
-                self.speaker_embeddings).squeeze(1)
+            self.speaker_embeddings_projected = self.speaker_project_mel(self.speaker_embeddings).squeeze(1)
 
     def compute_gst(self, inputs, style_input, speaker_embedding=None):
         """ Compute global style token """
         device = inputs.device
         if isinstance(style_input, dict):
-            query = torch.zeros(1, 1, self.gst_embedding_dim//2).to(device)
+            query = torch.zeros(1, 1, self.gst_embedding_dim // 2).to(device)
             if speaker_embedding is not None:
                 query = torch.cat([query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
 
@@ -205,20 +205,18 @@ class TacotronAbstract(ABC, nn.Module):
         elif style_input is None:
             gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
         else:
-            gst_outputs = self.gst_layer(style_input, speaker_embedding) # pylint: disable=not-callable
+            gst_outputs = self.gst_layer(style_input, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
 
     @staticmethod
     def _add_speaker_embedding(outputs, speaker_embeddings):
-        speaker_embeddings_ = speaker_embeddings.expand(
-            outputs.size(0), outputs.size(1), -1)
+        speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0), outputs.size(1), -1)
         outputs = outputs + speaker_embeddings_
         return outputs
 
     @staticmethod
     def _concat_speaker_embedding(outputs, speaker_embeddings):
-        speaker_embeddings_ = speaker_embeddings.expand(
-            outputs.size(0), outputs.size(1), -1)
+        speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0), outputs.size(1), -1)
         outputs = torch.cat([outputs, speaker_embeddings_], dim=-1)
         return outputs

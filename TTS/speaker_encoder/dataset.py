@@ -7,9 +7,19 @@ from torch.utils.data import Dataset
 
 
 class MyDataset(Dataset):
-    def __init__(self, ap, meta_data, voice_len=1.6, num_speakers_in_batch=64,
-                 storage_size=1, sample_from_storage_p=0.5, additive_noise=0,
-                 num_utter_per_speaker=10, skip_speakers=False, verbose=False):
+    def __init__(
+        self,
+        ap,
+        meta_data,
+        voice_len=1.6,
+        num_speakers_in_batch=64,
+        storage_size=1,
+        sample_from_storage_p=0.5,
+        additive_noise=0,
+        num_utter_per_speaker=10,
+        skip_speakers=False,
+        verbose=False,
+    ):
         """
         Args:
             ap (TTS.tts.utils.AudioProcessor): audio processor object.
@@ -28,7 +38,7 @@ class MyDataset(Dataset):
         self.ap = ap
         self.verbose = verbose
         self.__parse_items()
-        self.storage = queue.Queue(maxsize=storage_size*num_speakers_in_batch)
+        self.storage = queue.Queue(maxsize=storage_size * num_speakers_in_batch)
         self.sample_from_storage_p = float(sample_from_storage_p)
         self.additive_noise = float(additive_noise)
         if self.verbose:
@@ -69,11 +79,14 @@ class MyDataset(Dataset):
             if speaker_ in self.speaker_to_utters.keys():
                 self.speaker_to_utters[speaker_].append(path_)
             else:
-                self.speaker_to_utters[speaker_] = [path_, ]
+                self.speaker_to_utters[speaker_] = [
+                    path_,
+                ]
 
         if self.skip_speakers:
-            self.speaker_to_utters = {k: v for (k, v) in self.speaker_to_utters.items() if
-                                      len(v) >= self.num_utter_per_speaker}
+            self.speaker_to_utters = {
+                k: v for (k, v) in self.speaker_to_utters.items() if len(v) >= self.num_utter_per_speaker
+            }
 
         self.speakers = [k for (k, v) in self.speaker_to_utters.items()]
 
@@ -100,13 +113,9 @@ class MyDataset(Dataset):
     def __sample_speaker(self):
         speaker = random.sample(self.speakers, 1)[0]
         if self.num_utter_per_speaker > len(self.speaker_to_utters[speaker]):
-            utters = random.choices(
-                self.speaker_to_utters[speaker], k=self.num_utter_per_speaker
-            )
+            utters = random.choices(self.speaker_to_utters[speaker], k=self.num_utter_per_speaker)
         else:
-            utters = random.sample(
-                self.speaker_to_utters[speaker], self.num_utter_per_speaker
-            )
+            utters = random.sample(self.speaker_to_utters[speaker], self.num_utter_per_speaker)
         return speaker, utters
 
     def __sample_speaker_utterances(self, speaker):
@@ -160,7 +169,9 @@ class MyDataset(Dataset):
 
             # get a random subset of each of the wavs and convert to MFCC.
             offsets_ = [random.randint(0, wav.shape[0] - self.seq_len) for wav in wavs_]
-            mels_ = [self.ap.melspectrogram(wavs_[i][offsets_[i]: offsets_[i] + self.seq_len]) for i in range(len(wavs_))]
+            mels_ = [
+                self.ap.melspectrogram(wavs_[i][offsets_[i] : offsets_[i] + self.seq_len]) for i in range(len(wavs_))
+            ]
             feats_ = [torch.FloatTensor(mel) for mel in mels_]
 
             labels.append(labels_)

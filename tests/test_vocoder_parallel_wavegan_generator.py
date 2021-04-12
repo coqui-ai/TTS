@@ -18,7 +18,8 @@ def test_pwgan_generator():
         dropout=0.0,
         bias=True,
         use_weight_norm=True,
-        upsample_factors=[4, 4, 4, 4])
+        upsample_factors=[4, 4, 4, 4],
+    )
     dummy_c = torch.rand((2, 80, 5))
     output = model(dummy_c)
     assert np.all(output.shape == (2, 1, 5 * 256)), output.shape

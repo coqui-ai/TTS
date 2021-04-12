@@ -22,24 +22,17 @@ class LayerNorm(nn.Module):
 
     def forward(self, x):
         mean = torch.mean(x, 1, keepdim=True)
-        variance = torch.mean((x - mean)**2, 1, keepdim=True)
+        variance = torch.mean((x - mean) ** 2, 1, keepdim=True)
         x = (x - mean) * torch.rsqrt(variance + self.eps)
         x = x * self.gamma + self.beta
         return x
 
 
 class TemporalBatchNorm1d(nn.BatchNorm1d):
-    """Normalize each channel separately over time and batch.
-    """
-    def __init__(self,
-                 channels,
-                 affine=True,
-                 track_running_stats=True,
-                 momentum=0.1):
-        super().__init__(channels,
-                         affine=affine,
-                         track_running_stats=track_running_stats,
-                         momentum=momentum)
+    """Normalize each channel separately over time and batch."""
+
+    def __init__(self, channels, affine=True, track_running_stats=True, momentum=0.1):
+        super().__init__(channels, affine=affine, track_running_stats=track_running_stats, momentum=momentum)
 
     def forward(self, x):
         return super().forward(x.transpose(2, 1)).transpose(2, 1)
@@ -58,6 +51,7 @@ class ActNorm(nn.Module):
         - inputs: (B, C, T)
         - outputs: (B, C, T)
     """
+
     def __init__(self, channels, ddi=False, **kwargs):  # pylint: disable=unused-argument
         super().__init__()
         self.channels = channels
@@ -68,8 +62,7 @@ class ActNorm(nn.Module):
 
     def forward(self, x, x_mask=None, reverse=False, **kwargs):  # pylint: disable=unused-argument
         if x_mask is None:
-            x_mask = torch.ones(x.size(0), 1, x.size(2)).to(device=x.device,
-                                                            dtype=x.dtype)
+            x_mask = torch.ones(x.size(0), 1, x.size(2)).to(device=x.device, dtype=x.dtype)
         x_len = torch.sum(x_mask, [1, 2])
         if not self.initialized:
             self.initialize(x, x_mask)
@@ -95,13 +88,11 @@ class ActNorm(nn.Module):
             denom = torch.sum(x_mask, [0, 2])
             m = torch.sum(x * x_mask, [0, 2]) / denom
             m_sq = torch.sum(x * x * x_mask, [0, 2]) / denom
-            v = m_sq - (m**2)
+            v = m_sq - (m ** 2)
             logs = 0.5 * torch.log(torch.clamp_min(v, 1e-6))
 
-            bias_init = (-m * torch.exp(-logs)).view(*self.bias.shape).to(
-                dtype=self.bias.dtype)
-            logs_init = (-logs).view(*self.logs.shape).to(
-                dtype=self.logs.dtype)
+            bias_init = (-m * torch.exp(-logs)).view(*self.bias.shape).to(dtype=self.bias.dtype)
+            logs_init = (-logs).view(*self.logs.shape).to(dtype=self.logs.dtype)
 
             self.bias.data.copy_(bias_init)
             self.logs.data.copy_(logs_init)

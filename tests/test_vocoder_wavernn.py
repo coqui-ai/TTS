@@ -1,6 +1,8 @@
+import random
+
 import numpy as np
 import torch
-import random
+
 from TTS.vocoder.models.wavernn import WaveRNN
 
 

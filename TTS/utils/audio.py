@@ -1,13 +1,15 @@
 import librosa
-import soundfile as sf
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
-# import pyworld as pw
+import soundfile as sf
 
 from TTS.tts.utils.data import StandardScaler
 
-#pylint: disable=too-many-public-methods
+# import pyworld as pw
+
+
+# pylint: disable=too-many-public-methods
 class AudioProcessor(object):
     """Audio Processor for TTS used by all the data pipelines.
 
@@ -43,35 +45,38 @@ class AudioProcessor(object):
         stats_path (str, optional): Path to the computed stats file. Defaults to None.
         verbose (bool, optional): enable/disable logging. Defaults to True.
     """
-    def __init__(self,
-                 sample_rate=None,
-                 resample=False,
-                 num_mels=None,
-                 log_func='np.log10',
-                 min_level_db=None,
-                 frame_shift_ms=None,
-                 frame_length_ms=None,
-                 hop_length=None,
-                 win_length=None,
-                 ref_level_db=None,
-                 fft_size=1024,
-                 power=None,
-                 preemphasis=0.0,
-                 signal_norm=None,
-                 symmetric_norm=None,
-                 max_norm=None,
-                 mel_fmin=None,
-                 mel_fmax=None,
-                 spec_gain=20,
-                 stft_pad_mode='reflect',
-                 clip_norm=True,
-                 griffin_lim_iters=None,
-                 do_trim_silence=False,
-                 trim_db=60,
-                 do_sound_norm=False,
-                 stats_path=None,
-                 verbose=True,
-                 **_):
+
+    def __init__(
+        self,
+        sample_rate=None,
+        resample=False,
+        num_mels=None,
+        log_func="np.log10",
+        min_level_db=None,
+        frame_shift_ms=None,
+        frame_length_ms=None,
+        hop_length=None,
+        win_length=None,
+        ref_level_db=None,
+        fft_size=1024,
+        power=None,
+        preemphasis=0.0,
+        signal_norm=None,
+        symmetric_norm=None,
+        max_norm=None,
+        mel_fmin=None,
+        mel_fmax=None,
+        spec_gain=20,
+        stft_pad_mode="reflect",
+        clip_norm=True,
+        griffin_lim_iters=None,
+        do_trim_silence=False,
+        trim_db=60,
+        do_sound_norm=False,
+        stats_path=None,
+        verbose=True,
+        **_,
+    ):
 
         # setup class attributed
         self.sample_rate = sample_rate
@@ -98,14 +103,14 @@ class AudioProcessor(object):
         self.do_sound_norm = do_sound_norm
         self.stats_path = stats_path
         # setup exp_func for db to amp conversion
-        print(f'self.log_func = {log_func}')
-        exec(f'self.log_func = {log_func}')  #pylint: disable=exec-used
-        if self.log_func.__name__ == 'log':
+        print(f"self.log_func = {log_func}")
+        exec(f"self.log_func = {log_func}")  # pylint: disable=exec-used
+        if self.log_func.__name__ == "log":
             self.exp_func = np.exp
-        elif self.log_func.__name__ == 'log10':
+        elif self.log_func.__name__ == "log10":
             self.exp_func = lambda x: 10 ** x
         else:
-            raise ValueError(' [!] unknown `log_func` value.')
+            raise ValueError(" [!] unknown `log_func` value.")
         # setup stft parameters
         if hop_length is None:
             # compute stft parameters from given time values
@@ -134,17 +139,18 @@ class AudioProcessor(object):
             self.symmetric_norm = None
 
     ### setting up the parameters ###
-    def _build_mel_basis(self, ):
+    def _build_mel_basis(
+        self,
+    ):
         if self.mel_fmax is not None:
             assert self.mel_fmax <= self.sample_rate // 2
         return librosa.filters.mel(
-            self.sample_rate,
-            self.fft_size,
-            n_mels=self.num_mels,
-            fmin=self.mel_fmin,
-            fmax=self.mel_fmax)
+            self.sample_rate, self.fft_size, n_mels=self.num_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
+        )
 
-    def _stft_parameters(self, ):
+    def _stft_parameters(
+        self,
+    ):
         """Compute necessary stft parameters with given time values"""
         factor = self.frame_length_ms / self.frame_shift_ms
         assert (factor).is_integer(), " [!] frame_shift_ms should divide frame_length_ms"
@@ -155,24 +161,26 @@ class AudioProcessor(object):
     ### normalization ###
     def normalize(self, S):
         """Put values in [0, self.max_norm] or [-self.max_norm, self.max_norm]"""
-        #pylint: disable=no-else-return
+        # pylint: disable=no-else-return
         S = S.copy()
         if self.signal_norm:
             # mean-var scaling
-            if hasattr(self, 'mel_scaler'):
+            if hasattr(self, "mel_scaler"):
                 if S.shape[0] == self.num_mels:
                     return self.mel_scaler.transform(S.T).T
                 elif S.shape[0] == self.fft_size / 2:
                     return self.linear_scaler.transform(S.T).T
                 else:
-                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
+                    raise RuntimeError(" [!] Mean-Var stats does not match the given feature dimensions.")
             # range normalization
             S -= self.ref_level_db  # discard certain range of DB assuming it is air noise
-            S_norm = ((S - self.min_level_db) / (-self.min_level_db))
+            S_norm = (S - self.min_level_db) / (-self.min_level_db)
             if self.symmetric_norm:
                 S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
                 if self.clip_norm:
-                    S_norm = np.clip(S_norm, -self.max_norm, self.max_norm)  # pylint: disable=invalid-unary-operand-type
+                    S_norm = np.clip(
+                        S_norm, -self.max_norm, self.max_norm
+                    )  # pylint: disable=invalid-unary-operand-type
                 return S_norm
             else:
                 S_norm = self.max_norm * S_norm
@@ -184,47 +192,49 @@ class AudioProcessor(object):
 
     def denormalize(self, S):
         """denormalize values"""
-        #pylint: disable=no-else-return
+        # pylint: disable=no-else-return
         S_denorm = S.copy()
         if self.signal_norm:
             # mean-var scaling
-            if hasattr(self, 'mel_scaler'):
+            if hasattr(self, "mel_scaler"):
                 if S_denorm.shape[0] == self.num_mels:
                     return self.mel_scaler.inverse_transform(S_denorm.T).T
                 elif S_denorm.shape[0] == self.fft_size / 2:
                     return self.linear_scaler.inverse_transform(S_denorm.T).T
                 else:
-                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
+                    raise RuntimeError(" [!] Mean-Var stats does not match the given feature dimensions.")
             if self.symmetric_norm:
                 if self.clip_norm:
-                    S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)  #pylint: disable=invalid-unary-operand-type
+                    S_denorm = np.clip(
+                        S_denorm, -self.max_norm, self.max_norm
+                    )  # pylint: disable=invalid-unary-operand-type
                 S_denorm = ((S_denorm + self.max_norm) * -self.min_level_db / (2 * self.max_norm)) + self.min_level_db
                 return S_denorm + self.ref_level_db
             else:
                 if self.clip_norm:
                     S_denorm = np.clip(S_denorm, 0, self.max_norm)
-                S_denorm = (S_denorm * -self.min_level_db /
-                            self.max_norm) + self.min_level_db
+                S_denorm = (S_denorm * -self.min_level_db / self.max_norm) + self.min_level_db
                 return S_denorm + self.ref_level_db
         else:
             return S_denorm
 
     ### Mean-STD scaling ###
     def load_stats(self, stats_path):
-        stats = np.load(stats_path, allow_pickle=True).item()  #pylint: disable=unexpected-keyword-arg
-        mel_mean = stats['mel_mean']
-        mel_std = stats['mel_std']
-        linear_mean = stats['linear_mean']
-        linear_std = stats['linear_std']
-        stats_config = stats['audio_config']
+        stats = np.load(stats_path, allow_pickle=True).item()  # pylint: disable=unexpected-keyword-arg
+        mel_mean = stats["mel_mean"]
+        mel_std = stats["mel_std"]
+        linear_mean = stats["linear_mean"]
+        linear_std = stats["linear_std"]
+        stats_config = stats["audio_config"]
         # check all audio parameters used for computing stats
-        skip_parameters = ['griffin_lim_iters', 'stats_path', 'do_trim_silence', 'ref_level_db', 'power']
+        skip_parameters = ["griffin_lim_iters", "stats_path", "do_trim_silence", "ref_level_db", "power"]
         for key in stats_config.keys():
             if key in skip_parameters:
                 continue
-            if key not in ['sample_rate', 'trim_db']:
-                assert stats_config[key] == self.__dict__[key],\
-                    f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
+            if key not in ["sample_rate", "trim_db"]:
+                assert (
+                    stats_config[key] == self.__dict__[key]
+                ), f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
         return mel_mean, mel_std, linear_mean, linear_std, stats_config
 
     # pylint: disable=attribute-defined-outside-init
@@ -242,7 +252,6 @@ class AudioProcessor(object):
     # pylint: disable=no-self-use
     def _db_to_amp(self, x):
         return self.exp_func(x / self.spec_gain)
-
 
     ### Preemphasis ###
     def apply_preemphasis(self, x):
@@ -284,17 +293,17 @@ class AudioProcessor(object):
         S = self._db_to_amp(S)
         # Reconstruct phase
         if self.preemphasis != 0:
-            return self.apply_inv_preemphasis(self._griffin_lim(S**self.power))
-        return self._griffin_lim(S**self.power)
+            return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
+        return self._griffin_lim(S ** self.power)
 
     def inv_melspectrogram(self, mel_spectrogram):
-        '''Converts melspectrogram to waveform using librosa'''
+        """Converts melspectrogram to waveform using librosa"""
         D = self.denormalize(mel_spectrogram)
         S = self._db_to_amp(D)
         S = self._mel_to_linear(S)  # Convert back to linear
         if self.preemphasis != 0:
-            return self.apply_inv_preemphasis(self._griffin_lim(S**self.power))
-        return self._griffin_lim(S**self.power)
+            return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
+        return self._griffin_lim(S ** self.power)
 
     def out_linear_to_mel(self, linear_spec):
         S = self.denormalize(linear_spec)
@@ -306,22 +315,24 @@ class AudioProcessor(object):
 
     ### STFT and ISTFT ###
     def _stft(self, y):
-        return librosa.stft(y=y,
-                            n_fft=self.fft_size,
-                            hop_length=self.hop_length,
-                            win_length=self.win_length,
-                            pad_mode=self.stft_pad_mode,
-                            window='hann',
-                            center=True,
-                            )
+        return librosa.stft(
+            y=y,
+            n_fft=self.fft_size,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            pad_mode=self.stft_pad_mode,
+            window="hann",
+            center=True,
+        )
 
     def _istft(self, y):
-        return librosa.istft(y,
-                             hop_length=self.hop_length,
-                             win_length=self.win_length,
-                             window='hann',
-                             center=True,
-                             )
+        return librosa.istft(
+            y,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            window="hann",
+            center=True,
+        )
 
     def _griffin_lim(self, S):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
@@ -333,8 +344,7 @@ class AudioProcessor(object):
         return y
 
     def compute_stft_paddings(self, x, pad_sides=1):
-        '''compute right padding (final frame) or both sides padding (first and final frames)
-        '''
+        """compute right padding (final frame) or both sides padding (first and final frames)"""
         assert pad_sides in (1, 2)
         pad = (x.shape[0] // self.hop_length + 1) * self.hop_length - x.shape[0]
         if pad_sides == 1:
@@ -359,7 +369,7 @@ class AudioProcessor(object):
         hop_length = int(window_length / 4)
         threshold = self._db_to_amp(threshold_db)
         for x in range(hop_length, len(wav) - window_length, hop_length):
-            if np.max(wav[x:x + window_length]) < threshold:
+            if np.max(wav[x : x + window_length]) < threshold:
                 return x + hop_length
         return len(wav)
 
@@ -367,8 +377,9 @@ class AudioProcessor(object):
         """ Trim silent parts with a threshold and 0.01 sec margin """
         margin = int(self.sample_rate * 0.01)
         wav = wav[margin:-margin]
-        return librosa.effects.trim(
-            wav, top_db=self.trim_db, frame_length=self.win_length, hop_length=self.hop_length)[0]
+        return librosa.effects.trim(wav, top_db=self.trim_db, frame_length=self.win_length, hop_length=self.hop_length)[
+            0
+        ]
 
     @staticmethod
     def sound_norm(x):
@@ -380,14 +391,14 @@ class AudioProcessor(object):
             x, sr = librosa.load(filename, sr=self.sample_rate)
         elif sr is None:
             x, sr = sf.read(filename)
-            assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
+            assert self.sample_rate == sr, "%s vs %s" % (self.sample_rate, sr)
         else:
             x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
             try:
                 x = self.trim_silence(x)
             except ValueError:
-                print(f' [!] File cannot be trimmed for silence - {filename}')
+                print(f" [!] File cannot be trimmed for silence - {filename}")
         if self.do_sound_norm:
             x = self.sound_norm(x)
         return x
@@ -400,10 +411,12 @@ class AudioProcessor(object):
     def mulaw_encode(wav, qc):
         mu = 2 ** qc - 1
         # wav_abs = np.minimum(np.abs(wav), 1.0)
-        signal = np.sign(wav) * np.log(1 + mu * np.abs(wav)) / np.log(1. + mu)
+        signal = np.sign(wav) * np.log(1 + mu * np.abs(wav)) / np.log(1.0 + mu)
         # Quantize signal to the specified number of levels.
         signal = (signal + 1) / 2 * mu + 0.5
-        return np.floor(signal,)
+        return np.floor(
+            signal,
+        )
 
     @staticmethod
     def mulaw_decode(wav, qc):
@@ -412,15 +425,14 @@ class AudioProcessor(object):
         x = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
         return x
 
-
     @staticmethod
     def encode_16bits(x):
-        return np.clip(x * 2**15, -2**15, 2**15 - 1).astype(np.int16)
+        return np.clip(x * 2 ** 15, -(2 ** 15), 2 ** 15 - 1).astype(np.int16)
 
     @staticmethod
     def quantize(x, bits):
-        return (x + 1.) * (2**bits - 1) / 2
+        return (x + 1.0) * (2 ** bits - 1) / 2
 
     @staticmethod
     def dequantize(x, bits):
-        return 2 * x / (2**bits - 1) - 1
+        return 2 * x / (2 ** bits - 1) - 1

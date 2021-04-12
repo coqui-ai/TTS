@@ -1,10 +1,10 @@
-import os
-import torch
 import datetime
+import os
 import pickle as pickle_tts
 
-from TTS.utils.io import RenamingUnpickler
+import torch
 
+from TTS.utils.io import RenamingUnpickler
 
 
 def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False, eval=False):  # pylint: disable=redefined-builtin
@@ -20,33 +20,25 @@ def load_checkpoint(model, checkpoint_path, amp=None, use_cuda=False, eval=False
         [type]: [description]
     """
     try:
-        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
     except ModuleNotFoundError:
         pickle_tts.Unpickler = RenamingUnpickler
-        state = torch.load(checkpoint_path, map_location=torch.device('cpu'), pickle_module=pickle_tts)
-    model.load_state_dict(state['model'])
-    if amp and 'amp' in state:
-        amp.load_state_dict(state['amp'])
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"), pickle_module=pickle_tts)
+    model.load_state_dict(state["model"])
+    if amp and "amp" in state:
+        amp.load_state_dict(state["amp"])
     if use_cuda:
         model.cuda()
     # set model stepsize
-    if hasattr(model.decoder, 'r'):
-        model.decoder.set_r(state['r'])
-        print(" > Model r: ", state['r'])
+    if hasattr(model.decoder, "r"):
+        model.decoder.set_r(state["r"])
+        print(" > Model r: ", state["r"])
     if eval:
         model.eval()
     return model, state
 
 
-def save_model(model,
-               optimizer,
-               current_step,
-               epoch,
-               r,
-               output_path,
-               characters,
-               amp_state_dict=None,
-               **kwargs):
+def save_model(model, optimizer, current_step, epoch, r, output_path, characters, amp_state_dict=None, **kwargs):
     """Save ```TTS.tts.models``` states with extra fields.
 
     Args:
@@ -59,27 +51,26 @@ def save_model(model,
         characters (list): list of characters used in the model.
         amp_state_dict (state_dict, optional): Apex.amp state dict if Apex is enabled. Defaults to None.
     """
-    if hasattr(model, 'module'):
+    if hasattr(model, "module"):
         model_state = model.module.state_dict()
     else:
         model_state = model.state_dict()
     state = {
-        'model': model_state,
-        'optimizer': optimizer.state_dict() if optimizer is not None else None,
-        'step': current_step,
-        'epoch': epoch,
-        'date': datetime.date.today().strftime("%B %d, %Y"),
-        'r': r,
-        'characters': characters
+        "model": model_state,
+        "optimizer": optimizer.state_dict() if optimizer is not None else None,
+        "step": current_step,
+        "epoch": epoch,
+        "date": datetime.date.today().strftime("%B %d, %Y"),
+        "r": r,
+        "characters": characters,
     }
     if amp_state_dict:
-        state['amp'] = amp_state_dict
+        state["amp"] = amp_state_dict
     state.update(kwargs)
     torch.save(state, output_path)
 
 
-def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder,
-                    characters, **kwargs):
+def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder, characters, **kwargs):
     """Save model checkpoint, intended for saving checkpoints at training.
 
     Args:
@@ -91,14 +82,15 @@ def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder,
         output_path (str): output path to save the model file.
         characters (list): list of characters used in the model.
     """
-    file_name = 'checkpoint_{}.pth.tar'.format(current_step)
+    file_name = "checkpoint_{}.pth.tar".format(current_step)
     checkpoint_path = os.path.join(output_folder, file_name)
     print(" > CHECKPOINT : {}".format(checkpoint_path))
     save_model(model, optimizer, current_step, epoch, r, checkpoint_path, characters, **kwargs)
 
 
-def save_best_model(target_loss, best_loss, model, optimizer, current_step,
-                    epoch, r, output_folder, characters, **kwargs):
+def save_best_model(
+    target_loss, best_loss, model, optimizer, current_step, epoch, r, output_folder, characters, **kwargs
+):
     """Save model checkpoint, intended for saving the best model after each epoch.
     It compares the current model loss with the best loss so far and saves the
     model if the current loss is better.
@@ -118,9 +110,11 @@ def save_best_model(target_loss, best_loss, model, optimizer, current_step,
         float: updated current best loss.
     """
     if target_loss < best_loss:
-        file_name = 'best_model.pth.tar'
+        file_name = "best_model.pth.tar"
         checkpoint_path = os.path.join(output_folder, file_name)
         print(" >> BEST MODEL : {}".format(checkpoint_path))
-        save_model(model, optimizer, current_step, epoch, r, checkpoint_path, characters, model_loss=target_loss, **kwargs)
+        save_model(
+            model, optimizer, current_step, epoch, r, checkpoint_path, characters, model_loss=target_loss, **kwargs
+        )
         best_loss = target_loss
     return best_loss

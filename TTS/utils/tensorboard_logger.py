@@ -1,4 +1,5 @@
 import traceback
+
 from tensorboardX import SummaryWriter
 
 
@@ -13,40 +14,28 @@ class TensorboardLogger(object):
         layer_num = 1
         for name, param in model.named_parameters():
             if param.numel() == 1:
-                self.writer.add_scalar(
-                    "layer{}-{}/value".format(layer_num, name),
-                    param.max(), step)
+                self.writer.add_scalar("layer{}-{}/value".format(layer_num, name), param.max(), step)
             else:
-                self.writer.add_scalar(
-                    "layer{}-{}/max".format(layer_num, name),
-                    param.max(), step)
-                self.writer.add_scalar(
-                    "layer{}-{}/min".format(layer_num, name),
-                    param.min(), step)
-                self.writer.add_scalar(
-                    "layer{}-{}/mean".format(layer_num, name),
-                    param.mean(), step)
-                self.writer.add_scalar(
-                    "layer{}-{}/std".format(layer_num, name),
-                    param.std(), step)
-                self.writer.add_histogram(
-                    "layer{}-{}/param".format(layer_num, name), param, step)
-                self.writer.add_histogram(
-                    "layer{}-{}/grad".format(layer_num, name), param.grad, step)
+                self.writer.add_scalar("layer{}-{}/max".format(layer_num, name), param.max(), step)
+                self.writer.add_scalar("layer{}-{}/min".format(layer_num, name), param.min(), step)
+                self.writer.add_scalar("layer{}-{}/mean".format(layer_num, name), param.mean(), step)
+                self.writer.add_scalar("layer{}-{}/std".format(layer_num, name), param.std(), step)
+                self.writer.add_histogram("layer{}-{}/param".format(layer_num, name), param, step)
+                self.writer.add_histogram("layer{}-{}/grad".format(layer_num, name), param.grad, step)
             layer_num += 1
 
     def dict_to_tb_scalar(self, scope_name, stats, step):
         for key, value in stats.items():
-            self.writer.add_scalar('{}/{}'.format(scope_name, key), value, step)
+            self.writer.add_scalar("{}/{}".format(scope_name, key), value, step)
 
     def dict_to_tb_figure(self, scope_name, figures, step):
         for key, value in figures.items():
-            self.writer.add_figure('{}/{}'.format(scope_name, key), value, step)
+            self.writer.add_figure("{}/{}".format(scope_name, key), value, step)
 
     def dict_to_tb_audios(self, scope_name, audios, step, sample_rate):
         for key, value in audios.items():
             try:
-                self.writer.add_audio('{}/{}'.format(scope_name, key), value, step, sample_rate=sample_rate)
+                self.writer.add_audio("{}/{}".format(scope_name, key), value, step, sample_rate=sample_rate)
             except RuntimeError:
                 traceback.print_exc()
 
