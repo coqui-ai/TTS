@@ -154,6 +154,7 @@ def text_to_sequence(text, cleaner_names, tp=None, add_blank=False):
     Args:
       text: string to convert to a sequence
       cleaner_names: names of the cleaner functions to run the text through
+      tp: dictionary of character parameters to use a custom character set.
 
     Returns:
       List of integers corresponding to the symbols in the text
