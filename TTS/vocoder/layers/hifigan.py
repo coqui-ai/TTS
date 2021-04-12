@@ -4,7 +4,7 @@ from torch import nn
 # pylint: disable=dangerous-default-value
 class ResStack(nn.Module):
     def __init__(self, kernel, channel, padding, dilations=[1, 3, 5]):
-        super(ResStack, self).__init__()
+        super().__init__()
         resstack = []
         for dilation in dilations:
             resstack += [

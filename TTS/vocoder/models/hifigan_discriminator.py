@@ -82,7 +82,7 @@ class MultiPeriodDiscriminator(torch.nn.Module):
     """
 
     def __init__(self):
-        super(MultiPeriodDiscriminator, self).__init__()
+        super().__init__()
         self.discriminators = nn.ModuleList(
             [
                 DiscriminatorP(2),
@@ -124,7 +124,7 @@ class DiscriminatorS(torch.nn.Module):
     """
 
     def __init__(self, use_spectral_norm=False):
-        super(DiscriminatorS, self).__init__()
+        super().__init__()
         norm_f = nn.utils.spectral_norm if use_spectral_norm else nn.utils.weight_norm
         self.convs = nn.ModuleList(
             [
@@ -165,7 +165,7 @@ class MultiScaleDiscriminator(torch.nn.Module):
     """
 
     def __init__(self):
-        super(MultiScaleDiscriminator, self).__init__()
+        super().__init__()
         self.discriminators = nn.ModuleList(
             [
                 DiscriminatorS(use_spectral_norm=True),

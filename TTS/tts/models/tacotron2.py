@@ -76,7 +76,7 @@ class Tacotron2(TacotronAbstract):
         gst_style_tokens=10,
         gst_use_speaker_embedding=False,
     ):
-        super(Tacotron2, self).__init__(
+        super().__init__(
             num_chars,
             num_speakers,
             r,
