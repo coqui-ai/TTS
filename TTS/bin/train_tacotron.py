@@ -532,7 +532,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
-    meta_data_train = random.sample(meta_data_train, len(meta_data_train)//64) #to speedup train phase, TO REMOVE
+    #meta_data_train = random.sample(meta_data_train, len(meta_data_train)//64) #to speedup train phase, TO REMOVE
 
     # set the portion of the data used for training
     if 'train_portion' in c.keys():
@@ -542,7 +542,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # parse speakers
     num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
-    num_langs, langs_embedding_dim, lang_mapping = parse_languages(c, meta_data_train)
+    num_langs, langs_embedding_dim, lang_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
 
     model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, langs_embedding_dim)
 

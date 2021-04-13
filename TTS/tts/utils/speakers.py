@@ -6,6 +6,9 @@ def make_speakers_json_path(out_path):
     """Returns conventional speakers.json location."""
     return os.path.join(out_path, "speakers.json")
 
+def make_languages_json_path(out_path):
+    """Returns conventional languages.json location."""
+    return os.path.join(out_path, "languages.json")
 
 def load_speaker_mapping(out_path):
     """Loads speaker mapping if already present."""
@@ -25,6 +28,23 @@ def save_speaker_mapping(out_path, speaker_mapping):
     with open(speakers_json_path, "w") as f:
         json.dump(speaker_mapping, f, indent=4)
 
+def load_language_mapping(out_path):
+    """Loads language mapping if already present."""
+    try:
+        if os.path.splitext(out_path)[1] == '.json':
+            json_file = out_path
+        else:
+            json_file = make_languages_json_path(out_path)
+        with open(json_file) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_language_mapping(out_path, language_mapping):
+    """Saves language mapping if not yet present."""
+    languages_json_path = make_languages_json_path(out_path)
+    with open(languages_json_path, "w") as f:
+        json.dump(language_mapping, f, indent=4)
 
 def get_speakers(items):
     """Returns a sorted, unique list of speakers in a given dataset."""
@@ -77,17 +97,26 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
 
     return num_speakers, speaker_embedding_dim, speaker_mapping
 
-def parse_languages(c, meta_data_train):
+def parse_languages(c, args, meta_data_train, OUT_PATH):
     if c.use_language_embedding:
         languages = get_languages(meta_data_train)
-        lang_mapping = {name: i for i, name in enumerate(languages)}
+        if args.restore_path:
+            prev_out_path = os.path.dirname(args.restore_path)
+            lang_mapping = load_language_mapping(prev_out_path)
+            langs_embedding_dim = None
+            assert all([language in lang_mapping
+                        for language in languages]), "As of now you, you cannot " \
+                                                "introduce new languages to " \
+                                                "a previously trained model."
+        else:
+            lang_mapping = {name: i for i, name in enumerate(languages)}
+            langs_embedding_dim = None
         num_langs = len(languages)
-        langs_embedding_dim = None
-    # TODO: implement if args.restore_path
+        save_language_mapping(OUT_PATH, lang_mapping)
+        print(" > Training with {} languages: {}".format(
+            len(languages), ", ".join(languages)))
     else:
         num_langs = 0
         lang_mapping = None
         langs_embedding_dim = None
-    print(" > Training with {} languages: {}".format(
-            len(languages), ", ".join(languages)))
     return num_langs, langs_embedding_dim, lang_mapping
