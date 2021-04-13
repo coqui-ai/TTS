@@ -1,24 +1,25 @@
-import pickle
 import datetime
+import pickle
+
 import tensorflow as tf
 
 
 def save_checkpoint(model, optimizer, current_step, epoch, r, output_path, **kwargs):
     state = {
-        'model': model.weights,
-        'optimizer': optimizer,
-        'step': current_step,
-        'epoch': epoch,
-        'date': datetime.date.today().strftime("%B %d, %Y"),
-        'r': r
+        "model": model.weights,
+        "optimizer": optimizer,
+        "step": current_step,
+        "epoch": epoch,
+        "date": datetime.date.today().strftime("%B %d, %Y"),
+        "r": r,
     }
     state.update(kwargs)
-    pickle.dump(state, open(output_path, 'wb'))
+    pickle.dump(state, open(output_path, "wb"))
 
 
 def load_checkpoint(model, checkpoint_path):
-    checkpoint = pickle.load(open(checkpoint_path, 'rb'))
-    chkp_var_dict = {var.name: var.numpy() for var in checkpoint['model']}
+    checkpoint = pickle.load(open(checkpoint_path, "rb"))
+    chkp_var_dict = {var.name: var.numpy() for var in checkpoint["model"]}
     tf_vars = model.weights
     for tf_var in tf_vars:
         layer_name = tf_var.name
@@ -30,8 +31,8 @@ def load_checkpoint(model, checkpoint_path):
             chkp_var_value = chkp_var_dict[layer_name]
 
         tf.keras.backend.set_value(tf_var, chkp_var_value)
-    if 'r' in checkpoint.keys():
-        model.decoder.set_r(checkpoint['r'])
+    if "r" in checkpoint.keys():
+        model.decoder.set_r(checkpoint["r"])
     return model
 
 

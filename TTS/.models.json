@@ -10,6 +10,15 @@
                 }
             },
             "ljspeech":{
+                "tacotron2-DDC": {
+                    "description": "Tacotron2 with Double Decoder Consistency.",
+                    "github_rls_url": "",
+                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
+                    "commit": "",
+                    "author": "Eren Gölge @erogol",
+                    "license": "",
+                    "contact":"egolge@coqui.com"
+                },
                 "glow-tts":{
                     "description": "",
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.9/tts_models--en--ljspeech--glow-tts.zip",
@@ -83,6 +92,27 @@
                     "commit": "540d811"
                 }
             }
+        },
+        "ru":{
+            "ruslan":{
+                "tacotron2-DDC":{
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--ru--ruslan--tacotron2-DDC.zip",
+                    "author": "@erogol",
+                    "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
+                    "license":"",
+                    "contact": "egolge@coqui.com"
+                }
+            }
+        },
+        "de":{
+            "thorsten":{
+                "tacotron2-DCA":{
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.11/tts_models--de--thorsten--tacotron2-DCA.zip",
+                    "default_vocoder": "vocoder_models/de/thorsten/wavegrad",
+                    "author": "@thorstenMueller",
+                    "commit": "unknown"
+                }
+            }
         }
     },
     "vocoder_models":{
@@ -100,6 +130,13 @@
                     "commit": "4132240",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
+                    "contact":"egolge@coqui.com"
+                },
+                "hifigan":{
+                    "github_rls_url": "",
+                    "commit": "4132240",
+                    "author": "",
+                    "license": "MIT",
                     "contact":"egolge@coqui.com"
                 }
             }
@@ -120,6 +157,15 @@
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
                 }
+            },
+            "sam":{
+                "hifigan":{
+                    "github_rls_url": "",
+                    "commit": "",
+                    "author": "Eren Gölge @erogol",
+                    "license": "Apache 2.0",
+                    "contact":"egolge@coqui.com"
+                }
             }
         },
         "nl":{
@@ -127,6 +173,15 @@
                 "parallel-wavegan":{
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/vocoder_models--nl--mai--parallel-wavegan.zip",
                     "author": "@r-dh",
+                    "commit": "unknown"
+                }
+            }
+        },
+        "de":{
+            "thorsten":{
+                "wavegrad":{
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.11/vocoder_models--de--thorsten--wavegrad.zip",
+                    "author": "@thorstenMueller",
                     "commit": "unknown"
                 }
             }

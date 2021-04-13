@@ -1,5 +1,5 @@
 # Number of days of inactivity before an issue becomes stale
-daysUntilStale: 60
+daysUntilStale: 30
 # Number of days of inactivity before a stale issue is closed
 daysUntilClose: 7
 # Issues with these labels will never be considered stale
@@ -12,8 +12,7 @@ staleLabel: wontfix
 markComment: >
   This issue has been automatically marked as stale because it has not had
   recent activity. It will be closed if no further activity occurs. Thank you
-  for your contributions. You might also look our discourse page for further help.
-  https://discourse.mozilla.org/c/tts
+  for your contributions. You might also look our discussion channels.
 # Comment to post when closing a stale issue. Set to `false` to disable
 closeComment: false
 

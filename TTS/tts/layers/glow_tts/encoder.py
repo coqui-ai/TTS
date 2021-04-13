@@ -1,14 +1,15 @@
 import math
+
 import torch
 from torch import nn
 
-from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.layers.generic.gated_conv import GatedConvBlock
-from TTS.tts.utils.generic_utils import sequence_mask
-from TTS.tts.layers.glow_tts.glow import ResidualConv1dLayerNormBlock
-from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.generic.time_depth_sep_conv import TimeDepthSeparableConvBlock
 from TTS.tts.layers.generic.res_conv_bn import ResidualConv1dBNBlock
+from TTS.tts.layers.generic.time_depth_sep_conv import TimeDepthSeparableConvBlock
+from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
+from TTS.tts.layers.glow_tts.glow import ResidualConv1dLayerNormBlock
+from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
+from TTS.tts.utils.generic_utils import sequence_mask
 
 
 class Encoder(nn.Module):
@@ -69,17 +70,20 @@ class Encoder(nn.Module):
                 'num_layers': 9,
             }
     """
-    def __init__(self,
-                 num_chars,
-                 out_channels,
-                 hidden_channels,
-                 hidden_channels_dp,
-                 encoder_type,
-                 encoder_params,
-                 dropout_p_dp=0.1,
-                 mean_only=False,
-                 use_prenet=True,
-                 c_in_channels=0):
+
+    def __init__(
+        self,
+        num_chars,
+        out_channels,
+        hidden_channels,
+        hidden_channels_dp,
+        encoder_type,
+        encoder_params,
+        dropout_p_dp=0.1,
+        mean_only=False,
+        use_prenet=True,
+        c_in_channels=0,
+    ):
         super().__init__()
         # class arguments
         self.num_chars = num_chars
@@ -93,47 +97,33 @@ class Encoder(nn.Module):
         self.encoder_type = encoder_type
         # embedding layer
         self.emb = nn.Embedding(num_chars, hidden_channels)
-        nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
+        nn.init.normal_(self.emb.weight, 0.0, hidden_channels ** -0.5)
         # init encoder module
         if encoder_type.lower() == "rel_pos_transformer":
             if use_prenet:
-                self.prenet = ResidualConv1dLayerNormBlock(hidden_channels,
-                                                           hidden_channels,
-                                                           hidden_channels,
-                                                           kernel_size=5,
-                                                           num_layers=3,
-                                                           dropout_p=0.5)
-            self.encoder = RelativePositionTransformer(hidden_channels,
-                                                       hidden_channels,
-                                                       hidden_channels,
-                                                       **encoder_params)
-        elif encoder_type.lower() == 'gated_conv':
-            self.encoder = GatedConvBlock(hidden_channels, **encoder_params)
-        elif encoder_type.lower() == 'residual_conv_bn':
-            if use_prenet:
-                self.prenet = nn.Sequential(
-                    nn.Conv1d(hidden_channels, hidden_channels, 1),
-                    nn.ReLU()
+                self.prenet = ResidualConv1dLayerNormBlock(
+                    hidden_channels, hidden_channels, hidden_channels, kernel_size=5, num_layers=3, dropout_p=0.5
                 )
-            self.encoder = ResidualConv1dBNBlock(hidden_channels,
-                                                 hidden_channels,
-                                                 hidden_channels,
-                                                 **encoder_params)
-            self.postnet = nn.Sequential(
-                nn.Conv1d(self.hidden_channels, self.hidden_channels, 1),
-                nn.BatchNorm1d(self.hidden_channels))
-        elif encoder_type.lower() == 'time_depth_separable':
+            self.encoder = RelativePositionTransformer(
+                hidden_channels, hidden_channels, hidden_channels, **encoder_params
+            )
+        elif encoder_type.lower() == "gated_conv":
+            self.encoder = GatedConvBlock(hidden_channels, **encoder_params)
+        elif encoder_type.lower() == "residual_conv_bn":
             if use_prenet:
-                self.prenet = ResidualConv1dLayerNormBlock(hidden_channels,
-                                                           hidden_channels,
-                                                           hidden_channels,
-                                                           kernel_size=5,
-                                                           num_layers=3,
-                                                           dropout_p=0.5)
-            self.encoder = TimeDepthSeparableConvBlock(hidden_channels,
-                                                       hidden_channels,
-                                                       hidden_channels,
-                                                       **encoder_params)
+                self.prenet = nn.Sequential(nn.Conv1d(hidden_channels, hidden_channels, 1), nn.ReLU())
+            self.encoder = ResidualConv1dBNBlock(hidden_channels, hidden_channels, hidden_channels, **encoder_params)
+            self.postnet = nn.Sequential(
+                nn.Conv1d(self.hidden_channels, self.hidden_channels, 1), nn.BatchNorm1d(self.hidden_channels)
+            )
+        elif encoder_type.lower() == "time_depth_separable":
+            if use_prenet:
+                self.prenet = ResidualConv1dLayerNormBlock(
+                    hidden_channels, hidden_channels, hidden_channels, kernel_size=5, num_layers=3, dropout_p=0.5
+                )
+            self.encoder = TimeDepthSeparableConvBlock(
+                hidden_channels, hidden_channels, hidden_channels, **encoder_params
+            )
         else:
             raise ValueError(" [!] Unkown encoder type.")
 
@@ -143,8 +133,8 @@ class Encoder(nn.Module):
             self.proj_s = nn.Conv1d(hidden_channels, out_channels, 1)
         # duration predictor
         self.duration_predictor = DurationPredictor(
-            hidden_channels + c_in_channels, hidden_channels_dp, 3,
-            dropout_p_dp)
+            hidden_channels + c_in_channels, hidden_channels_dp, 3, dropout_p_dp
+        )
 
     def forward(self, x, x_lengths, g=None):
         """
@@ -159,15 +149,14 @@ class Encoder(nn.Module):
         # [B, D, T]
         x = torch.transpose(x, 1, -1)
         # compute input sequence mask
-        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)),
-                                 1).to(x.dtype)
+        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
         # prenet
-        if hasattr(self, 'prenet') and self.use_prenet:
+        if hasattr(self, "prenet") and self.use_prenet:
             x = self.prenet(x, x_mask)
         # encoder
         x = self.encoder(x, x_mask)
         # postnet
-        if hasattr(self, 'postnet'):
+        if hasattr(self, "postnet"):
             x = self.postnet(x) * x_mask
         # set duration predictor input
         if g is not None:

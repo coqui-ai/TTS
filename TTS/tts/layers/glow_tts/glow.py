@@ -1,14 +1,14 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+
 from TTS.tts.layers.generic.wavenet import WN
 
 from ..generic.normalization import LayerNorm
 
 
 class ResidualConv1dLayerNormBlock(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, kernel_size,
-                 num_layers, dropout_p):
+    def __init__(self, in_channels, hidden_channels, out_channels, kernel_size, num_layers, dropout_p):
         """Conv1d with Layer Normalization and residual connection as in GlowTTS paper.
         https://arxiv.org/pdf/1811.00002.pdf
 
@@ -38,10 +38,10 @@ class ResidualConv1dLayerNormBlock(nn.Module):
 
         for idx in range(num_layers):
             self.conv_layers.append(
-                nn.Conv1d(in_channels if idx == 0 else hidden_channels,
-                          hidden_channels,
-                          kernel_size,
-                          padding=kernel_size // 2))
+                nn.Conv1d(
+                    in_channels if idx == 0 else hidden_channels, hidden_channels, kernel_size, padding=kernel_size // 2
+                )
+            )
             self.norm_layers.append(LayerNorm(hidden_channels))
 
         self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
@@ -72,6 +72,7 @@ class InvConvNear(nn.Module):
         perform 1x1 convolution separately. Cast 1x1 conv operation
         to 2d by reshaping the input for efficiency.
     """
+
     def __init__(self, channels, num_splits=4, no_jacobian=False, **kwargs):  # pylint: disable=unused-argument
         super().__init__()
         assert num_splits % 2 == 0
@@ -80,8 +81,7 @@ class InvConvNear(nn.Module):
         self.no_jacobian = no_jacobian
         self.weight_inv = None
 
-        w_init = torch.qr(
-            torch.FloatTensor(self.num_splits, self.num_splits).normal_())[0]
+        w_init = torch.qr(torch.FloatTensor(self.num_splits, self.num_splits).normal_())[0]
         if torch.det(w_init) < 0:
             w_init[:, 0] = -1 * w_init[:, 0]
         self.weight = nn.Parameter(w_init)
@@ -97,28 +97,25 @@ class InvConvNear(nn.Module):
         assert c % self.num_splits == 0
         if x_mask is None:
             x_mask = 1
-            x_len = torch.ones((b, ), dtype=x.dtype, device=x.device) * t
+            x_len = torch.ones((b,), dtype=x.dtype, device=x.device) * t
         else:
             x_len = torch.sum(x_mask, [1, 2])
 
         x = x.view(b, 2, c // self.num_splits, self.num_splits // 2, t)
-        x = x.permute(0, 1, 3, 2, 4).contiguous().view(b, self.num_splits,
-                                                       c // self.num_splits, t)
+        x = x.permute(0, 1, 3, 2, 4).contiguous().view(b, self.num_splits, c // self.num_splits, t)
 
         if reverse:
             if self.weight_inv is not None:
                 weight = self.weight_inv
             else:
-                weight = torch.inverse(
-                    self.weight.float()).to(dtype=self.weight.dtype)
+                weight = torch.inverse(self.weight.float()).to(dtype=self.weight.dtype)
             logdet = None
         else:
             weight = self.weight
             if self.no_jacobian:
                 logdet = 0
             else:
-                logdet = torch.logdet(
-                    self.weight) * (c / self.num_splits) * x_len  # [b]
+                logdet = torch.logdet(self.weight) * (c / self.num_splits) * x_len  # [b]
 
         weight = weight.view(self.num_splits, self.num_splits, 1, 1)
         z = F.conv2d(x, weight)
@@ -128,40 +125,42 @@ class InvConvNear(nn.Module):
         return z, logdet
 
     def store_inverse(self):
-        weight_inv = torch.inverse(
-            self.weight.float()).to(dtype=self.weight.dtype)
+        weight_inv = torch.inverse(self.weight.float()).to(dtype=self.weight.dtype)
         self.weight_inv = nn.Parameter(weight_inv, requires_grad=False)
 
 
 class CouplingBlock(nn.Module):
     """Glow Affine Coupling block as in GlowTTS paper.
-   https://arxiv.org/pdf/1811.00002.pdf
+    https://arxiv.org/pdf/1811.00002.pdf
 
-    x --> x0 -> conv1d -> wavenet -> conv1d --> t, s -> concat(s*x1 + t, x0) -> o
-      '-> x1 - - - - - - - - - - - - - - - - - - - - - - - - - ^
+     x --> x0 -> conv1d -> wavenet -> conv1d --> t, s -> concat(s*x1 + t, x0) -> o
+       '-> x1 - - - - - - - - - - - - - - - - - - - - - - - - - ^
 
-    Args:
-        in_channels (int): number of input tensor channels.
-        hidden_channels (int): number of hidden channels.
-        kernel_size (int): WaveNet filter kernel size.
-        dilation_rate (int): rate to increase dilation by each layer in a decoder block.
-        num_layers (int): number of WaveNet layers.
-        c_in_channels (int): number of conditioning input channels.
-        dropout_p (int): wavenet dropout rate.
-        sigmoid_scale (bool): enable/disable sigmoid scaling for output scale.
+     Args:
+         in_channels (int): number of input tensor channels.
+         hidden_channels (int): number of hidden channels.
+         kernel_size (int): WaveNet filter kernel size.
+         dilation_rate (int): rate to increase dilation by each layer in a decoder block.
+         num_layers (int): number of WaveNet layers.
+         c_in_channels (int): number of conditioning input channels.
+         dropout_p (int): wavenet dropout rate.
+         sigmoid_scale (bool): enable/disable sigmoid scaling for output scale.
 
-    Note:
-        It does not use conditional inputs differently from WaveGlow.
+     Note:
+         It does not use conditional inputs differently from WaveGlow.
     """
-    def __init__(self,
-                 in_channels,
-                 hidden_channels,
-                 kernel_size,
-                 dilation_rate,
-                 num_layers,
-                 c_in_channels=0,
-                 dropout_p=0,
-                 sigmoid_scale=False):
+
+    def __init__(
+        self,
+        in_channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        num_layers,
+        c_in_channels=0,
+        dropout_p=0,
+        sigmoid_scale=False,
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
@@ -183,8 +182,7 @@ class CouplingBlock(nn.Module):
         end.bias.data.zero_()
         self.end = end
         # coupling layers
-        self.wn = WN(in_channels, hidden_channels, kernel_size, dilation_rate,
-                     num_layers, c_in_channels, dropout_p)
+        self.wn = WN(in_channels, hidden_channels, kernel_size, dilation_rate, num_layers, c_in_channels, dropout_p)
 
     def forward(self, x, x_mask=None, reverse=False, g=None, **kwargs):  # pylint: disable=unused-argument
         """
@@ -195,15 +193,15 @@ class CouplingBlock(nn.Module):
         """
         if x_mask is None:
             x_mask = 1
-        x_0, x_1 = x[:, :self.in_channels // 2], x[:, self.in_channels // 2:]
+        x_0, x_1 = x[:, : self.in_channels // 2], x[:, self.in_channels // 2 :]
 
         x = self.start(x_0) * x_mask
         x = self.wn(x, x_mask, g)
         out = self.end(x)
 
         z_0 = x_0
-        t = out[:, :self.in_channels // 2, :]
-        s = out[:, self.in_channels // 2:, :]
+        t = out[:, : self.in_channels // 2, :]
+        s = out[:, self.in_channels // 2 :, :]
         if self.sigmoid_scale:
             s = torch.log(1e-6 + torch.sigmoid(s + 2))
 

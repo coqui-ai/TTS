@@ -8,11 +8,12 @@ import json
 import os
 import re
 
-from TTS.tts.utils.generic_utils import check_config_tts
+import torch
+
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
-from TTS.utils.io import copy_model_files, load_config, read_config
+from TTS.utils.io import copy_model_files, load_config
 from TTS.utils.tensorboard_logger import TensorboardLogger
 
 
@@ -29,41 +30,31 @@ def parse_arguments(argv):
     parser.add_argument(
         "--continue_path",
         type=str,
-        help=("Training output folder to continue training. Used to continue "
-              "a training. If it is used, 'config_path' is ignored."),
+        help=(
+            "Training output folder to continue training. Used to continue "
+            "a training. If it is used, 'config_path' is ignored."
+        ),
         default="",
-        required="--config_path" not in argv)
+        required="--config_path" not in argv,
+    )
     parser.add_argument(
-        "--restore_path",
-        type=str,
-        help="Model file to be restored. Use to finetune a model.",
-        default="")
+        "--restore_path", type=str, help="Model file to be restored. Use to finetune a model.", default=""
+    )
     parser.add_argument(
         "--best_path",
         type=str,
-        help=("Best model file to be used for extracting best loss."
-              "If not specified, the latest best model in continue path is used"),
-        default="")
-    parser.add_argument(
-        "--config_path",
-        type=str,
-        help="Path to config file for training.",
-        required="--continue_path" not in argv)
-    parser.add_argument(
-        "--debug",
-        type=bool,
-        default=False,
-        help="Do not verify commit integrity to run training.")
-    parser.add_argument(
-        "--rank",
-        type=int,
-        default=0,
-        help="DISTRIBUTED: process rank for distributed training.")
-    parser.add_argument(
-        "--group_id",
-        type=str,
+        help=(
+            "Best model file to be used for extracting best loss."
+            "If not specified, the latest best model in continue path is used"
+        ),
         default="",
-        help="DISTRIBUTED: process group id.")
+    )
+    parser.add_argument(
+        "--config_path", type=str, help="Path to config file for training.", required="--continue_path" not in argv
+    )
+    parser.add_argument("--debug", type=bool, default=False, help="Do not verify commit integrity to run training.")
+    parser.add_argument("--rank", type=int, default=0, help="DISTRIBUTED: process rank for distributed training.")
+    parser.add_argument("--group_id", type=str, default="", help="DISTRIBUTED: process group id.")
 
     return parser.parse_args()
 
@@ -86,7 +77,7 @@ def get_last_checkpoint(path):
     file_names = glob.glob(os.path.join(path, "*.pth.tar"))
     last_models = {}
     last_model_nums = {}
-    for key in ['checkpoint', 'best_model']:
+    for key in ["checkpoint", "best_model"]:
         last_model_num = None
         last_model = None
         # pass all the checkpoint files and find
@@ -105,7 +96,7 @@ def get_last_checkpoint(path):
         key_file_names = [fn for fn in file_names if key in fn]
         if last_model is None and len(key_file_names) > 0:
             last_model = max(key_file_names, key=os.path.getctime)
-            last_model_num = os.path.getctime(last_model)
+            last_model_num = torch.load(last_model)["step"]
 
         if last_model is not None:
             last_models[key] = last_model
@@ -114,31 +105,25 @@ def get_last_checkpoint(path):
     # check what models were found
     if not last_models:
         raise ValueError(f"No models found in continue path {path}!")
-    if 'checkpoint' not in last_models:  # no checkpoint just best model
-        last_models['checkpoint'] = last_models['best_model']
-    elif 'best_model' not in last_models:  # no best model
+    if "checkpoint" not in last_models:  # no checkpoint just best model
+        last_models["checkpoint"] = last_models["best_model"]
+    elif "best_model" not in last_models:  # no best model
         # this shouldn't happen, but let's handle it just in case
-        last_models['best_model'] = None
+        last_models["best_model"] = None
     # finally check if last best model is more recent than checkpoint
-    elif last_model_nums['best_model'] > last_model_nums['checkpoint']:
-        last_models['checkpoint'] = last_models['best_model']
+    elif last_model_nums["best_model"] > last_model_nums["checkpoint"]:
+        last_models["checkpoint"] = last_models["best_model"]
 
-    return last_models['checkpoint'], last_models['best_model']
+    return last_models["checkpoint"], last_models["best_model"]
 
 
-def process_args(args, model_type):
-    """Process parsed comand line arguments.
+def process_args(args, model_class):
+    """Process parsed comand line arguments based on model class (tts or vocoder).
 
     Args:
         args (argparse.Namespace or dict like): Parsed input arguments.
         model_type (str): Model type used to check config parameters and setup
-            the TensorBoard logger. One of:
-                - tacotron
-                - glow_tts
-                - speedy_speech
-                - gan
-                - wavegrad
-                - wavernn
+            the TensorBoard logger. One of ['tts', 'vocoder'].
 
     Raises:
         ValueError: If `model_type` is not one of implemented choices.
@@ -161,29 +146,14 @@ def process_args(args, model_type):
 
     # setup output paths and read configs
     c = load_config(args.config_path)
-    if model_type in "tacotron glow_tts speedy_speech":
-        model_class = "TTS"
-    elif model_type in "gan wavegrad wavernn":
-        model_class = "VOCODER"
-    else:
-        raise ValueError("model type {model_type} not recognized!")
-
-    if model_class == "TTS":
-        check_config_tts(c)
-    elif model_class == "VOCODER":
-        print("Vocoder config checker not implemented, skipping ...")
-    else:
-        raise ValueError(f"model type {model_type} not recognized!")
-
     _ = os.path.dirname(os.path.realpath(__file__))
 
-    if model_type in "tacotron wavegrad wavernn" and c.mixed_precision:
+    if "mixed_precision" in c and c.mixed_precision:
         print("   >  Mixed precision mode is ON")
 
     out_path = args.continue_path
     if not out_path:
-        out_path = create_experiment_folder(c.output_path, c.run_name,
-                                            args.debug)
+        out_path = create_experiment_folder(c.output_path, c.run_name, args.debug)
 
     audio_path = os.path.join(out_path, "test_audios")
 
@@ -194,24 +164,25 @@ def process_args(args, model_type):
         os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
         if args.restore_path:
-            new_fields["restore_path"] = args.restore_path if os.name != 'nt' else args.restore_path.replace('\\', '\\\\') #Fixes windows compatibility
+            new_fields["restore_path"] = (
+                args.restore_path if os.name != "nt" else args.restore_path.replace("\\", "\\\\")
+            )  # Fixes windows compatibility
         new_fields["github_branch"] = get_git_branch()
         # if model characters are not set in the config file
         # save the default set to the config file for future
         # compatibility.
-        if model_class == 'TTS' and 'characters' not in c:
+        if model_class == "tts" and "characters" not in c:
             used_characters = parse_symbols()
-            new_fields['characters'] = used_characters
-        copy_model_files(c, args.config_path,
-                         out_path, new_fields)
+            new_fields["characters"] = used_characters
+        copy_model_files(c, args.config_path, out_path, new_fields)
         os.chmod(audio_path, 0o775)
         os.chmod(out_path, 0o775)
 
         log_path = out_path
 
-        tb_logger = TensorboardLogger(log_path, model_name=model_class)
+        tb_logger = TensorboardLogger(log_path, model_name=model_class.upper())
 
-        # write model desc to tensorboard
-        tb_logger.tb_add_text("config", json.dumps(read_config(args.config_path), indent=2), 0)
+        # write model config to tensorboard
+        tb_logger.tb_add_text("model-config", f"<pre>{json.dumps(c, indent=4)}</pre>", 0)
 
     return c, out_path, audio_path, c_logger, tb_logger

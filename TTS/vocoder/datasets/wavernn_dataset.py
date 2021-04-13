@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 
@@ -9,19 +9,20 @@ class WaveRNNDataset(Dataset):
     and converts them to acoustic features on the fly.
     """
 
-    def __init__(self,
-                 ap,
-                 items,
-                 seq_len,
-                 hop_len,
-                 pad,
-                 mode,
-                 mulaw,
-                 is_training=True,
-                 verbose=False,
-                 ):
+    def __init__(
+        self,
+        ap,
+        items,
+        seq_len,
+        hop_len,
+        pad,
+        mode,
+        mulaw,
+        is_training=True,
+        verbose=False,
+    ):
 
-        super(WaveRNNDataset, self).__init__()
+        super().__init__()
         self.ap = ap
         self.compute_feat = not isinstance(items[0], (tuple, list))
         self.item_list = items
@@ -61,8 +62,9 @@ class WaveRNNDataset(Dataset):
             if self.mode in ["gauss", "mold"]:
                 x_input = audio
             elif isinstance(self.mode, int):
-                x_input = (self.ap.mulaw_encode(audio, qc=self.mode)
-                           if self.mulaw else self.ap.quantize(audio, bits=self.mode))
+                x_input = (
+                    self.ap.mulaw_encode(audio, qc=self.mode) if self.mulaw else self.ap.quantize(audio, bits=self.mode)
+                )
             else:
                 raise RuntimeError("Unknown dataset mode - ", self.mode)
 
@@ -71,7 +73,7 @@ class WaveRNNDataset(Dataset):
             wavpath, feat_path = self.item_list[index]
             mel = np.load(feat_path.replace("/quant/", "/mel/"))
 
-            if mel.shape[-1] < self.mel_len  + 2 * self.pad:
+            if mel.shape[-1] < self.mel_len + 2 * self.pad:
                 print(" [!] Instance is too short! : {}".format(wavpath))
                 self.item_list[index] = self.item_list[index + 1]
                 feat_path = self.item_list[index]
@@ -87,22 +89,14 @@ class WaveRNNDataset(Dataset):
 
     def collate(self, batch):
         mel_win = self.seq_len // self.hop_len + 2 * self.pad
-        max_offsets = [x[0].shape[-1] -
-                       (mel_win + 2 * self.pad) for x in batch]
+        max_offsets = [x[0].shape[-1] - (mel_win + 2 * self.pad) for x in batch]
 
         mel_offsets = [np.random.randint(0, offset) for offset in max_offsets]
-        sig_offsets = [(offset + self.pad) *
-                       self.hop_len for offset in mel_offsets]
+        sig_offsets = [(offset + self.pad) * self.hop_len for offset in mel_offsets]
 
-        mels = [
-            x[0][:, mel_offsets[i]: mel_offsets[i] + mel_win]
-            for i, x in enumerate(batch)
-        ]
+        mels = [x[0][:, mel_offsets[i] : mel_offsets[i] + mel_win] for i, x in enumerate(batch)]
 
-        coarse = [
-            x[1][sig_offsets[i]: sig_offsets[i] + self.seq_len + 1]
-            for i, x in enumerate(batch)
-        ]
+        coarse = [x[1][sig_offsets[i] : sig_offsets[i] + self.seq_len + 1] for i, x in enumerate(batch)]
 
         mels = np.stack(mels).astype(np.float32)
         if self.mode in ["gauss", "mold"]:
@@ -112,8 +106,7 @@ class WaveRNNDataset(Dataset):
         elif isinstance(self.mode, int):
             coarse = np.stack(coarse).astype(np.int64)
             coarse = torch.LongTensor(coarse)
-            x_input = (2 * coarse[:, : self.seq_len].float() /
-                       (2 ** self.mode - 1.0) - 1.0)
+            x_input = 2 * coarse[:, : self.seq_len].float() / (2 ** self.mode - 1.0) - 1.0
         y_coarse = coarse[:, 1:]
         mels = torch.FloatTensor(mels)
         return x_input, mels, y_coarse

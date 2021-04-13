@@ -1,35 +1,28 @@
 import librosa
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 from TTS.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme
 
+matplotlib.use("Agg")
 
-def plot_alignment(alignment,
-                   info=None,
-                   fig_size=(16, 10),
-                   title=None,
-                   output_fig=False):
+
+def plot_alignment(alignment, info=None, fig_size=(16, 10), title=None, output_fig=False):
     if isinstance(alignment, torch.Tensor):
         alignment_ = alignment.detach().cpu().numpy().squeeze()
     else:
         alignment_ = alignment
-    alignment_ = alignment_.astype(
-        np.float32) if alignment_.dtype == np.float16 else alignment_
+    alignment_ = alignment_.astype(np.float32) if alignment_.dtype == np.float16 else alignment_
     fig, ax = plt.subplots(figsize=fig_size)
-    im = ax.imshow(alignment_.T,
-                   aspect='auto',
-                   origin='lower',
-                   interpolation='none')
+    im = ax.imshow(alignment_.T, aspect="auto", origin="lower", interpolation="none")
     fig.colorbar(im, ax=ax)
-    xlabel = 'Decoder timestep'
+    xlabel = "Decoder timestep"
     if info is not None:
-        xlabel += '\n\n' + info
+        xlabel += "\n\n" + info
     plt.xlabel(xlabel)
-    plt.ylabel('Encoder timestep')
+    plt.ylabel("Encoder timestep")
     # plt.yticks(range(len(text)), list(text))
     plt.tight_layout()
     if title is not None:
@@ -39,16 +32,12 @@ def plot_alignment(alignment,
     return fig
 
 
-def plot_spectrogram(spectrogram,
-                     ap=None,
-                     fig_size=(16, 10),
-                     output_fig=False):
+def plot_spectrogram(spectrogram, ap=None, fig_size=(16, 10), output_fig=False):
     if isinstance(spectrogram, torch.Tensor):
         spectrogram_ = spectrogram.detach().cpu().numpy().squeeze().T
     else:
         spectrogram_ = spectrogram.T
-    spectrogram_ = spectrogram_.astype(
-        np.float32) if spectrogram_.dtype == np.float16 else spectrogram_
+    spectrogram_ = spectrogram_.astype(np.float32) if spectrogram_.dtype == np.float16 else spectrogram_
     if ap is not None:
         spectrogram_ = ap.denormalize(spectrogram_)  # pylint: disable=protected-access
     fig = plt.figure(figsize=fig_size)
@@ -60,16 +49,18 @@ def plot_spectrogram(spectrogram,
     return fig
 
 
-def visualize(alignment,
-              postnet_output,
-              text,
-              hop_length,
-              CONFIG,
-              stop_tokens=None,
-              decoder_output=None,
-              output_path=None,
-              figsize=(8, 24),
-              output_fig=False):
+def visualize(
+    alignment,
+    postnet_output,
+    text,
+    hop_length,
+    CONFIG,
+    stop_tokens=None,
+    decoder_output=None,
+    output_path=None,
+    figsize=(8, 24),
+    output_fig=False,
+):
 
     if decoder_output is not None:
         num_plot = 4
@@ -86,13 +77,13 @@ def visualize(alignment,
     # compute phoneme representation and back
     if CONFIG.use_phonemes:
         seq = phoneme_to_sequence(
-            text, [CONFIG.text_cleaner],
+            text,
+            [CONFIG.text_cleaner],
             CONFIG.phoneme_language,
             CONFIG.enable_eos_bos_chars,
-            tp=CONFIG.characters if 'characters' in CONFIG.keys() else None)
-        text = sequence_to_phoneme(
-            seq,
-            tp=CONFIG.characters if 'characters' in CONFIG.keys() else None)
+            tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
+        )
+        text = sequence_to_phoneme(seq, tp=CONFIG.characters if "characters" in CONFIG.keys() else None)
         print(text)
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
@@ -104,13 +95,15 @@ def visualize(alignment,
 
     # plot postnet spectrogram
     plt.subplot(num_plot, 1, 3)
-    librosa.display.specshow(postnet_output.T,
-                             sr=CONFIG.audio['sample_rate'],
-                             hop_length=hop_length,
-                             x_axis="time",
-                             y_axis="linear",
-                             fmin=CONFIG.audio['mel_fmin'],
-                             fmax=CONFIG.audio['mel_fmax'])
+    librosa.display.specshow(
+        postnet_output.T,
+        sr=CONFIG.audio["sample_rate"],
+        hop_length=hop_length,
+        x_axis="time",
+        y_axis="linear",
+        fmin=CONFIG.audio["mel_fmin"],
+        fmax=CONFIG.audio["mel_fmax"],
+    )
 
     plt.xlabel("Time", fontsize=label_fontsize)
     plt.ylabel("Hz", fontsize=label_fontsize)
@@ -119,13 +112,15 @@ def visualize(alignment,
 
     if decoder_output is not None:
         plt.subplot(num_plot, 1, 4)
-        librosa.display.specshow(decoder_output.T,
-                                 sr=CONFIG.audio['sample_rate'],
-                                 hop_length=hop_length,
-                                 x_axis="time",
-                                 y_axis="linear",
-                                 fmin=CONFIG.audio['mel_fmin'],
-                                 fmax=CONFIG.audio['mel_fmax'])
+        librosa.display.specshow(
+            decoder_output.T,
+            sr=CONFIG.audio["sample_rate"],
+            hop_length=hop_length,
+            x_axis="time",
+            y_axis="linear",
+            fmin=CONFIG.audio["mel_fmin"],
+            fmax=CONFIG.audio["mel_fmax"],
+        )
         plt.xlabel("Time", fontsize=label_fontsize)
         plt.ylabel("Hz", fontsize=label_fontsize)
         plt.tight_layout()

@@ -1,4 +1,5 @@
 import math
+
 import numpy as np
 import torch
 
@@ -12,24 +13,27 @@ class ParallelWaveganGenerator(torch.nn.Module):
         It is conditioned on an aux feature (spectrogram) to generate
     an output waveform from an input noise.
     """
-    # pylint: disable=dangerous-default-value
-    def __init__(self,
-                 in_channels=1,
-                 out_channels=1,
-                 kernel_size=3,
-                 num_res_blocks=30,
-                 stacks=3,
-                 res_channels=64,
-                 gate_channels=128,
-                 skip_channels=64,
-                 aux_channels=80,
-                 dropout=0.0,
-                 bias=True,
-                 use_weight_norm=True,
-                 upsample_factors=[4, 4, 4, 4],
-                 inference_padding=2):
 
-        super(ParallelWaveganGenerator, self).__init__()
+    # pylint: disable=dangerous-default-value
+    def __init__(
+        self,
+        in_channels=1,
+        out_channels=1,
+        kernel_size=3,
+        num_res_blocks=30,
+        stacks=3,
+        res_channels=64,
+        gate_channels=128,
+        skip_channels=64,
+        aux_channels=80,
+        dropout=0.0,
+        bias=True,
+        use_weight_norm=True,
+        upsample_factors=[4, 4, 4, 4],
+        inference_padding=2,
+    ):
+
+        super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.aux_channels = aux_channels
@@ -46,10 +50,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         layers_per_stack = num_res_blocks // stacks
 
         # define first convolution
-        self.first_conv = torch.nn.Conv1d(in_channels,
-                                          res_channels,
-                                          kernel_size=1,
-                                          bias=True)
+        self.first_conv = torch.nn.Conv1d(in_channels, res_channels, kernel_size=1, bias=True)
 
         # define conv + upsampling network
         self.upsample_net = ConvUpsample(upsample_factors=upsample_factors)
@@ -57,7 +58,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         # define residual blocks
         self.conv_layers = torch.nn.ModuleList()
         for layer in range(num_res_blocks):
-            dilation = 2**(layer % layers_per_stack)
+            dilation = 2 ** (layer % layers_per_stack)
             conv = ResidualBlock(
                 kernel_size=kernel_size,
                 res_channels=res_channels,
@@ -71,18 +72,14 @@ class ParallelWaveganGenerator(torch.nn.Module):
             self.conv_layers += [conv]
 
         # define output layers
-        self.last_conv_layers = torch.nn.ModuleList([
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Conv1d(skip_channels,
-                            skip_channels,
-                            kernel_size=1,
-                            bias=True),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Conv1d(skip_channels,
-                            out_channels,
-                            kernel_size=1,
-                            bias=True),
-        ])
+        self.last_conv_layers = torch.nn.ModuleList(
+            [
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Conv1d(skip_channels, skip_channels, kernel_size=1, bias=True),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Conv1d(skip_channels, out_channels, kernel_size=1, bias=True),
+            ]
+        )
 
         # apply weight norm
         if use_weight_norm:
@@ -90,8 +87,8 @@ class ParallelWaveganGenerator(torch.nn.Module):
 
     def forward(self, c):
         """
-            c: (B, C ,T').
-            o: Output tensor (B, out_channels, T)
+        c: (B, C ,T').
+        o: Output tensor (B, out_channels, T)
         """
         # random noise
         x = torch.randn([c.shape[0], 1, c.shape[2] * self.upsample_scale])
@@ -100,8 +97,9 @@ class ParallelWaveganGenerator(torch.nn.Module):
         # perform upsampling
         if c is not None and self.upsample_net is not None:
             c = self.upsample_net(c)
-            assert c.shape[-1] == x.shape[
-                -1], f" [!] Upsampling scale does not match the expected output. {c.shape} vs {x.shape}"
+            assert (
+                c.shape[-1] == x.shape[-1]
+            ), f" [!] Upsampling scale does not match the expected output. {c.shape} vs {x.shape}"
 
         # encode to hidden representation
         x = self.first_conv(x)
@@ -121,8 +119,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
     @torch.no_grad()
     def inference(self, c):
         c = c.to(self.first_conv.weight.device)
-        c = torch.nn.functional.pad(
-            c, (self.inference_padding, self.inference_padding), 'replicate')
+        c = torch.nn.functional.pad(c, (self.inference_padding, self.inference_padding), "replicate")
         return self.forward(c)
 
     def remove_weight_norm(self):
@@ -144,10 +141,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         self.apply(_apply_weight_norm)
 
     @staticmethod
-    def _get_receptive_field_size(layers,
-                                  stacks,
-                                  kernel_size,
-                                  dilation=lambda x: 2**x):
+    def _get_receptive_field_size(layers, stacks, kernel_size, dilation=lambda x: 2 ** x):
         assert layers % stacks == 0
         layers_per_cycle = layers // stacks
         dilations = [dilation(i % layers_per_cycle) for i in range(layers)]
@@ -155,12 +149,13 @@ class ParallelWaveganGenerator(torch.nn.Module):
 
     @property
     def receptive_field_size(self):
-        return self._get_receptive_field_size(self.layers, self.stacks,
-                                              self.kernel_size)
+        return self._get_receptive_field_size(self.layers, self.stacks, self.kernel_size)
 
-    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-        self.load_state_dict(state['model'])
+    def load_checkpoint(
+        self, config, checkpoint_path, eval=False
+    ):  # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"])
         if eval:
             self.eval()
             assert not self.training

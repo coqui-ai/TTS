@@ -1,16 +1,20 @@
-# <img src="https://github.com/coqui-ai/TTS/raw/master/images/coqui-log-green-TTS.png" height="56"/>
+# <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
 
 🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
 🐸TTS comes with [pretrained models](https://github.com/coqui-ai/TTS/wiki/Released-Models), tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
 
-<!-- [![CircleCI](TODO)]() -->
+[![CircleCI](https://github.com/coqui-ai/TTS/actions/workflows/main.yml/badge.svg)]()
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 [![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
 [![Covenant](https://camo.githubusercontent.com/7d620efaa3eac1c5b060ece5d6aacfcc8b81a74a04d05cd0398689c01c4463bb/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f436f6e7472696275746f72253230436f76656e616e742d76322e3025323061646f707465642d6666363962342e737667)](https://github.com/coqui-ai/TTS/blob/master/CODE_OF_CONDUCT.md)
+[![Downloads](https://pepy.tech/badge/tts)](https://pepy.tech/project/tts)
+[![Gitter](https://badges.gitter.im/coqui-ai/TTS.svg)](https://gitter.im/coqui-ai/TTS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+📰 [**Subscribe to 🐸Coqui.ai Newsletter**](https://coqui.ai/?subscription=true)
 
 📢 [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
 
-👩🏽‍🍳  [TTS training recipes](https://github.com/erogol/TTS_recipes)
+👩🏽‍🍳 [TTS training recipes](https://github.com/erogol/TTS_recipes)
 
 📄 [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
 
@@ -20,29 +24,31 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | Type                            | Platforms                               |
 | ------------------------------- | --------------------------------------- |
 | 🚨 **Bug Reports**              | [GitHub Issue Tracker]                  |
-| ❔ **FAQ**                       | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/FAQ)                              |
+| ❔ **FAQ**                      | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/FAQ)                              |
 | 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
-| 👩‍💻 **Usage Questions**          | [Github Discussions]                       |
-| 🗯 **General Discussion**        | [Github Discussions] and [Matrix Channel]  |
+| 👩‍💻 **Usage Questions**          | [Github Discussions]                    |
+| 🗯 **General Discussion**       | [Github Discussions] or [Gitter Room] or [Matrix Room]  |
 
 [github issue tracker]: https://github.com/coqui-ai/tts/issues
 [github discussions]: https://github.com/coqui-ai/TTS/discussions
-[matrix channel]: https://matrix.to/#/!KTePhNahjgiVumkqca:matrix.org?via=matrix.org
+[gitter room]: https://gitter.im/coqui-ai/TTS?utm_source=share-link&utm_medium=link&utm_campaign=share-link
+[matrix room]: https://matrix.to/#/!KTePhNahjgiVumkqca:matrix.org?via=matrix.org&via=bethselamin.de&via=lossy.network
 [Tutorials and Examples]: https://github.com/coqui-ai/TTS/wiki/TTS-Notebooks-and-Tutorials
 
 
 ## 🔗 Links and Resources
 | Type                            | Links                               |
 | ------------------------------- | --------------------------------------- |
-| 💾 **Installation** | [TTS/README.md](https://github.com/coqui-ai/TTS/tree/dev#install-tts)|
-| 👩🏾‍🏫 **Tutorials and Examples**  | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/TTS-Notebooks-and-Tutorials) |
-| 🚀 **Released Models**         | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/Released-Models)|
-| 💻 **Docker Image**            | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-coqui-aitts)|
-| 🖥️ **Demo Server**             | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
-| 🤖 **Running TTS on Terminal** | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
+| 💾 **Installation**               | [TTS/README.md](https://github.com/coqui-ai/TTS/tree/dev#install-tts)|
+| 👩‍💻 **Contributing**               | [CONTRIBUTING.md](https://github.com/coqui-ai/TTS/blob/main/CONTRIBUTING.md)
+| 👩🏾‍🏫 **Tutorials and Examples**     | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/%F0%9F%90%B8-TTS-Notebooks,-Examples-and-Tutorials) |
+| 🚀 **Released Models**            | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
+| 💻 **Docker Image**               | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-coqui-aitts)|
+| 🖥️ **Demo Server**                | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
+| 🤖 **Synthesize speech**          | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
 
 ## 🥇 TTS Performance
-<p align="center"><img src="https://github.com/coqui-ai/TTS/raw/master/images/TTS-performance.png" width="800" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
 
 Underlined "TTS*" and "Judy*" are 🐸TTS models
 <!-- [Details...](https://github.com/coqui-ai/TTS/wiki/Mean-Opinion-Score-Results) -->
@@ -69,12 +75,14 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
 - Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
 - Speedy-Speech: [paper](https://arxiv.org/abs/2008.03802)
+- Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
 - Forward Backward Decoding: [paper](https://arxiv.org/abs/1907.09006)
 - Graves Attention: [paper](https://arxiv.org/abs/1907.09006)
 - Double Decoder Consistency: [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
+- Dynamic Convolutional Attention: [paper](https://arxiv.org/pdf/1910.10288.pdf)
 
 ### Speaker Encoder
 - GE2E: [paper](https://arxiv.org/abs/1710.10467)
@@ -107,10 +115,19 @@ pip install -e .
 ```
 
 We use ```espeak-ng``` to convert graphemes to phonemes. You might need to install separately.
+
 ```bash
 sudo apt-get install espeak-ng
 ```
 
+If you are on Ubuntu (Debian), you can also run following commands for installation.
+
+```bash
+$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
+$ make install
+```
+
+If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
 ## Directory Structure
 ```
 |- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
@@ -160,32 +177,36 @@ Some of the public datasets that we successfully applied 🐸TTS:
 After the installation, 🐸TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under 🐸TTS.
 
 Listing released 🐸TTS models.
+
 ```bash
 tts --list_models
 ```
 
 Run a tts and a vocoder model from the released model list. (Simply copy and paste the full model names from the list as arguments for the command below.)
+
 ```bash
 tts --text "Text for TTS" \
     --model_name "<type>/<language>/<dataset>/<model_name>" \
     --vocoder_name "<type>/<language>/<dataset>/<model_name>" \
-    --out_path folder/to/save/output/
+    --out_path folder/to/save/output.wav
 ```
 
 Run your own TTS model (Using Griffin-Lim Vocoder)
+
 ```bash
 tts --text "Text for TTS" \
     --model_path path/to/model.pth.tar \
     --config_path path/to/config.json \
-    --out_path output/path/speech.wav
+    --out_path folder/to/save/output.wav
 ```
 
 Run your own TTS and Vocoder models
+
 ```bash
 tts --text "Text for TTS" \
     --model_path path/to/config.json \
     --config_path path/to/model.pth.tar \
-    --out_path output/path/speech.wav \
+    --out_path folder/to/save/output.wav \
     --vocoder_path path/to/vocoder.pth.tar \
     --vocoder_config_path path/to/vocoder_config.json
 ```
@@ -235,30 +256,7 @@ In case of any error or intercepted execution, if there is no checkpoint yet und
 
 You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir``` to the experiment folder.
 
-## Contribution guidelines
-Please follow the steps below as you send a PR to 🐸. It helps us to keep things organized.
-
-1. Create a new branch.
-2. Implement your changes.
-3. (if applicable) Add [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
-4. (if applicable) Implement a test case under ```tests``` folder.
-5. (Optional but Prefered) Run tests.
-```bash
-./run_tests.sh
-```
-6. Run the linter.
-```bash
-pip install pylint cardboardlint
-cardboardlinter --refspec master
-```
-7. Send a PR to ```dev``` branch, explain what the change is about.
-8. Let us discuss until we make it perfect :) 💪.
-9. We merge it to the ```dev``` branch once things look good.
-
-Feel free to ping us at any step you need help using our communication channels.
-[Here](https://github.com/firstcontributions/first-contributions) is a good resource for complete beginners.
-
-
+## [Contribution guidelines](https://github.com/coqui-ai/TTS/blob/main/CONTRIBUTING.md)
 ### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)

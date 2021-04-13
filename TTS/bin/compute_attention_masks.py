@@ -1,12 +1,13 @@
 import argparse
 import importlib
 import os
+from argparse import RawTextHelpFormatter
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from argparse import RawTextHelpFormatter
+
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import load_checkpoint
@@ -14,17 +15,14 @@ from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
 
-
-if __name__ == '__main__':
-    # pylint: disable=bad-continuation
+if __name__ == "__main__":
+    # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
-        description='''Extract attention masks from trained Tacotron/Tacotron2 models.
-These masks can be used for different purposes including training a TTS model with a Duration Predictor.\n\n'''
-
-'''Each attention mask is written to the same path as the input wav file with ".npy" file extension.
-(e.g. path/bla.wav (wav file) --> path/bla.npy (attention mask))\n'''
-
-'''
+        description="""Extract attention masks from trained Tacotron/Tacotron2 models.
+These masks can be used for different purposes including training a TTS model with a Duration Predictor.\n\n"""
+        """Each attention mask is written to the same path as the input wav file with ".npy" file extension.
+(e.g. path/bla.wav (wav file) --> path/bla.npy (attention mask))\n"""
+        """
 Example run:
     CUDA_VISIBLE_DEVICE="0" python TTS/bin/compute_attention_masks.py
         --model_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/checkpoint_200000.pth.tar
@@ -34,53 +32,44 @@ Example run:
         --batch_size 32
         --dataset ljspeech
         --use_cuda True
-''',
-        formatter_class=RawTextHelpFormatter
-        )
-    parser.add_argument('--model_path',
-                        type=str,
-                        required=True,
-                        help='Path to Tacotron/Tacotron2 model file ')
-    parser.add_argument(
-        '--config_path',
-        type=str,
-        required=True,
-        help='Path to Tacotron/Tacotron2 config file.',
+""",
+        formatter_class=RawTextHelpFormatter,
     )
-    parser.add_argument('--dataset',
-                        type=str,
-                        default='',
-                        required=True,
-                        help='Target dataset processor name from TTS.tts.dataset.preprocess.')
-
+    parser.add_argument("--model_path", type=str, required=True, help="Path to Tacotron/Tacotron2 model file ")
     parser.add_argument(
-        '--dataset_metafile',
+        "--config_path",
         type=str,
-        default='',
         required=True,
-        help='Dataset metafile inclusing file paths with transcripts.')
+        help="Path to Tacotron/Tacotron2 config file.",
+    )
     parser.add_argument(
-        '--data_path',
+        "--dataset",
         type=str,
-        default='',
-        help='Defines the data path. It overwrites config.json.')
-    parser.add_argument('--use_cuda',
-                        type=bool,
-                        default=False,
-                        help="enable/disable cuda.")
+        default="",
+        required=True,
+        help="Target dataset processor name from TTS.tts.dataset.preprocess.",
+    )
 
     parser.add_argument(
-        '--batch_size',
-        default=16,
-        type=int,
-        help='Batch size for the model. Use batch_size=1 if you have no CUDA.')
+        "--dataset_metafile",
+        type=str,
+        default="",
+        required=True,
+        help="Dataset metafile inclusing file paths with transcripts.",
+    )
+    parser.add_argument("--data_path", type=str, default="", help="Defines the data path. It overwrites config.json.")
+    parser.add_argument("--use_cuda", type=bool, default=False, help="enable/disable cuda.")
+
+    parser.add_argument(
+        "--batch_size", default=16, type=int, help="Batch size for the model. Use batch_size=1 if you have no CUDA."
+    )
     args = parser.parse_args()
 
     C = load_config(args.config_path)
     ap = AudioProcessor(**C.audio)
 
     # if the vocabulary was passed, replace the default
-    if 'characters' in C.keys():
+    if "characters" in C.keys():
         symbols, phonemes = make_symbols(**C.characters)
 
     # load the model
@@ -91,28 +80,32 @@ Example run:
     model.eval()
 
     # data loader
-    preprocessor = importlib.import_module('TTS.tts.datasets.preprocess')
+    preprocessor = importlib.import_module("TTS.tts.datasets.preprocess")
     preprocessor = getattr(preprocessor, args.dataset)
     meta_data = preprocessor(args.data_path, args.dataset_metafile)
-    dataset = MyDataset(model.decoder.r,
-                        C.text_cleaner,
-                        compute_linear_spec=False,
-                        ap=ap,
-                        meta_data=meta_data,
-                        tp=C.characters if 'characters' in C.keys() else None,
-                        add_blank=C['add_blank'] if 'add_blank' in C.keys() else False,
-                        use_phonemes=C.use_phonemes,
-                        phoneme_cache_path=C.phoneme_cache_path,
-                        phoneme_language=C.phoneme_language,
-                        enable_eos_bos=C.enable_eos_bos_chars)
+    dataset = MyDataset(
+        model.decoder.r,
+        C.text_cleaner,
+        compute_linear_spec=False,
+        ap=ap,
+        meta_data=meta_data,
+        tp=C.characters if "characters" in C.keys() else None,
+        add_blank=C["add_blank"] if "add_blank" in C.keys() else False,
+        use_phonemes=C.use_phonemes,
+        phoneme_cache_path=C.phoneme_cache_path,
+        phoneme_language=C.phoneme_language,
+        enable_eos_bos=C.enable_eos_bos_chars,
+    )
 
     dataset.sort_items()
-    loader = DataLoader(dataset,
-                        batch_size=args.batch_size,
-                        num_workers=4,
-                        collate_fn=dataset.collate_fn,
-                        shuffle=False,
-                        drop_last=False)
+    loader = DataLoader(
+        dataset,
+        batch_size=args.batch_size,
+        num_workers=4,
+        collate_fn=dataset.collate_fn,
+        shuffle=False,
+        drop_last=False,
+    )
 
     # compute attentions
     file_paths = []
@@ -134,25 +127,29 @@ Example run:
                 mel_input = mel_input.cuda()
                 mel_lengths = mel_lengths.cuda()
 
-            mel_outputs, postnet_outputs, alignments, stop_tokens = model.forward(
-                text_input, text_lengths, mel_input)
+            mel_outputs, postnet_outputs, alignments, stop_tokens = model.forward(text_input, text_lengths, mel_input)
 
             alignments = alignments.detach()
             for idx, alignment in enumerate(alignments):
                 item_idx = item_idxs[idx]
                 # interpolate if r > 1
-                alignment = torch.nn.functional.interpolate(
-                    alignment.transpose(0, 1).unsqueeze(0),
-                    size=None,
-                    scale_factor=model.decoder.r,
-                    mode='nearest',
-                    align_corners=None,
-                    recompute_scale_factor=None).squeeze(0).transpose(0, 1)
+                alignment = (
+                    torch.nn.functional.interpolate(
+                        alignment.transpose(0, 1).unsqueeze(0),
+                        size=None,
+                        scale_factor=model.decoder.r,
+                        mode="nearest",
+                        align_corners=None,
+                        recompute_scale_factor=None,
+                    )
+                    .squeeze(0)
+                    .transpose(0, 1)
+                )
                 # remove paddings
-                alignment = alignment[:mel_lengths[idx], :text_lengths[idx]].cpu().numpy()
+                alignment = alignment[: mel_lengths[idx], : text_lengths[idx]].cpu().numpy()
                 # set file paths
                 wav_file_name = os.path.basename(item_idx)
-                align_file_name = os.path.splitext(wav_file_name)[0] + '.npy'
+                align_file_name = os.path.splitext(wav_file_name)[0] + ".npy"
                 file_path = item_idx.replace(wav_file_name, align_file_name)
                 # save output
                 file_paths.append([item_idx, file_path])

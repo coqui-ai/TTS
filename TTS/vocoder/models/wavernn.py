@@ -1,20 +1,19 @@
 import sys
+import time
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 import torch.nn.functional as F
-import time
 
 # fix this
 from TTS.utils.audio import AudioProcessor as ap
-from TTS.vocoder.utils.distribution import (
-    sample_from_gaussian,
-    sample_from_discretized_mix_logistic,
-)
+from TTS.vocoder.utils.distribution import sample_from_discretized_mix_logistic, sample_from_gaussian
 
 
 def stream(string, variables):
     sys.stdout.write(f"\r{string}" % variables)
+
 
 # pylint: disable=abstract-method
 # relates https://github.com/pytorch/pytorch/issues/42305
@@ -40,8 +39,7 @@ class MelResNet(nn.Module):
     def __init__(self, num_res_blocks, in_dims, compute_dims, res_out_dims, pad):
         super().__init__()
         k_size = pad * 2 + 1
-        self.conv_in = nn.Conv1d(
-            in_dims, compute_dims, kernel_size=k_size, bias=False)
+        self.conv_in = nn.Conv1d(in_dims, compute_dims, kernel_size=k_size, bias=False)
         self.batch_norm = nn.BatchNorm1d(compute_dims)
         self.layers = nn.ModuleList()
         for _ in range(num_res_blocks):
@@ -73,31 +71,28 @@ class Stretch2d(nn.Module):
 
 class UpsampleNetwork(nn.Module):
     def __init__(
-            self,
-            feat_dims,
-            upsample_scales,
-            compute_dims,
-            num_res_blocks,
-            res_out_dims,
-            pad,
-            use_aux_net,
-        ):
+        self,
+        feat_dims,
+        upsample_scales,
+        compute_dims,
+        num_res_blocks,
+        res_out_dims,
+        pad,
+        use_aux_net,
+    ):
         super().__init__()
         self.total_scale = np.cumproduct(upsample_scales)[-1]
         self.indent = pad * self.total_scale
         self.use_aux_net = use_aux_net
         if use_aux_net:
-            self.resnet = MelResNet(
-                num_res_blocks, feat_dims, compute_dims, res_out_dims, pad
-            )
+            self.resnet = MelResNet(num_res_blocks, feat_dims, compute_dims, res_out_dims, pad)
             self.resnet_stretch = Stretch2d(self.total_scale, 1)
         self.up_layers = nn.ModuleList()
         for scale in upsample_scales:
             k_size = (1, scale * 2 + 1)
             padding = (0, scale)
             stretch = Stretch2d(scale, 1)
-            conv = nn.Conv2d(1, 1, kernel_size=k_size,
-                             padding=padding, bias=False)
+            conv = nn.Conv2d(1, 1, kernel_size=k_size, padding=padding, bias=False)
             conv.weight.data.fill_(1.0 / k_size[1])
             self.up_layers.append(stretch)
             self.up_layers.append(conv)
@@ -113,56 +108,51 @@ class UpsampleNetwork(nn.Module):
         m = m.unsqueeze(1)
         for f in self.up_layers:
             m = f(m)
-        m = m.squeeze(1)[:, :, self.indent: -self.indent]
+        m = m.squeeze(1)[:, :, self.indent : -self.indent]
         return m.transpose(1, 2), aux
 
 
 class Upsample(nn.Module):
-    def __init__(self, scale, pad, num_res_blocks, feat_dims, compute_dims,
-                 res_out_dims, use_aux_net):
+    def __init__(self, scale, pad, num_res_blocks, feat_dims, compute_dims, res_out_dims, use_aux_net):
         super().__init__()
         self.scale = scale
         self.pad = pad
         self.indent = pad * scale
         self.use_aux_net = use_aux_net
-        self.resnet = MelResNet(num_res_blocks, feat_dims,
-                                compute_dims, res_out_dims, pad)
+        self.resnet = MelResNet(num_res_blocks, feat_dims, compute_dims, res_out_dims, pad)
 
     def forward(self, m):
         if self.use_aux_net:
             aux = self.resnet(m)
-            aux = torch.nn.functional.interpolate(
-                aux, scale_factor=self.scale, mode="linear", align_corners=True
-            )
+            aux = torch.nn.functional.interpolate(aux, scale_factor=self.scale, mode="linear", align_corners=True)
             aux = aux.transpose(1, 2)
         else:
             aux = None
-        m = torch.nn.functional.interpolate(
-            m, scale_factor=self.scale, mode="linear", align_corners=True
-        )
-        m = m[:, :, self.indent: -self.indent]
+        m = torch.nn.functional.interpolate(m, scale_factor=self.scale, mode="linear", align_corners=True)
+        m = m[:, :, self.indent : -self.indent]
         m = m * 0.045  # empirically found
 
         return m.transpose(1, 2), aux
 
 
 class WaveRNN(nn.Module):
-    def __init__(self,
-                 rnn_dims,
-                 fc_dims,
-                 mode,
-                 mulaw,
-                 pad,
-                 use_aux_net,
-                 use_upsample_net,
-                 upsample_factors,
-                 feat_dims,
-                 compute_dims,
-                 res_out_dims,
-                 num_res_blocks,
-                 hop_length,
-                 sample_rate,
-                 ):
+    def __init__(
+        self,
+        rnn_dims,
+        fc_dims,
+        mode,
+        mulaw,
+        pad,
+        use_aux_net,
+        use_upsample_net,
+        upsample_factors,
+        feat_dims,
+        compute_dims,
+        res_out_dims,
+        num_res_blocks,
+        hop_length,
+        sample_rate,
+    ):
         super().__init__()
         self.mode = mode
         self.mulaw = mulaw
@@ -209,8 +199,7 @@ class WaveRNN(nn.Module):
         if self.use_aux_net:
             self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
             self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-            self.rnn2 = nn.GRU(rnn_dims + self.aux_dims,
-                               rnn_dims, batch_first=True)
+            self.rnn2 = nn.GRU(rnn_dims + self.aux_dims, rnn_dims, batch_first=True)
             self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
             self.fc2 = nn.Linear(fc_dims + self.aux_dims, fc_dims)
             self.fc3 = nn.Linear(fc_dims, self.n_classes)
@@ -230,10 +219,10 @@ class WaveRNN(nn.Module):
 
         if self.use_aux_net:
             aux_idx = [self.aux_dims * i for i in range(5)]
-            a1 = aux[:, :, aux_idx[0]: aux_idx[1]]
-            a2 = aux[:, :, aux_idx[1]: aux_idx[2]]
-            a3 = aux[:, :, aux_idx[2]: aux_idx[3]]
-            a4 = aux[:, :, aux_idx[3]: aux_idx[4]]
+            a1 = aux[:, :, aux_idx[0] : aux_idx[1]]
+            a2 = aux[:, :, aux_idx[1] : aux_idx[2]]
+            a3 = aux[:, :, aux_idx[2] : aux_idx[3]]
+            a4 = aux[:, :, aux_idx[3] : aux_idx[4]]
 
         x = (
             torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
@@ -276,8 +265,7 @@ class WaveRNN(nn.Module):
                 mels = mels.unsqueeze(0)
             wave_len = (mels.size(-1) - 1) * self.hop_length
 
-            mels = self.pad_tensor(mels.transpose(
-                1, 2), pad=self.pad, side="both")
+            mels = self.pad_tensor(mels.transpose(1, 2), pad=self.pad, side="both")
             mels, aux = self.upsample(mels.transpose(1, 2))
 
             if batched:
@@ -293,7 +281,7 @@ class WaveRNN(nn.Module):
 
             if self.use_aux_net:
                 d = self.aux_dims
-                aux_split = [aux[:, :, d * i: d * (i + 1)] for i in range(4)]
+                aux_split = [aux[:, :, d * i : d * (i + 1)] for i in range(4)]
 
             for i in range(seq_len):
 
@@ -302,11 +290,7 @@ class WaveRNN(nn.Module):
                 if self.use_aux_net:
                     a1_t, a2_t, a3_t, a4_t = (a[:, i, :] for a in aux_split)
 
-                x = (
-                    torch.cat([x, m_t, a1_t], dim=1)
-                    if self.use_aux_net
-                    else torch.cat([x, m_t], dim=1)
-                )
+                x = torch.cat([x, m_t, a1_t], dim=1) if self.use_aux_net else torch.cat([x, m_t], dim=1)
                 x = self.I(x)
                 h1 = rnn1(x, h1)
 
@@ -324,14 +308,11 @@ class WaveRNN(nn.Module):
                 logits = self.fc3(x)
 
                 if self.mode == "mold":
-                    sample = sample_from_discretized_mix_logistic(
-                        logits.unsqueeze(0).transpose(1, 2)
-                    )
+                    sample = sample_from_discretized_mix_logistic(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
                     x = sample.transpose(0, 1).to(device)
                 elif self.mode == "gauss":
-                    sample = sample_from_gaussian(
-                        logits.unsqueeze(0).transpose(1, 2))
+                    sample = sample_from_gaussian(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
                     x = sample.transpose(0, 1).to(device)
                 elif isinstance(self.mode, int):
@@ -342,8 +323,7 @@ class WaveRNN(nn.Module):
                     output.append(sample)
                     x = sample.unsqueeze(-1)
                 else:
-                    raise RuntimeError(
-                        "Unknown model mode value - ", self.mode)
+                    raise RuntimeError("Unknown model mode value - ", self.mode)
 
                 if i % 100 == 0:
                     self.gen_display(i, seq_len, b_size, start)
@@ -366,7 +346,7 @@ class WaveRNN(nn.Module):
         output = output[:wave_len]
 
         if wave_len > len(fade_out):
-            output[-20 * self.hop_length:] *= fade_out
+            output[-20 * self.hop_length :] *= fade_out
 
         self.train()
         return output
@@ -411,8 +391,7 @@ class WaveRNN(nn.Module):
             padding = target + 2 * overlap - remaining
             x = self.pad_tensor(x, padding, side="after")
 
-        folded = torch.zeros(num_folds, target + 2 *
-                             overlap, features).to(x.device)
+        folded = torch.zeros(num_folds, target + 2 * overlap, features).to(x.device)
 
         # Get the values for the folded tensor
         for i in range(num_folds):
@@ -439,7 +418,7 @@ class WaveRNN(nn.Module):
         total = t + 2 * pad if side == "both" else t + pad
         padded = torch.zeros(b, total, c).to(x.device)
         if side in ("before", "both"):
-            padded[:, pad: pad + t, :] = x
+            padded[:, pad : pad + t, :] = x
         elif side == "after":
             padded[:, :t, :] = x
         return padded
@@ -500,9 +479,11 @@ class WaveRNN(nn.Module):
 
         return unfolded
 
-    def load_checkpoint(self, config, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-        self.load_state_dict(state['model'])
+    def load_checkpoint(
+        self, config, checkpoint_path, eval=False
+    ):  # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"])
         if eval:
             self.eval()
             assert not self.training
