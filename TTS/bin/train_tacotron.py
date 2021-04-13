@@ -6,7 +6,6 @@ import sys
 import time
 import traceback
 from random import randrange
-import random
 
 import numpy as np
 import torch
@@ -110,9 +109,7 @@ def format_data(data):
         speaker_ids = None
 
     if c.use_language_embedding:
-        language_ids = [
-            language_mapping[language_name] for language_name in language_names
-        ]
+        language_ids = [language_mapping[language_name] for language_name in language_names]
         language_ids = torch.LongTensor(language_ids)
         language_embeddings = None
     else:
@@ -147,9 +144,9 @@ def format_data(data):
         mel_lengths,
         linear_input,
         stop_targets,
-        speaker_ids, 
-        language_ids, 
-        speaker_embeddings, 
+        speaker_ids,
+        language_ids,
+        speaker_embeddings,
         language_embeddings,
         max_text_length,
         max_spec_length,
@@ -177,9 +174,9 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
             mel_lengths,
             linear_input,
             stop_targets,
-            speaker_ids, 
-            language_ids, 
-            speaker_embeddings, 
+            speaker_ids,
+            language_ids,
+            speaker_embeddings,
             language_embeddings,
             max_text_length,
             max_spec_length,
@@ -206,26 +203,27 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
                     stop_tokens,
                     decoder_backward_output,
                     alignments_backward,
+                    speaker_prediction,
                 ) = model(
                     text_input,
                     text_lengths,
                     mel_input,
                     mel_lengths,
                     speaker_ids=speaker_ids,
-                    speaker_embeddings=speaker_embeddings, 
-                    language_ids=language_ids, 
-                    speaker_embeddings=speaker_embeddings
+                    speaker_embeddings=speaker_embeddings,
+                    language_ids=language_ids,
+                    language_embeddings=language_embeddings,
                 )
             else:
-                decoder_output, postnet_output, alignments, stop_tokens = model(
+                decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
                     text_input,
                     text_lengths,
                     mel_input,
                     mel_lengths,
                     speaker_ids=speaker_ids,
-                    speaker_embeddings=speaker_embeddings, 
-                    language_ids=language_ids, 
-                    speaker_embeddings=speaker_embeddings
+                    speaker_embeddings=speaker_embeddings,
+                    language_ids=language_ids,
+                    language_embeddings=language_embeddings,
                 )
                 decoder_backward_output = None
                 alignments_backward = None
@@ -252,8 +250,8 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
                 alignment_lengths,
                 alignments_backward,
                 text_lengths,
-                speaker_prediction, 
-                speaker_ids
+                speaker_prediction,
+                speaker_ids,
             )
 
         # check nan loss
@@ -432,7 +430,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 stop_targets,
                 speaker_ids,
                 language_ids,
-                speaker_embeddings, 
+                speaker_embeddings,
                 language_embeddings,
                 _,
                 _,
@@ -448,22 +446,23 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     stop_tokens,
                     decoder_backward_output,
                     alignments_backward,
+                    speaker_prediction,
                 ) = model(
-                    text_input, 
-                    text_lengths, 
-                    mel_input, 
-                    speaker_ids=speaker_ids, 
-                    language_ids=language_ids, 
-                    speaker_embeddings=speaker_embeddings
+                    text_input,
+                    text_lengths,
+                    mel_input,
+                    speaker_ids=speaker_ids,
+                    language_ids=language_ids,
+                    speaker_embeddings=speaker_embeddings,
                 )
             else:
-                decoder_output, postnet_output, alignments, stop_tokens = model(
-                    text_input, 
-                    text_lengths, 
-                    mel_input, 
-                    speaker_ids=speaker_ids, 
-                    language_ids=language_ids, 
-                    speaker_embeddings=speaker_embeddings
+                decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
+                    text_input,
+                    text_lengths,
+                    mel_input,
+                    speaker_ids=speaker_ids,
+                    language_ids=language_ids,
+                    speaker_embeddings=speaker_embeddings,
                 )
                 decoder_backward_output = None
                 alignments_backward = None
@@ -491,7 +490,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 alignments_backward,
                 text_lengths,
                 speaker_prediction,
-                speaker_ids
+                speaker_ids,
             )
 
             # step time
@@ -644,7 +643,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
-    #meta_data_train = random.sample(meta_data_train, len(meta_data_train)//64) #to speedup train phase for dev purposes
+    # meta_data_train = random.sample(meta_data_train, len(meta_data_train)//64) #to speedup train phase for dev purposes
 
     # set the portion of the data used for training
     if "train_portion" in c.keys():
