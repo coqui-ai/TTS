@@ -9,12 +9,12 @@ import numpy as np
 from .text import text_to_sequence, phoneme_to_sequence
 
 
-def text_to_seqvec(text, CONFIG):
+def text_to_seqvec(text, CONFIG, language=None):
     text_cleaner = [CONFIG.text_cleaner]
     # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
         seq = np.asarray(
-            phoneme_to_sequence(text, text_cleaner, CONFIG.phoneme_language,
+            phoneme_to_sequence(text, text_cleaner, language if language else CONFIG.phoneme_language,
                                 CONFIG.enable_eos_bos_chars,
                                 tp=CONFIG.characters if 'characters' in CONFIG.keys() else None,
                                 add_blank=CONFIG['add_blank'] if 'add_blank' in CONFIG.keys() else False),
@@ -207,6 +207,7 @@ def synthesis(model,
               ap,
               speaker_id=None,
               language_id=None,
+              language_mapping=None,
               style_wav=None,
               truncated=False,
               enable_eos_bos_chars=False, #pylint: disable=unused-argument
@@ -240,14 +241,17 @@ def synthesis(model,
         else:
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
     # preprocess the given text
-    inputs = text_to_seqvec(text, CONFIG)
+    language = None
+    if language_mapping and language_id is not None:
+        language = list(language_mapping.keys())[list(language_mapping.values()).index(language_id)]
+    inputs = text_to_seqvec(text, CONFIG, language=language)
     # pass tensors to backend
     if backend == 'torch':
         if speaker_id is not None:
-            speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
+            speaker_id = id_to_torch([speaker_id], cuda=use_cuda)
 
         if language_id is not None:
-            language_id = id_to_torch(language_id, cuda=use_cuda)
+            language_id = id_to_torch([language_id], cuda=use_cuda)
 
         if speaker_embedding is not None:
             speaker_embedding = embedding_to_torch(speaker_embedding, cuda=use_cuda)
