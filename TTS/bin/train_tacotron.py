@@ -111,9 +111,7 @@ def format_data(data):
     if c.use_language_embedding:
         language_ids = [language_mapping[language_name] for language_name in language_names]
         language_ids = torch.LongTensor(language_ids)
-        language_embeddings = None
     else:
-        language_embeddings = None
         language_ids = None
 
     # set stop targets view, we predict a single stop token per iteration.
@@ -134,8 +132,6 @@ def format_data(data):
             speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
         if language_ids is not None:
             language_ids = language_ids.cuda(non_blocking=True)
-        if language_embeddings is not None:
-            language_embeddings = language_embeddings.cuda(non_blocking=True)
 
     return (
         text_input,
@@ -147,7 +143,6 @@ def format_data(data):
         speaker_ids,
         language_ids,
         speaker_embeddings,
-        language_embeddings,
         max_text_length,
         max_spec_length,
     )
@@ -177,7 +172,6 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
             speaker_ids,
             language_ids,
             speaker_embeddings,
-            language_embeddings,
             max_text_length,
             max_spec_length,
         ) = format_data(data)
@@ -212,7 +206,6 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
                     speaker_ids=speaker_ids,
                     speaker_embeddings=speaker_embeddings,
                     language_ids=language_ids,
-                    language_embeddings=language_embeddings,
                 )
             else:
                 decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
@@ -223,7 +216,6 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
                     speaker_ids=speaker_ids,
                     speaker_embeddings=speaker_embeddings,
                     language_ids=language_ids,
-                    language_embeddings=language_embeddings,
                 )
                 decoder_backward_output = None
                 alignments_backward = None
@@ -431,7 +423,6 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 speaker_ids,
                 language_ids,
                 speaker_embeddings,
-                language_embeddings,
                 _,
                 _,
             ) = format_data(data)
@@ -582,7 +573,6 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             else None
         )
         language_id = 1 if c.use_language_embedding else None
-        language_embedding = None
         style_wav = c.get("gst_style_input")
         if style_wav is None and c.use_gst:
             # inicialize GST with zero dict.
