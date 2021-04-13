@@ -5,7 +5,7 @@ import os
 import sys
 import time
 import traceback
-from random import randrange
+import random
 
 import numpy as np
 import torch
@@ -568,7 +568,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         print(" | > Synthesizing test sentences")
         speaker_id = 0 if c.use_speaker_embedding else None
         speaker_embedding = (
-            speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping) - 1)]]["embedding"]
+            speaker_mapping[list(speaker_mapping.keys())[random.randrange(len(speaker_mapping) - 1)]]["embedding"]
             if c.use_external_speaker_embedding_file and c.use_speaker_embedding
             else None
         )
@@ -633,7 +633,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
-    # meta_data_train = random.sample(meta_data_train, len(meta_data_train)//64) #to speedup train phase for dev purposes
+    # meta_data_train = random.sample(meta_data_train, len(meta_data_train)//64)  # to speedup train phase for dev purposes
 
     # set the portion of the data used for training
     if "train_portion" in c.keys():
