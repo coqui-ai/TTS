@@ -136,9 +136,9 @@ class MyDataset(Dataset):
         item = self.items[idx]
 
         if len(item) == 5:
-            text, wav_file, speaker_name, lang_name, attn_file = item
+            text, wav_file, speaker_name, language_name, attn_file = item
         else:
-            text, wav_file, speaker_name, lang_name = item
+            text, wav_file, speaker_name, language_name = item
             attn = None
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
@@ -152,7 +152,7 @@ class MyDataset(Dataset):
                 text = self._load_or_generate_phoneme_sequence(
                     wav_file, text, self.phoneme_cache_path,
                     self.enable_eos_bos, self.cleaners, 
-                    lang_name if lang_name else self.phoneme_language,
+                    language_name if language_name else self.phoneme_language,
                     self.tp, self.add_blank)
 
             else:
@@ -179,7 +179,7 @@ class MyDataset(Dataset):
             'attn': attn,
             'item_idx': self.items[idx][1],
             'speaker_name': speaker_name,
-            'lang_name': lang_name,
+            'language_name': language_name,
             'wav_file_name': os.path.basename(wav_file)
         }
         return sample
@@ -295,8 +295,8 @@ class MyDataset(Dataset):
                 batch[idx]['speaker_name'] for idx in ids_sorted_decreasing
             ]
 
-            lang_name = [
-                batch[idx]['lang_name'] for idx in ids_sorted_decreasing
+            language_name = [
+                batch[idx]['language_name'] for idx in ids_sorted_decreasing
             ]
             # get speaker embeddings
             if self.speaker_mapping is not None:
@@ -369,7 +369,7 @@ class MyDataset(Dataset):
             else:
                 attns = None
             return text, text_lenghts, speaker_name, linear, mel, mel_lengths, \
-                   stop_targets, lang_name, item_idxs, speaker_embedding, attns
+                   stop_targets, language_name, item_idxs, speaker_embedding, attns
 
         raise TypeError(("batch must contain tensors, numbers, dicts or lists;\
                          found {}".format(type(batch[0]))))

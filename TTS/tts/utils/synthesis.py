@@ -54,18 +54,18 @@ def compute_style_mel(style_wav, ap, cuda=False):
     return style_mel
 
 
-def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, lang_id=None, style_mel=None, speaker_embeddings=None):
+def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, language_id=None, style_mel=None, speaker_embeddings=None):
     if 'tacotron' in CONFIG.model.lower():
         if CONFIG.use_gst:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-                inputs, style_mel=style_mel, speaker_ids=speaker_id, lang_ids=lang_id, speaker_embeddings=speaker_embeddings)
+                inputs, style_mel=style_mel, speaker_ids=speaker_id, language_ids=language_id, speaker_embeddings=speaker_embeddings)
         else:
             if truncated:
                 decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
-                    inputs, speaker_ids=speaker_id, lang_ids=lang_id, speaker_embeddings=speaker_embeddings)
+                    inputs, speaker_ids=speaker_id, language_ids=language_id, speaker_embeddings=speaker_embeddings)
             else:
                 decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-                    inputs, speaker_ids=speaker_id, lang_ids=lang_id, speaker_embeddings=speaker_embeddings)
+                    inputs, speaker_ids=speaker_id, language_ids=language_id, speaker_embeddings=speaker_embeddings)
     elif 'glow' in CONFIG.model.lower():
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, 'module'):
@@ -206,7 +206,7 @@ def synthesis(model,
               use_cuda,
               ap,
               speaker_id=None,
-              lang_id=None,
+              language_id=None,
               style_wav=None,
               truncated=False,
               enable_eos_bos_chars=False, #pylint: disable=unused-argument
@@ -224,7 +224,7 @@ def synthesis(model,
             ap (TTS.tts.utils.audio.AudioProcessor): audio processor to process
                 model outputs.
             speaker_id (int): id of speaker
-            lang_id (int): id of language
+            language_id (int): id of language
             style_wav (str | Dict[str, float]): Uses for style embedding of GST.
             truncated (bool): keep model states after inference. It can be used
                 for continuous inference at long texts.
@@ -246,8 +246,8 @@ def synthesis(model,
         if speaker_id is not None:
             speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
 
-        if lang_id is not None:
-            lang_id = id_to_torch(lang_id, cuda=use_cuda)
+        if language_id is not None:
+            language_id = id_to_torch(language_id, cuda=use_cuda)
 
         if speaker_embedding is not None:
             speaker_embedding = embedding_to_torch(speaker_embedding, cuda=use_cuda)
@@ -268,7 +268,7 @@ def synthesis(model,
     # synthesize voice
     if backend == 'torch':
         decoder_output, postnet_output, alignments, stop_tokens = run_model_torch(
-            model, inputs, CONFIG, truncated, speaker_id, lang_id, style_mel, speaker_embeddings=speaker_embedding)
+            model, inputs, CONFIG, truncated, speaker_id, language_id, style_mel, speaker_embeddings=speaker_embedding)
         postnet_output, decoder_output, alignment, stop_tokens = parse_outputs_torch(
             postnet_output, decoder_output, alignments, stop_tokens)
     elif backend == 'tf':

@@ -83,12 +83,12 @@ class Encoder(nn.Module):
         - input: (B, C_in, T)
         - output: (B, C_in, T)
     """
-    def __init__(self, in_out_channels=512, num_langs=None, langs_embedding_dim=None):
+    def __init__(self, in_out_channels=512, num_langs=None, language_embedding_dim=None):
         super(Encoder, self).__init__()
         self.convolutions = nn.ModuleList()
-        if num_langs and langs_embedding_dim:
-            self._language_embedding = nn.Embedding(num_langs, langs_embedding_dim)
-            in_out_channels += langs_embedding_dim
+        if num_langs and language_embedding_dim:
+            self._language_embedding = nn.Embedding(num_langs, language_embedding_dim)
+            in_out_channels += language_embedding_dim
             pass
         for _ in range(3):
             self.convolutions.append(
@@ -101,9 +101,9 @@ class Encoder(nn.Module):
                             bidirectional=True)
         self.rnn_state = None
 
-    def forward(self, x, input_lengths, lang_ids=None):
-        if lang_ids is not None:
-            l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+    def forward(self, x, input_lengths, language_ids=None):
+        if language_ids is not None:
+            l = self._language_embedding(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
             x = torch.cat((x, l), dim=1)
         o = x
         for layer in self.convolutions:
@@ -117,9 +117,9 @@ class Encoder(nn.Module):
         o, _ = nn.utils.rnn.pad_packed_sequence(o, batch_first=True)
         return o
 
-    def inference(self, x, lang_ids=None):
-        if lang_ids is not None:
-            l = self._language_embedding(lang_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+    def inference(self, x, language_ids=None):
+        if language_ids is not None:
+            l = self._language_embedding(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
             x = torch.cat((x, l), dim=1)
         o = x
         for layer in self.convolutions:

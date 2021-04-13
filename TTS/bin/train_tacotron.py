@@ -90,7 +90,7 @@ def format_data(data):
     mel_input = data[4]
     mel_lengths = data[5]
     stop_targets = data[6]
-    lang_names = data[7]
+    language_names = data[7]
     max_text_length = torch.max(text_lengths.float())
     max_spec_length = torch.max(mel_lengths.float())
 
@@ -109,14 +109,14 @@ def format_data(data):
         speaker_ids = None
 
     if c.use_language_embedding:
-        lang_ids = [
-            lang_mapping[lang_name] for lang_name in lang_names
+        language_ids = [
+            language_mapping[language_name] for language_name in language_names
         ]
-        lang_ids = torch.LongTensor(lang_ids)
-        lang_embeddings = None
+        language_ids = torch.LongTensor(language_ids)
+        language_embeddings = None
     else:
-        lang_embeddings = None
-        lang_ids = None
+        language_embeddings = None
+        language_ids = None
     
 
 
@@ -138,12 +138,12 @@ def format_data(data):
             speaker_ids = speaker_ids.cuda(non_blocking=True)
         if speaker_embeddings is not None:
             speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
-        if lang_ids is not None:
-            lang_ids = lang_ids.cuda(non_blocking=True)
-        if lang_embeddings is not None:
-            lang_embeddings = lang_embeddings.cuda(non_blocking=True)
+        if language_ids is not None:
+            language_ids = language_ids.cuda(non_blocking=True)
+        if language_embeddings is not None:
+            language_embeddings = language_embeddings.cuda(non_blocking=True)
 
-    return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, lang_ids, speaker_embeddings, lang_embeddings, max_text_length, max_spec_length
+    return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, language_ids, speaker_embeddings, language_embeddings, max_text_length, max_spec_length
 
 
 def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
@@ -162,7 +162,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
         start_time = time.time()
 
         # format data
-        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, lang_ids, speaker_embeddings, lang_embeddings, max_text_length, max_spec_length = format_data(data)
+        text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, language_ids, speaker_embeddings, language_embeddings, max_text_length, max_spec_length = format_data(data)
         loader_time = time.time() - end_time
 
         global_step += 1
@@ -179,10 +179,10 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
             # forward pass model
             if c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, language_ids=language_ids, speaker_embeddings=speaker_embeddings)
             else:
                 decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, language_ids=language_ids, speaker_embeddings=speaker_embeddings)
                 decoder_backward_output = None
                 alignments_backward = None
 
@@ -357,16 +357,16 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, lang_ids, speaker_embeddings, lang_embeddings, _, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, language_ids, speaker_embeddings, language_embeddings, _, _ = format_data(data)
             assert mel_input.shape[1] % model.decoder.r == 0
 
             # forward pass model
             if c.bidirectional_decoder or c.double_decoder_consistency:
                 decoder_output, postnet_output, alignments, stop_tokens, decoder_backward_output, alignments_backward, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, language_ids=language_ids, speaker_embeddings=speaker_embeddings)
             else:
                 decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
-                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, lang_ids=lang_ids, speaker_embeddings=speaker_embeddings)
+                    text_input, text_lengths, mel_input, speaker_ids=speaker_ids, language_ids=language_ids, speaker_embeddings=speaker_embeddings)
                 decoder_backward_output = None
                 alignments_backward = None
 
@@ -466,8 +466,8 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         print(" | > Synthesizing test sentences")
         speaker_id = [0] if c.use_speaker_embedding else None
         speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping)-1)]]['embedding'] if c.use_external_speaker_embedding_file and c.use_speaker_embedding else None
-        lang_id = [1] if c.use_language_embedding else None
-        lang_embedding = None
+        language_id = [1] if c.use_language_embedding else None
+        language_embedding = None
         style_wav = c.get("gst_style_input")
         if style_wav is None and c.use_gst:
             # inicialize GST with zero dict.
@@ -485,7 +485,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     use_cuda,
                     ap,
                     speaker_id=speaker_id,
-                    lang_id=lang_id,
+                    language_id=language_id,
                     speaker_embedding=speaker_embedding,
                     style_wav=style_wav,
                     truncated=False,
@@ -514,7 +514,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters, lang_mapping
+    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters, language_mapping
     # Audio processor
     ap = AudioProcessor(**c.audio)
 
@@ -542,9 +542,9 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # parse speakers
     num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
-    num_langs, langs_embedding_dim, lang_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
+    num_langs, language_embedding_dim, language_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
 
-    model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, langs_embedding_dim)
+    model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, language_embedding_dim)
 
     # scalers for mixed precision training
     scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None

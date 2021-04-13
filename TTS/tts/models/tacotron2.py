@@ -69,7 +69,7 @@ class Tacotron2(TacotronAbstract):
                  encoder_in_features=512,
                  decoder_in_features=512,
                  speaker_embedding_dim=None,
-                 langs_embedding_dim=None,
+                 language_embedding_dim=None,
                  gst=False,
                  gst_embedding_dim=512,
                  gst_num_heads=4,
@@ -98,9 +98,9 @@ class Tacotron2(TacotronAbstract):
 
         # 
         if num_langs > 1:
-            if not langs_embedding_dim:
-                langs_embedding_dim = num_langs
-            self.decoder_in_features += langs_embedding_dim
+            if not language_embedding_dim:
+                language_embedding_dim = num_langs
+            self.decoder_in_features += language_embedding_dim
 
         # adverserial speaker classifier
         self.reversal_classifier = reversal_classifier
@@ -119,7 +119,7 @@ class Tacotron2(TacotronAbstract):
 
         # base model layers
         if num_langs > 1:
-            self.encoder = Encoder(self.encoder_in_features, num_langs, langs_embedding_dim if langs_embedding_dim else num_langs)
+            self.encoder = Encoder(self.encoder_in_features, num_langs, language_embedding_dim if language_embedding_dim else num_langs)
         else:
             self.encoder = Encoder(self.encoder_in_features)
         self.decoder = Decoder(self.decoder_in_features, self.decoder_output_dim, r, attn_type, attn_win,
@@ -152,7 +152,7 @@ class Tacotron2(TacotronAbstract):
         mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
         return mel_outputs, mel_outputs_postnet, alignments
 
-    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, speaker_ids=None, lang_ids=None, speaker_embeddings=None):
+    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, speaker_ids=None, language_ids=None, speaker_embeddings=None):
         """
         Shapes:
             text: [B, T_in]
@@ -160,7 +160,7 @@ class Tacotron2(TacotronAbstract):
             mel_specs: [B, T_out, C]
             mel_lengths: [B]
             speaker_ids: [B, 1]
-            lang_ids: [B, 1]
+            language_ids: [B, 1]
             speaker_embeddings: [B, C]
         """
         # compute mask for padding
@@ -169,7 +169,7 @@ class Tacotron2(TacotronAbstract):
         # B x D_embed x T_in_max
         embedded_inputs = self.embedding(text).transpose(1, 2)
         # B x T_in_max x D_en
-        encoder_outputs = self.encoder(embedded_inputs, text_lengths, lang_ids=lang_ids)
+        encoder_outputs = self.encoder(embedded_inputs, text_lengths, language_ids=language_ids)
 
         speaker_prediction = self._reversal_classifier(encoder_outputs) if self.reversal_classifier else None
 
@@ -213,9 +213,9 @@ class Tacotron2(TacotronAbstract):
         return decoder_outputs, postnet_outputs, alignments, stop_tokens, speaker_prediction
 
     @torch.no_grad()
-    def inference(self, text, speaker_ids=None, lang_ids=None, style_mel=None, speaker_embeddings=None):
+    def inference(self, text, speaker_ids=None, language_ids=None, style_mel=None, speaker_embeddings=None):
         embedded_inputs = self.embedding(text).transpose(1, 2)
-        encoder_outputs = self.encoder.inference(embedded_inputs, lang_ids=lang_ids)
+        encoder_outputs = self.encoder.inference(embedded_inputs, language_ids=language_ids)
 
         if self.gst:
             # B x gst_dim
@@ -235,12 +235,12 @@ class Tacotron2(TacotronAbstract):
             decoder_outputs, postnet_outputs, alignments)
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
-    def inference_truncated(self, text, speaker_ids=None, lang_ids=None, style_mel=None, speaker_embeddings=None):
+    def inference_truncated(self, text, speaker_ids=None, language_ids=None, style_mel=None, speaker_embeddings=None):
         """
         Preserve model states for continuous inference
         """
         embedded_inputs = self.embedding(text).transpose(1, 2)
-        encoder_outputs = self.encoder.inference_truncated(embedded_inputs, lang_ids=lang_ids)
+        encoder_outputs = self.encoder.inference_truncated(embedded_inputs, language_ids=language_ids)
 
         if self.gst:
             # B x gst_dim

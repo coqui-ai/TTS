@@ -102,21 +102,21 @@ def parse_languages(c, args, meta_data_train, OUT_PATH):
         languages = get_languages(meta_data_train)
         if args.restore_path:
             prev_out_path = os.path.dirname(args.restore_path)
-            lang_mapping = load_language_mapping(prev_out_path)
-            langs_embedding_dim = None
-            assert all([language in lang_mapping
+            language_mapping = load_language_mapping(prev_out_path)
+            language_embedding_dim = None
+            assert all([language in language_mapping
                         for language in languages]), "As of now you, you cannot " \
                                                 "introduce new languages to " \
                                                 "a previously trained model."
         else:
-            lang_mapping = {name: i for i, name in enumerate(languages)}
-            langs_embedding_dim = None
+            language_mapping = {name: i for i, name in enumerate(languages)}
+            language_embedding_dim = None
         num_langs = len(languages)
-        save_language_mapping(OUT_PATH, lang_mapping)
+        save_language_mapping(OUT_PATH, language_mapping)
         print(" > Training with {} languages: {}".format(
             len(languages), ", ".join(languages)))
     else:
         num_langs = 0
-        lang_mapping = None
-        langs_embedding_dim = None
-    return num_langs, langs_embedding_dim, lang_mapping
+        language_mapping = None
+        language_embedding_dim = None
+    return num_langs, language_embedding_dim, language_mapping

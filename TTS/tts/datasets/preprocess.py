@@ -128,6 +128,7 @@ def mailabs(root_path, meta_files=None):
     else:
         csv_files = meta_files
     # meta_files = [f.strip() for f in meta_files.split(",")]
+    not_found_counter = 0
     items = []
     for csv_file in csv_files:
         txt_file = os.path.join(root_path, csv_file)
@@ -151,7 +152,9 @@ def mailabs(root_path, meta_files=None):
                     text = cols[1].strip()
                     items.append([text, wav_file, speaker_name])
                 else:
-                    print("> File %s does not exist!" %(wav_file))
+                    not_found_counter += 1
+    if not_found_counter:
+        print("> %s files are missing!" %(not_found_counter))
     return items
 
 
