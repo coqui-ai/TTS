@@ -95,6 +95,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
 - WaveRNN: [origin](https://github.com/fatchord/WaveRNN/)
 - WaveGrad: [paper](https://arxiv.org/abs/2009.00713)
+- HiFiGAN: [paper](https://arxiv.org/abs/2010.05646)
 
 You can also help us implement more models. Some 🐸TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
@@ -260,6 +261,7 @@ You can also enjoy Tensorboard,  if you point Tensorboard argument```--logdir```
 ### Acknowledgement
 - https://github.com/keithito/tacotron (Dataset pre-processing)
 - https://github.com/r9y9/tacotron_pytorch (Initial Tacotron architecture)
-- https://github.com/kan-bayashi/ParallelWaveGAN (vocoder library)
+- https://github.com/kan-bayashi/ParallelWaveGAN (GAN based vocoder library)
 - https://github.com/jaywalnut310/glow-tts (Original Glow-TTS implementation)
 - https://github.com/fatchord/WaveRNN/ (Original WaveRNN implementation)
+- https://arxiv.org/abs/2010.05646 (Original HiFiGAN implementation)
