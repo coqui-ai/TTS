@@ -103,7 +103,6 @@ class AudioProcessor(object):
         self.do_sound_norm = do_sound_norm
         self.stats_path = stats_path
         # setup exp_func for db to amp conversion
-        print(f"self.log_func = {log_func}")
         exec(f"self.log_func = {log_func}")  # pylint: disable=exec-used
         if self.log_func.__name__ == "log":
             self.exp_func = np.exp
