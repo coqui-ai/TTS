@@ -93,6 +93,7 @@ class Tacotron(TacotronAbstract):
             attn_norm,
             prenet_type,
             prenet_dropout,
+            prenet_dropout_at_inference,
             forward_attn,
             trans_agent,
             forward_attn_mask,
