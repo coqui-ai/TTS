@@ -87,7 +87,15 @@ class Prenet(nn.Module):
     """
 
     # pylint: disable=dangerous-default-value
-    def __init__(self, in_features, prenet_type="original", prenet_dropout=True, dropout_at_inference=False, out_features=[256, 256], bias=True):
+    def __init__(
+        self,
+        in_features,
+        prenet_type="original",
+        prenet_dropout=True,
+        dropout_at_inference=False,
+        out_features=[256, 256],
+        bias=True,
+    ):
         super().__init__()
         self.prenet_type = prenet_type
         self.prenet_dropout = prenet_dropout

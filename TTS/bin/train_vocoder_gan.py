@@ -445,7 +445,9 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
         # Sample audio
         predict_waveform = y_hat[0].squeeze(0).detach().cpu().numpy()
         real_waveform = y_G[0].squeeze(0).cpu().numpy()
-        tb_logger.tb_eval_audios(global_step, {"eval/audio": predict_waveform, "eval/real_waveformo": real_waveform}, c.audio["sample_rate"])
+        tb_logger.tb_eval_audios(
+            global_step, {"eval/audio": predict_waveform, "eval/real_waveformo": real_waveform}, c.audio["sample_rate"]
+        )
 
         tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
 

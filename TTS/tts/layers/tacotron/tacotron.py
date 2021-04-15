@@ -306,7 +306,6 @@ class Decoder(nn.Module):
         # processed_inputs, processed_memory -> |Attention| -> Attention, attention, RNN_State
         # attention_rnn generates queries for the attention mechanism
         self.attention_rnn = nn.GRUCell(in_channels + 128, self.query_dim)
-
         self.attention = init_attn(
             attn_type=attn_type,
             query_dim=self.query_dim,
