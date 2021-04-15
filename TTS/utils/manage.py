@@ -7,6 +7,7 @@ from shutil import copyfile
 
 import gdown
 import requests
+
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.io import load_config
 
@@ -22,12 +23,13 @@ class ModelManager(object):
     Args:
         models_file (str): path to .model.json
     """
+
     def __init__(self, models_file=None, output_prefix=None):
         super().__init__()
         if output_prefix is None:
-            self.output_prefix = get_user_data_dir('tts')
+            self.output_prefix = get_user_data_dir("tts")
         else:
-            self.output_prefix = os.path.join(output_prefix, 'tts')
+            self.output_prefix = os.path.join(output_prefix, "tts")
         self.url_prefix = "https://drive.google.com/uc?id="
         self.models_dict = None
         if models_file is not None:
@@ -72,7 +74,7 @@ class ModelManager(object):
                             print(f" >: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
                         else:
                             print(f" >: {model_type}/{lang}/{dataset}/{model}")
-                        models_name_list.append(f'{model_type}/{lang}/{dataset}/{model}')
+                        models_name_list.append(f"{model_type}/{lang}/{dataset}/{model}")
         return models_name_list
 
     def download_model(self, model_name):
@@ -104,25 +106,25 @@ class ModelManager(object):
         else:
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
-            output_stats_path = os.path.join(output_path, 'scale_stats.npy')
+            output_stats_path = os.path.join(output_path, "scale_stats.npy")
             # download files to the output path
-            if self._check_dict_key(model_item, 'github_rls_url'):
+            if self._check_dict_key(model_item, "github_rls_url"):
                 # download from github release
                 # TODO: pass output_path
-                self._download_zip_file(model_item['github_rls_url'], output_path)
+                self._download_zip_file(model_item["github_rls_url"], output_path)
             else:
                 # download from gdrive
-                self._download_gdrive_file(model_item['model_file'], output_model_path)
-                self._download_gdrive_file(model_item['config_file'], output_config_path)
-                if self._check_dict_key(model_item, 'stats_file'):
-                    self._download_gdrive_file(model_item['stats_file'], output_stats_path)
+                self._download_gdrive_file(model_item["model_file"], output_model_path)
+                self._download_gdrive_file(model_item["config_file"], output_config_path)
+                if self._check_dict_key(model_item, "stats_file"):
+                    self._download_gdrive_file(model_item["stats_file"], output_stats_path)
 
             # set the scale_path.npy file path in the model config.json
-            if self._check_dict_key(model_item, 'stats_file') or os.path.exists(output_stats_path):
+            if self._check_dict_key(model_item, "stats_file") or os.path.exists(output_stats_path):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
-                config["audio"]['stats_path'] = output_stats_path
+                config["audio"]["stats_path"] = output_stats_path
                 with open(config_path, "w") as jf:
                     json.dump(config, jf)
         return output_model_path, output_config_path, model_item

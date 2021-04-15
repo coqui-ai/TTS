@@ -4,7 +4,7 @@ from torch.nn.utils import weight_norm
 
 class ResidualStack(nn.Module):
     def __init__(self, channels, num_res_blocks, kernel_size):
-        super(ResidualStack, self).__init__()
+        super().__init__()
 
         assert (kernel_size - 1) % 2 == 0, " [!] kernel_size has to be odd."
         base_padding = (kernel_size - 1) // 2
@@ -12,26 +12,23 @@ class ResidualStack(nn.Module):
         self.blocks = nn.ModuleList()
         for idx in range(num_res_blocks):
             layer_kernel_size = kernel_size
-            layer_dilation = layer_kernel_size**idx
+            layer_dilation = layer_kernel_size ** idx
             layer_padding = base_padding * layer_dilation
-            self.blocks += [nn.Sequential(
-                nn.LeakyReLU(0.2),
-                nn.ReflectionPad1d(layer_padding),
-                weight_norm(
-                    nn.Conv1d(channels,
-                              channels,
-                              kernel_size=kernel_size,
-                              dilation=layer_dilation,
-                              bias=True)),
-                nn.LeakyReLU(0.2),
-                weight_norm(
-                    nn.Conv1d(channels, channels, kernel_size=1, bias=True)),
-            )]
+            self.blocks += [
+                nn.Sequential(
+                    nn.LeakyReLU(0.2),
+                    nn.ReflectionPad1d(layer_padding),
+                    weight_norm(
+                        nn.Conv1d(channels, channels, kernel_size=kernel_size, dilation=layer_dilation, bias=True)
+                    ),
+                    nn.LeakyReLU(0.2),
+                    weight_norm(nn.Conv1d(channels, channels, kernel_size=1, bias=True)),
+                )
+            ]
 
-        self.shortcuts = nn.ModuleList([
-            weight_norm(nn.Conv1d(channels, channels, kernel_size=1,
-                                  bias=True)) for i in range(num_res_blocks)
-        ])
+        self.shortcuts = nn.ModuleList(
+            [weight_norm(nn.Conv1d(channels, channels, kernel_size=1, bias=True)) for i in range(num_res_blocks)]
+        )
 
     def forward(self, x):
         for block, shortcut in zip(self.blocks, self.shortcuts):

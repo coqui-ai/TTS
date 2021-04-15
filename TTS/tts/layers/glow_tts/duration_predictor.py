@@ -14,6 +14,7 @@ class DurationPredictor(nn.Module):
             kernel_size ([type]): [description]
             dropout_p ([type]): [description]
     """
+
     def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p):
         super().__init__()
         # class arguments
@@ -23,15 +24,9 @@ class DurationPredictor(nn.Module):
         self.dropout_p = dropout_p
         # layers
         self.drop = nn.Dropout(dropout_p)
-        self.conv_1 = nn.Conv1d(in_channels,
-                                hidden_channels,
-                                kernel_size,
-                                padding=kernel_size // 2)
+        self.conv_1 = nn.Conv1d(in_channels, hidden_channels, kernel_size, padding=kernel_size // 2)
         self.norm_1 = LayerNorm(hidden_channels)
-        self.conv_2 = nn.Conv1d(hidden_channels,
-                                hidden_channels,
-                                kernel_size,
-                                padding=kernel_size // 2)
+        self.conv_2 = nn.Conv1d(hidden_channels, hidden_channels, kernel_size, padding=kernel_size // 2)
         self.norm_2 = LayerNorm(hidden_channels)
         # output layer
         self.proj = nn.Conv1d(hidden_channels, 1, 1)

@@ -4,19 +4,19 @@ import unittest
 
 import numpy as np
 import torch
-from tests import get_tests_input_path, get_tests_output_path
 from torch.utils.data import DataLoader
 
+from tests import get_tests_input_path, get_tests_output_path
 from TTS.tts.datasets import TTSDataset
 from TTS.tts.datasets.preprocess import ljspeech
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
 
-#pylint: disable=unused-variable
+# pylint: disable=unused-variable
 
 OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
-c = load_config(os.path.join(get_tests_input_path(), 'test_config.json'))
+c = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
 ok_ljspeech = os.path.exists(c.data_path)
 
 DATA_EXIST = True
@@ -28,30 +28,32 @@ print(" > Dynamic data loader test: {}".format(DATA_EXIST))
 
 class TestTTSDataset(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        super(TestTTSDataset, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.max_loader_iter = 4
         self.ap = AudioProcessor(**c.audio)
 
     def _create_dataloader(self, batch_size, r, bgs):
-        items = ljspeech(c.data_path, 'metadata.csv')
+        items = ljspeech(c.data_path, "metadata.csv")
         dataset = TTSDataset.MyDataset(
             r,
             c.text_cleaner,
             compute_linear_spec=True,
             ap=self.ap,
             meta_data=items,
-            tp=c.characters if 'characters' in c.keys() else None,
+            tp=c.characters if "characters" in c.keys() else None,
             batch_group_size=bgs,
             min_seq_len=c.min_seq_len,
             max_seq_len=float("inf"),
-            use_phonemes=False)
+            use_phonemes=False,
+        )
         dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=False,
             collate_fn=dataset.collate_fn,
             drop_last=True,
-            num_workers=c.num_loader_workers)
+            num_workers=c.num_loader_workers,
+        )
         return dataloader, dataset
 
     def test_loader(self):
@@ -72,18 +74,17 @@ class TestTTSDataset(unittest.TestCase):
 
                 neg_values = text_input[text_input < 0]
                 check_count = len(neg_values)
-                assert check_count == 0, \
-                    " !! Negative values in text_input: {}".format(check_count)
+                assert check_count == 0, " !! Negative values in text_input: {}".format(check_count)
                 # TODO: more assertion here
                 assert isinstance(speaker_name[0], str)
                 assert linear_input.shape[0] == c.batch_size
                 assert linear_input.shape[2] == self.ap.fft_size // 2 + 1
                 assert mel_input.shape[0] == c.batch_size
-                assert mel_input.shape[2] == c.audio['num_mels']
+                assert mel_input.shape[2] == c.audio["num_mels"]
                 # check normalization ranges
                 if self.ap.symmetric_norm:
                     assert mel_input.max() <= self.ap.max_norm
-                    assert mel_input.min() >= -self.ap.max_norm  #pylint: disable=invalid-unary-operand-type
+                    assert mel_input.min() >= -self.ap.max_norm  # pylint: disable=invalid-unary-operand-type
                     assert mel_input.min() < 0
                 else:
                     assert mel_input.max() <= self.ap.max_norm
@@ -134,7 +135,7 @@ class TestTTSDataset(unittest.TestCase):
 
                 # check mel_spec consistency
                 wav = np.asarray(self.ap.load_wav(item_idx[0]), dtype=np.float32)
-                mel = self.ap.melspectrogram(wav).astype('float32')
+                mel = self.ap.melspectrogram(wav).astype("float32")
                 mel = torch.FloatTensor(mel).contiguous()
                 mel_dl = mel_input[0]
                 # NOTE: Below needs to check == 0 but due to an unknown reason
@@ -145,15 +146,14 @@ class TestTTSDataset(unittest.TestCase):
                 # check mel-spec correctness
                 mel_spec = mel_input[0].cpu().numpy()
                 wav = self.ap.inv_melspectrogram(mel_spec.T)
-                self.ap.save_wav(wav, OUTPATH + '/mel_inv_dataloader.wav')
-                shutil.copy(item_idx[0], OUTPATH + '/mel_target_dataloader.wav')
+                self.ap.save_wav(wav, OUTPATH + "/mel_inv_dataloader.wav")
+                shutil.copy(item_idx[0], OUTPATH + "/mel_target_dataloader.wav")
 
                 # check linear-spec
                 linear_spec = linear_input[0].cpu().numpy()
                 wav = self.ap.inv_spectrogram(linear_spec.T)
-                self.ap.save_wav(wav, OUTPATH + '/linear_inv_dataloader.wav')
-                shutil.copy(item_idx[0],
-                            OUTPATH + '/linear_target_dataloader.wav')
+                self.ap.save_wav(wav, OUTPATH + "/linear_inv_dataloader.wav")
+                shutil.copy(item_idx[0], OUTPATH + "/linear_target_dataloader.wav")
 
                 # check the last time step to be zero padded
                 assert linear_input[0, -1].sum() != 0
@@ -202,8 +202,8 @@ class TestTTSDataset(unittest.TestCase):
                 # check the second itme in the batch
                 assert linear_input[1 - idx, -1].sum() == 0
                 assert mel_input[1 - idx, -1].sum() == 0
-                assert stop_target[1, mel_lengths[1]-1] == 1
-                assert stop_target[1, mel_lengths[1]:].sum() == 0
+                assert stop_target[1, mel_lengths[1] - 1] == 1
+                assert stop_target[1, mel_lengths[1] :].sum() == 0
                 assert len(mel_lengths.shape) == 1
 
                 # check batch zero-frame conditions (zero-frame disabled)

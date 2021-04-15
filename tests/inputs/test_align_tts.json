@@ -65,6 +65,7 @@
     // MODEL PARAMETERS
     "positional_encoding": true,
     "hidden_channels": 256,
+    "hidden_channels_dp": 256,
     "encoder_type": "fftransformer",
     "encoder_params":{
         "hidden_channels_ffn": 1024 ,
@@ -86,7 +87,7 @@
     "eval_batch_size":1,
     "r": 1,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
     "loss_masking": true,   // enable / disable loss masking against the sequence padding.
-    "phase_start_steps": [0, 40000, 80000, 160000, 170000],
+    "phase_start_steps": null,
 
 
     // LOSS PARAMETERS

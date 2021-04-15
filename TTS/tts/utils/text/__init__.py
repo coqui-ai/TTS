@@ -5,11 +5,10 @@ import re
 import phonemizer
 from packaging import version
 from phonemizer.phonemize import phonemize
-from TTS.tts.utils.text import cleaners
-from TTS.tts.utils.text.symbols import (_bos, _eos, _punctuations,
-                                        make_symbols, phonemes, symbols)
-from TTS.tts.utils.chinese_mandarin.phonemizer import chinese_text_to_phonemes
 
+from TTS.tts.utils.chinese_mandarin.phonemizer import chinese_text_to_phonemes
+from TTS.tts.utils.text import cleaners
+from TTS.tts.utils.text.symbols import _bos, _eos, _punctuations, make_symbols, phonemes, symbols
 
 # pylint: disable=unnecessary-comprehension
 # Mappings from symbol to numeric ID and vice versa:
@@ -22,14 +21,14 @@ _id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
 _symbols = symbols
 _phonemes = phonemes
 # Regular expression matching text enclosed in curly braces:
-_CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
+_CURLY_RE = re.compile(r"(.*?)\{(.+?)\}(.*)")
 
 # Regular expression matching punctuations, ignoring empty space
-PHONEME_PUNCTUATION_PATTERN = r'['+_punctuations.replace(' ', '')+']+'
+PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 
 
 def text2phone(text, language):
-    '''Convert graphemes to phonemes. For most of the languages, it calls
+    """Convert graphemes to phonemes. For most of the languages, it calls
     the phonemizer python library that calls espeak/espeak-ng. For chinese
     mandarin, it calls pypinyin + custom function for phonemizing
         Parameters:
@@ -38,59 +37,72 @@ def text2phone(text, language):
         Returns:
                 ph (str): phonemes as a string seperated by "|"
                         ph = "ɪ|g|ˈ|z|æ|m|p|ə|l"
-    '''
+    """
 
     # TO REVIEW : How to have a good implementation for this?
     if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
         return ph
 
-
-    seperator = phonemizer.separator.Separator(' |', '', '|')
-    #try:
+    seperator = phonemizer.separator.Separator(" |", "", "|")
+    # try:
     punctuations = re.findall(PHONEME_PUNCTUATION_PATTERN, text)
-    if version.parse(phonemizer.__version__) < version.parse('2.1'):
-        ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language)
-        ph = ph[:-1].strip() # skip the last empty character
+    if version.parse(phonemizer.__version__) < version.parse("2.1"):
+        ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend="espeak", language=language)
+        ph = ph[:-1].strip()  # skip the last empty character
         # phonemizer does not tackle punctuations. Here we do.
         # Replace \n with matching punctuations.
         if punctuations:
             # if text ends with a punctuation.
             if text[-1] == punctuations[-1]:
                 for punct in punctuations[:-1]:
-                    ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+                    ph = ph.replace("| |\n", "|" + punct + "| |", 1)
                     ph = ph + punctuations[-1]
             else:
                 for punct in punctuations:
-                    ph = ph.replace('| |\n', '|'+punct+'| |', 1)
-    elif version.parse(phonemizer.__version__) >= version.parse('2.1'):
-        ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language, preserve_punctuation=True, language_switch='remove-flags')
+                    ph = ph.replace("| |\n", "|" + punct + "| |", 1)
+    elif version.parse(phonemizer.__version__) >= version.parse("2.1"):
+        ph = phonemize(
+            text,
+            separator=seperator,
+            strip=False,
+            njobs=1,
+            backend="espeak",
+            language=language,
+            preserve_punctuation=True,
+            language_switch="remove-flags",
+        )
         # this is a simple fix for phonemizer.
         # https://github.com/bootphon/phonemizer/issues/32
         if punctuations:
             for punctuation in punctuations:
-                ph = ph.replace(f"| |{punctuation} ", f"|{punctuation}| |").replace(f"| |{punctuation}", f"|{punctuation}| |")
+                ph = ph.replace(f"| |{punctuation} ", f"|{punctuation}| |").replace(
+                    f"| |{punctuation}", f"|{punctuation}| |"
+                )
             ph = ph[:-3]
     else:
         raise RuntimeError(" [!] Use 'phonemizer' version 2.1 or older.")
 
     return ph
 
+
 def intersperse(sequence, token):
     result = [token] * (len(sequence) * 2 + 1)
     result[1::2] = sequence
     return result
 
+
 def pad_with_eos_bos(phoneme_sequence, tp=None):
     # pylint: disable=global-statement
     global _phonemes_to_id, _bos, _eos
     if tp:
-        _bos = tp['bos']
-        _eos = tp['eos']
+        _bos = tp["bos"]
+        _eos = tp["eos"]
         _, _phonemes = make_symbols(**tp)
         _phonemes_to_id = {s: i for i, s in enumerate(_phonemes)}
 
     return [_phonemes_to_id[_bos]] + list(phoneme_sequence) + [_phonemes_to_id[_eos]]
+
 
 def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None, add_blank=False):
     # pylint: disable=global-statement
@@ -105,23 +117,23 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
     if to_phonemes is None:
         print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
     # iterate by skipping empty strings - NOTE: might be useful to keep it to have a better intonation.
-    for phoneme in filter(None, to_phonemes.split('|')):
+    for phoneme in filter(None, to_phonemes.split("|")):
         sequence += _phoneme_to_sequence(phoneme)
     # Append EOS char
     if enable_eos_bos:
         sequence = pad_with_eos_bos(sequence, tp=tp)
     if add_blank:
-        sequence = intersperse(sequence, len(_phonemes)) # add a blank token (new), whose id number is len(_phonemes)
+        sequence = intersperse(sequence, len(_phonemes))  # add a blank token (new), whose id number is len(_phonemes)
     return sequence
 
 
 def sequence_to_phoneme(sequence, tp=None, add_blank=False):
     # pylint: disable=global-statement
-    '''Converts a sequence of IDs back to a string'''
+    """Converts a sequence of IDs back to a string"""
     global _id_to_phonemes, _phonemes
     if add_blank:
         sequence = list(filter(lambda x: x != len(_phonemes), sequence))
-    result = ''
+    result = ""
     if tp:
         _, _phonemes = make_symbols(**tp)
         _id_to_phonemes = {i: s for i, s in enumerate(_phonemes)}
@@ -130,22 +142,23 @@ def sequence_to_phoneme(sequence, tp=None, add_blank=False):
         if symbol_id in _id_to_phonemes:
             s = _id_to_phonemes[symbol_id]
             result += s
-    return result.replace('}{', ' ')
+    return result.replace("}{", " ")
 
 
 def text_to_sequence(text, cleaner_names, tp=None, add_blank=False):
-    '''Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
+    """Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
 
-      The text can optionally have ARPAbet sequences enclosed in curly braces embedded
-      in it. For example, "Turn left on {HH AW1 S S T AH0 N} Street."
+    The text can optionally have ARPAbet sequences enclosed in curly braces embedded
+    in it. For example, "Turn left on {HH AW1 S S T AH0 N} Street."
 
-      Args:
-        text: string to convert to a sequence
-        cleaner_names: names of the cleaner functions to run the text through
+    Args:
+      text: string to convert to a sequence
+      cleaner_names: names of the cleaner functions to run the text through
+      tp: dictionary of character parameters to use a custom character set.
 
-      Returns:
-        List of integers corresponding to the symbols in the text
-    '''
+    Returns:
+      List of integers corresponding to the symbols in the text
+    """
     # pylint: disable=global-statement
     global _symbol_to_id, _symbols
     if tp:
@@ -159,18 +172,17 @@ def text_to_sequence(text, cleaner_names, tp=None, add_blank=False):
         if not m:
             sequence += _symbols_to_sequence(_clean_text(text, cleaner_names))
             break
-        sequence += _symbols_to_sequence(
-            _clean_text(m.group(1), cleaner_names))
+        sequence += _symbols_to_sequence(_clean_text(m.group(1), cleaner_names))
         sequence += _arpabet_to_sequence(m.group(2))
         text = m.group(3)
 
     if add_blank:
-        sequence = intersperse(sequence, len(_symbols)) # add a blank token (new), whose id number is len(_symbols)
+        sequence = intersperse(sequence, len(_symbols))  # add a blank token (new), whose id number is len(_symbols)
     return sequence
 
 
 def sequence_to_text(sequence, tp=None, add_blank=False):
-    '''Converts a sequence of IDs back to a string'''
+    """Converts a sequence of IDs back to a string"""
     # pylint: disable=global-statement
     global _id_to_symbol, _symbols
     if add_blank:
@@ -180,22 +192,22 @@ def sequence_to_text(sequence, tp=None, add_blank=False):
         _symbols, _ = make_symbols(**tp)
         _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
 
-    result = ''
+    result = ""
     for symbol_id in sequence:
         if symbol_id in _id_to_symbol:
             s = _id_to_symbol[symbol_id]
             # Enclose ARPAbet back in curly braces:
-            if len(s) > 1 and s[0] == '@':
-                s = '{%s}' % s[1:]
+            if len(s) > 1 and s[0] == "@":
+                s = "{%s}" % s[1:]
             result += s
-    return result.replace('}{', ' ')
+    return result.replace("}{", " ")
 
 
 def _clean_text(text, cleaner_names):
     for name in cleaner_names:
         cleaner = getattr(cleaners, name)
         if not cleaner:
-            raise Exception('Unknown cleaner: %s' % name)
+            raise Exception("Unknown cleaner: %s" % name)
         text = cleaner(text)
     return text
 
@@ -209,12 +221,12 @@ def _phoneme_to_sequence(phons):
 
 
 def _arpabet_to_sequence(text):
-    return _symbols_to_sequence(['@' + s for s in text.split()])
+    return _symbols_to_sequence(["@" + s for s in text.split()])
 
 
 def _should_keep_symbol(s):
-    return s in _symbol_to_id and s not in ['~', '^', '_']
+    return s in _symbol_to_id and s not in ["~", "^", "_"]
 
 
 def _should_keep_phoneme(p):
-    return p in _phonemes_to_id and p not in ['~', '^', '_']
+    return p in _phonemes_to_id and p not in ["~", "^", "_"]

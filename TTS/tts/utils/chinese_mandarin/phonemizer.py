@@ -1,17 +1,13 @@
 from typing import List
 
+import jieba
 import pypinyin
 
 from .pinyinToPhonemes import PINYIN_DICT
 
 
-import jieba
-
-
 def _chinese_character_to_pinyin(text: str) -> List[str]:
-    pinyins = pypinyin.pinyin(
-        text, style=pypinyin.Style.TONE3, heteronym=False, neutral_tone_with_five=True
-    )
+    pinyins = pypinyin.pinyin(text, style=pypinyin.Style.TONE3, heteronym=False, neutral_tone_with_five=True)
     pinyins_flat_list = [item for sublist in pinyins for item in sublist]
     return pinyins_flat_list
 
