@@ -12,9 +12,9 @@
             "ljspeech":{
                 "tacotron2-DDC": {
                     "description": "Tacotron2 with Double Decoder Consistency.",
-                    "github_rls_url": "",
-                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
-                    "commit": "",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/untagged-f1622e6df45e9f07b766/tts_models--en--ljspeech--tacotron2-DDC.zip",
+                    "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
+                    "commit": "bae2ad0f",
                     "author": "Eren Gölge @erogol",
                     "license": "",
                     "contact":"egolge@coqui.com"
@@ -45,15 +45,6 @@
                     "commit": "77b6145",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
-                    "contact":"egolge@coqui.com"
-                },
-                "align-tts":{
-                    "description": "AlignTTS models as explain in https://arxiv.org/abs/2003.01950",
-                    "github_rls_url": "",
-                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
-                    "commit": "",
-                    "author": "Eren Gölge @erogol",
-                    "license": "",
                     "contact":"egolge@coqui.com"
                 }
             }
@@ -140,14 +131,6 @@
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
-                },
-                "hifigan_v1":{
-                    "description": "HiFiGAN_v1 universal vocoder from https://arxiv.org/abs/2010.05646.",
-                    "github_rls_url": "",
-                    "commit": "4132240",
-                    "author": "@jik876",
-                    "license": "MIT",
-                    "contact":""
                 }
             }
         },
@@ -166,15 +149,14 @@
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
-                }
-            },
-            "sam":{
-                "hifigan":{
-                    "github_rls_url": "",
-                    "commit": "",
-                    "author": "Eren Gölge @erogol",
-                    "license": "Apache 2.0",
-                    "contact":"egolge@coqui.com"
+                },
+                "hifigan_v2":{
+                    "description": "HiFiGAN_v2 LJSpeech vocoder from https://arxiv.org/abs/2010.05646.",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/untagged-fb45647fd183a241dda1/vocoder_model--en--ljspeech-hifigan_v2.zip",
+                    "commit": "bae2ad0f",
+                    "author": "@erogol",
+                    "license": "",
+                    "contact": "egolge@coqui.ai"
                 }
             }
         },
