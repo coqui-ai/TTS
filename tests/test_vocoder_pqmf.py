@@ -1,12 +1,11 @@
 import os
-import torch
 
 import soundfile as sf
+import torch
 from librosa.core import load
 
-from tests import get_tests_path, get_tests_input_path, get_tests_output_path
+from tests import get_tests_input_path, get_tests_output_path, get_tests_path
 from TTS.vocoder.layers.pqmf import PQMF
-
 
 TESTS_PATH = get_tests_path()
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
@@ -24,5 +23,4 @@ def test_pqmf():
     print(w2_.max())
     print(w2_.min())
     print(w2_.mean())
-    sf.write(os.path.join(get_tests_output_path(), 'pqmf_output.wav'),
-             w2_.flatten().detach(), sr)
+    sf.write(os.path.join(get_tests_output_path(), "pqmf_output.wav"), w2_.flatten().detach(), sr)

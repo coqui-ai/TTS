@@ -4,31 +4,31 @@ from torch.nn import functional as F
 
 class Stretch2d(torch.nn.Module):
     def __init__(self, x_scale, y_scale, mode="nearest"):
-        super(Stretch2d, self).__init__()
+        super().__init__()
         self.x_scale = x_scale
         self.y_scale = y_scale
         self.mode = mode
 
     def forward(self, x):
         """
-            x (Tensor): Input tensor (B, C, F, T).
-            Tensor: Interpolated tensor (B, C, F * y_scale, T * x_scale),
+        x (Tensor): Input tensor (B, C, F, T).
+        Tensor: Interpolated tensor (B, C, F * y_scale, T * x_scale),
         """
-        return F.interpolate(
-            x, scale_factor=(self.y_scale, self.x_scale), mode=self.mode)
+        return F.interpolate(x, scale_factor=(self.y_scale, self.x_scale), mode=self.mode)
 
 
 class UpsampleNetwork(torch.nn.Module):
     # pylint: disable=dangerous-default-value
-    def __init__(self,
-                 upsample_factors,
-                 nonlinear_activation=None,
-                 nonlinear_activation_params={},
-                 interpolate_mode="nearest",
-                 freq_axis_kernel_size=1,
-                 use_causal_conv=False,
-                 ):
-        super(UpsampleNetwork, self).__init__()
+    def __init__(
+        self,
+        upsample_factors,
+        nonlinear_activation=None,
+        nonlinear_activation_params={},
+        interpolate_mode="nearest",
+        freq_axis_kernel_size=1,
+        use_causal_conv=False,
+    ):
+        super().__init__()
         self.use_causal_conv = use_causal_conv
         self.up_layers = torch.nn.ModuleList()
         for scale in upsample_factors:
@@ -54,8 +54,8 @@ class UpsampleNetwork(torch.nn.Module):
 
     def forward(self, c):
         """
-            c :  (B, C, T_in).
-            Tensor: (B, C, T_upsample)
+        c :  (B, C, T_in).
+        Tensor: (B, C, T_upsample)
         """
         c = c.unsqueeze(1)  # (B, 1, C, T)
         for f in self.up_layers:
@@ -65,17 +65,18 @@ class UpsampleNetwork(torch.nn.Module):
 
 class ConvUpsample(torch.nn.Module):
     # pylint: disable=dangerous-default-value
-    def __init__(self,
-                 upsample_factors,
-                 nonlinear_activation=None,
-                 nonlinear_activation_params={},
-                 interpolate_mode="nearest",
-                 freq_axis_kernel_size=1,
-                 aux_channels=80,
-                 aux_context_window=0,
-                 use_causal_conv=False
-                 ):
-        super(ConvUpsample, self).__init__()
+    def __init__(
+        self,
+        upsample_factors,
+        nonlinear_activation=None,
+        nonlinear_activation_params={},
+        interpolate_mode="nearest",
+        freq_axis_kernel_size=1,
+        aux_channels=80,
+        aux_context_window=0,
+        use_causal_conv=False,
+    ):
+        super().__init__()
         self.aux_context_window = aux_context_window
         self.use_causal_conv = use_causal_conv and aux_context_window > 0
         # To capture wide-context information in conditional features
@@ -97,5 +98,5 @@ class ConvUpsample(torch.nn.Module):
         Tensor: (B, C, T_upsampled),
         """
         c_ = self.conv_in(c)
-        c = c_[:, :, :-self.aux_context_window] if self.use_causal_conv else c_
+        c = c_[:, :, : -self.aux_context_window] if self.use_causal_conv else c_
         return self.upsample(c)

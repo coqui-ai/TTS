@@ -1,8 +1,8 @@
 from torch import nn
 
-from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
-from TTS.tts.layers.generic.res_conv_bn import  ResidualConv1dBNBlock
+from TTS.tts.layers.generic.res_conv_bn import ResidualConv1dBNBlock
 from TTS.tts.layers.generic.transformer import FFTransformerBlock
+from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 
 
 class RelativePositionTransformerEncoder(nn.Module):
@@ -16,17 +16,19 @@ class RelativePositionTransformerEncoder(nn.Module):
         hidden_channels (int): number of hidden channels
         params (dict): dictionary for residual convolutional blocks.
     """
+
     def __init__(self, in_channels, out_channels, hidden_channels, params):
         super().__init__()
-        self.prenet = ResidualConv1dBNBlock(in_channels,
-                                            hidden_channels,
-                                            hidden_channels,
-                                            kernel_size=5,
-                                            num_res_blocks=3,
-                                            num_conv_blocks=1,
-                                            dilations=[1, 1, 1])
-        self.rel_pos_transformer = RelativePositionTransformer(
-            hidden_channels, out_channels, hidden_channels, **params)
+        self.prenet = ResidualConv1dBNBlock(
+            in_channels,
+            hidden_channels,
+            hidden_channels,
+            kernel_size=5,
+            num_res_blocks=3,
+            num_conv_blocks=1,
+            dilations=[1, 1, 1],
+        )
+        self.rel_pos_transformer = RelativePositionTransformer(hidden_channels, out_channels, hidden_channels, **params)
 
     def forward(self, x, x_mask=None, g=None):  # pylint: disable=unused-argument
         if x_mask is None:
@@ -47,20 +49,20 @@ class ResidualConv1dBNEncoder(nn.Module):
         hidden_channels (int): number of hidden channels
         params (dict): dictionary for residual convolutional blocks.
     """
+
     def __init__(self, in_channels, out_channels, hidden_channels, params):
         super().__init__()
-        self.prenet = nn.Sequential(nn.Conv1d(in_channels, hidden_channels, 1),
-                                    nn.ReLU())
-        self.res_conv_block = ResidualConv1dBNBlock(hidden_channels,
-                                                    hidden_channels,
-                                                    hidden_channels, **params)
+        self.prenet = nn.Sequential(nn.Conv1d(in_channels, hidden_channels, 1), nn.ReLU())
+        self.res_conv_block = ResidualConv1dBNBlock(hidden_channels, hidden_channels, hidden_channels, **params)
 
-        self.postnet = nn.Sequential(*[
-            nn.Conv1d(hidden_channels, hidden_channels, 1),
-            nn.ReLU(),
-            nn.BatchNorm1d(hidden_channels),
-            nn.Conv1d(hidden_channels, out_channels, 1)
-        ])
+        self.postnet = nn.Sequential(
+            *[
+                nn.Conv1d(hidden_channels, hidden_channels, 1),
+                nn.ReLU(),
+                nn.BatchNorm1d(hidden_channels),
+                nn.Conv1d(hidden_channels, out_channels, 1),
+            ]
+        )
 
     def forward(self, x, x_mask=None, g=None):  # pylint: disable=unused-argument
         if x_mask is None:
@@ -115,18 +117,15 @@ class Encoder(nn.Module):
         }
         ```
     """
+
     def __init__(
-            self,
-            in_hidden_channels,
-            out_channels,
-            encoder_type='residual_conv_bn',
-            encoder_params={
-                "kernel_size": 4,
-                "dilations": 4 * [1, 2, 4] + [1],
-                "num_conv_blocks": 2,
-                "num_res_blocks": 13
-            },
-            c_in_channels=0):
+        self,
+        in_hidden_channels,
+        out_channels,
+        encoder_type="residual_conv_bn",
+        encoder_params={"kernel_size": 4, "dilations": 4 * [1, 2, 4] + [1], "num_conv_blocks": 2, "num_res_blocks": 13},
+        c_in_channels=0,
+    ):
         super().__init__()
         self.out_channels = out_channels
         self.in_channels = in_hidden_channels
@@ -137,21 +136,20 @@ class Encoder(nn.Module):
         # init encoder
         if encoder_type.lower() == "relative_position_transformer":
             # text encoder
+            # pylint: disable=unexpected-keyword-arg
             self.encoder = RelativePositionTransformerEncoder(
-                in_hidden_channels, out_channels, in_hidden_channels,
-                encoder_params)  # pylint: disable=unexpected-keyword-arg
-        elif encoder_type.lower() == 'residual_conv_bn':
-            self.encoder = ResidualConv1dBNEncoder(in_hidden_channels,
-                                                   out_channels,
-                                                   in_hidden_channels,
-                                                   encoder_params)
-        elif encoder_type.lower() == 'fftransformer':
-            assert in_hidden_channels == out_channels, \
-                "[!] must be `in_channels` == `out_channels` when encoder type is 'fftransformer'"
-            self.encoder = FFTransformerBlock(in_hidden_channels, **encoder_params) # pylint: disable=unexpected-keyword-arg
+                in_hidden_channels, out_channels, in_hidden_channels, encoder_params
+            )
+        elif encoder_type.lower() == "residual_conv_bn":
+            self.encoder = ResidualConv1dBNEncoder(in_hidden_channels, out_channels, in_hidden_channels, encoder_params)
+        elif encoder_type.lower() == "fftransformer":
+            assert (
+                in_hidden_channels == out_channels
+            ), "[!] must be `in_channels` == `out_channels` when encoder type is 'fftransformer'"
+            # pylint: disable=unexpected-keyword-arg
+            self.encoder = FFTransformerBlock(in_hidden_channels, **encoder_params)
         else:
-            raise NotImplementedError(' [!] unknown encoder type.')
-
+            raise NotImplementedError(" [!] unknown encoder type.")
 
     def forward(self, x, x_mask, g=None):  # pylint: disable=unused-argument
         """

@@ -1,9 +1,9 @@
 import torch
+from scipy.stats import betabinom
 from torch import nn
 from torch.nn import functional as F
 
 from TTS.tts.layers.tacotron.common_layers import Linear
-from scipy.stats import betabinom
 
 
 class LocationLayer(nn.Module):
@@ -14,20 +14,18 @@ class LocationLayer(nn.Module):
         attention_n_filters (int, optional): number of filters in convolution. Defaults to 32.
         attention_kernel_size (int, optional): kernel size of convolution filter. Defaults to 31.
     """
-    def __init__(self,
-                 attention_dim,
-                 attention_n_filters=32,
-                 attention_kernel_size=31):
-        super(LocationLayer, self).__init__()
+
+    def __init__(self, attention_dim, attention_n_filters=32, attention_kernel_size=31):
+        super().__init__()
         self.location_conv1d = nn.Conv1d(
             in_channels=2,
             out_channels=attention_n_filters,
             kernel_size=attention_kernel_size,
             stride=1,
             padding=(attention_kernel_size - 1) // 2,
-            bias=False)
-        self.location_dense = Linear(
-            attention_n_filters, attention_dim, bias=False, init_gain='tanh')
+            bias=False,
+        )
+        self.location_dense = Linear(attention_n_filters, attention_dim, bias=False, init_gain="tanh")
 
     def forward(self, attention_cat):
         """
@@ -35,8 +33,7 @@ class LocationLayer(nn.Module):
             attention_cat: [B, 2, C]
         """
         processed_attention = self.location_conv1d(attention_cat)
-        processed_attention = self.location_dense(
-            processed_attention.transpose(1, 2))
+        processed_attention = self.location_dense(processed_attention.transpose(1, 2))
         return processed_attention
 
 
@@ -49,31 +46,31 @@ class GravesAttention(nn.Module):
         query_dim (int): number of channels in query tensor.
         K (int): number of Gaussian heads to be used for computing attention.
     """
+
     COEF = 0.3989422917366028  # numpy.sqrt(1/(2*numpy.pi))
 
     def __init__(self, query_dim, K):
 
-        super(GravesAttention, self).__init__()
+        super().__init__()
         self._mask_value = 1e-8
         self.K = K
         # self.attention_alignment = 0.05
         self.eps = 1e-5
         self.J = None
         self.N_a = nn.Sequential(
-            nn.Linear(query_dim, query_dim, bias=True),
-            nn.ReLU(),
-            nn.Linear(query_dim, 3*K, bias=True))
+            nn.Linear(query_dim, query_dim, bias=True), nn.ReLU(), nn.Linear(query_dim, 3 * K, bias=True)
+        )
         self.attention_weights = None
         self.mu_prev = None
         self.init_layers()
 
     def init_layers(self):
-        torch.nn.init.constant_(self.N_a[2].bias[(2*self.K):(3*self.K)], 1.)  # bias mean
-        torch.nn.init.constant_(self.N_a[2].bias[self.K:(2*self.K)], 10)  # bias std
+        torch.nn.init.constant_(self.N_a[2].bias[(2 * self.K) : (3 * self.K)], 1.0)  # bias mean
+        torch.nn.init.constant_(self.N_a[2].bias[self.K : (2 * self.K)], 10)  # bias std
 
     def init_states(self, inputs):
-        if self.J is None or inputs.shape[1]+1 > self.J.shape[-1]:
-            self.J = torch.arange(0, inputs.shape[1]+2.0).to(inputs.device) + 0.5
+        if self.J is None or inputs.shape[1] + 1 > self.J.shape[-1]:
+            self.J = torch.arange(0, inputs.shape[1] + 2.0).to(inputs.device) + 0.5
         self.attention_weights = torch.zeros(inputs.shape[0], inputs.shape[1]).to(inputs.device)
         self.mu_prev = torch.zeros(inputs.shape[0], self.K).to(inputs.device)
 
@@ -108,7 +105,7 @@ class GravesAttention(nn.Module):
         mu_t = self.mu_prev + torch.nn.functional.softplus(k_t)
         g_t = torch.softmax(g_t, dim=-1) + self.eps
 
-        j = self.J[:inputs.size(1)+1]
+        j = self.J[: inputs.size(1) + 1]
 
         # attention weights
         phi_t = g_t.unsqueeze(-1) * (1 / (1 + torch.sigmoid((mu_t.unsqueeze(-1) - j) / sig_t.unsqueeze(-1))))
@@ -164,21 +161,29 @@ class OriginalAttention(nn.Module):
         trans_agent (bool): enable/disable transition agent in the forward attention.
         forward_attn_mask (int): enable/disable an explicit masking in forward attention. It is useful to set at especially inference time.
     """
+
     # Pylint gets confused by PyTorch conventions here
-    #pylint: disable=attribute-defined-outside-init
-    def __init__(self, query_dim, embedding_dim, attention_dim,
-                 location_attention, attention_location_n_filters,
-                 attention_location_kernel_size, windowing, norm, forward_attn,
-                 trans_agent, forward_attn_mask):
-        super(OriginalAttention, self).__init__()
-        self.query_layer = Linear(
-            query_dim, attention_dim, bias=False, init_gain='tanh')
-        self.inputs_layer = Linear(
-            embedding_dim, attention_dim, bias=False, init_gain='tanh')
+    # pylint: disable=attribute-defined-outside-init
+    def __init__(
+        self,
+        query_dim,
+        embedding_dim,
+        attention_dim,
+        location_attention,
+        attention_location_n_filters,
+        attention_location_kernel_size,
+        windowing,
+        norm,
+        forward_attn,
+        trans_agent,
+        forward_attn_mask,
+    ):
+        super().__init__()
+        self.query_layer = Linear(query_dim, attention_dim, bias=False, init_gain="tanh")
+        self.inputs_layer = Linear(embedding_dim, attention_dim, bias=False, init_gain="tanh")
         self.v = Linear(attention_dim, 1, bias=True)
         if trans_agent:
-            self.ta = nn.Linear(
-                query_dim + embedding_dim, 1, bias=True)
+            self.ta = nn.Linear(query_dim + embedding_dim, 1, bias=True)
         if location_attention:
             self.location_layer = LocationLayer(
                 attention_dim,
@@ -202,9 +207,7 @@ class OriginalAttention(nn.Module):
     def init_forward_attn(self, inputs):
         B = inputs.shape[0]
         T = inputs.shape[1]
-        self.alpha = torch.cat(
-            [torch.ones([B, 1]),
-             torch.zeros([B, T])[:, :-1] + 1e-7], dim=1).to(inputs.device)
+        self.alpha = torch.cat([torch.ones([B, 1]), torch.zeros([B, T])[:, :-1] + 1e-7], dim=1).to(inputs.device)
         self.u = (0.5 * torch.ones([B, 1])).to(inputs.device)
 
     def init_location_attention(self, inputs):
@@ -230,14 +233,10 @@ class OriginalAttention(nn.Module):
         self.attention_weights_cum += alignments
 
     def get_location_attention(self, query, processed_inputs):
-        attention_cat = torch.cat((self.attention_weights.unsqueeze(1),
-                                   self.attention_weights_cum.unsqueeze(1)),
-                                  dim=1)
+        attention_cat = torch.cat((self.attention_weights.unsqueeze(1), self.attention_weights_cum.unsqueeze(1)), dim=1)
         processed_query = self.query_layer(query.unsqueeze(1))
         processed_attention_weights = self.location_layer(attention_cat)
-        energies = self.v(
-            torch.tanh(processed_query + processed_attention_weights +
-                       processed_inputs))
+        energies = self.v(torch.tanh(processed_query + processed_attention_weights + processed_inputs))
         energies = energies.squeeze(-1)
         return energies, processed_query
 
@@ -264,24 +263,17 @@ class OriginalAttention(nn.Module):
 
     def apply_forward_attention(self, alignment):
         # forward attention
-        fwd_shifted_alpha = F.pad(
-            self.alpha[:, :-1].clone().to(alignment.device), (1, 0, 0, 0))
+        fwd_shifted_alpha = F.pad(self.alpha[:, :-1].clone().to(alignment.device), (1, 0, 0, 0))
         # compute transition potentials
-        alpha = ((1 - self.u) * self.alpha
-                 + self.u * fwd_shifted_alpha
-                 + 1e-8) * alignment
+        alpha = ((1 - self.u) * self.alpha + self.u * fwd_shifted_alpha + 1e-8) * alignment
         # force incremental alignment
         if not self.training and self.forward_attn_mask:
             _, n = fwd_shifted_alpha.max(1)
             val, _ = alpha.max(1)
             for b in range(alignment.shape[0]):
-                alpha[b, n[b] + 3:] = 0
-                alpha[b, :(
-                    n[b] - 1
-                )] = 0  # ignore all previous states to prevent repetition.
-                alpha[b,
-                      (n[b] - 2
-                       )] = 0.01 * val[b]  # smoothing factor for the prev step
+                alpha[b, n[b] + 3 :] = 0
+                alpha[b, : (n[b] - 1)] = 0  # ignore all previous states to prevent repetition.
+                alpha[b, (n[b] - 2)] = 0.01 * val[b]  # smoothing factor for the prev step
         # renormalize attention weights
         alpha = alpha / alpha.sum(dim=1, keepdim=True)
         return alpha
@@ -295,11 +287,9 @@ class OriginalAttention(nn.Module):
             mask: [B, T_en]
         """
         if self.location_attention:
-            attention, _ = self.get_location_attention(
-                query, processed_inputs)
+            attention, _ = self.get_location_attention(query, processed_inputs)
         else:
-            attention, _ = self.get_attention(
-                query, processed_inputs)
+            attention, _ = self.get_attention(query, processed_inputs)
         # apply masking
         if mask is not None:
             attention.data.masked_fill_(~mask, self._mask_value)
@@ -311,9 +301,7 @@ class OriginalAttention(nn.Module):
         if self.norm == "softmax":
             alignment = torch.softmax(attention, dim=-1)
         elif self.norm == "sigmoid":
-            alignment = torch.sigmoid(attention) / torch.sigmoid(
-                attention).sum(
-                    dim=1, keepdim=True)
+            alignment = torch.sigmoid(attention) / torch.sigmoid(attention).sum(dim=1, keepdim=True)
         else:
             raise ValueError("Unknown value for attention norm type")
 
@@ -354,6 +342,7 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         Dynamic convolution attention is an alternation of the location senstive attention with
     dynamically computed convolution filters from the previous attention scores and a set of
     constraints to keep the attention alignment diagonal.
+        DCA is sensitive to mixed precision training and might cause instable training.
 
     Args:
         query_dim (int): number of channels in the query tensor.
@@ -366,19 +355,20 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         alpha (float, optional): [description]. Defaults to 0.1 from the paper.
         beta (float, optional): [description]. Defaults to 0.9 from the paper.
     """
+
     def __init__(
-            self,
-            query_dim,
-            embedding_dim,  # pylint: disable=unused-argument
-            attention_dim,
-            static_filter_dim,
-            static_kernel_size,
-            dynamic_filter_dim,
-            dynamic_kernel_size,
-            prior_filter_len=11,
-            alpha=0.1,
-            beta=0.9,
-        ):
+        self,
+        query_dim,
+        embedding_dim,  # pylint: disable=unused-argument
+        attention_dim,
+        static_filter_dim,
+        static_kernel_size,
+        dynamic_filter_dim,
+        dynamic_kernel_size,
+        prior_filter_len=11,
+        alpha=0.1,
+        beta=0.9,
+    ):
         super().__init__()
         self._mask_value = 1e-8
         self.dynamic_filter_dim = dynamic_filter_dim
@@ -387,9 +377,7 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         self.attention_weights = None
         # setup key and query layers
         self.query_layer = nn.Linear(query_dim, attention_dim)
-        self.key_layer = nn.Linear(
-            attention_dim, dynamic_filter_dim * dynamic_kernel_size, bias=False
-        )
+        self.key_layer = nn.Linear(attention_dim, dynamic_filter_dim * dynamic_kernel_size, bias=False)
         self.static_filter_conv = nn.Conv1d(
             1,
             static_filter_dim,
@@ -401,8 +389,7 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         self.dynamic_filter_layer = nn.Linear(dynamic_filter_dim, attention_dim)
         self.v = nn.Linear(attention_dim, 1, bias=False)
 
-        prior = betabinom.pmf(range(prior_filter_len), prior_filter_len - 1,
-                              alpha, beta)
+        prior = betabinom.pmf(range(prior_filter_len), prior_filter_len - 1, alpha, beta)
         self.register_buffer("prior", torch.FloatTensor(prior).flip(0))
 
     # pylint: disable=unused-argument
@@ -415,8 +402,8 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         """
         # compute prior filters
         prior_filter = F.conv1d(
-            F.pad(self.attention_weights.unsqueeze(1),
-                  (self.prior_filter_len - 1, 0)), self.prior.view(1, 1, -1))
+            F.pad(self.attention_weights.unsqueeze(1), (self.prior_filter_len - 1, 0)), self.prior.view(1, 1, -1)
+        )
         prior_filter = torch.log(prior_filter.clamp_min_(1e-6)).squeeze(1)
         G = self.key_layer(torch.tanh(self.query_layer(query)))
         # compute dynamic filters
@@ -429,10 +416,12 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         dynamic_filter = dynamic_filter.view(query.size(0), self.dynamic_filter_dim, -1).transpose(1, 2)
         # compute static filters
         static_filter = self.static_filter_conv(self.attention_weights.unsqueeze(1)).transpose(1, 2)
-        alignment = self.v(
-            torch.tanh(
-                self.static_filter_layer(static_filter) +
-                self.dynamic_filter_layer(dynamic_filter))).squeeze(-1) + prior_filter
+        alignment = (
+            self.v(
+                torch.tanh(self.static_filter_layer(static_filter) + self.dynamic_filter_layer(dynamic_filter))
+            ).squeeze(-1)
+            + prior_filter
+        )
         # compute attention weights
         attention_weights = F.softmax(alignment, dim=-1)
         # apply masking
@@ -450,33 +439,52 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         B = inputs.size(0)
         T = inputs.size(1)
         self.attention_weights = torch.zeros([B, T], device=inputs.device)
-        self.attention_weights[:, 0] = 1.
+        self.attention_weights[:, 0] = 1.0
 
 
-def init_attn(attn_type, query_dim, embedding_dim, attention_dim,
-              location_attention, attention_location_n_filters,
-              attention_location_kernel_size, windowing, norm, forward_attn,
-              trans_agent, forward_attn_mask, attn_K):
+def init_attn(
+    attn_type,
+    query_dim,
+    embedding_dim,
+    attention_dim,
+    location_attention,
+    attention_location_n_filters,
+    attention_location_kernel_size,
+    windowing,
+    norm,
+    forward_attn,
+    trans_agent,
+    forward_attn_mask,
+    attn_K,
+):
     if attn_type == "original":
-        return OriginalAttention(query_dim, embedding_dim, attention_dim,
-                                 location_attention,
-                                 attention_location_n_filters,
-                                 attention_location_kernel_size, windowing,
-                                 norm, forward_attn, trans_agent,
-                                 forward_attn_mask)
+        return OriginalAttention(
+            query_dim,
+            embedding_dim,
+            attention_dim,
+            location_attention,
+            attention_location_n_filters,
+            attention_location_kernel_size,
+            windowing,
+            norm,
+            forward_attn,
+            trans_agent,
+            forward_attn_mask,
+        )
     if attn_type == "graves":
         return GravesAttention(query_dim, attn_K)
     if attn_type == "dynamic_convolution":
-        return MonotonicDynamicConvolutionAttention(query_dim,
-                                                    embedding_dim,
-                                                    attention_dim,
-                                                    static_filter_dim=8,
-                                                    static_kernel_size=21,
-                                                    dynamic_filter_dim=8,
-                                                    dynamic_kernel_size=21,
-                                                    prior_filter_len=11,
-                                                    alpha=0.1,
-                                                    beta=0.9)
+        return MonotonicDynamicConvolutionAttention(
+            query_dim,
+            embedding_dim,
+            attention_dim,
+            static_filter_dim=8,
+            static_kernel_size=21,
+            dynamic_filter_dim=8,
+            dynamic_kernel_size=21,
+            prior_filter_len=11,
+            alpha=0.1,
+            beta=0.9,
+        )
 
-    raise RuntimeError(
-        " [!] Given Attention Type '{attn_type}' is not exist.")
+    raise RuntimeError(" [!] Given Attention Type '{attn_type}' is not exist.")
