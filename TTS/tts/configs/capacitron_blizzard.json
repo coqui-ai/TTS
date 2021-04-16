@@ -109,16 +109,16 @@
     "ddc_r": 6, // reduction rate for coarse decoder.
 
     // STOPNET
-    "stopnet": true, // Train stopnet predicting the end of synthesis.
-    "separate_stopnet": true, // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
+    "stopnet": false, // Train stopnet predicting the end of synthesis.
+    "separate_stopnet": false, // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
 
     // TENSORBOARD and LOGGING
     "print_step": 100, // Number of steps to log training on console.
     "tb_plot_step": 100, // Number of steps to plot TB training figures.
     "print_eval": false, // If True, it prints intermediate loss values in evalulation.
-    "save_step": 5000, // Number of training steps expected to save traninpg stats and checkpoints.
+    "save_step": 50, // Number of training steps expected to save traninpg stats and checkpoints.
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
-    "tb_model_param_stats": false, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
+    "tb_model_param_stats": true, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
     // DATA LOADING
     "text_cleaner": "phoneme_cleaners",

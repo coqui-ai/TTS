@@ -387,7 +387,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
     return keep_avg.avg_values, global_step
 
 
-@torch.no_grad()
+@ torch.no_grad()
 def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     model.eval()
     epoch_time = 0

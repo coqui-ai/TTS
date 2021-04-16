@@ -163,6 +163,7 @@ class TextSummary(nn.Module):
                             bidirectional=False)
 
     def forward(self, inputs, input_lengths):
+        # TODO deal with inference - input lengths is not a tensor but just a single number
         # Routine for fetching the last valid output of a dynamic LSTM with varying input lengths and padding
         packed_seqs = nn.utils.rnn.pack_padded_sequence(inputs, input_lengths.tolist(), batch_first=True, enforce_sorted=False) # dynamic rnn sequence padding
         self.lstm.flatten_parameters()
