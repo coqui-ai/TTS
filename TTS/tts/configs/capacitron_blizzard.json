@@ -1,7 +1,7 @@
 {
     "model": "Tacotron",
     "run_name": "capacitron",
-    "run_description": "Capacitron with original T1 attention.",
+    "run_description": "Capacitron",
 
     // AUDIO PARAMETERS
     "audio": {
@@ -27,7 +27,7 @@
 
         // MelSpectrogram parameters
         "num_mels": 80, // size of the mel spec frame.
-        "mel_fmin": 95.0, // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmin": 80.0, // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 12000.0, // maximum freq level for mel-spec. Tune for dataset!!
         "spec_gain": 20, // scaler value appplied after log transform of spectrogram.
 
@@ -46,24 +46,26 @@
     // TRAINING
     "batch_size": 128, // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
     "eval_batch_size": 16,
-    "r": 7, // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
-    "gradual_training": [
-        [0, 7, 64],
-        [1, 5, 64],
-        [50000, 3, 32],
-        [130000, 2, 32],
-        [290000, 1, 32]
-    ], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
-    "mixed_precision": true, // level of optimization with NVIDIA's apex feature for automatic mixed FP16/FP32 precision (AMP), NOTE: currently only O1 is supported, and use "O1" to activate.
+    "r": 2, // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
+    "gradual_training": null,
+    // "gradual_training": [
+    //     [0, 7, 128],
+    //     [1, 5, 128],
+    //     [50000, 3, 128],
+    //     [130000, 2, 128],
+    //     [290000, 1, 128]
+    // ], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
+    "mixed_precision": false, // level of optimization with NVIDIA's apex feature for automatic mixed FP16/FP32 precision (AMP), NOTE: currently only O1 is supported, and use "O1" to activate.
+    
     // LOSS SETTINGS
     "loss_masking": false, // enable / disable loss masking against the sequence padding.
-    "decoder_loss_alpha": 0.5, // original decoder loss weight. If > 0, it is enabled
-    "postnet_loss_alpha": 0.25, // original postnet loss weight. If > 0, it is enabled
-    "postnet_diff_spec_alpha": 0.25, // differential spectral loss weight. If > 0, it is enabled
-    "decoder_diff_spec_alpha": 0.25, // differential spectral loss weight. If > 0, it is enabled
-    "decoder_ssim_alpha": 0.5, // decoder ssim loss weight. If > 0, it is enabled
-    "postnet_ssim_alpha": 0.25, // postnet ssim loss weight. If > 0, it is enabled
-    "ga_alpha": 5.0, // weight for guided attention loss. If > 0, guided attention is enabled.
+    "decoder_loss_alpha": 1.0, // original decoder loss weight. If > 0, it is enabled
+    "postnet_loss_alpha": 1.0, // original postnet loss weight. If > 0, it is enabled
+    "postnet_diff_spec_alpha": 0.0, // differential spectral loss weight. If > 0, it is enabled
+    "decoder_diff_spec_alpha": 0.0, // differential spectral loss weight. If > 0, it is enabled
+    "decoder_ssim_alpha": 0.0, // decoder ssim loss weight. If > 0, it is enabled
+    "postnet_ssim_alpha": 0.0, // postnet ssim loss weight. If > 0, it is enabled
+    "ga_alpha": 0.0, // weight for guided attention loss. If > 0, guided attention is enabled.
     "stopnet_pos_weight": 15.0, // pos class weight for stopnet loss since there are way more negative samples than positive samples.
 
     // VALIDATION
@@ -73,7 +75,7 @@
     
     // OPTIMIZER
     "noam_schedule": false, // use noam warmup and lr schedule.
-    "grad_clip": 1.0, // upper limit for gradients for clipping.
+    "grad_clip": 5.0, // upper limit for gradients for clipping.
     "epochs": 300000, // total number of epochs to train.
     "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
     "wd": 0.000001, // Weight decay weight.
@@ -82,9 +84,9 @@
     "use_gradual_lr": true, // Hardcoded step-wise learning rate scheduling. Overrides noam schedule if noam is true
     "gradual_learning_rates": [
         [0, 1e-3],
-        [5e4, 5e-4], 
-        [1e5, 3e-4],
-        [15e4, 1e-4], 
+        [1e4, 5e-4], 
+        [3e4, 3e-4],
+        [5e4, 1e-4], 
         [3e5, 5e-5]
     ],
 
@@ -95,8 +97,8 @@
 
     // TACOTRON ATTENTION
     "attention_type": "original", // 'original' , 'graves', 'dynamic_convolution'
-    "attention_heads": 4, // number of attention heads (only for 'graves')
-    "attention_norm": "sigmoid", // softmax or sigmoid.
+    "attention_heads": 5, // number of attention heads (only for 'graves')
+    "attention_norm": "sigmoid", // softmax or sigmoid (only for 'original').
     "windowing": false, // Enables attention windowing. Used only in eval mode.
     "use_forward_attn": false, // if it uses forward attention. In general, it aligns faster.
     "forward_attn_mask": false, // Additional masking forcing monotonicity only in eval mode.
@@ -104,14 +106,14 @@
     "location_attn": true, // enable_disable location sensitive attention. It is enabled for TACOTRON by default.
     "bidirectional_decoder": false, // use https://arxiv.org/abs/1907.09006. Use it, if attention does not work well with your dataset.
     "double_decoder_consistency": false, // use DDC explained here https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency-draft/
-    "ddc_r": 7, // reduction rate for coarse decoder.
+    "ddc_r": 6, // reduction rate for coarse decoder.
 
     // STOPNET
     "stopnet": true, // Train stopnet predicting the end of synthesis.
     "separate_stopnet": true, // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
 
     // TENSORBOARD and LOGGING
-    "print_step": 25, // Number of steps to log training on console.
+    "print_step": 100, // Number of steps to log training on console.
     "tb_plot_step": 100, // Number of steps to plot TB training figures.
     "print_eval": false, // If True, it prints intermediate loss values in evalulation.
     "save_step": 5000, // Number of training steps expected to save traninpg stats and checkpoints.
@@ -160,7 +162,9 @@
         "capacitron_text_summary_embedding_dim": 128, // size for the LSTM accounting for the text summary conditional input
         "capacitron_capacity": 300, // capacity target
         "capacitron_use_speaker_embedding": false,
-        "capacitron_reference_wav": "/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-5.wav" // path to referebce wav file to be used in capacitron inference.
+        "capacitron_reference_wav": "/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-5.wav", // path to referebce wav file to be used in capacitron inference.
+        "capacitron_SGD_lr": 1e-5,
+        "capacitron_SGD_momentum": 0.9
     },
 
     // DATASETS

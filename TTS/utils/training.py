@@ -71,6 +71,9 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
     decay = []
     no_decay = []
     for name, param in model.named_parameters():
+        # skip beta because we're sending it to another optimizer
+        if name == 'capacitron_layer.beta':
+            continue
         if not param.requires_grad:
             continue
 

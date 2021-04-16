@@ -1,7 +1,7 @@
 {
     "model": "Tacotron",
-    "run_name": "gts-blizzard",
-    "run_description": "GTS Tacotron with original T1 attention.",
+    "run_name": "gst-blizzard",
+    "run_description": "GST Tacotron with original T1 attention.",
 
     // AUDIO PARAMETERS
     "audio": {

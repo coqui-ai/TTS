@@ -228,27 +228,11 @@ class TacotronAbstract(ABC, nn.Module):
 
     def compute_VAE_embedding(self, inputs, reference_mel_info, text_info=None, speaker_embedding=None):
         """ Capacitron Variational Autoencoder  """
-        reference_mel = reference_mel_info[0]
-        # TODO Figure out what to do with all this below
-        device = inputs.device
-        if isinstance(reference_mel, dict):
-            query = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim // 2).to(device)
-            if speaker_embedding is not None:
-                query = torch.cat(
-                    [query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
-            # CHANGE FROM HERE ONWWARDS
-            # _GST = torch.tanh(
-            #     self.capacitron_layer.style_token_layer.style_tokens)
-            # gst_outputs = torch.zeros(1, 1, self.capacitron_VAE_embedding_dim).to(device)
-            # for k_token, v_amplifier in reference_mel.items():
-            #     key = _GST[int(k_token)].unsqueeze(0).expand(1, -1, -1)
-            #     gst_outputs_att = self.capacitron_layer.style_token_layer.attention(
-            #         query, key)
-            #     gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
-        else:
-            VAE_outputs = self.capacitron_layer(reference_mel_info, text_info, speaker_embedding)  # pylint: disable=not-callable
-        inputs = self._concat_speaker_embedding(inputs, VAE_outputs) # concatenate to the output of the basic tacotron encoder
-        return inputs
+        VAE_outputs, posterior_distribution, prior_distribution, capacitron_beta = self.capacitron_layer(reference_mel_info, # pylint: disable=not-callable
+                                                                                                         text_info,
+                                                                                                         speaker_embedding)
+        encoder_output = self._concat_speaker_embedding(inputs, VAE_outputs) # concatenate to the output of the basic tacotron encoder
+        return encoder_output, posterior_distribution, prior_distribution, capacitron_beta
 
     @staticmethod
     def _add_speaker_embedding(outputs, speaker_embeddings):

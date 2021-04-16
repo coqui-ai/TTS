@@ -250,11 +250,9 @@ def synthesis(model,
             style_mel = style_wav
         else:
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
+    # Capacitron processing
     if 'use_capacitron' in CONFIG.keys() and CONFIG.use_capacitron and reference_wav is not None:
-        if isinstance(reference_wav, dict):
-            reference_mel = reference_wav
-        else:
-            reference_mel = compute_reference_mel(style_wav, ap, cuda=use_cuda)
+        reference_mel = compute_reference_mel(reference_wav, ap, cuda=use_cuda)
     # preprocess the given text
     inputs = text_to_seqvec(text, CONFIG)
     # pass tensors to backend
@@ -267,8 +265,7 @@ def synthesis(model,
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
-        if not isinstance(reference_mel, dict):
-            reference_mel = numpy_to_torch(reference_mel, torch.float, cuda=use_cuda)
+        reference_mel = numpy_to_torch(reference_mel, torch.float, cuda=use_cuda)
         inputs = numpy_to_torch(inputs, torch.long, cuda=use_cuda)
         inputs = inputs.unsqueeze(0)
     elif backend == 'tf':

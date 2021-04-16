@@ -3,8 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.multivariate_normal import MultivariateNormal as MVN
 
-from TTS.tts.utils.generic_utils import extract_axis_1
-
 class CapacitronVAE(nn.Module):
     """Effective Use of Variational Embedding Capacity for prosody transfer.
 
@@ -13,9 +11,12 @@ class CapacitronVAE(nn.Module):
     def __init__(self, num_mel, capacitron_embedding_dim, speaker_embedding_dim=None, text_summary_embedding_dim=None):
         super().__init__()
         # Init distributions
-        self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim), torch.eye(capacitron_embedding_dim))
+        self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim).to(device=torch.device('cuda')), torch.eye(capacitron_embedding_dim).to(device=torch.device('cuda')))
         self.approximate_posterior_distribution = None
         self.encoder = ReferenceEncoder(num_mel)
+
+        # Init beta, the lagrange-like term for the KL distribution
+        self.beta = torch.nn.Parameter(torch.log(torch.exp(torch.Tensor([1.0])) - 1), requires_grad=True)
 
         mlp_input_dimension = 128 # output size of the encoder
 
@@ -47,6 +48,8 @@ class CapacitronVAE(nn.Module):
             # Feed the output of the ref encoder and information about text/speaker into
             # an MLP to produce the parameteres for the approximate poterior distributions
             mu, sigma = self.post_encoder_mlp(enc_out)
+            mu.to(device=torch.device('cuda'))
+            sigma.to(device=torch.device('cuda'))
 
             # Sample from the posterior: z ~ q(z|x)
             self.approximate_posterior_distribution = MVN(mu, torch.diag_embed(sigma))
@@ -54,10 +57,10 @@ class CapacitronVAE(nn.Module):
         # Infer from the model, bypasses encoding
         else:
             # Sample from the prior: z ~ p(z)
-            VAE_embedding = self.prior_distribution.rsample()
+            VAE_embedding = self.prior_distribution.sample().unsqueeze(0)
 
         # reshape to [batch_size, 1, capacitron_embedding_dim]
-        return torch.unsqueeze(VAE_embedding, 1)
+        return VAE_embedding.unsqueeze(1), self.approximate_posterior_distribution, self.prior_distribution, self.beta
 
 
 class ReferenceEncoder(nn.Module):
@@ -99,28 +102,51 @@ class ReferenceEncoder(nn.Module):
         batch_size = inputs.size(0)
         x = inputs.view(batch_size, 1, -1, self.num_mel)
         # x: 4D tensor [batch_size, num_channels==1, num_frames, num_mel]
+        valid_lengths = input_lengths.cpu()
         for conv, bn in zip(self.convs, self.bns):
             x = conv(x)
             x = bn(x)
             x = F.relu(x)
 
+            # Create the post conv width mask based on the valid lengths of the output of the convolution.
+            # The valid lengths for the output of a convolution on varying length inputs is
+            # ceil(input_length/stride) for kernel size 3
+            # For example (kernel_size=3, stride=2):
+            # x 0 0 0 0 0 x x -> Input = 5, x is zero padding coming from padding='same' in conv2d
+            # _____
+            #   0 _____
+            #       0 _____
+            #           0
+            # 0  x 0 x 0 x -> Output = 3
+            # Since every example in te batch is zero padded and therefore have separate valid_lengths,
+            # we need to mask off all the values AFTER the valid length for each example in the batch.
+            # Otherwise, the convolutions create noise and a lot of not real information
+            valid_lengths = torch.ceil(valid_lengths/2).to(dtype=torch.int64) # 2 is stride [batch_size]
+            post_conv_max_width = x.size(2)
+
+            mask = torch.arange(post_conv_max_width).expand(len(valid_lengths), post_conv_max_width) < valid_lengths.unsqueeze(1)
+            mask = mask.expand(1, 1, -1, -1).transpose(2, 0).transpose(-1, 2) # [batch_size, 1, post_conv_max_width, 1]
+            x = x*mask.cuda()
+
         x = x.transpose(1, 2)
         # x: 4D tensor [batch_size, post_conv_width,
         #               num_channels==128, post_conv_height]
 
-        # TODO post convnet masking USING input_lengths, not just the general post_conv_width
         post_conv_width = x.size(1)
         x = x.contiguous().view(batch_size, post_conv_width, -1)
         # x: 3D tensor [batch_size, post_conv_width,
         #               num_channels*post_conv_height]
 
-        # Get last value of LSTM
-        post_conv_input_lengths = [post_conv_width] * batch_size
-        o, _ = self.recurrence(x)
-        last_output = extract_axis_1(o.cpu(), torch.LongTensor(post_conv_input_lengths).cpu())
+        # Routine for fetching the last valid output of a dynamic LSTM with varying input lengths and padding
+        post_conv_input_lengths = valid_lengths
+        packed_seqs = nn.utils.rnn.pack_padded_sequence(x, post_conv_input_lengths.tolist(), batch_first=True, enforce_sorted=False) # dynamic rnn sequence padding
+        self.recurrence.flatten_parameters()
+        _, (ht, _) = self.recurrence(packed_seqs)
+        last_output = ht[-1]
+
         return last_output.cuda() # [B, 128]
 
-    @staticmethod
+    @ staticmethod
     def calculate_post_conv_height(height, kernel_size, stride, pad,
                                    n_convs):
         """Height of spec after n convolutions with fixed kernel/stride/pad."""
@@ -139,9 +165,9 @@ class TextSummary(nn.Module):
     def forward(self, inputs, input_lengths):
         # Routine for fetching the last valid output of a dynamic LSTM with varying input lengths and padding
         packed_seqs = nn.utils.rnn.pack_padded_sequence(inputs, input_lengths.tolist(), batch_first=True, enforce_sorted=False) # dynamic rnn sequence padding
-        o, _ = self.lstm(packed_seqs)
-        out_dynamic, _ = nn.utils.rnn.pad_packed_sequence(o, batch_first=True) # inverse repadding
-        last_output = extract_axis_1(out_dynamic.cpu(), input_lengths.cpu())
+        self.lstm.flatten_parameters()
+        _, (ht, _) = self.lstm(packed_seqs)
+        last_output = ht[-1]
         return last_output
 
 class PostEncoderMLP(nn.Module):
