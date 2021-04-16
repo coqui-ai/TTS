@@ -162,7 +162,9 @@ def check_argument(
                     is_valid = True
             assert is_valid or c[name] is None, f" [!] {name} has wrong type - {type(c[name])} vs {val_type}"
         elif val_type:
-            assert isinstance(c[name], val_type) or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
+            assert (
+                isinstance(c[name], val_type) or c[name] is None
+            ), f" [!] {name} has wrong type - {type(c[name])} vs {val_type}"
 
 
 def style_wav_uri_to_dict(style_wav: str) -> Union[str, dict]:
@@ -176,7 +178,7 @@ def style_wav_uri_to_dict(style_wav: str) -> Union[str, dict]:
         Union[str, dict]: path to file (str) or gst style (dict)
     """
     if os.path.isfile(style_wav) and style_wav.endswith(".wav"):
-        return style_wav # style_wav is a .wav file located on the server
+        return style_wav  # style_wav is a .wav file located on the server
 
     style_wav = json.loads(style_wav)
-    return style_wav # style_wav is a gst dictionary with {token1_id : token1_weigth, ...}
+    return style_wav  # style_wav is a gst dictionary with {token1_id : token1_weigth, ...}

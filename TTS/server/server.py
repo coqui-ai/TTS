@@ -7,10 +7,10 @@ from pathlib import Path
 
 from flask import Flask, render_template, request, send_file
 
+from TTS.utils.generic_utils import style_wav_uri_to_dict
 from TTS.utils.io import load_config
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
-from TTS.utils.generic_utils import style_wav_uri_to_dict
 
 
 def create_argparser():
@@ -90,11 +90,9 @@ app = Flask(__name__)
 @app.route("/")
 def index():
     return render_template(
-        'index.html',
-        show_details=args.show_details,
-        use_speaker_embedding=use_speaker_embedding,
-        use_gst = use_gst
-        )
+        "index.html", show_details=args.show_details, use_speaker_embedding=use_speaker_embedding, use_gst=use_gst
+    )
+
 
 @app.route("/details")
 def details():
@@ -115,9 +113,9 @@ def details():
 
 @app.route("/api/tts", methods=["GET"])
 def tts():
-    text = request.args.get('text')
-    speaker_json_key = request.args.get('speaker', "")
-    style_wav = request.args.get('style-wav', "")
+    text = request.args.get("text")
+    speaker_json_key = request.args.get("speaker", "")
+    style_wav = request.args.get("style-wav", "")
 
     style_wav = style_wav_uri_to_dict(style_wav)
     print(" > Model input: {}".format(text))
