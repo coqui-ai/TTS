@@ -68,14 +68,11 @@ class Synthesizer(object):
     def _get_segmenter(lang: str):
         return pysbd.Segmenter(language=lang, clean=True)
 
-
     def _load_speakers(self, speaker_file: str) -> None:
         print("Loading speakers ...")
         self.tts_speakers = load_speaker_mapping(speaker_file)
         self.num_speakers = len(self.tts_speakers)
-        self.speaker_embedding_dim = len(self.tts_speakers[list(self.tts_speakers.keys())[0]][
-            "embedding"
-        ])
+        self.speaker_embedding_dim = len(self.tts_speakers[list(self.tts_speakers.keys())[0]]["embedding"])
 
     def _load_speaker_embedding(self, speaker_json_key: str = ""):
 
@@ -86,14 +83,14 @@ class Synthesizer(object):
 
         if speaker_json_key != "":
             assert self.tts_speakers
-            assert speaker_json_key in self.tts_speakers, f" [!] speaker_json_key is not in self.tts_speakers keys : '{speaker_json_key}'"
+            assert (
+                speaker_json_key in self.tts_speakers
+            ), f" [!] speaker_json_key is not in self.tts_speakers keys : '{speaker_json_key}'"
             speaker_embedding = self.tts_speakers[speaker_json_key]["embedding"]
 
         return speaker_embedding
 
-    def _load_tts(
-        self, tts_checkpoint: str, tts_config_path: str, use_cuda: bool
-    ) -> None:
+    def _load_tts(self, tts_checkpoint: str, tts_config_path: str, use_cuda: bool) -> None:
         # pylint: disable=global-statement
 
         global symbols, phonemes
@@ -111,19 +108,18 @@ class Synthesizer(object):
             self.input_size = len(symbols)
 
         if self.tts_config.use_speaker_embedding is True:
-            self._load_speakers(self.tts_config.get('external_speaker_embedding_file', self.tts_speakers_file))
+            self._load_speakers(self.tts_config.get("external_speaker_embedding_file", self.tts_speakers_file))
 
         self.tts_model = setup_model(
             self.input_size,
             num_speakers=self.num_speakers,
             c=self.tts_config,
-            speaker_embedding_dim=self.speaker_embedding_dim)
+            speaker_embedding_dim=self.speaker_embedding_dim,
+        )
 
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
-
-
 
     def _load_vocoder(self, model_file: str, model_config: str, use_cuda: bool) -> None:
         self.vocoder_config = load_config(model_config)
@@ -140,7 +136,7 @@ class Synthesizer(object):
         wav = np.array(wav)
         self.ap.save_wav(wav, path, self.output_sample_rate)
 
-    def tts(self, text: str, speaker_json_key: str = "", style_wav = None) -> List[int]:
+    def tts(self, text: str, speaker_json_key: str = "", style_wav=None) -> List[int]:
         start_time = time.time()
         wavs = []
         sens = self._split_into_sentences(text)
@@ -178,13 +174,9 @@ class Synthesizer(object):
                 ]
                 if scale_factor[1] != 1:
                     print(" > interpolating tts model output.")
-                    vocoder_input = interpolate_vocoder_input(
-                        scale_factor, vocoder_input
-                    )
+                    vocoder_input = interpolate_vocoder_input(scale_factor, vocoder_input)
                 else:
-                    vocoder_input = torch.tensor(vocoder_input).unsqueeze(
-                        0
-                    )  # pylint: disable=not-callable
+                    vocoder_input = torch.tensor(vocoder_input).unsqueeze(0)  # pylint: disable=not-callable
                 # run vocoder model
                 # [1, T, C]
                 waveform = self.vocoder_model.inference(vocoder_input.to(device_type))
