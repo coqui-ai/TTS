@@ -61,6 +61,7 @@ class GlowTTS(nn.Module):
         external_speaker_embedding_dim=None,
     ):
 
+
         super().__init__()
         self.num_chars = num_chars
         self.hidden_channels_dp = hidden_channels_dp
@@ -88,7 +89,8 @@ class GlowTTS(nn.Module):
         # if is a multispeaker and c_in_channels is 0, set to 256
         if num_speakers > 1:
             if self.c_in_channels == 0 and not self.external_speaker_embedding_dim:
-                self.c_in_channels = 512
+                # TODO: make this adjustable
+                self.c_in_channels = 256
             elif self.external_speaker_embedding_dim:
                 self.c_in_channels = self.external_speaker_embedding_dim
 
