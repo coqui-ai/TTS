@@ -12,7 +12,7 @@
             "ljspeech":{
                 "tacotron2-DDC": {
                     "description": "Tacotron2 with Double Decoder Consistency.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/untagged-f1622e6df45e9f07b766/tts_models--en--ljspeech--tacotron2-DDC.zip",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.12/tts_models--en--ljspeech--tacotron2-DDC.zip",
                     "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
                     "commit": "bae2ad0f",
                     "author": "Eren Gölge @erogol",
@@ -152,7 +152,7 @@
                 },
                 "hifigan_v2":{
                     "description": "HiFiGAN_v2 LJSpeech vocoder from https://arxiv.org/abs/2010.05646.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/untagged-fb45647fd183a241dda1/vocoder_model--en--ljspeech-hifigan_v2.zip",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.12/vocoder_model--en--ljspeech-hifigan_v2.zip",
                     "commit": "bae2ad0f",
                     "author": "@erogol",
                     "license": "",
