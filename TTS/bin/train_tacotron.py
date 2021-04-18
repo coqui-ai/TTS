@@ -70,6 +70,31 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
             dataset.sort_items()
 
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        if getattr(c, "weighted_sampler", False) and sampler is None and not is_val:
+            print("Using weighted sampler")
+            # get speaker/language names
+            speaker_names = np.array([item[2] for item in dataset.items])
+            language_names = np.array([item[3] for item in dataset.items])
+
+            unique_speaker_names = np.unique(speaker_names).tolist()
+            unique_language_names = np.unique(language_names).tolist()
+
+            speaker_ids = [unique_speaker_names.index(s) for s in speaker_names]
+            language_ids = [unique_language_names.index(l) for l in language_names]
+
+            # count number samples by speaker/language
+            speaker_count = np.array([len(np.where(speaker_names == s)[0]) for s in unique_speaker_names])
+            language_count = np.array([len(np.where(language_names == l)[0]) for l in unique_language_names])
+
+            # create weight
+            weight_speaker = 1. / speaker_count
+            weight_language = 1. / language_count
+            samples_weight = np.array([weight_speaker[s] for s in speaker_ids]) + np.array([weight_language[l] for l in language_ids]) 
+            dataset_samples_weight = torch.from_numpy(samples_weight).double()
+
+            # create sampler
+            sampler = torch.utils.data.sampler.WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
+
         loader = DataLoader(
             dataset,
             batch_size=c.eval_batch_size if is_val else c.batch_size,
@@ -566,13 +591,13 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
-        speaker_id = 0 if c.use_speaker_embedding else None
+        speaker_id = 11 if c.use_speaker_embedding else None
         speaker_embedding = (
             speaker_mapping[list(speaker_mapping.keys())[random.randrange(len(speaker_mapping) - 1)]]["embedding"]
             if c.use_external_speaker_embedding_file and c.use_speaker_embedding
             else None
         )
-        language_id = 1 if c.use_language_embedding else None
+        language_id = 2 if c.use_language_embedding else None
         style_wav = c.get("gst_style_input")
         if style_wav is None and c.use_gst:
             # inicialize GST with zero dict.
