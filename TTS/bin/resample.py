@@ -11,10 +11,10 @@ from tqdm import tqdm
 
 def resample_file(func_args):
     filename, output_sr = func_args
-    y, sr = librosa.load(filename)
+    y, sr = librosa.load(filename, sr=None)
     if output_sr != sr:
         y = librosa.resample(y, sr, output_sr)
-        librosa.output.write_wav(filename, y, sr)
+        librosa.output.write_wav(filename, y, output_sr)
 
 
 if __name__ == "__main__":
