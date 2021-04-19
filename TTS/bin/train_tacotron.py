@@ -173,6 +173,19 @@ def format_data(data):
     )
 
 
+def extract_parameters(test_sentence):
+    splited = test_sentence.split('|')
+    if len(splited) == 1: # No language or speaker info
+        return (splited[0], None, None)
+    if len(splited) == 2: # No language info
+        sentence, speaker = splited
+        return (sentence, speaker_mapping[speaker], None)
+    if len(splited) == 3:
+        sentence, speaker, language = splited
+        return (sentence, speaker_mapping[speaker], language_mapping[language])
+    raise RuntimeError("Invalid line was given in the test sentence file.")
+
+
 def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap, global_step, epoch, scaler, scaler_st):
     model.train()
     epoch_time = 0
@@ -591,13 +604,14 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
-        speaker_id = 11 if c.use_speaker_embedding else None
+        # Those defaults are used if speaker and language are not defined in the test_sentences_file
+        speaker_id = 5 if c.use_speaker_embedding else None
         speaker_embedding = (
             speaker_mapping[list(speaker_mapping.keys())[random.randrange(len(speaker_mapping) - 1)]]["embedding"]
             if c.use_external_speaker_embedding_file and c.use_speaker_embedding
             else None
         )
-        language_id = 2 if c.use_language_embedding else None
+        language_id = 0 if c.use_language_embedding else None
         style_wav = c.get("gst_style_input")
         if style_wav is None and c.use_gst:
             # inicialize GST with zero dict.
@@ -608,6 +622,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         style_wav = c.get("gst_style_input")
         for idx, test_sentence in enumerate(test_sentences):
             try:
+                test_sentence, speaker_id, language_id = extract_parameters(test_sentence)
                 wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(
                     model,
                     test_sentence,
