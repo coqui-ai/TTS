@@ -122,7 +122,7 @@ class Tacotron2(TacotronAbstract):
         #
         if num_langs > 1:
             if not language_embedding_dim:
-                language_embedding_dim = num_langs
+                language_embedding_dim = num_langs // 2 * 2 # Allow for odd number of languages
             self.decoder_in_features += language_embedding_dim
 
         # adverserial speaker classifier
