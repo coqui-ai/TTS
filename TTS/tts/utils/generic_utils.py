@@ -119,6 +119,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             encoder_type=c.encoder_type,
             encoder_params=c.encoder_params,
             use_encoder_prenet=c["use_encoder_prenet"],
+            inference_noise_scale=c.get("inference_noise_scale", 0.33),
             num_flow_blocks_dec=12,
             kernel_size_dec=5,
             dilation_rate=1,
@@ -130,7 +131,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             num_squeeze=2,
             sigmoid_scale=False,
             mean_only=True,
-            external_speaker_embedding_dim=speaker_embedding_dim,
+            speaker_embedding_dim=speaker_embedding_dim,
         )
     elif c.model.lower() == "speedy_speech":
         model = MyModel(
