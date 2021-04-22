@@ -51,7 +51,7 @@ class AudioProcessor(object):
         sample_rate=None,
         resample=False,
         num_mels=None,
-        log_func="np.log10",
+        log_func="np.log",
         min_level_db=None,
         frame_shift_ms=None,
         frame_length_ms=None,
@@ -431,10 +431,10 @@ class AudioProcessor(object):
 
 def log_(x, base):
     if base == 10:
-        return np.log(x)
-    return np.log10(x)
+        return np.log10(x)
+    return np.log(x)
 
 def exp_(x, base):
-    if base == np.e:
-        return np.exp(x)
-    return base ** x
+    if base == 10:
+        return np.power(10, x)
+    return np.exp(x)
