@@ -51,7 +51,7 @@ class AudioProcessor(object):
         sample_rate=None,
         resample=False,
         num_mels=None,
-        log_func="np.log",
+        log_func="np.log10",
         min_level_db=None,
         frame_shift_ms=None,
         frame_length_ms=None,
