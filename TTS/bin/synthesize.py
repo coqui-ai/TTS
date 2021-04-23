@@ -184,8 +184,14 @@ def main():
 
     # load models
     synthesizer = Synthesizer(
-        model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, encoder_path,
-        encoder_config_path, args.use_cuda
+        model_path,
+        config_path,
+        speakers_file_path,
+        vocoder_path,
+        vocoder_config_path,
+        encoder_path,
+        encoder_config_path,
+        args.use_cuda,
     )
 
     # query speaker ids of a multi-speaker model.
