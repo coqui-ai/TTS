@@ -100,6 +100,13 @@ def main():
         default=None,
     )
     parser.add_argument("--vocoder_config_path", type=str, help="Path to vocoder model config file.", default=None)
+    parser.add_argument(
+        "--encoder_path",
+        type=str,
+        help="Path to speaker encoder model file.",
+        default=None,
+    )
+    parser.add_argument("--encoder_config_path", type=str, help="Path to speaker encoder config file.", default=None)
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
@@ -107,6 +114,12 @@ def main():
         "--speaker_idx",
         type=str,
         help="if the tts model is trained with x-vectors, then speaker_idx is a file present in speakers.json else speaker_idx is the speaker id corresponding to a speaker in the speaker embedding layer.",
+        default=None,
+    )
+    parser.add_argument(
+        "--speaker_wav",
+        nargs="+",
+        help="wav file(s) to condition a multi-speaker model. You can give multiple file paths. The x_vectors is computed as their average.",
         default=None,
     )
     parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
@@ -139,6 +152,8 @@ def main():
     speakers_file_path = None
     vocoder_path = None
     vocoder_config_path = None
+    encoder_path = None
+    encoder_config_path = None
 
     # CASE1: list pre-trained TTS models
     if args.list_models:
@@ -163,9 +178,14 @@ def main():
         vocoder_path = args.vocoder_path
         vocoder_config_path = args.vocoder_config_path
 
+    if args.encoder_path is not None:
+        encoder_path = args.encoder_path
+        encoder_config_path = args.encoder_config_path
+
     # load models
     synthesizer = Synthesizer(
-        model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, args.use_cuda
+        model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, encoder_path,
+        encoder_config_path, args.use_cuda
     )
 
     # query speaker ids of a multi-speaker model.
@@ -180,7 +200,7 @@ def main():
     print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx)
+    wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav)
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))
