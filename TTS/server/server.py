@@ -1,12 +1,11 @@
 #!flask/bin/python
-from typing import Union
-
 import argparse
 import io
+import json
 import os
 import sys
 from pathlib import Path
-import json
+from typing import Union
 
 from flask import Flask, render_template, request, send_file
 
@@ -32,19 +31,12 @@ def create_argparser():
         "--model_name",
         type=str,
         default="tts_models/en/ljspeech/tacotron2-DDC",
-        help=
-        "Name of one of the pre-trained tts models in format <language>/<dataset>/<model_name>",
+        help="Name of one of the pre-trained tts models in format <language>/<dataset>/<model_name>",
     )
-    parser.add_argument("--vocoder_name",
-                        type=str,
-                        default=None,
-                        help="name of one of the released vocoder models.")
+    parser.add_argument("--vocoder_name", type=str, default=None, help="name of one of the released vocoder models.")
 
     # Args for running custom models
-    parser.add_argument("--config_path",
-                        default=None,
-                        type=str,
-                        help="Path to model config file.")
+    parser.add_argument("--config_path", default=None, type=str, help="Path to model config file.")
     parser.add_argument(
         "--model_path",
         type=str,
@@ -54,34 +46,15 @@ def create_argparser():
     parser.add_argument(
         "--vocoder_path",
         type=str,
-        help=
-        "Path to vocoder model file. If it is not defined, model uses GL as vocoder. Please make sure that you installed vocoder library before (WaveRNN).",
+        help="Path to vocoder model file. If it is not defined, model uses GL as vocoder. Please make sure that you installed vocoder library before (WaveRNN).",
         default=None,
     )
-    parser.add_argument("--vocoder_config_path",
-                        type=str,
-                        help="Path to vocoder model config file.",
-                        default=None)
-    parser.add_argument("--speakers_file_path",
-                        type=str,
-                        help="JSON file for multi-speaker model.",
-                        default=None)
-    parser.add_argument("--port",
-                        type=int,
-                        default=5002,
-                        help="port to listen on.")
-    parser.add_argument("--use_cuda",
-                        type=convert_boolean,
-                        default=False,
-                        help="true to use CUDA.")
-    parser.add_argument("--debug",
-                        type=convert_boolean,
-                        default=False,
-                        help="true to enable Flask debug mode.")
-    parser.add_argument("--show_details",
-                        type=convert_boolean,
-                        default=False,
-                        help="Generate model detail page.")
+    parser.add_argument("--vocoder_config_path", type=str, help="Path to vocoder model config file.", default=None)
+    parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
+    parser.add_argument("--port", type=int, default=5002, help="port to listen on.")
+    parser.add_argument("--use_cuda", type=convert_boolean, default=False, help="true to use CUDA.")
+    parser.add_argument("--debug", type=convert_boolean, default=False, help="true to enable Flask debug mode.")
+    parser.add_argument("--show_details", type=convert_boolean, default=False, help="Generate model detail page.")
     return parser
 
 
@@ -109,14 +82,11 @@ if args.list_models:
 
 # CASE2: load pre-trained model paths
 if args.model_name is not None and not args.model_path:
-    model_path, config_path, model_item = manager.download_model(
-        args.model_name)
-    args.vocoder_name = model_item[
-        "default_vocoder"] if args.vocoder_name is None else args.vocoder_name
+    model_path, config_path, model_item = manager.download_model(args.model_name)
+    args.vocoder_name = model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
 
 if args.vocoder_name is not None and not args.vocoder_path:
-    vocoder_path, vocoder_config_path, _ = manager.download_model(
-        args.vocoder_name)
+    vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
 # CASE3: set custome model paths
 if args.model_path is not None:
@@ -129,8 +99,7 @@ if args.vocoder_path is not None:
     vocoder_config_path = args.vocoder_config_path
 
 # load models
-synthesizer = Synthesizer(model_path, config_path, speakers_file_path,
-                          vocoder_path, vocoder_config_path, args.use_cuda)
+synthesizer = Synthesizer(model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, args.use_cuda)
 
 use_multi_speaker = synthesizer.speaker_manager is not None
 # TODO: set this from SpeakerManager
@@ -154,17 +123,18 @@ def style_wav_uri_to_dict(style_wav: str) -> Union[str, dict]:
 
         style_wav = json.loads(style_wav)
         return style_wav  # style_wav is a gst dictionary with {token1_id : token1_weigth, ...}
-    else:
-        return None
+    return None
 
 
 @app.route("/")
 def index():
-    return render_template("index.html",
-                           show_details=args.show_details,
-                           use_multi_speaker=use_multi_speaker,
-                           speaker_ids=synthesizer.speaker_manager.speaker_ids if synthesizer.speaker_manager else None,
-                           use_gst=use_gst)
+    return render_template(
+        "index.html",
+        show_details=args.show_details,
+        use_multi_speaker=use_multi_speaker,
+        speaker_ids=synthesizer.speaker_manager.speaker_ids if synthesizer.speaker_manager else None,
+        use_gst=use_gst,
+    )
 
 
 @app.route("/details")

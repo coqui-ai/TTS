@@ -1,8 +1,8 @@
 import os
-import torch
 import unittest
 
 import numpy as np
+import torch
 
 from tests import get_tests_input_path
 from TTS.tts.utils.speakers import SpeakerManager
@@ -15,8 +15,10 @@ sample_wav_path = os.path.join(get_tests_input_path(), "../data/ljspeech/wavs/LJ
 sample_wav_path2 = os.path.join(get_tests_input_path(), "../data/ljspeech/wavs/LJ001-0002.wav")
 x_vectors_file_path = os.path.join(get_tests_input_path(), "../data/dummy_speakers.json")
 
+
 class SpeakerManagerTest(unittest.TestCase):
     """Test SpeakerManager for loading embedding files and computing x_vectors from waveforms"""
+
     @staticmethod
     def test_speaker_embedding():
         # load config
@@ -46,7 +48,6 @@ class SpeakerManagerTest(unittest.TestCase):
         x_vector3 = torch.FloatTensor(x_vector3)
         assert x_vector3.shape[0] == 256
         assert (x_vector - x_vector3).sum() != 0.0
-
 
     @staticmethod
     def test_speakers_file_processing():

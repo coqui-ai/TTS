@@ -93,7 +93,9 @@ class Synthesizer(object):
             speaker_file (str): path to the speakers meta-data file.
         """
         print("Loading speakers ...")
-        self.speaker_manager = SpeakerManager(encoder_model_path=self.encoder_checkpoint, encoder_config_path=self.encoder_config)
+        self.speaker_manager = SpeakerManager(
+            encoder_model_path=self.encoder_checkpoint, encoder_config_path=self.encoder_config
+        )
         self.speaker_manager.load_x_vectors_file(self.tts_config.get("external_speaker_embedding_file", speaker_file))
         self.num_speakers = self.speaker_manager.num_speakers
         self.speaker_embedding_dim = self.speaker_manager.x_vector_dim
