@@ -117,7 +117,7 @@ def format_data(data):
         text_lengths = text_lengths.cuda(non_blocking=True)
         mel_input = mel_input.cuda(non_blocking=True)
         mel_lengths = mel_lengths.cuda(non_blocking=True)
-        linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron"] else None
+        linear_input = linear_input.cuda(non_blocking=True) if c.model.lower() in ["tacotron"] else None
         stop_targets = stop_targets.cuda(non_blocking=True)
         if speaker_ids is not None:
             speaker_ids = speaker_ids.cuda(non_blocking=True)
