@@ -66,10 +66,12 @@ def set_filename(wav_path, out_path):
     os.makedirs(os.path.join(out_path, "quant"), exist_ok=True)
     os.makedirs(os.path.join(out_path, "mel"), exist_ok=True)
     os.makedirs(os.path.join(out_path, "wav_gl"), exist_ok=True)
+    os.makedirs(os.path.join(out_path, "wav"), exist_ok=True)
     wavq_path = os.path.join(out_path, "quant", file_name)
     mel_path = os.path.join(out_path, "mel", file_name)
-    wav_path = os.path.join(out_path, "wav_gl", file_name+'.wav')
-    return file_name, wavq_path, mel_path, wav_path
+    wav_gl_path = os.path.join(out_path, "wav_gl", file_name+'.wav')
+    wav_path = os.path.join(out_path, "wav", file_name+'.wav')
+    return file_name, wavq_path, mel_path, wav_gl_path, wav_path
 
 def format_data(data):
     # setup input data
@@ -122,7 +124,7 @@ def format_data(data):
     )
 
 @torch.no_grad()
-def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=False, debug=False, metada_name="metada.txt"):
+def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=False, save_audio=False, debug=False, metada_name="metada.txt"):
     model.eval()
     export_metadata = []
     for _, data in tqdm(enumerate(data_loader), total=len(data_loader)):
@@ -185,7 +187,7 @@ def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=Fals
         for idx in range(text_input.shape[0]):
             wav_file_path = item_idx[idx]
             wav = ap.load_wav(wav_file_path)
-            _, wavq_path, mel_path, wav_path = set_filename(wav_file_path, output_path)
+            _, wavq_path, mel_path, wav_gl_path, wav_path = set_filename(wav_file_path, output_path)
 
             # quantize and save wav
             if quantized_wav:
@@ -199,11 +201,13 @@ def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=Fals
             np.save(mel_path, mel)
 
             export_metadata.append([wav_file_path, mel_path])
+            if save_audio:
+                ap.save_wav(wav, wav_path)
 
             if debug:
-                print("Audio for debug saved at:", wav_path)
+                print("Audio for debug saved at:", wav_gl_path)
                 wav = ap.inv_melspectrogram(mel)
-                ap.save_wav(wav, wav_path)
+                ap.save_wav(wav, wav_gl_path)
 
     with open(os.path.join(output_path, metada_name), "w") as f:
         for data in export_metadata:
@@ -247,7 +251,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     r = 1 if c.model.lower() == "glow_tts" else model.decoder.r
     own_loader = setup_loader(ap, r, verbose=True)
 
-    extract_spectrograms(own_loader, model, ap, args.output_path, quantized_wav=args.quantized, debug=args.debug, metada_name="metada.txt")
+    extract_spectrograms(own_loader, model, ap, args.output_path, quantized_wav=args.quantized, save_audio=args.save_audio, debug=args.debug, metada_name="metada.txt")
 
 
 if __name__ == "__main__":
@@ -271,6 +275,10 @@ if __name__ == "__main__":
                         default=False,
                         action='store_true',
                         help='Save audio files for debug')
+    parser.add_argument('--save_audio',
+                        default=False,
+                        action='store_true',
+                        help='Save audio files')
     parser.add_argument('--quantized',
                         action='store_true',
                         help='Save quantized audio files')
