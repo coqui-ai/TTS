@@ -132,8 +132,8 @@ if args.vocoder_path is not None:
 synthesizer = Synthesizer(model_path, config_path, speakers_file_path,
                           vocoder_path, vocoder_config_path, args.use_cuda)
 
-use_speaker_embedding = synthesizer.tts_config.get(
-    "use_external_speaker_embedding_file", False)
+use_multi_speaker = synthesizer.speaker_manager is not None
+# TODO: set this from SpeakerManager
 use_gst = synthesizer.tts_config.get("use_gst", False)
 app = Flask(__name__)
 
@@ -162,8 +162,8 @@ def style_wav_uri_to_dict(style_wav: str) -> Union[str, dict]:
 def index():
     return render_template("index.html",
                            show_details=args.show_details,
-                           use_speaker_embedding=use_speaker_embedding,
-                           speaker_ids=synthesizer.speaker_manager.speaker_ids,
+                           use_multi_speaker=use_multi_speaker,
+                           speaker_ids=synthesizer.speaker_manager.speaker_ids if synthesizer.speaker_manager else None,
                            use_gst=use_gst)
 
 

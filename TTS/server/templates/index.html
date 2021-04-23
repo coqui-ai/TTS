@@ -72,7 +72,7 @@
                 <input id="text" placeholder="Type here..." size=45 type="text" name="text">
                 <button id="speak-button" name="speak">Speak</button><br /><br />
 
-                {%if use_speaker_embedding%}
+                {%if use_multi_speaker%}
                 Choose a speaker:
                 <select id="speaker_id" name=speaker_id method="GET" action="/">
                     {% for speaker_id in speaker_ids %}
