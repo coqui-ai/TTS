@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from TTS.speaker_encoder.utils.generic_utils import setup_model
+from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
 
 
@@ -143,6 +144,7 @@ class SpeakerManager:
         self.speaker_ids = None
         self.clip_ids = None
         self.speaker_encoder = None
+        self.speaker_encoder_ap = None
 
         if x_vectors_file_path:
             self.load_x_vectors_file(x_vectors_file_path)
@@ -230,6 +232,20 @@ class SpeakerManager:
         self.speaker_encoder_config = load_config(config_path)
         self.speaker_encoder = setup_model(self.speaker_encoder_config)
         self.speaker_encoder.load_checkpoint(config_path, model_path, True)
+        self.speaker_encoder_ap = AudioProcessor(
+            **self.speaker_encoder_config.audio)
+        # normalize the input audio level and trim silences
+        self.speaker_encoder_ap.do_sound_norm = True
+        self.speaker_encoder_ap.do_trim_silence = True
+
+    def compute_x_vector_from_clip(self, wav_file):
+        waveform = self.speaker_encoder_ap.load_wav(
+            wav_file, sr=self.speaker_encoder_ap.sample_rate)
+        spec = self.speaker_encoder_ap.melspectrogram(waveform)
+        spec = torch.from_numpy(spec.T)
+        spec = spec.unsqueeze(0)
+        x_vector = self.speaker_encoder.compute_embedding(spec)
+        return x_vector
 
     def compute_x_vector(self, feats):
         if isinstance(feats, np.ndarray):
