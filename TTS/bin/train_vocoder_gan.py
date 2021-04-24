@@ -21,7 +21,7 @@ from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (
     KeepAverage, count_parameters, remove_experiment_folder, set_init_dict,
     check_audio_arguments
-    )
+)
 from TTS.utils.io import load_np_audio_config
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.gan_dataset import GANDataset
