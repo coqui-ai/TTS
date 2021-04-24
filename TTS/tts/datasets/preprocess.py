@@ -211,15 +211,20 @@ def ruslan(root_path, meta_file):
 
 def css10(root_path, meta_file):
     """Normalizes the CSS10 dataset file to TTS format"""
-    txt_file = os.path.join(root_path, meta_file)
+    meta_file = os.path.join(root_path, "transcript.txt")
     items = []
-    speaker_name = "ljspeech"
-    with open(txt_file, "r") as ttf:
+    counter_missing_files = 0
+    speaker = "CSS10_" + meta_file.split('/')[-2] # taking the langauge in the path
+    with open(meta_file, "r") as ttf:
         for line in ttf:
-            cols = line.split("|")
-            wav_file = os.path.join(root_path, cols[0])
-            text = cols[1]
-            items.append([text, wav_file, speaker_name])
+            wav, _, text, _ = line.split("|")
+            wav = os.path.join(root_path, wav)
+            if os.path.isfile(wav):
+                items.append([text, wav, speaker])
+            else:
+                counter_missing_files += 1
+    if counter_missing_files != 0:
+        print("> %s files are missing!" % (counter_missing_files))
     return items
 
 
@@ -250,6 +255,25 @@ def common_voice(root_path, meta_file):
             speaker_name = cols[0]
             wav_file = os.path.join(root_path, "clips", cols[1].replace(".mp3", ".wav"))
             items.append([text, wav_file, "MCV_" + speaker_name])
+    return items
+
+
+def common_voice_tomiinek(root_path, meta_files=None):
+    """Normalize the common voice meta data file to TTS format."""
+    meta_file = os.path.join(root_path, "meta.csv")
+    items = []
+    counter_missing_files = 0
+    with open(meta_file, "r") as ttf:
+        for line in ttf:
+            speaker, wav, text = line.split("|")
+            wav = os.path.join(root_path, "wavs", str(speaker), wav)
+            speaker = str(speaker) + '_' + wav.split("_")[2] # take the language code out of the wav path
+            if os.path.isfile(wav):
+                items.append([text, wav, speaker])
+            else:
+                counter_missing_files += 1
+    if counter_missing_files != 0:
+        print("> %s files are missing!" % (counter_missing_files))
     return items
 
 
