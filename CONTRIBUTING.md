@@ -18,9 +18,9 @@ If you like to contribute code, squash a bug but if you don't know where to star
 
     This is a place to find feature requests, bugs.
 
-    Issues with the ```good first issue``` tag are good place for beginners to take on.
+    Issues with the `good first issue` tag are good place for beginners to take on.
 
-- ✨**PR**✨ [pages](https://github.com/coqui-ai/TTS/pulls) with the ```🚀new version``` tag.
+- ✨**PR**✨ [pages](https://github.com/coqui-ai/TTS/pulls) with the `🚀new version` tag.
 
     We list all the target improvements for the next version. You can pick one of them and start contributing.
 
@@ -35,7 +35,7 @@ The following steps are tested on an Ubuntu system.
 
 1. Fork 🐸TTS[https://github.com/coqui-ai/TTS] by clicking the fork button at the top right corner of the project page.
 
-2. Clone 🐸TTS and add the main repo as a new remote named ```upsteam```.
+2. Clone 🐸TTS and add the main repo as a new remote named `upsteam`.
 
     ```bash
     $ git clone git@github.com:<your Github name>/TTS.git
@@ -60,7 +60,7 @@ The following steps are tested on an Ubuntu system.
 
 6. Explain your code using [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
 
-7. Add your tests to our test suite under ```tests```  folder. It is important to show that your code works, edge cases are considered, and inform others about the intended use.
+7. Add your tests to our test suite under `tests`  folder. It is important to show that your code works, edge cases are considered, and inform others about the intended use.
 
 8. Run the tests to see how your updates work with the rest of the project. You can repeat this step multiple times as you implement your changes to make sure you are on the right direction.
 
@@ -68,13 +68,13 @@ The following steps are tested on an Ubuntu system.
     $ make tests
     ```
 
-9. Format your code. We use ```black``` for code and ```isort``` for ```import``` formatting.
+9. Format your code. We use `black` for code and `isort` for `import` formatting.
 
     ```bash
     $ make style
     ```
 
-10. Run the linter and correct the issues raised. We use ```pylint``` for linting.  It helps to enforce a coding standard, offers simple refactoring suggestions.
+10. Run the linter and correct the issues raised. We use `pylint` for linting.  It helps to enforce a coding standard, offers simple refactoring suggestions.
 
     ```bash
     $ make lint
@@ -96,7 +96,7 @@ The following steps are tested on an Ubuntu system.
     $ git rebase upstream/dev
     ```
 
-12. Send a PR to ```dev``` branch.
+12. Send a PR to `dev` branch.
 
     Push your branch to your fork.
 
@@ -106,13 +106,13 @@ The following steps are tested on an Ubuntu system.
 
     Then go to your fork's Github page and click on 'Pull request' to send your ✨**PR**✨.
 
-    Please set ✨**PR**✨'s target branch to ```dev``` as we use ```dev``` to work on the next version.
+    Please set ✨**PR**✨'s target branch to `dev` as we use `dev` to work on the next version.
 
 13. Let's discuss until it is perfect. 💪
 
     We might ask you for certain changes that would appear in the ✨**PR**✨'s page under 🐸TTS[https://github.com/coqui-ai/TTS/pulls].
 
-14. Once things look perfect, We merge it to the ```dev``` branch and make it ready for the next version.
+14. Once things look perfect, We merge it to the `dev` branch and make it ready for the next version.
 
 Feel free to ping us at any step you need help using our communication channels.
 

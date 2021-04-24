@@ -120,13 +120,13 @@ class GANDataset(Dataset):
         else:
 
             # load precomputed features
-            wavpath, feat_path = self.item_list[idx]
+            wavpath, featpath = self.item_list[idx]
 
             if self.use_cache and self.cache[idx] is not None:
                 audio, mel = self.cache[idx]
             else:
                 audio = self.ap.load_wav(wavpath)
-                mel = np.load(feat_path)
+                mel = np.load(featpath)
                 audio, mel = self._pad_short_samples(audio, mel)
 
         # correct the audio length wrt padding applied in stft
@@ -134,7 +134,10 @@ class GANDataset(Dataset):
         audio = audio[: mel.shape[-1] * self.hop_len]
         assert (
             mel.shape[-1] * self.hop_len == audio.shape[-1]
-        ), f" [!] {mel.shape[-1] * self.hop_len} vs {audio.shape[-1]}"
+        ), (
+            f" [!] {wavpath} features length: {mel.shape[-1] * self.hop_len} "
+            f"doesn't match audio length {audio.shape[-1]}"
+        )
 
         audio = torch.from_numpy(audio).float().unsqueeze(0)
         mel = torch.from_numpy(mel).float().squeeze(0)
