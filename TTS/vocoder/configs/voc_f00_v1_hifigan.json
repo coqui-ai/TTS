@@ -33,7 +33,7 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": "/data/corpora/_mk/_vezilka/voc_f00/scale_stats.npy"
+        "stats_path": "/data/corpora/_mk/_vezilka/voc_f00_v1/scale_stats.npy"
     },
 
     // DISTRIBUTED TRAINING
@@ -104,9 +104,9 @@
     },
 
     // DATASET
-    /* "data_path": "/home/erogol/gdrive/Datasets/LJSpeech-1.1/wavs/", */
-    "data_path": "/data/corpora/_mk/_vezilka/voc_f00/wavs",
-    "feature_path": "/data/corpora/_mk/_vezilka/voc_f00/feats",
+    // "data_path": "/home/erogol/gdrive/Datasets/LJSpeech-1.1/wavs/", */
+    "data_path": "/data/corpora/_mk/_vezilka/voc_f00_v1/wavs",
+    "feature_path": "/data/corpora/_mk/_vezilka/voc_f00_v1/feats",
     // "feature_path": "/home/erogol/gdrive/Datasets/non-binary-voice-files/tacotron-DCA/",
     "seq_len": 8192,
     "pad_short": 2000,
@@ -159,7 +159,8 @@
     "eval_split_size": 10,
 
     // PATHS
-    "output_path": "/home/erogol/gdrive/Trainings/LJSpeech/"
+    /* "output_path": "/home/erogol/gdrive/Trainings/LJSpeech/" */
+    "output_path": "~/tts/speechai/voc_f00_v1/"
 }
 
 

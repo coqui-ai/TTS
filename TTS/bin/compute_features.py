@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(
     description='Compute feature vectors for each wav file in a dataset.'
     )
 parser.add_argument(
-    "config_path",
+    "--config_path",
     type=str,
     required=True,
     help="Path to config file for feature extraction.",
@@ -74,23 +74,37 @@ else:
 
 # make feature dirs
 # check if multiple output paths are needed, i.e. wavs were in nested folders
-feature_paths = [os.path.dirname(wav_file) for wav_file in wav_files]
+feature_paths = [
+    os.path.dirname(wav_file).replace(data_path, feature_path)
+    for wav_file in wav_files
+    ]
 feature_paths = set(feature_paths)
 
-for feature_path in feature_paths:
-    os.makedirs(feature_path, exist_ok=True)
+for path in feature_paths:
+    os.makedirs(path, exist_ok=True)
 
 feature_files = [
-    wav_file.replace(data_path, args.feature_path).replace(".wav", ".npy")
+    wav_file.replace(data_path, feature_path).replace(".wav", ".npy")
     for wav_file in wav_files
     ]
 
 # compute features
-for wav_file, feature_file in tqdm(zip(wav_files, feature_files), ncols=80):
-    mel_spec = ap.melspectrogram(ap.load_wav(wav_file, sr=ap.sample_rate)).T
+for wav_file, feature_file in tqdm(
+        zip(wav_files, feature_files), total=len(wav_files), ncols=80
+        ):
+    mel_spec = ap.melspectrogram(ap.load_wav(wav_file, sr=ap.sample_rate))
     np.save(feature_file, mel_spec)
 print(f" > features saved to {feature_path}")
 
-# save config file for reference
-shutil.copyfile(args.config_path, feature_path)
-print(f" > config.json saved to {feature_path} for reference")
+# save audio config for checking
+# remove redundant values
+del c.audio["max_norm"]
+del c.audio["min_level_db"]
+del c.audio["symmetric_norm"]
+del c.audio["clip_norm"]
+audio_config = {"audio_config": c.audio}
+print(c.audio)
+config_name = 'feats_audio_config.npy'
+# save it to the parent folder of the feats directory
+np.save(f'{feature_path}/../{config_name}', audio_config)
+print(f" > audio config saved in feature dir as {config_name}")

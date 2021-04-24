@@ -5,6 +5,7 @@ import scipy.signal
 import soundfile as sf
 
 from TTS.tts.utils.data import StandardScaler
+from TTS.utils.generic_utils import check_audio_arguments
 
 # import pyworld as pw
 
@@ -226,14 +227,7 @@ class AudioProcessor(object):
         linear_std = stats["linear_std"]
         stats_config = stats["audio_config"]
         # check all audio parameters used for computing stats
-        skip_parameters = ["griffin_lim_iters", "stats_path", "do_trim_silence", "ref_level_db", "power"]
-        for key in stats_config.keys():
-            if key in skip_parameters:
-                continue
-            if key not in ["sample_rate", "trim_db"]:
-                assert (
-                    stats_config[key] == self.__dict__[key]
-                ), f" [!] Audio param {key} does not match the value used for computing mean-var stats. {stats_config[key]} vs {self.__dict__[key]}"
+        check_audio_arguments(stats_config, self)
         return mel_mean, mel_std, linear_mean, linear_std, stats_config
 
     # pylint: disable=attribute-defined-outside-init

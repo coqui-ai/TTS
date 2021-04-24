@@ -6,6 +6,8 @@ from shutil import copyfile
 
 import yaml
 
+import numpy as np
+
 
 class RenamingUnpickler(pickle_tts.Unpickler):
     """Overload default pickler to solve module renaming problem"""
@@ -30,6 +32,8 @@ def read_json_with_comments(json_path):
     # handle comments
     input_str = re.sub(r"\\\n", "", input_str)
     input_str = re.sub(r"//.*\n", "\n", input_str)
+    # take care of /* comments limitted in one line
+    input_str = re.sub(r"/\*.*\n", "\n", input_str)
     data = json.loads(input_str)
     return data
 
@@ -50,6 +54,10 @@ def load_config(config_path: str) -> AttrDict:
         data = read_json_with_comments(config_path)
     config.update(data)
     return config
+
+
+def load_np_audio_config(config_path):
+    return np.load(config_path, allow_pickle=True).item()['audio_config']
 
 
 def copy_model_files(c, config_file, out_path, new_fields):

@@ -14,7 +14,7 @@ from TTS.utils.io import load_config
 
 
 def main():
-    """Run preprocessing."""
+    """Compute feature statistics for normalization."""
     parser = argparse.ArgumentParser(
         description="Compute mean and variance of spectrogtram features."
         )
@@ -57,7 +57,7 @@ def main():
     linear_sum = 0
     linear_square_sum = 0
     N = 0
-    for item in tqdm(dataset_items):
+    for item in tqdm(dataset_items, ncols=80):
         # compute features
         wav = ap.load_wav(item if isinstance(item, str) else item[1])
         linear = ap.spectrogram(wav)
@@ -95,6 +95,7 @@ def main():
     del c.audio["symmetric_norm"]
     del c.audio["clip_norm"]
     stats["audio_config"] = c.audio
+    print(c.audio)
     np.save(output_file_path, stats, allow_pickle=True)
     print(f" > stats saved to {output_file_path}")
 
