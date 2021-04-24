@@ -96,7 +96,7 @@
     // TACOTRON PRENET
     "memory_size": -1,             // ONLY TACOTRON - size of the memory queue used fro storing last decoder predictions for auto-regression. If < 0, memory queue is disabled and decoder only uses the last prediction frame.
     "prenet_type": "original",     // "original" or "bn".
-    "prenet_dropout": false,       // enable/disable dropout at prenet.
+    "prenet_dropout": true,       // enable/disable dropout at prenet.
 
     // TACOTRON ATTENTION
     "attention_type": "original",  // 'original' , 'graves', 'dynamic_convolution'
@@ -175,4 +175,3 @@
             }
         ]
 }
-

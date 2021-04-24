@@ -24,6 +24,8 @@ class Tacotron(TacotronAbstract):
         attn_norm (str, optional): Attention normalization method. "sigmoid" or "softmax". Defaults to "softmax".
         prenet_type (str, optional): prenet type for the decoder. Defaults to "original".
         prenet_dropout (bool, optional): prenet dropout rate. Defaults to True.
+        prenet_dropout_at_inference (bool, optional): use dropout at inference time. This leads to a better quality for
+            some models. Defaults to False.
         forward_attn (bool, optional): enable/disable forward attention.
             It is only valid if ```attn_type``` is ```original```.  Defaults to False.
         trans_agent (bool, optional): enable/disable transition agent in forward attention. Defaults to False.
@@ -60,6 +62,7 @@ class Tacotron(TacotronAbstract):
         attn_norm="sigmoid",
         prenet_type="original",
         prenet_dropout=True,
+        prenet_dropout_at_inference=False,
         forward_attn=False,
         trans_agent=False,
         forward_attn_mask=False,
@@ -90,6 +93,7 @@ class Tacotron(TacotronAbstract):
             attn_norm,
             prenet_type,
             prenet_dropout,
+            prenet_dropout_at_inference,
             forward_attn,
             trans_agent,
             forward_attn_mask,
@@ -145,6 +149,9 @@ class Tacotron(TacotronAbstract):
         )
         self.postnet = PostCBHG(decoder_output_dim)
         self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, postnet_output_dim)
+
+        # setup prenet dropout
+        self.decoder.prenet.dropout_at_inference = prenet_dropout_at_inference
 
         # global style token layers
         if self.gst:

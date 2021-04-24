@@ -103,12 +103,10 @@ class AudioProcessor(object):
         self.do_sound_norm = do_sound_norm
         self.stats_path = stats_path
         # setup exp_func for db to amp conversion
-        print(f"self.log_func = {log_func}")
-        exec(f"self.log_func = {log_func}")  # pylint: disable=exec-used
-        if self.log_func.__name__ == "log":
-            self.exp_func = np.exp
-        elif self.log_func.__name__ == "log10":
-            self.exp_func = lambda x: 10 ** x
+        if log_func == "np.log":
+            self.base = np.e
+        elif log_func == "np.log10":
+            self.base = 10
         else:
             raise ValueError(" [!] unknown `log_func` value.")
         # setup stft parameters
@@ -247,11 +245,11 @@ class AudioProcessor(object):
     ### DB and AMP conversion ###
     # pylint: disable=no-self-use
     def _amp_to_db(self, x):
-        return self.spec_gain * self.log_func(np.maximum(1e-5, x))
+        return self.spec_gain * _log(np.maximum(1e-5, x), self.base)
 
     # pylint: disable=no-self-use
     def _db_to_amp(self, x):
-        return self.exp_func(x / self.spec_gain)
+        return _exp(x / self.spec_gain, self.base)
 
     ### Preemphasis ###
     def apply_preemphasis(self, x):
@@ -430,3 +428,13 @@ class AudioProcessor(object):
     @staticmethod
     def dequantize(x, bits):
         return 2 * x / (2 ** bits - 1) - 1
+
+def _log(x, base):
+    if base == 10:
+        return np.log10(x)
+    return np.log(x)
+
+def _exp(x, base):
+    if base == 10:
+        return np.power(10, x)
+    return np.exp(x)

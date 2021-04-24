@@ -79,6 +79,7 @@ class Prenet(nn.Module):
         in_features (int): number of channels in the input tensor and the inner layers.
         prenet_type (str, optional): prenet type "original" or "bn". Defaults to "original".
         prenet_dropout (bool, optional): dropout rate. Defaults to True.
+        dropout_at_inference (bool, optional): use dropout at inference. It leads to a better quality for some models.
         out_features (list, optional): List of output channels for each prenet block.
             It also defines number of the prenet blocks based on the length of argument list.
             Defaults to [256, 256].
@@ -86,10 +87,19 @@ class Prenet(nn.Module):
     """
 
     # pylint: disable=dangerous-default-value
-    def __init__(self, in_features, prenet_type="original", prenet_dropout=True, out_features=[256, 256], bias=True):
+    def __init__(
+        self,
+        in_features,
+        prenet_type="original",
+        prenet_dropout=True,
+        dropout_at_inference=False,
+        out_features=[256, 256],
+        bias=True,
+    ):
         super().__init__()
         self.prenet_type = prenet_type
         self.prenet_dropout = prenet_dropout
+        self.dropout_at_inference = dropout_at_inference
         in_features = [in_features] + out_features[:-1]
         if prenet_type == "bn":
             self.linear_layers = nn.ModuleList(
@@ -103,7 +113,7 @@ class Prenet(nn.Module):
     def forward(self, x):
         for linear in self.linear_layers:
             if self.prenet_dropout:
-                x = F.dropout(F.relu(linear(x)), p=0.5, training=self.training)
+                x = F.dropout(F.relu(linear(x)), p=0.5, training=self.training or self.dropout_at_inference)
             else:
                 x = F.relu(linear(x))
         return x

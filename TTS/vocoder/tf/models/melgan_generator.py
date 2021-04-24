@@ -10,6 +10,7 @@ logging.getLogger("tensorflow").setLevel(logging.FATAL)
 
 from TTS.vocoder.tf.layers.melgan import ReflectionPad1d, ResidualStack
 
+
 # pylint: disable=too-many-ancestors
 # pylint: disable=abstract-method
 class MelganGenerator(tf.keras.models.Model):

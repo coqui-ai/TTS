@@ -20,6 +20,7 @@ class TacotronAbstract(ABC, nn.Module):
         attn_norm="softmax",
         prenet_type="original",
         prenet_dropout=True,
+        prenet_dropout_at_inference=False,
         forward_attn=False,
         trans_agent=False,
         forward_attn_mask=False,
@@ -58,6 +59,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.attn_norm = attn_norm
         self.prenet_type = prenet_type
         self.prenet_dropout = prenet_dropout
+        self.prenet_dropout_at_inference = prenet_dropout_at_inference
         self.forward_attn = forward_attn
         self.trans_agent = trans_agent
         self.forward_attn_mask = forward_attn_mask

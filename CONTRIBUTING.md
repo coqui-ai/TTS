@@ -10,6 +10,10 @@ You can contribute not only with code but with bug reports, comments, questions,
 
 If you like to contribute code, squash a bug but if you don't know where to start, here are some pointers.
 
+- [Development Road Map](https://github.com/coqui-ai/TTS/issues/378)
+
+    You can pick something out of our road map. We keep the progess of the project in this simple issue thread. It has new model proposals or developmental updates etc.
+
 - [Github Issues Tracker](https://github.com/coqui-ai/TTS/issues)
 
     This is a place to find feature requests, bugs.
