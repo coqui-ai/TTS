@@ -86,7 +86,9 @@ class Encoder(nn.Module):
         super().__init__()
         self.convolutions = nn.ModuleList()
         if num_langs and language_embedding_dim:
-            self._language_embedding = nn.Embedding(num_langs, language_embedding_dim)
+            self._language_embedding_before = nn.Embedding(num_langs, language_embedding_dim)
+            self._language_embedding_after = nn.Embedding(num_langs, language_embedding_dim)
+            torch.nn.init.xavier_uniform_(self._language_embedding_after.weight)
             in_out_channels += language_embedding_dim
         for _ in range(3):
             self.convolutions.append(ConvBNBlock(in_out_channels, in_out_channels, 5, "relu"))
@@ -97,8 +99,9 @@ class Encoder(nn.Module):
 
     def forward(self, x, input_lengths, language_ids=None):
         if language_ids is not None:
-            l = self._language_embedding(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
-            x = torch.cat((x, l), dim=1)
+            l1 = self._language_embedding_before(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+            l2 = self._language_embedding_after(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+            x = torch.cat((x, l1), dim=1)
         o = x
         for layer in self.convolutions:
             o = layer(o)
@@ -107,18 +110,25 @@ class Encoder(nn.Module):
         self.lstm.flatten_parameters()
         o, _ = self.lstm(o)
         o, _ = nn.utils.rnn.pad_packed_sequence(o, batch_first=True)
+        if language_ids is not None:
+            l2 = l2.transpose(1, 2)
+            o = torch.cat((o, l2), dim=2)
         return o
 
     def inference(self, x, language_ids=None):
         if language_ids is not None:
-            l = self._language_embedding(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
-            x = torch.cat((x, l), dim=1)
+            l1 = self._language_embedding_before(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+            l2 = self._language_embedding_after(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+            x = torch.cat((x, l1), dim=1)
         o = x
         for layer in self.convolutions:
             o = layer(o)
         o = o.transpose(1, 2)
         # self.lstm.flatten_parameters()
         o, _ = self.lstm(o)
+        if language_ids is not None:
+            l2 = l2.transpose(1, 2)
+            o = torch.cat((o, l2), dim=2)
         return o
 
 

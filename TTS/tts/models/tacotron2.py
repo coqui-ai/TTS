@@ -115,7 +115,7 @@ class Tacotron2(TacotronAbstract):
         # speaker embedding layer
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
-                speaker_embedding_dim = 512
+                speaker_embedding_dim = 32
                 self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
 
@@ -123,7 +123,7 @@ class Tacotron2(TacotronAbstract):
         if num_langs > 1:
             if not language_embedding_dim:
                 language_embedding_dim = num_langs // 2 * 2 # Allow for odd number of languages
-            self.decoder_in_features += language_embedding_dim
+            self.decoder_in_features += language_embedding_dim * 2
 
         # adverserial speaker classifier
         self.reversal_classifier = reversal_classifier
