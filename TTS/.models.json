@@ -47,6 +47,18 @@
                     "license": "MPL",
                     "contact":"egolge@coqui.com"
                 }
+            },
+            "vctk":{
+                "sc-glow-tts": {
+                    "description": "Multi-Speaker Transformers based SC-Glow model from https://arxiv.org/abs/2104.05557.",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.12/tts_models--en--vctk--sc-glowtts-transformer.zip",
+                    "default_vocoder": null,
+                    "commit": "b531fa69",
+                    "author": "Edresson Casanova",
+                    "license": "",
+                    "contact":""
+
+                }
             }
         },
         "es":{
@@ -157,6 +169,16 @@
                     "author": "@erogol",
                     "license": "",
                     "contact": "egolge@coqui.ai"
+                }
+            },
+            "vctk":{
+                "hifigan_v2":{
+                    "description": "Finetuned and intended to be used with tts_models/en/vctk/sc-glow-tts",
+                    "github_rls_url":"https://github.com/coqui-ai/TTS/releases/download/v0.0.12/vocoder_model--en--vctk--hifigan_v2.zip",
+                    "commit": "2f07160",
+                    "author": "Edresson Casanova",
+                    "license": "",
+                    "contact": ""
                 }
             }
         },
