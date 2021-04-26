@@ -14,8 +14,11 @@ from TTS.tts.utils.visual import plot_spectrogram
 from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import (
-    KeepAverage, count_parameters, remove_experiment_folder, set_init_dict,
-    check_audio_arguments
+    KeepAverage,
+    check_audio_arguments,
+    count_parameters,
+    remove_experiment_folder,
+    set_init_dict,
 )
 from TTS.utils.io import load_np_audio_config
 from TTS.utils.radam import RAdam
@@ -316,9 +319,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     # check audio config of features
     if c.feature_path is not None:
         # load it from parent folder
-        feats_audio_config = load_np_audio_config(
-            f'{c.feature_path}/../feats_audio_config.npy'
-        )
+        feats_audio_config = load_np_audio_config(f"{c.feature_path}/../feats_audio_config.npy")
         check_audio_arguments(feats_audio_config, ap)
 
     # print(f" > Loading wavs from: {c.data_path}")

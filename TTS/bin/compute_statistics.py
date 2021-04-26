@@ -15,21 +15,15 @@ from TTS.utils.io import load_config
 
 def main():
     """Compute feature statistics for normalization."""
-    parser = argparse.ArgumentParser(
-        description="Compute mean and variance of spectrogtram features."
-        )
+    parser = argparse.ArgumentParser(description="Compute mean and variance of spectrogtram features.")
     parser.add_argument(
-        "--config_path",
-        type=str,
-        required=True,
-        help="TTS config file path to define audio processing parameters."
-        )
+        "--config_path", type=str, required=True, help="TTS config file path to define audio processing parameters."
+    )
     parser.add_argument(
         "--stats_path",
         type=str,
-        help=("Save path (directory and filename). "
-              "If not specified taken from config.json.")
-        )
+        help=("Save path (directory and filename). " "If not specified taken from config.json."),
+    )
     args = parser.parse_args()
 
     # load config
@@ -46,8 +40,7 @@ def main():
 
     # load the meta data of target dataset
     if "data_path" in c.keys():
-        dataset_items = glob.glob(
-            os.path.join(c.data_path, "**", "*.wav"), recursive=True)
+        dataset_items = glob.glob(os.path.join(c.data_path, "**", "*.wav"), recursive=True)
     else:
         dataset_items = load_meta_data(c.datasets)[0]  # take only train data
     print(f" > There are {len(dataset_items)} files.")

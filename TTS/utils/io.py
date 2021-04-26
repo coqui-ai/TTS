@@ -4,9 +4,8 @@ import pickle as pickle_tts
 import re
 from shutil import copyfile
 
-import yaml
-
 import numpy as np
+import yaml
 
 
 class RenamingUnpickler(pickle_tts.Unpickler):
@@ -57,7 +56,7 @@ def load_config(config_path: str) -> AttrDict:
 
 
 def load_np_audio_config(config_path):
-    return np.load(config_path, allow_pickle=True).item()['audio_config']
+    return np.load(config_path, allow_pickle=True).item()["audio_config"]
 
 
 def copy_model_files(c, config_file, out_path, new_fields):
