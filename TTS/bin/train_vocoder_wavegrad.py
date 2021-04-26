@@ -20,9 +20,7 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (
     KeepAverage, count_parameters, remove_experiment_folder, set_init_dict,
-    check_audio_arguments
 )
-from TTS.utils.io import load_np_audio_config
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset
@@ -316,14 +314,6 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup audio processor
     ap = AudioProcessor(**c.audio)
-
-    # check audio config of features
-    if c.feature_path is not None:
-        # load it from parent folder
-        feats_audio_config = load_np_audio_config(
-            f'{c.feature_path}/../feats_audio_config.npy'
-        )
-        check_audio_arguments(feats_audio_config, ap)
 
     # DISTRUBUTED
     if num_gpus > 1:

@@ -151,14 +151,6 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     ap = AudioProcessor(**c.audio)
 
-    # check audio config of features
-    if c.feature_path is not None:
-        # load it from parent folder
-        feats_audio_config = load_np_audio_config(
-            f'{c.feature_path}/../feats_audio_config.npy'
-        )
-        check_audio_arguments(feats_audio_config, ap)
-
     model = SpeakerEncoder(
         input_dim=c.model["input_dim"],
         proj_dim=c.model["proj_dim"],
