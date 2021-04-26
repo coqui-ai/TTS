@@ -133,10 +133,6 @@ class SpeakerManager:
         encoder_model_path (str, optional): Path to the speaker encoder model file. Defaults to "".
         encoder_config_path (str, optional): Path to the spealer encoder config file. Defaults to "".
     """
-<<<<<<< HEAD
-
-=======
->>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
     def __init__(
         self,
         x_vectors_file_path: str = "",
@@ -149,10 +145,7 @@ class SpeakerManager:
         self.speaker_ids = None
         self.clip_ids = None
         self.speaker_encoder = None
-<<<<<<< HEAD
         self.speaker_encoder_ap = None
-=======
->>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
 
         if x_vectors_file_path:
             self.load_x_vectors_file(x_vectors_file_path)
@@ -198,51 +191,23 @@ class SpeakerManager:
 
     def load_x_vectors_file(self, file_path: str):
         self.x_vectors = self._load_json(file_path)
-<<<<<<< HEAD
         self.speaker_ids = list(set(sorted(x["name"] for x in self.x_vectors.values())))
         self.clip_ids = list(set(sorted(clip_name for clip_name in self.x_vectors.keys())))
-=======
-        self.speaker_ids = list(
-            set(sorted(x["name"] for x in self.x_vectors.values())))
-        self.clip_ids = list(
-            set(sorted(clip_name for clip_name in self.x_vectors.keys())))
->>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
 
     def get_x_vector_by_clip(self, clip_idx: str):
         return self.x_vectors[clip_idx]["embedding"]
 
     def get_x_vectors_by_speaker(self, speaker_idx: str):
-<<<<<<< HEAD
         return [x["embedding"] for x in self.x_vectors.values() if x["name"] == speaker_idx]
 
     def get_mean_x_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False):
-=======
-        return [
-            x["embedding"] for x in self.x_vectors.values()
-            if x["name"] == speaker_idx
-        ]
-
-    def get_mean_x_vector(self,
-                          speaker_idx: str,
-                          num_samples: int = None,
-                          randomize: bool = False):
->>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
         x_vectors = self.get_x_vectors_by_speaker(speaker_idx)
         if num_samples is None:
             x_vectors = np.stack(x_vectors).mean(0)
         else:
-<<<<<<< HEAD
             assert len(x_vectors) >= num_samples, f" [!] speaker {speaker_idx} has number of samples < {num_samples}"
             if randomize:
                 x_vectors = np.stack(random.choices(x_vectors, k=num_samples)).mean(0)
-=======
-            assert len(
-                x_vectors
-            ) >= num_samples, f" [!] speaker {speaker_idx} has number of samples < {num_samples}"
-            if randomize:
-                x_vectors = np.stack(random.choices(x_vectors,
-                                                    k=num_samples)).mean(0)
->>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
             else:
                 x_vectors = np.stack(x_vectors[:num_samples]).mean(0)
         return x_vectors
@@ -253,7 +218,6 @@ class SpeakerManager:
     def get_clips(self):
         return sorted(self.x_vectors.keys())
 
-<<<<<<< HEAD
     def init_speaker_encoder(self, model_path: str, config_path: str) -> None:
         self.speaker_encoder_config = load_config(config_path)
         self.speaker_encoder = setup_model(self.speaker_encoder_config)
@@ -284,12 +248,6 @@ class SpeakerManager:
             return (x_vectors / len(wav_file))[0].tolist()
         x_vector = _compute(wav_file)
         return x_vector[0].tolist()
-=======
-    def init_speaker_encoder(self, model_path: str, config_path: str):
-        self.speaker_encoder_config = load_config(config_path)
-        self.speaker_encoder = setup_model(self.speaker_encoder_config)
-        self.speaker_encoder.load_checkpoint(config_path, model_path, True)
->>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
 
     def compute_x_vector(self, feats):
         if isinstance(feats, np.ndarray):
