@@ -9,6 +9,7 @@ from typing import Union
 
 from flask import Flask, render_template, request, send_file
 
+from TTS.utils.generic_utils import style_wav_uri_to_dict
 from TTS.utils.io import load_config
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer

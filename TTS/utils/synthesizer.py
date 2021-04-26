@@ -189,7 +189,7 @@ class Synthesizer(object):
         """
         start_time = time.time()
         wavs = []
-        sens = self.split_into_sentences(text)
+        sens = self._split_into_sentences(text)
         print(" > Text splitted to sentences.")
         print(sens)
 
