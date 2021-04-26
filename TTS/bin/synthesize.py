@@ -29,27 +29,65 @@ def main():
         """You can either use your trained model or choose a model from the provided list.\n\n"""
         """If you don't specify any models, then it uses LJSpeech based English models\n\n"""
         """
-    Example runs:
+    # Example Runs:
 
-    # list provided models
-    ./TTS/bin/synthesize.py --list_models
+    ## Single Speaker Models
 
-    # run tts with default models.
-    ./TTS/bin synthesize.py --text "Text for TTS"
+    - list provided models
 
-    # run a tts model with its default vocoder model.
-     ./TTS/bin synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>"
+    ```
+    $ ./TTS/bin/synthesize.py --list_models
+    ```
 
-    # run with specific tts and vocoder models from the list
-    ./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
+    - run tts with default models.
 
-    # run your own TTS model (Using Griffin-Lim Vocoder)
-    ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
+    ```
+    $ ./TTS/bin synthesize.py --text "Text for TTS"
+    ```
 
-    # run your own TTS and Vocoder models
-    ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
+    - run a tts model with its default vocoder model.
+
+    ```
+    $ ./TTS/bin synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
+    ```
+
+    - run with specific tts and vocoder models from the list
+
+    ```
+    $ ./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
+    ```
+
+    - run your own TTS model (Using Griffin-Lim Vocoder)
+
+    ```
+    $ ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
+    ```
+
+    - run your own TTS and Vocoder models
+    ```
+    $ ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
         --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
+    ```
 
+    ## MULTI-SPEAKER MODELS
+
+    - list the available speakers and choose as <speaker_id> among them.
+
+    ```
+    $ ./TTS/bin/synthesize.py --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs
+    ```
+
+    - run the multi-speaker TTS model with the target speaker ID.
+
+    ```
+    $ ./TTS/bin/synthesize.py --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx <speaker_id>
+    ```
+
+    - run your own multi-speaker TTS model.
+
+    ```
+    $ ./TTS/bin/synthesize.py --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth.tar --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
+    ```
     """,
         formatter_class=RawTextHelpFormatter,
     )
@@ -113,21 +151,23 @@ def main():
     parser.add_argument(
         "--speaker_idx",
         type=str,
-        help="if the tts model is trained with x-vectors, then speaker_idx is a file present in speakers.json else speaker_idx is the speaker id corresponding to a speaker in the speaker embedding layer.",
+        help="Target speaker ID for a multi-speaker TTS model.",
         default=None,
     )
     parser.add_argument(
         "--speaker_wav",
         nargs="+",
-        help="wav file(s) to condition a multi-speaker model. You can give multiple file paths. The x_vectors is computed as their average.",
+        help="wav file(s) to condition a multi-speaker TTS model with a Speaker Encoder. You can give multiple file paths. The x_vectors is computed as their average.",
         default=None,
     )
     parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
     parser.add_argument(
         "--list_speaker_idxs",
         help="List available speaker ids for the defined multi-speaker model.",
-        default=False,
         type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
     )
     # aux args
     parser.add_argument(
@@ -200,6 +240,14 @@ def main():
             " > Available speaker ids: (Set --speaker_idx flag to one of these values to use the multi-speaker model."
         )
         print(synthesizer.speaker_manager.speaker_ids)
+        return
+
+    # check the arguments against a multi-speaker model.
+    if synthesizer.tts_speakers_file and (not args.speaker_idx and not args.speaker_wav):
+        print(
+            " [!] Looks like you use a multi-speaker model. Define `--speaker_idx` to "
+            "select the target speaker. You can list the available speakers for this model by `--list_speaker_idxs`."
+        )
         return
 
     # RUN THE SYNTHESIS

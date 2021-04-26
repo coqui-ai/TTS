@@ -51,35 +51,28 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
                     print(
                         "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
                     )
-                    speaker_mapping = load_speaker_mapping(
-                        c.external_speaker_embedding_file)
+                    speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
                     if not speaker_mapping:
                         raise RuntimeError(
                             "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file"
                         )
-                speaker_embedding_dim = len(speaker_mapping[list(
-                    speaker_mapping.keys())[0]]["embedding"])
+                speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]["embedding"])
             elif (
-                    not c.use_external_speaker_embedding_file
+                not c.use_external_speaker_embedding_file
             ):  # if restore checkpoint and don't use External Embedding file
                 prev_out_path = os.path.dirname(args.restore_path)
                 speaker_mapping = load_speaker_mapping(prev_out_path)
                 speaker_embedding_dim = None
-                assert all(
-                    speaker in speaker_mapping
-                    for speaker in speakers), ("As of now you, you cannot "
-                                               "introduce new speakers to "
-                                               "a previously trained model.")
-        elif (c.use_external_speaker_embedding_file
-              and c.external_speaker_embedding_file
-              ):  # if start new train using External Embedding file
-            speaker_mapping = load_speaker_mapping(
-                c.external_speaker_embedding_file)
-            speaker_embedding_dim = len(speaker_mapping[list(
-                speaker_mapping.keys())[0]]["embedding"])
+                assert all(speaker in speaker_mapping for speaker in speakers), (
+                    "As of now you, you cannot " "introduce new speakers to " "a previously trained model."
+                )
         elif (
-                c.use_external_speaker_embedding_file
-                and not c.external_speaker_embedding_file
+            c.use_external_speaker_embedding_file and c.external_speaker_embedding_file
+        ):  # if start new train using External Embedding file
+            speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
+            speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]["embedding"])
+        elif (
+            c.use_external_speaker_embedding_file and not c.external_speaker_embedding_file
         ):  # if start new train using External Embedding file and don't pass external embedding file
             raise "use_external_speaker_embedding_file is True, so you need pass a external speaker embedding file, run GE2E-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb or AngularPrototypical-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb notebook in notebooks/ folder"
         else:  # if start new train and don't use External Embedding file
@@ -87,8 +80,7 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
             speaker_embedding_dim = None
         save_speaker_mapping(OUT_PATH, speaker_mapping)
         num_speakers = len(speaker_mapping)
-        print(" > Training with {} speakers: {}".format(
-            len(speakers), ", ".join(speakers)))
+        print(" > Training with {} speakers: {}".format(len(speakers), ", ".join(speakers)))
     else:
         num_speakers = 0
         speaker_embedding_dim = None
@@ -133,6 +125,7 @@ class SpeakerManager:
         encoder_model_path (str, optional): Path to the speaker encoder model file. Defaults to "".
         encoder_config_path (str, optional): Path to the spealer encoder config file. Defaults to "".
     """
+
     def __init__(
         self,
         x_vectors_file_path: str = "",
