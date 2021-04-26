@@ -38,6 +38,8 @@ class Synthesizer(object):
         If you have certain special characters in your text, you need to handle
         them before providing the text to Synthesizer.
 
+        TODO: set the segmenter based on the source language
+
         Args:
             tts_checkpoint (str): path to the tts model file.
             tts_config_path (str): path to the tts config file.
@@ -152,7 +154,7 @@ class Synthesizer(object):
         if use_cuda:
             self.vocoder_model.cuda()
 
-    def _split_into_sentences(self, text) -> List[str]:
+    def split_into_sentences(self, text) -> List[str]:
         """Split give text into sentences.
 
         Args:
@@ -187,7 +189,7 @@ class Synthesizer(object):
         """
         start_time = time.time()
         wavs = []
-        sens = self._split_into_sentences(text)
+        sens = self.split_into_sentences(text)
         print(" > Text splitted to sentences.")
         print(sens)
 
