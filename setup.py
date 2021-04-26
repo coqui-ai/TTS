@@ -48,6 +48,14 @@ def pip_install(package_name):
 
 
 requirements = open(os.path.join(cwd, 'requirements.txt'), 'r').readlines()
+with open(os.path.join(cwd, 'requirements.notebooks.txt'), 'r') as f:
+    requirements_notebooks = f.readlines()
+with open(os.path.join(cwd, 'requirements.dev.txt'), 'r') as f:
+    requirements_dev = f.readlines()
+with open(os.path.join(cwd, 'requirements.tf.txt'), 'r') as f:
+    requirements_tf = f.readlines()
+requirements_all = requirements_dev + requirements_notebooks + requirements_tf
+
 with open('README.md', "r", encoding="utf-8") as readme_file:
     README = readme_file.read()
 
@@ -82,6 +90,12 @@ setup(
         # 'build_ext': build_ext
     },
     install_requires=requirements,
+    extras_require={
+        "all": requirements_all,
+        "dev": requirements_dev,
+        "notebooks": requirements_notebooks,
+        "tf": requirements_tf,
+    },
     python_requires='>=3.6.0, <3.9',
     entry_points={
         'console_scripts': [
