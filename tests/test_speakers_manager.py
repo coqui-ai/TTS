@@ -16,6 +16,7 @@ x_vectors_file_path = os.path.join(get_tests_input_path(), "../data/dummy_speake
 
 class SpeakerManagerTest(unittest.TestCase):
     """Test SpeakerManager for loading embedding files and computing x_vectors from waveforms"""
+
     @staticmethod
     def test_speaker_embedding():
         # load config

@@ -127,6 +127,9 @@ class Synthesizer(object):
             self.input_size = len(symbols)
 
         if self.tts_config.use_speaker_embedding is True:
+            self.tts_speakers_file = (
+                self.tts_speakers_file if self.tts_speakers_file else self.tts_config["external_speaker_embedding_file"]
+            )
             self._load_speakers(self.tts_speakers_file)
 
         self.tts_model = setup_model(
@@ -189,15 +192,27 @@ class Synthesizer(object):
         """
         start_time = time.time()
         wavs = []
-        sens = self._split_into_sentences(text)
+        sens = self.split_into_sentences(text)
         print(" > Text splitted to sentences.")
         print(sens)
 
-        # get the speaker embedding from the saved x_vectors.
-        if speaker_idx and isinstance(speaker_idx, str):
-            speaker_embedding = self.speaker_manager.get_x_vectors_by_speaker(speaker_idx)[0]
+        if self.tts_speakers_file:
+            # get the speaker embedding from the saved x_vectors.
+            if speaker_idx and isinstance(speaker_idx, str):
+                speaker_embedding = self.speaker_manager.get_x_vectors_by_speaker(speaker_idx)[0]
+            elif not speaker_idx and not speaker_wav:
+                raise ValueError(
+                    " [!] Look like you use a multi-speaker model. "
+                    "You need to define either a `speaker_idx` or a `style_wav` to use a multi-speaker model."
+                )
+            else:
+                speaker_embedding = None
         else:
-            speaker_embedding = None
+            if speaker_idx:
+                raise ValueError(
+                    f" [!] Missing speaker.json file path for selecting speaker {speaker_idx}."
+                    "Define path for speaker.json if it is a multi-speaker model or remove defined speaker idx. "
+                )
 
         # compute a new x_vector from the given clip.
         if speaker_wav is not None:
