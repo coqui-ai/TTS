@@ -19,8 +19,11 @@ from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (
-    KeepAverage, count_parameters, remove_experiment_folder, set_init_dict,
-    check_audio_arguments
+    KeepAverage,
+    check_audio_arguments,
+    count_parameters,
+    remove_experiment_folder,
+    set_init_dict,
 )
 from TTS.utils.io import load_np_audio_config
 from TTS.utils.training import setup_torch_training_env
@@ -43,8 +46,7 @@ def setup_loader(ap, is_val=False, verbose=False):
             hop_len=ap.hop_length,
             pad_short=c.pad_short,
             conv_pad=c.conv_pad,
-            return_pairs=(c.diff_samples_for_G_and_D
-                          if "diff_samples_for_G_and_D" in c else False),
+            return_pairs=(c.diff_samples_for_G_and_D if "diff_samples_for_G_and_D" in c else False),
             is_training=not is_val,
             return_segments=not is_val,
             use_noise_augment=c.use_noise_augment,
@@ -83,18 +85,18 @@ def format_data(data):
 
 
 def train(
-        model_G,
-        criterion_G,
-        optimizer_G,
-        model_D,
-        criterion_D,
-        optimizer_D,
-        scheduler_G,
-        scheduler_D,
-        ap,
-        global_step,
-        epoch,
-        ):
+    model_G,
+    criterion_G,
+    optimizer_G,
+    model_D,
+    criterion_D,
+    optimizer_D,
+    scheduler_G,
+    scheduler_D,
+    ap,
+    global_step,
+    epoch,
+):
     data_loader = setup_loader(ap, is_val=False, verbose=(epoch == 0))
     model_G.train()
     model_D.train()
@@ -264,19 +266,12 @@ def train(
                 "current_lr_G": current_lr_G,
                 "current_lr_D": current_lr_D,
             }
-            c_logger.print_train_step(
-                batch_n_iter, num_iter, global_step, log_dict, loss_dict,
-                keep_avg.avg_values
-            )
+            c_logger.print_train_step(batch_n_iter, num_iter, global_step, log_dict, loss_dict, keep_avg.avg_values)
 
         if args.rank == 0:
             # plot step stats
             if global_step % 10 == 0:
-                iter_stats = {
-                    "lr_G": current_lr_G,
-                    "lr_D": current_lr_D,
-                    "step_time": step_time
-                }
+                iter_stats = {"lr_G": current_lr_G, "lr_D": current_lr_D, "step_time": step_time}
                 iter_stats.update(loss_dict)
                 tb_logger.tb_train_iter_stats(global_step, iter_stats)
 
@@ -303,10 +298,7 @@ def train(
 
                 # Sample audio
                 sample_voice = y_hat_vis[0].squeeze(0).detach().cpu().numpy()
-                tb_logger.tb_train_audios(
-                    global_step,
-                    {"train/audio": sample_voice}, c.audio["sample_rate"]
-                )
+                tb_logger.tb_train_audios(global_step, {"train/audio": sample_voice}, c.audio["sample_rate"])
         end_time = time.time()
 
     if scheduler_G is not None:
@@ -388,9 +380,7 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
                 feats_fake, feats_real = None, None
 
         # compute losses
-        loss_G_dict = criterion_G(
-            y_hat, y_G, scores_fake, feats_fake, feats_real, y_hat_sub, y_G_sub
-        )
+        loss_G_dict = criterion_G(y_hat, y_G, scores_fake, feats_fake, feats_real, y_hat_sub, y_G_sub)
 
         loss_dict = dict()
         for key, value in loss_G_dict.items():
@@ -464,9 +454,7 @@ def evaluate(model_G, criterion_G, model_D, criterion_D, ap, global_step, epoch)
         predict_waveform = y_hat[0].squeeze(0).detach().cpu().numpy()
         real_waveform = y_G[0].squeeze(0).cpu().numpy()
         tb_logger.tb_eval_audios(
-            global_step,
-            {"eval/audio": predict_waveform, "eval/real_waveformo": real_waveform},
-            c.audio["sample_rate"]
+            global_step, {"eval/audio": predict_waveform, "eval/real_waveformo": real_waveform}, c.audio["sample_rate"]
         )
 
         tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
@@ -483,9 +471,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     print(f" > Loading wavs from: {c.data_path}")
     if c.feature_path is not None:
         print(f" > Loading features from: {c.feature_path}")
-        eval_data, train_data = load_wav_feat_data(
-            c.data_path, c.feature_path, c.eval_split_size
-        )
+        eval_data, train_data = load_wav_feat_data(c.data_path, c.feature_path, c.eval_split_size)
     else:
         eval_data, train_data = load_wav_data(c.data_path, c.eval_split_size)
 
@@ -494,17 +480,12 @@ def main(args):  # pylint: disable=redefined-outer-name
     # check audio config of features
     if c.feature_path is not None:
         # load it from parent folder
-        feats_audio_config = load_np_audio_config(
-            f'{c.feature_path}/../feats_audio_config.npy'
-        )
+        feats_audio_config = load_np_audio_config(f"{c.feature_path}/../feats_audio_config.npy")
         check_audio_arguments(feats_audio_config, ap)
 
     # DISTRUBUTED
     if num_gpus > 1:
-        init_distributed(
-            args.rank, num_gpus, args.group_id,
-            c.distributed["backend"], c.distributed["url"]
-        )
+        init_distributed(args.rank, num_gpus, args.group_id, c.distributed["backend"], c.distributed["url"])
 
     # setup models
     model_gen = setup_generator(c)
@@ -525,13 +506,9 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer_gen = None
     optimizer_disc = None
     optimizer_gen = getattr(torch.optim, c.optimizer)
-    optimizer_gen = optimizer_gen(
-        model_gen.parameters(), lr=c.lr_gen, **c.optimizer_params
-    )
+    optimizer_gen = optimizer_gen(model_gen.parameters(), lr=c.lr_gen, **c.optimizer_params)
     optimizer_disc = getattr(torch.optim, c.optimizer)
-    optimizer_disc = optimizer_disc(
-        model_disc.parameters(), lr=c.lr_disc, **c.optimizer_params
-    )
+    optimizer_disc = optimizer_disc(model_disc.parameters(), lr=c.lr_disc, **c.optimizer_params)
 
     # schedulers
     scheduler_gen = None
@@ -629,10 +606,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             global_step,
             epoch,
         )
-        eval_avg_loss_dict = evaluate(
-            model_gen, criterion_gen, model_disc, criterion_disc, ap,
-            global_step, epoch
-        )
+        eval_avg_loss_dict = evaluate(model_gen, criterion_gen, model_disc, criterion_disc, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = eval_avg_loss_dict[c.target_loss]
         best_loss = save_best_model(
@@ -655,9 +629,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 if __name__ == "__main__":
     args = parse_arguments(sys.argv)
-    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(
-        args, model_class="vocoder"
-    )
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args, model_class="vocoder")
 
     try:
         main(args)

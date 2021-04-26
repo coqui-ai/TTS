@@ -18,9 +18,7 @@ from torch.utils.data.distributed import DistributedSampler
 from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed
-from TTS.utils.generic_utils import (
-    KeepAverage, count_parameters, remove_experiment_folder, set_init_dict,
-)
+from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset

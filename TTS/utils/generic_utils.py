@@ -181,22 +181,19 @@ def check_audio_arguments(audio_config, ap):
     Raises:
         Assertion errors if any of the parameters don't match.
     """
-    skip_parameters = [
-        "griffin_lim_iters", "stats_path", "do_trim_silence",
-        "ref_level_db", "power"
-        ]
+    skip_parameters = ["griffin_lim_iters", "stats_path", "do_trim_silence", "ref_level_db", "power"]
     for key in audio_config.keys():
         if key in skip_parameters:
             continue
         if key == "log_func":
-            assert(
-                audio_config[key].split('.')[-1] == ap.log_func.__name__
-                ), (f" [!] Audio param {key} does not match the value used"
-                    f" for computing mean-var stats. "
-                    f"{audio_config[key]} vs {ap.__dict__[key]}")
+            assert audio_config[key].split(".")[-1] == ap.log_func.__name__, (
+                f" [!] Audio param {key} does not match the value used"
+                f" for computing mean-var stats. "
+                f"{audio_config[key]} vs {ap.__dict__[key]}"
+            )
         elif key not in ["sample_rate", "trim_db"]:
-            assert (
-                audio_config[key] == ap.__dict__[key]
-                ), (f" [!] Audio param {key} does not match the value used"
-                    f" for computing mean-var stats. "
-                    f"{audio_config[key]} vs {ap.__dict__[key]}")
+            assert audio_config[key] == ap.__dict__[key], (
+                f" [!] Audio param {key} does not match the value used"
+                f" for computing mean-var stats. "
+                f"{audio_config[key]} vs {ap.__dict__[key]}"
+            )
