@@ -110,11 +110,17 @@ If you are only interested in [synthesizing speech](https://github.com/coqui-ai/
 pip install TTS
 ```
 
+By default this only installs the requirements for PyTorch. To install the tensorflow dependencies as well, use the `tf` extra.
+
+```bash
+pip install TTS[tf]
+```
+
 If you plan to code or train models, clone 🐸TTS and install it locally.
 
 ```bash
 git clone https://github.com/coqui-ai/TTS
-pip install -e .
+pip install -e .[all,dev,notebooks,tf]  # Select the relevant extras
 ```
 
 We use ```espeak-ng``` to convert graphemes to phonemes. You might need to install separately.
@@ -127,6 +133,7 @@ If you are on Ubuntu (Debian), you can also run following commands for installat
 
 ```bash
 $ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
+$ make dev-deps  # Dependencies only required for development
 $ make install
 ```
 
