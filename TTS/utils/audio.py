@@ -429,10 +429,12 @@ class AudioProcessor(object):
     def dequantize(x, bits):
         return 2 * x / (2 ** bits - 1) - 1
 
+
 def _log(x, base):
     if base == 10:
         return np.log10(x)
     return np.log(x)
+
 
 def _exp(x, base):
     if base == 10:
