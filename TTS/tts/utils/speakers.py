@@ -51,28 +51,35 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
                     print(
                         "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
                     )
-                    speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
+                    speaker_mapping = load_speaker_mapping(
+                        c.external_speaker_embedding_file)
                     if not speaker_mapping:
                         raise RuntimeError(
                             "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file"
                         )
-                speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]["embedding"])
+                speaker_embedding_dim = len(speaker_mapping[list(
+                    speaker_mapping.keys())[0]]["embedding"])
             elif (
-                not c.use_external_speaker_embedding_file
+                    not c.use_external_speaker_embedding_file
             ):  # if restore checkpoint and don't use External Embedding file
                 prev_out_path = os.path.dirname(args.restore_path)
                 speaker_mapping = load_speaker_mapping(prev_out_path)
                 speaker_embedding_dim = None
-                assert all(speaker in speaker_mapping for speaker in speakers), (
-                    "As of now you, you cannot " "introduce new speakers to " "a previously trained model."
-                )
+                assert all(
+                    speaker in speaker_mapping
+                    for speaker in speakers), ("As of now you, you cannot "
+                                               "introduce new speakers to "
+                                               "a previously trained model.")
+        elif (c.use_external_speaker_embedding_file
+              and c.external_speaker_embedding_file
+              ):  # if start new train using External Embedding file
+            speaker_mapping = load_speaker_mapping(
+                c.external_speaker_embedding_file)
+            speaker_embedding_dim = len(speaker_mapping[list(
+                speaker_mapping.keys())[0]]["embedding"])
         elif (
-            c.use_external_speaker_embedding_file and c.external_speaker_embedding_file
-        ):  # if start new train using External Embedding file
-            speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
-            speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]["embedding"])
-        elif (
-            c.use_external_speaker_embedding_file and not c.external_speaker_embedding_file
+                c.use_external_speaker_embedding_file
+                and not c.external_speaker_embedding_file
         ):  # if start new train using External Embedding file and don't pass external embedding file
             raise "use_external_speaker_embedding_file is True, so you need pass a external speaker embedding file, run GE2E-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb or AngularPrototypical-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb notebook in notebooks/ folder"
         else:  # if start new train and don't use External Embedding file
@@ -80,7 +87,8 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
             speaker_embedding_dim = None
         save_speaker_mapping(OUT_PATH, speaker_mapping)
         num_speakers = len(speaker_mapping)
-        print(" > Training with {} speakers: {}".format(len(speakers), ", ".join(speakers)))
+        print(" > Training with {} speakers: {}".format(
+            len(speakers), ", ".join(speakers)))
     else:
         num_speakers = 0
         speaker_embedding_dim = None
@@ -125,7 +133,10 @@ class SpeakerManager:
         encoder_model_path (str, optional): Path to the speaker encoder model file. Defaults to "".
         encoder_config_path (str, optional): Path to the spealer encoder config file. Defaults to "".
     """
+<<<<<<< HEAD
 
+=======
+>>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
     def __init__(
         self,
         x_vectors_file_path: str = "",
@@ -138,7 +149,10 @@ class SpeakerManager:
         self.speaker_ids = None
         self.clip_ids = None
         self.speaker_encoder = None
+<<<<<<< HEAD
         self.speaker_encoder_ap = None
+=======
+>>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
 
         if x_vectors_file_path:
             self.load_x_vectors_file(x_vectors_file_path)
@@ -184,23 +198,51 @@ class SpeakerManager:
 
     def load_x_vectors_file(self, file_path: str):
         self.x_vectors = self._load_json(file_path)
+<<<<<<< HEAD
         self.speaker_ids = list(set(sorted(x["name"] for x in self.x_vectors.values())))
         self.clip_ids = list(set(sorted(clip_name for clip_name in self.x_vectors.keys())))
+=======
+        self.speaker_ids = list(
+            set(sorted(x["name"] for x in self.x_vectors.values())))
+        self.clip_ids = list(
+            set(sorted(clip_name for clip_name in self.x_vectors.keys())))
+>>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
 
     def get_x_vector_by_clip(self, clip_idx: str):
         return self.x_vectors[clip_idx]["embedding"]
 
     def get_x_vectors_by_speaker(self, speaker_idx: str):
+<<<<<<< HEAD
         return [x["embedding"] for x in self.x_vectors.values() if x["name"] == speaker_idx]
 
     def get_mean_x_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False):
+=======
+        return [
+            x["embedding"] for x in self.x_vectors.values()
+            if x["name"] == speaker_idx
+        ]
+
+    def get_mean_x_vector(self,
+                          speaker_idx: str,
+                          num_samples: int = None,
+                          randomize: bool = False):
+>>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
         x_vectors = self.get_x_vectors_by_speaker(speaker_idx)
         if num_samples is None:
             x_vectors = np.stack(x_vectors).mean(0)
         else:
+<<<<<<< HEAD
             assert len(x_vectors) >= num_samples, f" [!] speaker {speaker_idx} has number of samples < {num_samples}"
             if randomize:
                 x_vectors = np.stack(random.choices(x_vectors, k=num_samples)).mean(0)
+=======
+            assert len(
+                x_vectors
+            ) >= num_samples, f" [!] speaker {speaker_idx} has number of samples < {num_samples}"
+            if randomize:
+                x_vectors = np.stack(random.choices(x_vectors,
+                                                    k=num_samples)).mean(0)
+>>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
             else:
                 x_vectors = np.stack(x_vectors[:num_samples]).mean(0)
         return x_vectors
@@ -211,6 +253,7 @@ class SpeakerManager:
     def get_clips(self):
         return sorted(self.x_vectors.keys())
 
+<<<<<<< HEAD
     def init_speaker_encoder(self, model_path: str, config_path: str) -> None:
         self.speaker_encoder_config = load_config(config_path)
         self.speaker_encoder = setup_model(self.speaker_encoder_config)
@@ -241,6 +284,12 @@ class SpeakerManager:
             return (x_vectors / len(wav_file))[0].tolist()
         x_vector = _compute(wav_file)
         return x_vector[0].tolist()
+=======
+    def init_speaker_encoder(self, model_path: str, config_path: str):
+        self.speaker_encoder_config = load_config(config_path)
+        self.speaker_encoder = setup_model(self.speaker_encoder_config)
+        self.speaker_encoder.load_checkpoint(config_path, model_path, True)
+>>>>>>> 757dfb9289c7185b0b78d2aa75e8a0c9b2911777
 
     def compute_x_vector(self, feats):
         if isinstance(feats, np.ndarray):
