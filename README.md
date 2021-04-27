@@ -133,7 +133,6 @@ If you are on Ubuntu (Debian), you can also run following commands for installat
 
 ```bash
 $ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
-$ make dev-deps  # Dependencies only required for development
 $ make install
 ```
 
