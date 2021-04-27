@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+
 
 # adapted from https://github.com/cvqluu/GE2E-Loss
 class GE2ELoss(nn.Module):
@@ -16,14 +16,14 @@ class GE2ELoss(nn.Module):
             - init_w (float): defines the initial value of w in Equation (5) of [1]
             - init_b (float): definies the initial value of b in Equation (5) of [1]
         """
-        super(GE2ELoss, self).__init__()
+        super().__init__()
         # pylint: disable=E1102
         self.w = nn.Parameter(torch.tensor(init_w))
         # pylint: disable=E1102
         self.b = nn.Parameter(torch.tensor(init_b))
         self.loss_method = loss_method
 
-        print(' > Initialised Generalized End-to-End loss')
+        print(" > Initialised Generalized End-to-End loss")
 
         assert self.loss_method in ["softmax", "contrast"]
 
@@ -55,9 +55,7 @@ class GE2ELoss(nn.Module):
         for spkr_idx, speaker in enumerate(dvecs):
             cs_row = []
             for utt_idx, utterance in enumerate(speaker):
-                new_centroids = self.calc_new_centroids(
-                    dvecs, centroids, spkr_idx, utt_idx
-                )
+                new_centroids = self.calc_new_centroids(dvecs, centroids, spkr_idx, utt_idx)
                 # vector based cosine similarity for speed
                 cs_row.append(
                     torch.clamp(
@@ -99,14 +97,8 @@ class GE2ELoss(nn.Module):
             L_row = []
             for i in range(M):
                 centroids_sigmoids = torch.sigmoid(cos_sim_matrix[j, i])
-                excl_centroids_sigmoids = torch.cat(
-                    (centroids_sigmoids[:j], centroids_sigmoids[j + 1 :])
-                )
-                L_row.append(
-                    1.0
-                    - torch.sigmoid(cos_sim_matrix[j, i, j])
-                    + torch.max(excl_centroids_sigmoids)
-                )
+                excl_centroids_sigmoids = torch.cat((centroids_sigmoids[:j], centroids_sigmoids[j + 1 :]))
+                L_row.append(1.0 - torch.sigmoid(cos_sim_matrix[j, i, j]) + torch.max(excl_centroids_sigmoids))
             L_row = torch.stack(L_row)
             L.append(L_row)
         return torch.stack(L)
@@ -122,6 +114,7 @@ class GE2ELoss(nn.Module):
         L = self.embed_loss(dvecs, cos_sim_matrix)
         return L.mean()
 
+
 # adapted from https://github.com/clovaai/voxceleb_trainer/blob/master/loss/angleproto.py
 class AngleProtoLoss(nn.Module):
     """
@@ -134,15 +127,16 @@ class AngleProtoLoss(nn.Module):
             - init_w (float): defines the initial value of w
             - init_b (float): definies the initial value of b
     """
+
     def __init__(self, init_w=10.0, init_b=-5.0):
-        super(AngleProtoLoss, self).__init__()
+        super().__init__()
         # pylint: disable=E1102
         self.w = nn.Parameter(torch.tensor(init_w))
         # pylint: disable=E1102
         self.b = nn.Parameter(torch.tensor(init_b))
         self.criterion = torch.nn.CrossEntropyLoss()
 
-        print(' > Initialised Angular Prototypical loss')
+        print(" > Initialised Angular Prototypical loss")
 
     def forward(self, x):
         """
@@ -152,9 +146,12 @@ class AngleProtoLoss(nn.Module):
         out_positive = x[:, 0, :]
         num_speakers = out_anchor.size()[0]
 
-        cos_sim_matrix = F.cosine_similarity(out_positive.unsqueeze(-1).expand(-1, -1, num_speakers), out_anchor.unsqueeze(-1).expand(-1, -1, num_speakers).transpose(0, 2))
+        cos_sim_matrix = F.cosine_similarity(
+            out_positive.unsqueeze(-1).expand(-1, -1, num_speakers),
+            out_anchor.unsqueeze(-1).expand(-1, -1, num_speakers).transpose(0, 2),
+        )
         torch.clamp(self.w, 1e-6)
         cos_sim_matrix = cos_sim_matrix * self.w + self.b
-        label = torch.from_numpy(np.asarray(range(0, num_speakers))).to(cos_sim_matrix.device)
+        label = torch.arange(num_speakers).to(cos_sim_matrix.device)
         L = self.criterion(cos_sim_matrix, label)
         return L

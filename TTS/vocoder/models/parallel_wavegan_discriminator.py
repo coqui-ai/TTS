@@ -1,4 +1,5 @@
 import math
+
 import torch
 from torch import nn
 
@@ -11,19 +12,21 @@ class ParallelWaveganDiscriminator(nn.Module):
     of predictions.
         It is a stack of convolutional blocks with dilation.
     """
+
     # pylint: disable=dangerous-default-value
-    def __init__(self,
-                 in_channels=1,
-                 out_channels=1,
-                 kernel_size=3,
-                 num_layers=10,
-                 conv_channels=64,
-                 dilation_factor=1,
-                 nonlinear_activation="LeakyReLU",
-                 nonlinear_activation_params={"negative_slope": 0.2},
-                 bias=True,
-                 ):
-        super(ParallelWaveganDiscriminator, self).__init__()
+    def __init__(
+        self,
+        in_channels=1,
+        out_channels=1,
+        kernel_size=3,
+        num_layers=10,
+        conv_channels=64,
+        dilation_factor=1,
+        nonlinear_activation="LeakyReLU",
+        nonlinear_activation_params={"negative_slope": 0.2},
+        bias=True,
+    ):
+        super().__init__()
         assert (kernel_size - 1) % 2 == 0, " [!] does not support even number kernel size."
         assert dilation_factor > 0, " [!] dilation factor must be > 0."
         self.conv_layers = nn.ModuleList()
@@ -36,21 +39,19 @@ class ParallelWaveganDiscriminator(nn.Module):
                 conv_in_channels = conv_channels
             padding = (kernel_size - 1) // 2 * dilation
             conv_layer = [
-                nn.Conv1d(conv_in_channels,
-                          conv_channels,
-                          kernel_size=kernel_size,
-                          padding=padding,
-                          dilation=dilation,
-                          bias=bias),
-                getattr(nn,
-                        nonlinear_activation)(inplace=True,
-                                              **nonlinear_activation_params)
+                nn.Conv1d(
+                    conv_in_channels,
+                    conv_channels,
+                    kernel_size=kernel_size,
+                    padding=padding,
+                    dilation=dilation,
+                    bias=bias,
+                ),
+                getattr(nn, nonlinear_activation)(inplace=True, **nonlinear_activation_params),
             ]
             self.conv_layers += conv_layer
         padding = (kernel_size - 1) // 2
-        last_conv_layer = nn.Conv1d(
-            conv_in_channels, out_channels,
-            kernel_size=kernel_size, padding=padding, bias=bias)
+        last_conv_layer = nn.Conv1d(conv_in_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=bias)
         self.conv_layers += [last_conv_layer]
         self.apply_weight_norm()
 
@@ -68,6 +69,7 @@ class ParallelWaveganDiscriminator(nn.Module):
         def _apply_weight_norm(m):
             if isinstance(m, (torch.nn.Conv1d, torch.nn.Conv2d)):
                 torch.nn.utils.weight_norm(m)
+
         self.apply(_apply_weight_norm)
 
     def remove_weight_norm(self):
@@ -77,26 +79,28 @@ class ParallelWaveganDiscriminator(nn.Module):
                 nn.utils.remove_weight_norm(m)
             except ValueError:  # this module didn't have weight norm
                 return
+
         self.apply(_remove_weight_norm)
 
 
 class ResidualParallelWaveganDiscriminator(nn.Module):
     # pylint: disable=dangerous-default-value
-    def __init__(self,
-                 in_channels=1,
-                 out_channels=1,
-                 kernel_size=3,
-                 num_layers=30,
-                 stacks=3,
-                 res_channels=64,
-                 gate_channels=128,
-                 skip_channels=64,
-                 dropout=0.0,
-                 bias=True,
-                 nonlinear_activation="LeakyReLU",
-                 nonlinear_activation_params={"negative_slope": 0.2},
-                 ):
-        super(ResidualParallelWaveganDiscriminator, self).__init__()
+    def __init__(
+        self,
+        in_channels=1,
+        out_channels=1,
+        kernel_size=3,
+        num_layers=30,
+        stacks=3,
+        res_channels=64,
+        gate_channels=128,
+        skip_channels=64,
+        dropout=0.0,
+        bias=True,
+        nonlinear_activation="LeakyReLU",
+        nonlinear_activation_params={"negative_slope": 0.2},
+    ):
+        super().__init__()
         assert (kernel_size - 1) % 2 == 0, "Not support even number kernel size."
 
         self.in_channels = in_channels
@@ -112,14 +116,8 @@ class ResidualParallelWaveganDiscriminator(nn.Module):
 
         # define first convolution
         self.first_conv = nn.Sequential(
-            nn.Conv1d(in_channels,
-                      res_channels,
-                      kernel_size=1,
-                      padding=0,
-                      dilation=1,
-                      bias=True),
-            getattr(nn, nonlinear_activation)(inplace=True,
-                                              **nonlinear_activation_params),
+            nn.Conv1d(in_channels, res_channels, kernel_size=1, padding=0, dilation=1, bias=True),
+            getattr(nn, nonlinear_activation)(inplace=True, **nonlinear_activation_params),
         )
 
         # define residual blocks
@@ -140,24 +138,14 @@ class ResidualParallelWaveganDiscriminator(nn.Module):
             self.conv_layers += [conv]
 
         # define output layers
-        self.last_conv_layers = nn.ModuleList([
-            getattr(nn, nonlinear_activation)(inplace=True,
-                                              **nonlinear_activation_params),
-            nn.Conv1d(skip_channels,
-                      skip_channels,
-                      kernel_size=1,
-                      padding=0,
-                      dilation=1,
-                      bias=True),
-            getattr(nn, nonlinear_activation)(inplace=True,
-                                              **nonlinear_activation_params),
-            nn.Conv1d(skip_channels,
-                      out_channels,
-                      kernel_size=1,
-                      padding=0,
-                      dilation=1,
-                      bias=True),
-        ])
+        self.last_conv_layers = nn.ModuleList(
+            [
+                getattr(nn, nonlinear_activation)(inplace=True, **nonlinear_activation_params),
+                nn.Conv1d(skip_channels, skip_channels, kernel_size=1, padding=0, dilation=1, bias=True),
+                getattr(nn, nonlinear_activation)(inplace=True, **nonlinear_activation_params),
+                nn.Conv1d(skip_channels, out_channels, kernel_size=1, padding=0, dilation=1, bias=True),
+            ]
+        )
 
         # apply weight norm
         self.apply_weight_norm()
@@ -184,6 +172,7 @@ class ResidualParallelWaveganDiscriminator(nn.Module):
         def _apply_weight_norm(m):
             if isinstance(m, (torch.nn.Conv1d, torch.nn.Conv2d)):
                 torch.nn.utils.weight_norm(m)
+
         self.apply(_apply_weight_norm)
 
     def remove_weight_norm(self):

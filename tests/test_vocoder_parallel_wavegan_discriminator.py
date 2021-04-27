@@ -1,7 +1,10 @@
 import numpy as np
 import torch
 
-from TTS.vocoder.models.parallel_wavegan_discriminator import ParallelWaveganDiscriminator, ResidualParallelWaveganDiscriminator
+from TTS.vocoder.models.parallel_wavegan_discriminator import (
+    ParallelWaveganDiscriminator,
+    ResidualParallelWaveganDiscriminator,
+)
 
 
 def test_pwgan_disciminator():
@@ -14,7 +17,8 @@ def test_pwgan_disciminator():
         dilation_factor=1,
         nonlinear_activation="LeakyReLU",
         nonlinear_activation_params={"negative_slope": 0.2},
-        bias=True)
+        bias=True,
+    )
     dummy_x = torch.rand((4, 1, 64 * 256))
     output = model(dummy_x)
     assert np.all(output.shape == (4, 1, 64 * 256))
@@ -34,7 +38,8 @@ def test_redisual_pwgan_disciminator():
         dropout=0.0,
         bias=True,
         nonlinear_activation="LeakyReLU",
-        nonlinear_activation_params={"negative_slope": 0.2})
+        nonlinear_activation_params={"negative_slope": 0.2},
+    )
     dummy_x = torch.rand((4, 1, 64 * 256))
     output = model(dummy_x)
     assert np.all(output.shape == (4, 1, 64 * 256))

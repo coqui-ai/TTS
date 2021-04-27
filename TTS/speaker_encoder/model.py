@@ -16,18 +16,18 @@ class LSTMWithProjection(nn.Module):
         o, (_, _) = self.lstm(x)
         return self.linear(o)
 
+
 class LSTMWithoutProjection(nn.Module):
     def __init__(self, input_dim, lstm_dim, proj_dim, num_lstm_layers):
         super().__init__()
-        self.lstm = nn.LSTM(input_size=input_dim,
-                            hidden_size=lstm_dim,
-                            num_layers=num_lstm_layers,
-                            batch_first=True)
+        self.lstm = nn.LSTM(input_size=input_dim, hidden_size=lstm_dim, num_layers=num_lstm_layers, batch_first=True)
         self.linear = nn.Linear(lstm_dim, proj_dim, bias=True)
         self.relu = nn.ReLU()
+
     def forward(self, x):
         _, (hidden, _) = self.lstm(x)
         return self.relu(self.linear(hidden[-1]))
+
 
 class SpeakerEncoder(nn.Module):
     def __init__(self, input_dim, proj_dim=256, lstm_dim=768, num_lstm_layers=3, use_lstm_with_projection=True):
@@ -106,7 +106,5 @@ class SpeakerEncoder(nn.Module):
             if embed is None:
                 embed = self.inference(frames)
             else:
-                embed[cur_iter <= num_iters, :] += self.inference(
-                    frames[cur_iter <= num_iters, :, :]
-                )
+                embed[cur_iter <= num_iters, :] += self.inference(frames[cur_iter <= num_iters, :, :])
         return embed / num_iters

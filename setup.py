@@ -8,9 +8,8 @@ from distutils.version import LooseVersion
 import numpy
 import setuptools.command.build_py
 import setuptools.command.develop
-from setuptools import setup, Extension, find_packages
 from Cython.Build import cythonize
-
+from setuptools import Extension, find_packages, setup
 
 if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.9"):
     raise RuntimeError(
@@ -19,7 +18,7 @@ if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) 
     )
 
 
-version = '0.0.11'
+version = '0.0.12'
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors

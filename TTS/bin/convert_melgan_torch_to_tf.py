@@ -1,6 +1,6 @@
 import argparse
-from difflib import SequenceMatcher
 import os
+from difflib import SequenceMatcher
 
 import numpy as np
 import tensorflow as tf
@@ -8,27 +8,22 @@ import torch
 
 from TTS.utils.io import load_config
 from TTS.vocoder.tf.utils.convert_torch_to_tf_utils import (
-    compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf)
-from TTS.vocoder.tf.utils.generic_utils import \
-    setup_generator as setup_tf_generator
+    compare_torch_tf,
+    convert_tf_name,
+    transfer_weights_torch_to_tf,
+)
+from TTS.vocoder.tf.utils.generic_utils import setup_generator as setup_tf_generator
 from TTS.vocoder.tf.utils.io import save_checkpoint
 from TTS.vocoder.utils.generic_utils import setup_generator
 
 # prevent GPU use
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # define args
 parser = argparse.ArgumentParser()
-parser.add_argument('--torch_model_path',
-                    type=str,
-                    help='Path to target torch model to be converted to TF.')
-parser.add_argument('--config_path',
-                    type=str,
-                    help='Path to config file of torch model.')
-parser.add_argument(
-    '--output_path',
-    type=str,
-    help='path to output file including file name to save TF model.')
+parser.add_argument("--torch_model_path", type=str, help="Path to target torch model to be converted to TF.")
+parser.add_argument("--config_path", type=str, help="Path to config file of torch model.")
+parser.add_argument("--output_path", type=str, help="path to output file including file name to save TF model.")
 args = parser.parse_args()
 
 # load model config
@@ -38,9 +33,8 @@ num_speakers = 0
 
 # init torch model
 model = setup_generator(c)
-checkpoint = torch.load(args.torch_model_path,
-                        map_location=torch.device('cpu'))
-state_dict = checkpoint['model']
+checkpoint = torch.load(args.torch_model_path, map_location=torch.device("cpu"))
+state_dict = checkpoint["model"]
 model.load_state_dict(state_dict)
 model.remove_weight_norm()
 state_dict = model.state_dict()
@@ -48,7 +42,7 @@ state_dict = model.state_dict()
 # init tf model
 model_tf = setup_tf_generator(c)
 
-common_sufix = '/.ATTRIBUTES/VARIABLE_VALUE'
+common_sufix = "/.ATTRIBUTES/VARIABLE_VALUE"
 # get tf_model graph by passing an input
 # B x D x T
 dummy_input = tf.random.uniform((7, 80, 64), dtype=tf.float32)
@@ -66,10 +60,7 @@ for tf_name in tf_var_names:
     if tf_name in [name[0] for name in var_map]:
         continue
     tf_name_edited = convert_tf_name(tf_name)
-    ratios = [
-        SequenceMatcher(None, torch_name, tf_name_edited).ratio()
-        for torch_name in torch_var_names
-    ]
+    ratios = [SequenceMatcher(None, torch_name, tf_name_edited).ratio() for torch_name in torch_var_names]
     max_idx = np.argmax(ratios)
     matching_name = torch_var_names[max_idx]
     del torch_var_names[max_idx]
@@ -107,10 +98,8 @@ model.inference_padding = 0
 model_tf.inference_padding = 0
 output_torch = model.inference(dummy_input_torch)
 output_tf = model_tf(dummy_input_tf, training=False)
-assert compare_torch_tf(output_torch, output_tf) < 1e-5, compare_torch_tf(
-    output_torch, output_tf)
+assert compare_torch_tf(output_torch, output_tf) < 1e-5, compare_torch_tf(output_torch, output_tf)
 
 # save tf model
-save_checkpoint(model_tf, checkpoint['step'], checkpoint['epoch'],
-                args.output_path)
-print(' > Model conversion is successfully completed :).')
+save_checkpoint(model_tf, checkpoint["step"], checkpoint["epoch"], args.output_path)
+print(" > Model conversion is successfully completed :).")

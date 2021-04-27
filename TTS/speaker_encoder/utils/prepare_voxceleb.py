@@ -17,54 +17,53 @@
 # Only support eager mode and TF>=2.0.0
 # pylint: disable=no-member, invalid-name, relative-beyond-top-level
 # pylint: disable=too-many-locals, too-many-statements, too-many-arguments, too-many-instance-attributes
-''' voxceleb 1 & 2 '''
+""" voxceleb 1 & 2 """
 
+import hashlib
 import os
+import subprocess
 import sys
 import zipfile
-import subprocess
-import hashlib
+
 import pandas
-from absl import logging
-import tensorflow as tf
 import soundfile as sf
+import tensorflow as tf
+from absl import logging
 
 gfile = tf.compat.v1.gfile
 
 SUBSETS = {
-    "vox1_dev_wav":
-        ["http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partaa",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partab",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partac",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partad"],
-    "vox1_test_wav":
-        ["http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_test_wav.zip"],
-    "vox2_dev_aac":
-        ["http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partaa",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partab",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partac",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partad",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partae",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partaf",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partag",
-         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partah"],
-    "vox2_test_aac":
-        ["http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_test_aac.zip"]
+    "vox1_dev_wav": [
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partaa",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partab",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partac",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partad",
+    ],
+    "vox1_test_wav": ["http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_test_wav.zip"],
+    "vox2_dev_aac": [
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partaa",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partab",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partac",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partad",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partae",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partaf",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partag",
+        "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_dev_aac_partah",
+    ],
+    "vox2_test_aac": ["http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox2_test_aac.zip"],
 }
 
 MD5SUM = {
     "vox1_dev_wav": "ae63e55b951748cc486645f532ba230b",
     "vox2_dev_aac": "bbc063c46078a602ca71605645c2a402",
     "vox1_test_wav": "185fdc63c3c739954633d50379a3d102",
-    "vox2_test_aac": "0d2b3ea430a821c33263b5ea37ede312"
+    "vox2_test_aac": "0d2b3ea430a821c33263b5ea37ede312",
 }
 
-USER = {
-    "user": "",
-    "password": ""
-}
+USER = {"user": "", "password": ""}
 
 speaker_id_dict = {}
+
 
 def download_and_extract(directory, subset, urls):
     """Download and extract the given split of dataset.
@@ -83,31 +82,30 @@ def download_and_extract(directory, subset, urls):
             if os.path.exists(zip_filepath):
                 continue
             logging.info("Downloading %s to %s" % (url, zip_filepath))
-            subprocess.call('wget %s --user %s --password %s -O %s' %
-                            (url, USER["user"], USER["password"], zip_filepath), shell=True)
+            subprocess.call(
+                "wget %s --user %s --password %s -O %s" % (url, USER["user"], USER["password"], zip_filepath),
+                shell=True,
+            )
 
             statinfo = os.stat(zip_filepath)
-            logging.info(
-                "Successfully downloaded %s, size(bytes): %d" % (url, statinfo.st_size)
-            )
+            logging.info("Successfully downloaded %s, size(bytes): %d" % (url, statinfo.st_size))
 
         # concatenate all parts into zip files
         if ".zip" not in zip_filepath:
             zip_filepath = "_".join(zip_filepath.split("_")[:-1])
-            subprocess.call('cat %s* > %s.zip' %
-                            (zip_filepath, zip_filepath), shell=True)
+            subprocess.call("cat %s* > %s.zip" % (zip_filepath, zip_filepath), shell=True)
             zip_filepath += ".zip"
         extract_path = zip_filepath.strip(".zip")
 
         # check zip file md5sum
-        md5 = hashlib.md5(open(zip_filepath, 'rb').read()).hexdigest()
+        md5 = hashlib.md5(open(zip_filepath, "rb").read()).hexdigest()
         if md5 != MD5SUM[subset]:
             raise ValueError("md5sum of %s mismatch" % zip_filepath)
 
         with zipfile.ZipFile(zip_filepath, "r") as zfile:
             zfile.extractall(directory)
             extract_path_ori = os.path.join(directory, zfile.infolist()[0].filename)
-            subprocess.call('mv %s %s' % (extract_path_ori, extract_path), shell=True)
+            subprocess.call("mv %s %s" % (extract_path_ori, extract_path), shell=True)
     finally:
         # gfile.Remove(zip_filepath)
         pass
@@ -148,8 +146,7 @@ def decode_aac_with_ffmpeg(aac_file, wav_file):
     return True
 
 
-def convert_audio_and_make_label(input_dir, subset,
-                                 output_dir, output_file):
+def convert_audio_and_make_label(input_dir, subset, output_dir, output_file):
     """Optionally convert AAC to WAV and make speaker labels.
     Args:
         input_dir: the directory which holds the input dataset.
@@ -167,7 +164,7 @@ def convert_audio_and_make_label(input_dir, subset,
         for filename in filenames:
             name, ext = os.path.splitext(filename)
             if ext.lower() == ".wav":
-                _, ext2 = (os.path.splitext(name))
+                _, ext2 = os.path.splitext(name)
                 if ext2:
                     continue
                 wav_file = os.path.join(root, filename)
@@ -186,15 +183,12 @@ def convert_audio_and_make_label(input_dir, subset,
                 speaker_id_dict[speaker_name] = num
             # wav_filesize = os.path.getsize(wav_file)
             wav_length = len(sf.read(wav_file)[0])
-            files.append(
-                (os.path.abspath(wav_file), wav_length, speaker_id_dict[speaker_name], speaker_name)
-            )
+            files.append((os.path.abspath(wav_file), wav_length, speaker_id_dict[speaker_name], speaker_name))
 
     # Write to CSV file which contains four columns:
     # "wav_filename", "wav_length_ms", "speaker_id", "speaker_name".
     csv_file_path = os.path.join(output_dir, output_file)
-    df = pandas.DataFrame(
-        data=files, columns=["wav_filename", "wav_length_ms", "speaker_id", "speaker_name"])
+    df = pandas.DataFrame(data=files, columns=["wav_filename", "wav_length_ms", "speaker_id", "speaker_name"])
     df.to_csv(csv_file_path, index=False, sep="\t")
     logging.info("Successfully generated csv file {}".format(csv_file_path))
 
@@ -205,19 +199,14 @@ def processor(directory, subset, force_process):
     if subset not in urls:
         raise ValueError(subset, "is not in voxceleb")
 
-    subset_csv = os.path.join(directory, subset + '.csv')
+    subset_csv = os.path.join(directory, subset + ".csv")
     if not force_process and os.path.exists(subset_csv):
         return subset_csv
 
     logging.info("Downloading and process the voxceleb in %s", directory)
     logging.info("Preparing subset %s", subset)
     download_and_extract(directory, subset, urls[subset])
-    convert_audio_and_make_label(
-        directory,
-        subset,
-        directory,
-        subset + ".csv"
-    )
+    convert_audio_and_make_label(directory, subset, directory, subset + ".csv")
     logging.info("Finished downloading and processing")
     return subset_csv
 

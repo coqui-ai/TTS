@@ -35,8 +35,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y espeak-ng git
+          sudo apt install -y git make
           sudo apt install -y python3-wheel gcc
+          make system-deps
       - name: Upgrade pip
         # so we can take advantage of pyproject.toml build-dependency support
         run: python3 -m pip install --upgrade pip
@@ -46,17 +47,6 @@ jobs:
           python3 setup.py egg_info
       - name: Lint check
         run: |
-          cardboardlinter -n auto
+          make lint
       - name: Unit tests
-        run: nosetests tests --nocapture --processes=0 --process-timeout=20 --process-restartworker
-      - name: Test scripts
-        run: |
-          ./tests/test_demo_server.sh
-          ./tests/test_glow-tts_train.sh
-          ./tests/test_tacotron_train.sh
-          ./tests/test_vocoder_gan_train.sh
-          ./tests/test_vocoder_wavegrad_train.sh
-          ./tests/test_vocoder_wavernn_train.sh
-          ./tests/test_speedy_speech_train.sh
-          ./tests/test_resample.sh
-          ./tests/test_compute_statistics.sh
+        run: make test

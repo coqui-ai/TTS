@@ -1,51 +1,122 @@
 # Contribution guidelines
 
-This repository is governed by Mozilla's code of conduct and etiquette guidelines. For more details, please read the [Mozilla Community Participation Guidelines](https://www.mozilla.org/about/governance/policies/participation/).
+Welcome to the 🐸TTS!
 
-Before making a Pull Request, check your changes for basic mistakes and style problems by using a linter. We have cardboardlinter setup in this repository, so for example, if you've made some changes and would like to run the linter on just the differences between your work and master, you can use the follow command:
+This repository is governed by the Contributor Covenant Code of Conduct - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-```bash
-pip install pylint cardboardlint
-cardboardlinter --refspec master
-```
+## Where to start.
+We welcome everyone who likes to contribute to 🐸TTS.
+You can contribute not only with code but with bug reports, comments, questions, answers, or just a simple tweet to spread the word.
 
-This will compare the code against master and run the linter on all the changes. To run it automatically as a git pre-commit hook, you can do do the following:
+If you like to contribute code, squash a bug but if you don't know where to start, here are some pointers.
 
-```bash
-cat <<\EOF > .git/hooks/pre-commit
-#!/bin/bash
-if [ ! -x "$(command -v cardboardlinter)" ]; then
-    exit 0
-fi
+- [Development Road Map](https://github.com/coqui-ai/TTS/issues/378)
 
-# First, stash index and work dir, keeping only the
-# to-be-committed changes in the working directory.
-echo "Stashing working tree changes..." 1>&2
-old_stash=$(git rev-parse -q --verify refs/stash)
-git stash save -q --keep-index
-new_stash=$(git rev-parse -q --verify refs/stash)
+    You can pick something out of our road map. We keep the progess of the project in this simple issue thread. It has new model proposals or developmental updates etc.
 
-# If there were no changes (e.g., `--amend` or `--allow-empty`)
-# then nothing was stashed, and we should skip everything,
-# including the tests themselves.  (Presumably the tests passed
-# on the previous commit, so there is no need to re-run them.)
-if [ "$old_stash" = "$new_stash" ]; then
-    echo "No changes, skipping lint." 1>&2
-    exit 0
-fi
+- [Github Issues Tracker](https://github.com/coqui-ai/TTS/issues)
 
-# Run tests
-cardboardlinter --refspec HEAD -n auto
-status=$?
+    This is a place to find feature requests, bugs.
 
-# Restore changes
-echo "Restoring working tree changes..." 1>&2
-git reset --hard -q && git stash apply --index -q && git stash drop -q
+    Issues with the ```good first issue``` tag are good place for beginners to take on.
 
-# Exit with status from test-run: nonzero prevents commit
-exit $status
-EOF
-chmod +x .git/hooks/pre-commit
-```
+- ✨**PR**✨ [pages](https://github.com/coqui-ai/TTS/pulls) with the ```🚀new version``` tag.
 
-This will run the linters on just the changes made in your commit.
+    We list all the target improvements for the next version. You can pick one of them and start contributing.
+
+- Also feel free to suggest new features, ideas and models. We're always open for new things.
+## Sending a ✨**PR**✨
+
+If you have a new feature, a model to implement, or a bug to squash, go ahead and send a ✨**PR**✨.
+Please use the following steps to send a ✨**PR**✨.
+Let us know if you encounter a problem along the way.
+
+The following steps are tested on an Ubuntu system.
+
+1. Fork 🐸TTS[https://github.com/coqui-ai/TTS] by clicking the fork button at the top right corner of the project page.
+
+2. Clone 🐸TTS and add the main repo as a new remote named ```upsteam```.
+
+    ```bash
+    $ git clone git@github.com:<your Github name>/TTS.git
+    $ cd TTS
+    $ git remote add upstream https://github.com/coqui-ai/TTS.git
+    ```
+
+3. Install 🐸TTS for development.
+
+    ```bash
+    $ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a different OS.
+    $ make install
+    ```
+
+4. Create a new branch with an informative name for your goal.
+
+    ```bash
+    $ git checkout -b an_informative_name_for_my_branch
+    ```
+
+5. Implement your changes on your new branch.
+
+6. Explain your code using [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
+
+7. Add your tests to our test suite under ```tests```  folder. It is important to show that your code works, edge cases are considered, and inform others about the intended use.
+
+8. Run the tests to see how your updates work with the rest of the project. You can repeat this step multiple times as you implement your changes to make sure you are on the right direction.
+
+    ```bash
+    $ make tests
+    ```
+
+9. Format your code. We use ```black``` for code and ```isort``` for ```import``` formatting.
+
+    ```bash
+    $ make style
+    ```
+
+10. Run the linter and correct the issues raised. We use ```pylint``` for linting.  It helps to enforce a coding standard, offers simple refactoring suggestions.
+
+    ```bash
+    $ make lint
+    ```
+
+11. When things are good, add new files and commit your changes.
+
+    ```bash
+    $ git add my_file1.py my_file2.py ...
+    $ git commit
+    ```
+
+    It's a good practice to regularly sync your local copy of the project with the upstream code to keep up with the recent updates.
+
+    ```bash
+    $ git fetch upstream
+    $ git rebase upstream/master
+    # or for the development version
+    $ git rebase upstream/dev
+    ```
+
+12. Send a PR to ```dev``` branch.
+
+    Push your branch to your fork.
+
+    ```bash
+    $ git push -u origin an_informative_name_for_my_branch
+    ```
+
+    Then go to your fork's Github page and click on 'Pull request' to send your ✨**PR**✨.
+
+    Please set ✨**PR**✨'s target branch to ```dev``` as we use ```dev``` to work on the next version.
+
+13. Let's discuss until it is perfect. 💪
+
+    We might ask you for certain changes that would appear in the ✨**PR**✨'s page under 🐸TTS[https://github.com/coqui-ai/TTS/pulls].
+
+14. Once things look perfect, We merge it to the ```dev``` branch and make it ready for the next version.
+
+Feel free to ping us at any step you need help using our communication channels.
+
+If you are new to Github or open-source contribution, These are good resources.
+
+- [Github Docs](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/proposing-changes-to-your-work-with-pull-requests)
+- [First-Contribution](https://github.com/firstcontributions/first-contributions)

@@ -3,6 +3,7 @@ import torch
 
 from TTS.vocoder.models.melgan_generator import MelganGenerator
 
+
 def test_melgan_generator():
     model = MelganGenerator()
     print(model)
