@@ -11,7 +11,7 @@ def test_synthesize():
     # single speaker model
     run_cli(f'tts --text "This is an example." --out_path "{output_path}"')
     run_cli(
-        "tts --model_name tts_models/en/ljspeech/speedy-speech-wn"
+        "tts --model_name tts_models/en/ljspeech/speedy-speech-wn "
         f'--text "This is an example." --out_path "{output_path}"'
     )
     run_cli(
@@ -23,6 +23,6 @@ def test_synthesize():
     # multi-speaker model
     run_cli("tts --model_name tts_models/en/vctk/sc-glow-tts --list_speaker_idxs")
     run_cli(
-        f'tts --model_name tts_models/en/vctk/sc-glow-tts --speaker_idx "p304"'
+        f'tts --model_name tts_models/en/vctk/sc-glow-tts --speaker_idx "p304" '
         f'--text "This is an example." --out_path "{output_path}"'
     )
