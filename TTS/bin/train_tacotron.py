@@ -8,10 +8,8 @@ from TTS.utils.training import (
     gradual_training_scheduler,
     set_weight_decay,
     setup_torch_training_env,
+    StepwiseGradualLR
 )
-from TTS.utils.training import (NoamLR, adam_weight_decay, check_update,
-                                gradual_training_scheduler, set_weight_decay,
-                                setup_torch_training_env, StepwiseGradualLR)
 from TTS.utils.radam import RAdam
 from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.distribute import DistributedSampler, apply_gradient_allreduce, init_distributed, reduce_tensor
@@ -37,14 +35,6 @@ from random import randrange
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-<< << << < HEAD
-
-== == == =
-
->>>>>> > dev
-<< << << < HEAD
-== == == =
->>>>>> > dev
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
@@ -70,16 +60,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
                 phoneme_language=c.phoneme_language,
                 enable_eos_bos=c.enable_eos_bos_chars,
                 verbose=verbose,
-<< << << < HEAD
-                speaker_mapping=(speaker_mapping if (
-                    c.use_speaker_embedding
-                    and c.use_external_speaker_embedding_file
-                ) else None)
-== == ===
-                speaker_mapping=(
-                    speaker_mapping if (c.use_speaker_embedding and c.use_external_speaker_embedding_file) else None
-                ),
->>>>>> > dev
+                speaker_mapping=(speaker_mapping if (c.use_speaker_embedding and c.use_external_speaker_embedding_file) else None),
             )
 
             if c.use_phonemes and c.compute_input_seq_cache:
@@ -142,16 +123,6 @@ def format_data(data):
         if speaker_embeddings is not None:
             speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
 
-
-<< << << < HEAD
-    return text_input, text_lengths, mel_input, mel_lengths, linear_input, stop_targets, speaker_ids, speaker_embeddings, max_text_length, max_spec_length
-
-
-def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD, scheduler,
-          ap, global_step, epoch, scaler, scaler_st):
-
-
-== == == =
     return (
         text_input,
         text_lengths,
@@ -166,10 +137,9 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
     )
 
 
-def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap, global_step, epoch, scaler, scaler_st):
+def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD, scheduler,
+          ap, global_step, epoch, scaler, scaler_st):
 
-
->>>>>> > dev
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
@@ -214,7 +184,6 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
 
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             # forward pass model
-<< << << < HEAD
             if c.use_capacitron:
                 # TODO do we want to use bidirection decoder/ddc with capacitron?
                 (
@@ -432,11 +401,11 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
                 if c.checkpoint:
                     # save model
                     save_checkpoint(
-                        model, 
-                        optimizer, 
-                        global_step, 
-                        epoch, 
-                        model.decoder.r, 
+                        model,
+                        optimizer,
+                        global_step,
+                        epoch,
+                        model.decoder.r,
                         OUT_PATH,
                         optimizer_st=optimizer_st,
                         optimizer_SGD=optimizer_SGD,
@@ -488,7 +457,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
     return keep_avg.avg_values, global_step
 
 
-@torch.no_grad()
+@ torch.no_grad()
 def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     model.eval()
     epoch_time = 0
@@ -517,49 +486,49 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             if c.use_capacitron:
                 # TODO do we want to use bidirection decoder/ddc with capacitron?
                 (
-                    decoder_output, 
-                    postnet_output, 
-                    alignments, 
-                    stop_tokens, 
-                    posterior_distribution, 
-                    prior_distribution, 
-                    capacitron_beta 
+                    decoder_output,
+                    postnet_output,
+                    alignments,
+                    stop_tokens,
+                    posterior_distribution,
+                    prior_distribution,
+                    capacitron_beta
                 ) = model(
-                    text_input, 
-                    text_lengths, 
-                    mel_input, 
-                    mel_lengths, 
-                    speaker_ids=speaker_ids, 
+                    text_input,
+                    text_lengths,
+                    mel_input,
+                    mel_lengths,
+                    speaker_ids=speaker_ids,
                     speaker_embeddings=speaker_embeddings
                 )
                 decoder_backward_output, alignments_backward = None, None
             elif c.bidirectional_decoder or c.double_decoder_consistency:
-                ( 
-                    decoder_output, 
-                    postnet_output, 
-                    alignments, 
-                    stop_tokens, 
-                    decoder_backward_output, 
-                    alignments_backward 
+                (
+                    decoder_output,
+                    postnet_output,
+                    alignments,
+                    stop_tokens,
+                    decoder_backward_output,
+                    alignments_backward
                 ) = model(
-                    text_input, 
-                    text_lengths, 
-                    mel_input, 
-                    speaker_ids=speaker_ids, 
+                    text_input,
+                    text_lengths,
+                    mel_input,
+                    speaker_ids=speaker_ids,
                     speaker_embeddings=speaker_embeddings
                 )
                 posterior_distribution, prior_distribution, capacitron_beta = None, None, None # capacitron stuff
             else:
                 (
-                    decoder_output, 
-                    postnet_output, 
-                    alignments, 
+                    decoder_output,
+                    postnet_output,
+                    alignments,
                     stop_tokens
                 ) = model(
-                    text_input, 
-                    text_lengths, 
-                    mel_input, 
-                    speaker_ids=speaker_ids, 
+                    text_input,
+                    text_lengths,
+                    mel_input,
+                    speaker_ids=speaker_ids,
                     speaker_embeddings=speaker_embeddings
                 )
                 posterior_distribution, prior_distribution, capacitron_beta = None, None, None # capacitron stuff
@@ -577,36 +546,36 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             # compute loss
             if c.use_capacitron:
                 loss_dict = criterion(
-                    postnet_output, 
-                    decoder_output, 
+                    postnet_output,
+                    decoder_output,
                     mel_input,
-                    linear_input, 
-                    stop_tokens, 
+                    linear_input,
+                    stop_tokens,
                     stop_targets,
-                    mel_lengths, 
+                    mel_lengths,
                     decoder_backward_output,
-                    alignments, 
+                    alignments,
                     alignment_lengths,
-                    alignments_backward, 
+                    alignments_backward,
                     text_lengths,
-                    c.capacitron['capacitron_capacity'], 
+                    c.capacitron['capacitron_capacity'],
                     posterior_distribution,
-                    prior_distribution, 
+                    prior_distribution,
                     capacitron_beta
                 )
             else:
                 loss_dict = criterion(
-                    postnet_output, 
-                    decoder_output, 
+                    postnet_output,
+                    decoder_output,
                     mel_input,
-                    linear_input, 
-                    stop_tokens, 
+                    linear_input,
+                    stop_tokens,
                     stop_targets,
-                    mel_lengths, 
+                    mel_lengths,
                     decoder_backward_output,
-                    alignments, 
+                    alignments,
                     alignment_lengths,
-                    alignments_backward, 
+                    alignments_backward,
                     text_lengths
                 )
 
@@ -890,19 +859,19 @@ def main(args):  # pylint: disable=redefined-outer-name
             print("\n > Number of output frames:", model.decoder.r)
         # train one epoch
         train_avg_loss_dict, global_step = train(
-            train_loader, 
+            train_loader,
             model,
-            criterion, 
+            criterion,
             optimizer,
-            optimizer_st, 
+            optimizer_st,
             optimizer_SGD,
-            scheduler, 
+            scheduler,
             ap,
-            global_step, 
-            epoch, 
+            global_step,
+            epoch,
             scaler,
             scaler_st
-
+        )
         # eval one epoch
         eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)

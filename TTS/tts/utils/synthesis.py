@@ -141,15 +141,11 @@ def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=No
 
 def run_model_tflite(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, reference_mel=None):
     if CONFIG.use_gst and style_mel is not None:
-
-
-<< << << < HEAD
-        raise NotImplementedError(' [!] GST inference not implemented for TfLite')
-    if CONFIG.use_capacitron and reference_mel is not None:
-        raise NotImplementedError(' [!] Capacitron inference not implemented for Tflite')
         raise NotImplementedError(" [!] GST inference not implemented for TfLite")
->>>>>>> dev
     if truncated:
+        raise NotImplementedError(" [!] Truncated inference not implemented for TfLite")
+    if speaker_id is not None:
+        raise NotImplementedError(" [!] Multi-Speaker not implemented for TfLite")
     # get input and output details
     input_details = model.get_input_details()
     output_details = model.get_output_details()

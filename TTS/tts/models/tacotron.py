@@ -2,9 +2,9 @@
 import torch
 from torch import nn
 
-from TTS.tts.layers.gst_layers import GST
-from TTS.tts.layers.capacitron_layers import CapacitronVAE
-from TTS.tts.layers.tacotron import Decoder, Encoder, PostCBHG
+from TTS.tts.layers.tacotron.gst_layers import GST
+from TTS.tts.layers.tacotron.capacitron_layers import CapacitronVAE
+from TTS.tts.layers.tacotron.tacotron import Decoder, Encoder, PostCBHG
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
 
@@ -100,6 +100,7 @@ class Tacotron(TacotronAbstract):
             attn_norm,
             prenet_type,
             prenet_dropout,
+            prenet_dropout_at_inference,
             forward_attn,
             trans_agent,
             forward_attn_mask,
