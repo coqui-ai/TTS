@@ -27,7 +27,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="""Synthesize speech on command line.\n\n"""
         """You can either use your trained model or choose a model from the provided list.\n\n"""
-        """If you don't specify any models, then it uses LJSpeech based English models\n\n"""
+        """If you don't specify any models, then it uses LJSpeech based English model.\n\n"""
         """
     # Example Runs:
 
@@ -180,7 +180,7 @@ def main():
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
-    if args.text is None and not args.list_models:
+    if args.text is None and not args.list_models and not args.list_speaker_idxs:
         parser.parse_args(["-h"])
 
     # load model manager

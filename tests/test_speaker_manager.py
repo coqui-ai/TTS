@@ -5,9 +5,9 @@ import numpy as np
 import torch
 
 from tests import get_tests_input_path
-from TTS.tts.utils.speakers import SpeakerManager
 from TTS.speaker_encoder.model import SpeakerEncoder
 from TTS.speaker_encoder.utils.generic_utils import save_checkpoint
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_config
 
