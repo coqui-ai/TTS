@@ -13,13 +13,19 @@ def setup_torch_training_env(cudnn_enable, cudnn_benchmark):
     return use_cuda, num_gpus
 
 
-def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None):
+def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None, ignore_capacitron_beta=False):
     r'''Check model gradient against unexpected jumps and failures'''
-    skip_flag = False
+    ignore_list = []
     if ignore_stopnet:
+        ignore_list.append('stopnet')
+    if ignore_capacitron_beta:
+        ignore_list.append('capacitron_beta')
+
+    skip_flag = False
+    if ignore_list:
         if not amp_opt_params:
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                [param for name, param in model.named_parameters() if 'stopnet' not in name], grad_clip)
+                [param for name, param in model.named_parameters() if any([to_ignore not in name for to_ignore in ignore_list])], grad_clip)
         else:
             grad_norm = torch.nn.utils.clip_grad_norm_(amp_opt_params, grad_clip)
     else:
@@ -63,7 +69,7 @@ def adam_weight_decay(optimizer):
     return optimizer, current_lr
 
 # pylint: disable=dangerous-default-value
-def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn", "lstm", "gru", "embedding", "capacitron_layer"}):
+def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn", "lstm", "gru", "embedding"}):
     """
     Skip biases, BatchNorm parameters, rnns.
     and attention projection layer v

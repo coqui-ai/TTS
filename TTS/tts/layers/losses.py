@@ -398,7 +398,6 @@ class TacotronLoss(torch.nn.Module):
 
 class CapacitronLoss(torch.nn.Module):
     """
-
     Collection of Tacotron set-up based on provided config.
     """
 
@@ -423,6 +422,7 @@ class CapacitronLoss(torch.nn.Module):
         else:
             # Main Capacitron loss
             self.criterion = nn.L1Loss(reduction='sum')
+            self.postnet_criterion = nn.L1Loss()
         # guided attention loss
         if c.ga_alpha > 0:
             self.criterion_ga = GuidedAttentionLoss(sigma=ga_sigma)
@@ -462,7 +462,7 @@ class CapacitronLoss(torch.nn.Module):
             if self.decoder_alpha > 0:
                 decoder_loss = self.criterion(decoder_output, mel_input) / decoder_output.size(0)
             if self.postnet_alpha > 0:
-                postnet_loss = self.criterion(postnet_output, postnet_target) / postnet_output.size(0)
+                postnet_loss = self.postnet_criterion(postnet_output, postnet_target) #/ postnet_output.size(0)
 
         # KL divergence term between the posterior and the prior
         kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))

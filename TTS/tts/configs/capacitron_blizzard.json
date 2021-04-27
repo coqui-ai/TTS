@@ -15,6 +15,7 @@
         // Audio processing parameters
         "sample_rate": 24000, // DATASET-RELATED: wav sample-rate.
         "preemphasis": 0.0, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        // "preemphasis": 0.97, // Nicolas
         "ref_level_db": 20, // reference level db, theoretically 20db is the sound of air.
 
         // Silence trimming
@@ -32,6 +33,7 @@
         "spec_gain": 20, // scaler value appplied after log transform of spectrogram.
 
         // Normalization parameters
+        // "do_sound_norm": true, // Nico
         "signal_norm": true, // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
         "min_level_db": -100, // lower bound for normalization
         "symmetric_norm": true, // move normalization to range [-1, 1]
@@ -84,10 +86,10 @@
     "use_gradual_lr": true, // Hardcoded step-wise learning rate scheduling. Overrides noam schedule if noam is true
     "gradual_learning_rates": [
         [0, 1e-3],
-        [1e4, 5e-4], 
-        [3e4, 3e-4],
-        [5e4, 1e-4], 
-        [3e5, 5e-5]
+        [5e4, 5e-4], 
+        [1e5, 3e-4],
+        [15e4, 1e-4], 
+        [2e5, 5e-5]
     ],
 
     // TACOTRON PRENET
@@ -96,7 +98,7 @@
     "prenet_dropout": true, // enable/disable dropout at prenet.
 
     // TACOTRON ATTENTION
-    "attention_type": "original", // 'original' , 'graves', 'dynamic_convolution'
+    "attention_type": "graves", // 'original' , 'graves', 'dynamic_convolution'
     "attention_heads": 5, // number of attention heads (only for 'graves')
     "attention_norm": "sigmoid", // softmax or sigmoid (only for 'original').
     "windowing": false, // Enables attention windowing. Used only in eval mode.
@@ -109,14 +111,14 @@
     "ddc_r": 6, // reduction rate for coarse decoder.
 
     // STOPNET
-    "stopnet": false, // Train stopnet predicting the end of synthesis.
-    "separate_stopnet": false, // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
+    "stopnet": true, // Train stopnet predicting the end of synthesis.
+    "separate_stopnet": true, // Train stopnet seperately if 'stopnet==true'. It prevents stopnet loss to influence the rest of the model. It causes a better model, but it trains SLOWER.
 
     // TENSORBOARD and LOGGING
     "print_step": 100, // Number of steps to log training on console.
     "tb_plot_step": 100, // Number of steps to plot TB training figures.
     "print_eval": false, // If True, it prints intermediate loss values in evalulation.
-    "save_step": 50, // Number of training steps expected to save traninpg stats and checkpoints.
+    "save_step": 5000, // Number of training steps expected to save traninpg stats and checkpoints.
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
     "tb_model_param_stats": true, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
@@ -126,16 +128,18 @@
     "num_loader_workers": 8, // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 8, // number of evaluation data loader processes.
     "batch_group_size": 4, //Number of batches to shuffle after bucketing.
-    "min_seq_len": 6, // DATASET-RELATED: minimum text length to use in training
+    "min_seq_len": 1, // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 153, // DATASET-RELATED: maximum text length
     "compute_input_seq_cache": false, // if true, text sequences are computed before starting training. If phonemes are enabled, they are also computed at this stage.
     "use_noise_augment": true,
+    // "add_silence_end_seconds": 0.25, //Nico - how much silence we add to the end of a sentence ->> sounds better when concatenating multiple synthesised utterances
 
     // PATHS
     "output_path": "/home/big-boy/Models/Blizzard/",
 
     // PHONEMES
     "phoneme_cache_path": "/home/big-boy/Models/phoneme_cache/", // phoneme computation is slow, therefore, it caches results in the given folder.
+    "remove_punctuation_from_data": false, // Nico
     "use_phonemes": true, // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us", // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
@@ -162,7 +166,7 @@
         "capacitron_text_summary_embedding_dim": 128, // size for the LSTM accounting for the text summary conditional input
         "capacitron_capacity": 300, // capacity target
         "capacitron_use_speaker_embedding": false,
-        "capacitron_reference_wav": "/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-5.wav", // path to referebce wav file to be used in capacitron inference.
+        "capacitron_reference_wav": null, // path to reference wav file to be used in capacitron inference.
         "capacitron_SGD_lr": 1e-5,
         "capacitron_SGD_momentum": 0.9
     },

@@ -235,7 +235,7 @@ def synthesis(model,
                 model outputs.
             speaker_id (int): id of speaker
             style_wav (str | Dict[str, float]): Used for style embedding of GST.
-            reference_wav (str | Dict[str, float]): Used for reference embedding of Capacitron.
+            reference_wav (str, path): Used for reference embedding of Capacitron.
             truncated (bool): keep model states after inference. It can be used
                 for continuous inference at long texts.
             enable_eos_bos_chars (bool): enable special chars for end of sentence and start of sentence.
@@ -244,13 +244,13 @@ def synthesis(model,
     """
     # GST processing
     style_mel = None
-    reference_mel = None
     if 'use_gst' in CONFIG.keys() and CONFIG.use_gst and style_wav is not None:
         if isinstance(style_wav, dict):
             style_mel = style_wav
         else:
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
     # Capacitron processing
+    reference_mel = None
     if 'use_capacitron' in CONFIG.keys() and CONFIG.use_capacitron and reference_wav is not None:
         reference_mel = compute_reference_mel(reference_wav, ap, cuda=use_cuda)
     # preprocess the given text

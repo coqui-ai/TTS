@@ -34,7 +34,8 @@ def tts(model, text, CONFIG, use_cuda, ap, use_gl, figures=True, reference_wav=N
 use_cuda = True
 
 # RUN_NAME = 'gts-blizzard-April-09-2021_05+51PM-a669a49'
-RUN_NAME = 'capacitron-April-15-2021_06+38PM-26e9ee0'
+# RUN_NAME = 'DCA_Pieces_420/capacitron-April-23-2021_01+22PM-bbf0158'
+RUN_NAME = 'capacitron-April-24-2021_10+03AM-bbf0158'
 
 # model paths
 TTS_MODEL = os.path.join(r'/home/big-boy/Models/Blizzard', RUN_NAME, 'best_model.pth.tar')
@@ -91,10 +92,12 @@ if 'r' in cp:
 
 ''' Run Inference '''
 
-sentence = "Where there was a whole under the skirting board."
-reference_path = '/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-05.wav'
-style_path = '/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-05.wav'
-align, spec, stop_tokens, wav = tts(model, sentence, TTS_CONFIG, use_cuda, ap, use_gl=True, figures=True,
-                                    reference_wav=None, style_wav=None)
+sentence = "Please use our dedicated channels for questions and discussion."
+refs = ['04', '05', '06', '11', '12']
+for n in refs:
+    reference_path = '/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-{}.wav'.format(n)
+    style_path = '/home/big-boy/Data/blizzard2013/segmented/refs/unseen/usref-05.wav'
+    align, spec, stop_tokens, wav = tts(model, sentence, TTS_CONFIG, use_cuda, ap, use_gl=True, figures=True,
+                                        reference_wav=reference_path, style_wav=None)
 
-ap.save_wav(wav, 'usref04prior.wav')
+    ap.save_wav(wav, 'OA_ref_{}.wav'.format(n))

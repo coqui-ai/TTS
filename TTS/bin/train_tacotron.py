@@ -254,17 +254,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
             # main model optimizer step
             loss_dict['loss'].backward()
             optimizer, current_lr = adam_weight_decay(optimizer)
-            grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True)
-            # ADAM gradient clipping needed for Capacitron
-            # TODO clean this up
-            if c.use_capacitron:
-                ADAM_params = []
-                for name, param in model.named_parameters():
-                    if param.requires_grad:
-                        if name != 'capacitron_layer.beta':
-                            ADAM_params.append(param)
-                torch.nn.utils.clip_grad_norm_(
-                    ADAM_params, c.grad_clip)
+            grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True, ignore_capacitron_beta=True)
             optimizer.step()
 
             # stopnet optimizer step
@@ -387,7 +377,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
     return keep_avg.avg_values, global_step
 
 
-@ torch.no_grad()
+@torch.no_grad()
 def evaluate(data_loader, model, criterion, ap, global_step, epoch):
     model.eval()
     epoch_time = 0
