@@ -1,12 +1,10 @@
 import datetime
 import glob
-import json
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Union
 
 
 def get_git_branch():
