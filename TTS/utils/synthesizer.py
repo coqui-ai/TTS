@@ -192,6 +192,7 @@ class Synthesizer(object):
         """
         start_time = time.time()
         wavs = []
+        speaker_embedding = None
         sens = self.split_into_sentences(text)
         print(" > Text splitted to sentences.")
         print(sens)
