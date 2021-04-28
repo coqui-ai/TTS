@@ -108,3 +108,11 @@ class SpeakerEncoder(nn.Module):
             else:
                 embed[cur_iter <= num_iters, :] += self.inference(frames[cur_iter <= num_iters, :, :])
         return embed / num_iters
+
+    # pylint: disable=unused-argument, redefined-builtin
+    def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False):
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"])
+        if eval:
+            self.eval()
+            assert not self.training

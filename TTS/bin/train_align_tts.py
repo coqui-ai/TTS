@@ -27,10 +27,11 @@ from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed, reduce_tensor
 from TTS.utils.generic_utils import (
-    KeepAverage, count_parameters, remove_experiment_folder, set_init_dict,
-    check_audio_arguments
+    KeepAverage,
+    count_parameters,
+    remove_experiment_folder,
+    set_init_dict,
 )
-from TTS.utils.io import load_np_audio_config
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, setup_torch_training_env
 

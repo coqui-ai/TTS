@@ -132,9 +132,7 @@ class GANDataset(Dataset):
         # correct the audio length wrt padding applied in stft
         audio = np.pad(audio, (0, self.hop_len), mode="edge")
         audio = audio[: mel.shape[-1] * self.hop_len]
-        assert (
-            mel.shape[-1] * self.hop_len == audio.shape[-1]
-        ), (
+        assert mel.shape[-1] * self.hop_len == audio.shape[-1], (
             f" [!] {wavpath} features length: {mel.shape[-1] * self.hop_len} "
             f"doesn't match audio length {audio.shape[-1]}"
         )
