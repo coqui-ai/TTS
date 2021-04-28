@@ -20,19 +20,19 @@ def main():
         "--config_path", type=str, required=True, help="TTS config file path to define audio processing parameters."
     )
     parser.add_argument(
-        "--stats_path",
+        "--out_path",
         type=str,
-        help=("Save path (directory and filename). " "If not specified taken from config.json."),
+        help=("Save path (directory and filename). If not specified taken from config.json."),
     )
     args = parser.parse_args()
 
     # load config
     c = load_config(args.config_path)
     c.audio["signal_norm"] = False  # do not apply earlier normalization
-    if args.stats_path is None:
+    if args.out_path is None:
         output_file_path = c.audio["stats_path"]
     else:
-        output_file_path = args.stats_path
+        output_file_path = args.out_path
     c.audio["stats_path"] = None  # discard pre-defined stats
 
     # load audio processor
