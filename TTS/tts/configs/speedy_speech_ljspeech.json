@@ -145,6 +145,7 @@
         {
             "name": "ljspeech",
             "path": "/home/erogol/Data/LJSpeech-1.1/",
+            "feature_path": null,
             "meta_file_train": "metadata.csv",
             "meta_file_val": null,
             "meta_file_attn_mask": "/home/erogol/Data/LJSpeech-1.1/metadata_attn_mask.txt"  // created by bin/compute_attention_masks.py

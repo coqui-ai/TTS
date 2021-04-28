@@ -435,13 +435,6 @@ if __name__ == "__main__":
         global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping
         # Audio processor
         ap = AudioProcessor(**c.audio)
-        # check audio config of features
-        if c.feature_path is not None:
-            # load it from parent folder
-            feats_audio_config = load_np_audio_config(
-                f'{c.feature_path}/../feats_audio_config.npy'
-            )
-            check_audio_arguments(feats_audio_config, ap)
 
         if "characters" in c.keys():
             symbols, phonemes = make_symbols(**c.characters)
