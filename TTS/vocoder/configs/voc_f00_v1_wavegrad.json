@@ -1,6 +1,6 @@
 {
-    "run_name": "wavegrad-libritts",
-    "run_description": "wavegrad libritts",
+    "run_name": "voc_f00_v1_wavegrad",
+    "run_description": "wavegrad voc_f00_v1",
 
     "audio":{
         "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
@@ -13,7 +13,8 @@
         "sample_rate": 22050,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
         "preemphasis": 0.0,     // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
         "ref_level_db": 0,     // reference level db, theoretically 20db is the sound of air.
-
+        "log_func": "np.log10",
+        "do_sound_norm": true,
         // Silence trimming
         "do_trim_silence": true,// enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
@@ -31,7 +32,7 @@
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
         /* "stats_path": "/home/erogol/Data/libritts/LibriTTS/scale_stats_wavegrad.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored */
-        "stats_path": "~/_vezilka/voc_f00_v1/scale_stats.npy"
+        "stats_path": "/home/vibe/_vezilka/voc_f00_v1/scale_stats.npy"
     },
 
     // DISTRIBUTED TRAINING
@@ -62,9 +63,9 @@
 
     // DATASET
     /* "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/",  // root data path. It finds all wav files recursively from there. */
-    /* "feature_path": null,   // if you use precomputed features */
-    "data_path": "~/_vezilka/voc_f00_v1/wavs",
-    "feature_path": "~/_vezilka/voc_f00_v1/feats",
+    "data_path": "/home/vibe/_vezilka/voc_f00_v1/wavs",
+    "feature_path": null,   // if you use precomputed features
+    /* "feature_path": "/home/vibe/_vezilka/voc_f00_v1/feats", */
     "seq_len": 6144,        // 24 * hop_length
     "pad_short": 0,      // additional padding for short wavs
     "conv_pad": 0,          // additional padding against convolutions applied to spectrograms
@@ -74,7 +75,7 @@
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 96,      // Batch size for training.
+    "batch_size": 72,      // Batch size for training.
 
     // NOISE SCHEDULE PARAMS - Only effective at training time.
     "train_noise_schedule":{
@@ -104,9 +105,9 @@
     // TENSORBOARD and LOGGING
     "print_step": 50,       // Number of steps to log traning on console.
     "print_eval": false,     // If True, it prints loss values for each step in eval run.
-    "save_step": 5000,      // Number of training steps expected to plot training stats on TB and save model checkpoints.
+    "save_step": 25000,      // Number of training steps expected to plot training stats on TB and save model checkpoints.
     "checkpoint": true,     // If true, it saves checkpoints per "save_step"
-    "keep_all_best": false,  // If true, keeps all best_models after keep_after steps
+    "keep_all_best": true,  // If true, keeps all best_models after keep_after steps
     "keep_after": 10000,    // Global step after which to keep best models if keep_all_best is true
     "tb_model_param_stats": true,     // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
@@ -117,6 +118,6 @@
 
     // PATHS
     /* "output_path": "/home/erogol/Models/LJSpeech/" */
-    "output_path": "~/tts/speechai/voc_f00_v1/"
+    "output_path": "/home/vibe/tts/speechai/voc_f00_v1/"
 }
 
