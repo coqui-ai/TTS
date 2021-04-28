@@ -43,7 +43,7 @@ jobs:
         run: python3 -m pip install --upgrade pip
       - name: Install TTS
         run: |
-          python3 -m pip install .
+          python3 -m pip install .[all]
           python3 setup.py egg_info
       - name: Lint check
         run: |
