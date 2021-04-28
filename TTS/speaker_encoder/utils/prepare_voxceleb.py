@@ -25,7 +25,6 @@ import subprocess
 import sys
 import zipfile
 
-import fsspec
 import pandas
 import soundfile as sf
 from absl import logging
@@ -72,7 +71,7 @@ def download_and_extract(directory, subset, urls):
         subset: subset name of the corpus.
         urls: the list of urls to download the data file.
     """
-    fsspec.get_mapper(directory).fs.makedirs(directory, exist_ok=True)
+    os.makedirs(directory, exist_ok=True)
 
     try:
         for url in urls:
@@ -105,7 +104,7 @@ def download_and_extract(directory, subset, urls):
             extract_path_ori = os.path.join(directory, zfile.infolist()[0].filename)
             subprocess.call("mv %s %s" % (extract_path_ori, extract_path), shell=True)
     finally:
-        # fsspec.get_mapper(directory).fs.rm_file(zip_filepath)
+        # os.remove(zip_filepath)
         pass
 
 
@@ -158,8 +157,7 @@ def convert_audio_and_make_label(input_dir, subset, output_dir, output_file):
 
     files = []
     # Convert all AAC file into WAV format. At the same time, generate the csv
-    fs = fsspec.get_mapper(source_dir).fs
-    for root, _, filenames in fs.walk(source_dir):
+    for root, _, filenames in os.walk(source_dir):
         for filename in filenames:
             name, ext = os.path.splitext(filename)
             if ext.lower() == ".wav":
@@ -171,7 +169,7 @@ def convert_audio_and_make_label(input_dir, subset, output_dir, output_file):
                 # Convert AAC to WAV.
                 aac_file = os.path.join(root, filename)
                 wav_file = aac_file + ".wav"
-                if not fs.exists(wav_file):
+                if not os.path.exists(wav_file):
                     if not decode_aac_with_ffmpeg(aac_file, wav_file):
                         raise RuntimeError("Audio decoding failed.")
             else:

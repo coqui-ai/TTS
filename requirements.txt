@@ -1,6 +1,5 @@
 cython
 flask
-fsspec>=0.8.0
 gdown
 inflect
 jieba
