@@ -59,6 +59,17 @@
                     "contact":""
 
                 }
+            },
+            "sam":{
+                "tacotron-DDC": {
+                    "description": "Tacotron2 with Double Decoder Consistency trained with Aceenture's Sam dataset.",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.13/tts_models--en--sam--tacotron_DDC.zip",
+                    "default_vocoder": "vocoder_models/en/sam/hifigan_v2",
+                    "commit": "bae2ad0f",
+                    "author": "Eren Gölge @erogol",
+                    "license": "",
+                    "contact":"egolge@coqui.com"
+                },
             }
         },
         "es":{
@@ -179,6 +190,16 @@
                     "author": "Edresson Casanova",
                     "license": "",
                     "contact": ""
+                }
+            },
+            "sam": {
+                "hifigan_v2":{
+                    "description": "Finetuned and intended to be used with tts_models/en/sam/tacotron_DDC",
+                    "github_rls_url":"https://github.com/coqui-ai/TTS/releases/download/v0.0.13/vocoder_models--en--sam--hifigan_v2.zip",
+                    "commit": "2f07160",
+                    "author": "Eren Gölge @erogol",
+                    "license": "",
+                    "contact": "egolge@coqui.ai"
                 }
             }
         },
