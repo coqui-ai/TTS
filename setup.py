@@ -18,7 +18,7 @@ if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) 
     )
 
 
-version = '0.0.13'
+version = '0.0.13.1'
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
