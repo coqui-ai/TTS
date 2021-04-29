@@ -311,7 +311,6 @@ class Decoder(nn.Module):
         memories = self._update_memory(memories)
         memories = self.prenet(memories)
 
-        self._init_states(inputs, mask=mask)
         self.attention.init_states(inputs)
 
         outputs, stop_tokens, alignments = [], [], []
