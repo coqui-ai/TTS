@@ -39,7 +39,6 @@ jobs:
           sudo apt install -y python3-wheel gcc
           make system-deps
       - name: Upgrade pip
-        # so we can take advantage of pyproject.toml build-dependency support
         run: python3 -m pip install --upgrade pip
       - name: Install TTS
         run: |
