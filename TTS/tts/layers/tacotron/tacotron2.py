@@ -310,8 +310,7 @@ class Decoder(nn.Module):
         memories = torch.cat((memory, memories), dim=0)
         memories = self._update_memory(memories)
         memories = self.prenet(memories)
-
-        self.attention.init_states(inputs)
+        self._init_states(inputs, mask=mask)
 
         outputs, stop_tokens, alignments = [], [], []
         while len(outputs) < memories.size(0) - 1:
