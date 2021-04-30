@@ -25,6 +25,7 @@ from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
 from TTS.vocoder.utils.generic_utils import plot_results, setup_discriminator, setup_generator
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
+import itertools
 
 use_cuda, num_gpus = setup_torch_training_env(True, True)
 
@@ -495,7 +496,10 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer_gen = getattr(torch.optim, c.optimizer)
     optimizer_gen = optimizer_gen(model_gen.parameters(), lr=c.lr_gen, **c.optimizer_params)
     optimizer_disc = getattr(torch.optim, c.optimizer)
-    optimizer_disc = optimizer_disc(model_disc.parameters(), lr=c.lr_disc, **c.optimizer_params)
+    if c.discriminator_model == 'hifigan_discriminator':
+        optimizer_disc = optimizer_disc(itertools.chain(model_disc.msd.parameters(), model_disc.mpd.parameters()), lr=c.lr_disc, **c.optimizer_params)
+    else:
+        optimizer_disc = optimizer_disc(model_disc.parameters(), lr=c.lr_disc, **c.optimizer_params)
 
     # schedulers
     scheduler_gen = None
