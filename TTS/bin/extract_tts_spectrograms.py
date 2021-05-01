@@ -124,7 +124,7 @@ def format_data(data):
     )
 
 @torch.no_grad()
-def inference(model_name, model, ap, text_input, text_lengths, mel_input, mel_lengths, attn_mask=None, speaker_ids=None, speaker_embeddings=None):
+def inference(model_name, model, config, ap, text_input, text_lengths, mel_input, mel_lengths, attn_mask=None, speaker_ids=None, speaker_embeddings=None):
     if model_name == "glow_tts":
         mel_input = mel_input.permute(0, 2, 1) # B x D x T
         speaker_c = None
@@ -139,7 +139,7 @@ def inference(model_name, model, ap, text_input, text_lengths, mel_input, mel_le
         model_output = model_output.transpose(1, 2).detach().cpu().numpy()
 
     elif "tacotron" in model_name:
-        if c.bidirectional_decoder or c.double_decoder_consistency:
+        if config.bidirectional_decoder or config.double_decoder_consistency:
             (
                 _,
                 postnet_outputs,
@@ -186,7 +186,7 @@ def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=Fals
             item_idx,
         ) = format_data(data)
 
-        model_output = inference(c.model.lower(), model, ap, text_input, text_lengths, mel_input, mel_lengths, attn_mask, speaker_ids, speaker_embeddings)
+        model_output = inference(c.model.lower(), model, c, ap, text_input, text_lengths, mel_input, mel_lengths, attn_mask, speaker_ids, speaker_embeddings)
 
         for idx in range(text_input.shape[0]):
             wav_file_path = item_idx[idx]
