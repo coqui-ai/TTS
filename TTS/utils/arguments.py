@@ -6,8 +6,8 @@ import argparse
 import glob
 import json
 import os
-import sys
 import re
+import sys
 
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
@@ -46,24 +46,14 @@ def init_arguments(argv):
             "Best model file to be used for extracting best loss."
             "If not specified, the latest best model in continue path is used"
         ),
-        default="")
-    parser.add_argument("--config_path",
-                        type=str,
-                        help="Path to config file for training.",
-                        required="--continue_path" not in argv)
-    parser.add_argument("--debug",
-                        type=bool,
-                        default=False,
-                        help="Do not verify commit integrity to run training.")
+        default="",
+    )
     parser.add_argument(
-        "--rank",
-        type=int,
-        default=0,
-        help="DISTRIBUTED: process rank for distributed training.")
-    parser.add_argument("--group_id",
-                        type=str,
-                        default="",
-                        help="DISTRIBUTED: process group id.")
+        "--config_path", type=str, help="Path to config file for training.", required="--continue_path" not in argv
+    )
+    parser.add_argument("--debug", type=bool, default=False, help="Do not verify commit integrity to run training.")
+    parser.add_argument("--rank", type=int, default=0, help="DISTRIBUTED: process rank for distributed training.")
+    parser.add_argument("--group_id", type=str, default="", help="DISTRIBUTED: process group id.")
 
     return parser
 
@@ -157,8 +147,7 @@ def process_args(args):
     if config.mixed_precision:
         print("   >  Mixed precision mode is ON")
     if not os.path.exists(config.output_path):
-        experiment_path = create_experiment_folder(config.output_path,
-                                                   config.run_name, args.debug)
+        experiment_path = create_experiment_folder(config.output_path, config.run_name, args.debug)
     else:
         experiment_path = config.output_path
     audio_path = os.path.join(experiment_path, "test_audios")
@@ -172,17 +161,15 @@ def process_args(args):
         # if model characters are not set in the config file
         # save the default set to the config file for future
         # compatibility.
-        if config.has('characters_config'):
+        if config.has("characters_config"):
             used_characters = parse_symbols()
-            new_fields['characters'] = used_characters
+            new_fields["characters"] = used_characters
         copy_model_files(config, args.config_path, experiment_path, new_fields)
         os.chmod(audio_path, 0o775)
         os.chmod(experiment_path, 0o775)
-        tb_logger = TensorboardLogger(experiment_path,
-                                      model_name=config.model)
+        tb_logger = TensorboardLogger(experiment_path, model_name=config.model)
         # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", config["run_description"],
-                              0)
+        tb_logger.tb_add_text("model-description", config["run_description"], 0)
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, tb_logger
 
