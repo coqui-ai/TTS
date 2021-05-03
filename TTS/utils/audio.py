@@ -275,7 +275,7 @@ class AudioProcessor(object):
         else:
             D = self._stft(y)
         S = self._amp_to_db(np.abs(D))
-        return self.normalize(S)
+        return self.normalize(S).astype(np.float32)
 
     def melspectrogram(self, y):
         if self.preemphasis != 0:
@@ -283,7 +283,7 @@ class AudioProcessor(object):
         else:
             D = self._stft(y)
         S = self._amp_to_db(self._linear_to_mel(np.abs(D)))
-        return self.normalize(S)
+        return self.normalize(S).astype(np.float32)
 
     def inv_spectrogram(self, spectrogram):
         """Converts spectrogram to waveform using librosa"""
