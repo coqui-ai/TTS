@@ -73,14 +73,14 @@ def count_parameters(model):
 
 def to_camel(text):
     text = text.capitalize()
-    text = re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), text)
-    text = text.replace('Tts', 'TTS')
+    text = re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
+    text = text.replace("Tts", "TTS")
     return text
 
 
 def find_module(module_path: str, module_name: str) -> object:
     module_name = module_name.lower()
-    module = importlib.import_module(module_path+'.'+module_name)
+    module = importlib.import_module(module_path + "." + module_name)
     class_name = to_camel(module_name)
     return getattr(module, class_name)
 
@@ -156,4 +156,3 @@ class KeepAverage:
     def update_values(self, value_dict):
         for key, value in value_dict.items():
             self.update_value(key, value)
-
