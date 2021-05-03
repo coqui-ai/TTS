@@ -140,7 +140,7 @@ class Attention(keras.layers.Layer):
         return tuple(states)
 
     def process_values(self, values):
-        """ cache values for decoder iterations """
+        """cache values for decoder iterations"""
         # pylint: disable=attribute-defined-outside-init
         self.processed_values = self.inputs_layer(values)
         self.values = values
@@ -158,14 +158,14 @@ class Attention(keras.layers.Layer):
         return score, processed_query
 
     def get_attn(self, query):
-        """ compute query layer and unnormalized attention weights """
+        """compute query layer and unnormalized attention weights"""
         processed_query = self.query_layer(tf.expand_dims(query, 1))
         score = self.v(tf.nn.tanh(self.processed_values + processed_query))
         score = tf.squeeze(score, axis=2)
         return score, processed_query
 
     def apply_score_masking(self, score, mask):  # pylint: disable=no-self-use
-        """ ignore sequence paddings """
+        """ignore sequence paddings"""
         padding_mask = tf.expand_dims(math_ops.logical_not(mask), 2)
         # Bias so padding positions do not contribute to attention distribution.
         score -= 1.0e9 * math_ops.cast(padding_mask, dtype=tf.float32)

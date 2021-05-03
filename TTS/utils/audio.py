@@ -366,7 +366,7 @@ class AudioProcessor(object):
         return len(wav)
 
     def trim_silence(self, wav):
-        """ Trim silent parts with a threshold and 0.01 sec margin """
+        """Trim silent parts with a threshold and 0.01 sec margin"""
         margin = int(self.sample_rate * 0.01)
         wav = wav[margin:-margin]
         return librosa.effects.trim(wav, top_db=self.trim_db, frame_length=self.win_length, hop_length=self.hop_length)[

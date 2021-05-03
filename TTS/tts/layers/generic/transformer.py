@@ -18,7 +18,7 @@ class FFTransformer(nn.Module):
         self.dropout = nn.Dropout(dropout_p)
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
-        """😦 ugly looking with all the transposing """
+        """😦 ugly looking with all the transposing"""
         src = src.permute(2, 0, 1)
         src2, enc_align = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
         src = self.norm1(src + src2)

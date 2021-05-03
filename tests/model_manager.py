@@ -1,7 +1,8 @@
 #!/usr/bin/env python3`
+import glob
 import os
 import shutil
-import glob
+
 from tests import get_tests_output_path
 from TTS.utils.manage import ModelManager
 
@@ -15,6 +16,6 @@ def test_if_all_models_available():
         manager.download_model(model_name)
         print(f" | > OK: {model_name}")
 
-    folders = glob.glob(os.path.join(manager.output_prefix, '*'))
+    folders = glob.glob(os.path.join(manager.output_prefix, "*"))
     assert len(folders) == len(model_names)
     shutil.rmtree(manager.output_prefix)

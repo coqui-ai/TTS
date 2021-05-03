@@ -84,7 +84,7 @@ class Wavegrad(nn.Module):
 
     @torch.no_grad()
     def inference(self, x, y_n=None):
-        """ x: B x D X T """
+        """x: B x D X T"""
         if y_n is None:
             y_n = torch.randn(x.shape[0], 1, self.hop_len * x.shape[-1], dtype=torch.float32).to(x)
         else:

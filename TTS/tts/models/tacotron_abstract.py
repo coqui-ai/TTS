@@ -39,7 +39,7 @@ class TacotronAbstract(ABC, nn.Module):
         gst_style_tokens=10,
         gst_use_speaker_embedding=False,
     ):
-        """ Abstract Tacotron class """
+        """Abstract Tacotron class"""
         super().__init__()
         self.num_chars = num_chars
         self.r = r
@@ -153,7 +153,7 @@ class TacotronAbstract(ABC, nn.Module):
         return input_mask, output_mask
 
     def _backward_pass(self, mel_specs, encoder_outputs, mask):
-        """ Run backwards decoder """
+        """Run backwards decoder"""
         decoder_outputs_b, alignments_b, _ = self.decoder_backward(
             encoder_outputs, torch.flip(mel_specs, dims=(1,)), mask
         )
@@ -161,7 +161,7 @@ class TacotronAbstract(ABC, nn.Module):
         return decoder_outputs_b, alignments_b
 
     def _coarse_decoder_pass(self, mel_specs, encoder_outputs, alignments, input_mask):
-        """ Double Decoder Consistency """
+        """Double Decoder Consistency"""
         T = mel_specs.shape[1]
         if T % self.coarse_decoder.r > 0:
             padding_size = self.coarse_decoder.r - (T % self.coarse_decoder.r)
@@ -182,7 +182,7 @@ class TacotronAbstract(ABC, nn.Module):
     #############################
 
     def compute_speaker_embedding(self, speaker_ids):
-        """ Compute speaker embedding vectors """
+        """Compute speaker embedding vectors"""
         if hasattr(self, "speaker_embedding") and speaker_ids is None:
             raise RuntimeError(" [!] Model has speaker embedding layer but speaker_id is not provided")
         if hasattr(self, "speaker_embedding") and speaker_ids is not None:
@@ -191,7 +191,7 @@ class TacotronAbstract(ABC, nn.Module):
             self.speaker_embeddings_projected = self.speaker_project_mel(self.speaker_embeddings).squeeze(1)
 
     def compute_gst(self, inputs, style_input, speaker_embedding=None):
-        """ Compute global style token """
+        """Compute global style token"""
         device = inputs.device
         if isinstance(style_input, dict):
             query = torch.zeros(1, 1, self.gst_embedding_dim // 2).to(device)

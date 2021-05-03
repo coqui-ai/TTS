@@ -22,7 +22,7 @@ ok_ljspeech = os.path.exists(test_data_path)
 def gan_dataset_case(
     batch_size, seq_len, hop_len, conv_pad, return_pairs, return_segments, use_noise_augment, use_cache, num_workers
 ):
-    """Run dataloader with given parameters and check conditions """
+    """Run dataloader with given parameters and check conditions"""
     ap = AudioProcessor(**C.audio)
     _, train_items = load_wav_data(test_data_path, 10)
     dataset = GANDataset(
@@ -90,7 +90,7 @@ def gan_dataset_case(
 
 
 def test_parametrized_gan_dataset():
-    """ test dataloader with different parameters """
+    """test dataloader with different parameters"""
     params = [
         [32, C.audio["hop_length"] * 10, C.audio["hop_length"], 0, True, True, False, True, 0],
         [32, C.audio["hop_length"] * 10, C.audio["hop_length"], 0, True, True, False, True, 4],

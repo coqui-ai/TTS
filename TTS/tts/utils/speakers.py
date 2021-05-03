@@ -40,7 +40,7 @@ def get_speakers(items):
 
 
 def parse_speakers(c, args, meta_data_train, OUT_PATH):
-    """ Returns number of speakers, speaker embedding shape and speaker mapping"""
+    """Returns number of speakers, speaker embedding shape and speaker mapping"""
     if c.use_speaker_embedding:
         speakers = get_speakers(meta_data_train)
         if args.restore_path:
