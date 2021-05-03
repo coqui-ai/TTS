@@ -18,7 +18,7 @@ deps:	## install 🐸 requirements.
 	pip install -r requirements.txt
 
 test:	## run tests.
-	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests
+	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture
 	./run_bash_tests.sh
 
 style:	## update code style.
