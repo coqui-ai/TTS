@@ -40,7 +40,7 @@ class TacotronTFTrainTest(unittest.TestCase):
         return chars_seq, chars_seq_lengths, mel_spec, mel_postnet_spec, mel_lengths, stop_targets, speaker_ids
 
     def test_train_step(self):
-        """ test forward pass """
+        """test forward pass"""
         (
             chars_seq,
             chars_seq_lengths,

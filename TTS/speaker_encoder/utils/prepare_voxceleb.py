@@ -29,7 +29,6 @@ import pandas
 import soundfile as sf
 from absl import logging
 
-
 SUBSETS = {
     "vox1_dev_wav": [
         "http://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1a/vox1_dev_wav_partaa",
@@ -191,7 +190,7 @@ def convert_audio_and_make_label(input_dir, subset, output_dir, output_file):
 
 
 def processor(directory, subset, force_process):
-    """ download and process """
+    """download and process"""
     urls = SUBSETS
     if subset not in urls:
         raise ValueError(subset, "is not in voxceleb")

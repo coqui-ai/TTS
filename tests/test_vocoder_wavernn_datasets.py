@@ -23,7 +23,7 @@ ok_ljspeech = os.path.exists(test_data_path)
 
 
 def wavernn_dataset_case(batch_size, seq_len, hop_len, pad, mode, mulaw, num_workers):
-    """ run dataloader with given parameters and check conditions """
+    """run dataloader with given parameters and check conditions"""
     ap = AudioProcessor(**C.audio)
 
     C.batch_size = batch_size
@@ -69,7 +69,7 @@ def wavernn_dataset_case(batch_size, seq_len, hop_len, pad, mode, mulaw, num_wor
 
 
 def test_parametrized_wavernn_dataset():
-    """ test dataloader with different parameters """
+    """test dataloader with different parameters"""
     params = [
         [16, C.audio["hop_length"] * 10, C.audio["hop_length"], 2, 10, True, 0],
         [16, C.audio["hop_length"] * 10, C.audio["hop_length"], 2, "mold", False, 4],

@@ -55,7 +55,7 @@ class TestAudio(unittest.TestCase):
         _test(4.0, True, True, True)
 
     def test_normalize(self):
-        """Check normalization and denormalization for range values and consistency """
+        """Check normalization and denormalization for range values and consistency"""
         print(" > Testing normalization and denormalization.")
         wav = self.ap.load_wav(WAV_FILE)
         wav = self.ap.sound_norm(wav)  # normalize audio to get abetter normalization range below.
