@@ -41,11 +41,7 @@ class Tacotron2(TacotronAbstract):
         encoder_in_features (int, optional): input channels for the encoder. Defaults to 512.
         decoder_in_features (int, optional): input channels for the decoder. Defaults to 512.
         speaker_embedding_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
-        gst (bool, optional): enable/disable global style token learning. Defaults to False.
-        gst_embedding_dim (int, optional): size of channels for GST vectors. Defaults to 512.
-        gst_num_heads (int, optional): number of attention heads for GST. Defaults to 4.
-        gst_num_style_tokens (int, optional): number of GST tokens. Defaults to 10.
-        gst_use_speaker_embedding (bool, optional): enable/disable inputing speaker embedding to GST. Defaults to False.
+        gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
     """
 
     def __init__(
@@ -73,11 +69,7 @@ class Tacotron2(TacotronAbstract):
         encoder_in_features=512,
         decoder_in_features=512,
         speaker_embedding_dim=None,
-        gst=False,
-        gst_embedding_dim=512,
-        gst_num_heads=4,
-        gst_style_tokens=10,
-        gst_use_speaker_embedding=False,
+        gst=None,
     ):
         super().__init__(
             num_chars,
@@ -104,10 +96,6 @@ class Tacotron2(TacotronAbstract):
             decoder_in_features,
             speaker_embedding_dim,
             gst,
-            gst_embedding_dim,
-            gst_num_heads,
-            gst_style_tokens,
-            gst_use_speaker_embedding,
         )
 
         # speaker embedding layer
@@ -150,14 +138,13 @@ class Tacotron2(TacotronAbstract):
         # global style token layers
         if self.gst:
             self.gst_layer = GST(
-                num_mel=80,
-                num_heads=self.gst_num_heads,
-                num_style_tokens=self.gst_style_tokens,
-                gst_embedding_dim=self.gst_embedding_dim,
-                speaker_embedding_dim=speaker_embedding_dim
-                if self.embeddings_per_sample and self.gst_use_speaker_embedding
-                else None,
+                num_mel=decoder_output_dim,
+                speaker_embedding_dim=speaker_embedding_dim,
+                num_heads=gst.gst_num_heads,
+                num_style_tokens=gst.gst_num_style_tokens,
+                gst_embedding_dim=gst.gst_embedding_dim,
             )
+
         # backward pass decoder
         if self.bidirectional_decoder:
             self._init_backward_decoder()
@@ -205,9 +192,7 @@ class Tacotron2(TacotronAbstract):
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
         if self.gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(
-                encoder_outputs, mel_specs, speaker_embeddings if self.gst_use_speaker_embedding else None
-            )
+            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, speaker_embeddings)
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 # B x 1 x speaker_embed_dim
@@ -263,9 +248,7 @@ class Tacotron2(TacotronAbstract):
 
         if self.gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(
-                encoder_outputs, style_mel, speaker_embeddings if self.gst_use_speaker_embedding else None
-            )
+            encoder_outputs = self.compute_gst(encoder_outputs, style_mel, speaker_embeddings)
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 speaker_embeddings = self.speaker_embedding(speaker_ids)[:, None]
@@ -286,9 +269,7 @@ class Tacotron2(TacotronAbstract):
 
         if self.gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(
-                encoder_outputs, style_mel, speaker_embeddings if self.gst_use_speaker_embedding else None
-            )
+            encoder_outputs = self.compute_gst(encoder_outputs, style_mel, speaker_embeddings)
 
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
