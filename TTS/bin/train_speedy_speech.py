@@ -398,7 +398,6 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 "Prior to November 22, 1963.",
             ]
 
-
         # test sentences
         test_audios = {}
         test_figures = {}
