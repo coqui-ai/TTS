@@ -58,35 +58,25 @@ def load_config(config_path: str) -> None:
     return config
 
 
-def copy_model_files(c, config_file, out_path, new_fields):
+def copy_model_files(config, out_path, new_fields):
     """Copy config.json and other model files to training folder and add
     new fields.
 
     Args:
-        c (dict): model config from config.json.
-        config_file (str): path to config file.
+        config (Coqpit): Coqpit config defining the training run.
         out_path (str): output path to copy the file.
         new_fields (dict): new fileds to be added or edited
             in the config file.
     """
-    # copy config.json
     copy_config_path = os.path.join(out_path, "config.json")
-    config_lines = open(config_file, "r", encoding="utf-8").readlines()
     # add extra information fields
-    for key, value in new_fields.items():
-        if isinstance(value, str):
-            new_line = '"{}":"{}",\n'.format(key, value)
-        else:
-            new_line = '"{}":{},\n'.format(key, json.dumps(value, ensure_ascii=False))
-        config_lines.insert(1, new_line)
-    config_out_file = open(copy_config_path, "w", encoding="utf-8")
-    config_out_file.writelines(config_lines)
-    config_out_file.close()
+    config.update(new_fields, allow_new=True)
+    config.save_json(copy_config_path)
     # copy model stats file if available
-    if c.audio["stats_path"] is not None:
+    if config.audio.stats_path is not None:
         copy_stats_path = os.path.join(out_path, "scale_stats.npy")
         if not os.path.exists(copy_stats_path):
             copyfile(
-                c.audio["stats_path"],
+                config.audio.stats_path,
                 copy_stats_path,
             )
