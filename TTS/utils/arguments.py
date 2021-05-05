@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 """Argument parser for training scripts."""
 
+import torch
 import argparse
 import glob
-import json
 import os
 import re
-import sys
 
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
@@ -146,10 +145,9 @@ def process_args(args):
     config.parse_args(coqpit_overrides)
     if config.mixed_precision:
         print("   >  Mixed precision mode is ON")
-    if not os.path.exists(config.output_path):
+    experiment_path = args.continue_path
+    if not experiment_path:
         experiment_path = create_experiment_folder(config.output_path, config.run_name, args.debug)
-    else:
-        experiment_path = config.output_path
     audio_path = os.path.join(experiment_path, "test_audios")
     # setup rank 0 process in distributed training
     if args.rank == 0:
@@ -164,12 +162,12 @@ def process_args(args):
         if config.has("characters_config"):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
-        copy_model_files(config, args.config_path, experiment_path, new_fields)
+        copy_model_files(config, experiment_path, new_fields)
         os.chmod(audio_path, 0o775)
         os.chmod(experiment_path, 0o775)
         tb_logger = TensorboardLogger(experiment_path, model_name=config.model)
         # write model desc to tensorboard
-        tb_logger.tb_add_text("model-description", config["run_description"], 0)
+        tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, tb_logger
 

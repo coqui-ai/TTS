@@ -21,6 +21,7 @@ class AudioProcessor(object):
         sample_rate (int, optional): target audio sampling rate. Defaults to None.
         resample (bool, optional): enable/disable resampling of the audio clips when the target sampling rate does not match the original sampling rate. Defaults to False.
         num_mels (int, optional): number of melspectrogram dimensions. Defaults to None.
+        log_func (int, optional): log exponent used for converting spectrogram aplitude to DB.
         min_level_db (int, optional): minimum db threshold for the computed melspectrograms. Defaults to None.
         frame_shift_ms (int, optional): milliseconds of frames between STFT columns. Defaults to None.
         frame_length_ms (int, optional): milliseconds of STFT window length. Defaults to None.
