@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 """Argument parser for training scripts."""
 
-import torch
 import argparse
 import glob
 import os
 import re
+
+import torch
 
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.console_logger import ConsoleLogger
