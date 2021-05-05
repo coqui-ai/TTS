@@ -174,7 +174,7 @@ class GlowTTSInferenceTest(unittest.TestCase):
         print(" > Num parameters for GlowTTS model:%s" % (count_parameters(model)))
 
         # inference encoder and decoder with MAS
-        y, _, _, _, _, _, _ = model.inference_with_MAS(
+        y, *_ = model.inference_with_MAS(
                 input_dummy, input_lengths, mel_spec, mel_lengths, None
             )
 
