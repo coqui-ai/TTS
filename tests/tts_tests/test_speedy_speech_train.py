@@ -1,8 +1,8 @@
 import glob
 import os
+import shutil
 
 from tests import get_tests_output_path, run_cli
-from TTS.config import BaseDatasetConfig
 from TTS.tts.configs import SpeedySpeechConfig
 
 config_path = os.path.join(get_tests_output_path(), "test_speedy_speech_config.json")
@@ -46,3 +46,4 @@ continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getm
 # restore the model and continue training for one more epoch
 command_train = f"CUDA_VISIBLE_DEVICES='' python TTS/bin/train_speedy_speech.py --continue_path {continue_path} "
 run_cli(command_train)
+shutil.rmtree(continue_path)
