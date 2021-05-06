@@ -18,3 +18,4 @@ torch>=1.7
 tqdm
 umap-learn==0.4.6
 unidecode==0.4.20
+coqpit
