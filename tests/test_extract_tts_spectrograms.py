@@ -30,7 +30,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
         # save model
         torch.save({"model": model.state_dict()}, checkpoint_path)
         # run test
-        run_cli(f'CUDA_VISIBLE_DEVICES="" python3 TTS/bin/extract_tts_spectrograms.py --config_path "{config_path}" --checkpoint_path "{checkpoint_path}" --output_path "{output_path}"')
+        run_cli(f'CUDA_VISIBLE_DEVICES="" python TTS/bin/extract_tts_spectrograms.py --config_path "{config_path}" --checkpoint_path "{checkpoint_path}" --output_path "{output_path}"')
         run_cli(f'rm -rf "{output_path}" "{checkpoint_path}"')
     @staticmethod
     def test_Tacotron2():
@@ -46,7 +46,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
         # save model
         torch.save({"model": model.state_dict()}, checkpoint_path)
         # run test
-        run_cli(f'CUDA_VISIBLE_DEVICES="" python3 TTS/bin/extract_tts_spectrograms.py --config_path "{config_path}" --checkpoint_path "{checkpoint_path}" --output_path "{output_path}"')
+        run_cli(f'CUDA_VISIBLE_DEVICES="" python TTS/bin/extract_tts_spectrograms.py --config_path "{config_path}" --checkpoint_path "{checkpoint_path}" --output_path "{output_path}"')
         run_cli(f'rm -rf "{output_path}" "{checkpoint_path}"')
     @staticmethod
     def test_Tacotron():
@@ -62,5 +62,5 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
         # save model
         torch.save({"model": model.state_dict()}, checkpoint_path)
         # run test
-        run_cli(f'CUDA_VISIBLE_DEVICES="" python3 TTS/bin/extract_tts_spectrograms.py --config_path "{config_path}" --checkpoint_path "{checkpoint_path}" --output_path "{output_path}"')
+        run_cli(f'CUDA_VISIBLE_DEVICES="" python TTS/bin/extract_tts_spectrograms.py --config_path "{config_path}" --checkpoint_path "{checkpoint_path}" --output_path "{output_path}"')
         run_cli(f'rm -rf "{output_path}" "{checkpoint_path}"')
