@@ -9,6 +9,7 @@ from TTS.config import BaseAudioConfig, BaseDatasetConfig, BaseTrainingConfig
 @dataclass
 class BaseVocoderConfig(BaseTrainingConfig):
     """Shared parameters among all the vocoder models."""
+
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     # dataloading
     use_noise_augment: bool = False  # enable/disable random noise augmentation in spectrograms.
@@ -29,6 +30,7 @@ class BaseVocoderConfig(BaseTrainingConfig):
 @dataclass
 class BaseGANVocoderConfig(BaseVocoderConfig):
     """Common config interface for all the GAN based vocoder models."""
+
     # LOSS PARAMETERS
     use_stft_loss: bool = True
     use_subband_stft_loss: bool = True
@@ -49,8 +51,9 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
         default_factory=lambda: {
             "n_ffts": [1024, 2048, 512],
             "hop_lengths": [120, 240, 50],
-            "win_lengths": [600, 1200, 240]
-        })
+            "win_lengths": [600, 1200, 240],
+        }
+    )
 
     l1_spec_loss_params: dict = field(
         default_factory=lambda: {
@@ -61,8 +64,9 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
             "win_length": 1024,
             "n_mels": 80,
             "mel_fmin": 0.0,
-            "mel_fmax": None
-        })
+            "mel_fmax": None,
+        }
+    )
 
     target_loss: str = "avg_G_loss"  # loss value to pick the best model to save after each epoch
 
@@ -72,20 +76,11 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
     lr_gen: float = 0.0002  # Initial learning rate.
     lr_disc: float = 0.0002  # Initial learning rate.
     optimizer: str = "AdamW"
-    optimizer_params: dict = field(default_factory=lambda: {
-        "betas": [0.8, 0.99],
-        "weight_decay": 0.0
-    })
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "weight_decay": 0.0})
     lr_scheduler_gen: str = "ExponentialLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
-    lr_scheduler_gen_params: dict = field(default_factory=lambda: {
-        "gamma": 0.999,
-        "last_epoch": -1
-    })
+    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
     lr_scheduler_disc: str = "ExponentialLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
-    lr_scheduler_disc_params: dict = field(default_factory=lambda: {
-        "gamma": 0.999,
-        "last_epoch": -1
-    })
+    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
 
     use_pqmf: bool = False  # enable/disable using pqmf for multi-band training. (Multi-band MelGAN)
     steps_to_start_discriminator = 0  # start training the discriminator after this number of steps.

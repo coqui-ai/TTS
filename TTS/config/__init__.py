@@ -1,10 +1,9 @@
-from TTS.config.shared_configs import *
-
 import json
 import os
 
 import yaml
 
+from TTS.config.shared_configs import *
 from TTS.utils.generic_utils import find_module
 
 

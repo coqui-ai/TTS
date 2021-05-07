@@ -14,20 +14,12 @@ class AlignTTSConfig(BaseTTSConfig):
     hidden_channels: int = 256
     encoder_type: str = "fftransformer"
     encoder_params: dict = field(
-        default_factory=lambda: {
-            "hidden_channels_ffn": 1024,
-            "num_heads": 2,
-            "num_layers": 6,
-            "dropout_p": 0.1
-        })
+        default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1}
+    )
     decoder_type: str = "fftransformer"
     decoder_params: dict = field(
-        default_factory=lambda: {
-            "hidden_channels_ffn": 1024,
-            "num_heads": 2,
-            "num_layers": 6,
-            "dropout_p": 0.1
-        })
+        default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1}
+    )
     phase_start_steps: list = None
 
     ssim_alpha: float = 1.0
