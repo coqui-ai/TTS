@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from TTS.tts.utils.visual import plot_spectrogram
-from TTS.utils.arguments import parse_arguments, process_args
+from TTS.utils.arguments import init_training
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
@@ -307,29 +307,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     global train_data, eval_data
 
     # setup audio processor
-    ap = AudioProcessor(**c.audio)
-
-    # print(f" > Loading wavs from: {c.data_path}")
-    # if c.feature_path is not None:
-    #     print(f" > Loading features from: {c.feature_path}")
-    #     eval_data, train_data = load_wav_feat_data(
-    #         c.data_path, c.feature_path, c.eval_split_size
-    #     )
-    # else:
-    #     mel_feat_path = os.path.join(OUT_PATH, "mel")
-    #     feat_data = find_feat_files(mel_feat_path)
-    #     if feat_data:
-    #         print(f" > Loading features from: {mel_feat_path}")
-    #         eval_data, train_data = load_wav_feat_data(
-    #             c.data_path, mel_feat_path, c.eval_split_size
-    #         )
-    #     else:
-    #         print(" > No feature data found. Preprocessing...")
-    #         # preprocessing feature data from given wav files
-    #         preprocess_wav_files(OUT_PATH, CONFIG, ap)
-    #         eval_data, train_data = load_wav_feat_data(
-    #             c.data_path, mel_feat_path, c.eval_split_size
-    #         )
+    ap = AudioProcessor(**c.audio.to_dict())
 
     print(f" > Loading wavs from: {c.data_path}")
     if c.feature_path is not None:
@@ -438,9 +416,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == "__main__":
-    args = parse_arguments(sys.argv)
-    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args, model_class="vocoder")
-
+    args, c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = init_training(sys.argv)
     try:
         main(args)
     except KeyboardInterrupt:
