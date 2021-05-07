@@ -9,7 +9,7 @@ from TTS.utils.generic_utils import find_module
 
 def _search_configs(model_name):
     config_class = None
-    paths = ["TTS.tts.configs", "TTS.vocoder.configs"]
+    paths = ["TTS.tts.configs", "TTS.vocoder.configs", "TTS.speaker_encoder"]
     for path in paths:
         try:
             config_class = find_module(path, model_name + "_config")
