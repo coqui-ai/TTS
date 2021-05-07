@@ -47,7 +47,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 🚀 **Released Models**            | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
 | 🖥️ **Demo Server**                | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
 | 🤖 **Synthesize speech**          | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
-| 🛠️ **Implementing a New Model**   | [TTS/Wiki][https://github.com/coqui-ai/TTS/wiki/Implementing-a-New-Model-in-%F0%9F%90%B8TTS]|
+| 🛠️ **Implementing a New Model**   | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/Implementing-a-New-Model-in-%F0%9F%90%B8TTS)|
 
 ## 🥇 TTS Performance
 <p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
