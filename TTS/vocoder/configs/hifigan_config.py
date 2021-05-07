@@ -18,8 +18,9 @@ class HifiganConfig(BaseGANVocoderConfig):
             "upsample_initial_channel": 512,
             "resblock_kernel_sizes": [3, 7, 11],
             "resblock_dilation_sizes": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-            "resblock_type": "1"
-        })
+            "resblock_type": "1",
+        }
+    )
 
     # LOSS PARAMETERS - overrides
     use_stft_loss: bool = False
@@ -45,8 +46,9 @@ class HifiganConfig(BaseGANVocoderConfig):
             "win_length": 1024,
             "n_mels": 80,
             "mel_fmin": 0.0,
-            "mel_fmax": None
-        })
+            "mel_fmax": None,
+        }
+    )
 
     # optimizer parameters
     lr: float = 1e-4

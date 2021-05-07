@@ -256,7 +256,7 @@ def synthesis(
     """
     # GST processing
     style_mel = None
-    if CONFIG.has('gst') and CONFIG.gst and style_wav is not None:
+    if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
         if isinstance(style_wav, dict):
             style_mel = style_wav
         else:

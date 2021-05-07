@@ -21,16 +21,14 @@ config = MelganConfig(
     print_step=1,
     print_eval=True,
     data_path="tests/data/ljspeech",
-    output_path=output_path
+    output_path=output_path,
 )
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 config.save_json(config_path)
 
 # train the model for one epoch
-command_train = (
-    f"CUDA_VISIBLE_DEVICES='' python TTS/bin/train_vocoder_gan.py --config_path {config_path} "
-)
+command_train = f"CUDA_VISIBLE_DEVICES='' python TTS/bin/train_vocoder_gan.py --config_path {config_path} "
 run_cli(command_train)
 
 # Find latest folder

@@ -6,10 +6,11 @@ from .shared_configs import BaseVocoderConfig
 @dataclass
 class WavernnConfig(BaseVocoderConfig):
     """Defines parameters for Wavernn vocoder."""
+
     model: str = "wavernn"
 
     # Model specific params
-    mode: str = 'mold'  # mold [string], gauss [string], bits [int]
+    mode: str = "mold"  # mold [string], gauss [string], bits [int]
     mulaw: bool = True  # apply mulaw if mode is bits
     generator_model: str = "WaveRNN"
     wavernn_model_params: dict = field(
@@ -21,9 +22,9 @@ class WavernnConfig(BaseVocoderConfig):
             "num_res_blocks": 10,
             "use_aux_net": True,
             "use_upsample_net": True,
-            "upsample_factors":
-            [4, 8, 8]  # this needs to correctly factorise hop_length
-        })
+            "upsample_factors": [4, 8, 8],  # this needs to correctly factorise hop_length
+        }
+    )
 
     # Inference
     batched: bool = True
@@ -46,7 +47,4 @@ class WavernnConfig(BaseVocoderConfig):
     grad_clip: float = 4.0
     lr: float = 1e-4  # Initial learning rate.
     lr_scheduler: str = "MultiStepLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
-    lr_scheduler_params: dict = field(default_factory=lambda: {
-        "gamma": 0.5,
-        "milestones": [200000, 400000, 600000]
-    })
+    lr_scheduler_params: dict = field(default_factory=lambda: {"gamma": 0.5, "milestones": [200000, 400000, 600000]})
