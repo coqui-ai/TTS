@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import datetime
 import glob
@@ -8,8 +7,15 @@ import re
 import shutil
 import subprocess
 import sys
+import torch
 from pathlib import Path
 from typing import List
+
+
+def get_cuda():
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    return use_cuda, device
 
 
 def get_git_branch():
