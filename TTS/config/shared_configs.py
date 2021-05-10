@@ -248,8 +248,8 @@ class BaseTrainingConfig(Coqpit):
     keep_all_best: bool = False
     keep_after: int = 10000
     # dataloading
-    num_loader_workers: int = None
-    num_val_loader_workers: int = None
+    num_loader_workers: int = MISSING
+    num_val_loader_workers: int = 0
     use_noise_augment: bool = False
     # paths
     output_path: str = None
