@@ -18,8 +18,11 @@ deps:	## install 🐸 requirements.
 	pip install -r requirements.txt
 
 test:	## run tests.
-	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture
+	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
 	./run_bash_tests.sh
+
+test_failed:  ## only run tests failed the last time.
+	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --failed
 
 style:	## update code style.
 	black ${target_dirs}
