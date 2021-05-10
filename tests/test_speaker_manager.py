@@ -7,7 +7,6 @@ import torch
 from tests import get_tests_input_path
 from TTS.config import load_config
 from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.speaker_encoder_config import SpeakerEncoderConfig
 from TTS.speaker_encoder.utils.io import save_checkpoint
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor

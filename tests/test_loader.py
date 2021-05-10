@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from tests import get_tests_input_path, get_tests_output_path
+from tests import get_tests_output_path
 from TTS.tts.configs import BaseTTSConfig
 from TTS.tts.datasets import TTSDataset
 from TTS.tts.datasets.preprocess import ljspeech

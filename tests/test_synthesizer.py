@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from tests import get_tests_input_path, get_tests_output_path
+from tests import get_tests_output_path
 from TTS.config import load_config
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_checkpoint

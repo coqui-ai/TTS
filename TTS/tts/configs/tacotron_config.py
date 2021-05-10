@@ -1,7 +1,5 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import List
-
-from coqpit import check_argument
 
 from .shared_configs import BaseTTSConfig, GSTConfig
 

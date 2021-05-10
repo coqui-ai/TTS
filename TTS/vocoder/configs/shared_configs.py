@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
-from typing import List
 
 from coqpit import MISSING
 
-from TTS.config import BaseAudioConfig, BaseDatasetConfig, BaseTrainingConfig
+from TTS.config import BaseAudioConfig, BaseTrainingConfig
 
 
 @dataclass
