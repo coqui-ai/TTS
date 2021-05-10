@@ -5,6 +5,7 @@ import numpy as np
 import pysbd
 import torch
 
+from TTS.config import load_config
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.speakers import SpeakerManager
 
@@ -13,7 +14,6 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis, trim_silence
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
-from TTS.config import load_config
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input, setup_generator
 
 
@@ -117,7 +117,7 @@ class Synthesizer(object):
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
-        if self.tts_config.has('characters') and self.tts_config.characters:
+        if self.tts_config.has("characters") and self.tts_config.characters:
             symbols, phonemes = make_symbols(**self.tts_config.characters)
 
         if self.use_phonemes:

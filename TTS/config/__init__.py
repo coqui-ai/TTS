@@ -1,6 +1,7 @@
 import json
 import os
 import re
+
 import yaml
 
 from TTS.config.shared_configs import *
@@ -34,7 +35,7 @@ def _search_configs(model_name):
 
 def _process_model_name(config_dict):
     model_name = config_dict["model"] if "model" in config_dict else config_dict["generator_model"]
-    model_name = model_name.replace('_generator', '').replace('_discriminator', '')
+    model_name = model_name.replace("_generator", "").replace("_discriminator", "")
     return model_name
 
 

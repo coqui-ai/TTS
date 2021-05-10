@@ -6,10 +6,10 @@ import torch
 from torch import optim
 
 from tests import get_tests_input_path
+from TTS.tts.configs import GlowTTSConfig
 from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.models.glow_tts import GlowTTS
 from TTS.utils.audio import AudioProcessor
-from TTS.tts.configs import GlowTTSConfig
 
 # pylint: disable=unused-variable
 

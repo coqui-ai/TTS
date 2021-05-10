@@ -6,10 +6,10 @@ import torch
 from torch import nn, optim
 
 from tests import get_tests_input_path
+from TTS.tts.configs import Tacotron2Config
 from TTS.tts.layers.losses import MSELossMasked
 from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.utils.audio import AudioProcessor
-from TTS.tts.configs import Tacotron2Config
 
 # pylint: disable=unused-variable
 
@@ -148,13 +148,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(
-            num_chars=24,
-            r=c.r,
-            num_speakers=5,
-            use_gst=True,
-            gst=c.gst
-        ).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, use_gst=True, gst=c.gst).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0
@@ -210,13 +204,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(
-            num_chars=24,
-            r=c.r,
-            num_speakers=5,
-            use_gst=True,
-            gst =c.gst
-        ).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, use_gst=True, gst=c.gst).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0
@@ -271,14 +259,9 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(
-            num_chars=24,
-            r=c.r,
-            num_speakers=5,
-            speaker_embedding_dim=55,
-            use_gst=True,
-            gst=c.gst
-        ).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, speaker_embedding_dim=55, use_gst=True, gst=c.gst).to(
+            device
+        )
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0

@@ -1,5 +1,6 @@
-import os
 import datetime
+import os
+
 import torch
 
 
@@ -19,8 +20,7 @@ def save_checkpoint(model, optimizer, model_loss, out_path, current_step):
     torch.save(state, checkpoint_path)
 
 
-def save_best_model(model, optimizer, model_loss, best_loss, out_path,
-                    current_step):
+def save_best_model(model, optimizer, model_loss, best_loss, out_path, current_step):
     if model_loss < best_loss:
         new_state_dict = model.state_dict()
         state = {
@@ -33,7 +33,6 @@ def save_best_model(model, optimizer, model_loss, best_loss, out_path,
         best_loss = model_loss
         bestmodel_path = "best_model.pth.tar"
         bestmodel_path = os.path.join(out_path, bestmodel_path)
-        print("\n > BEST MODEL ({0:.5f}) : {1:}".format(
-            model_loss, bestmodel_path))
+        print("\n > BEST MODEL ({0:.5f}) : {1:}".format(model_loss, bestmodel_path))
         torch.save(state, bestmodel_path)
     return best_loss

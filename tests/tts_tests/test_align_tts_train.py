@@ -2,8 +2,7 @@ import glob
 import os
 import shutil
 
-from tests import get_tests_output_path, run_cli, get_device_id
-
+from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.tts.configs import AlignTTSConfig
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
@@ -44,6 +43,8 @@ run_cli(command_train)
 continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getmtime)
 
 # restore the model and continue training for one more epoch
-command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_align_tts.py --continue_path {continue_path} "
+command_train = (
+    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_align_tts.py --continue_path {continue_path} "
+)
 run_cli(command_train)
 shutil.rmtree(continue_path)
