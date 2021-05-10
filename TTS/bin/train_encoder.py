@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from TTS.speaker_encoder.dataset import MyDataset
-from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss
+from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxLoss, SoftmaxAngleProtoLoss
 from TTS.speaker_encoder.model import SpeakerEncoder
 from TTS.speaker_encoder.utils.generic_utils import check_config_speaker_encoder, save_best_model
 from TTS.speaker_encoder.utils.visual import plot_embeddings
@@ -45,15 +45,16 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
         dataset = MyDataset(
             ap,
             meta_data_eval if is_val else meta_data_train,
-            voice_len=1.6,
+            voice_len=getattr(c, "voice_len", 1.6),
             num_utter_per_speaker=c.num_utters_per_speaker,
             num_speakers_in_batch=c.num_speakers_in_batch,
-            skip_speakers=False,
+            skip_speakers=getattr(c, "skip_speakers", False),
             storage_size=c.storage["storage_size"],
             sample_from_storage_p=c.storage["sample_from_storage_p"],
             additive_noise=c.storage["additive_noise"],
             verbose=verbose,
         )
+
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -62,11 +63,25 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             num_workers=c.num_loader_workers,
             collate_fn=dataset.collate_fn,
         )
-    return loader
+    return loader, dataset.get_num_speakers()
 
 
-def train(model, criterion, optimizer, scheduler, ap, global_step):
-    data_loader = setup_loader(ap, is_val=False, verbose=True)
+def train(model, optimizer, scheduler, ap, global_step):
+    data_loader, num_speakers = setup_loader(ap, is_val=False, verbose=True)
+
+    if c.loss == "ge2e":
+        criterion = GE2ELoss(loss_method="softmax")
+    elif c.loss == "angleproto":
+        criterion = AngleProtoLoss()
+    elif c.loss == "softmaxproto":
+        criterion = SoftmaxAngleProtoLoss(c.model["proj_dim"], num_speakers)
+    else:
+        raise Exception("The %s  not is a loss supported" % c.loss)
+
+    if use_cuda:
+        model = model.cuda()
+        criterion.cuda()
+
     model.train()
     epoch_time = 0
     best_loss = float("inf")
@@ -77,7 +92,8 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
         start_time = time.time()
 
         # setup input data
-        inputs = data[0]
+        inputs, labels = data
+        
         loader_time = time.time() - end_time
         global_step += 1
 
@@ -89,13 +105,13 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
         # dispatch data to GPU
         if use_cuda:
             inputs = inputs.cuda(non_blocking=True)
-            # labels = labels.cuda(non_blocking=True)
+            labels = labels.cuda(non_blocking=True)
 
         # forward pass model
         outputs = model(inputs)
 
         # loss computation
-        loss = criterion(outputs.view(c.num_speakers_in_batch, outputs.shape[0] // c.num_speakers_in_batch, -1))
+        loss = criterion(outputs.view(c.num_speakers_in_batch, outputs.shape[0] // c.num_speakers_in_batch, -1), labels)
         loss.backward()
         grad_norm, _ = check_update(model, c.grad_clip)
         optimizer.step()
@@ -158,13 +174,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     )
     optimizer = RAdam(model.parameters(), lr=c.lr)
 
-    if c.loss == "ge2e":
-        criterion = GE2ELoss(loss_method="softmax")
-    elif c.loss == "angleproto":
-        criterion = AngleProtoLoss()
-    else:
-        raise Exception("The %s  not is a loss supported" % c.loss)
-
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
         try:
@@ -187,10 +196,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         args.restore_step = 0
 
-    if use_cuda:
-        model = model.cuda()
-        criterion.cuda()
-
     if c.lr_decay:
         scheduler = NoamLR(optimizer, warmup_steps=c.warmup_steps, last_epoch=args.restore_step - 1)
     else:
@@ -203,7 +208,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
     global_step = args.restore_step
-    _, global_step = train(model, criterion, optimizer, scheduler, ap, global_step)
+    _, global_step = train(model, optimizer, scheduler, ap, global_step)
 
 
 if __name__ == "__main__":

@@ -30,7 +30,6 @@ class MyDataset(Dataset):
         super().__init__()
         self.items = meta_data
         self.sample_rate = ap.sample_rate
-        self.voice_len = voice_len
         self.seq_len = int(voice_len * self.sample_rate)
         self.num_speakers_in_batch = num_speakers_in_batch
         self.num_utter_per_speaker = num_utter_per_speaker
@@ -41,10 +40,15 @@ class MyDataset(Dataset):
         self.storage = queue.Queue(maxsize=storage_size * num_speakers_in_batch)
         self.sample_from_storage_p = float(sample_from_storage_p)
         self.additive_noise = float(additive_noise)
+
+        speakers_aux = list(self.speakers)
+        speakers_aux.sort()
+        self.speakerid_to_classid = {key : i for i, key in enumerate(speakers_aux)}
+
         if self.verbose:
             print("\n > DataLoader initialization")
             print(f" | > Speakers per Batch: {num_speakers_in_batch}")
-            print(f" | > Storage Size: {self.storage.maxsize} speakers, each with {num_utter_per_speaker} utters")
+            print(f" | > Storage Size: {self.storage.maxsize} instances, each with {num_utter_per_speaker} utters")
             print(f" | > Sample_from_storage_p : {self.sample_from_storage_p}")
             print(f" | > Noise added : {self.additive_noise}")
             print(f" | > Number of instances : {len(self.items)}")
@@ -110,8 +114,16 @@ class MyDataset(Dataset):
     def __len__(self):
         return int(1e10)
 
-    def __sample_speaker(self):
+    def get_num_speakers(self):
+        return len(self.speakers)
+
+    def __sample_speaker(self, ignore_speakers=None):
         speaker = random.sample(self.speakers, 1)[0]
+        # if list of speakers_id is provide make sure that it's will be ignored
+        if ignore_speakers:
+            while self.speakerid_to_classid[speaker] in ignore_speakers:
+                speaker = random.sample(self.speakers, 1)[0]
+
         if self.num_utter_per_speaker > len(self.speaker_to_utters[speaker]):
             utters = random.choices(self.speaker_to_utters[speaker], k=self.num_utter_per_speaker)
         else:
@@ -127,7 +139,8 @@ class MyDataset(Dataset):
         for _ in range(self.num_utter_per_speaker):
             # TODO:dummy but works
             while True:
-                if len(self.speaker_to_utters[speaker]) > 0:
+                # remove speakers that have num_utter less than 2
+                if len(self.speaker_to_utters[speaker]) > 1:
                     utter = random.sample(self.speaker_to_utters[speaker], 1)[0]
                 else:
                     self.speakers.remove(speaker)
@@ -139,21 +152,47 @@ class MyDataset(Dataset):
                 self.speaker_to_utters[speaker].remove(utter)
 
             wavs.append(wav)
-            labels.append(speaker)
+            labels.append(self.speakerid_to_classid[speaker])
         return wavs, labels
 
     def __getitem__(self, idx):
         speaker, _ = self.__sample_speaker()
-        return speaker
+        speaker_id = self.speakerid_to_classid[speaker]
+        return speaker, speaker_id
 
     def collate_fn(self, batch):
+        # get the batch speaker_ids
+        batch = np.array(batch)
+        speakers_id_in_batch = set(batch[:, 1].astype(np.int32))
+
         labels = []
         feats = []
-        for speaker in batch:
+        speakers = set()
+        for speaker, speaker_id in batch:      
+
             if random.random() < self.sample_from_storage_p and self.storage.full():
                 # sample from storage (if full), ignoring the speaker
                 wavs_, labels_ = random.choice(self.storage.queue)
+
+                # force choose the current speaker or other not in batch
+                '''while labels_[0] in speakers_id_in_batch:
+                    if labels_[0] == speaker_id:
+                        break
+                    wavs_, labels_ = random.choice(self.storage.queue)'''
+
+                speakers.add(labels_[0])
+                speakers_id_in_batch.add(labels_[0])
+
             else:
+                # ensure that an speaker appears only once in the batch
+                if speaker_id in speakers:
+                    speaker, _ = self.__sample_speaker(speakers_id_in_batch)
+                    speaker_id = self.speakerid_to_classid[speaker]
+                    # append the new speaker from batch
+                    speakers_id_in_batch.add(speaker_id)
+
+                speakers.add(speaker_id) 
+
                 # don't sample from storage, but from HDD
                 wavs_, labels_ = self.__sample_speaker_utterances(speaker)
                 # if storage is full, remove an item
@@ -167,14 +206,15 @@ class MyDataset(Dataset):
                 noises_ = [np.random.normal(0, self.additive_noise, size=len(w)) for w in wavs_]
                 wavs_ = [wavs_[i] + noises_[i] for i in range(len(wavs_))]
 
-            # get a random subset of each of the wavs and convert to MFCC.
+            # get a random subset of each of the wavs and extract mel spectrograms.
             offsets_ = [random.randint(0, wav.shape[0] - self.seq_len) for wav in wavs_]
             mels_ = [
                 self.ap.melspectrogram(wavs_[i][offsets_[i] : offsets_[i] + self.seq_len]) for i in range(len(wavs_))
             ]
             feats_ = [torch.FloatTensor(mel) for mel in mels_]
 
-            labels.append(labels_)
+            labels.append(torch.LongTensor(labels_))
             feats.extend(feats_)
         feats = torch.stack(feats)
+        labels = torch.stack(labels)
         return feats.transpose(1, 2), labels
