@@ -37,6 +37,9 @@
     "steps_plot_stats": 10, // number of steps to plot embeddings.
     "num_speakers_in_batch": 64, // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
     "num_utters_per_speaker": 10,  //
+    "skip_speakers": false, // skip speakers with samples less than "num_utters_per_speaker"
+
+    "voice_len": 1.6, // number of seconds for each training instance
     "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "wd": 0.000001, // Weight decay weight.
     "checkpoint": true, // If true, it saves checkpoints per "save_step"

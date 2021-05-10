@@ -82,7 +82,7 @@ def check_config_speaker_encoder(c):
     check_argument("griffin_lim_iters", c["audio"], restricted=True, val_type=int, min_val=10, max_val=1000)
 
     # training parameters
-    check_argument("loss", c, enum_list=["ge2e", "angleproto"], restricted=True, val_type=str)
+    check_argument("loss", c, enum_list=["ge2e", "angleproto", "softmaxproto"], restricted=True, val_type=str)
     check_argument("grad_clip", c, restricted=True, val_type=float)
     check_argument("epochs", c, restricted=True, val_type=int, min_val=1)
     check_argument("lr", c, restricted=True, val_type=float, min_val=0)
