@@ -3,17 +3,17 @@ import os
 import numpy as np
 from torch.utils.data import DataLoader
 
-from tests import get_tests_input_path, get_tests_output_path, get_tests_path
+from tests import get_tests_output_path, get_tests_path
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.datasets.preprocess import load_wav_data
+from TTS.vocoder.configs import BaseGANVocoderConfig
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
 
-C = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+C = BaseGANVocoderConfig()
 
 test_data_path = os.path.join(get_tests_path(), "data/ljspeech/")
 ok_ljspeech = os.path.exists(test_data_path)
@@ -46,6 +46,8 @@ def gan_dataset_case(
 
     def check_item(feat, wav):
         """Pass a single pair of features and waveform"""
+        feat = feat.numpy()
+        wav = wav.numpy()
         expected_feat_shape = (batch_size, ap.num_mels, seq_len // hop_len + conv_pad * 2)
 
         # check shapes
@@ -61,7 +63,7 @@ def gan_dataset_case(
                 # the first 2 and the last 2 frames are skipped due to the padding
                 # differences in stft
                 max_diff = abs((feat - mel[:, : feat.shape[-1]])[:, 2:-2]).max()
-                assert max_diff <= 0, f" [!] {max_diff}"
+                assert max_diff <= 1e-6, f" [!] {max_diff}"
 
     # return random segments or return the whole audio
     if return_segments:
@@ -69,7 +71,6 @@ def gan_dataset_case(
             for item1, item2 in loader:
                 feat1, wav1 = item1
                 feat2, wav2 = item2
-
                 check_item(feat1, wav1)
                 check_item(feat2, wav2)
                 count_iter += 1

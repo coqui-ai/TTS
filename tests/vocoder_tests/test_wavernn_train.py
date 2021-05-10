@@ -2,7 +2,8 @@ import glob
 import os
 import shutil
 
-from tests import get_tests_output_path, run_cli
+from tests import get_tests_output_path, run_cli, get_device_id
+
 from TTS.vocoder.configs import WavernnConfig
 
 config_path = os.path.join(get_tests_output_path(), "test_vocoder_config.json")
@@ -16,7 +17,7 @@ config = WavernnConfig(
     run_eval=True,
     test_delay_epochs=-1,
     epochs=1,
-    seq_len=8192,
+    seq_len=256,  # for shorter test time
     eval_split_size=1,
     print_step=1,
     print_eval=True,
@@ -28,13 +29,14 @@ config.audio.trim_db = 60
 config.save_json(config_path)
 
 # train the model for one epoch
-command_train = f"CUDA_VISIBLE_DEVICES='' python TTS/bin/train_vocoder_wavernn.py --config_path {config_path} "
+command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_vocoder_wavernn.py --config_path {config_path} "
 run_cli(command_train)
 
 # Find latest folder
-continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getmtime)
+continue_path = max(glob.glob(os.path.join(output_path, "*/")),
+                    key=os.path.getmtime)
 
 # restore the model and continue training for one more epoch
-command_train = f"CUDA_VISIBLE_DEVICES='' python TTS/bin/train_vocoder_wavernn.py --continue_path {continue_path} "
+command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_vocoder_wavernn.py --continue_path {continue_path} "
 run_cli(command_train)
 shutil.rmtree(continue_path)

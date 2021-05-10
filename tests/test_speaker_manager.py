@@ -26,11 +26,11 @@ class SpeakerManagerTest(unittest.TestCase):
     def test_speaker_embedding():
         # load config
         config = load_config(encoder_config_path)
-        config["audio"]["resample"] = True
+        config.audio.resample = True
 
         # create a dummy speaker encoder
-        model = SpeakerEncoder(**config.model)
-        save_checkpoint(model, None, None, get_tests_input_path(), 0, 0)
+        model = SpeakerEncoder(**config.model_params)
+        save_checkpoint(model, None, None, get_tests_input_path(), 0)
 
         # load audio processor and speaker encoder
         ap = AudioProcessor(**config.audio)

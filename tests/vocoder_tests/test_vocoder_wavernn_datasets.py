@@ -14,7 +14,7 @@ file_path = os.path.dirname(os.path.realpath(__file__))
 OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
 
-C = load_config(os.path.join(get_tests_input_path(), "test_vocoder_wavernn_config.json"))
+C = WavernnConfig()
 
 test_data_path = os.path.join(get_tests_path(), "data/ljspeech/")
 test_mel_feat_path = os.path.join(test_data_path, "mel")

@@ -14,8 +14,7 @@ os.makedirs(OUT_PATH, exist_ok=True)
 
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
-C = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
-ap = AudioProcessor(**C.audio)
+ap = AudioProcessor(**BaseAudioConfig().to_dict())
 
 
 def test_torch_stft():

@@ -17,7 +17,7 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-c = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+c = GlowTTSConfig()
 
 ap = AudioProcessor(**c.audio)
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
