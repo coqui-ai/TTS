@@ -33,6 +33,7 @@ class TacotronAbstract(ABC, nn.Module):
         encoder_in_features=512,
         decoder_in_features=512,
         speaker_embedding_dim=None,
+        use_gst=False,
         gst=None,
     ):
         """Abstract Tacotron class"""
@@ -41,6 +42,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.r = r
         self.decoder_output_dim = decoder_output_dim
         self.postnet_output_dim = postnet_output_dim
+        self.use_gst = use_gst
         self.gst = gst
         self.num_speakers = num_speakers
         self.bidirectional_decoder = bidirectional_decoder
@@ -77,7 +79,7 @@ class TacotronAbstract(ABC, nn.Module):
             self.embeddings_per_sample = True
 
         # global style token
-        if self.gst:
+        if self.gst and use_gst:
             self.decoder_in_features += self.gst.gst_embedding_dim  # add gst embedding dim
             self.gst_layer = None
 
@@ -186,18 +188,18 @@ class TacotronAbstract(ABC, nn.Module):
         """Compute global style token"""
         device = inputs.device
         if isinstance(style_input, dict):
-            query = torch.zeros(1, 1, self.gst_embedding_dim // 2).to(device)
+            query = torch.zeros(1, 1, self.gst.gst_embedding_dim // 2).to(device)
             if speaker_embedding is not None:
                 query = torch.cat([query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
 
             _GST = torch.tanh(self.gst_layer.style_token_layer.style_tokens)
-            gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
+            gst_outputs = torch.zeros(1, 1, self.gst.gst_embedding_dim).to(device)
             for k_token, v_amplifier in style_input.items():
                 key = _GST[int(k_token)].unsqueeze(0).expand(1, -1, -1)
                 gst_outputs_att = self.gst_layer.style_token_layer.attention(query, key)
                 gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
         elif style_input is None:
-            gst_outputs = torch.zeros(1, 1, self.gst_embedding_dim).to(device)
+            gst_outputs = torch.zeros(1, 1, self.gst.gst_embedding_dim).to(device)
         else:
             gst_outputs = self.gst_layer(style_input, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)

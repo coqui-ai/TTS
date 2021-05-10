@@ -11,6 +11,7 @@ class TacotronConfig(BaseTTSConfig):
     """Defines parameters for Tacotron based models."""
 
     model: str = "tacotron"
+    use_gst: bool = False
     gst: GSTConfig = None
     gst_style_input: str = None
     # model specific params
@@ -61,10 +62,3 @@ class TacotronConfig(BaseTTSConfig):
     decoder_ssim_alpha: float = 0.25
     postnet_ssim_alpha: float = 0.25
     ga_alpha: float = 5.0
-
-
-@dataclass
-class Tacotron2Config(TacotronConfig):
-    """Defines parameters for Tacotron2 based models."""
-
-    model: str = "tacotron2"
