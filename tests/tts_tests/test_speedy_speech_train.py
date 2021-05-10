@@ -2,7 +2,8 @@ import glob
 import os
 import shutil
 
-from tests import get_tests_output_path, run_cli
+from tests import get_tests_output_path, run_cli, get_device_id
+
 from TTS.tts.configs import SpeedySpeechConfig
 
 config_path = os.path.join(get_tests_output_path(), "test_speedy_speech_config.json")
@@ -30,7 +31,7 @@ config.save_json(config_path)
 
 # train the model for one epoch
 command_train = (
-    f"CUDA_VISIBLE_DEVICES='' python TTS/bin/train_speedy_speech.py --config_path {config_path} "
+    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_speedy_speech.py --config_path {config_path} "
     f"--coqpit.output_path {output_path} "
     "--coqpit.datasets.0.name ljspeech "
     "--coqpit.datasets.0.meta_file_train metadata.csv "
@@ -44,6 +45,6 @@ run_cli(command_train)
 continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getmtime)
 
 # restore the model and continue training for one more epoch
-command_train = f"CUDA_VISIBLE_DEVICES='' python TTS/bin/train_speedy_speech.py --continue_path {continue_path} "
+command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_speedy_speech.py --continue_path {continue_path} "
 run_cli(command_train)
 shutil.rmtree(continue_path)

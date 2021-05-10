@@ -18,7 +18,7 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-c = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+c = TacotronConfig()
 
 ap = AudioProcessor(**c.audio)
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
@@ -175,10 +175,8 @@ class TacotronGSTTrainTest(unittest.TestCase):
         model = Tacotron(
             num_chars=32,
             num_speakers=5,
-            gst=True,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
+            use_gst=True,
+            gst=c.gst,
             postnet_output_dim=c.audio["fft_size"],
             decoder_output_dim=c.audio["num_mels"],
             r=c.r,
@@ -240,10 +238,8 @@ class TacotronGSTTrainTest(unittest.TestCase):
         model = Tacotron(
             num_chars=32,
             num_speakers=5,
-            gst=True,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
+            use_gst=True,
+            gst=c.gst,
             postnet_output_dim=c.audio["fft_size"],
             decoder_output_dim=c.audio["num_mels"],
             r=c.r,
@@ -306,11 +302,8 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
             num_speakers=5,
             postnet_output_dim=c.audio["fft_size"],
             decoder_output_dim=c.audio["num_mels"],
-            gst=True,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
-            gst_use_speaker_embedding=c.gst["gst_use_speaker_embedding"],
+            use_gst=True,
+            gst=c.gst,
             r=c.r,
             memory_size=c.memory_size,
             speaker_embedding_dim=55,
