@@ -9,6 +9,6 @@ def to_camel(text):
 
 
 def setup_model(c):
-    model = SpeakerEncoder(c.model["input_dim"], c.model["proj_dim"],
-                           c.model["lstm_dim"], c.model["num_lstm_layers"])
+    model = SpeakerEncoder(c.model_params["input_dim"], c.model_params["proj_dim"],
+                           c.model_params["lstm_dim"], c.model_params["num_lstm_layers"])
     return model
