@@ -1,7 +1,6 @@
 import os
 
-from tests import get_tests_output_path, run_cli, get_device_id
-
+from tests import get_device_id, get_tests_output_path, run_cli
 
 
 def test_synthesize():

@@ -7,10 +7,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from tests import get_tests_input_path, get_tests_output_path
+from TTS.tts.configs import BaseTTSConfig
 from TTS.tts.datasets import TTSDataset
 from TTS.tts.datasets.preprocess import ljspeech
 from TTS.utils.audio import AudioProcessor
-from TTS.tts.configs import BaseTTSConfig
 
 # pylint: disable=unused-variable
 
@@ -18,7 +18,7 @@ OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
 
 # create a dummy config for testing data loaders.
-c = BaseTTSConfig(text_cleaner='english_cleaners', num_loader_workers=0, batch_size=2)
+c = BaseTTSConfig(text_cleaner="english_cleaners", num_loader_workers=0, batch_size=2)
 c.r = 5
 c.data_path = "tests/data/ljspeech/"
 ok_ljspeech = os.path.exists(c.data_path)

@@ -7,9 +7,10 @@ import re
 import shutil
 import subprocess
 import sys
-import torch
 from pathlib import Path
 from typing import List
+
+import torch
 
 
 def get_cuda():

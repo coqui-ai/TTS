@@ -6,11 +6,10 @@ import torch
 from torch import nn, optim
 
 from tests import get_tests_input_path
+from TTS.tts.configs import TacotronConfig
 from TTS.tts.layers.losses import L1LossMasked
 from TTS.tts.models.tacotron import Tacotron
 from TTS.utils.audio import AudioProcessor
-from TTS.tts.configs import TacotronConfig
-
 
 # pylint: disable=unused-variable
 

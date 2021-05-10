@@ -41,7 +41,7 @@ class CharactersConfig(Coqpit):
     characters: str = None
     punctuations: str = None
     phonemes: str = None
-    unique: bool = True     # for backwards compatibility of models trained with char sets with duplicates
+    unique: bool = True  # for backwards compatibility of models trained with char sets with duplicates
 
     def check_values(
         self,

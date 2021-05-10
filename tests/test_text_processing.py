@@ -4,9 +4,8 @@ import os
 # pylint: disable=wildcard-import
 # pylint: disable=unused-import
 from tests import get_tests_input_path, get_tests_path
-from TTS.tts.utils.text import *
 from TTS.tts.configs import TacotronConfig
-
+from TTS.tts.utils.text import *
 
 conf = TacotronConfig()
 

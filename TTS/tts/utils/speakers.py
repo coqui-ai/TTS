@@ -6,9 +6,9 @@ from typing import Union
 import numpy as np
 import torch
 
+from TTS.config import load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.utils.audio import AudioProcessor
-from TTS.config import load_config
 
 
 def make_speakers_json_path(out_path):
