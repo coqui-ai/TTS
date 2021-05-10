@@ -41,6 +41,7 @@ class Tacotron(TacotronAbstract):
         encoder_in_features (int, optional): input channels for the encoder. Defaults to 512.
         decoder_in_features (int, optional): input channels for the decoder. Defaults to 512.
         speaker_embedding_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
+        use_gst (bool, optional): enable/disable Global style token module.
         gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
         memory_size (int, optional): size of the history queue fed to the prenet. Model feeds the last ```memory_size```
             output frames to the prenet.
@@ -71,6 +72,7 @@ class Tacotron(TacotronAbstract):
         encoder_in_features=256,
         decoder_in_features=256,
         speaker_embedding_dim=None,
+        use_gst=False,
         gst=None,
         memory_size=5,
     ):
@@ -98,6 +100,7 @@ class Tacotron(TacotronAbstract):
             encoder_in_features,
             decoder_in_features,
             speaker_embedding_dim,
+            use_gst,
             gst,
         )
 
@@ -142,7 +145,7 @@ class Tacotron(TacotronAbstract):
         self.decoder.prenet.dropout_at_inference = prenet_dropout_at_inference
 
         # global style token layers
-        if self.gst:
+        if self.gst and self.use_gst:
             self.gst_layer = GST(
                 num_mel=decoder_output_dim,
                 speaker_embedding_dim=speaker_embedding_dim,
@@ -191,7 +194,7 @@ class Tacotron(TacotronAbstract):
         # sequence masking
         encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(encoder_outputs)
         # global style token
-        if self.gst:
+        if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, speaker_embeddings)
         # speaker embedding
@@ -247,7 +250,7 @@ class Tacotron(TacotronAbstract):
     def inference(self, characters, speaker_ids=None, style_mel=None, speaker_embeddings=None):
         inputs = self.embedding(characters)
         encoder_outputs = self.encoder(inputs)
-        if self.gst:
+        if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, style_mel, speaker_embeddings)
         if self.num_speakers > 1:

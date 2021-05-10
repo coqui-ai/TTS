@@ -32,7 +32,7 @@ class GSTConfig(Coqpit):
 
 
 @dataclass
-class CharactersConfig:
+class CharactersConfig(Coqpit):
     """Defines character or phoneme set used by the model"""
 
     pad: str = None
@@ -41,6 +41,7 @@ class CharactersConfig:
     characters: str = None
     punctuations: str = None
     phonemes: str = None
+    unique: bool = True     # for backwards compatibility of models trained with char sets with duplicates
 
     def check_values(
         self,
