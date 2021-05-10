@@ -4,7 +4,7 @@ import shutil
 import numpy as np
 from torch.utils.data import DataLoader
 
-from tests import get_tests_input_path, get_tests_output_path, get_tests_path
+from tests import get_tests_output_path, get_tests_path
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.configs import WavernnConfig
 from TTS.vocoder.datasets.preprocess import load_wav_feat_data, preprocess_wav_files

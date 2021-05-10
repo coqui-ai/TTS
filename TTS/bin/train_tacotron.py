@@ -641,7 +641,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         except (KeyError, RuntimeError):
             print(" > Partial model initialization...")
             model_dict = model.state_dict()
-            model_dict = set_init_dict(model_dict, checkpoint["model"], c)
+            model_dict = set_init_dict(model_dict, checkpoint["model"], config)
             model.load_state_dict(model_dict)
             del model_dict
 
@@ -687,7 +687,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         c_logger.print_epoch_start(epoch, config.epochs)
         # set gradual training
         if config.gradual_training is not None:
-            r, config.batch_size = gradual_training_scheduler(global_step, c)
+            r, config.batch_size = gradual_training_scheduler(global_step, config)
             config.r = r
             model.decoder.set_r(r)
             if config.bidirectional_decoder:

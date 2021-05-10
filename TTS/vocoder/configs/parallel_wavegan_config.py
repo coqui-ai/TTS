@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 
 from .shared_configs import BaseGANVocoderConfig
 
