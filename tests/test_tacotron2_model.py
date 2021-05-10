@@ -9,7 +9,7 @@ from tests import get_tests_input_path
 from TTS.tts.layers.losses import MSELossMasked
 from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from TTS.tts.configs import Tacotron2Config
 
 # pylint: disable=unused-variable
 

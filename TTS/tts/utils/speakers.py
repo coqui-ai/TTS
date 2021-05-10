@@ -8,7 +8,7 @@ import torch
 
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from TTS.config import load_config
 
 
 def make_speakers_json_path(out_path):

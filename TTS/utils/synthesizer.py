@@ -13,7 +13,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis, trim_silence
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from TTS.config import load_config
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input, setup_generator
 
 

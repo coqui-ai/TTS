@@ -6,10 +6,11 @@ import torch
 
 from tests import get_tests_input_path
 from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.utils.generic_utils import save_checkpoint
+from TTS.speaker_encoder.utils.io import save_checkpoint
+from TTS.speaker_encoder.speaker_encoder_config import SpeakerEncoderConfig
+from TTS.config import load_config
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 
 encoder_config_path = os.path.join(get_tests_input_path(), "test_speaker_encoder_config.json")
 encoder_model_path = os.path.join(get_tests_input_path(), "checkpoint_0.pth.tar")

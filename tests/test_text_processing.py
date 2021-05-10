@@ -5,9 +5,10 @@ import os
 # pylint: disable=unused-import
 from tests import get_tests_input_path, get_tests_path
 from TTS.tts.utils.text import *
-from TTS.utils.io import load_config
+from TTS.tts.configs import TacotronConfig
 
-conf = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+
+conf = TacotronConfig()
 
 
 def test_phoneme_to_sequence():
