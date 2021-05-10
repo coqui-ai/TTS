@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 from distutils.version import LooseVersion
+from TTS._version import __version__
 
 import numpy
 import setuptools.command.build_py
@@ -18,7 +19,7 @@ if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) 
     )
 
 
-version = '0.0.13.2'
+version = __version__
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-many-ancestors
