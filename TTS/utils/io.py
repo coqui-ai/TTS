@@ -27,37 +27,6 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def read_json_with_comments(json_path):
-    """DEPRECATED"""
-    # fallback to json
-    with open(json_path, "r", encoding="utf-8") as f:
-        input_str = f.read()
-    # handle comments
-    input_str = re.sub(r"\\\n", "", input_str)
-    input_str = re.sub(r"//.*\n", "\n", input_str)
-    data = json.loads(input_str)
-    return data
-
-
-def load_config(config_path: str) -> None:
-    config_dict = {}
-    ext = os.path.splitext(config_path)[1]
-    if ext in (".yml", ".yaml"):
-        with open(config_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-    elif ext == ".json":
-        with open(config_path, "r", encoding="utf-8") as f:
-            input_str = f.read()
-        data = json.loads(input_str)
-    else:
-        raise TypeError(f" [!] Unknown config file type {ext}")
-    config_dict.update(data)
-    config_class = find_module("TTS.tts.configs", config_dict["model"].lower() + "_config")
-    config = config_class()
-    config.from_dict(config_dict)
-    return config
-
-
 def copy_model_files(config, out_path, new_fields):
     """Copy config.json and other model files to training folder and add
     new fields.
