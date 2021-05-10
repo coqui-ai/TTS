@@ -5,10 +5,10 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from tests import get_tests_input_path
 from TTS.tts.tf.models.tacotron2 import Tacotron2
 from TTS.tts.tf.utils.tflite import convert_tacotron2_to_tflite, load_tflite_model
-from TTS.utils.io import load_config
+from TTS.tts.configs import Tacotron2Config
+
 
 tf.get_logger().setLevel("INFO")
 

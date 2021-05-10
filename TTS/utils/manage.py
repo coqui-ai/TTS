@@ -9,7 +9,7 @@ import gdown
 import requests
 
 from TTS.utils.generic_utils import get_user_data_dir
-from TTS.utils.io import load_config
+from TTS.config import load_config
 
 
 class ModelManager(object):
