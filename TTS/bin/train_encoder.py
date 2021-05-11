@@ -51,8 +51,8 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             skip_speakers=getattr(c, "skip_speakers", False),
             storage_size=c.storage["storage_size"],
             sample_from_storage_p=c.storage["sample_from_storage_p"],
-            additive_noise=c.storage["additive_noise"],
             verbose=verbose,
+            augmentation_config=getattr(c, "audio_augmentation", None) 
         )
 
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
