@@ -8,7 +8,8 @@ import glob
 import random
 
 from scipy import signal
-from TTS.speaker_encoder.model import SpeakerEncoder
+from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
+from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
 from TTS.utils.generic_utils import check_argument
     
 class AugmentWAV(object):
@@ -146,11 +147,14 @@ def to_camel(text):
 
 
 def setup_model(c):
-    model = SpeakerEncoder(c.model["input_dim"], c.model["proj_dim"], c.model["lstm_dim"], c.model["num_lstm_layers"])
+    if c.model_name.lower() == 'lstm':
+        model = LSTMSpeakerEncoder(c.model["input_dim"], c.model["proj_dim"], c.model["lstm_dim"], c.model["num_lstm_layers"])
+    elif c.model_name.lower() == 'resnet':
+        model = ResNetSpeakerEncoder(input_dim=c.model["input_dim"], proj_dim=c.model["proj_dim"])
     return model
 
 
-def save_checkpoint(model, optimizer, model_loss, out_path, current_step, epoch):
+def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_step, epoch):
     checkpoint_path = "checkpoint_{}.pth.tar".format(current_step)
     checkpoint_path = os.path.join(out_path, checkpoint_path)
     print(" | | > Checkpoint saving : {}".format(checkpoint_path))
@@ -159,6 +163,7 @@ def save_checkpoint(model, optimizer, model_loss, out_path, current_step, epoch)
     state = {
         "model": new_state_dict,
         "optimizer": optimizer.state_dict() if optimizer is not None else None,
+        "criterion": criterion.state_dict(),
         "step": current_step,
         "epoch": epoch,
         "loss": model_loss,
@@ -167,12 +172,13 @@ def save_checkpoint(model, optimizer, model_loss, out_path, current_step, epoch)
     torch.save(state, checkpoint_path)
 
 
-def save_best_model(model, optimizer, model_loss, best_loss, out_path, current_step):
+def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path, current_step):
     if model_loss < best_loss:
         new_state_dict = model.state_dict()
         state = {
             "model": new_state_dict,
             "optimizer": optimizer.state_dict(),
+            "criterion": criterion.state_dict(),
             "step": current_step,
             "loss": model_loss,
             "date": datetime.date.today().strftime("%B %d, %Y"),
@@ -234,11 +240,13 @@ def check_config_speaker_encoder(c):
 
     # model parameters
     check_argument("model", c, restricted=True, val_type=dict)
+    check_argument("model_name", c, restricted=True, val_type=str)
     check_argument("input_dim", c["model"], restricted=True, val_type=int)
-    check_argument("proj_dim", c["model"], restricted=True, val_type=int)
-    check_argument("lstm_dim", c["model"], restricted=True, val_type=int)
-    check_argument("num_lstm_layers", c["model"], restricted=True, val_type=int)
-    check_argument("use_lstm_with_projection", c["model"], restricted=True, val_type=bool)
+    if c.model_name.lower() == 'lstm':
+        check_argument("proj_dim", c["model"], restricted=True, val_type=int)
+        check_argument("lstm_dim", c["model"], restricted=True, val_type=int)
+        check_argument("num_lstm_layers", c["model"], restricted=True, val_type=int)
+        check_argument("use_lstm_with_projection", c["model"], restricted=True, val_type=bool)
 
     # in-memory storage parameters
     check_argument("storage", c, restricted=True, val_type=dict)

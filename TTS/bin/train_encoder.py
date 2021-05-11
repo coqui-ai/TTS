@@ -12,8 +12,7 @@ from torch.utils.data import DataLoader
 
 from TTS.speaker_encoder.dataset import MyDataset
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxLoss, SoftmaxAngleProtoLoss
-from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.utils.generic_utils import check_config_speaker_encoder, save_best_model
+from TTS.speaker_encoder.utils.generic_utils import check_config_speaker_encoder, save_best_model, save_checkpoint, setup_model
 from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.utils.audio import AudioProcessor
@@ -66,21 +65,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
     return loader, dataset.get_num_speakers()
 
 
-def train(model, optimizer, scheduler, ap, global_step):
-    data_loader, num_speakers = setup_loader(ap, is_val=False, verbose=True)
-
-    if c.loss == "ge2e":
-        criterion = GE2ELoss(loss_method="softmax")
-    elif c.loss == "angleproto":
-        criterion = AngleProtoLoss()
-    elif c.loss == "softmaxproto":
-        criterion = SoftmaxAngleProtoLoss(c.model["proj_dim"], num_speakers)
-    else:
-        raise Exception("The %s  not is a loss supported" % c.loss)
-
-    if use_cuda:
-        model = model.cuda()
-        criterion.cuda()
+def train(model, optimizer, scheduler, criterion, data_loader, ap, global_step):
 
     model.train()
     epoch_time = 0
@@ -154,7 +139,7 @@ def train(model, optimizer, scheduler, ap, global_step):
             )
 
         # save best model
-        best_loss = save_best_model(model, optimizer, avg_loss, best_loss, OUT_PATH, global_step)
+        best_loss = save_best_model(model, optimizer, criterion, avg_loss, best_loss, OUT_PATH, global_step)
 
         end_time = time.time()
     return avg_loss, global_step
@@ -166,13 +151,23 @@ def main(args):  # pylint: disable=redefined-outer-name
     global meta_data_eval
 
     ap = AudioProcessor(**c.audio)
-    model = SpeakerEncoder(
-        input_dim=c.model["input_dim"],
-        proj_dim=c.model["proj_dim"],
-        lstm_dim=c.model["lstm_dim"],
-        num_lstm_layers=c.model["num_lstm_layers"],
-    )
+    model = setup_model(c)
     optimizer = RAdam(model.parameters(), lr=c.lr)
+
+    # pylint: disable=redefined-outer-name
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
+
+    data_loader, num_speakers = setup_loader(ap, is_val=False, verbose=True)
+
+    if c.loss == "ge2e":
+        criterion = GE2ELoss(loss_method="softmax")
+    elif c.loss == "angleproto":
+        criterion = AngleProtoLoss()
+    elif c.loss == "softmaxproto":
+        criterion = SoftmaxAngleProtoLoss(c.model["proj_dim"], num_speakers)
+    else:
+        raise Exception("The %s  not is a loss supported" % c.loss)
+
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
@@ -183,14 +178,19 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.reinit_layers:
                 raise RuntimeError
             model.load_state_dict(checkpoint["model"])
-        except KeyError:
+
+            if 'criterion' in checkpoint:
+                criterion.load_state_dict(checkpoint["criterion"])
+
+        except (KeyError, RuntimeError):
             print(" > Partial model initialization.")
             model_dict = model.state_dict()
-            model_dict = set_init_dict(model_dict, checkpoint, c)
+            model_dict = set_init_dict(model_dict, checkpoint['model'], c)
             model.load_state_dict(model_dict)
             del model_dict
         for group in optimizer.param_groups:
             group["lr"] = c.lr
+
         print(" > Model restored from step %d" % checkpoint["step"], flush=True)
         args.restore_step = checkpoint["step"]
     else:
@@ -204,11 +204,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     num_params = count_parameters(model)
     print("\n > Model has {} parameters".format(num_params), flush=True)
 
-    # pylint: disable=redefined-outer-name
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
+    if use_cuda:
+        model = model.cuda()
+        criterion.cuda()
 
     global_step = args.restore_step
-    _, global_step = train(model, optimizer, scheduler, ap, global_step)
+    # save_checkpoint(model, optimizer, criterion, 0.9, '../', global_step, 1)
+    _, global_step = train(model, optimizer, scheduler, criterion, data_loader, ap, global_step)
 
 
 if __name__ == "__main__":
