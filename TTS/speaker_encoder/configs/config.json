@@ -1,5 +1,6 @@
 
 {
+    "model_name": "lstm",
     "run_name": "mueller91",
     "run_description": "train speaker encoder with voxceleb1, voxceleb2 and libriSpeech ",
     "audio":{
