@@ -41,7 +41,7 @@ def main():
     if args.data_path:
         dataset_items = glob.glob(os.path.join(args.data_path, "**", "*.wav"), recursive=True)
     else:
-        dataset_items = load_meta_data(CONFIG.dataset_config)[0]  # take only train data
+        dataset_items = load_meta_data(CONFIG.datasets)[0]  # take only train data
     print(f" > There are {len(dataset_items)} files.")
 
     mel_sum = 0
