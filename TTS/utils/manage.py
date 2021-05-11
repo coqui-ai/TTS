@@ -125,17 +125,15 @@ class ModelManager(object):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
-                config["audio"]["stats_path"] = output_stats_path
-                with open(config_path, "w") as jf:
-                    json.dump(config, jf)
+                config.audio.stats_path = output_stats_path
+                config.save_json(config_path)
             # update the speakers.json file path in the model config.json to the current path
             if os.path.exists(output_speakers_path):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
-                config["external_speaker_embedding_file"] = output_speakers_path
-                with open(config_path, "w") as jf:
-                    json.dump(config, jf)
+                config.external_speaker_embedding_file = output_speakers_path
+                config.save_json(config_path)
         return output_model_path, output_config_path, model_item
 
     def _download_gdrive_file(self, gdrive_idx, output):
