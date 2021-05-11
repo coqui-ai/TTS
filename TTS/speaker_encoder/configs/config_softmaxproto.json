@@ -25,7 +25,7 @@
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
         "spec_gain": 20.0, 
-        "do_trim_silence": false,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": true,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
         "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
@@ -41,7 +41,7 @@
     "steps_plot_stats": 10, // number of steps to plot embeddings.
 
     // Speakers config
-    "num_speakers_in_batch": 108, // Batch size for training.
+    "num_speakers_in_batch": 2, // Batch size for training.
     "num_utters_per_speaker": 2,  //
     "skip_speakers": true, // skip speakers with samples less than "num_utters_per_speaker"
 
@@ -54,6 +54,41 @@
     "print_step": 20, // Number of steps to log traning on console.
     "output_path": "../../../checkpoints/speaker_encoder/", // DATASET-RELATED: output path for all training outputs.
 
+    "audio_augmentation": {
+        "p": 0.75, // propability of apply this method, 0 is disable rir and additive noise augmentation
+        "rir":{
+            "rir_path": "/workspace/store/ecasanova/ComParE/RIRS_NOISES/simulated_rirs/",
+            "conv_mode": "full"
+        },
+        "additive":{
+            "sounds_path": "/workspace/store/ecasanova/ComParE/musan/",
+            // list of each of the directories in your data augmentation, if a directory is in "sounds_path" but is not listed here it will be ignored
+            "speech":{
+                "min_snr_in_db": 13,
+                "max_snr_in_db": 20,
+                "min_num_noises": 3,
+                "max_num_noises": 7
+                },
+            "noise":{
+                "min_snr_in_db": 0,
+                "max_snr_in_db": 15,
+                "min_num_noises": 1,
+                "max_num_noises": 1
+                },
+            "music":{
+                "min_snr_in_db": 5,
+                "max_snr_in_db": 15,
+                "min_num_noises": 1,
+                "max_num_noises": 1
+                }
+        },
+        //add a gaussian noise to the data in order to increase robustness
+        "gaussian":{ // as the insertion of Gaussian noise is quick to be calculated, we added it after loading the wav file, this way, even audios that were reused with the cache can receive this noise
+            "p": 1, // propability of apply this method, 0 is disable
+            "min_amplitude": 0.0,
+            "max_amplitude": 1e-5     
+        }   
+    },
     "model": {
         "input_dim": 80,
         "proj_dim": 512,
@@ -63,11 +98,17 @@
     },
     "storage": {
         "sample_from_storage_p": 0.66,  // the probability with which we'll sample from the DataSet in-memory storage
-        "storage_size": 15,   // the size of the in-memory storage with respect to a single batch
-        "additive_noise": 1e-5   // add very small gaussian noise to the data in order to increase robustness
+        "storage_size": 1   // the size of the in-memory storage with respect to a single batch
     },
     "datasets": 
         [
+
+            {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ab/",
+                "meta_file_train": "train.tsv",
+                "meta_file_val": "test.tsv"
+            },
             {
                 "name": "vctk",
                 "path": "/workspace/store/ecasanova/datasets/VCTK-Corpus-removed-silence/",

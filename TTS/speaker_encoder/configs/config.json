@@ -53,6 +53,16 @@
         "num_lstm_layers": 3,
         "use_lstm_with_projection": true
     },
+
+    "audio_augmentation": {
+        "p": 0,
+        //add a gaussian noise to the data in order to increase robustness
+        "gaussian":{ // as the insertion of Gaussian noise is quick to be calculated, we added it after loading the wav file, this way, even audios that were reused with the cache can receive this noise
+            "p": 1, // propability of apply this method, 0 is disable
+            "min_amplitude": 0.0,
+            "max_amplitude": 1e-5     
+        }
+    },
     "storage": {
         "sample_from_storage_p": 0.66,  // the probability with which we'll sample from the DataSet in-memory storage
         "storage_size": 15,   // the size of the in-memory storage with respect to a single batch

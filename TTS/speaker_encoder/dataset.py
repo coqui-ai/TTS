@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-
+from TTS.speaker_encoder.utils.generic_utils import AugmentWAV
 
 class MyDataset(Dataset):
     def __init__(
@@ -15,10 +15,11 @@ class MyDataset(Dataset):
         num_speakers_in_batch=64,
         storage_size=1,
         sample_from_storage_p=0.5,
-        additive_noise=0,
+        additive_noise= 1e-5,
         num_utter_per_speaker=10,
         skip_speakers=False,
         verbose=False,
+        augmentation_config=None
     ):
         """
         Args:
@@ -39,18 +40,27 @@ class MyDataset(Dataset):
         self.__parse_items()
         self.storage = queue.Queue(maxsize=storage_size * num_speakers_in_batch)
         self.sample_from_storage_p = float(sample_from_storage_p)
-        self.additive_noise = float(additive_noise)
 
         speakers_aux = list(self.speakers)
         speakers_aux.sort()
         self.speakerid_to_classid = {key : i for i, key in enumerate(speakers_aux)}
+
+        # Augmentation
+        self.augmentator = None
+        self.gaussian_augmentation_config = None
+        if augmentation_config:
+            self.data_augmentation_p = augmentation_config['p']
+            if self.data_augmentation_p and ('additive' in augmentation_config or 'rir' in augmentation_config):
+                self.augmentator = AugmentWAV(ap, augmentation_config)
+
+            if 'gaussian' in augmentation_config.keys():
+                self.gaussian_augmentation_config = augmentation_config['gaussian']
 
         if self.verbose:
             print("\n > DataLoader initialization")
             print(f" | > Speakers per Batch: {num_speakers_in_batch}")
             print(f" | > Storage Size: {self.storage.maxsize} instances, each with {num_utter_per_speaker} utters")
             print(f" | > Sample_from_storage_p : {self.sample_from_storage_p}")
-            print(f" | > Noise added : {self.additive_noise}")
             print(f" | > Number of instances : {len(self.items)}")
             print(f" | > Sequence length: {self.seq_len}")
             print(f" | > Num speakers: {len(self.speakers)}")
@@ -151,6 +161,10 @@ class MyDataset(Dataset):
                     break
                 self.speaker_to_utters[speaker].remove(utter)
 
+            if self.augmentator is not None and self.data_augmentation_p:
+                if random.random() < self.data_augmentation_p:
+                    wav = self.augmentator.apply_one(wav)
+
             wavs.append(wav)
             labels.append(self.speakerid_to_classid[speaker])
         return wavs, labels
@@ -201,20 +215,21 @@ class MyDataset(Dataset):
                 # put the newly loaded item into storage
                 self.storage.put_nowait((wavs_, labels_))
 
-            # add random gaussian noise
-            if self.additive_noise > 0:
-                noises_ = [np.random.normal(0, self.additive_noise, size=len(w)) for w in wavs_]
-                wavs_ = [wavs_[i] + noises_[i] for i in range(len(wavs_))]
-
             # get a random subset of each of the wavs and extract mel spectrograms.
-            offsets_ = [random.randint(0, wav.shape[0] - self.seq_len) for wav in wavs_]
-            mels_ = [
-                self.ap.melspectrogram(wavs_[i][offsets_[i] : offsets_[i] + self.seq_len]) for i in range(len(wavs_))
-            ]
-            feats_ = [torch.FloatTensor(mel) for mel in mels_]
+            feats_ = []
+            for wav in wavs_:
+                offset = random.randint(0, wav.shape[0] - self.seq_len)
+                wav = wav[offset : offset + self.seq_len]
+                # add random gaussian noise
+                if self.gaussian_augmentation_config and self.gaussian_augmentation_config['p']:
+                    if random.random() < self.gaussian_augmentation_config['p']:
+                        wav += np.random.normal(self.gaussian_augmentation_config['min_amplitude'], self.gaussian_augmentation_config['max_amplitude'], size=len(wav))
+                mel = self.ap.melspectrogram(wav)
+                feats_.append(torch.FloatTensor(mel))
 
             labels.append(torch.LongTensor(labels_))
             feats.extend(feats_)
         feats = torch.stack(feats)
         labels = torch.stack(labels)
+
         return feats.transpose(1, 2), labels
