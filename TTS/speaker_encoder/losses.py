@@ -23,7 +23,7 @@ class GE2ELoss(nn.Module):
         self.b = nn.Parameter(torch.tensor(init_b))
         self.loss_method = loss_method
 
-        print(" > Initialised Generalized End-to-End loss")
+        print(" > Initialized Generalized End-to-End loss")
 
         assert self.loss_method in ["softmax", "contrast"]
 
@@ -136,7 +136,7 @@ class AngleProtoLoss(nn.Module):
         self.b = nn.Parameter(torch.tensor(init_b))
         self.criterion = torch.nn.CrossEntropyLoss()
 
-        print(" > Initialised Angular Prototypical loss")
+        print(" > Initialized Angular Prototypical loss")
 
     def forward(self, x):
         """
