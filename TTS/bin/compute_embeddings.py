@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from TTS.speaker_encoder.model import SpeakerEncoder
+from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.utils.speakers import save_speaker_mapping
 from TTS.utils.audio import AudioProcessor
@@ -77,7 +77,7 @@ for output_file in output_files:
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
 # define Encoder model
-model = SpeakerEncoder(**c.model)
+model = setup_model(c)
 model.load_state_dict(torch.load(args.model_path)["model"])
 model.eval()
 if args.use_cuda:
