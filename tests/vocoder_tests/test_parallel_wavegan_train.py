@@ -9,14 +9,14 @@ config_path = os.path.join(get_tests_output_path(), "test_vocoder_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 config = ParallelWaveganConfig(
-    batch_size=8,
-    eval_batch_size=8,
+    batch_size=4,
+    eval_batch_size=4,
     num_loader_workers=0,
     num_val_loader_workers=0,
     run_eval=True,
     test_delay_epochs=-1,
     epochs=1,
-    seq_len=8192,
+    seq_len=2048,
     eval_split_size=1,
     print_step=1,
     print_eval=True,
