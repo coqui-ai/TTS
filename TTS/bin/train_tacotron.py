@@ -672,6 +672,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         )
         style_wav = c.get("gst_style_input")
         reference_wav = c.get("capacitron_reference_wav")
+        reference_text = c.get("capacitron_reference_text")
         if style_wav is None and c.use_gst:
             # inicialize GST with zero dict.
             style_wav = {}
@@ -679,8 +680,11 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             for i in range(c.gst['gst_style_tokens']):
                 style_wav[str(i)] = 0
         if reference_wav is None and c.use_capacitron:
-            reference_wav = None
+            reference_text = None
             print("No reference wav has been defined, sampling from the prior of Capacitron.")
+        else:
+            # TODO this is not working
+            print("Infering prosody transfer from reference file {}.".format(reference_wav))
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(
@@ -693,6 +697,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     speaker_embedding=speaker_embedding,
                     style_wav=style_wav,
                     reference_wav=reference_wav,
+                    reference_text=reference_text,
                     truncated=False,
                     enable_eos_bos_chars=c.enable_eos_bos_chars,  # pylint: disable=unused-argument
                     use_griffin_lim=True,

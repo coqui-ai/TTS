@@ -71,7 +71,7 @@ def compute_reference_mel(reference_wav, ap, cuda=False):
     # Reference mel for capacitron is the same as for GST
     return compute_style_mel(reference_wav, ap, cuda)
 
-def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, reference_mel=None, speaker_embeddings=None):
+def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, reference_mel=None, reference_text=None, speaker_embeddings=None):
     if 'tacotron' in CONFIG.model.lower():
         if CONFIG.use_gst:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
@@ -79,7 +79,7 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
             )
         elif CONFIG.use_capacitron:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
-                inputs, reference_mel=reference_mel, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
+                inputs, reference_mel=reference_mel, reference_text=reference_text, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
             )
         else:
             if truncated:
@@ -142,6 +142,8 @@ def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=No
 def run_model_tflite(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, reference_mel=None):
     if CONFIG.use_gst and style_mel is not None:
         raise NotImplementedError(" [!] GST inference not implemented for TfLite")
+    if CONFIG.use_capacitron and reference_mel is not None:
+        raise NotImplementedError(' [!] Capacitron inference not implemented for TF')
     if truncated:
         raise NotImplementedError(" [!] Truncated inference not implemented for TfLite")
     if speaker_id is not None:
@@ -243,6 +245,7 @@ def synthesis(model,
               speaker_id=None,
               style_wav=None,
               reference_wav=None,
+              reference_text=None,
               truncated=False,
               enable_eos_bos_chars=False, #pylint: disable=unused-argument
               use_griffin_lim=False,
@@ -278,8 +281,10 @@ def synthesis(model,
     reference_mel = None
     if 'use_capacitron' in CONFIG.keys() and CONFIG.use_capacitron and reference_wav is not None:
         reference_mel = compute_reference_mel(reference_wav, ap, cuda=use_cuda)
+        reference_mel = reference_mel.transpose(1, 2) # [1, time, depth]
     # preprocess the given text
     inputs = text_to_seqvec(text, CONFIG)
+    reference_text = text_to_seqvec(reference_text, CONFIG) if reference_text is not None else None
     # pass tensors to backend
     if backend == "torch":
         if speaker_id is not None:
@@ -291,8 +296,13 @@ def synthesis(model,
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         reference_mel = numpy_to_torch(reference_mel, torch.float, cuda=use_cuda)
+
         inputs = numpy_to_torch(inputs, torch.long, cuda=use_cuda)
         inputs = inputs.unsqueeze(0)
+        if reference_text is not None:
+            # TODO: put this at the appropriate place
+            reference_text = numpy_to_torch(reference_text, torch.long, cuda=use_cuda)
+            reference_text = reference_text.unsqueeze(0)
     elif backend == "tf":
         # TODO: handle speaker id for tf model
         style_mel = numpy_to_tf(style_mel, tf.float32)
@@ -307,7 +317,7 @@ def synthesis(model,
     # synthesize voice
     if backend == "torch":
         decoder_output, postnet_output, alignments, stop_tokens = run_model_torch(
-            model, inputs, CONFIG, truncated, speaker_id, style_mel, reference_mel, speaker_embeddings=speaker_embedding
+            model, inputs, CONFIG, truncated, speaker_id, style_mel, reference_mel, reference_text, speaker_embeddings=speaker_embedding
         )
         postnet_output, decoder_output, alignment, stop_tokens = parse_outputs_torch(
             postnet_output, decoder_output, alignments, stop_tokens

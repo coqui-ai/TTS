@@ -50,6 +50,7 @@ class Tacotron(TacotronAbstract):
         memory_size (int, optional): size of the history queue fed to the prenet. Model feeds the last ```memory_size```
             output frames to the prenet.
     """
+    # pylint: disable=C0330
 
     def __init__(
         self,
@@ -301,10 +302,13 @@ class Tacotron(TacotronAbstract):
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
     @torch.no_grad()
-    def inference(self, characters, speaker_ids=None, style_mel=None, reference_mel=None, speaker_embeddings=None):
+    def inference(self, characters, speaker_ids=None, style_mel=None, reference_mel=None, reference_text=None, speaker_embeddings=None):
         inputs = self.embedding(characters)
-        text_length = torch.tensor([inputs.size(1)], dtype=torch.int64) # pylint: disable=not-callable
-        mel_length = torch.tensor([reference_mel.size(2)], dtype=torch.int64) if reference_mel is not None else None # pylint: disable=not-callable
+        if reference_text is not None:
+            reference_text_embedding = self.embedding(reference_text)
+            reference_text_length = torch.tensor([reference_text_embedding.size(1)], dtype=torch.int64) # pylint: disable=not-callable
+        reference_mel_length = torch.tensor([reference_mel.size(2)], dtype=torch.int64) if reference_mel is not None else None # pylint: disable=not-callable
+
         encoder_outputs = self.encoder(inputs)
         if self.gst:
             # B x gst_dim
@@ -317,8 +321,8 @@ class Tacotron(TacotronAbstract):
             # B x capacitron_VAE_embedding_dim
             encoder_outputs, _, _, _ = self.compute_VAE_embedding(
                 encoder_outputs,
-                reference_mel_info=[reference_mel, mel_length] if reference_mel is not None else None,
-                text_info=[inputs, text_length] if self.capacitron_use_text_summary_embeddings else None,
+                reference_mel_info=[reference_mel, reference_mel_length] if reference_mel is not None else None,
+                text_info=[reference_text_embedding, reference_text_length] if reference_text is not None else None,
                 speaker_embedding=speaker_embeddings if self.capacitron_use_speaker_embedding else None
             )
 

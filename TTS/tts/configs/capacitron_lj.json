@@ -1,7 +1,7 @@
 {
     "model": "Tacotron",
-    "run_name": "capacitron",
-    "run_description": "Capacitron-transpose",
+    "run_name": "capacitron-ljspeech",
+    "run_description": "Capacitron LJSpeech",
 
     // AUDIO PARAMETERS
     "audio": {
@@ -13,8 +13,9 @@
         "frame_shift_ms": null, // stft window hop-lengh in ms. If null, 'hop_length' is used.
 
         // Audio processing parameters
-        "sample_rate": 24000, // DATASET-RELATED: wav sample-rate.
-        "preemphasis": 0.97, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "sample_rate": 22050, // DATASET-RELATED: wav sample-rate.
+        "preemphasis": 0.0, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        // "preemphasis": 0.97, // Nicolas
         "ref_level_db": 20, // reference level db, theoretically 20db is the sound of air.
 
         // Silence trimming
@@ -28,7 +29,7 @@
         // MelSpectrogram parameters
         "num_mels": 80, // size of the mel spec frame.
         "mel_fmin": 80.0, // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
-        "mel_fmax": 12000.0, // maximum freq level for mel-spec. Tune for dataset!!
+        "mel_fmax": 11025.0, // maximum freq level for mel-spec. Tune for dataset!!
         "spec_gain": 20, // scaler value appplied after log transform of spectrogram.
 
         // Normalization parameters
@@ -71,7 +72,7 @@
 
     // VALIDATION
     "run_eval": true,
-    "test_delay_epochs": 10, //Until attention is aligned, testing only wastes computation time.
+    "test_delay_epochs": 1, //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null, // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
     
     // OPTIMIZER
@@ -119,7 +120,7 @@
     "print_eval": false, // If True, it prints intermediate loss values in evalulation.
     "save_step": 1000, // Number of training steps expected to save traninpg stats and checkpoints.
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
-    "tb_model_param_stats": false, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
+    "tb_model_param_stats": true, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
     // DATA LOADING
     "text_cleaner": "phoneme_cleaners",
@@ -165,8 +166,7 @@
         "capacitron_text_summary_embedding_dim": 128, // size for the LSTM accounting for the text summary conditional input
         "capacitron_capacity": 300, // capacity target
         "capacitron_use_speaker_embedding": false,
-        "capacitron_reference_wav": "/home/big-boy/Data/blizzard2013/segmented/refs/seen/BLZ76427.wav", // path to reference wav file to be used in capacitron inference.
-        "capacitron_reference_text": "What does the letter mean, mother?", // string of what the file above is saying
+        "capacitron_reference_wav": null, // path to reference wav file to be used in capacitron inference.
         "capacitron_SGD_lr": 1e-5,
         "capacitron_SGD_momentum": 0.9
     },
@@ -175,7 +175,7 @@
     "datasets": // List of datasets. They all merged and they get different speaker_ids.
         [{
             "name": "ljspeech",
-            "path": "/home/big-boy/Data/blizzard2013/segmented/",
+            "path": "/home/big-boy/Data/LJSpeech-1.1/",
             "meta_file_train": "metadata.csv", // for vtck if list, ignore speakers id in list for train, its useful for test cloning with new speakers
             "meta_file_val": null
         }]

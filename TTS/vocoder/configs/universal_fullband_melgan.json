@@ -21,9 +21,9 @@
 
         // MelSpectrogram parameters
         "num_mels": 80,         // size of the mel spec frame.
-        "mel_fmin": 50.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
-        "mel_fmax": 7600.0,     // maximum freq level for mel-spec. Tune for dataset!!
-        "spec_gain": 1.0,         // scaler value appplied after log transform of spectrogram.
+        "mel_fmin": 80.0,        // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 12000.0,     // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 20.0,         // scaler value appplied after log transform of spectrogram.
 
         // Normalization parameters
         "signal_norm": true,    // normalize spec values. Mean-Var normalization if 'stats_path' is defined otherwise range normalization defined by the other params.
@@ -31,7 +31,7 @@
         "symmetric_norm": true, // move normalization to range [-1, 1]
         "max_norm": 4.0,        // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
         "clip_norm": true,      // clip normalized values into the range.
-        "stats_path": "/home/erogol/Data/libritts/LibriTTS/scale_stats.npy"    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
     },
 
     // DISTRIBUTED TRAINING
@@ -83,7 +83,7 @@
     },
 
     // DATASET
-    "data_path": "/home/erogol/Data/libritts/LibriTTS/train-clean-360/",
+    "data_path": "/home/big-boy/Data/blizzard2013/segmented/wavs/",
     "feature_path": null,
     "seq_len": 16384,
     "pad_short": 2000,
@@ -91,10 +91,12 @@
     "use_noise_augment": false,
     "use_cache": true,
 
+    "diff_samples_for_G_and_D": false,
+
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 48,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "batch_size": 100,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
 
     // VALIDATION
     "run_eval": true,
@@ -139,7 +141,7 @@
     "eval_split_size": 10,
 
     // PATHS
-    "output_path": "/home/erogol/Models/"
+    "output_path": "/home/big-boy/Models/BlizzardVocoder"
 }
 
 

@@ -32,13 +32,13 @@ class CapacitronVAE(nn.Module):
     def forward(self, reference_mel_info=None, text_info=None, speaker_embedding=None):
         # Use reference
         if reference_mel_info is not None:
-            reference_mels = reference_mel_info[0]
-            mel_lengths = reference_mel_info[1]
+            reference_mels = reference_mel_info[0] # [batch_size, num_frames, num_mels]
+            mel_lengths = reference_mel_info[1] # [batch_size]
             enc_out = self.encoder(reference_mels, mel_lengths)
 
             # concat speaker_embedding and/or text summary embedding
             if text_info is not None:
-                text_inputs = text_info[0]
+                text_inputs = text_info[0] # [batch_size, num_characters, num_embedding]
                 input_lengths = text_info[1]
                 text_summary_out = self.text_summary_net(text_inputs, input_lengths).cuda()
                 enc_out = torch.cat([enc_out, text_summary_out], dim=-1)
@@ -82,16 +82,17 @@ class ReferenceEncoder(nn.Module):
                 out_channels=filters[i + 1],
                 kernel_size=(3, 3),
                 stride=(2, 2),
-                padding=(1, 1)) for i in range(num_layers)
+                padding=(2, 2)) for i in range(num_layers)
         ]
         self.convs = nn.ModuleList(convs)
+        self.training = False
         self.bns = nn.ModuleList([
             nn.BatchNorm2d(num_features=filter_size)
             for filter_size in filters[1:]
         ])
 
         post_conv_height = self.calculate_post_conv_height(
-            num_mel, 3, 2, 1, num_layers)
+            num_mel, 3, 2, 2, num_layers)
         self.recurrence = nn.LSTM(
             input_size=filters[-1] * post_conv_height,
             hidden_size=128,
@@ -100,9 +101,8 @@ class ReferenceEncoder(nn.Module):
 
     def forward(self, inputs, input_lengths):
         batch_size = inputs.size(0)
-        x = inputs.view(batch_size, 1, -1, self.num_mel)
-        # x: 4D tensor [batch_size, num_channels==1, num_frames, num_mel]
-        valid_lengths = input_lengths.cpu()
+        x = inputs.view(batch_size, 1, -1, self.num_mel) # [batch_size, num_channels==1, num_frames, num_mel]
+        valid_lengths = input_lengths.cpu() # [batch_size]
         for conv, bn in zip(self.convs, self.bns):
             x = conv(x)
             x = bn(x)
@@ -110,18 +110,20 @@ class ReferenceEncoder(nn.Module):
 
             # Create the post conv width mask based on the valid lengths of the output of the convolution.
             # The valid lengths for the output of a convolution on varying length inputs is
-            # ceil(input_length/stride) for kernel size 3
-            # For example (kernel_size=3, stride=2):
-            # x 0 0 0 0 0 x x -> Input = 5, x is zero padding coming from padding='same' in conv2d
+            # ceil(input_length/stride) + 1 for stride=3 and padding=2
+            # For example (kernel_size=3, stride=2, padding=2):
+            # 0 0 x x x x x 0 0 -> Input = 5, 0 is zero padding, x is valid values coming from padding=2 in conv2d
             # _____
-            #   0 _____
-            #       0 _____
-            #           0
-            # 0  x 0 x 0 x -> Output = 3
+            #   x _____
+            #       x _____
+            #           x  ____
+            #               x
+            # x x x x -> Output valid length = 4
             # Since every example in te batch is zero padded and therefore have separate valid_lengths,
             # we need to mask off all the values AFTER the valid length for each example in the batch.
             # Otherwise, the convolutions create noise and a lot of not real information
-            valid_lengths = torch.ceil(valid_lengths/2).to(dtype=torch.int64) # 2 is stride [batch_size]
+
+            valid_lengths = torch.ceil(valid_lengths/2).to(dtype=torch.int64) + 1 # 2 is stride -- size: [batch_size]
             post_conv_max_width = x.size(2)
 
             mask = torch.arange(post_conv_max_width).expand(len(valid_lengths), post_conv_max_width) < valid_lengths.unsqueeze(1)

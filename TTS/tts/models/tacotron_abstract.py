@@ -7,6 +7,7 @@ from torch import nn
 from TTS.tts.utils.generic_utils import sequence_mask
 
 class TacotronAbstract(ABC, nn.Module):
+    # pylint: disable=C0330
     def __init__(
         self,
         num_chars,
