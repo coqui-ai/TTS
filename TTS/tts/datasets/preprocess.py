@@ -52,19 +52,19 @@ def load_meta_data(datasets, eval_split=True):
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set
         if eval_split:
-            if meta_file_val is None:
-                meta_data_eval, meta_data_train = split_dataset(meta_data_train)
-            else:
+            if meta_file_val:
                 meta_data_eval = preprocessor(root_path, meta_file_val)
+            else:
+                meta_data_eval, meta_data_train = split_dataset(meta_data_train)
             meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
         # load attention masks for duration predictor training
-        if dataset.meta_file_attn_mask is not None:
+        if dataset.meta_file_attn_mask:
             meta_data = dict(load_attention_mask_meta_data(dataset["meta_file_attn_mask"]))
             for idx, ins in enumerate(meta_data_train_all):
                 attn_file = meta_data[ins[1]].strip()
                 meta_data_train_all[idx].append(attn_file)
-            if meta_data_eval_all is not None:
+            if meta_data_eval_all:
                 for idx, ins in enumerate(meta_data_eval_all):
                     attn_file = meta_data[ins[1]].strip()
                     meta_data_eval_all[idx].append(attn_file)
