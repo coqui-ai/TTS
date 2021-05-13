@@ -8,8 +8,20 @@ from TTS.config import BaseAudioConfig, BaseDatasetConfig, BaseTrainingConfig
 
 @dataclass
 class GSTConfig(Coqpit):
-    """Defines Global Style Toke module"""
+    """Defines the Global Style Token Module
 
+    Args:
+        gst_style_input_wav (str):
+            Path to the wav file used to define the style of the output speech at inference. Defaults to None.
+        gst_style_input_weights (dict):
+            Defines the weights for each style token used at inference. Defaults to None.
+        gst_embedding_dim (int):
+            Defines the size of the GST embedding vector dimensions. Defaults to 256.
+        gst_num_heads (int):
+            Number of attention heads used by the multi-head attention. Defaults to 4.
+        gst_num_style_tokens (int):
+            Number of style token vectors. Defaults to 10.
+    """
     gst_style_input_wav: str = None
     gst_style_input_weights: dict = None
     gst_embedding_dim: int = 256
@@ -33,7 +45,26 @@ class GSTConfig(Coqpit):
 
 @dataclass
 class CharactersConfig(Coqpit):
-    """Defines character or phoneme set used by the model"""
+    """Defines character or phoneme set used by the model
+
+    Args:
+        pad (str):
+            characters in place of empty padding. Defaults to None.
+        eos (str):
+            characters showing the end of a sentence. Defaults to None.
+        bos (str):
+            characters showing the beginning of a sentence. Defaults to None.
+        characters (str):
+            character set used by the model. Characters not in this list are ignored when converting input text to
+            a list of sequence IDs. Defaults to None.
+        punctuations (str):
+            characters considered as punctuation as parsing the input sentence. Defaults to None.
+        phonemes (str):
+            characters considered as parsing phonemes. Defaults to None.
+        unique (bool):
+            remove any duplicate characters in the character lists. It is a bandaid for compatibility with the old
+            models trained with character lists with duplicates.
+    """
 
     pad: str = None
     eos: str = None
@@ -58,7 +89,48 @@ class CharactersConfig(Coqpit):
 
 @dataclass
 class BaseTTSConfig(BaseTrainingConfig):
-    """Shared parameters among all the tts models."""
+    """Shared parameters among all the tts models.
+
+    Args:
+        audio (BaseAudioConfig):
+            Audio processor config object instance.
+        use_phonemes (bool):
+            enable / disable phoneme use.
+        compute_input_seq_cache (bool):
+            enable / disable precomputation of the phoneme sequences. At the expense of some delay at the beginning of
+            the training, It allows faster data loader time and precise limitation with `max_seq_len` and
+            `min_seq_len`.
+        text_cleaner (str):
+            Name of the text cleaner used for cleaning and formatting transcripts.
+        enable_eos_bos_chars (bool):
+            enable / disable the use of eos and bos characters.
+        test_senteces_file (str):
+            Path to a txt file that has sentences used at test time. The file must have a sentence per line.
+        phoneme_cache_path (str):
+            Path to the output folder caching the computed phonemes for each sample.
+        characters (CharactersConfig):
+            Instance of a CharactersConfig class.
+        batch_group_size (int):
+            Size of the batch groups used for bucketing. By default, the dataloader orders samples by the sequence
+            length for a more efficient and stable training. If `batch_group_size > 1` then it performs bucketing to
+            prevent using the same batches for each epoch.
+        loss_masking (bool):
+            enable / disable masking loss values against padded segments of samples in a batch.
+        min_seq_len (int):
+            Minimum input sequence length to be used at training.
+        max_seq_len (int):
+            Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
+        compute_f0 (int):
+            (Not in use yet).
+        use_noise_augment (bool):
+            Augment the input audio with random noise.
+        add_blank (bool):
+            Add blank characters between each other two characters. It improves performance for some models at expense
+            of slower run-time due to the longer input sequence.
+        datasets (List[BaseDatasetConfig]):
+            List of datasets used for training. If multiple datasets are provided, they are merged and used together
+            for training.
+        """
 
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     # phoneme settings

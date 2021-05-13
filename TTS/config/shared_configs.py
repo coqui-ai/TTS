@@ -13,7 +13,7 @@ class BaseAudioConfig(Coqpit):
             Number of STFT frequency levels aka.size of the linear spectogram frame. Defaults to 1024.
         win_length (int):
             Each frame of audio is windowed by window of length ```win_length``` and then padded with zeros to match
-            ```fft_size```. Defaults to 256.
+            ```fft_size```. Defaults to 1024.
         hop_length (int):
             Number of audio samples between adjacent STFT columns. Defaults to 1024.
         frame_shift_ms (int):
@@ -21,7 +21,7 @@ class BaseAudioConfig(Coqpit):
         frame_length_ms (int):
             Set ```win_length``` based on milliseconds and sampling rate.
         stft_pad_mode (str):
-            Padding method used in STFT. 'reflect' or 'center'.
+            Padding method used in STFT. 'reflect' or 'center'. Defaults to 'reflect'.
         sample_rate (int):
             Audio sampling rate. Defaults to 22050.
         resample (bool):
@@ -135,11 +135,27 @@ class BaseAudioConfig(Coqpit):
 
 @dataclass
 class BaseDatasetConfig(Coqpit):
-    name: str = None
-    path: str = None
-    meta_file_train: Union[str, List] = None  # TODO: don't take ignored speakers for multi-speaker datasets over this. This is Union for SC-Glow compat.
-    meta_file_val: str = None
-    meta_file_attn_mask: str = None
+    """Base config for TTS datasets.
+
+    Args:
+        name (str):
+            Dataset name that defines the preprocessor in use. Defaults to None.
+        path (str):
+            Root path to the dataset files. Defaults to None.
+        meta_file_train (Union[str, List]):
+            Name of the dataset meta file. Or a list of speakers to be ignored at training for multi-speaker datasets.
+            Defaults to None.
+        meta_file_val (str):
+            Name of the dataset meta file that defines the instances used at validation.
+        meta_file_attn_mask (str):
+            Path to the file that lists the attention mask files used with models that require attention masks to
+            train the duration predictor.
+    """
+    name: str = ''
+    path: str = ''
+    meta_file_train: Union[str, List] = ''  # TODO: don't take ignored speakers for multi-speaker datasets over this. This is Union for SC-Glow compat.
+    meta_file_val: str = ''
+    meta_file_attn_mask: str = ''
 
     def check_values(
         self,
@@ -161,12 +177,8 @@ class BaseTrainingConfig(Coqpit):
     Args:
         batch_size (int):
             Training batch size.
-        batch_group_size (int):
-            Number of batches to shuffle after bucketing.
         eval_batch_size (int):
             Validation batch size.
-        loss_masking (bool):
-            Enable / Disable masking padding segments of sequences.
         mixed_precision (bool):
             Enable / Disable mixed precision training. It reduces the VRAM use and allows larger batch sizes, however
             it may also cause numerical unstability in some cases.
@@ -195,34 +207,13 @@ class BaseTrainingConfig(Coqpit):
         keep_after (int):
             Number of steps to wait before saving all the best models. In use if ```keep_all_best == True```. Defaults
             to 10000.
-        text_cleaner (str):
-            Text cleaner to be used at model training. It is set to be one of the cleaners in
-            ```TTS.tts.utils.text.cleaners```.
-        enable_eos_bos_chars (bool):
-            Enable / Disable using special characters indicating end-of-sentence and begining-of-sentence.
         num_loader_workers (int):
             Number of workers for training time dataloader.
         num_val_loader_workers (int):
             Number of workers for evaluation time dataloader.
-        min_seq_len (int):
-            Minimum sequence length to be used at training.
-        max_seq_len (int):
-            Maximum sequence length to be used at training. VRAM use at training depends on this parameter. Consider to
-            decrease it if you get OOM errors.
-        compute_f0 (bool):
-            Return F0 frames from the dataloader. Defaults to ```False```.
-        compute_input_seq_cache (bool):
-            Enable / Disable computing and caching phonemes sequences from character sequences at the begining of the
-            training. It allows faster data loading times and more precise max-min sequence prunning. Defaults
-            to ```False```.
         output_path (str):
             Path for training output folder. The nonexist part of the given path is created automatically.
             All training outputs are saved there.
-        phoneme_cache_path (str):
-            Path to a folder to save the computed phoneme sequences.
-        datasets (List[BaseDatasetConfig]):
-            ist of DatasetConfig.
-
     """
 
     model: str = None
