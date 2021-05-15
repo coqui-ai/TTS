@@ -138,7 +138,7 @@ def format_data(data):
 
 
 def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD, scheduler,
-          ap, global_step, epoch, scaler, scaler_st):
+          ap, global_step, epoch, scaler, scaler_st, scaler_SGD):
 
     model.train()
     epoch_time = 0
@@ -283,6 +283,17 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
 
         # optimizer step
         if c.mixed_precision:
+            # capacitron SGD optimizer step
+            if c.use_capacitron:
+                scaler_SGD.scale(loss_dict['beta_loss']).backward()
+                grad_SGD = model.capacitron_layer.beta
+                scaler_SGD.step(optimizer_SGD)
+                scaler_SGD.update()
+                optimizer_SGD.zero_grad()
+                optimizer.zero_grad()
+            else:
+                grad_SGD = 0
+
             # model optimizer step in mixed precision mode
             scaler.scale(loss_dict["loss"]).backward()
             scaler.unscale_(optimizer)
@@ -290,17 +301,6 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
             grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True)
             scaler.step(optimizer)
             scaler.update()
-
-            # capacitron SGD optimizer step
-            # TODO Figure out if we want to do mixed precision with capacitron
-            if c.use_capacitron:
-                loss_dict['beta_loss'].backward()
-                grad_SGD = model.capacitron_layer.beta
-                optimizer_SGD.step()
-                optimizer_SGD.zero_grad()
-                optimizer.zero_grad()
-            else:
-                grad_SGD = 0
 
             # stopnet optimizer step
             if c.separate_stopnet:
@@ -752,6 +752,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     # scalers for mixed precision training
     scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
     scaler_st = torch.cuda.amp.GradScaler() if c.mixed_precision and c.separate_stopnet else None
+    scaler_SGD = torch.cuda.amp.GradScaler() if c.mixed_precision and c.use_capacitron else None
 
     if c.use_capacitron:
         # split parameters for the two optimizers
@@ -875,7 +876,8 @@ def main(args):  # pylint: disable=redefined-outer-name
             global_step,
             epoch,
             scaler,
-            scaler_st
+            scaler_st,
+            scaler_SGD
         )
         # eval one epoch
         eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap, global_step, epoch)
