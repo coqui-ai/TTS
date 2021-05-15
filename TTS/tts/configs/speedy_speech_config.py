@@ -113,4 +113,4 @@ class SpeedySpeechConfig(BaseTTSConfig):
     # overrides
     min_seq_len: int = 13
     max_seq_len: int = 200
-    r: int = 1  #DO NOT CHANGE
+    r: int = 1  # DO NOT CHANGE
