@@ -90,7 +90,6 @@ class MultibandMelganConfig(BaseGANVocoderConfig):
             L1 spectrogram loss weight that multiplies the computed loss before summing up the total loss. Defaults to 0.
     """
 
-
     model: str = "multiband_melgan"
 
     # Model specific params

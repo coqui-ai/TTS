@@ -130,6 +130,7 @@ class GlowTTSTrainTest(unittest.TestCase):
             )
             count += 1
 
+
 class GlowTTSInferenceTest(unittest.TestCase):
     @staticmethod
     def test_inference():
@@ -174,13 +175,12 @@ class GlowTTSInferenceTest(unittest.TestCase):
         print(" > Num parameters for GlowTTS model:%s" % (count_parameters(model)))
 
         # inference encoder and decoder with MAS
-        y, *_ = model.inference_with_MAS(
-                input_dummy, input_lengths, mel_spec, mel_lengths, None
-            )
+        y, *_ = model.inference_with_MAS(input_dummy, input_lengths, mel_spec, mel_lengths, None)
 
-        y_dec, _ = model.decoder_inference(mel_spec, mel_lengths
-            )
+        y_dec, _ = model.decoder_inference(mel_spec, mel_lengths)
 
-        assert (y_dec.shape == y.shape), "Difference between the shapes of the glowTTS inference with MAS ({}) and the inference using only the decoder ({}) !!".format(
-                y.shape, y_dec.shape
-            )
+        assert (
+            y_dec.shape == y.shape
+        ), "Difference between the shapes of the glowTTS inference with MAS ({}) and the inference using only the decoder ({}) !!".format(
+            y.shape, y_dec.shape
+        )

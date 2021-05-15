@@ -22,6 +22,7 @@ class GSTConfig(Coqpit):
         gst_num_style_tokens (int):
             Number of style token vectors. Defaults to 10.
     """
+
     gst_style_input_wav: str = None
     gst_style_input_weights: dict = None
     gst_embedding_dim: int = 256
@@ -130,7 +131,7 @@ class BaseTTSConfig(BaseTrainingConfig):
         datasets (List[BaseDatasetConfig]):
             List of datasets used for training. If multiple datasets are provided, they are merged and used together
             for training.
-        """
+    """
 
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     # phoneme settings

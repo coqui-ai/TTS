@@ -66,6 +66,7 @@ class WavegradConfig(BaseVocoderConfig):
         lr_scheduler_params (dict):
             kwargs for the scheduler. Defaults to `{"gamma": 0.5, "milestones": [100000, 200000, 300000, 400000, 500000, 600000]}`
     """
+
     model: str = "wavegrad"
     # Model specific params
     generator_model: str = "wavegrad"

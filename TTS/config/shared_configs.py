@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass
 from typing import List, Union
+
 from coqpit import MISSING, Coqpit, check_argument
 
 
@@ -151,11 +152,14 @@ class BaseDatasetConfig(Coqpit):
             Path to the file that lists the attention mask files used with models that require attention masks to
             train the duration predictor.
     """
-    name: str = ''
-    path: str = ''
-    meta_file_train: Union[str, List] = ''  # TODO: don't take ignored speakers for multi-speaker datasets over this. This is Union for SC-Glow compat.
-    meta_file_val: str = ''
-    meta_file_attn_mask: str = ''
+
+    name: str = ""
+    path: str = ""
+    meta_file_train: Union[
+        str, List
+    ] = ""  # TODO: don't take ignored speakers for multi-speaker datasets over this. This is Union for SC-Glow compat.
+    meta_file_val: str = ""
+    meta_file_attn_mask: str = ""
 
     def check_values(
         self,

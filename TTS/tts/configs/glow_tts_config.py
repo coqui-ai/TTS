@@ -59,7 +59,6 @@ class GlowTTSConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-
     model: str = "glow_tts"
 
     # model params
