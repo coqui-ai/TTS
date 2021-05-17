@@ -24,10 +24,10 @@ class TacotronConfig(BaseTTSConfig):
             Path to the wav file used at inference to set the speech style through GST. If `GST` is enabled and
             this is not defined, the model uses a zero vector as an input. Defaults to None.
         r (int):
-            Number of output frames that the decoder computed per iteration. Larger values makes training and inference
-            faster but reduces the quality of the output frames. This needs to be tuned considering your own needs.
-            Defaults to 1.
-        gradual_trainin (List[List]):
+            Initial number of output frames that the decoder computed per iteration. Larger values makes training and inference
+            faster but reduces the quality of the output frames. This must be equal to the largest `r` value used in
+            `gradual_training` schedule. Defaults to 1.
+        gradual_training (List[List]):
             Parameters for the gradual training schedule. It is in the form `[[a, b, c], [d ,e ,f] ..]` where `a` is
             the step number to start using the rest of the values, `b` is the `r` value and `c` is the batch size.
             If sets None, no gradual training is used. Defaults to None.
@@ -168,3 +168,8 @@ class TacotronConfig(BaseTTSConfig):
     decoder_ssim_alpha: float = 0.25
     postnet_ssim_alpha: float = 0.25
     ga_alpha: float = 5.0
+
+
+    def check_values(self):
+        if self.gradual_training:
+            assert self.gradual_training[0][1] == self.r, f"[!] the first scheduled gradual training `r` must be equal to the model's `r` value. {self.gradual_training[0][1]} vs {self.r}"
