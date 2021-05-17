@@ -169,7 +169,8 @@ class TacotronConfig(BaseTTSConfig):
     postnet_ssim_alpha: float = 0.25
     ga_alpha: float = 5.0
 
-
     def check_values(self):
         if self.gradual_training:
-            assert self.gradual_training[0][1] == self.r, f"[!] the first scheduled gradual training `r` must be equal to the model's `r` value. {self.gradual_training[0][1]} vs {self.r}"
+            assert (
+                self.gradual_training[0][1] == self.r
+            ), f"[!] the first scheduled gradual training `r` must be equal to the model's `r` value. {self.gradual_training[0][1]} vs {self.r}"
