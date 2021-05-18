@@ -143,9 +143,11 @@ class BaseDatasetConfig(Coqpit):
             Dataset name that defines the preprocessor in use. Defaults to None.
         path (str):
             Root path to the dataset files. Defaults to None.
-        meta_file_train (Union[str, List]):
+        meta_file_train (str):
             Name of the dataset meta file. Or a list of speakers to be ignored at training for multi-speaker datasets.
             Defaults to None.
+        unused_speakers (List):
+            List of speakers IDs that are not used at the training. Default None.
         meta_file_val (str):
             Name of the dataset meta file that defines the instances used at validation.
         meta_file_attn_mask (str):
@@ -155,9 +157,8 @@ class BaseDatasetConfig(Coqpit):
 
     name: str = ""
     path: str = ""
-    meta_file_train: Union[
-        str, List
-    ] = ""  # TODO: don't take ignored speakers for multi-speaker datasets over this. This is Union for SC-Glow compat.
+    meta_file_train: str = ""
+    ununsed_speakers: List[str] = None
     meta_file_val: str = ""
     meta_file_attn_mask: str = ""
 
