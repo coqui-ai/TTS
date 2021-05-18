@@ -2,12 +2,13 @@
 {
     "model_name": "resnet",
     "run_name": "speaker_encoder",
-    "run_description": "train speaker encoder with VCTK",
+    "run_description": "resnet speaker encoder trained with commonvoice all languages dev and train, Voxceleb dev and Voxceleb 2 dev",
+    // AUDIO PARAMETERS
     "audio":{
         // Audio processing parameters
-        "num_mels": 64,         // size of the mel spec frame. 
+        "num_mels": 80,         // size of the mel spec frame. 
         "fft_size": 1024,       // number of stft frequency levels. Size of the linear spectogram frame.
-        "sample_rate": 16000,   // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "sample_rate": 16000,  // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
         "win_length": 1024,     // stft window length in ms.
         "hop_length": 256,      // stft window hop-lengh in ms.
         "frame_length_ms": null,  // stft window length in ms.If null, 'win_length' is used.
@@ -26,9 +27,9 @@
         "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
         "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
         "spec_gain": 20.0, 
-        "do_trim_silence": true,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "do_trim_silence": false,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
         "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
-        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored
+        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored 
     },
     "reinit_layers": [],
 
@@ -42,18 +43,18 @@
     "steps_plot_stats": 10, // number of steps to plot embeddings.
 
     // Speakers config
-    "num_speakers_in_batch": 256, // Batch size for training.
+    "num_speakers_in_batch": 200, // Batch size for training.
     "num_utters_per_speaker": 2,  //
     "skip_speakers": true, // skip speakers with samples less than "num_utters_per_speaker"
 
     "voice_len": 2, // number of seconds for each training instance
      
-    "num_loader_workers": 8,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_loader_workers": 1,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "wd": 0.000001, // Weight decay weight.
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
-    "save_step": 1000, // Number of training steps expected to save traning stats and checkpoints.
+    "save_step": 2000, // Number of training steps expected to save the best checkpoints in training.
     "print_step": 20, // Number of steps to log traning on console.
-    "output_path": "../../../checkpoints/speaker_encoder/continue-training-voxceleb-trainer/", // DATASET-RELATED: output path for all training outputs.
+    "output_path": "../../../checkpoints/speaker_encoder/resnet_voxceleb12-pre-training/", // DATASET-RELATED: output path for all training outputs.
 
     "audio_augmentation": {
         "p": 0.75, // propability of apply this method, 0 is disable rir and additive noise augmentation
@@ -85,26 +86,32 @@
         },
         //add a gaussian noise to the data in order to increase robustness
         "gaussian":{ // as the insertion of Gaussian noise is quick to be calculated, we added it after loading the wav file, this way, even audios that were reused with the cache can receive this noise
-            "p": 0.5, // propability of apply this method, 0 is disable
+            "p": 1, // propability of apply this method, 0 is disable
             "min_amplitude": 0.0,
             "max_amplitude": 1e-5    
         }   
     },
     "model": {
-        "input_dim": 64,
+        "input_dim": 80,
         "proj_dim": 512
     },
     "storage": {
         "sample_from_storage_p": 0.66,  // the probability with which we'll sample from the DataSet in-memory storage
-        "storage_size": 1   // the size of the in-memory storage with respect to a single batch
+        "storage_size": 35   // the size of the in-memory storage with respect to a single batch
     },
     "datasets": 
         [
-            {
+        {
                 "name": "voxceleb2",
                 "path": "/workspace/scratch/ecasanova/datasets/VoxCeleb/vox2_dev_aac/",
                 "meta_file_train": null,
                 "meta_file_val": null
-            }
+        },
+        {
+                "name": "voxceleb1",
+                "path": "/workspace/scratch/ecasanova/datasets/VoxCeleb/vox1_dev_wav/",
+                "meta_file_train": null,
+                "meta_file_val": null
+        }
         ]
 }

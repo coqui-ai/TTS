@@ -1,10 +1,10 @@
-import queue
+
 import random
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from TTS.speaker_encoder.utils.generic_utils import AugmentWAV
+from TTS.speaker_encoder.utils.generic_utils import AugmentWAV, Storage
 
 class MyDataset(Dataset):
     def __init__(
@@ -38,7 +38,8 @@ class MyDataset(Dataset):
         self.ap = ap
         self.verbose = verbose
         self.__parse_items()
-        self.storage = queue.Queue(maxsize=storage_size * num_speakers_in_batch)
+        storage_max_size = storage_size * num_speakers_in_batch
+        self.storage = Storage(maxsize=storage_max_size, storage_batchs=storage_size, num_speakers_in_batch=num_speakers_in_batch)
         self.sample_from_storage_p = float(sample_from_storage_p)
 
         speakers_aux = list(self.speakers)
@@ -59,7 +60,7 @@ class MyDataset(Dataset):
         if self.verbose:
             print("\n > DataLoader initialization")
             print(f" | > Speakers per Batch: {num_speakers_in_batch}")
-            print(f" | > Storage Size: {self.storage.maxsize} instances, each with {num_utter_per_speaker} utters")
+            print(f" | > Storage Size: {storage_max_size} instances, each with {num_utter_per_speaker} utters")
             print(f" | > Sample_from_storage_p : {self.sample_from_storage_p}")
             print(f" | > Number of instances : {len(self.items)}")
             print(f" | > Sequence length: {self.seq_len}")
@@ -130,9 +131,11 @@ class MyDataset(Dataset):
     def __sample_speaker(self, ignore_speakers=None):
         speaker = random.sample(self.speakers, 1)[0]
         # if list of speakers_id is provide make sure that it's will be ignored
-        if ignore_speakers:
-            while self.speakerid_to_classid[speaker] in ignore_speakers:
+        if ignore_speakers and self.speakerid_to_classid[speaker] in ignore_speakers:
+            while True:
                 speaker = random.sample(self.speakers, 1)[0]
+                if self.speakerid_to_classid[speaker] not in ignore_speakers:
+                    break
 
         if self.num_utter_per_speaker > len(self.speaker_to_utters[speaker]):
             utters = random.choices(self.speaker_to_utters[speaker], k=self.num_utter_per_speaker)
@@ -153,13 +156,18 @@ class MyDataset(Dataset):
                 if len(self.speaker_to_utters[speaker]) > 1:
                     utter = random.sample(self.speaker_to_utters[speaker], 1)[0]
                 else:
-                    self.speakers.remove(speaker)
+                    if speaker in self.speakers:
+                        self.speakers.remove(speaker)
+
                     speaker, _ = self.__sample_speaker()
                     continue
+
                 wav = self.load_wav(utter)
                 if wav.shape[0] - self.seq_len > 0:
                     break
-                self.speaker_to_utters[speaker].remove(utter)
+
+                if utter in self.speaker_to_utters[speaker]:
+                    self.speaker_to_utters[speaker].remove(utter)
 
             if self.augmentator is not None and self.data_augmentation_p:
                 if random.random() < self.data_augmentation_p:
@@ -174,6 +182,13 @@ class MyDataset(Dataset):
         speaker_id = self.speakerid_to_classid[speaker]
         return speaker, speaker_id
 
+    def __load_from_disk_and_storage(self, speaker):
+        # don't sample from storage, but from HDD
+        wavs_, labels_ = self.__sample_speaker_utterances(speaker)
+        # put the newly loaded item into storage
+        self.storage.append((wavs_, labels_))
+        return wavs_, labels_
+
     def collate_fn(self, batch):
         # get the batch speaker_ids
         batch = np.array(batch)
@@ -182,38 +197,50 @@ class MyDataset(Dataset):
         labels = []
         feats = []
         speakers = set()
-        for speaker, speaker_id in batch:      
+        from_disk = 0
+        from_storage = 0
+        for speaker, speaker_id in batch:
+            speaker_id = int(speaker_id)
+
+            # ensure that an speaker appears only once in the batch
+            if speaker_id in speakers:
+                speaker, _ = self.__sample_speaker(ignore_speakers=speakers_id_in_batch)
+                speaker_id = self.speakerid_to_classid[speaker]
 
             if random.random() < self.sample_from_storage_p and self.storage.full():
-                # sample from storage (if full), ignoring the speaker
-                wavs_, labels_ = random.choice(self.storage.queue)
+                # sample from storage (if full)
+                # print(help(self.storage))
+                wavs_, labels_ = self.storage.get_random_sample_fast()
+                from_storage += 1
+                # force choose the current speaker or other not in batch 
+                # It's necessary for ideal training with AngleProto and GE2E losses
+                if labels_[0] in speakers_id_in_batch and labels_[0] != speaker_id:
+                    attempts = 0
+                    while True:
+                        wavs_, labels_ = self.storage.get_random_sample_fast()
+                        if labels_[0] == speaker_id or labels_[0] not in speakers_id_in_batch:
+                            break
 
-                # force choose the current speaker or other not in batch
-                '''while labels_[0] in speakers_id_in_batch:
-                    if labels_[0] == speaker_id:
-                        break
-                    wavs_, labels_ = random.choice(self.storage.queue)'''
-
-                speakers.add(labels_[0])
-                speakers_id_in_batch.add(labels_[0])
-
+                        attempts += 1
+                        # Try 5 times after that load from disk
+                        if attempts >= 5:
+                            wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
+                            from_storage -= 1
+                            from_disk += 1
+                            break
             else:
-                # ensure that an speaker appears only once in the batch
-                if speaker_id in speakers:
-                    speaker, _ = self.__sample_speaker(speakers_id_in_batch)
-                    speaker_id = self.speakerid_to_classid[speaker]
-                    # append the new speaker from batch
-                    speakers_id_in_batch.add(speaker_id)
-
-                speakers.add(speaker_id) 
-
                 # don't sample from storage, but from HDD
-                wavs_, labels_ = self.__sample_speaker_utterances(speaker)
-                # if storage is full, remove an item
-                if self.storage.full():
-                    _ = self.storage.get_nowait()
-                # put the newly loaded item into storage
-                self.storage.put_nowait((wavs_, labels_))
+                wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
+                from_disk += 1
+
+            # append speaker for control
+            speakers.add(labels_[0])
+
+            # remove current speaker and append other
+            if speaker_id in speakers_id_in_batch:
+                speakers_id_in_batch.remove(speaker_id)
+
+            speakers_id_in_batch.add(labels_[0])
 
             # get a random subset of each of the wavs and extract mel spectrograms.
             feats_ = []
@@ -229,6 +256,10 @@ class MyDataset(Dataset):
 
             labels.append(torch.LongTensor(labels_))
             feats.extend(feats_)
+
+        if self.num_speakers_in_batch != len(speakers):
+            raise ValueError('Speakers appear more than once on the Batch. This cannot happen because the loss functions AngleProto and GE2E consider these samples to be from another speaker.')
+
         feats = torch.stack(feats)
         labels = torch.stack(labels)
 
