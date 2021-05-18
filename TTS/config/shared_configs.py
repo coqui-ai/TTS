@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from typing import List, Union
+from typing import List
 
 from coqpit import MISSING, Coqpit, check_argument
 
