@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
 
@@ -78,7 +79,7 @@ class AlignTTSConfig(BaseTTSConfig):
     decoder_params: dict = field(
         default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1}
     )
-    phase_start_steps: list = None
+    phase_start_steps: List[int] = None
 
     ssim_alpha: float = 1.0
     spec_loss_alpha: float = 1.0
