@@ -8,10 +8,54 @@ import glob
 import random
 
 from scipy import signal
+from multiprocessing import Manager
+
 from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
 from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
 from TTS.utils.generic_utils import check_argument
-    
+
+class Storage(object):
+    def __init__(self, maxsize, storage_batchs, num_speakers_in_batch, num_threads=8):
+        # use multiprocessing for threading safe
+        self.storage = Manager().list()
+        self.maxsize = maxsize
+        self.num_speakers_in_batch = num_speakers_in_batch
+        self.num_threads = num_threads
+        self.ignore_last_batch = False
+
+        if storage_batchs >= 3:
+            self.ignore_last_batch = True
+
+        # used for fast random sample
+        self.safe_storage_size = self.maxsize - self.num_threads
+        if self.ignore_last_batch:
+            self.safe_storage_size -= self.num_speakers_in_batch
+
+    def __len__(self):
+        return len(self.storage)
+
+    def full(self):
+        return len(self.storage) >= self.maxsize
+
+    def append(self, item):
+        # if storage is full, remove an item
+        if self.full():
+            self.storage.pop(0)
+
+        self.storage.append(item)
+
+    def get_random_sample(self):
+        # safe storage size considering all threads remove one item from storage in same time
+        storage_size = len(self.storage) - self.num_threads
+
+        if self.ignore_last_batch:
+            storage_size -= self.num_speakers_in_batch
+
+        return self.storage[random.randint(0, storage_size)]
+    def get_random_sample_fast(self):
+        '''Call this method only when storage is full'''
+        return self.storage[random.randint(0, self.safe_storage_size)]
+        
 class AugmentWAV(object):
 
     def __init__(self, ap, augmentation_config):

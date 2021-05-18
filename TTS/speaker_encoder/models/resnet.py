@@ -1,6 +1,8 @@
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=8):
@@ -159,28 +161,27 @@ class ResNetSpeakerEncoder(nn.Module):
         return x
 
     @torch.no_grad()
-    def compute_embedding(self, x, num_frames=250, overlap=0.5):
+    def compute_embedding(self, x, num_frames=250, num_eval=10, return_mean=True):
         """
         Generate embeddings for a batch of utterances
         x: 1xTxD
         """
-        num_overlap = int(num_frames * overlap)
         max_len = x.shape[1]
-        embed = None
-        cur_iter = 0
-        for offset in range(0, max_len, num_frames - num_overlap):
-            cur_iter += 1
-            end_offset = min(x.shape[1], offset + num_frames)
 
-            # ignore slices with two or less frames, because it's can break instance normalization
-            if end_offset-offset <= 1:
-                continue
+        if max_len < num_frames:
+            num_frames = max_len
 
-            frames = x[:, offset:end_offset]
+        offsets = np.linspace(0, max_len-num_frames, num=num_eval)
 
-            if embed is None:
-                embed = self.forward(frames, training=False)
-            else:
-                embed += self.forward(frames, training=False)
+        embeddings = []
+        for offset in offsets:
+            offset = int(offset)
+            end_offset = int(offset+num_frames)
+            frames = x[:,offset:end_offset]
+            embed = self.forward(frames, training=False)
+            embeddings.append(embed)
 
-        return embed / cur_iter
+        embeddings = torch.stack(embeddings)
+        if return_mean:
+            embeddings = torch.mean(embeddings, dim=0)
+        return embeddings

@@ -178,6 +178,9 @@ class SoftmaxLoss(nn.Module):
         print('Initialised Softmax Loss')
 
     def forward(self, x, label=None):
+        # reshape for compatibility
+        x = x.reshape(-1, x.size()[-1])
+        label = label.reshape(-1)
 
         x = self.fc(x)
         L = self.criterion(x, label)
@@ -206,12 +209,8 @@ class SoftmaxAngleProtoLoss(nn.Module):
         Calculates the SoftmaxAnglePrototypical loss for an input of dimensions (num_speakers, num_utts_per_speaker, dvec_feats)
         """
 
-        assert x.size()[1] == 2
-
         Lp = self.angleproto(x)
 
-        x = x.reshape(-1, x.size()[-1])
-        label = label.reshape(-1)
         Ls = self.softmax(x, label)
 
         return Ls+Lp

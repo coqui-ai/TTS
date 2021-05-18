@@ -71,8 +71,10 @@ def train(model, optimizer, scheduler, criterion, data_loader, ap, global_step):
     epoch_time = 0
     best_loss = float("inf")
     avg_loss = 0
+    avg_loss_all = 0
     avg_loader_time = 0
     end_time = time.time()
+
     for _, data in enumerate(data_loader):
         start_time = time.time()
 
@@ -137,9 +139,13 @@ def train(model, optimizer, scheduler, criterion, data_loader, ap, global_step):
                 ),
                 flush=True,
             )
+        
+        avg_loss_all += avg_loss
 
-        # save best model
-        best_loss = save_best_model(model, optimizer, criterion, avg_loss, best_loss, OUT_PATH, global_step)
+        if global_step % c.save_step == 0:
+            # save best model
+            best_loss = save_best_model(model, optimizer, criterion, avg_loss, best_loss, OUT_PATH, global_step)
+            avg_loss_all = 0
 
         end_time = time.time()
     return avg_loss, global_step
@@ -155,7 +161,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer = RAdam(model.parameters(), lr=c.lr)
 
     # pylint: disable=redefined-outer-name
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=False)
 
     data_loader, num_speakers = setup_loader(ap, is_val=False, verbose=True)
 
