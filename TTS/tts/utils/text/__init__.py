@@ -39,7 +39,7 @@ def text2phone(text, language):
     if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
         return ph
-    raise ValueError(f" [!] Language {language} is nor supported for phonemization.")
+    raise ValueError(f" [!] Language {language} is not supported for phonemization.")
 
 
 def intersperse(sequence, token):
