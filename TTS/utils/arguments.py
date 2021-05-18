@@ -144,7 +144,7 @@ def process_args(args):
     # setup output paths and read configs
     config = load_config(args.config_path)
     # override values from command-line args
-    config.parse_args(coqpit_overrides)
+    config.parse_known_args(coqpit_overrides, relaxed_parser=True)
     if config.mixed_precision:
         print("   >  Mixed precision mode is ON")
     experiment_path = args.continue_path
