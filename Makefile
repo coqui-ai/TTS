@@ -7,7 +7,6 @@ help:
 target_dirs := tests TTS notebooks
 
 system-deps:	## install linux system deps
-	sudo apt-get install -y espeak-ng
 	sudo apt-get install -y libsndfile1-dev
 
 dev-deps:  ## install development deps

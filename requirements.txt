@@ -7,7 +7,6 @@ librosa==0.8.0
 matplotlib
 numpy==1.18.5
 pandas
-phonemizer>=2.2.0
 pypinyin
 pysbd
 pyyaml
