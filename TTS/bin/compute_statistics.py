@@ -28,7 +28,7 @@ def main():
     args, overrides = parser.parse_known_args()
 
     CONFIG = load_config(args.config_path)
-    CONFIG.parse_args(overrides)
+    CONFIG.parse_known_args(overrides, relaxed_parser=True)
 
     # load config
     CONFIG.audio.signal_norm = False  # do not apply earlier normalization
