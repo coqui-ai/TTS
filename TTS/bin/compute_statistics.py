@@ -8,31 +8,38 @@ import os
 import numpy as np
 from tqdm import tqdm
 
+# from TTS.utils.io import load_config
+from TTS.config import load_config
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 
 
 def main():
     """Run preprocessing process."""
     parser = argparse.ArgumentParser(description="Compute mean and variance of spectrogtram features.")
+    parser.add_argument("config_path", type=str, help="TTS config file path to define audio processin parameters.")
+    parser.add_argument("out_path", type=str, help="save path (directory and filename).")
     parser.add_argument(
-        "--config_path", type=str, required=True, help="TTS config file path to define audio processin parameters."
+        "--data_path",
+        type=str,
+        required=False,
+        help="folder including the target set of wavs overriding dataset config.",
     )
-    parser.add_argument("--out_path", type=str, required=True, help="save path (directory and filename).")
-    args = parser.parse_args()
+    args, overrides = parser.parse_known_args()
+
+    CONFIG = load_config(args.config_path)
+    CONFIG.parse_known_args(overrides, relaxed_parser=True)
 
     # load config
-    CONFIG = load_config(args.config_path)
-    CONFIG.audio["signal_norm"] = False  # do not apply earlier normalization
-    CONFIG.audio["stats_path"] = None  # discard pre-defined stats
+    CONFIG.audio.signal_norm = False  # do not apply earlier normalization
+    CONFIG.audio.stats_path = None  # discard pre-defined stats
 
     # load audio processor
-    ap = AudioProcessor(**CONFIG.audio)
+    ap = AudioProcessor(**CONFIG.audio.to_dict())
 
     # load the meta data of target dataset
-    if "data_path" in CONFIG.keys():
-        dataset_items = glob.glob(os.path.join(CONFIG.data_path, "**", "*.wav"), recursive=True)
+    if args.data_path:
+        dataset_items = glob.glob(os.path.join(args.data_path, "**", "*.wav"), recursive=True)
     else:
         dataset_items = load_meta_data(CONFIG.datasets)[0]  # take only train data
     print(f" > There are {len(dataset_items)} files.")
@@ -73,14 +80,14 @@ def main():
     print(f" > Avg lienar spec scale: {linear_scale.mean()}")
 
     # set default config values for mean-var scaling
-    CONFIG.audio["stats_path"] = output_file_path
-    CONFIG.audio["signal_norm"] = True
+    CONFIG.audio.stats_path = output_file_path
+    CONFIG.audio.signal_norm = True
     # remove redundant values
-    del CONFIG.audio["max_norm"]
-    del CONFIG.audio["min_level_db"]
-    del CONFIG.audio["symmetric_norm"]
-    del CONFIG.audio["clip_norm"]
-    stats["audio_config"] = CONFIG.audio
+    del CONFIG.audio.max_norm
+    del CONFIG.audio.min_level_db
+    del CONFIG.audio.symmetric_norm
+    del CONFIG.audio.clip_norm
+    stats["audio_config"] = CONFIG.audio.to_dict()
     np.save(output_file_path, stats, allow_pickle=True)
     print(f" > stats saved to {output_file_path}")
 

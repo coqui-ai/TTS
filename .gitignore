@@ -132,4 +132,3 @@ notebooks/data/*
 TTS/tts/layers/glow_tts/monotonic_align/core.c
 .vscode-upload.json
 temp_build/*
-recipes/*

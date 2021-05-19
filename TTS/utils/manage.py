@@ -8,8 +8,8 @@ from shutil import copyfile
 import gdown
 import requests
 
+from TTS.config import load_config
 from TTS.utils.generic_utils import get_user_data_dir
-from TTS.utils.io import load_config
 
 
 class ModelManager(object):
@@ -101,6 +101,11 @@ class ModelManager(object):
         output_path = os.path.join(self.output_prefix, model_full_name)
         output_model_path = os.path.join(output_path, "model_file.pth.tar")
         output_config_path = os.path.join(output_path, "config.json")
+        # NOTE : band-aid for removing phoneme support
+        if "needs_phonemizer" in model_item and model_item["needs_phonemizer"]:
+            raise RuntimeError(
+                " [!] Use 🐸TTS <= v0.0.13 for this model. Current version does not support phoneme based models."
+            )
         if os.path.exists(output_path):
             print(f" > {model_name} is already downloaded.")
         else:
@@ -125,17 +130,15 @@ class ModelManager(object):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
-                config["audio"]["stats_path"] = output_stats_path
-                with open(config_path, "w") as jf:
-                    json.dump(config, jf)
+                config.audio.stats_path = output_stats_path
+                config.save_json(config_path)
             # update the speakers.json file path in the model config.json to the current path
             if os.path.exists(output_speakers_path):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
-                config["external_speaker_embedding_file"] = output_speakers_path
-                with open(config_path, "w") as jf:
-                    json.dump(config, jf)
+                config.external_speaker_embedding_file = output_speakers_path
+                config.save_json(config_path)
         return output_model_path, output_config_path, model_item
 
     def _download_gdrive_file(self, gdrive_idx, output):

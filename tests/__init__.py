@@ -1,5 +1,16 @@
 import os
 
+from TTS.utils.generic_utils import get_cuda
+
+
+def get_device_id():
+    use_cuda, _ = get_cuda()
+    if use_cuda:
+        GPU_ID = "0"
+    else:
+        GPU_ID = ""
+    return GPU_ID
+
 
 def get_tests_path():
     """Returns the path to the test directory."""
