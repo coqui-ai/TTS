@@ -1,7 +1,7 @@
 {
     "model": "Tacotron",
-    "run_name": "capacitron",
-    "run_description": "Capacitron-transpose",
+    "run_name": "capacitron-C=150-E=128",
+    "run_description": "Capacitron",
 
     // AUDIO PARAMETERS
     "audio": {
@@ -14,7 +14,7 @@
 
         // Audio processing parameters
         "sample_rate": 24000, // DATASET-RELATED: wav sample-rate.
-        "preemphasis": 0.97, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "preemphasis": 0.0, // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
         "ref_level_db": 20, // reference level db, theoretically 20db is the sound of air.
 
         // Silence trimming
@@ -45,7 +45,7 @@
     "reinit_layers": [], // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 128, // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "batch_size": 256, // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
     "eval_batch_size": 16,
     "r": 2, // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
     "gradual_training": null,
@@ -71,13 +71,13 @@
 
     // VALIDATION
     "run_eval": true,
-    "test_delay_epochs": 10, //Until attention is aligned, testing only wastes computation time.
+    "test_delay_epochs": 100, //Until attention is aligned, testing only wastes computation time.
     "test_sentences_file": null, // set a file to load sentences to be used for testing. If it is null then we use default english sentences.
     
     // OPTIMIZER
     "noam_schedule": false, // use noam warmup and lr schedule.
     "grad_clip": 5.0, // upper limit for gradients for clipping.
-    "epochs": 300000, // total number of epochs to train.
+    "epochs": 299, // total number of epochs to train.
     "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
     "wd": 0.000001, // Weight decay weight.
     "warmup_steps": 4000, // Noam decay steps to increase the learning rate from 0 to "lr"
@@ -85,10 +85,10 @@
     "use_gradual_lr": true, // Hardcoded step-wise learning rate scheduling. Overrides noam schedule if noam is true
     "gradual_learning_rates": [
         [0, 1e-3],
-        [5e4, 5e-4], 
-        [1e5, 3e-4],
-        [15e4, 1e-4], 
-        [2e5, 5e-5]
+        [2e4, 5e-4], 
+        [4e5, 3e-4],
+        [6e4, 1e-4], 
+        [8e4, 5e-5]
     ],
 
     // TACOTRON PRENET
@@ -117,18 +117,19 @@
     "print_step": 100, // Number of steps to log training on console.
     "tb_plot_step": 100, // Number of steps to plot TB training figures.
     "print_eval": false, // If True, it prints intermediate loss values in evalulation.
-    "save_step": 1000, // Number of training steps expected to save traninpg stats and checkpoints.
+    // TODO increase this to 10K when the model is stable to save training time
+    "save_step": 10000, // Number of training steps expected to save traninpg stats and checkpoints.
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
     "tb_model_param_stats": false, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging.
 
     // DATA LOADING
     "text_cleaner": "phoneme_cleaners",
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
-    "num_loader_workers": 8, // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_loader_workers": 12, // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "num_val_loader_workers": 8, // number of evaluation data loader processes.
     "batch_group_size": 4, //Number of batches to shuffle after bucketing.
     "min_seq_len": 1, // DATASET-RELATED: minimum text length to use in training
-    "max_seq_len": 153, // DATASET-RELATED: maximum text length
+    "max_seq_len": 110, // DATASET-RELATED: maximum text length
     "compute_input_seq_cache": false, // if true, text sequences are computed before starting training. If phonemes are enabled, they are also computed at this stage.
     "use_noise_augment": true,
     // "add_silence_end_seconds": 0.25, //Nico - how much silence we add to the end of a sentence ->> sounds better when concatenating multiple synthesised utterances
@@ -163,7 +164,7 @@
         "capacitron_VAE_embedding_dim": 128, // Used for the output of the VAE encoder's LSTM size and for the posterior/prior distributions
         "capacitron_use_text_summary_embeddings": true,
         "capacitron_text_summary_embedding_dim": 128, // size for the LSTM accounting for the text summary conditional input
-        "capacitron_capacity": 300, // capacity target
+        "capacitron_capacity": 150, // capacity target
         "capacitron_use_speaker_embedding": false,
         "capacitron_reference_wav": "/home/big-boy/Data/blizzard2013/segmented/refs/seen/BLZ76427.wav", // path to reference wav file to be used in capacitron inference.
         "capacitron_reference_text": "What does the letter mean, mother?", // string of what the file above is saying

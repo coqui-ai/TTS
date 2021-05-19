@@ -55,27 +55,36 @@ def extract_axis_1(data, ind):
 print(extract_axis_1(torch.tensor(matrix), to_extract))
 # %%
 
-x = torch.randn(128, 1, 151, 80)
+x = torch.randn(1, 1, 125, 4) # [batch_size, 1, time_dim, embed_dim]
 
 S = 2
 W = 1 # in channels
 Filter = 8 # out channels / filter size
 P = int(np.ceil(((S-1)*W-S+Filter)/2))
-x_pad = F.pad(x, (P//2, P//2, P//2, P//2))  # [left, right, top, bot]
+# x_pad = F.pad(x, (P//2, P//2, P//2, P//2))  # [left, right, top, bot]
+x_pad = F.pad(x, (1, 1, 1, 1))  # [left, right, top, bot]
+# print('x shape: ', x.shape)
+# print('x_pad shape: ', x_pad.shape)
+# print(x_pad[0, 0, :, 1])
 
-filters = [1] + [32, 32, 64, 64, 128, 128]
-print(x.shape)
+filters = [1] + [2, 2, 4, 4, 6, 6]
 
-valid_length = torch.tensor(x.size(3))
+valid_length = torch.tensor(100)
 for i in range(len(filters)-1):
     x = torch.nn.Conv2d(in_channels=filters[i],
                         out_channels=filters[i+1],
                         kernel_size=(3, 3),
                         stride=(2, 2),
-                        padding=(2, 2))(x)
-    valid_length = torch.ceil(valid_length/2) + 1
-    print('valid_length: ', valid_length)
-print(x.shape)
+                        padding=(1, 1))(x)
+    valid_length = torch.tensor([torch.ceil(valid_length/2)])
+    post_conv_max_width = x.size(2)
+    mask = torch.arange(post_conv_max_width).expand(1, post_conv_max_width) < valid_length.unsqueeze(1)
+    mask = mask.expand(1, 1, -1, -1).transpose(2, 0).transpose(-1, 2) # [batch_size, 1, post_conv_max_width, 1]
+    print('unmasked: ', x[0, 0, :, :])
+    print('_____________')
+    x = x*mask
+    print('masked: ', x[0, 0, :, :])
+    print('#############')
 
 
 # padded_output_shape = torch.nn.Conv2d(in_channels=1,

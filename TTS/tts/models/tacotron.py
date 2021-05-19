@@ -307,7 +307,7 @@ class Tacotron(TacotronAbstract):
         if reference_text is not None:
             reference_text_embedding = self.embedding(reference_text)
             reference_text_length = torch.tensor([reference_text_embedding.size(1)], dtype=torch.int64) # pylint: disable=not-callable
-        reference_mel_length = torch.tensor([reference_mel.size(2)], dtype=torch.int64) if reference_mel is not None else None # pylint: disable=not-callable
+        reference_mel_length = torch.tensor([reference_mel.size(1)], dtype=torch.int64) if reference_mel is not None else None # pylint: disable=not-callable
 
         encoder_outputs = self.encoder(inputs)
         if self.gst:

@@ -679,12 +679,12 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             print("WARNING: You didn't provide a gst style wav, for this reason we use a zero tensor!")
             for i in range(c.gst['gst_style_tokens']):
                 style_wav[str(i)] = 0
-        if reference_wav is None and c.use_capacitron:
-            reference_text = None
-            print("No reference wav has been defined, sampling from the prior of Capacitron.")
-        else:
-            # TODO this is not working
-            print("Infering prosody transfer from reference file {}.".format(reference_wav))
+        if c.use_capacitron:
+            if reference_wav is not None:
+                print("Infering prosody transfer from reference file {}.".format(reference_wav))
+            else:
+                reference_text = None
+                print("No reference wav has been defined, sampling from the prior of Capacitron.")
         for idx, test_sentence in enumerate(test_sentences):
             try:
                 wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(

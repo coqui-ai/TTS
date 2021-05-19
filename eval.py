@@ -55,7 +55,7 @@ use_cuda = True
 
 now = datetime.datetime.now()
 
-RUN_NAME = 'capacitron-back-toEncoder-w-track_running_stats-May-12-2021_07+16AM-2840cb5'
+RUN_NAME = 'capacitron-noPreemphasis-256-LRCompressed-May-17-2021_03+27PM-fca955c'
 TEST_PATH = Path(join(r'/home/big-boy/Models/Blizzard/', RUN_NAME, 'TESTING'))
 CURRENT_TEST_PATH = Path(join(TEST_PATH, now.strftime("%Y-%m-%d %H:%M:%S")))
 TEST_PATH.mkdir(parents=True, exist_ok=True)
@@ -128,7 +128,7 @@ sentences = [
     "She had a habit of taking showers in lemonade."
 ]
 
-single_sentence = "When the president of Georgetown College was permitted to resign the office, he eagerly sailed to Europe."
+single_sentence = "Reality is the sum or aggregate of all that is real or existent within a system, as opposed to that which is only imaginary."
 
 SAMPLE_FROM = 'prior' # 'prior' or 'posterior'
 TEXT = 'single_sentence' # 'same_text' or 'sentences' or 'single_sentence'
@@ -166,6 +166,6 @@ for row in reference_df.iterrows():
     )
 
     file_handle = 'Prior' if (SAMPLE_FROM == 'prior') else 'Posterior'
-    file_id = _id if TEXT == 'single_sentence' or TEXT == 'same_text' else i
+    file_id = _id if TEXT == 'single_sentence' or TEXT == 'same_text' and SAMPLE_FROM != 'prior' else i
 
     ap.save_wav(wav, join(CURRENT_TEST_PATH, 'GMM_{}_{}.wav'.format(file_handle, file_id)))
