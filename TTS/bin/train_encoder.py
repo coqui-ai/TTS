@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import argparse
 import os
 import sys
 import time
@@ -13,20 +12,13 @@ from torch.utils.data import DataLoader
 from TTS.speaker_encoder.dataset import MyDataset
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss
 from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.utils.generic_utils import check_config_speaker_encoder, save_best_model
+from TTS.speaker_encoder.utils.io import save_best_model, save_checkpoint
 from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.utils.arguments import init_training
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import (
-    count_parameters,
-    create_experiment_folder,
-    get_git_branch,
-    remove_experiment_folder,
-    set_init_dict,
-)
-from TTS.utils.io import copy_model_files, load_config
+from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
-from TTS.utils.tensorboard_logger import TensorboardLogger
 from TTS.utils.training import NoamLR, check_update
 
 torch.backends.cudnn.enabled = True
@@ -105,8 +97,9 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
 
         # Averaged Loss and Averaged Loader Time
         avg_loss = 0.01 * loss.item() + 0.99 * avg_loss if avg_loss != 0 else loss.item()
+        num_loader_workers = c.num_loader_workers if c.num_loader_workers > 0 else 1
         avg_loader_time = (
-            1 / c.num_loader_workers * loader_time + (c.num_loader_workers - 1) / c.num_loader_workers * avg_loader_time
+            1 / num_loader_workers * loader_time + (num_loader_workers - 1) / num_loader_workers * avg_loader_time
             if avg_loader_time != 0
             else loader_time
         )
@@ -139,8 +132,13 @@ def train(model, criterion, optimizer, scheduler, ap, global_step):
 
         # save best model
         best_loss = save_best_model(model, optimizer, avg_loss, best_loss, OUT_PATH, global_step)
-
         end_time = time.time()
+
+        # checkpoint and check stop train cond.
+        if global_step >= c.max_train_step or global_step % c.save_step == 0:
+            save_checkpoint(model, optimizer, avg_loss, OUT_PATH, global_step)
+            if global_step >= c.max_train_step:
+                break
     return avg_loss, global_step
 
 
@@ -149,12 +147,12 @@ def main(args):  # pylint: disable=redefined-outer-name
     global meta_data_train
     global meta_data_eval
 
-    ap = AudioProcessor(**c.audio)
+    ap = AudioProcessor(**c.audio.to_dict())
     model = SpeakerEncoder(
-        input_dim=c.model["input_dim"],
-        proj_dim=c.model["proj_dim"],
-        lstm_dim=c.model["lstm_dim"],
-        num_lstm_layers=c.model["num_lstm_layers"],
+        input_dim=c.model_params["input_dim"],
+        proj_dim=c.model_params["proj_dim"],
+        lstm_dim=c.model_params["lstm_dim"],
+        num_lstm_layers=c.model_params["num_lstm_layers"],
     )
     optimizer = RAdam(model.parameters(), lr=c.lr)
 
@@ -168,11 +166,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
         try:
-            # TODO: fix optimizer init, model.cuda() needs to be called before
-            # optimizer restore
-            # optimizer.load_state_dict(checkpoint['optimizer'])
-            if c.reinit_layers:
-                raise RuntimeError
             model.load_state_dict(checkpoint["model"])
         except KeyError:
             print(" > Partial model initialization.")
@@ -207,47 +200,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--restore_path", type=str, help="Path to model outputs (checkpoint, tensorboard etc.).", default=0
-    )
-    parser.add_argument(
-        "--config_path",
-        type=str,
-        required=True,
-        help="Path to config file for training.",
-    )
-    parser.add_argument("--debug", type=bool, default=True, help="Do not verify commit integrity to run training.")
-    parser.add_argument("--data_path", type=str, default="", help="Defines the data path. It overwrites config.json.")
-    parser.add_argument("--output_path", type=str, help="path for training outputs.", default="")
-    parser.add_argument("--output_folder", type=str, default="", help="folder name for training outputs.")
-    args = parser.parse_args()
-
-    # setup output paths and read configs
-    c = load_config(args.config_path)
-    check_config_speaker_encoder(c)
-    _ = os.path.dirname(os.path.realpath(__file__))
-    if args.data_path != "":
-        c.data_path = args.data_path
-
-    if args.output_path == "":
-        OUT_PATH = os.path.join(_, c.output_path)
-    else:
-        OUT_PATH = args.output_path
-
-    if args.output_folder == "":
-        OUT_PATH = create_experiment_folder(OUT_PATH, c.run_name, args.debug)
-    else:
-        OUT_PATH = os.path.join(OUT_PATH, args.output_folder)
-
-    new_fields = {}
-    if args.restore_path:
-        new_fields["restore_path"] = args.restore_path
-    new_fields["github_branch"] = get_git_branch()
-    copy_model_files(c, args.config_path, OUT_PATH, new_fields)
-
-    LOG_DIR = OUT_PATH
-    tb_logger = TensorboardLogger(LOG_DIR, model_name="Speaker_Encoder")
+    args, c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = init_training(sys.argv)
 
     try:
         main(args)

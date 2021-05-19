@@ -1,6 +1,6 @@
 dependencies = [
     'torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode', 'pypinyin'
-]  # apt install espeak-ng
+]
 import torch
 
 from TTS.utils.manage import ModelManager

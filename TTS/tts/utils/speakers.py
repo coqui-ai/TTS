@@ -6,9 +6,9 @@ from typing import Union
 import numpy as np
 import torch
 
+from TTS.config import load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 
 
 def make_speakers_json_path(out_path):
@@ -28,9 +28,10 @@ def load_speaker_mapping(out_path):
 
 def save_speaker_mapping(out_path, speaker_mapping):
     """Saves speaker mapping if not yet present."""
-    speakers_json_path = make_speakers_json_path(out_path)
-    with open(speakers_json_path, "w") as f:
-        json.dump(speaker_mapping, f, indent=4)
+    if out_path is not None:
+        speakers_json_path = make_speakers_json_path(out_path)
+        with open(speakers_json_path, "w") as f:
+            json.dump(speaker_mapping, f, indent=4)
 
 
 def get_speakers(items):

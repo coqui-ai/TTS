@@ -375,7 +375,6 @@ class Decoder(nn.Module):
         else:
             self._init_states(inputs, mask=None, keep_states=True)
 
-        self.attention.init_win_idx()
         self.attention.init_states(inputs)
         outputs, stop_tokens, alignments, t = [], [], [], 0
         while True:
