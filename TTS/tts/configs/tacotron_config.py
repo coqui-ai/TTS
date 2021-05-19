@@ -122,7 +122,7 @@ class TacotronConfig(BaseTTSConfig):
     gst_style_input: str = None
     # model specific params
     r: int = 2
-    gradual_training: List[List] = None
+    gradual_training: List[List[int]] = None
     memory_size: int = -1
     prenet_type: str = "original"
     prenet_dropout: bool = True
