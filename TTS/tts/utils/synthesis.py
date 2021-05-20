@@ -33,7 +33,6 @@ def text_to_seqvec(text, CONFIG, language=None):
             text_to_sequence(
                 text,
                 text_cleaner,
-                language if language else CONFIG.phoneme_language,
                 tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
                 add_blank=CONFIG["add_blank"] if "add_blank" in CONFIG.keys() else False,
             ),
