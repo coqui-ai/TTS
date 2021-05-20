@@ -38,7 +38,7 @@ class TestTTSDataset(unittest.TestCase):
 
     def _create_dataloader(self, batch_size, r, bgs):
         items = ljspeech(c.data_path, "metadata.csv")
-        dataset = TTSDataset.MyDataset(
+        dataset = TTSDataset.TTSDataset(
             r,
             c.text_cleaner,
             compute_linear_spec=True,

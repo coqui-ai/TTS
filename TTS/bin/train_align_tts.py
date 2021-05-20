@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.tts.datasets.TTSDataset import MyDataset
+from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.layers.losses import AlignTTSLoss
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
@@ -38,7 +38,7 @@ def setup_loader(ap, r, is_val=False, verbose=False):
     if is_val and not config.run_eval:
         loader = None
     else:
-        dataset = MyDataset(
+        dataset = TTSDataset(
             r,
             config.text_cleaner,
             compute_linear_spec=False,
