@@ -1,7 +1,7 @@
 import json
 import os
 import random
-from typing import Union
+from typing import Union, List, Any
 
 import numpy as np
 import torch
@@ -35,9 +35,7 @@ def save_speaker_mapping(out_path, speaker_mapping):
 
 
 def get_speakers(items):
-    """Returns a sorted, unique list of speakers in a given dataset."""
-    speakers = {e[2] for e in items}
-    return sorted(speakers)
+
 
 
 def parse_speakers(c, args, meta_data_train, OUT_PATH):
@@ -121,25 +119,30 @@ class SpeakerManager:
 
     Args:
         x_vectors_file_path (str, optional): Path to the metafile including x vectors. Defaults to "".
-        speaker_id_file_path (str, optional): Path to the metafile that maps speaker names to ids used by the
-        TTS model. Defaults to "".
+        speaker_id_file_path (str, optional): Path to the metafile that maps speaker names to ids used by
+        TTS models. Defaults to "".
         encoder_model_path (str, optional): Path to the speaker encoder model file. Defaults to "".
         encoder_config_path (str, optional): Path to the spealer encoder config file. Defaults to "".
     """
 
     def __init__(
         self,
+        data_items: List[List[Any]] = None,
         x_vectors_file_path: str = "",
         speaker_id_file_path: str = "",
         encoder_model_path: str = "",
         encoder_config_path: str = "",
     ):
 
-        self.x_vectors = None
-        self.speaker_ids = None
-        self.clip_ids = None
+        self.data_items = []
+        self.x_vectors = []
+        self.speaker_ids = []
+        self.clip_ids = []
         self.speaker_encoder = None
         self.speaker_encoder_ap = None
+
+        if data_items:
+            self.speaker_ids = self.parse_speakers()
 
         if x_vectors_file_path:
             self.load_x_vectors_file(x_vectors_file_path)
@@ -169,10 +172,10 @@ class SpeakerManager:
         return len(self.x_vectors[list(self.x_vectors.keys())[0]]["embedding"])
 
     def parser_speakers_from_items(self, items: list):
-        speaker_ids = sorted({item[2] for item in items})
-        self.speaker_ids = speaker_ids
-        num_speakers = len(speaker_ids)
-        return speaker_ids, num_speakers
+        speakers = sorted({item[2] for item in items})
+        self.speaker_ids = {name: i for i, name in enumerate(speakers)}
+        num_speakers = len(self.speaker_ids)
+        return self.speaker_ids, num_speakers
 
     def save_ids_file(self, file_path: str):
         self._save_json(file_path, self.speaker_ids)
