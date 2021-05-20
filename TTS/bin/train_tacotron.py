@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.tts.datasets.TTSDataset import MyDataset
+from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
@@ -43,7 +43,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
         loader = None
     else:
         if dataset is None:
-            dataset = MyDataset(
+            dataset = TTSDataset(
                 r,
                 config.text_cleaner,
                 compute_linear_spec=config.model.lower() == "tacotron",
