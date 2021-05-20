@@ -65,7 +65,7 @@ def basic_cleaners(text):
 
 def transliteration_cleaners(text):
     """Pipeline for non-English text that transliterates to ASCII."""
-    text = convert_to_ascii(text)
+    # text = convert_to_ascii(text)
     text = lowercase(text)
     text = collapse_whitespace(text)
     return text
@@ -89,7 +89,7 @@ def basic_turkish_cleaners(text):
 
 def english_cleaners(text):
     """Pipeline for English text, including number and abbreviation expansion."""
-    text = convert_to_ascii(text)
+    # text = convert_to_ascii(text)
     text = lowercase(text)
     text = expand_time_english(text)
     text = expand_numbers(text)
@@ -129,7 +129,7 @@ def chinese_mandarin_cleaners(text: str) -> str:
 def phoneme_cleaners(text):
     """Pipeline for phonemes mode, including number and abbreviation expansion."""
     text = expand_numbers(text)
-    text = convert_to_ascii(text)
+    # text = convert_to_ascii(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
     text = remove_aux_symbols(text)
