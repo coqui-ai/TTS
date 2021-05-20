@@ -12,7 +12,7 @@ from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.tts.utils.text import pad_with_eos_bos, phoneme_to_sequence, text_to_sequence
 
 
-class MyDataset(Dataset):
+class TTSDataset(Dataset):
     def __init__(
         self,
         outputs_per_step,
@@ -117,12 +117,12 @@ class MyDataset(Dataset):
         try:
             phonemes = np.load(cache_path)
         except FileNotFoundError:
-            phonemes = MyDataset._generate_and_cache_phoneme_sequence(
+            phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
                 text, cache_path, cleaners, language, tp, add_blank
             )
         except (ValueError, IOError):
             print(" [!] failed loading phonemes for {}. " "Recomputing.".format(wav_file))
-            phonemes = MyDataset._generate_and_cache_phoneme_sequence(
+            phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
                 text, cache_path, cleaners, language, tp, add_blank
             )
         if enable_eos_bos:
@@ -190,7 +190,7 @@ class MyDataset(Dataset):
         item = args[0]
         func_args = args[1]
         text, wav_file, *_ = item
-        phonemes = MyDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
+        phonemes = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
         return phonemes
 
     def compute_input_seq(self, num_workers=0):
@@ -225,7 +225,7 @@ class MyDataset(Dataset):
                 with Pool(num_workers) as p:
                     phonemes = list(
                         tqdm.tqdm(
-                            p.imap(MyDataset._phoneme_worker, [[item, func_args] for item in self.items]),
+                            p.imap(TTSDataset._phoneme_worker, [[item, func_args] for item in self.items]),
                             total=len(self.items),
                         )
                     )
