@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from TTS.config import load_config
 from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.tts.datasets.TTSDataset import MyDataset
+from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.speakers import parse_speakers
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
@@ -22,7 +22,7 @@ use_cuda = torch.cuda.is_available()
 
 
 def setup_loader(ap, r, verbose=False):
-    dataset = MyDataset(
+    dataset = TTSDataset(
         r,
         c.text_cleaner,
         compute_linear_spec=False,
