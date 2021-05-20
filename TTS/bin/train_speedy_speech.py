@@ -256,7 +256,7 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
             if global_step % config.tb_plot_step == 0:
                 iter_stats = {"lr": current_lr, "grad_norm": grad_norm, "step_time": step_time}
                 iter_stats.update(loss_dict)
-                tb_logger.tb_train_iter_stats(global_step, iter_stats)
+                tb_logger.tb_train_step_stats(global_step, iter_stats)
 
             if global_step % config.save_step == 0:
                 if config.checkpoint:
