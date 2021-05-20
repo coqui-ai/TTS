@@ -39,7 +39,7 @@ class TensorboardLogger(object):
             except RuntimeError:
                 traceback.print_exc()
 
-    def tb_train_iter_stats(self, step, stats):
+    def tb_train_step_stats(self, step, stats):
         self.dict_to_tb_scalar(f"{self.model_name}_TrainIterStats", stats, step)
 
     def tb_train_epoch_stats(self, step, stats):

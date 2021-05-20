@@ -181,7 +181,7 @@ def train(model, criterion, optimizer, scheduler, scaler, ap, global_step, epoch
             if global_step % 10 == 0:
                 iter_stats = {"lr": current_lr, "grad_norm": grad_norm.item(), "step_time": step_time}
                 iter_stats.update(loss_dict)
-                tb_logger.tb_train_iter_stats(global_step, iter_stats)
+                tb_logger.tb_train_step_stats(global_step, iter_stats)
 
             # save checkpoint
             if global_step % c.save_step == 0:

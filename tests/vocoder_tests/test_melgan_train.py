@@ -21,6 +21,7 @@ config = MelganConfig(
     print_step=1,
     discriminator_model_params={"base_channels": 16, "max_channels": 256, "downsample_factors": [4, 4, 4]},
     print_eval=True,
+    discriminator_model_params={"base_channels": 16, "max_channels": 256, "downsample_factors": [4, 4, 4]},
     data_path="tests/data/ljspeech",
     output_path=output_path,
 )
