@@ -78,10 +78,16 @@ class TacotronConfig(BaseTTSConfig):
             enable /disable using external speaker embeddings in place of the learned embeddings. Defaults to False.
         external_speaker_embedding_file (str):
             Path to the file including pre-computed speaker embeddings. Defaults to None.
-        noam_schedule (bool):
-            enable / disable the use of Noam LR scheduler. Defaults to False.
-        warmup_steps (int):
-            Number of warm-up steps for the Noam scheduler. Defaults 4000.
+        optimizer (str):
+            Optimizer used for the training. Set one from `torch.optim.Optimizer` or `TTS.utils.training`.
+            Defaults to `RAdam`.
+        optimizer_params (dict):
+            Optimizer kwargs. Defaults to `{"betas": [0.8, 0.99], "weight_decay": 0.0}`
+        lr_scheduler (str):
+            Learning rate scheduler for the training. Use one from `torch.optim.Scheduler` schedulers or
+            `TTS.utils.training`. Defaults to `NoamLR`.
+        lr_scheduler_params (dict):
+            Parameters for the generator learning rate scheduler. Defaults to `{"warmup": 4000}`.
         lr (float):
             Initial learning rate. Defaults to `1e-4`.
         wd (float):
@@ -152,10 +158,11 @@ class TacotronConfig(BaseTTSConfig):
     external_speaker_embedding_file: str = False
 
     # optimizer parameters
-    noam_schedule: bool = False
-    warmup_steps: int = 4000
+    optimizer: str = "RAdam"
+    optimizer_params: dict = field(default_factory=lambda: {'betas': [0.9, 0.998], 'weight_decay': 1e-6})
+    lr_scheduler: str = "NoamLR"
+    lr_scheduler_params: dict = field(default_factory=lambda:{"warmup_steps": 4000})
     lr: float = 1e-4
-    wd: float = 1e-6
     grad_clip: float = 5.0
     seq_len_norm: bool = False
     loss_masking: bool = True
