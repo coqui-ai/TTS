@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from TTS.tts.datasets.TTSDataset import MyDataset
+from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
@@ -83,7 +83,7 @@ Example run:
     preprocessor = importlib.import_module("TTS.tts.datasets.preprocess")
     preprocessor = getattr(preprocessor, args.dataset)
     meta_data = preprocessor(args.data_path, args.dataset_metafile)
-    dataset = MyDataset(
+    dataset = TTSDataset(
         model.decoder.r,
         C.text_cleaner,
         compute_linear_spec=False,
