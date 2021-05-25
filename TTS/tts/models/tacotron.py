@@ -2,6 +2,8 @@
 import torch
 from torch import nn
 
+from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron import Decoder, Encoder, PostCBHG
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
