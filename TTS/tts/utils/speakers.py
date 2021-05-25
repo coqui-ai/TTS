@@ -34,10 +34,6 @@ def save_speaker_mapping(out_path, speaker_mapping):
             json.dump(speaker_mapping, f, indent=4)
 
 
-def get_speakers(items):
-
-
-
 def parse_speakers(c, args, meta_data_train, OUT_PATH):
     """Returns number of speakers, speaker embedding shape and speaker mapping"""
     if c.use_speaker_embedding:
@@ -135,7 +131,7 @@ class SpeakerManager:
     ):
 
         self.data_items = []
-        self.x_vectors = []
+        self.x_vectors = {}
         self.speaker_ids = []
         self.clip_ids = []
         self.speaker_encoder = None
@@ -171,7 +167,7 @@ class SpeakerManager:
     def x_vector_dim(self):
         return len(self.x_vectors[list(self.x_vectors.keys())[0]]["embedding"])
 
-    def parser_speakers_from_items(self, items: list):
+    def parse_speakers_from_items(self, items: list):
         speakers = sorted({item[2] for item in items})
         self.speaker_ids = {name: i for i, name in enumerate(speakers)}
         num_speakers = len(self.speaker_ids)
