@@ -6,14 +6,13 @@ from distutils.dir_util import copy_tree
 from multiprocessing import Pool
 
 import librosa
-import soundfile as sf
 from tqdm import tqdm
 
 
 def resample_file(func_args):
     filename, output_sr = func_args
     y, sr = librosa.load(filename, sr=output_sr)
-    sf.write(filename, y, sr)
+    librosa.output.write_wav(filename, y, sr)
 
 
 if __name__ == "__main__":

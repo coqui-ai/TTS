@@ -6,21 +6,17 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from tests import get_tests_output_path
-from TTS.tts.configs import BaseTTSConfig
+from tests import get_tests_input_path, get_tests_output_path
 from TTS.tts.datasets import TTSDataset
 from TTS.tts.datasets.preprocess import ljspeech
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_config
 
 # pylint: disable=unused-variable
 
 OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
-
-# create a dummy config for testing data loaders.
-c = BaseTTSConfig(text_cleaner="english_cleaners", num_loader_workers=0, batch_size=2)
-c.r = 5
-c.data_path = "tests/data/ljspeech/"
+c = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
 ok_ljspeech = os.path.exists(c.data_path)
 
 DATA_EXIST = True
@@ -44,7 +40,7 @@ class TestTTSDataset(unittest.TestCase):
             compute_linear_spec=True,
             ap=self.ap,
             meta_data=items,
-            tp=c.characters,
+            tp=c.characters if "characters" in c.keys() else None,
             batch_group_size=bgs,
             min_seq_len=c.min_seq_len,
             max_seq_len=float("inf"),

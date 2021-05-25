@@ -21,7 +21,6 @@ class AudioProcessor(object):
         sample_rate (int, optional): target audio sampling rate. Defaults to None.
         resample (bool, optional): enable/disable resampling of the audio clips when the target sampling rate does not match the original sampling rate. Defaults to False.
         num_mels (int, optional): number of melspectrogram dimensions. Defaults to None.
-        log_func (int, optional): log exponent used for converting spectrogram aplitude to DB.
         min_level_db (int, optional): minimum db threshold for the computed melspectrograms. Defaults to None.
         frame_shift_ms (int, optional): milliseconds of frames between STFT columns. Defaults to None.
         frame_length_ms (int, optional): milliseconds of STFT window length. Defaults to None.
@@ -276,7 +275,7 @@ class AudioProcessor(object):
         else:
             D = self._stft(y)
         S = self._amp_to_db(np.abs(D))
-        return self.normalize(S).astype(np.float32)
+        return self.normalize(S)
 
     def melspectrogram(self, y):
         if self.preemphasis != 0:
@@ -284,7 +283,7 @@ class AudioProcessor(object):
         else:
             D = self._stft(y)
         S = self._amp_to_db(self._linear_to_mel(np.abs(D)))
-        return self.normalize(S).astype(np.float32)
+        return self.normalize(S)
 
     def inv_spectrogram(self, spectrogram):
         """Converts spectrogram to waveform using librosa"""
@@ -367,7 +366,7 @@ class AudioProcessor(object):
         return len(wav)
 
     def trim_silence(self, wav):
-        """Trim silent parts with a threshold and 0.01 sec margin"""
+        """ Trim silent parts with a threshold and 0.01 sec margin """
         margin = int(self.sample_rate * 0.01)
         wav = wav[margin:-margin]
         return librosa.effects.trim(wav, top_db=self.trim_db, frame_length=self.win_length, hop_length=self.hop_length)[
@@ -430,12 +429,10 @@ class AudioProcessor(object):
     def dequantize(x, bits):
         return 2 * x / (2 ** bits - 1) - 1
 
-
 def _log(x, base):
     if base == 10:
         return np.log10(x)
     return np.log(x)
-
 
 def _exp(x, base):
     if base == 10:

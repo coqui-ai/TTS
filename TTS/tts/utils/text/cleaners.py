@@ -14,7 +14,7 @@ import re
 
 from unidecode import unidecode
 
-from TTS.tts.utils.text.chinese_mandarin.numbers import replace_numbers_to_characters_in_text
+from TTS.tts.utils.chinese_mandarin.numbers import replace_numbers_to_characters_in_text
 
 from .abbreviations import abbreviations_en, abbreviations_fr
 from .number_norm import normalize_numbers

@@ -40,43 +40,43 @@ use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 
 def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
-    if is_val and not config.run_eval:
+    if is_val and not c.run_eval:
         loader = None
     else:
         if dataset is None:
             dataset = MyDataset(
                 r,
-                config.text_cleaner,
-                compute_linear_spec=config.model.lower() == "tacotron",
+                c.text_cleaner,
+                compute_linear_spec=c.model.lower() == "tacotron",
                 meta_data=meta_data_eval if is_val else meta_data_train,
                 ap=ap,
-                tp=config.characters,
-                add_blank=config["add_blank"],
-                batch_group_size=0 if is_val else config.batch_group_size * config.batch_size,
-                min_seq_len=config.min_seq_len,
-                max_seq_len=config.max_seq_len,
-                phoneme_cache_path=config.phoneme_cache_path,
-                use_phonemes=config.use_phonemes,
-                phoneme_language=config.phoneme_language,
-                enable_eos_bos=config.enable_eos_bos_chars,
+                tp=c.characters if "characters" in c.keys() else None,
+                add_blank=c["add_blank"] if "add_blank" in c.keys() else False,
+                batch_group_size=0 if is_val else c.batch_group_size * c.batch_size,
+                min_seq_len=c.min_seq_len,
+                max_seq_len=c.max_seq_len,
+                phoneme_cache_path=c.phoneme_cache_path,
+                use_phonemes=c.use_phonemes,
+                phoneme_language=c.phoneme_language,
+                enable_eos_bos=c.enable_eos_bos_chars,
                 verbose=verbose,
                 speaker_mapping=(speaker_mapping if (c.use_speaker_embedding and c.use_external_speaker_embedding_file) else None),
             )
 
-            if config.use_phonemes and config.compute_input_seq_cache:
+            if c.use_phonemes and c.compute_input_seq_cache:
                 # precompute phonemes to have a better estimate of sequence lengths.
-                dataset.compute_input_seq(config.num_loader_workers)
+                dataset.compute_input_seq(c.num_loader_workers)
             dataset.sort_items()
 
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
-            batch_size=config.eval_batch_size if is_val else config.batch_size,
+            batch_size=c.eval_batch_size if is_val else c.batch_size,
             shuffle=False,
             collate_fn=dataset.collate_fn,
             drop_last=False,
             sampler=sampler,
-            num_workers=config.num_val_loader_workers if is_val else config.num_loader_workers,
+            num_workers=c.num_val_loader_workers if is_val else c.num_loader_workers,
             pin_memory=False,
         )
     return loader
@@ -87,15 +87,15 @@ def format_data(data):
     text_input = data[0]
     text_lengths = data[1]
     speaker_names = data[2]
-    linear_input = data[3] if config.model.lower() in ["tacotron"] else None
+    linear_input = data[3] if c.model.lower() in ["tacotron"] else None
     mel_input = data[4]
     mel_lengths = data[5]
     stop_targets = data[6]
     max_text_length = torch.max(text_lengths.float())
     max_spec_length = torch.max(mel_lengths.float())
 
-    if config.use_speaker_embedding:
-        if config.use_external_speaker_embedding_file:
+    if c.use_speaker_embedding:
+        if c.use_external_speaker_embedding_file:
             speaker_embeddings = data[8]
             speaker_ids = None
         else:
@@ -107,7 +107,7 @@ def format_data(data):
         speaker_ids = None
 
     # set stop targets view, we predict a single stop token per iteration.
-    stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // config.r, -1)
+    stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // c.r, -1)
     stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze(2)
 
     # dispatch data to GPU
@@ -116,7 +116,7 @@ def format_data(data):
         text_lengths = text_lengths.cuda(non_blocking=True)
         mel_input = mel_input.cuda(non_blocking=True)
         mel_lengths = mel_lengths.cuda(non_blocking=True)
-        linear_input = linear_input.cuda(non_blocking=True) if config.model.lower() in ["tacotron"] else None
+        linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron"] else None
         stop_targets = stop_targets.cuda(non_blocking=True)
         if speaker_ids is not None:
             speaker_ids = speaker_ids.cuda(non_blocking=True)
@@ -144,9 +144,9 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
     epoch_time = 0
     keep_avg = KeepAverage()
     if use_cuda:
-        batch_n_iter = int(len(data_loader.dataset) / (config.batch_size * num_gpus))
+        batch_n_iter = int(len(data_loader.dataset) / (c.batch_size * num_gpus))
     else:
-        batch_n_iter = int(len(data_loader.dataset) / config.batch_size)
+        batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
     end_time = time.time()
     c_logger.print_train_start()
     for num_iter, data in enumerate(data_loader):
@@ -169,7 +169,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
 
         global_step += 1
         # setup lr
-        if config.noam_schedule:
+        if c.noam_schedule:
             scheduler.step()
 
         if c.use_gradual_lr:
@@ -298,12 +298,12 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
             scaler.scale(loss_dict["loss"]).backward()
             scaler.unscale_(optimizer)
             optimizer, current_lr = adam_weight_decay(optimizer)
-            grad_norm, _ = check_update(model, config.grad_clip, ignore_stopnet=True)
+            grad_norm, _ = check_update(model, c.grad_clip, ignore_stopnet=True)
             scaler.step(optimizer)
             scaler.update()
 
             # stopnet optimizer step
-            if config.separate_stopnet:
+            if c.separate_stopnet:
                 scaler_st.scale(loss_dict["stopnet_loss"]).backward()
                 scaler.unscale_(optimizer_st)
                 optimizer_st, _ = adam_weight_decay(optimizer_st)
@@ -330,7 +330,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
             optimizer.step()
 
             # stopnet optimizer step
-            if config.separate_stopnet:
+            if c.separate_stopnet:
                 loss_dict["stopnet_loss"].backward()
                 optimizer_st, _ = adam_weight_decay(optimizer_st)
                 grad_norm_st, _ = check_update(model.decoder.stopnet, 1.0)
@@ -373,7 +373,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
         keep_avg.update_values(update_train_values)
 
         # print training progress
-        if global_step % config.print_step == 0:
+        if global_step % c.print_step == 0:
             log_dict = {
                 "max_spec_length": [max_spec_length, 1],  # value, precision
                 "max_text_length": [max_text_length, 1],
@@ -386,7 +386,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
         if args.rank == 0:
             # Plot Training Iter Stats
             # reduce TB load
-            if global_step % config.tb_plot_step == 0:
+            if global_step % c.tb_plot_step == 0:
                 iter_stats = {
                     "lr": current_lr,
                     "grad_norm": grad_norm,
@@ -397,8 +397,8 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
                 iter_stats.update(loss_dict)
                 tb_logger.tb_train_iter_stats(global_step, iter_stats)
 
-            if global_step % config.save_step == 0:
-                if config.checkpoint:
+            if global_step % c.save_step == 0:
+                if c.checkpoint:
                     # save model
                     save_checkpoint(
                         model,
@@ -418,7 +418,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
                 const_spec = postnet_output[0].data.cpu().numpy()
                 gt_spec = (
                     linear_input[0].data.cpu().numpy()
-                    if config.model in ["Tacotron", "TacotronGST"]
+                    if c.model in ["Tacotron", "TacotronGST"]
                     else mel_input[0].data.cpu().numpy()
                 )
                 align_img = alignments[0].data.cpu().numpy()
@@ -429,7 +429,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
                     "alignment": plot_alignment(align_img, output_fig=False),
                 }
 
-                if config.bidirectional_decoder or config.double_decoder_consistency:
+                if c.bidirectional_decoder or c.double_decoder_consistency:
                     figures["alignment_backward"] = plot_alignment(
                         alignments_backward[0].data.cpu().numpy(), output_fig=False
                     )
@@ -437,11 +437,11 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
                 tb_logger.tb_train_figures(global_step, figures)
 
                 # Sample audio
-                if config.model in ["Tacotron", "TacotronGST"]:
+                if c.model in ["Tacotron", "TacotronGST"]:
                     train_audio = ap.inv_spectrogram(const_spec.T)
                 else:
                     train_audio = ap.inv_melspectrogram(const_spec.T)
-                tb_logger.tb_train_audios(global_step, {"TrainAudio": train_audio}, config.audio["sample_rate"])
+                tb_logger.tb_train_audios(global_step, {"TrainAudio": train_audio}, c.audio["sample_rate"])
         end_time = time.time()
 
     # print epoch stats
@@ -452,7 +452,7 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
         epoch_stats = {"epoch_time": epoch_time}
         epoch_stats.update(keep_avg.avg_values)
         tb_logger.tb_train_epoch_stats(global_step, epoch_stats)
-        if config.tb_model_param_stats:
+        if c.tb_model_param_stats:
             tb_logger.tb_model_weights(model, global_step)
     return keep_avg.avg_values, global_step
 
@@ -612,7 +612,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 update_train_values["avg_" + key] = value
             keep_avg.update_values(update_train_values)
 
-            if config.print_eval:
+            if c.print_eval:
                 c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
 
         if args.rank == 0:
@@ -621,7 +621,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             const_spec = postnet_output[idx].data.cpu().numpy()
             gt_spec = (
                 linear_input[idx].data.cpu().numpy()
-                if config.model in ["Tacotron", "TacotronGST"]
+                if c.model in ["Tacotron", "TacotronGST"]
                 else mel_input[idx].data.cpu().numpy()
             )
             align_img = alignments[idx].data.cpu().numpy()
@@ -633,25 +633,22 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             }
 
             # Sample audio
-            if config.model.lower() in ["tacotron"]:
+            if c.model in ["Tacotron", "TacotronGST"]:
                 eval_audio = ap.inv_spectrogram(const_spec.T)
             else:
                 eval_audio = ap.inv_melspectrogram(const_spec.T)
-            tb_logger.tb_eval_audios(global_step, {"ValAudio": eval_audio}, config.audio["sample_rate"])
+            tb_logger.tb_eval_audios(global_step, {"ValAudio": eval_audio}, c.audio["sample_rate"])
 
             # Plot Validation Stats
 
-            if config.bidirectional_decoder or config.double_decoder_consistency:
+            if c.bidirectional_decoder or c.double_decoder_consistency:
                 align_b_img = alignments_backward[idx].data.cpu().numpy()
                 eval_figures["alignment2"] = plot_alignment(align_b_img, output_fig=False)
             tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
             tb_logger.tb_eval_figures(global_step, eval_figures)
 
-    if args.rank == 0 and epoch > config.test_delay_epochs:
-        if config.test_sentences_file:
-            with open(config.test_sentences_file, "r") as f:
-                test_sentences = [s.strip() for s in f.readlines()]
-        else:
+    if args.rank == 0 and epoch > c.test_delay_epochs:
+        if c.test_sentences_file is None:
             test_sentences = [
                 "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
                 "Be a voice, not an echo.",
@@ -659,15 +656,18 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 "This cake is great. It's so delicious and moist.",
                 "Prior to November 22, 1963.",
             ]
+        else:
+            with open(c.test_sentences_file, "r") as f:
+                test_sentences = [s.strip() for s in f.readlines()]
 
         # test sentences
         test_audios = {}
         test_figures = {}
         print(" | > Synthesizing test sentences")
-        speaker_id = 0 if config.use_speaker_embedding else None
+        speaker_id = 0 if c.use_speaker_embedding else None
         speaker_embedding = (
             speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping) - 1)]]["embedding"]
-            if config.use_external_speaker_embedding_file and config.use_speaker_embedding
+            if c.use_external_speaker_embedding_file and c.use_speaker_embedding
             else None
         )
         style_wav = c.get("gst_style_input")
@@ -690,7 +690,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(
                     model,
                     test_sentence,
-                    config,
+                    c,
                     use_cuda,
                     ap,
                     speaker_id=speaker_id,
@@ -699,7 +699,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     reference_wav=reference_wav,
                     reference_text=reference_text,
                     truncated=False,
-                    enable_eos_bos_chars=config.enable_eos_bos_chars,  # pylint: disable=unused-argument
+                    enable_eos_bos_chars=c.enable_eos_bos_chars,  # pylint: disable=unused-argument
                     use_griffin_lim=True,
                     do_trim_silence=False,
                 )
@@ -714,7 +714,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             except:  # pylint: disable=bare-except
                 print(" !! Error creating Test Sentence -", idx)
                 traceback.print_exc()
-        tb_logger.tb_test_audios(global_step, test_audios, config.audio["sample_rate"])
+        tb_logger.tb_test_audios(global_step, test_audios, c.audio["sample_rate"])
         tb_logger.tb_test_figures(global_step, test_figures)
     return keep_avg.avg_values
 
@@ -723,31 +723,31 @@ def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters
     # Audio processor
-    ap = AudioProcessor(**config.audio.to_dict())
+    ap = AudioProcessor(**c.audio)
 
     # setup custom characters if set in config file.
-    if config.characters is not None:
-        symbols, phonemes = make_symbols(**config.characters.to_dict())
+    if "characters" in c.keys():
+        symbols, phonemes = make_symbols(**c.characters)
 
     # DISTRUBUTED
     if num_gpus > 1:
-        init_distributed(args.rank, num_gpus, args.group_id, config.distributed["backend"], config.distributed["url"])
-    num_chars = len(phonemes) if config.use_phonemes else len(symbols)
-    model_characters = phonemes if config.use_phonemes else symbols
+        init_distributed(args.rank, num_gpus, args.group_id, c.distributed["backend"], c.distributed["url"])
+    num_chars = len(phonemes) if c.use_phonemes else len(symbols)
+    model_characters = phonemes if c.use_phonemes else symbols
 
     # load data instances
-    meta_data_train, meta_data_eval = load_meta_data(config.datasets)
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
 
     # set the portion of the data used for training
-    if config.has("train_portion"):
-        meta_data_train = meta_data_train[: int(len(meta_data_train) * config.train_portion)]
-    if config.has("eval_portion"):
-        meta_data_eval = meta_data_eval[: int(len(meta_data_eval) * config.eval_portion)]
+    if "train_portion" in c.keys():
+        meta_data_train = meta_data_train[: int(len(meta_data_train) * c.train_portion)]
+    if "eval_portion" in c.keys():
+        meta_data_eval = meta_data_eval[: int(len(meta_data_eval) * c.eval_portion)]
 
     # parse speakers
-    num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(config, args, meta_data_train, OUT_PATH)
+    num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
 
-    model = setup_model(num_chars, num_speakers, config, speaker_embedding_dim)
+    model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim)
 
     # scalers for mixed precision training
     scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
@@ -791,18 +791,22 @@ def main(args):  # pylint: disable=redefined-outer-name
             # optimizer restore
             print(" > Restoring Optimizer...")
             optimizer.load_state_dict(checkpoint["optimizer"])
-            if "scaler" in checkpoint and config.mixed_precision:
+            if "scaler" in checkpoint and c.mixed_precision:
                 print(" > Restoring AMP Scaler...")
                 scaler.load_state_dict(checkpoint["scaler"])
+            if c.reinit_layers:
+                raise RuntimeError
         except (KeyError, RuntimeError):
             print(" > Partial model initialization...")
             model_dict = model.state_dict()
-            model_dict = set_init_dict(model_dict, checkpoint["model"], config)
+            model_dict = set_init_dict(model_dict, checkpoint["model"], c)
+            # torch.save(model_dict, os.path.join(OUT_PATH, 'state_dict.pt'))
+            # print("State Dict saved for debug in: ", os.path.join(OUT_PATH, 'state_dict.pt'))
             model.load_state_dict(model_dict)
             del model_dict
 
         for group in optimizer.param_groups:
-            group["lr"] = config.lr
+            group["lr"] = c.lr
         print(" > Model restored from step %d" % checkpoint["step"], flush=True)
         args.restore_step = checkpoint["step"]
     else:
@@ -837,22 +841,22 @@ def main(args):  # pylint: disable=redefined-outer-name
         print(" > Restoring best loss from " f"{os.path.basename(args.best_path)} ...")
         best_loss = torch.load(args.best_path, map_location="cpu")["model_loss"]
         print(f" > Starting with loaded last best loss {best_loss}.")
-    keep_all_best = config.keep_all_best
-    keep_after = config.keep_after  # void if keep_all_best False
+    keep_all_best = c.get("keep_all_best", False)
+    keep_after = c.get("keep_after", 10000)  # void if keep_all_best False
 
     # define data loaders
     train_loader = setup_loader(ap, model.decoder.r, is_val=False, verbose=True)
     eval_loader = setup_loader(ap, model.decoder.r, is_val=True)
 
     global_step = args.restore_step
-    for epoch in range(0, config.epochs):
-        c_logger.print_epoch_start(epoch, config.epochs)
+    for epoch in range(0, c.epochs):
+        c_logger.print_epoch_start(epoch, c.epochs)
         # set gradual training
-        if config.gradual_training is not None:
-            r, config.batch_size = gradual_training_scheduler(global_step, config)
-            config.r = r
+        if c.gradual_training is not None:
+            r, c.batch_size = gradual_training_scheduler(global_step, c)
+            c.r = r
             model.decoder.set_r(r)
-            if config.bidirectional_decoder:
+            if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
             train_loader.dataset.outputs_per_step = r
             eval_loader.dataset.outputs_per_step = r
@@ -879,7 +883,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict["avg_postnet_loss"]
-        if config.run_eval:
+        if c.run_eval:
             target_loss = eval_avg_loss_dict["avg_postnet_loss"]
         best_loss = save_best_model(
             target_loss,
@@ -888,17 +892,19 @@ def main(args):  # pylint: disable=redefined-outer-name
             optimizer,
             global_step,
             epoch,
-            config.r,
+            c.r,
             OUT_PATH,
             model_characters,
             keep_all_best=keep_all_best,
             keep_after=keep_after,
-            scaler=scaler.state_dict() if config.mixed_precision else None,
+            scaler=scaler.state_dict() if c.mixed_precision else None,
         )
 
 
 if __name__ == "__main__":
-    args, config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = init_training(sys.argv)
+    args = parse_arguments(sys.argv)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args, model_class="tts")
+
     try:
         main(args)
     except KeyboardInterrupt:

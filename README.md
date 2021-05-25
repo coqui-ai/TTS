@@ -45,9 +45,9 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 📌 **Road Map**                   | [Main Development Plans](https://github.com/coqui-ai/TTS/issues/378)
 | 👩🏾‍🏫 **Tutorials and Examples**     | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/%F0%9F%90%B8-TTS-Notebooks,-Examples-and-Tutorials) |
 | 🚀 **Released Models**            | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
+| 💻 **Docker Image**               | [Repository by @synesthesiam](https://github.com/synesthesiam/docker-coqui-aitts)|
 | 🖥️ **Demo Server**                | [TTS/server](https://github.com/coqui-ai/TTS/tree/master/TTS/server)|
 | 🤖 **Synthesize speech**          | [TTS/README.md](https://github.com/coqui-ai/TTS#example-synthesizing-speech-on-terminal-using-the-released-models)|
-| 🛠️ **Implementing a New Model**   | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/Implementing-a-New-Model-in-%F0%9F%90%B8TTS)|
 
 ## 🥇 TTS Performance
 <p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
@@ -110,17 +110,11 @@ If you are only interested in [synthesizing speech](https://github.com/coqui-ai/
 pip install TTS
 ```
 
-By default this only installs the requirements for PyTorch. To install the tensorflow dependencies as well, use the `tf` extra.
-
-```bash
-pip install TTS[tf]
-```
-
 If you plan to code or train models, clone 🐸TTS and install it locally.
 
 ```bash
 git clone https://github.com/coqui-ai/TTS
-pip install -e .[all,dev,notebooks,tf]  # Select the relevant extras
+pip install -e .
 ```
 
 We use ```espeak-ng``` to convert graphemes to phonemes. You might need to install separately.
@@ -182,7 +176,6 @@ Some of the public datasets that we successfully applied 🐸TTS:
 - [Spanish](https://drive.google.com/file/d/1Sm_zyBo67XHkiFhcRSQ4YaHPYM0slO_e/view?usp=sharing) - thx! @carlfm01
 
 ## Example: Synthesizing Speech on Terminal Using the Released Models.
-<img src="images/tts_cli.gif"/>
 
 After the installation, 🐸TTS provides a CLI interface for synthesizing speech using pre-trained models. You can either use your own model or the release models under 🐸TTS.
 
@@ -192,15 +185,7 @@ Listing released 🐸TTS models.
 tts --list_models
 ```
 
-Run a TTS model, from the release models list, with its default vocoder. (Simply copy and paste the full model names from the list as arguments for the command below.)
-
-```bash
-tts --text "Text for TTS" \
-    --model_name "<type>/<language>/<dataset>/<model_name>" \
-    --out_path folder/to/save/output.wav
-```
-
-Run a tts and a vocoder model from the released model list. Note that not every vocoder is compatible with every TTS model.
+Run a tts and a vocoder model from the released model list. (Simply copy and paste the full model names from the list as arguments for the command below.)
 
 ```bash
 tts --text "Text for TTS" \
@@ -229,45 +214,7 @@ tts --text "Text for TTS" \
     --vocoder_config_path path/to/vocoder_config.json
 ```
 
-Run a multi-speaker TTS model from the released models list.
-
-```bash
-tts --model_name "<type>/<language>/<dataset>/<model_name>"  --list_speaker_idxs  # list the possible speaker IDs.
-tts --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx "<speaker_id>"
-```
-
 **Note:** You can use ```./TTS/bin/synthesize.py``` if you prefer running ```tts``` from the TTS project folder.
-
-## Example: Using the Demo Server for Synthesizing Speech
-
- <!-- <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/demo_server.gif" height="56"/> -->
- <img src="images/demo_server.gif"/>
-
-You can boot up a demo 🐸TTS server to run inference with your models. Note that the server is not optimized for performance
-but gives you an easy way to interact with the models.
-
-The demo server provides pretty much the same interface as the CLI command.
-
-```bash
-tts-server -h # see the help
-tts-server --list_models  # list the available models.
-```
-
-Run a TTS model, from the release models list, with its default vocoder.
-If the model you choose is a multi-speaker TTS model, you can select different speakers on the Web interface and synthesize
-speech.
-
-```bash
-tts-server --model_name "<type>/<language>/<dataset>/<model_name>"
-```
-
-Run a TTS and a vocoder model from the released model list. Note that not every vocoder is compatible with every TTS model.
-
-```bash
-tts-server --model_name "<type>/<language>/<dataset>/<model_name>" \
-           --vocoder_name "<type>/<language>/<dataset>/<model_name>"
-```
-
 
 ## Example: Training and Fine-tuning LJ-Speech Dataset
 Here you can find a [CoLab](https://gist.github.com/erogol/97516ad65b44dbddb8cd694953187c5b) notebook for a hands-on example, training LJSpeech. Or you can manually follow the guideline below.

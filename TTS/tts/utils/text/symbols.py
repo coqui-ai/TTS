@@ -8,25 +8,16 @@ through Unidecode. For other data, you can modify _characters. See TRAINING_DATA
 
 
 def make_symbols(
-    characters,
-    phonemes=None,
-    punctuations="!'(),-.:;? ",
-    pad="_",
-    eos="~",
-    bos="^",
-    unique=True,
+    characters, phonemes=None, punctuations="!'(),-.:;? ", pad="_", eos="~", bos="^"
 ):  # pylint: disable=redefined-outer-name
-    """Function to create symbols and phonemes
-    TODO: create phonemes_to_id and symbols_to_id dicts here."""
+    """ Function to create symbols and phonemes """
     _symbols = list(characters)
     _symbols = [bos] + _symbols if len(bos) > 0 and bos is not None else _symbols
     _symbols = [eos] + _symbols if len(bos) > 0 and eos is not None else _symbols
     _symbols = [pad] + _symbols if len(bos) > 0 and pad is not None else _symbols
     _phonemes = None
     if phonemes is not None:
-        _phonemes_sorted = (
-            sorted(list(set(phonemes))) if unique else sorted(list(phonemes))
-        )  # this is to keep previous models compatible.
+        _phonemes_sorted = sorted(list(set(phonemes)))
         # Prepend "@" to ARPAbet symbols to ensure uniqueness (some are the same as uppercase letters):
         _arpabet = ["@" + s for s in _phonemes_sorted]
         # Export all symbols:

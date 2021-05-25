@@ -30,7 +30,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: x64
       - name: check OS
         run: cat /etc/os-release
       - name: Install dependencies
@@ -40,10 +39,11 @@ jobs:
           sudo apt install -y python3-wheel gcc
           make system-deps
       - name: Upgrade pip
+        # so we can take advantage of pyproject.toml build-dependency support
         run: python3 -m pip install --upgrade pip
       - name: Install TTS
         run: |
-          python3 -m pip install .[all]
+          python3 -m pip install .
           python3 setup.py egg_info
       - name: Lint check
         run: |
