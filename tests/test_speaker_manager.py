@@ -5,11 +5,11 @@ import numpy as np
 import torch
 
 from tests import get_tests_input_path
+from TTS.config import load_config
 from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.speaker_encoder.utils.generic_utils import save_checkpoint
+from TTS.speaker_encoder.utils.io import save_checkpoint
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 
 encoder_config_path = os.path.join(get_tests_input_path(), "test_speaker_encoder_config.json")
 encoder_model_path = os.path.join(get_tests_input_path(), "checkpoint_0.pth.tar")
@@ -25,11 +25,11 @@ class SpeakerManagerTest(unittest.TestCase):
     def test_speaker_embedding():
         # load config
         config = load_config(encoder_config_path)
-        config["audio"]["resample"] = True
+        config.audio.resample = True
 
         # create a dummy speaker encoder
-        model = SpeakerEncoder(**config.model)
-        save_checkpoint(model, None, None, get_tests_input_path(), 0, 0)
+        model = SpeakerEncoder(**config.model_params)
+        save_checkpoint(model, None, None, get_tests_input_path(), 0)
 
         # load audio processor and speaker encoder
         ap = AudioProcessor(**config.audio)

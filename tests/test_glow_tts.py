@@ -6,10 +6,10 @@ import torch
 from torch import optim
 
 from tests import get_tests_input_path
+from TTS.tts.configs import GlowTTSConfig
 from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.models.glow_tts import GlowTTS
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 
 # pylint: disable=unused-variable
 
@@ -17,7 +17,7 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-c = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+c = GlowTTSConfig()
 
 ap = AudioProcessor(**c.audio)
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
@@ -130,6 +130,7 @@ class GlowTTSTrainTest(unittest.TestCase):
             )
             count += 1
 
+
 class GlowTTSInferenceTest(unittest.TestCase):
     @staticmethod
     def test_inference():
@@ -174,13 +175,12 @@ class GlowTTSInferenceTest(unittest.TestCase):
         print(" > Num parameters for GlowTTS model:%s" % (count_parameters(model)))
 
         # inference encoder and decoder with MAS
-        y, *_ = model.inference_with_MAS(
-                input_dummy, input_lengths, mel_spec, mel_lengths, None
-            )
+        y, *_ = model.inference_with_MAS(input_dummy, input_lengths, mel_spec, mel_lengths, None)
 
-        y_dec, _ = model.decoder_inference(mel_spec, mel_lengths
-            )
+        y_dec, _ = model.decoder_inference(mel_spec, mel_lengths)
 
-        assert (y_dec.shape == y.shape), "Difference between the shapes of the glowTTS inference with MAS ({}) and the inference using only the decoder ({}) !!".format(
-                y.shape, y_dec.shape
-            )
+        assert (
+            y_dec.shape == y.shape
+        ), "Difference between the shapes of the glowTTS inference with MAS ({}) and the inference using only the decoder ({}) !!".format(
+            y.shape, y_dec.shape
+        )

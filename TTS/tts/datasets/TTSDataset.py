@@ -25,7 +25,7 @@ class MyDataset(Dataset):
         batch_group_size=0,
         min_seq_len=0,
         max_seq_len=float("inf"),
-        use_phonemes=True,
+        use_phonemes=False,
         phoneme_cache_path=None,
         phoneme_language="en-us",
         enable_eos_bos=False,

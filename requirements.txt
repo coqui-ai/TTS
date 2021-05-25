@@ -7,7 +7,6 @@ librosa==0.8.0
 matplotlib
 numpy==1.18.5
 pandas
-phonemizer>=2.2.0
 pypinyin
 pysbd
 pyyaml
@@ -16,5 +15,7 @@ soundfile
 tensorboardX
 torch>=1.7
 tqdm
+numba==0.52
 umap-learn==0.4.6
 unidecode==0.4.20
+coqpit

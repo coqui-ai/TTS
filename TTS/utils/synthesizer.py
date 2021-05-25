@@ -5,6 +5,7 @@ import numpy as np
 import pysbd
 import torch
 
+from TTS.config import load_config
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.speakers import SpeakerManager
 
@@ -13,7 +14,6 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis, trim_silence
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input, setup_generator
 
 
@@ -113,12 +113,11 @@ class Synthesizer(object):
         # pylint: disable=global-statement
 
         global symbols, phonemes
-
         self.tts_config = load_config(tts_config_path)
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
-        if "characters" in self.tts_config.keys():
+        if self.tts_config.has("characters") and self.tts_config.characters:
             symbols, phonemes = make_symbols(**self.tts_config.characters)
 
         if self.use_phonemes:
@@ -151,7 +150,7 @@ class Synthesizer(object):
             use_cuda (bool): enable/disable CUDA use.
         """
         self.vocoder_config = load_config(model_config)
-        self.vocoder_ap = AudioProcessor(verbose=False, **self.vocoder_config["audio"])
+        self.vocoder_ap = AudioProcessor(verbose=False, **self.vocoder_config.audio)
         self.vocoder_model = setup_generator(self.vocoder_config)
         self.vocoder_model.load_checkpoint(self.vocoder_config, model_file, eval=True)
         if use_cuda:

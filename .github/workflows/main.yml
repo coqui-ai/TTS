@@ -30,6 +30,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          architecture: x64
       - name: check OS
         run: cat /etc/os-release
       - name: Install dependencies
