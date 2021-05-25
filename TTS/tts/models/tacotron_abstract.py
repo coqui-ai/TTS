@@ -1,10 +1,12 @@
 import copy
+import logging
 from abc import ABC, abstractmethod
 
 import torch
 from torch import nn
 
-from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.utils.data import sequence_mask
+from TTS.utils.training import gradual_training_scheduler
 
 
 class TacotronAbstract(ABC, nn.Module):
@@ -35,6 +37,7 @@ class TacotronAbstract(ABC, nn.Module):
         speaker_embedding_dim=None,
         use_gst=False,
         gst=None,
+        gradual_training=[]
     ):
         """Abstract Tacotron class"""
         super().__init__()
@@ -63,6 +66,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.encoder_in_features = encoder_in_features
         self.decoder_in_features = decoder_in_features
         self.speaker_embedding_dim = speaker_embedding_dim
+        self.gradual_training = gradual_training
 
         # layers
         self.embedding = None
@@ -216,3 +220,23 @@ class TacotronAbstract(ABC, nn.Module):
         speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0), outputs.size(1), -1)
         outputs = torch.cat([outputs, speaker_embeddings_], dim=-1)
         return outputs
+
+    #############################
+    # CALLBACKS
+    #############################
+
+    def on_epoch_start(self, trainer):
+        """Callback for setting values wrt gradual training schedule.
+
+        Args:
+            trainer (TrainerTTS): TTS trainer object that is used to train this model.
+        """
+        if self.gradual_training:
+            r, trainer.config.batch_size = gradual_training_scheduler(trainer.total_steps_done, trainer.config)
+            trainer.config.r = r
+            self.decoder.set_r(r)
+            if trainer.config.bidirectional_decoder:
+                trainer.model.decoder_backward.set_r(r)
+            trainer.train_loader = trainer.setup_train_dataloader(self.ap, self.model.decoder.r, verbose=True)
+            trainer.eval_loader = trainer.setup_eval_dataloder(self.ap, self.model.decoder.r)
+            logging.info(f"\n > Number of output frames: {self.decoder.r}")
