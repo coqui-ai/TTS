@@ -3,7 +3,7 @@ from torch import nn
 
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
-from TTS.tts.multispeaker.adverserial_classifier import ReversalClassifier
+from TTS.tts.layers.tacotron.adverserial_classifier import ReversalClassifier
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
 

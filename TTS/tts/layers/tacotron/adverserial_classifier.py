@@ -43,12 +43,3 @@ class ReversalClassifier(torch.nn.Module):
         x = GradientReversalFunction.apply(x, self._lambda, self._clipping)
         x = self._classifier(x)
         return x
-
-    @staticmethod
-    def loss(input_lengths, speakers, prediction):
-        ignore_index = -100
-        ml = torch.max(input_lengths)
-        input_mask = torch.arange(ml, device=input_lengths.device)[None, :] < input_lengths[:, None]
-        target = speakers.repeat(ml, 1).transpose(0, 1)
-        target[~input_mask] = ignore_index
-        return F.cross_entropy(prediction.transpose(1, 2), target, ignore_index=ignore_index)

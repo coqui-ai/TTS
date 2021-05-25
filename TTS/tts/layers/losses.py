@@ -7,7 +7,6 @@ from torch.nn import functional
 
 from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.utils.ssim import ssim
-from TTS.tts.multispeaker.adverserial_classifier import ReversalClassifier
 
 
 # pylint: disable=abstract-method
@@ -238,6 +237,19 @@ class Huber(nn.Module):
         mask = sequence_mask(sequence_length=length, max_len=y.size(1)).float()
         return torch.nn.functional.smooth_l1_loss(x * mask, y * mask, reduction="sum") / mask.sum()
 
+class ReversalClassifierLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def forward(self, input_lengths, speakers, prediction):
+        ignore_index = -100
+        ml = torch.max(input_lengths)
+        input_mask = torch.arange(ml, device=input_lengths.device)[None, :] < input_lengths[:, None]
+        target = speakers.repeat(ml, 1).transpose(0, 1)
+        target[~input_mask] = ignore_index
+        return functional.cross_entropy(prediction.transpose(1, 2), target, ignore_index=ignore_index)
+
 
 ########################
 # MODEL LOSS LAYERS
@@ -273,6 +285,8 @@ class TacotronLoss(torch.nn.Module):
         # ssim loss
         if c.postnet_ssim_alpha > 0 or c.decoder_ssim_alpha > 0:
             self.criterion_ssim = SSIMLoss()
+        if c.reversal_classifier:
+            self.criterion_reversal = ReversalClassifierLoss()
         # stopnet loss
         # pylint: disable=not-callable
         self.criterion_st = BCELossMasked(pos_weight=torch.tensor(stopnet_pos_weight)) if c.stopnet else None
@@ -381,12 +395,10 @@ class TacotronLoss(torch.nn.Module):
 
         # adversarial classifier loss (if enabled)
         if self.config.reversal_classifier:
-            return_dict["reversal_classifier_loss"] = ReversalClassifier.loss(
-                input_lens, speaker_ids, speaker_prediction
-            )
-            return_dict["reversal_classifier_loss"] *= self.config.reversal_classifier_w / (
-                self.config.audio["num_mels"] + 2
-            )
+            reversal_classifier_loss = self.criterion_reversal(input_lens, speaker_ids, speaker_prediction)
+            reversal_classifier_loss *= self.config.reversal_classifier_w / (self.config.audio["num_mels"] + 2)
+            loss += reversal_classifier_loss
+            return_dict["reversal_classifier_loss"] = reversal_classifier_loss
 
         return_dict["loss"] = loss
 
