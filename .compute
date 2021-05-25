@@ -1,7 +1,6 @@
 #!/bin/bash
 yes | apt-get install sox
 yes | apt-get install ffmpeg
-yes | apt-get install espeak
 yes | apt-get install tmux
 yes | apt-get install zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"

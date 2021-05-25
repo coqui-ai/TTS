@@ -1,0 +1,5 @@
+black
+coverage
+isort
+nose
+pylint==2.7.4

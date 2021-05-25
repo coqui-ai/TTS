@@ -1,4 +1,3 @@
-import os
 import unittest
 
 import torch as T
@@ -6,10 +5,8 @@ import torch as T
 from tests import get_tests_input_path
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss
 from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.utils.io import load_config
 
 file_path = get_tests_input_path()
-c = load_config(os.path.join(file_path, "test_config.json"))
 
 
 class SpeakerEncoderTests(unittest.TestCase):

@@ -27,8 +27,8 @@ def text_to_seqvec(text, CONFIG):
                 text_cleaner,
                 CONFIG.phoneme_language,
                 CONFIG.enable_eos_bos_chars,
-                tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
-                add_blank=CONFIG["add_blank"] if "add_blank" in CONFIG.keys() else False,
+                tp=CONFIG.characters,
+                add_blank=CONFIG.add_blank,
             ),
             dtype=np.int32,
         )
@@ -37,8 +37,8 @@ def text_to_seqvec(text, CONFIG):
             text_to_sequence(
                 text,
                 text_cleaner,
-                tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
-                add_blank=CONFIG["add_blank"] if "add_blank" in CONFIG.keys() else False,
+                tp=CONFIG.characters,
+                add_blank=CONFIG.add_blank,
             ),
             dtype=np.int32,
         )
@@ -272,7 +272,7 @@ def synthesis(model,
     """
     # GST processing
     style_mel = None
-    if "use_gst" in CONFIG.keys() and CONFIG.use_gst and style_wav is not None:
+    if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
         if isinstance(style_wav, dict):
             style_mel = style_wav
         else:

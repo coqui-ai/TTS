@@ -105,7 +105,7 @@ class GANDataset(Dataset):
         random.shuffle(self.G_to_D_mappings)
 
     def load_item(self, idx):
-        """ load (audio, feat) couple """
+        """load (audio, feat) couple"""
         if self.compute_feat:
             # compute features from wav
             wavpath = self.item_list[idx]

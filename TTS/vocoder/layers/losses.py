@@ -131,7 +131,7 @@ class MultiScaleSTFTLoss(torch.nn.Module):
 
 
 class L1SpecLoss(nn.Module):
-    """ L1 Loss over Spectrograms as described in HiFiGAN paper https://arxiv.org/pdf/2010.05646.pdf"""
+    """L1 Loss over Spectrograms as described in HiFiGAN paper https://arxiv.org/pdf/2010.05646.pdf"""
 
     def __init__(
         self, sample_rate, n_fft, hop_length, win_length, mel_fmin=None, mel_fmax=None, n_mels=None, use_mel=True
@@ -169,7 +169,7 @@ class MultiScaleSubbandSTFTLoss(MultiScaleSTFTLoss):
 
 
 class MSEGLoss(nn.Module):
-    """ Mean Squared Generator Loss """
+    """Mean Squared Generator Loss"""
 
     # pylint: disable=no-self-use
     def forward(self, score_real):
@@ -178,7 +178,7 @@ class MSEGLoss(nn.Module):
 
 
 class HingeGLoss(nn.Module):
-    """ Hinge Discriminator Loss """
+    """Hinge Discriminator Loss"""
 
     # pylint: disable=no-self-use
     def forward(self, score_real):
@@ -193,7 +193,7 @@ class HingeGLoss(nn.Module):
 
 
 class MSEDLoss(nn.Module):
-    """ Mean Squared Discriminator Loss """
+    """Mean Squared Discriminator Loss"""
 
     def __init__(
         self,
@@ -210,7 +210,7 @@ class MSEDLoss(nn.Module):
 
 
 class HingeDLoss(nn.Module):
-    """ Hinge Discriminator Loss """
+    """Hinge Discriminator Loss"""
 
     # pylint: disable=no-self-use
     def forward(self, score_fake, score_real):
@@ -260,7 +260,7 @@ def _apply_G_adv_loss(scores_fake, loss_func):
 
 
 def _apply_D_loss(scores_fake, scores_real, loss_func):
-    """ Compute D loss func and normalize loss values """
+    """Compute D loss func and normalize loss values"""
     loss = 0
     real_loss = 0
     fake_loss = 0
@@ -343,12 +343,6 @@ class GeneratorLoss(nn.Module):
             return_dict["G_stft_loss_mg"] = stft_loss_mg
             return_dict["G_stft_loss_sc"] = stft_loss_sc
             gen_loss = gen_loss + self.stft_loss_weight * (stft_loss_mg + stft_loss_sc)
-
-        # L1 Spec loss
-        if self.use_l1_spec_loss:
-            l1_spec_loss = self.l1_spec_loss(y_hat, y)
-            return_dict["G_l1_spec_loss"] = l1_spec_loss
-            gen_loss = gen_loss + self.l1_spec_loss_weight * l1_spec_loss
 
         # L1 Spec loss
         if self.use_l1_spec_loss:

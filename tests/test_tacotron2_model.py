@@ -6,10 +6,10 @@ import torch
 from torch import nn, optim
 
 from tests import get_tests_input_path
+from TTS.tts.configs import Tacotron2Config
 from TTS.tts.layers.losses import MSELossMasked
 from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 
 # pylint: disable=unused-variable
 
@@ -17,7 +17,7 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-c = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+c = Tacotron2Config()
 
 ap = AudioProcessor(**c.audio)
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
@@ -148,15 +148,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(
-            num_chars=24,
-            r=c.r,
-            num_speakers=5,
-            gst=True,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
-        ).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, use_gst=True, gst=c.gst).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0
@@ -212,15 +204,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(
-            num_chars=24,
-            r=c.r,
-            num_speakers=5,
-            gst=True,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
-        ).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, use_gst=True, gst=c.gst).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0
@@ -275,17 +259,9 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(
-            num_chars=24,
-            r=c.r,
-            num_speakers=5,
-            speaker_embedding_dim=55,
-            gst=True,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
-            gst_use_speaker_embedding=c.gst["gst_use_speaker_embedding"],
-        ).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, speaker_embedding_dim=55, use_gst=True, gst=c.gst).to(
+            device
+        )
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0

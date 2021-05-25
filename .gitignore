@@ -136,4 +136,3 @@ temp_build/*
 playground.ipynb
 .vscode-upload.json
 temp_build/*
-recipes/*

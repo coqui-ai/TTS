@@ -1,33 +1,6 @@
-import importlib
-import re
-from collections import Counter
-
-import numpy as np
 import torch
 
-from TTS.utils.generic_utils import check_argument
-
-
-def split_dataset(items):
-    speakers = [item[-1] for item in items]
-    is_multi_speaker = len(set(speakers)) > 1
-    eval_split_size = min(500, int(len(items) * 0.01))
-    assert eval_split_size > 0, " [!] You do not have enough samples to train. You need at least 100 samples."
-    np.random.seed(0)
-    np.random.shuffle(items)
-    if is_multi_speaker:
-        items_eval = []
-        speakers = [item[-1] for item in items]
-        speaker_counter = Counter(speakers)
-        while len(items_eval) < eval_split_size:
-            item_idx = np.random.randint(0, len(items))
-            speaker_to_be_removed = items[item_idx][-1]
-            if speaker_counter[speaker_to_be_removed] > 1:
-                items_eval.append(items[item_idx])
-                speaker_counter[speaker_to_be_removed] -= 1
-                del items[item_idx]
-        return items_eval, items
-    return items[:eval_split_size], items[eval_split_size:]
+from TTS.utils.generic_utils import find_module
 
 
 # from https://gist.github.com/jihunchoi/f1434a77df9db1bb337417854b398df1
@@ -39,17 +12,9 @@ def sequence_mask(sequence_length, max_len=None):
     return seq_range.unsqueeze(0) < sequence_length.unsqueeze(1)
 
 
-def to_camel(text):
-    text = text.capitalize()
-    text = re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
-    text = text.replace("Tts", "TTS")
-    return text
-
-
 def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     print(" > Using model: {}".format(c.model))
-    MyModel = importlib.import_module("TTS.tts.models." + c.model.lower())
-    MyModel = getattr(MyModel, to_camel(c.model))
+    MyModel = find_module("TTS.tts.models", c.model.lower())
     if c.model.lower() in "tacotron":
         model = MyModel(
             num_chars=num_chars + getattr(c, "add_blank", False),
@@ -74,7 +39,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             attn_norm=c.attention_norm,
             prenet_type=c.prenet_type,
             prenet_dropout=c.prenet_dropout,
-            prenet_dropout_at_inference=c.prenet_dropout_at_inference if "prenet_dropout_at_inference" in c else False,
+            prenet_dropout_at_inference=c.prenet_dropout_at_inference,
             forward_attn=c.use_forward_attn,
             trans_agent=c.transition_agent,
             forward_attn_mask=c.forward_attn_mask,
@@ -93,17 +58,14 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             r=c.r,
             postnet_output_dim=c.audio["num_mels"],
             decoder_output_dim=c.audio["num_mels"],
-            gst=c.use_gst,
-            gst_embedding_dim=c.gst["gst_embedding_dim"],
-            gst_num_heads=c.gst["gst_num_heads"],
-            gst_style_tokens=c.gst["gst_style_tokens"],
-            gst_use_speaker_embedding=c.gst["gst_use_speaker_embedding"],
+            use_gst=c.use_gst,
+            gst=c.gst,
             attn_type=c.attention_type,
             attn_win=c.windowing,
             attn_norm=c.attention_norm,
             prenet_type=c.prenet_type,
             prenet_dropout=c.prenet_dropout,
-            prenet_dropout_at_inference=c.prenet_dropout_at_inference if "prenet_dropout_at_inference" in c else False,
+            prenet_dropout_at_inference=c.prenet_dropout_at_inference,
             forward_attn=c.use_forward_attn,
             trans_agent=c.transition_agent,
             forward_attn_mask=c.forward_attn_mask,
@@ -125,6 +87,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             encoder_type=c.encoder_type,
             encoder_params=c.encoder_params,
             use_encoder_prenet=c["use_encoder_prenet"],
+            inference_noise_scale=c.inference_noise_scale,
             num_flow_blocks_dec=12,
             kernel_size_dec=5,
             dilation_rate=1,
@@ -136,7 +99,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             num_squeeze=2,
             sigmoid_scale=False,
             mean_only=True,
-            external_speaker_embedding_dim=speaker_embedding_dim,
+            speaker_embedding_dim=speaker_embedding_dim,
         )
     elif c.model.lower() == "speedy_speech":
         model = MyModel(

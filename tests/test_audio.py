@@ -2,22 +2,22 @@ import os
 import unittest
 
 from tests import get_tests_input_path, get_tests_output_path, get_tests_path
+from TTS.config import BaseAudioConfig
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
 
 TESTS_PATH = get_tests_path()
 OUT_PATH = os.path.join(get_tests_output_path(), "audio_tests")
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
 os.makedirs(OUT_PATH, exist_ok=True)
-conf = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+conf = BaseAudioConfig(mel_fmax=8000)
 
 
 # pylint: disable=protected-access
 class TestAudio(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ap = AudioProcessor(**conf.audio)
+        self.ap = AudioProcessor(**conf)
 
     def test_audio_synthesis(self):
         """1. load wav
@@ -55,7 +55,7 @@ class TestAudio(unittest.TestCase):
         _test(4.0, True, True, True)
 
     def test_normalize(self):
-        """Check normalization and denormalization for range values and consistency """
+        """Check normalization and denormalization for range values and consistency"""
         print(" > Testing normalization and denormalization.")
         wav = self.ap.load_wav(WAV_FILE)
         wav = self.ap.sound_norm(wav)  # normalize audio to get abetter normalization range below.
@@ -163,12 +163,12 @@ class TestAudio(unittest.TestCase):
 
     def test_scaler(self):
         scaler_stats_path = os.path.join(get_tests_input_path(), "scale_stats.npy")
-        conf.audio["stats_path"] = scaler_stats_path
-        conf.audio["preemphasis"] = 0.0
-        conf.audio["do_trim_silence"] = True
-        conf.audio["signal_norm"] = True
+        conf.stats_path = scaler_stats_path
+        conf.preemphasis = 0.0
+        conf.do_trim_silence = True
+        conf.signal_norm = True
 
-        ap = AudioProcessor(**conf.audio)
+        ap = AudioProcessor(**conf)
         mel_mean, mel_std, linear_mean, linear_std, _ = ap.load_stats(scaler_stats_path)
         ap.setup_scaler(mel_mean, mel_std, linear_mean, linear_std)
 

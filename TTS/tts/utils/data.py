@@ -33,7 +33,7 @@ def _pad_stop_target(x, length):
 
 
 def prepare_stop_target(inputs, out_steps):
-    """ Pad row vectors with 1. """
+    """Pad row vectors with 1."""
     max_len = max((x.shape[0] for x in inputs))
     remainder = max_len % out_steps
     pad_len = max_len + (out_steps - remainder) if remainder > 0 else max_len

@@ -5,7 +5,7 @@ import tensorflow as tf
 
 
 def save_checkpoint(model, current_step, epoch, output_path, **kwargs):
-    """ Save TF Vocoder model """
+    """Save TF Vocoder model"""
     state = {
         "model": model.weights,
         "step": current_step,
@@ -17,7 +17,7 @@ def save_checkpoint(model, current_step, epoch, output_path, **kwargs):
 
 
 def load_checkpoint(model, checkpoint_path):
-    """ Load TF Vocoder model """
+    """Load TF Vocoder model"""
     checkpoint = pickle.load(open(checkpoint_path, "rb"))
     chkp_var_dict = {var.name: var.numpy() for var in checkpoint["model"]}
     tf_vars = model.weights

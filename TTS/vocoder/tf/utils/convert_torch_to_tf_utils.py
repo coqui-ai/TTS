@@ -3,12 +3,12 @@ import tensorflow as tf
 
 
 def compare_torch_tf(torch_tensor, tf_tensor):
-    """ Compute the average absolute difference b/w torch and tf tensors """
+    """Compute the average absolute difference b/w torch and tf tensors"""
     return abs(torch_tensor.detach().numpy() - tf_tensor.numpy()).mean()
 
 
 def convert_tf_name(tf_name):
-    """ Convert certain patterns in TF layer names to Torch patterns """
+    """Convert certain patterns in TF layer names to Torch patterns"""
     tf_name_tmp = tf_name
     tf_name_tmp = tf_name_tmp.replace(":0", "")
     tf_name_tmp = tf_name_tmp.replace("/forward_lstm/lstm_cell_1/recurrent_kernel", "/weight_hh_l0")
@@ -22,7 +22,7 @@ def convert_tf_name(tf_name):
 
 
 def transfer_weights_torch_to_tf(tf_vars, var_map_dict, state_dict):
-    """ Transfer weigths from torch state_dict to TF variables """
+    """Transfer weigths from torch state_dict to TF variables"""
     print(" > Passing weights from Torch to TF ...")
     for tf_var in tf_vars:
         torch_var_name = var_map_dict[tf_var.name]
