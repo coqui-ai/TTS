@@ -118,7 +118,7 @@ class Encoder(nn.Module):
         # self.lstm.flatten_parameters()
         o, _ = self.lstm(o)
         if language_ids is not None:
-            l = self._language_embedding_after(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+            l = self._language_embedding(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
             l = l.transpose(1, 2)
             o = torch.cat((o, l), dim=2)
         return o
