@@ -23,8 +23,8 @@ def text_to_seqvec(text, CONFIG):
                 text_cleaner,
                 CONFIG.phoneme_language,
                 CONFIG.enable_eos_bos_chars,
-                tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
-                add_blank=CONFIG["add_blank"] if "add_blank" in CONFIG.keys() else False,
+                tp=CONFIG.characters,
+                add_blank=CONFIG.add_blank,
             ),
             dtype=np.int32,
         )
@@ -33,8 +33,8 @@ def text_to_seqvec(text, CONFIG):
             text_to_sequence(
                 text,
                 text_cleaner,
-                tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
-                add_blank=CONFIG["add_blank"] if "add_blank" in CONFIG.keys() else False,
+                tp=CONFIG.characters,
+                add_blank=CONFIG.add_blank,
             ),
             dtype=np.int32,
         )
@@ -65,28 +65,31 @@ def compute_style_mel(style_wav, ap, cuda=False):
 
 
 def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, speaker_embeddings=None):
-    speaker_embedding_g = speaker_id if speaker_id is not None else speaker_embeddings
     if "tacotron" in CONFIG.model.lower():
-        if not CONFIG.use_gst:
-            style_mel = None
-
-        if truncated:
-            decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
-                inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
-            )
-        else:
+        if CONFIG.gst:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
                 inputs, style_mel=style_mel, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
             )
+        else:
+            if truncated:
+                decoder_output, postnet_output, alignments, stop_tokens = model.inference_truncated(
+                    inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
+                )
+            else:
+                decoder_output, postnet_output, alignments, stop_tokens = model.inference(
+                    inputs, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
+                )
     elif "glow" in CONFIG.model.lower():
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, "module"):
             # distributed model
             postnet_output, _, _, _, alignments, _, _ = model.module.inference(
-                inputs, inputs_lengths, g=speaker_embedding_g
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings
             )
         else:
-            postnet_output, _, _, _, alignments, _, _ = model.inference(inputs, inputs_lengths, g=speaker_embedding_g)
+            postnet_output, _, _, _, alignments, _, _ = model.inference(
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings
+            )
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.
         decoder_output = None
@@ -95,9 +98,13 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, "module"):
             # distributed model
-            postnet_output, alignments = model.module.inference(inputs, inputs_lengths, g=speaker_embedding_g)
+            postnet_output, alignments = model.module.inference(
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings
+            )
         else:
-            postnet_output, alignments = model.inference(inputs, inputs_lengths, g=speaker_embedding_g)
+            postnet_output, alignments = model.inference(
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings
+            )
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.
         decoder_output = None
@@ -108,7 +115,7 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
 
 
 def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None):
-    if CONFIG.use_gst and style_mel is not None:
+    if CONFIG.gst and style_mel is not None:
         raise NotImplementedError(" [!] GST inference not implemented for TF")
     if truncated:
         raise NotImplementedError(" [!] Truncated inference not implemented for TF")
@@ -120,7 +127,7 @@ def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=No
 
 
 def run_model_tflite(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None):
-    if CONFIG.use_gst and style_mel is not None:
+    if CONFIG.gst and style_mel is not None:
         raise NotImplementedError(" [!] GST inference not implemented for TfLite")
     if truncated:
         raise NotImplementedError(" [!] Truncated inference not implemented for TfLite")
@@ -249,7 +256,7 @@ def synthesis(
     """
     # GST processing
     style_mel = None
-    if "use_gst" in CONFIG.keys() and CONFIG.use_gst and style_wav is not None:
+    if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
         if isinstance(style_wav, dict):
             style_mel = style_wav
         else:

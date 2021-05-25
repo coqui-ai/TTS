@@ -64,7 +64,7 @@
     "batch_size": 1,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
     "eval_batch_size":1,
     "r": 7,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
-    "gradual_training": [[0, 7, 4]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
+    "gradual_training": [[0, 7, 4], [1, 5, 2]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.
     "ga_alpha": 10.0,        // weight for guided attention loss. If > 0, guided attention is enabled.
     "mixed_precision": false,
@@ -141,7 +141,7 @@
 
     // PHONEMES
     "phoneme_cache_path": "tests/train_outputs/phoneme_cache/",  // phoneme computation is slow, therefore, it caches results in the given folder.
-    "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
+    "use_phonemes": false,           // use phonemes instead of raw characters. It is suggested for better pronounciation.
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST

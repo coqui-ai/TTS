@@ -1,5 +1,3 @@
-import datetime
-import os
 import re
 
 import numpy as np
@@ -164,7 +162,6 @@ def setup_model(c):
     elif c.model_name.lower() == 'resnet':
         model = ResNetSpeakerEncoder(input_dim=c.model["input_dim"], proj_dim=c.model["proj_dim"])
     return model
-
 
 def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_step, epoch):
     checkpoint_path = "checkpoint_{}.pth.tar".format(current_step)

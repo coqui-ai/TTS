@@ -1,5 +1,6 @@
 
 {
+    "model": "speaker_encoder",
     "run_name": "test_speaker_encoder",
     "run_description": "test speaker encoder.",
     "audio":{
@@ -42,8 +43,9 @@
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
     "save_step": 1000, // Number of training steps expected to save traning stats and checkpoints.
     "print_step": 20, // Number of steps to log traning on console.
+    "batch_size": 32,
     "output_path": "", // DATASET-RELATED: output path for all training outputs.
-    "model": {
+    "model_params": {
         "input_dim": 40,
         "proj_dim": 256,
         "lstm_dim": 768,

@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 """Extract Mel spectrograms with teacher forcing."""
 
-import os
 import argparse
+import os
+
 import numpy as np
-from tqdm import tqdm
 import torch
-
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
+from TTS.config import load_config
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import MyDataset
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.speakers import parse_speakers
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
-from TTS.utils.io import load_config
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters
 
 use_cuda = torch.cuda.is_available()
+
 
 def setup_loader(ap, r, verbose=False):
     dataset = MyDataset(
@@ -38,9 +39,7 @@ def setup_loader(ap, r, verbose=False):
         enable_eos_bos=c.enable_eos_bos_chars,
         use_noise_augment=False,
         verbose=verbose,
-        speaker_mapping=speaker_mapping
-        if c.use_speaker_embedding and c.use_external_speaker_embedding_file
-        else None,
+        speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None,
     )
 
     if c.use_phonemes and c.compute_input_seq_cache:
@@ -60,18 +59,20 @@ def setup_loader(ap, r, verbose=False):
     )
     return loader
 
+
 def set_filename(wav_path, out_path):
     wav_file = os.path.basename(wav_path)
-    file_name = wav_file.split('.')[0]
+    file_name = wav_file.split(".")[0]
     os.makedirs(os.path.join(out_path, "quant"), exist_ok=True)
     os.makedirs(os.path.join(out_path, "mel"), exist_ok=True)
     os.makedirs(os.path.join(out_path, "wav_gl"), exist_ok=True)
     os.makedirs(os.path.join(out_path, "wav"), exist_ok=True)
     wavq_path = os.path.join(out_path, "quant", file_name)
     mel_path = os.path.join(out_path, "mel", file_name)
-    wav_gl_path = os.path.join(out_path, "wav_gl", file_name+'.wav')
-    wav_path = os.path.join(out_path, "wav", file_name+'.wav')
+    wav_gl_path = os.path.join(out_path, "wav_gl", file_name + ".wav")
+    wav_path = os.path.join(out_path, "wav", file_name + ".wav")
     return file_name, wavq_path, mel_path, wav_gl_path, wav_path
+
 
 def format_data(data):
     # setup input data
@@ -123,10 +124,22 @@ def format_data(data):
         item_idx,
     )
 
+
 @torch.no_grad()
-def inference(model_name, model, ap, text_input, text_lengths, mel_input, mel_lengths, attn_mask=None, speaker_ids=None, speaker_embeddings=None):
+def inference(
+    model_name,
+    model,
+    ap,
+    text_input,
+    text_lengths,
+    mel_input,
+    mel_lengths,
+    attn_mask=None,
+    speaker_ids=None,
+    speaker_embeddings=None,
+):
     if model_name == "glow_tts":
-        mel_input = mel_input.permute(0, 2, 1) # B x D x T
+        mel_input = mel_input.permute(0, 2, 1)  # B x D x T
         speaker_c = None
         if speaker_ids is not None:
             speaker_c = speaker_ids
@@ -140,7 +153,13 @@ def inference(model_name, model, ap, text_input, text_lengths, mel_input, mel_le
 
     elif "tacotron" in model_name:
         _, postnet_outputs, *_ = model(
-                text_input, text_lengths, mel_input, mel_lengths, speaker_ids=speaker_ids, speaker_embeddings=speaker_embeddings)
+            text_input,
+            text_lengths,
+            mel_input,
+            mel_lengths,
+            speaker_ids=speaker_ids,
+            speaker_embeddings=speaker_embeddings,
+        )
         # normalize tacotron output
         if model_name == "tacotron":
             mel_specs = []
@@ -154,7 +173,10 @@ def inference(model_name, model, ap, text_input, text_lengths, mel_input, mel_le
             model_output = postnet_outputs.detach().cpu().numpy()
     return model_output
 
-def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=False, save_audio=False, debug=False, metada_name="metada.txt"):
+
+def extract_spectrograms(
+    data_loader, model, ap, output_path, quantized_wav=False, save_audio=False, debug=False, metada_name="metada.txt"
+):
     model.eval()
     export_metadata = []
     for _, data in tqdm(enumerate(data_loader), total=len(data_loader)):
@@ -173,7 +195,18 @@ def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=Fals
             item_idx,
         ) = format_data(data)
 
-        model_output = inference(c.model.lower(), model, ap, text_input, text_lengths, mel_input, mel_lengths, attn_mask, speaker_ids, speaker_embeddings)
+        model_output = inference(
+            c.model.lower(),
+            model,
+            ap,
+            text_input,
+            text_lengths,
+            mel_input,
+            mel_lengths,
+            attn_mask,
+            speaker_ids,
+            speaker_embeddings,
+        )
 
         for idx in range(text_input.shape[0]):
             wav_file_path = item_idx[idx]
@@ -204,13 +237,14 @@ def extract_spectrograms(data_loader, model, ap, output_path, quantized_wav=Fals
         for data in export_metadata:
             f.write(f"{data[0]}|{data[1]+'.npy'}\n")
 
+
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global meta_data, symbols, phonemes, model_characters, speaker_mapping
 
     # Audio processor
     ap = AudioProcessor(**c.audio)
-    if "characters" in c.keys():
+    if "characters" in c.keys() and c["characters"]:
         symbols, phonemes = make_symbols(**c.characters)
 
     # set model characters
@@ -242,39 +276,27 @@ def main(args):  # pylint: disable=redefined-outer-name
     r = 1 if c.model.lower() == "glow_tts" else model.decoder.r
     own_loader = setup_loader(ap, r, verbose=True)
 
-    extract_spectrograms(own_loader, model, ap, args.output_path, quantized_wav=args.quantized, save_audio=args.save_audio, debug=args.debug, metada_name="metada.txt")
+    extract_spectrograms(
+        own_loader,
+        model,
+        ap,
+        args.output_path,
+        quantized_wav=args.quantized,
+        save_audio=args.save_audio,
+        debug=args.debug,
+        metada_name="metada.txt",
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--config_path',
-        type=str,
-        help='Path to config file for training.',
-        required=True)
-    parser.add_argument(
-        '--checkpoint_path',
-        type=str,
-        help='Model file to be restored.',
-        required=True)
-    parser.add_argument(
-        '--output_path',
-        type=str,
-        help='Path to save mel specs',
-        required=True)
-    parser.add_argument('--debug',
-                        default=False,
-                        action='store_true',
-                        help='Save audio files for debug')
-    parser.add_argument('--save_audio',
-                        default=False,
-                        action='store_true',
-                        help='Save audio files')
-    parser.add_argument('--quantized',
-                        action='store_true',
-                        help='Save quantized audio files')
+    parser.add_argument("--config_path", type=str, help="Path to config file for training.", required=True)
+    parser.add_argument("--checkpoint_path", type=str, help="Model file to be restored.", required=True)
+    parser.add_argument("--output_path", type=str, help="Path to save mel specs", required=True)
+    parser.add_argument("--debug", default=False, action="store_true", help="Save audio files for debug")
+    parser.add_argument("--save_audio", default=False, action="store_true", help="Save audio files")
+    parser.add_argument("--quantized", action="store_true", help="Save quantized audio files")
     args = parser.parse_args()
 
     c = load_config(args.config_path)
-
     main(args)

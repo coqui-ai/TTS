@@ -463,7 +463,6 @@ class Decoder(nn.Module):
         stop_tokens = []
         t = 0
         self._init_states(inputs)
-        self.attention.init_win_idx()
         self.attention.init_states(inputs)
         while True:
             if t > 0:
