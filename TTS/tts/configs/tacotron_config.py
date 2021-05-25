@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig, GSTConfig
@@ -175,6 +175,15 @@ class TacotronConfig(BaseTTSConfig):
     decoder_ssim_alpha: float = 0.25
     postnet_ssim_alpha: float = 0.25
     ga_alpha: float = 5.0
+
+    # testing
+    test_sentences: List[str] = field(default_factory=lambda:[
+                "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                "Be a voice, not an echo.",
+                "I'm sorry Dave. I'm afraid I can't do that.",
+                "This cake is great. It's so delicious and moist.",
+                "Prior to November 22, 1963."
+            ])
 
     def check_values(self):
         if self.gradual_training:
