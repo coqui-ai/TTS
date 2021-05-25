@@ -126,6 +126,7 @@ class TacotronConfig(BaseTTSConfig):
     use_gst: bool = False
     gst: GSTConfig = None
     gst_style_input: str = None
+
     # model specific params
     r: int = 2
     gradual_training: List[List[int]] = None
