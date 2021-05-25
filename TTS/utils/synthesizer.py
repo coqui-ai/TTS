@@ -230,7 +230,6 @@ class Synthesizer(object):
                 ap=self.ap,
                 speaker_id=None,
                 style_wav=style_wav,
-                truncated=False,
                 enable_eos_bos_chars=self.tts_config.enable_eos_bos_chars,
                 use_griffin_lim=use_gl,
                 speaker_embedding=speaker_embedding,
