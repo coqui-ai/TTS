@@ -47,8 +47,9 @@ class Tacotron(TacotronAbstract):
         gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
         memory_size (int, optional): size of the history queue fed to the prenet. Model feeds the last ```memory_size```
             output frames to the prenet.
+        gradual_trainin (List): Gradual training schedule. If None or `[]`, no gradual training is used.
+            Defaults to `[]`.
     """
-
     def __init__(
         self,
         num_chars,
@@ -77,6 +78,7 @@ class Tacotron(TacotronAbstract):
         use_gst=False,
         gst=None,
         memory_size=5,
+        gradual_training=[]
     ):
         super().__init__(
             num_chars,
@@ -104,6 +106,7 @@ class Tacotron(TacotronAbstract):
             speaker_embedding_dim,
             use_gst,
             gst,
+            gradual_training
         )
 
         # speaker embedding layers
