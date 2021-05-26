@@ -126,7 +126,7 @@ class ResNetSpeakerEncoder(nn.Module):
         nn.init.xavier_normal_(out)
         return out
 
-    def forward(self, x, training=True):
+    def forward(self, x, l2_norm=False):
         x = x.transpose(1, 2)
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
@@ -157,7 +157,7 @@ class ResNetSpeakerEncoder(nn.Module):
         x = x.view(x.size()[0], -1)
         x = self.fc(x)
 
-        if not training:
+        if l2_norm:
             x = torch.nn.functional.normalize(x, p=2, dim=1)
         return x
 
@@ -179,7 +179,7 @@ class ResNetSpeakerEncoder(nn.Module):
             offset = int(offset)
             end_offset = int(offset+num_frames)
             frames = x[:, offset:end_offset]
-            embed = self.forward(frames, training=False)
+            embed = self.forward(frames, l2_norm=True)
             embeddings.append(embed)
 
         embeddings = torch.stack(embeddings)
