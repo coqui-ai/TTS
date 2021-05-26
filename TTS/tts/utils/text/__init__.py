@@ -39,7 +39,8 @@ def text2phone(text, language):
     if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
         return ph
-    elif language == "ja-jp":
+
+    if language == "ja-jp":
         from TTS.tts.utils.japanese import japanese_text2phone
         ph = japanese_text2phone(text)
         return ph
