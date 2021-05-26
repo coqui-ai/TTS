@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from TTS.speaker_encoder.dataset import MyDataset
 
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
-from TTS.speaker_encoder.utils.generic_utils import check_config_speaker_encoder, save_best_model, setup_model
+from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_model
 
 from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets.preprocess import load_meta_data
@@ -38,15 +38,16 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
         dataset = MyDataset(
             ap,
             meta_data_eval if is_val else meta_data_train,
-            voice_len=getattr(c, "voice_len", 1.6),
+            voice_len=c.voice_len,
             num_utter_per_speaker=c.num_utters_per_speaker,
             num_speakers_in_batch=c.num_speakers_in_batch,
-            skip_speakers=getattr(c, "skip_speakers", False),
+            skip_speakers=c.skip_speakers,
             storage_size=c.storage["storage_size"],
             sample_from_storage_p=c.storage["sample_from_storage_p"],
             verbose=verbose,
-            augmentation_config=getattr(c, "audio_augmentation", None)
+            augmentation_config=c.audio_augmentation
         )
+
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -133,17 +134,15 @@ def train(model, optimizer, scheduler, criterion, data_loader, global_step):
             )
         avg_loss_all += avg_loss
 
-        if global_step % c.save_step == 0:
-            # save best model
+        if global_step >= c.max_train_step or global_step % c.save_step == 0:
+            # save best model only
             best_loss = save_best_model(model, optimizer, criterion, avg_loss, best_loss, OUT_PATH, global_step)
             avg_loss_all = 0
-        end_time = time.time()
-
-        # checkpoint and check stop train cond.
-        if global_step >= c.max_train_step or global_step % c.save_step == 0:
-            save_checkpoint(model, optimizer, avg_loss, OUT_PATH, global_step)
             if global_step >= c.max_train_step:
                 break
+
+        end_time = time.time()
+
     return avg_loss, global_step
 
 

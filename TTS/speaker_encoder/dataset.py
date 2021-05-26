@@ -240,9 +240,6 @@ class MyDataset(Dataset):
             labels.append(torch.LongTensor(labels_))
             feats.extend(feats_)
 
-        if self.num_speakers_in_batch != len(speakers):
-            raise ValueError('Error: Speakers appear more than once on the Batch. This cannot happen because the loss functions AngleProto and GE2E consider these samples to be from another speaker.')
-
         feats = torch.stack(feats)
         labels = torch.stack(labels)
 

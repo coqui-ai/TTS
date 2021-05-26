@@ -1,5 +1,5 @@
 {
-    "model_name": "resnet",
+    "model": "speaker_encoder",
     "run_name": "speaker_encoder",
     "run_description": "resnet speaker encoder trained with commonvoice all languages dev and train, Voxceleb 1 dev and Voxceleb 2 dev",
     // AUDIO PARAMETERS
@@ -34,7 +34,7 @@
 
     "loss": "angleproto", // "ge2e" to use Generalized End-to-End loss, "angleproto" to use Angular Prototypical loss and "softmaxproto" to use Softmax with Angular Prototypical loss 
     "grad_clip": 3.0, // upper limit for gradients for clipping.
-    "epochs": 1000, // total number of epochs to train.
+    "max_train_step": 1000000, // total number of steps to train.
     "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
     "lr_decay": false, // if true, Noam learning rate decaying is applied through training.
     "warmup_steps": 4000, // Noam decay steps to increase the learning rate from 0 to "lr"
@@ -45,15 +45,14 @@
     "num_speakers_in_batch": 200, // Batch size for training.
     "num_utters_per_speaker": 2,  //
     "skip_speakers": true, // skip speakers with samples less than "num_utters_per_speaker"
-
     "voice_len": 2, // number of seconds for each training instance
      
-    "num_loader_workers": 8, // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "num_loader_workers": 4, // number of training data loader processes. Don't set it too big. 4-8 are good values.
     "wd": 0.000001, // Weight decay weight.
     "checkpoint": true, // If true, it saves checkpoints per "save_step"
     "save_step": 1000, // Number of training steps expected to save the best checkpoints in training.
     "print_step": 50, // Number of steps to log traning on console.
-    "output_path": "../../../checkpoints/speaker_encoder/resnet_voxceleb1_and_voxceleb2-and-common-voice-all-using-angleproto/", // DATASET-RELATED: output path for all training outputs.
+    "output_path": "../checkpoints/speaker_encoder/resnet_voxceleb1_and_voxceleb2-and-common-voice-all-using-angleproto-continue/", // DATASET-RELATED: output path for all training outputs.
 
     "audio_augmentation": {
         "p": 0.5, // propability of apply this method, 0 is disable rir and additive noise augmentation
@@ -90,12 +89,13 @@
             "max_amplitude": 1e-5    
         }
     },
-    "model": {
+    "model_params": {
+        "model_name": "resnet",
         "input_dim": 80,
         "proj_dim": 512
     },
     "storage": {
-        "sample_from_storage_p": 0.66,  // the probability with which we'll sample from the DataSet in-memory storage
+        "sample_from_storage_p": 0.5,  // the probability with which we'll sample from the DataSet in-memory storage
         "storage_size":  35 // the size of the in-memory storage with respect to a single batch
     },
     "datasets": 
