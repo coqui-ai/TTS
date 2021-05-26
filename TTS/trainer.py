@@ -142,6 +142,8 @@ class TrainerTTS:
         if self.config.characters is not None:
             symbols, phonemes = make_symbols(
                 **self.config.characters.to_dict())
+        else:
+            from TTS.tts.utils.text.symbols import symbols, phonemes
         model_characters = phonemes if self.config.use_phonemes else symbols
         return model_characters
 
@@ -532,7 +534,7 @@ class TrainerTTS:
 
             if self.config.print_eval:
                 self.c_logger.print_eval_step(step, loss_dict,
-                                              self.keep_eval_avg.avg_values)
+                                              self.keep_avg_eval.avg_values)
         return outputs, loss_dict
 
     def eval_epoch(self):
@@ -603,8 +605,11 @@ class TrainerTTS:
             self.speaker_manager.speaker_ids[0]
         ) if self.config.use_external_speaker_embedding_file and self.config.use_speaker_embedding else None
         # setup style_mel
-        style_wav = self.config.gst_style_input
-        if style_wav is None and self.config.use_gst:
+        if self.config.has('gst_style_input'):
+            style_wav = self.config.gst_style_input
+        else:
+            style_wav = None
+        if style_wav is None and 'use_gst' in self.config and self.config.use_gst:
             # inicialize GST with zero dict.
             style_wav = {}
             print("WARNING: You don't provided a gst style wav, for this reason we use a zero tensor!")
@@ -675,7 +680,8 @@ class TrainerTTS:
         )
 
     def on_epoch_start(self):
-        self.model.on_epoch_start(self)
+        if hasattr(self.model, 'on_epoch_start'):
+            self.model.on_epoch_start(self)
 
     def on_epoch_end(self):
         ...
