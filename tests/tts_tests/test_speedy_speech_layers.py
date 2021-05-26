@@ -2,7 +2,7 @@ import torch
 
 from TTS.tts.layers.feed_forward.duration_predictor import DurationPredictor
 from TTS.tts.models.speedy_speech import SpeedySpeech
-from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.utils.data import sequence_mask
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
