@@ -6,7 +6,7 @@ import torch
 
 from tests import get_tests_input_path
 from TTS.config import load_config
-from TTS.speaker_encoder.model import SpeakerEncoder
+from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.speaker_encoder.utils.io import save_checkpoint
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
@@ -28,7 +28,7 @@ class SpeakerManagerTest(unittest.TestCase):
         config.audio.resample = True
 
         # create a dummy speaker encoder
-        model = SpeakerEncoder(**config.model_params)
+        model = setup_model(config)
         save_checkpoint(model, None, None, get_tests_input_path(), 0)
 
         # load audio processor and speaker encoder

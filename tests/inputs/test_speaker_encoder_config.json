@@ -46,6 +46,7 @@
     "batch_size": 32,
     "output_path": "", // DATASET-RELATED: output path for all training outputs.
     "model_params": {
+        "model_name": "lstm",
         "input_dim": 40,
         "proj_dim": 256,
         "lstm_dim": 768,
@@ -54,8 +55,7 @@
     },
     "storage": {
         "sample_from_storage_p": 0.66,  // the probability with which we'll sample from the DataSet in-memory storage
-        "storage_size": 15,   // the size of the in-memory storage with respect to a single batch
-        "additive_noise": 1e-5   // add very small gaussian noise to the data in order to increase robustness
+        "storage_size": 15  // the size of the in-memory storage with respect to a single batch
     },
     "datasets":null
 }

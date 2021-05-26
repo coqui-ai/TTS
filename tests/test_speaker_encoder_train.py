@@ -19,7 +19,7 @@ config = SpeakerEncoderConfig(
     print_step=1,
     save_step=1,
     print_eval=True,
-    audio=BaseAudioConfig(num_mels=40),
+    audio=BaseAudioConfig(num_mels=80),
 )
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
