@@ -89,12 +89,13 @@ class GlowTTSConfig(BaseTTSConfig):
     use_external_speaker_embedding_file: bool = False
     external_speaker_embedding_file: str = False
 
-    # optimizer params
-    noam_schedule: bool = True
-    warmup_steps: int = 4000
+    # optimizer parameters
+    optimizer: str = "RAdam"
+    optimizer_params: dict = field(default_factory=lambda: {'betas': [0.9, 0.998], 'weight_decay': 1e-6})
+    lr_scheduler: str = "NoamLR"
+    lr_scheduler_params: dict = field(default_factory=lambda:{"warmup_steps": 4000})
     grad_clip: float = 5.0
     lr: float = 1e-3
-    wd: float = 0.000001
 
     # overrides
     min_seq_len: int = 3
