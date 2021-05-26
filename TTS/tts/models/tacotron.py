@@ -255,7 +255,7 @@ class Tacotron(TacotronAbstract):
             outputs['alignments_backward'] = alignments_backward
             outputs['decoder_outputs_backward'] = decoder_outputs_backward
         outputs.update({
-            'postnet_outputs': postnet_outputs,
+            'model_outputs': postnet_outputs,
             'decoder_outputs': decoder_outputs,
             'alignments': alignments,
             'stop_tokens': stop_tokens
@@ -287,7 +287,7 @@ class Tacotron(TacotronAbstract):
         postnet_outputs = self.last_linear(postnet_outputs)
         decoder_outputs = decoder_outputs.transpose(1, 2)
         outputs = {
-            'postnet_outputs': postnet_outputs,
+            'model_outputs': postnet_outputs,
             'decoder_outputs': decoder_outputs,
             'alignments': alignments,
             'stop_tokens': stop_tokens
@@ -335,7 +335,7 @@ class Tacotron(TacotronAbstract):
 
         # compute loss
         loss_dict = criterion(
-            outputs['postnet_outputs'],
+            outputs['model_outputs'],
             outputs['decoder_outputs'],
             mel_input,
             linear_input,
@@ -355,7 +355,7 @@ class Tacotron(TacotronAbstract):
         return outputs, loss_dict
 
     def train_log(self, ap, batch, outputs):
-        postnet_outputs = outputs['postnet_outputs']
+        postnet_outputs = outputs['model_outputs']
         alignments = outputs['alignments']
         alignments_backward = outputs['alignments_backward']
         mel_input = batch['mel_input']

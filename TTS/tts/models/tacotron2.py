@@ -233,7 +233,7 @@ class Tacotron2(TacotronAbstract):
             outputs['alignments_backward'] = alignments_backward
             outputs['decoder_outputs_backward'] = decoder_outputs_backward
         outputs.update({
-            'postnet_outputs': postnet_outputs,
+            'model_outputs': postnet_outputs,
             'decoder_outputs': decoder_outputs,
             'alignments': alignments,
             'stop_tokens': stop_tokens
@@ -253,7 +253,7 @@ class Tacotron2(TacotronAbstract):
             if not self.embeddings_per_sample:
                 x_vector = self.speaker_embedding(cond_input['speaker_ids'])[:, None]
             else:
-                x_vector = cond_input
+                x_vector = cond_input['x_vectors']
 
             encoder_outputs = self._concat_speaker_embedding(
                 encoder_outputs, x_vector)
@@ -265,7 +265,7 @@ class Tacotron2(TacotronAbstract):
         decoder_outputs, postnet_outputs, alignments = self.shape_outputs(
             decoder_outputs, postnet_outputs, alignments)
         outputs = {
-            'postnet_outputs': postnet_outputs,
+            'model_outputs': postnet_outputs,
             'decoder_outputs': decoder_outputs,
             'alignments': alignments,
             'stop_tokens': stop_tokens
