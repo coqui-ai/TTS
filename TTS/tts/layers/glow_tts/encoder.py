@@ -9,7 +9,7 @@ from TTS.tts.layers.generic.time_depth_sep_conv import TimeDepthSeparableConvBlo
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.glow import ResidualConv1dLayerNormBlock
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
-from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.utils.data import sequence_mask
 
 
 class Encoder(nn.Module):
