@@ -8,18 +8,17 @@ from TTS.speaker_encoder.utils.generic_utils import AugmentWAV, Storage
 
 class MyDataset(Dataset):
     def __init__(
-        self,
-        ap,
-        meta_data,
-        voice_len=1.6,
-        num_speakers_in_batch=64,
-        storage_size=1,
-        sample_from_storage_p=0.5,
-        additive_noise= 1e-5,
-        num_utter_per_speaker=10,
-        skip_speakers=False,
-        verbose=False,
-        augmentation_config=None
+            self,
+            ap,
+            meta_data,
+            voice_len=1.6,
+            num_speakers_in_batch=64,
+            storage_size=1,
+            sample_from_storage_p=0.5,
+            num_utter_per_speaker=10,
+            skip_speakers=False,
+            verbose=False,
+            augmentation_config=None
     ):
         """
         Args:
@@ -105,23 +104,6 @@ class MyDataset(Dataset):
 
         self.speakers = [k for (k, v) in self.speaker_to_utters.items()]
 
-    # def __parse_items(self):
-    #     """
-    #     Find unique speaker ids and create a dict mapping utterances from speaker id
-    #     """
-    #     speakers = list({item[-1] for item in self.items})
-    #     self.speaker_to_utters = {}
-    #     self.speakers = []
-    #     for speaker in speakers:
-    #         speaker_utters = [item[1] for item in self.items if item[2] == speaker]
-    #         if len(speaker_utters) < self.num_utter_per_speaker and self.skip_speakers:
-    #             print(
-    #                 f" [!] Skipped speaker {speaker}. Not enough utterances {self.num_utter_per_speaker} vs {len(speaker_utters)}."
-    #             )
-    #         else:
-    #             self.speakers.append(speaker)
-    #             self.speaker_to_utters[speaker] = speaker_utters
-
     def __len__(self):
         return int(1e10)
 
@@ -197,22 +179,26 @@ class MyDataset(Dataset):
         labels = []
         feats = []
         speakers = set()
-        from_disk = 0
-        from_storage = 0
+
         for speaker, speaker_id in batch:
             speaker_id = int(speaker_id)
 
             # ensure that an speaker appears only once in the batch
             if speaker_id in speakers:
+
+                # remove current speaker
+                if speaker_id in speakers_id_in_batch:
+                    speakers_id_in_batch.remove(speaker_id)
+
                 speaker, _ = self.__sample_speaker(ignore_speakers=speakers_id_in_batch)
                 speaker_id = self.speakerid_to_classid[speaker]
+                speakers_id_in_batch.add(speaker_id)
 
             if random.random() < self.sample_from_storage_p and self.storage.full():
                 # sample from storage (if full)
-                # print(help(self.storage))
                 wavs_, labels_ = self.storage.get_random_sample_fast()
-                from_storage += 1
-                # force choose the current speaker or other not in batch 
+
+                # force choose the current speaker or other not in batch
                 # It's necessary for ideal training with AngleProto and GE2E losses
                 if labels_[0] in speakers_id_in_batch and labels_[0] != speaker_id:
                     attempts = 0
@@ -225,13 +211,10 @@ class MyDataset(Dataset):
                         # Try 5 times after that load from disk
                         if attempts >= 5:
                             wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
-                            from_storage -= 1
-                            from_disk += 1
                             break
             else:
                 # don't sample from storage, but from HDD
                 wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
-                from_disk += 1
 
             # append speaker for control
             speakers.add(labels_[0])
@@ -258,7 +241,7 @@ class MyDataset(Dataset):
             feats.extend(feats_)
 
         if self.num_speakers_in_batch != len(speakers):
-            raise ValueError('Speakers appear more than once on the Batch. This cannot happen because the loss functions AngleProto and GE2E consider these samples to be from another speaker.')
+            raise ValueError('Error: Speakers appear more than once on the Batch. This cannot happen because the loss functions AngleProto and GE2E consider these samples to be from another speaker.')
 
         feats = torch.stack(feats)
         labels = torch.stack(labels)

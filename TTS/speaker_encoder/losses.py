@@ -103,18 +103,18 @@ class GE2ELoss(nn.Module):
             L.append(L_row)
         return torch.stack(L)
 
-    def forward(self, dvecs, label=None):
+    def forward(self, x, label=None):
         """
         Calculates the GE2E loss for an input of dimensions (num_speakers, num_utts_per_speaker, dvec_feats)
         """
 
         assert x.size()[1] >= 2
 
-        centroids = torch.mean(dvecs, 1)
-        cos_sim_matrix = self.calc_cosine_sim(dvecs, centroids)
+        centroids = torch.mean(x, 1)
+        cos_sim_matrix = self.calc_cosine_sim(x, centroids)
         torch.clamp(self.w, 1e-6)
         cos_sim_matrix = self.w * cos_sim_matrix + self.b
-        L = self.embed_loss(dvecs, cos_sim_matrix)
+        L = self.embed_loss(x, cos_sim_matrix)
         return L.mean()
 
 
@@ -141,6 +141,7 @@ class AngleProtoLoss(nn.Module):
 
         print(" > Initialised Angular Prototypical loss")
 
+    # pylint: disable=W0613
     def forward(self, x, label=None):
         """
         Calculates the AngleProto loss for an input of dimensions (num_speakers, num_utts_per_speaker, dvec_feats)

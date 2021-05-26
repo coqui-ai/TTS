@@ -11,8 +11,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from TTS.speaker_encoder.dataset import MyDataset
-from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxLoss, SoftmaxAngleProtoLoss
-from TTS.speaker_encoder.utils.generic_utils import check_config_speaker_encoder, save_best_model, save_checkpoint, setup_model
+from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
+from TTS.speaker_encoder.utils.generic_utils import check_config_speaker_encoder, save_best_model, setup_model
 from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.utils.audio import AudioProcessor
@@ -51,9 +51,8 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             storage_size=c.storage["storage_size"],
             sample_from_storage_p=c.storage["sample_from_storage_p"],
             verbose=verbose,
-            augmentation_config=getattr(c, "audio_augmentation", None) 
+            augmentation_config=getattr(c, "audio_augmentation", None)
         )
-
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
@@ -65,8 +64,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
     return loader, dataset.get_num_speakers()
 
 
-def train(model, optimizer, scheduler, criterion, data_loader, ap, global_step):
-
+def train(model, optimizer, scheduler, criterion, data_loader, global_step):
     model.train()
     epoch_time = 0
     best_loss = float("inf")
@@ -80,7 +78,6 @@ def train(model, optimizer, scheduler, criterion, data_loader, ap, global_step):
 
         # setup input data
         inputs, labels = data
-        
         loader_time = time.time() - end_time
         global_step += 1
 
@@ -139,7 +136,6 @@ def train(model, optimizer, scheduler, criterion, data_loader, ap, global_step):
                 ),
                 flush=True,
             )
-        
         avg_loss_all += avg_loss
 
         if global_step % c.save_step == 0:
@@ -215,8 +211,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         criterion.cuda()
 
     global_step = args.restore_step
-    # save_checkpoint(model, optimizer, criterion, 0.9, '../', global_step, 1)
-    _, global_step = train(model, optimizer, scheduler, criterion, data_loader, ap, global_step)
+    _, global_step = train(model, optimizer, scheduler, criterion, data_loader, global_step)
 
 
 if __name__ == "__main__":

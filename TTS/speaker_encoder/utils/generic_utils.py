@@ -52,47 +52,18 @@ class Storage(object):
             storage_size -= self.num_speakers_in_batch
 
         return self.storage[random.randint(0, storage_size)]
+
     def get_random_sample_fast(self):
         '''Call this method only when storage is full'''
         return self.storage[random.randint(0, self.safe_storage_size)]
-        
+
 class AugmentWAV(object):
 
     def __init__(self, ap, augmentation_config):
 
         self.ap = ap
-
-        '''augmentation_config = {
-            "p": 1,
-            "rir":{
-                "rir_path": "rir_path/"
-                "conv_mode": "full"
-            },
-            "additive":{
-                "sounds_path": "musan/",
-                # directorys in sounds_path
-                "speech":{
-                    "min_snr_in_db": 13,
-                    "max_snr_in_db": 20,
-                    "min_num_noises": 3,
-                    "max_num_noises": 7
-                    },
-                "noise":{
-                    "min_snr_in_db": 0,
-                    "max_snr_in_db": 15,
-                    "min_num_noises": 1,
-                    "max_num_noises": 1
-                    },
-                "music":{
-                    "min_snr_in_db": 5,
-                    "max_snr_in_db": 15,
-                    "min_num_noises": 1,
-                    "max_num_noises": 1
-                    }
-            }   
-        }'''
-
         self.use_additive_noise = False
+
         if 'additive' in augmentation_config.keys():
             self.additive_noise_config = augmentation_config['additive']
             additive_path = self.additive_noise_config['sounds_path']
@@ -104,7 +75,7 @@ class AugmentWAV(object):
                     if isinstance(self.additive_noise_config[key], dict):
                         self.additive_noise_types.append(key)
 
-                additive_files = glob.glob(os.path.join(additive_path,'**/*.wav'), recursive=True)
+                additive_files = glob.glob(os.path.join(additive_path, '**/*.wav'), recursive=True)
 
                 self.noise_list = {}
 
@@ -118,12 +89,13 @@ class AugmentWAV(object):
                     self.noise_list[noise_dir].append(wav_file)
 
                 print(f" | > Using Additive Noise Augmentation: with {len(additive_files)} audios instances from {self.additive_noise_types}")
-                
+
         self.use_rir = False
+
         if 'rir' in augmentation_config.keys():
             self.rir_config = augmentation_config['rir']
             if self.rir_config['rir_path']:
-                self.rir_files = glob.glob(os.path.join(self.rir_config['rir_path'],'**/*.wav'), recursive=True)
+                self.rir_files = glob.glob(os.path.join(self.rir_config['rir_path'], '**/*.wav'), recursive=True)
                 self.use_rir = True
 
             print(f" | > Using RIR Noise Augmentation: with {len(self.rir_files)} audios instances")
@@ -161,9 +133,8 @@ class AugmentWAV(object):
             else:
                 noises_wav += noise_wav
 
-        # if all possibel files is less than audio, choose other files
+        # if all possible files is less than audio, choose other files
         if noises_wav is None:
-            print("audio ignorado")
             return self.additive_noise(noise_type, audio)
 
         return audio + noises_wav
@@ -172,23 +143,20 @@ class AugmentWAV(object):
         audio_len = audio.shape[0]
 
         rir_file = random.choice(self.rir_files)
-        
         rir = self.ap.load_wav(rir_file, sr=self.ap.sample_rate)
         rir = rir / np.sqrt(np.sum(rir ** 2))
         return signal.convolve(audio, rir, mode=self.rir_config['conv_mode'])[:audio_len]
 
     def apply_one(self, audio):
-        return self.reverberate(audio)
         noise_type = random.choice(self.global_noise_list)
         if noise_type == "RIR_AUG":
             return self.reverberate(audio)
-        else:
-            return self.additive_noise(noise_type, audio)
+
+        return self.additive_noise(noise_type, audio)
 
 def to_camel(text):
     text = text.capitalize()
     return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
-
 
 def setup_model(c):
     if c.model_name.lower() == 'lstm':
@@ -286,8 +254,9 @@ def check_config_speaker_encoder(c):
     check_argument("model", c, restricted=True, val_type=dict)
     check_argument("model_name", c, restricted=True, val_type=str)
     check_argument("input_dim", c["model"], restricted=True, val_type=int)
+    check_argument("proj_dim", c["model"], restricted=True, val_type=int)
+
     if c.model_name.lower() == 'lstm':
-        check_argument("proj_dim", c["model"], restricted=True, val_type=int)
         check_argument("lstm_dim", c["model"], restricted=True, val_type=int)
         check_argument("num_lstm_layers", c["model"], restricted=True, val_type=int)
         check_argument("use_lstm_with_projection", c["model"], restricted=True, val_type=bool)
