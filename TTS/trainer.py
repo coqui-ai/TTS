@@ -174,6 +174,8 @@ class TrainerTTS:
     def init_scheduler(self, config, optimizer):
         lr_scheduler = config.lr_scheduler
         lr_scheduler_params = config.lr_scheduler_params
+        if lr_scheduler is None:
+            return None
         if lr_scheduler.lower() == "noamlr":
             from TTS.utils.training import NoamLR
             scheduler = NoamLR
@@ -285,7 +287,8 @@ class TrainerTTS:
         mel_lengths = batch[5]
         stop_targets = batch[6]
         item_idx = batch[7]
-        attn_mask = batch[8]
+        speaker_embeddings = batch[8]
+        attn_mask = batch[9]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
 
@@ -306,7 +309,7 @@ class TrainerTTS:
             speaker_ids = None
 
         # compute durations from attention masks
-        if attn_mask:
+        if attn_mask is not None:
             durations = torch.zeros(attn_mask.shape[0], attn_mask.shape[2])
             for idx, am in enumerate(attn_mask):
                 # compute raw durations
@@ -344,9 +347,9 @@ class TrainerTTS:
                 ] else None
             stop_targets = stop_targets.cuda(non_blocking=True)
             attn_mask = attn_mask.cuda(
-                non_blocking=True) if attn_mask else None
+                non_blocking=True) if attn_mask is not None else None
             durations = durations.cuda(
-                non_blocking=True) if attn_mask else None
+                non_blocking=True) if attn_mask is not None else None
             if speaker_ids is not None:
                 speaker_ids = speaker_ids.cuda(non_blocking=True)
             if speaker_embeddings is not None:
@@ -569,7 +572,7 @@ class TrainerTTS:
         test_sentences = self.config.test_sentences
         cond_inputs = self._get_cond_inputs()
         for idx, sen in enumerate(test_sentences):
-            wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(
+            wav, alignment, model_outputs, _ = synthesis(
                 self.model,
                 sen,
                 self.config,
@@ -581,7 +584,7 @@ class TrainerTTS:
                 enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                 use_griffin_lim=True,
                 do_trim_silence=False,
-            )
+            ).values()
 
             file_path = os.path.join(self.output_audio_path, str(self.total_steps_done))
             os.makedirs(file_path, exist_ok=True)
@@ -589,7 +592,7 @@ class TrainerTTS:
             self.ap.save_wav(wav, file_path)
             test_audios["{}-audio".format(idx)] = wav
             test_figures["{}-prediction".format(idx)] = plot_spectrogram(
-                postnet_output, self.ap, output_fig=False)
+                model_outputs, self.ap, output_fig=False)
             test_figures["{}-alignment".format(idx)] = plot_alignment(
                 alignment, output_fig=False)
 
@@ -654,7 +657,8 @@ class TrainerTTS:
             self.train_epoch()
             if self.config.run_eval:
                 self.eval_epoch()
-            self.test_run()
+            if epoch >= self.config.test_delay_epochs:
+                self.test_run()
             self.on_epoch_end()
             self.c_logger.print_epoch_end(
                 epoch, self.keep_avg_eval.avg_values
