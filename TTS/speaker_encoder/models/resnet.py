@@ -1,18 +1,16 @@
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=8):
         super(SELayer, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
-                nn.Linear(channel, channel // reduction),
-                nn.ReLU(inplace=True),
-                nn.Linear(channel // reduction, channel),
-                nn.Sigmoid()
+            nn.Linear(channel, channel // reduction),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
@@ -57,16 +55,17 @@ class ResNetSpeakerEncoder(nn.Module):
     """Implementation of the model H/ASP without batch normalization in speaker embedding. This model was proposed in: https://arxiv.org/abs/2009.14153
     Adapted from: https://github.com/clovaai/voxceleb_trainer
     """
+    # pylint: disable=W0102
     def __init__(self, input_dim=64, proj_dim=512, layers=[3, 4, 6, 3], num_filters=[32, 64, 128, 256], encoder_type='ASP', log_input=False):
         super(ResNetSpeakerEncoder, self).__init__()
 
         self.encoder_type = encoder_type
         self.input_dim = input_dim
         self.log_input = log_input
-        self.conv1 = nn.Conv2d(1, num_filters[0] , kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(1, num_filters[0], kernel_size=3, stride=1, padding=1)
         self.relu = nn.ReLU(inplace=True)
         self.bn1 = nn.BatchNorm2d(num_filters[0])
-        
+
         self.inplanes = num_filters[0]
         self.layer1 = self.create_layer(SEBasicBlock, num_filters[0], layers[0])
         self.layer2 = self.create_layer(SEBasicBlock, num_filters[1], layers[1], stride=(2, 2))
@@ -116,11 +115,12 @@ class ResNetSpeakerEncoder(nn.Module):
         layers = []
         layers.append(block(self.inplanes, planes, stride, downsample))
         self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
+        for _ in range(1, blocks):
             layers.append(block(self.inplanes, planes))
 
         return nn.Sequential(*layers)
 
+    # pylint: disable=R0201
     def new_parameter(self, *size):
         out = nn.Parameter(torch.FloatTensor(*size))
         nn.init.xavier_normal_(out)
@@ -130,7 +130,8 @@ class ResNetSpeakerEncoder(nn.Module):
         x = x.transpose(1, 2)
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
-                if self.log_input: x = (x+1e-6).log()
+                if self.log_input:
+                    x = (x+1e-6).log()
                 x = self.instancenorm(x).unsqueeze(1)
 
         x = self.conv1(x)
@@ -150,8 +151,8 @@ class ResNetSpeakerEncoder(nn.Module):
             x = torch.sum(x * w, dim=2)
         elif self.encoder_type == "ASP":
             mu = torch.sum(x * w, dim=2)
-            sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu ** 2 ).clamp(min=1e-5) )
-            x = torch.cat((mu, sg),1)
+            sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu ** 2).clamp(min=1e-5))
+            x = torch.cat((mu, sg), 1)
 
         x = x.view(x.size()[0], -1)
         x = self.fc(x)
@@ -177,7 +178,7 @@ class ResNetSpeakerEncoder(nn.Module):
         for offset in offsets:
             offset = int(offset)
             end_offset = int(offset+num_frames)
-            frames = x[:,offset:end_offset]
+            frames = x[:, offset:end_offset]
             embed = self.forward(frames, training=False)
             embeddings.append(embed)
 
