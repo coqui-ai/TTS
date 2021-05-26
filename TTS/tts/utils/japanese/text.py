@@ -3,7 +3,6 @@
 
 import re
 import MeCab
-from typing import List, Tuple
 
 _CONVRULES = [
     # Conversion of 2 letters
@@ -364,7 +363,7 @@ def text2kata(text: str) -> str:
         else:
             if word in _SYMBOL_TOKENS:
                 res.append(word)
-            elif word == 'っ' or word == 'ッ':
+            elif word in ('っ', 'ッ'):
                 res.append('ッ')
             elif word in _NO_YOMI_TOKENS:
                 pass
