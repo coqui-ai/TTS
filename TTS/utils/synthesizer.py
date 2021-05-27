@@ -6,7 +6,7 @@ import pysbd
 import torch
 
 from TTS.config import load_config
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import SpeakerManager
 
 # pylint: disable=unused-wildcard-import
