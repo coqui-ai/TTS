@@ -31,12 +31,13 @@ config.save_json(config_path)
 
 # train the model for one epoch
 command_train = (
-    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tacotron.py --config_path {config_path} "
+    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --config_path {config_path} "
     f"--coqpit.output_path {output_path} "
     "--coqpit.datasets.0.name ljspeech "
     "--coqpit.datasets.0.meta_file_train metadata.csv "
     "--coqpit.datasets.0.meta_file_val metadata.csv "
     "--coqpit.datasets.0.path tests/data/ljspeech "
+    "--coqpit.test_delay_epochs 0 "
 )
 run_cli(command_train)
 
@@ -45,7 +46,7 @@ continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getm
 
 # restore the model and continue training for one more epoch
 command_train = (
-    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tacotron.py --continue_path {continue_path} "
+    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "
 )
 run_cli(command_train)
 shutil.rmtree(continue_path)
