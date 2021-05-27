@@ -160,9 +160,9 @@ class TacotronConfig(BaseTTSConfig):
 
     # optimizer parameters
     optimizer: str = "RAdam"
-    optimizer_params: dict = field(default_factory=lambda: {'betas': [0.9, 0.998], 'weight_decay': 1e-6})
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.9, 0.998], "weight_decay": 1e-6})
     lr_scheduler: str = "NoamLR"
-    lr_scheduler_params: dict = field(default_factory=lambda:{"warmup_steps": 4000})
+    lr_scheduler_params: dict = field(default_factory=lambda: {"warmup_steps": 4000})
     lr: float = 1e-4
     grad_clip: float = 5.0
     seq_len_norm: bool = False
@@ -178,13 +178,15 @@ class TacotronConfig(BaseTTSConfig):
     ga_alpha: float = 5.0
 
     # testing
-    test_sentences: List[str] = field(default_factory=lambda:[
-                "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-                "Be a voice, not an echo.",
-                "I'm sorry Dave. I'm afraid I can't do that.",
-                "This cake is great. It's so delicious and moist.",
-                "Prior to November 22, 1963."
-            ])
+    test_sentences: List[str] = field(
+        default_factory=lambda: [
+            "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+            "Be a voice, not an echo.",
+            "I'm sorry Dave. I'm afraid I can't do that.",
+            "This cake is great. It's so delicious and moist.",
+            "Prior to November 22, 1963.",
+        ]
+    )
 
     def check_values(self):
         if self.gradual_training:
