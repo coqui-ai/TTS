@@ -6,6 +6,7 @@ from packaging import version
 
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.chinese_mandarin.phonemizer import chinese_text_to_phonemes
+from TTS.tts.utils.japanese import japanese_text2phone
 from TTS.tts.utils.text.symbols import _bos, _eos, _punctuations, make_symbols, phonemes, symbols
 
 # pylint: disable=unnecessary-comprehension
@@ -41,7 +42,6 @@ def text2phone(text, language):
         return ph
 
     if language == "ja-jp":
-        from TTS.tts.utils.japanese import japanese_text2phone
         ph = japanese_text2phone(text)
         return ph
 
