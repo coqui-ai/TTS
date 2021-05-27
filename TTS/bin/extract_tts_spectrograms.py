@@ -146,22 +146,14 @@ def inference(
         elif speaker_embeddings is not None:
             speaker_c = speaker_embeddings
 
-        outputs = model.inference_with_MAS(
-            text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c
-        )
-        model_output = outputs['model_outputs']
+        outputs = model.inference_with_MAS(text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c)
+        model_output = outputs["model_outputs"]
         model_output = model_output.transpose(1, 2).detach().cpu().numpy()
 
     elif "tacotron" in model_name:
-        cond_input = {'speaker_ids': speaker_ids, 'x_vectors': speaker_embeddings}
-        outputs = model(
-            text_input,
-            text_lengths,
-            mel_input,
-            mel_lengths,
-            cond_input
-        )
-        postnet_outputs = outputs['model_outputs']
+        cond_input = {"speaker_ids": speaker_ids, "x_vectors": speaker_embeddings}
+        outputs = model(text_input, text_lengths, mel_input, mel_lengths, cond_input)
+        postnet_outputs = outputs["model_outputs"]
         # normalize tacotron output
         if model_name == "tacotron":
             mel_specs = []

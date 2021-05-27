@@ -506,5 +506,10 @@ class AlignTTSLoss(nn.Module):
             spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
             ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
             dur_loss = self.dur_loss(dur_output.unsqueeze(2), dur_target.unsqueeze(2), input_lens)
-        loss = self.spec_loss_alpha * spec_loss + self.ssim_alpha * ssim_loss + self.dur_loss_alpha * dur_loss + self.mdn_alpha * mdn_loss
+        loss = (
+            self.spec_loss_alpha * spec_loss
+            + self.ssim_alpha * ssim_loss
+            + self.dur_loss_alpha * dur_loss
+            + self.mdn_alpha * mdn_loss
+        )
         return {"loss": loss, "loss_l1": spec_loss, "loss_ssim": ssim_loss, "loss_dur": dur_loss, "mdn_loss": mdn_loss}

@@ -37,7 +37,7 @@ class TacotronAbstract(ABC, nn.Module):
         speaker_embedding_dim=None,
         use_gst=False,
         gst=None,
-        gradual_training=[]
+        gradual_training=[],
     ):
         """Abstract Tacotron class"""
         super().__init__()
