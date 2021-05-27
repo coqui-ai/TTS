@@ -10,7 +10,11 @@ def main():
     # try:
     args, config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = init_training(
         sys.argv)
-    trainer = TrainerTTS(args, config, c_logger, tb_logger, output_path=OUT_PATH)
+    trainer = TrainerTTS(args,
+                         config,
+                         c_logger,
+                         tb_logger,
+                         output_path=OUT_PATH)
     trainer.fit()
     # except KeyboardInterrupt:
     #     remove_experiment_folder(OUT_PATH)
