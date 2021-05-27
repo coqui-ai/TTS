@@ -132,7 +132,5 @@ notebooks/data/*
 TTS/tts/layers/glow_tts/monotonic_align/core.c
 temp_build/*
 
-# playgrounds
-playground.ipynb
 .vscode-upload.json
 temp_build/*
