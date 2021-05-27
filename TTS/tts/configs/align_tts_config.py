@@ -92,13 +92,24 @@ class AlignTTSConfig(BaseTTSConfig):
     external_speaker_embedding_file: str = False
 
     # optimizer parameters
-    noam_schedule: bool = False
-    warmup_steps: int = 4000
+    optimizer: str = "Adam"
+    optimizer_params: dict = field(default_factory=lambda: {'betas': [0.9, 0.998], 'weight_decay': 1e-6})
+    lr_scheduler: str = None
+    lr_scheduler_params: dict = None
     lr: float = 1e-4
-    wd: float = 1e-6
     grad_clip: float = 5.0
 
     # overrides
     min_seq_len: int = 13
     max_seq_len: int = 200
     r: int = 1
+
+   # testing
+    test_sentences: List[str] = field(default_factory=lambda:[
+                "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                "Be a voice, not an echo.",
+                "I'm sorry Dave. I'm afraid I can't do that.",
+                "This cake is great. It's so delicious and moist.",
+                "Prior to November 22, 1963."
+            ])
+
