@@ -12,7 +12,7 @@ from tqdm import tqdm
 from TTS.config import load_config
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import TTSDataset
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import parse_speakers
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
