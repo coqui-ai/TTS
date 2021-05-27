@@ -275,7 +275,7 @@ class AlignTTS(nn.Module):
             g: [B, C]
         """
         g = cond_input["x_vectors"] if "x_vectors" in cond_input else None
-        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)  # pylint: disable=not-callable
+        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         # pad input to prevent dropping the last word
         # x = torch.nn.functional.pad(x, pad=(0, 5), mode='constant', value=0)
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
