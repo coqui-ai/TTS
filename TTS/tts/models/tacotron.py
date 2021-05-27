@@ -50,6 +50,7 @@ class Tacotron(TacotronAbstract):
         gradual_trainin (List): Gradual training schedule. If None or `[]`, no gradual training is used.
             Defaults to `[]`.
     """
+
     def __init__(
         self,
         num_chars,
@@ -78,7 +79,7 @@ class Tacotron(TacotronAbstract):
         use_gst=False,
         gst=None,
         memory_size=5,
-        gradual_training=[]
+        gradual_training=[],
     ):
         super().__init__(
             num_chars,
@@ -106,15 +107,14 @@ class Tacotron(TacotronAbstract):
             speaker_embedding_dim,
             use_gst,
             gst,
-            gradual_training
+            gradual_training,
         )
 
         # speaker embedding layers
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 speaker_embedding_dim = 256
-                self.speaker_embedding = nn.Embedding(self.num_speakers,
-                                                      speaker_embedding_dim)
+                self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
 
         # speaker and gst embeddings is concat in decoder input
@@ -145,8 +145,7 @@ class Tacotron(TacotronAbstract):
             separate_stopnet,
         )
         self.postnet = PostCBHG(decoder_output_dim)
-        self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2,
-                                     postnet_output_dim)
+        self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, postnet_output_dim)
 
         # setup prenet dropout
         self.decoder.prenet.dropout_at_inference = prenet_dropout_at_inference
@@ -183,12 +182,7 @@ class Tacotron(TacotronAbstract):
                 separate_stopnet,
             )
 
-    def forward(self,
-                text,
-                text_lengths,
-                mel_specs=None,
-                mel_lengths=None,
-                cond_input=None):
+    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, cond_input=None):
         """
         Shapes:
             text: [B, T_in]
@@ -197,100 +191,87 @@ class Tacotron(TacotronAbstract):
             mel_lengths: [B]
             cond_input: 'speaker_ids': [B, 1] and  'x_vectors':[B, C]
         """
-        outputs = {
-            'alignments_backward': None,
-            'decoder_outputs_backward': None
-        }
+        outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
         input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)
         # B x T_in x embed_dim
         inputs = self.embedding(text)
         # B x T_in x encoder_in_features
         encoder_outputs = self.encoder(inputs)
         # sequence masking
-        encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(
-            encoder_outputs)
+        encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(encoder_outputs)
         # global style token
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs,
-                                               cond_input['x_vectors'])
+            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, cond_input["x_vectors"])
         # speaker embedding
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = self.speaker_embedding(cond_input['speaker_ids'])[:,
-                                                                         None]
+                speaker_embeddings = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
             else:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = torch.unsqueeze(cond_input['x_vectors'], 1)
-            encoder_outputs = self._concat_speaker_embedding(
-                encoder_outputs, speaker_embeddings)
+                speaker_embeddings = torch.unsqueeze(cond_input["x_vectors"], 1)
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, speaker_embeddings)
         # decoder_outputs: B x decoder_in_features x T_out
         # alignments: B x T_in x encoder_in_features
         # stop_tokens: B x T_in
-        decoder_outputs, alignments, stop_tokens = self.decoder(
-            encoder_outputs, mel_specs, input_mask)
+        decoder_outputs, alignments, stop_tokens = self.decoder(encoder_outputs, mel_specs, input_mask)
         # sequence masking
         if output_mask is not None:
-            decoder_outputs = decoder_outputs * output_mask.unsqueeze(
-                1).expand_as(decoder_outputs)
+            decoder_outputs = decoder_outputs * output_mask.unsqueeze(1).expand_as(decoder_outputs)
         # B x T_out x decoder_in_features
         postnet_outputs = self.postnet(decoder_outputs)
         # sequence masking
         if output_mask is not None:
-            postnet_outputs = postnet_outputs * output_mask.unsqueeze(
-                2).expand_as(postnet_outputs)
+            postnet_outputs = postnet_outputs * output_mask.unsqueeze(2).expand_as(postnet_outputs)
         # B x T_out x posnet_dim
         postnet_outputs = self.last_linear(postnet_outputs)
         # B x T_out x decoder_in_features
         decoder_outputs = decoder_outputs.transpose(1, 2).contiguous()
         if self.bidirectional_decoder:
-            decoder_outputs_backward, alignments_backward = self._backward_pass(
-                mel_specs, encoder_outputs, input_mask)
-            outputs['alignments_backward'] = alignments_backward
-            outputs['decoder_outputs_backward'] = decoder_outputs_backward
+            decoder_outputs_backward, alignments_backward = self._backward_pass(mel_specs, encoder_outputs, input_mask)
+            outputs["alignments_backward"] = alignments_backward
+            outputs["decoder_outputs_backward"] = decoder_outputs_backward
         if self.double_decoder_consistency:
             decoder_outputs_backward, alignments_backward = self._coarse_decoder_pass(
-                mel_specs, encoder_outputs, alignments, input_mask)
-            outputs['alignments_backward'] = alignments_backward
-            outputs['decoder_outputs_backward'] = decoder_outputs_backward
-        outputs.update({
-            'model_outputs': postnet_outputs,
-            'decoder_outputs': decoder_outputs,
-            'alignments': alignments,
-            'stop_tokens': stop_tokens
-        })
+                mel_specs, encoder_outputs, alignments, input_mask
+            )
+            outputs["alignments_backward"] = alignments_backward
+            outputs["decoder_outputs_backward"] = decoder_outputs_backward
+        outputs.update(
+            {
+                "model_outputs": postnet_outputs,
+                "decoder_outputs": decoder_outputs,
+                "alignments": alignments,
+                "stop_tokens": stop_tokens,
+            }
+        )
         return outputs
 
     @torch.no_grad()
-    def inference(self,
-                  text_input,
-                  cond_input=None):
+    def inference(self, text_input, cond_input=None):
         inputs = self.embedding(text_input)
         encoder_outputs = self.encoder(inputs)
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, cond_input['style_mel'],
-                                               cond_input['x_vectors'])
+            encoder_outputs = self.compute_gst(encoder_outputs, cond_input["style_mel"], cond_input["x_vectors"])
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = self.speaker_embedding(cond_input['speaker_ids'])[:, None]
+                speaker_embeddings = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
             else:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = torch.unsqueeze(cond_input['x_vectors'], 1)
-            encoder_outputs = self._concat_speaker_embedding(
-                encoder_outputs, speaker_embeddings)
-        decoder_outputs, alignments, stop_tokens = self.decoder.inference(
-            encoder_outputs)
+                speaker_embeddings = torch.unsqueeze(cond_input["x_vectors"], 1)
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, speaker_embeddings)
+        decoder_outputs, alignments, stop_tokens = self.decoder.inference(encoder_outputs)
         postnet_outputs = self.postnet(decoder_outputs)
         postnet_outputs = self.last_linear(postnet_outputs)
         decoder_outputs = decoder_outputs.transpose(1, 2)
         outputs = {
-            'model_outputs': postnet_outputs,
-            'decoder_outputs': decoder_outputs,
-            'alignments': alignments,
-            'stop_tokens': stop_tokens
+            "model_outputs": postnet_outputs,
+            "decoder_outputs": decoder_outputs,
+            "alignments": alignments,
+            "stop_tokens": stop_tokens,
         }
         return outputs
 
@@ -301,64 +282,61 @@ class Tacotron(TacotronAbstract):
             batch ([type]): [description]
             criterion ([type]): [description]
         """
-        text_input = batch['text_input']
-        text_lengths = batch['text_lengths']
-        mel_input = batch['mel_input']
-        mel_lengths = batch['mel_lengths']
-        linear_input = batch['linear_input']
-        stop_targets = batch['stop_targets']
-        speaker_ids = batch['speaker_ids']
-        x_vectors = batch['x_vectors']
+        text_input = batch["text_input"]
+        text_lengths = batch["text_lengths"]
+        mel_input = batch["mel_input"]
+        mel_lengths = batch["mel_lengths"]
+        linear_input = batch["linear_input"]
+        stop_targets = batch["stop_targets"]
+        speaker_ids = batch["speaker_ids"]
+        x_vectors = batch["x_vectors"]
 
         # forward pass model
-        outputs = self.forward(text_input,
-                               text_lengths,
-                               mel_input,
-                               mel_lengths,
-                               cond_input={
-                                   'speaker_ids': speaker_ids,
-                                   'x_vectors': x_vectors
-                               })
+        outputs = self.forward(
+            text_input,
+            text_lengths,
+            mel_input,
+            mel_lengths,
+            cond_input={"speaker_ids": speaker_ids, "x_vectors": x_vectors},
+        )
 
         # set the [alignment] lengths wrt reduction factor for guided attention
         if mel_lengths.max() % self.decoder.r != 0:
             alignment_lengths = (
-                mel_lengths +
-                (self.decoder.r -
-                 (mel_lengths.max() % self.decoder.r))) // self.decoder.r
+                mel_lengths + (self.decoder.r - (mel_lengths.max() % self.decoder.r))
+            ) // self.decoder.r
         else:
             alignment_lengths = mel_lengths // self.decoder.r
 
-        cond_input = {'speaker_ids': speaker_ids, 'x_vectors': x_vectors}
-        outputs = self.forward(text_input, text_lengths, mel_input,
-                               mel_lengths, cond_input)
+        cond_input = {"speaker_ids": speaker_ids, "x_vectors": x_vectors}
+        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, cond_input)
 
         # compute loss
         loss_dict = criterion(
-            outputs['model_outputs'],
-            outputs['decoder_outputs'],
+            outputs["model_outputs"],
+            outputs["decoder_outputs"],
             mel_input,
             linear_input,
-            outputs['stop_tokens'],
+            outputs["stop_tokens"],
             stop_targets,
             mel_lengths,
-            outputs['decoder_outputs_backward'],
-            outputs['alignments'],
+            outputs["decoder_outputs_backward"],
+            outputs["alignments"],
             alignment_lengths,
-            outputs['alignments_backward'],
+            outputs["alignments_backward"],
             text_lengths,
         )
 
         # compute alignment error (the lower the better )
-        align_error = 1 - alignment_diagonal_score(outputs['alignments'])
+        align_error = 1 - alignment_diagonal_score(outputs["alignments"])
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
     def train_log(self, ap, batch, outputs):
-        postnet_outputs = outputs['model_outputs']
-        alignments = outputs['alignments']
-        alignments_backward = outputs['alignments_backward']
-        mel_input = batch['mel_input']
+        postnet_outputs = outputs["model_outputs"]
+        alignments = outputs["alignments"]
+        alignments_backward = outputs["alignments_backward"]
+        mel_input = batch["mel_input"]
 
         pred_spec = postnet_outputs[0].data.cpu().numpy()
         gt_spec = mel_input[0].data.cpu().numpy()
@@ -371,8 +349,7 @@ class Tacotron(TacotronAbstract):
         }
 
         if self.bidirectional_decoder or self.double_decoder_consistency:
-            figures["alignment_backward"] = plot_alignment(
-                alignments_backward[0].data.cpu().numpy(), output_fig=False)
+            figures["alignment_backward"] = plot_alignment(alignments_backward[0].data.cpu().numpy(), output_fig=False)
 
         # Sample audio
         train_audio = ap.inv_spectrogram(pred_spec.T)

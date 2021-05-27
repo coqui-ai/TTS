@@ -58,25 +58,16 @@ def numpy_to_tf(np_array, dtype):
 
 
 def compute_style_mel(style_wav, ap, cuda=False):
-    style_mel = torch.FloatTensor(
-        ap.melspectrogram(ap.load_wav(style_wav,
-                                      sr=ap.sample_rate))).unsqueeze(0)
+    style_mel = torch.FloatTensor(ap.melspectrogram(ap.load_wav(style_wav, sr=ap.sample_rate))).unsqueeze(0)
     if cuda:
         return style_mel.cuda()
     return style_mel
 
 
-def run_model_torch(model,
-                    inputs,
-                    speaker_id=None,
-                    style_mel=None,
-                    x_vector=None):
-    outputs = model.inference(inputs,
-                              cond_input={
-                                  'speaker_ids': speaker_id,
-                                  'x_vector': x_vector,
-                                  'style_mel': style_mel
-                              })
+def run_model_torch(model, inputs, speaker_id=None, style_mel=None, x_vector=None):
+    outputs = model.inference(
+        inputs, cond_input={"speaker_ids": speaker_id, "x_vector": x_vector, "style_mel": style_mel}
+    )
     return outputs
 
 
@@ -86,18 +77,15 @@ def run_model_tf(model, inputs, CONFIG, speaker_id=None, style_mel=None):
     if speaker_id is not None:
         raise NotImplementedError(" [!] Multi-Speaker not implemented for TF")
     # TODO: handle multispeaker case
-    decoder_output, postnet_output, alignments, stop_tokens = model(
-        inputs, training=False)
+    decoder_output, postnet_output, alignments, stop_tokens = model(inputs, training=False)
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
 def run_model_tflite(model, inputs, CONFIG, speaker_id=None, style_mel=None):
     if CONFIG.gst and style_mel is not None:
-        raise NotImplementedError(
-            " [!] GST inference not implemented for TfLite")
+        raise NotImplementedError(" [!] GST inference not implemented for TfLite")
     if speaker_id is not None:
-        raise NotImplementedError(
-            " [!] Multi-Speaker not implemented for TfLite")
+        raise NotImplementedError(" [!] Multi-Speaker not implemented for TfLite")
     # get input and output details
     input_details = model.get_input_details()
     output_details = model.get_output_details()
@@ -131,7 +119,7 @@ def parse_outputs_tflite(postnet_output, decoder_output):
 
 
 def trim_silence(wav, ap):
-    return wav[:ap.find_endpoint(wav)]
+    return wav[: ap.find_endpoint(wav)]
 
 
 def inv_spectrogram(postnet_output, ap, CONFIG):
@@ -154,8 +142,7 @@ def speaker_id_to_torch(speaker_id, cuda=False):
 def embedding_to_torch(x_vector, cuda=False):
     if x_vector is not None:
         x_vector = np.asarray(x_vector)
-        x_vector = torch.from_numpy(x_vector).unsqueeze(0).type(
-            torch.FloatTensor)
+        x_vector = torch.from_numpy(x_vector).unsqueeze(0).type(torch.FloatTensor)
     if cuda:
         return x_vector.cuda()
     return x_vector
@@ -172,8 +159,7 @@ def apply_griffin_lim(inputs, input_lens, CONFIG, ap):
     """
     wavs = []
     for idx, spec in enumerate(inputs):
-        wav_len = (input_lens[idx] *
-                   ap.hop_length) - ap.hop_length  # inverse librosa padding
+        wav_len = (input_lens[idx] * ap.hop_length) - ap.hop_length  # inverse librosa padding
         wav = inv_spectrogram(spec, ap, CONFIG)
         # assert len(wav) == wav_len, f" [!] wav lenght: {len(wav)} vs expected: {wav_len}"
         wavs.append(wav[:wav_len])
@@ -241,23 +227,21 @@ def synthesis(
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model,
-                                  text_inputs,
-                                  speaker_id,
-                                  style_mel,
-                                  x_vector=x_vector)
-        model_outputs = outputs['model_outputs']
+        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, x_vector=x_vector)
+        model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
     elif backend == "tf":
         decoder_output, postnet_output, alignments, stop_tokens = run_model_tf(
-            model, text_inputs, CONFIG, speaker_id, style_mel)
+            model, text_inputs, CONFIG, speaker_id, style_mel
+        )
         model_outputs, decoder_output, alignment, stop_tokens = parse_outputs_tf(
-            postnet_output, decoder_output, alignments, stop_tokens)
+            postnet_output, decoder_output, alignments, stop_tokens
+        )
     elif backend == "tflite":
         decoder_output, postnet_output, alignment, stop_tokens = run_model_tflite(
-            model, text_inputs, CONFIG, speaker_id, style_mel)
-        model_outputs, decoder_output = parse_outputs_tflite(
-            postnet_output, decoder_output)
+            model, text_inputs, CONFIG, speaker_id, style_mel
+        )
+        model_outputs, decoder_output = parse_outputs_tflite(postnet_output, decoder_output)
     # convert outputs to numpy
     # plot results
     wav = None
@@ -267,9 +251,9 @@ def synthesis(
         if do_trim_silence:
             wav = trim_silence(wav, ap)
     return_dict = {
-        'wav': wav,
-        'alignments': outputs['alignments'],
-        'model_outputs': model_outputs,
-        'text_inputs': text_inputs
+        "wav": wav,
+        "alignments": outputs["alignments"],
+        "model_outputs": model_outputs,
+        "text_inputs": text_inputs,
     }
     return return_dict
