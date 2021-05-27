@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import importlib
+import logging
 import os
 import sys
 import time
 import traceback
+from logging import StreamHandler
 from random import randrange
-import logging
-import importlib
 
 import numpy as np
 import torch
@@ -16,19 +17,19 @@ from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from TTS.tts.datasets import load_meta_data, TTSDataset
+from TTS.tts.datasets import TTSDataset, load_meta_data
 from TTS.tts.layers import setup_loss
 from TTS.tts.models import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.arguments import init_training
-from TTS.tts.utils.visual import plot_spectrogram, plot_alignment
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed, reduce_tensor
-from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict, find_module
-from TTS.utils.training import setup_torch_training_env, check_update
+from TTS.utils.generic_utils import KeepAverage, count_parameters, find_module, remove_experiment_folder, set_init_dict
+from TTS.utils.training import check_update, setup_torch_training_env
 
 
 class TrainerTTS:
@@ -58,27 +59,34 @@ class TrainerTTS:
         self.keep_avg_train = None
         self.keep_avg_eval = None
 
+        log_file = os.path.join(self.output_path, f'trainer_{args.rank}_log.txt')
+        self.setup_logger_config(log_file)
+
         # model, audio processor, datasets, loss
         # init audio processor
         self.ap = AudioProcessor(**config.audio.to_dict())
 
         # init character processor
-        self.model_characters = self.init_character_processor()
+        self.model_characters = self.get_character_processor()
 
         # load dataset samples
         self.data_train, self.data_eval = load_meta_data(config.datasets)
 
         # default speaker manager
-        self.speaker_manager = self.init_speaker_manager()
+        self.speaker_manager = self.get_speaker_manager()
 
         # init TTS model
         if model is not None:
             self.model = model
         else:
-            self.model = self.init_model()
+            self.model = self.get_model()
 
         # setup criterion
-        self.criterion = self.init_criterion()
+        self.criterion = self.get_criterion()
+
+        if self.use_cuda:
+            self.model.cuda()
+            self.criterion.cuda()
 
         # DISTRUBUTED
         if self.num_gpus > 1:
@@ -88,22 +96,18 @@ class TrainerTTS:
 
         # scalers for mixed precision training
         self.scaler = torch.cuda.amp.GradScaler(
-        ) if config.mixed_precision else None
+        ) if config.mixed_precision and self.use_cuda else None
 
         # setup optimizer
-        self.optimizer = self.init_optimizer(self.model)
-
-        # setup scheduler
-        self.scheduler = self.init_scheduler(self.config, self.optimizer)
+        self.optimizer = self.get_optimizer(self.model)
 
         if self.args.restore_path:
             self.model, self.optimizer, self.scaler, self.restore_step = self.restore_model(
                 self.config, args.restore_path, self.model, self.optimizer,
                 self.scaler)
 
-        if self.use_cuda:
-            self.model.cuda()
-            self.criterion.cuda()
+        # setup scheduler
+        self.scheduler = self.get_scheduler(self.config, self.optimizer)
 
         # DISTRUBUTED
         if self.num_gpus > 1:
@@ -111,10 +115,9 @@ class TrainerTTS:
 
         # count model size
         num_params = count_parameters(self.model)
-        logging.info("\n > Model has {} parameters".format(num_params),
-                     flush=True)
+        logging.info("\n > Model has {} parameters".format(num_params))
 
-    def init_model(self):
+    def get_model(self):
         model = setup_model(
             len(self.model_characters),
             self.speaker_manager.num_speakers,
@@ -124,7 +127,7 @@ class TrainerTTS:
         )
         return model
 
-    def init_optimizer(self, model):
+    def get_optimizer(self, model):
         optimizer_name = self.config.optimizer
         optimizer_params = self.config.optimizer_params
         if optimizer_name.lower() == "radam":
@@ -136,18 +139,18 @@ class TrainerTTS:
                          lr=self.config.lr,
                          **optimizer_params)
 
-    def init_character_processor(self):
+    def get_character_processor(self):
         # setup custom characters if set in config file.
         # TODO: implement CharacterProcessor
         if self.config.characters is not None:
             symbols, phonemes = make_symbols(
                 **self.config.characters.to_dict())
         else:
-            from TTS.tts.utils.text.symbols import symbols, phonemes
+            from TTS.tts.utils.text.symbols import phonemes, symbols
         model_characters = phonemes if self.config.use_phonemes else symbols
         return model_characters
 
-    def init_speaker_manager(self, restore_path: str = "", out_path: str = ""):
+    def get_speaker_manager(self, restore_path: str = "", out_path: str = ""):
         speaker_manager = SpeakerManager()
         if restore_path:
             speakers_file = os.path.join(os.path.dirname(restore_path),
@@ -171,7 +174,7 @@ class TrainerTTS:
             speaker_manager.save_ids_file(file_path)
         return speaker_manager
 
-    def init_scheduler(self, config, optimizer):
+    def get_scheduler(self, config, optimizer):
         lr_scheduler = config.lr_scheduler
         lr_scheduler_params = config.lr_scheduler_params
         if lr_scheduler is None:
@@ -183,7 +186,7 @@ class TrainerTTS:
             scheduler = getattr(torch.optim, lr_scheduler)
         return scheduler(optimizer, **lr_scheduler_params)
 
-    def init_criterion(self):
+    def get_criterion(self):
         return setup_loss(self.config)
 
     def restore_model(self,
@@ -192,12 +195,11 @@ class TrainerTTS:
                       model,
                       optimizer,
                       scaler=None):
-        logging.info(f" > Restoring from {os.path.basename(restore_path)}...")
-        checkpoint = torch.load(restore_path, map_location="cpu")
+        logging.info(" > Restoring from %s ..." % os.path.basename(restore_path))
+        checkpoint = torch.load(restore_path)
         try:
             logging.info(" > Restoring Model...")
             model.load_state_dict(checkpoint["model"])
-            # optimizer restore
             logging.info(" > Restoring Optimizer...")
             optimizer.load_state_dict(checkpoint["optimizer"])
             if "scaler" in checkpoint and config.mixed_precision:
@@ -213,11 +215,11 @@ class TrainerTTS:
         for group in optimizer.param_groups:
             group["lr"] = self.config.lr
         logging.info(" > Model restored from step %d" % checkpoint["step"],
-                     flush=True)
+                     )
         restore_step = checkpoint["step"]
         return model, optimizer, scaler, restore_step
 
-    def _setup_loader(self, r, ap, is_eval, data_items, verbose,
+    def _get_loader(self, r, ap, is_eval, data_items, verbose,
                       speaker_mapping):
         if is_eval and not self.config.run_eval:
             loader = None
@@ -266,14 +268,14 @@ class TrainerTTS:
             )
         return loader
 
-    def setup_train_dataloader(self, r, ap, data_items, verbose,
+    def get_train_dataloader(self, r, ap, data_items, verbose,
                                speaker_mapping):
-        return self._setup_loader(r, ap, False, data_items, verbose,
+        return self._get_loader(r, ap, False, data_items, verbose,
                                   speaker_mapping)
 
-    def setup_eval_dataloder(self, r, ap, data_items, verbose,
+    def get_eval_dataloder(self, r, ap, data_items, verbose,
                              speaker_mapping):
-        return self._setup_loader(r, ap, True, data_items, verbose,
+        return self._get_loader(r, ap, True, data_items, verbose,
                                   speaker_mapping)
 
     def format_batch(self, batch):
@@ -631,13 +633,13 @@ class TrainerTTS:
                 f" > Starting with loaded last best loss {self.best_loss}.")
 
         # define data loaders
-        self.train_loader = self.setup_train_dataloader(
+        self.train_loader = self.get_train_dataloader(
             self.config.r,
             self.ap,
             self.data_train,
             verbose=True,
             speaker_mapping=self.speaker_manager.speaker_ids)
-        self.eval_loader = self.setup_eval_dataloder(
+        self.eval_loader = self.get_eval_dataloder(
             self.config.r,
             self.ap,
             self.data_train,
@@ -681,6 +683,16 @@ class TrainerTTS:
             keep_after=self.config.keep_after,
             scaler=self.scaler.state_dict()
             if self.config.mixed_precision else None,
+        )
+
+    def setup_logger_config(self, log_file: str):
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(message)s",
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ]
         )
 
     def on_epoch_start(self):
