@@ -17,7 +17,7 @@ from torch.utils.data.distributed import DistributedSampler
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.layers.losses import GlowTTSLoss
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.models import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import parse_speakers
