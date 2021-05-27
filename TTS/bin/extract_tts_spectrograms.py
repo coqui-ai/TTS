@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from TTS.config import load_config
-from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.datasets import load_meta_data
 from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import parse_speakers
