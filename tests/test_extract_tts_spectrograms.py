@@ -5,7 +5,7 @@ import torch
 
 from tests import get_tests_input_path, get_tests_output_path, run_cli
 from TTS.config import load_config
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.models import setup_model
 from TTS.tts.utils.text.symbols import phonemes, symbols
 
 torch.manual_seed(1)
