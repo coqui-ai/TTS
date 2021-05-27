@@ -11,7 +11,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.datasets import load_meta_data
 from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.models import setup_model
