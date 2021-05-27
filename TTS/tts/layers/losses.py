@@ -242,7 +242,7 @@ class ReversalClassifierLoss(nn.Module):
         super().__init__()
 
     @staticmethod
-    def forward(self, input_lengths, speakers, prediction):
+    def forward(input_lengths, speakers, prediction):
         ignore_index = -100
         ml = torch.max(input_lengths)
         input_mask = torch.arange(ml, device=input_lengths.device)[None, :] < input_lengths[:, None]
