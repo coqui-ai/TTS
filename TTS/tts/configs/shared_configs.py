@@ -171,7 +171,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     optimizer: str = MISSING
     optimizer_params: dict = MISSING
     # scheduler
-    lr_scheduler: str = ''
+    lr_scheduler: str = ""
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # testing
-    test_sentences: List[str] = field(default_factory=lambda:[])
+    test_sentences: List[str] = field(default_factory=lambda: [])

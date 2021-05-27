@@ -101,7 +101,7 @@ class SpeedySpeechConfig(BaseTTSConfig):
 
     # optimizer parameters
     optimizer: str = "RAdam"
-    optimizer_params: dict = field(default_factory=lambda: {'betas': [0.9, 0.998], 'weight_decay': 1e-6})
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.9, 0.998], "weight_decay": 1e-6})
     lr_scheduler: str = None
     lr_scheduler_params: dict = None
     lr: float = 1e-4
@@ -118,10 +118,12 @@ class SpeedySpeechConfig(BaseTTSConfig):
     r: int = 1  # DO NOT CHANGE
 
     # testing
-    test_sentences: List[str] = field(default_factory=lambda:[
-                "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-                "Be a voice, not an echo.",
-                "I'm sorry Dave. I'm afraid I can't do that.",
-                "This cake is great. It's so delicious and moist.",
-                "Prior to November 22, 1963."
-            ])
+    test_sentences: List[str] = field(
+        default_factory=lambda: [
+            "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+            "Be a voice, not an echo.",
+            "I'm sorry Dave. I'm afraid I can't do that.",
+            "This cake is great. It's so delicious and moist.",
+            "Prior to November 22, 1963.",
+        ]
+    )
