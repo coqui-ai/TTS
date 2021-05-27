@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from TTS.tts.datasets.TTSDataset import TTSDataset
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.models import setup_model
 from TTS.tts.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
