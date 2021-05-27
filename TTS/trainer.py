@@ -337,6 +337,7 @@ class TrainerTTS:
         }
 
     def train_step(self, batch, batch_n_steps, step, loader_start_time):
+        self.on_train_step_start()
         step_start_time = time.time()
 
         # format data
@@ -435,6 +436,7 @@ class TrainerTTS:
                 self.tb_logger.tb_train_figures(self.total_steps_done, figures)
                 self.tb_logger.tb_train_audios(self.total_steps_done, {"TrainAudio": audios}, self.ap.sample_rate)
         self.total_steps_done += 1
+        self.on_train_step_end()
         return outputs, loss_dict
 
     def train_epoch(self):
@@ -584,21 +586,21 @@ class TrainerTTS:
         self.total_steps_done = self.restore_step
 
         for epoch in range(0, self.config.epochs):
+            self.on_epoch_start()
             self.keep_avg_train = KeepAverage()
             self.keep_avg_eval = KeepAverage() if self.config.run_eval else None
             self.epochs_done = epoch
-            self.on_epoch_start()
             self.c_logger.print_epoch_start(epoch, self.config.epochs)
             self.train_epoch()
             if self.config.run_eval:
                 self.eval_epoch()
             if epoch >= self.config.test_delay_epochs:
                 self.test_run()
-            self.on_epoch_end()
             self.c_logger.print_epoch_end(
                 epoch, self.keep_avg_eval.avg_values if self.config.run_eval else self.keep_avg_train.avg_values
             )
             self.save_best_model()
+            self.on_epoch_end()
 
     def save_best_model(self):
         self.best_loss = save_best_model(
@@ -625,11 +627,38 @@ class TrainerTTS:
         if hasattr(self.model, "on_epoch_start"):
             self.model.on_epoch_start(self)
 
+        if hasattr(self.criterion, "on_epoch_start"):
+            self.criterion.on_epoch_start(self)
+
+        if hasattr(self.optimizer, "on_epoch_start"):
+            self.optimizer.on_epoch_start(self)
+
     def on_epoch_end(self):
-        ...
+        if hasattr(self.model, "on_epoch_start"):
+            self.model.on_epoch_end(self)
 
-    def on_step_start(self):
-        ...
+        if hasattr(self.criterion, "on_epoch_end"):
+            self.criterion.on_epoch_end(self)
 
-    def on_step_end(self):
-        ...
+        if hasattr(self.optimizer, "on_epoch_end"):
+            self.optimizer.on_epoch_end(self)
+
+    def on_train_step_start(self):
+        if hasattr(self.model, "on_epoch_start"):
+            self.model.on_train_step_start(self)
+
+        if hasattr(self.criterion, "on_train_step_start"):
+            self.criterion.on_train_step_start(self)
+
+        if hasattr(self.optimizer, "on_train_step_start"):
+            self.optimizer.on_train_step_start(self)
+
+    def on_train_step_end(self):
+        if hasattr(self.model, "on_train_step_end"):
+            self.model.on_train_step_end(self)
+
+        if hasattr(self.criterion, "on_train_step_end"):
+            self.criterion.on_train_step_end(self)
+
+        if hasattr(self.optimizer, "on_train_step_end"):
+            self.optimizer.on_train_step_end(self)
