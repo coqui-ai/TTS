@@ -222,7 +222,7 @@ class Synthesizer(object):
 
         for sen in sens:
             # synthesize voice
-            waveform, _, _, mel_postnet_spec, _, _ = synthesis(
+            outputs = synthesis(
                 model=self.tts_model,
                 text=sen,
                 CONFIG=self.tts_config,
@@ -232,8 +232,10 @@ class Synthesizer(object):
                 style_wav=style_wav,
                 enable_eos_bos_chars=self.tts_config.enable_eos_bos_chars,
                 use_griffin_lim=use_gl,
-                speaker_embedding=speaker_embedding,
+                x_vector=speaker_embedding,
             )
+            waveform = outputs['wav']
+            mel_postnet_spec = outputs['model_outputs']
             if not use_gl:
                 # denormalize tts output based on tts audio config
                 mel_postnet_spec = self.ap.denormalize(mel_postnet_spec.T).T
