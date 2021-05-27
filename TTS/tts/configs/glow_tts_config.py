@@ -91,9 +91,9 @@ class GlowTTSConfig(BaseTTSConfig):
 
     # optimizer parameters
     optimizer: str = "RAdam"
-    optimizer_params: dict = field(default_factory=lambda: {'betas': [0.9, 0.998], 'weight_decay': 1e-6})
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.9, 0.998], "weight_decay": 1e-6})
     lr_scheduler: str = "NoamLR"
-    lr_scheduler_params: dict = field(default_factory=lambda:{"warmup_steps": 4000})
+    lr_scheduler_params: dict = field(default_factory=lambda: {"warmup_steps": 4000})
     grad_clip: float = 5.0
     lr: float = 1e-3
 
