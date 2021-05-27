@@ -183,7 +183,7 @@ class SpeedySpeech(nn.Module):
             g: [B, C]
         """
         g = cond_input["x_vectors"] if "x_vectors" in cond_input else None
-        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)  # pylint: disable=not-callable
+        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         # input sequence should be greated than the max convolution size
         inference_padding = 5
         if x.shape[1] < 13:
