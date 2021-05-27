@@ -115,7 +115,7 @@ class TrainerTTS:
 
         # count model size
         num_params = count_parameters(self.model)
-        logging.info("\n > Model has {} parameters".format(num_params))
+        print("\n > Model has {} parameters".format(num_params))
 
     def get_model(self):
         model = setup_model(
@@ -156,7 +156,7 @@ class TrainerTTS:
             speakers_file = os.path.join(os.path.dirname(restore_path),
                                          "speaker.json")
             if not os.path.exists(speakers_file):
-                logging.info(
+                print(
                     "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
                 )
                 speakers_file = self.config.external_speaker_embedding_file
@@ -195,18 +195,18 @@ class TrainerTTS:
                       model,
                       optimizer,
                       scaler=None):
-        logging.info(" > Restoring from %s ..." % os.path.basename(restore_path))
+        print(" > Restoring from %s ..." % os.path.basename(restore_path))
         checkpoint = torch.load(restore_path)
         try:
-            logging.info(" > Restoring Model...")
+            print(" > Restoring Model...")
             model.load_state_dict(checkpoint["model"])
-            logging.info(" > Restoring Optimizer...")
+            print(" > Restoring Optimizer...")
             optimizer.load_state_dict(checkpoint["optimizer"])
             if "scaler" in checkpoint and config.mixed_precision:
-                logging.info(" > Restoring AMP Scaler...")
+                print(" > Restoring AMP Scaler...")
                 scaler.load_state_dict(checkpoint["scaler"])
         except (KeyError, RuntimeError):
-            logging.info(" > Partial model initialization...")
+            print(" > Partial model initialization...")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint["model"], config)
             model.load_state_dict(model_dict)
@@ -214,7 +214,7 @@ class TrainerTTS:
 
         for group in optimizer.param_groups:
             group["lr"] = self.config.lr
-        logging.info(" > Model restored from step %d" % checkpoint["step"],
+        print(" > Model restored from step %d" % checkpoint["step"],
                      )
         restore_step = checkpoint["step"]
         return model, optimizer, scaler, restore_step
@@ -568,7 +568,7 @@ class TrainerTTS:
                                           self.ap.sample_rate)
 
     def test_run(self, ):
-        logging.info(" | > Synthesizing test sentences.")
+        print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
@@ -625,11 +625,11 @@ class TrainerTTS:
 
     def fit(self):
         if self.restore_step != 0 or self.args.best_path:
-            logging.info(" > Restoring best loss from "
+            print(" > Restoring best loss from "
                          f"{os.path.basename(self.args.best_path)} ...")
             self.best_loss = torch.load(self.args.best_path,
                                         map_location="cpu")["model_loss"]
-            logging.info(
+            print(
                 f" > Starting with loaded last best loss {self.best_loss}.")
 
         # define data loaders
@@ -688,7 +688,7 @@ class TrainerTTS:
     def setup_logger_config(self, log_file: str):
         logging.basicConfig(
             level=logging.INFO,
-            format="%(asctime)s [%(levelname)s] %(message)s",
+            format="",
             handlers=[
                 logging.FileHandler(log_file),
                 logging.StreamHandler()
