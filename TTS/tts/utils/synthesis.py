@@ -77,42 +77,6 @@ def run_model_torch(model,
                                   'x_vector': x_vector,
                                   'style_mel': style_mel
                               })
-    # elif "glow" in CONFIG.model.lower():
-    #     inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
-    #     if hasattr(model, "module"):
-    #         # distributed model
-    #         postnet_output, _, _, _, alignments, _, _ = model.module.inference(
-    #             inputs,
-    #             inputs_lengths,
-    #             g=speaker_id if speaker_id is not None else speaker_embeddings)
-    #     else:
-    #         postnet_output, _, _, _, alignments, _, _ = model.inference(
-    #             inputs,
-    #             inputs_lengths,
-    #             g=speaker_id if speaker_id is not None else speaker_embeddings)
-    #     postnet_output = postnet_output.permute(0, 2, 1)
-    #     # these only belong to tacotron models.
-    #     decoder_output = None
-    #     stop_tokens = None
-    # elif CONFIG.model.lower() in ["speedy_speech", "align_tts"]:
-    #     inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
-    #     if hasattr(model, "module"):
-    #         # distributed model
-    #         postnet_output, alignments = model.module.inference(
-    #             inputs,
-    #             inputs_lengths,
-    #             g=speaker_id if speaker_id is not None else speaker_embeddings)
-    #     else:
-    #         postnet_output, alignments = model.inference(
-    #             inputs,
-    #             inputs_lengths,
-    #             g=speaker_id if speaker_id is not None else speaker_embeddings)
-    #     postnet_output = postnet_output.permute(0, 2, 1)
-    #     # these only belong to tacotron models.
-    #     decoder_output = None
-    #     stop_tokens = None
-    # else:
-    #     raise ValueError("[!] Unknown model name.")
     return outputs
 
 
