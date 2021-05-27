@@ -45,8 +45,6 @@ run_cli(command_train)
 continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getmtime)
 
 # restore the model and continue training for one more epoch
-command_train = (
-    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "
-)
+command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "
 run_cli(command_train)
 shutil.rmtree(continue_path)
