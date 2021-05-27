@@ -1,10 +1,21 @@
+# -*- coding: utf-8 -*-
 import datetime
 import glob
+import importlib
 import os
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+import torch
+
+
+def get_cuda():
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    return use_cuda, device
 
 
 def get_git_branch():
@@ -37,7 +48,7 @@ def get_commit_hash():
 
 
 def create_experiment_folder(root_path, model_name, debug):
-    """ Create a folder with the current date and time """
+    """Create a folder with the current date and time"""
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
     if debug:
         commit_hash = "debug"
@@ -66,6 +77,20 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+def to_camel(text):
+    text = text.capitalize()
+    text = re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
+    text = text.replace("Tts", "TTS")
+    return text
+
+
+def find_module(module_path: str, module_name: str) -> object:
+    module_name = module_name.lower()
+    module = importlib.import_module(module_path + "." + module_name)
+    class_name = to_camel(module_name)
+    return getattr(module, class_name)
+
+
 def get_user_data_dir(appname):
     if sys.platform == "win32":
         import winreg  # pylint: disable=import-outside-toplevel
@@ -92,7 +117,7 @@ def set_init_dict(model_dict, checkpoint_state, c):
     # 2. filter out different size layers
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if v.numel() == model_dict[k].numel()}
     # 3. skip reinit layers
-    if c.reinit_layers is not None:
+    if c.has("reinit_layers") and c.reinit_layers is not None:
         for reinit_layer_name in c.reinit_layers:
             pretrained_dict = {k: v for k, v in pretrained_dict.items() if reinit_layer_name not in k}
     # 4. overwrite entries in the existing state dict
@@ -137,29 +162,3 @@ class KeepAverage:
     def update_values(self, value_dict):
         for key, value in value_dict.items():
             self.update_value(key, value)
-
-
-def check_argument(
-    name, c, enum_list=None, max_val=None, min_val=None, restricted=False, val_type=None, alternative=None
-):
-    if alternative in c.keys() and c[alternative] is not None:
-        return
-    if restricted:
-        assert name in c.keys(), f" [!] {name} not defined in config.json"
-    if name in c.keys():
-        if max_val:
-            assert c[name] <= max_val, f" [!] {name} is larger than max value {max_val}"
-        if min_val:
-            assert c[name] >= min_val, f" [!] {name} is smaller than min value {min_val}"
-        if enum_list:
-            assert c[name].lower() in enum_list, f" [!] {name} is not a valid value"
-        if isinstance(val_type, list):
-            is_valid = False
-            for typ in val_type:
-                if isinstance(c[name], typ):
-                    is_valid = True
-            assert is_valid or c[name] is None, f" [!] {name} has wrong type - {type(c[name])} vs {val_type}"
-        elif val_type:
-            assert (
-                isinstance(c[name], val_type) or c[name] is None
-            ), f" [!] {name} has wrong type - {type(c[name])} vs {val_type}"

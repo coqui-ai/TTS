@@ -132,7 +132,7 @@
 
    // PHONEMES
    "phoneme_cache_path": "tests/train_outputs/phoneme_cache/",  // phoneme computation is slow, therefore, it caches results in the given folder.
-   "use_phonemes": true,           // use phonemes instead of raw characters. It is suggested for better pronoun[ciation.
+   "use_phonemes": false,           // use phonemes instead of raw characters. It is suggested for better pronoun[ciation.
    "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
    // MULTI-SPEAKER and GST

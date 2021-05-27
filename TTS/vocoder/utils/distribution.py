@@ -31,7 +31,7 @@ def sample_from_gaussian(y_hat, log_std_min=-7.0, scale_factor=1.0):
 
 
 def log_sum_exp(x):
-    """ numerically stable log_sum_exp implementation that prevents overflow """
+    """numerically stable log_sum_exp implementation that prevents overflow"""
     # TF ordering
     axis = len(x.size()) - 1
     m, _ = torch.max(x, dim=axis)

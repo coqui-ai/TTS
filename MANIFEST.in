@@ -1,6 +1,6 @@
 include README.md
 include LICENSE.txt
-include requirements.txt
+include requirements.*.txt
 recursive-include TTS *.json
 recursive-include TTS *.html
 recursive-include TTS *.png

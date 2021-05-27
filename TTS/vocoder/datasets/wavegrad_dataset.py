@@ -78,7 +78,7 @@ class WaveGradDataset(Dataset):
         return samples
 
     def load_item(self, idx):
-        """ load (audio, feat) couple """
+        """load (audio, feat) couple"""
         # compute features from wav
         wavpath = self.item_list[idx]
 

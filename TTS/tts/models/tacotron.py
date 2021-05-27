@@ -42,11 +42,8 @@ class Tacotron(TacotronAbstract):
         encoder_in_features (int, optional): input channels for the encoder. Defaults to 512.
         decoder_in_features (int, optional): input channels for the decoder. Defaults to 512.
         speaker_embedding_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
-        gst (bool, optional): enable/disable global style token learning. Defaults to False.
-        gst_embedding_dim (int, optional): size of channels for GST vectors. Defaults to 512.
-        gst_num_heads (int, optional): number of attention heads for GST. Defaults to 4.
-        gst_style_tokens (int, optional): number of GST tokens. Defaults to 10.
-        gst_use_speaker_embedding (bool, optional): enable/disable inputing speaker embedding to GST. Defaults to False.
+        use_gst (bool, optional): enable/disable Global style token module.
+        gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
         memory_size (int, optional): size of the history queue fed to the prenet. Model feeds the last ```memory_size```
             output frames to the prenet.
     """
@@ -77,10 +74,8 @@ class Tacotron(TacotronAbstract):
         encoder_in_features=256,
         decoder_in_features=256,
         speaker_embedding_dim=None,
-        gst=False,
-        gst_embedding_dim=256,
-        gst_num_heads=4,
-        gst_style_tokens=10,
+        use_gst=False,
+        gst=None,
         memory_size=5,
         gst_use_speaker_embedding=False,
         capacitron=False,
@@ -114,6 +109,7 @@ class Tacotron(TacotronAbstract):
             encoder_in_features,
             decoder_in_features,
             speaker_embedding_dim,
+            use_gst,
             gst,
             gst_embedding_dim,
             gst_num_heads,
@@ -167,7 +163,7 @@ class Tacotron(TacotronAbstract):
         self.decoder.prenet.dropout_at_inference = prenet_dropout_at_inference
 
         # global style token layers
-        if self.gst:
+        if self.gst and self.use_gst:
             self.gst_layer = GST(
                 num_mel=80,
                 num_heads=gst_num_heads,
@@ -225,7 +221,7 @@ class Tacotron(TacotronAbstract):
         # sequence masking
         encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(encoder_outputs)
         # global style token
-        if self.gst:
+        if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(
                 encoder_outputs,
@@ -310,7 +306,7 @@ class Tacotron(TacotronAbstract):
         reference_mel_length = torch.tensor([reference_mel.size(1)], dtype=torch.int64) if reference_mel is not None else None # pylint: disable=not-callable
 
         encoder_outputs = self.encoder(inputs)
-        if self.gst:
+        if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(
                 encoder_outputs,

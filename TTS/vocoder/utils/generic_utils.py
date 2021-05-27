@@ -30,7 +30,7 @@ def interpolate_vocoder_input(scale_factor, spec):
 
 
 def plot_results(y_hat, y, ap, global_step, name_prefix):
-    """ Plot vocoder model results """
+    """Plot vocoder model results"""
 
     # select an instance from batch
     y_hat = y_hat[0].squeeze(0).detach().cpu().numpy()

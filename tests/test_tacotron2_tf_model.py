@@ -5,10 +5,9 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from tests import get_tests_input_path
+from TTS.tts.configs import Tacotron2Config
 from TTS.tts.tf.models.tacotron2 import Tacotron2
 from TTS.tts.tf.utils.tflite import convert_tacotron2_to_tflite, load_tflite_model
-from TTS.utils.io import load_config
 
 tf.get_logger().setLevel("INFO")
 
@@ -19,7 +18,7 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-c = load_config(os.path.join(get_tests_input_path(), "test_config.json"))
+c = Tacotron2Config()
 
 
 class TacotronTFTrainTest(unittest.TestCase):
@@ -40,7 +39,7 @@ class TacotronTFTrainTest(unittest.TestCase):
         return chars_seq, chars_seq_lengths, mel_spec, mel_postnet_spec, mel_lengths, stop_targets, speaker_ids
 
     def test_train_step(self):
-        """ test forward pass """
+        """test forward pass"""
         (
             chars_seq,
             chars_seq_lengths,

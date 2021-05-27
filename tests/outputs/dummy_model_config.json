@@ -87,7 +87,6 @@
 
     // MULTI-SPEAKER and GST
     "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
-    "use_gst": true,       			    // use global style tokens
     "gst":	{			                // gst parameter if gst is enabled
         "gst_style_input": null,        // Condition the style input either on a
                                         // -> wave file [path to wave] or
