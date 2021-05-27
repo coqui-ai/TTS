@@ -2,10 +2,10 @@
 # TODO: mixed precision training
 """Trains GAN based vocoder model."""
 
+import itertools
 import os
 import sys
 import time
-import itertools
 import traceback
 from inspect import signature
 
@@ -163,7 +163,6 @@ def train(
             y_hat_sub=y_hat_sub,
             y_sub=y_G_sub,
         )
-
         loss_G = loss_G_dict["G_loss"]
 
         # optimizer generator
@@ -497,8 +496,12 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer_gen = optimizer_gen(model_gen.parameters(), lr=c.lr_gen, **c.optimizer_params)
     optimizer_disc = getattr(torch.optim, c.optimizer)
 
-    if c.discriminator_model == 'hifigan_discriminator': 
-        optimizer_disc = optimizer_disc(itertools.chain(model_disc.msd.parameters(), model_disc.mpd.parameters()), lr=c.lr_disc, **c.optimizer_params)
+    if c.discriminator_model == "hifigan_discriminator":
+        optimizer_disc = optimizer_disc(
+            itertools.chain(model_disc.msd.parameters(), model_disc.mpd.parameters()),
+            lr=c.lr_disc,
+            **c.optimizer_params,
+        )
     else:
         optimizer_disc = optimizer_disc(model_disc.parameters(), lr=c.lr_disc, **c.optimizer_params)
 
@@ -627,6 +630,10 @@ if __name__ == "__main__":
         main(args)
     except KeyboardInterrupt:
         remove_experiment_folder(OUT_PATH)
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)  # pylint: disable=protected-access
     except Exception:  # pylint: disable=broad-except
         remove_experiment_folder(OUT_PATH)
         traceback.print_exc()

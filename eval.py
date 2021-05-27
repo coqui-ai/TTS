@@ -6,10 +6,12 @@ import IPython
 import pandas as pd
 from pathlib import Path
 from os.path import join
+import numpy as np
 import datetime
 
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.utils.io import load_config
+from TTS.vocoder.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import symbols, phonemes
 from TTS.utils.audio import AudioProcessor
 from TTS.tts.utils.synthesis import synthesis
@@ -34,11 +36,13 @@ def tts(model, text, CONFIG, use_cuda, ap, use_gl, figures=True, reference_info=
     )
     mel_postnet_spec = ap.denormalize(mel_postnet_spec.T)
     if not use_gl:
-        waveform = vocoder_model.inference(torch.FloatTensor(mel_spec.T).unsqueeze(0))
+        mel_spec_tensor = torch.FloatTensor(mel_spec.T).unsqueeze(0).to(device=torch.device('cpu'))
+        waveform = vocoder_model.inference(mel_spec_tensor)
         waveform = waveform.flatten()
     if use_cuda:
         waveform = waveform
-    # waveform = waveform.numpy()
+    waveform = waveform.cpu()
+    waveform = waveform.numpy()
     rtf = (time.time() - t_1) / (len(waveform) / ap.sample_rate)
     tps = (time.time() - t_1) / len(waveform)
     print(waveform.shape)
@@ -49,7 +53,7 @@ def tts(model, text, CONFIG, use_cuda, ap, use_gl, figures=True, reference_info=
 
 
 ''' Runtime settings '''
-use_cuda = True
+use_cuda = False
 
 ''' Directory Mgmt '''
 
@@ -65,8 +69,8 @@ CURRENT_TEST_PATH.mkdir(parents=True, exist_ok=True)
 # model paths
 TTS_MODEL = join(r'/home/big-boy/Models/Blizzard', RUN_NAME, 'best_model.pth.tar')
 TTS_CONFIG = join(r'/home/big-boy/Models/Blizzard', RUN_NAME, 'config.json')
-VOCODER_MODEL = "/home/big-boy/Models/BlizzardVocoder/fullband-melgan-May-01-2021_11+30PM-2840cb5/checkpoint_150000.pth.tar"
-VOCODER_CONFIG = "/home/big-boy/Models/BlizzardVocoder/fullband-melgan-May-01-2021_11+30PM-2840cb5/config.json"
+VOCODER_MODEL = "/home/big-boy/Models/BlizzardVocoder/hifigan-blizzard-fine-tuning-with-optimizer-and-scheduler-May-25-2021_02+29PM-dacd6c5/best_model.pth.tar"
+VOCODER_CONFIG = "/home/big-boy/Models/BlizzardVocoder/hifigan-blizzard-fine-tuning-with-optimizer-and-scheduler-May-25-2021_02+29PM-dacd6c5/config.json"
 
 # load configs
 TTS_CONFIG = load_config(TTS_CONFIG)
@@ -103,6 +107,7 @@ if 'r' in cp:
 ''' VOCODER '''
 
 # LOAD VOCODER MODEL
+# vocoder_model, state = load_checkpoint(vocoder_model, VOCODER_MODEL)
 vocoder_model = setup_generator(VOCODER_CONFIG)
 vocoder_model.load_state_dict(torch.load(VOCODER_MODEL, map_location="cpu")["model"])
 vocoder_model.remove_weight_norm()
@@ -112,6 +117,20 @@ ap_vocoder = AudioProcessor(**VOCODER_CONFIG['audio'])
 if use_cuda:
     vocoder_model.cuda()
 vocoder_model.eval()
+
+# WAVEGRAD LOADING
+
+# vocoder_model = setup_generator(VOCODER_CONFIG)
+# cp = torch.load(VOCODER_MODEL, map_location="cpu")["model"]
+# vocoder_model.load_state_dict(cp)
+# scale_factor = [1, VOCODER_CONFIG['audio']['sample_rate'] / ap.sample_rate]
+# print(f"scale_factor: {scale_factor}")
+# ap_vocoder = AudioProcessor(**VOCODER_CONFIG['audio'])
+# if use_cuda:
+#     vocoder_model.cuda()
+# vocoder_model.eval()
+# vocoder_model.compute_noise_level(np.linspace(1e-6, 1e-2, 50)) #compute_noise_level(50, 1e-6, 1e-2)
+
 
 sentences = [
     "Sixty-Four comes asking for bread.",
@@ -128,7 +147,7 @@ sentences = [
     "She had a habit of taking showers in lemonade."
 ]
 
-single_sentence = "Reality is the sum or aggregate of all that is real or existent within a system, as opposed to that which is only imaginary."
+single_sentence = "That should actually be a quick fix to fix."
 
 SAMPLE_FROM = 'prior' # 'prior' or 'posterior'
 TEXT = 'single_sentence' # 'same_text' or 'sentences' or 'single_sentence'
@@ -159,7 +178,7 @@ for row in reference_df.iterrows():
         TTS_CONFIG,
         use_cuda,
         ap,
-        use_gl=True,
+        use_gl=False,
         figures=True,
         reference_info=refs,
         style_wav=reference_path

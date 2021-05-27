@@ -11,7 +11,7 @@ class CapacitronVAE(nn.Module):
     def __init__(self, num_mel, capacitron_embedding_dim, speaker_embedding_dim=None, text_summary_embedding_dim=None):
         super().__init__()
         # Init distributions
-        self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim).to(device=torch.device('cuda')), torch.eye(capacitron_embedding_dim).to(device=torch.device('cuda')))
+        self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim), torch.eye(capacitron_embedding_dim))
         self.approximate_posterior_distribution = None
         self.encoder = ReferenceEncoder(num_mel)
 
@@ -35,12 +35,13 @@ class CapacitronVAE(nn.Module):
             reference_mels = reference_mel_info[0] # [batch_size, num_frames, num_mels]
             mel_lengths = reference_mel_info[1] # [batch_size]
             enc_out = self.encoder(reference_mels, mel_lengths)
+            self.device = reference_mels.device
 
             # concat speaker_embedding and/or text summary embedding
             if text_info is not None:
                 text_inputs = text_info[0] # [batch_size, num_characters, num_embedding]
                 input_lengths = text_info[1]
-                text_summary_out = self.text_summary_net(text_inputs, input_lengths).cuda()
+                text_summary_out = self.text_summary_net(text_inputs, input_lengths).to(self.device)
                 enc_out = torch.cat([enc_out, text_summary_out], dim=-1)
             if speaker_embedding is not None:
                 enc_out = torch.cat([enc_out, speaker_embedding], dim=-1)
@@ -48,8 +49,8 @@ class CapacitronVAE(nn.Module):
             # Feed the output of the ref encoder and information about text/speaker into
             # an MLP to produce the parameteres for the approximate poterior distributions
             mu, sigma = self.post_encoder_mlp(enc_out)
-            mu.to(device=torch.device('cuda'))
-            sigma.to(device=torch.device('cuda'))
+            mu.to(self.device)
+            sigma.to(self.device)
 
             # Sample from the posterior: z ~ q(z|x)
             self.approximate_posterior_distribution = MVN(mu, torch.diag_embed(sigma))
@@ -128,7 +129,7 @@ class ReferenceEncoder(nn.Module):
 
             mask = torch.arange(post_conv_max_width).expand(len(valid_lengths), post_conv_max_width) < valid_lengths.unsqueeze(1)
             mask = mask.expand(1, 1, -1, -1).transpose(2, 0).transpose(-1, 2) # [batch_size, 1, post_conv_max_width, 1]
-            x = x*mask.cuda()
+            x = x*mask.to(self.device)
 
         x = x.transpose(1, 2)
         # x: 4D tensor [batch_size, post_conv_width,
@@ -146,7 +147,7 @@ class ReferenceEncoder(nn.Module):
         _, (ht, _) = self.recurrence(packed_seqs)
         last_output = ht[-1]
 
-        return last_output.cuda() # [B, 128]
+        return last_output.to(self.device) # [B, 128]
 
     @ staticmethod
     def calculate_post_conv_height(height, kernel_size, stride, pad,

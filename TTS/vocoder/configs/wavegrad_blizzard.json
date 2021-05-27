@@ -1,6 +1,6 @@
 {
-    "run_name": "wavegrad-libritts",
-    "run_description": "wavegrad libritts",
+    "run_name": "wavegrad-blizzard",
+    "run_description": "wavegrad blizzard",
 
     "audio":{
         "fft_size": 1024,         // number of stft frequency levels. Size of the linear spectogram frame.
@@ -60,7 +60,7 @@
     },
 
     // DATASET
-    "data_path": "/home/big-boy/Data/blizzard2013/segmented/",  // root data path. It finds all wav files recursively from there.
+    "data_path": "/home/big-boy/Data/blizzard2013/segmented/wavs/",  // root data path. It finds all wav files recursively from there.
     "feature_path": null,   // if you use precomputed features
     "seq_len": 6144,        // 24 * hop_length
     "pad_short": 0,      // additional padding for short wavs
@@ -71,7 +71,7 @@
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 128,      // Batch size for training.
+    "batch_size": 256,      // Batch size for training.
 
     // NOISE SCHEDULE PARAMS - Only effective at training time.
     "train_noise_schedule":{
