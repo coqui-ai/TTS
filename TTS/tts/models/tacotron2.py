@@ -313,7 +313,7 @@ class Tacotron2(TacotronAbstract):
 
         # compute loss
         loss_dict = criterion(
-            outputs['postnet_outputs'],
+            outputs['model_outputs'],
             outputs['decoder_outputs'],
             mel_input,
             linear_input,
@@ -333,7 +333,7 @@ class Tacotron2(TacotronAbstract):
         return outputs, loss_dict
 
     def train_log(self, ap, batch, outputs):
-        postnet_outputs = outputs['postnet_outputs']
+        postnet_outputs = outputs['model_outputs']
         alignments = outputs['alignments']
         alignments_backward = outputs['alignments_backward']
         mel_input = batch['mel_input']
