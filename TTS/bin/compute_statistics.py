@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 # from TTS.utils.io import load_config
 from TTS.config import load_config
-from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.datasets import load_meta_data
 from TTS.utils.audio import AudioProcessor
 
 
