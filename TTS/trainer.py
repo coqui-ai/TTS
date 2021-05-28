@@ -184,7 +184,7 @@ class TrainerTTS:
 
     @staticmethod
     def get_speaker_manager(
-        config: Coqpit, restore_path: str = "", out_path: str = "", data_train: List = []
+        config: Coqpit, restore_path: str = "", out_path: str = "", data_train: List = None
     ) -> SpeakerManager:
         speaker_manager = SpeakerManager()
         if config.use_speaker_embedding:
@@ -209,7 +209,9 @@ class TrainerTTS:
         return speaker_manager
 
     @staticmethod
-    def get_scheduler(config: Coqpit, optimizer: torch.optim.Optimizer) -> torch.optim.lr_scheduler._LRScheduler:
+    def get_scheduler(
+        config: Coqpit, optimizer: torch.optim.Optimizer
+    ) -> torch.optim.lr_scheduler._LRScheduler:  # pylint: disable=protected-access
         lr_scheduler = config.lr_scheduler
         lr_scheduler_params = config.lr_scheduler_params
         if lr_scheduler is None:

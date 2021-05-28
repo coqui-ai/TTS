@@ -275,7 +275,7 @@ class AlignTTS(nn.Module):
             g: [B, C]
         """
         g = cond_input["x_vectors"] if "x_vectors" in cond_input else None
-        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
+        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)  # pylint: disable=not-callable
         # pad input to prevent dropping the last word
         # x = torch.nn.functional.pad(x, pad=(0, 5), mode='constant', value=0)
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
@@ -314,7 +314,7 @@ class AlignTTS(nn.Module):
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
+    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):  # pylint: disable=no-self-use
         model_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         mel_input = batch["mel_input"]
