@@ -143,7 +143,9 @@ class GlowTTS(nn.Module):
         o_attn_dur = torch.log(1 + torch.sum(attn, -1)) * x_mask
         return y_mean, y_log_scale, o_attn_dur
 
-    def forward(self, x, x_lengths, y, y_lengths=None, cond_input={"x_vectors": None}):
+    def forward(
+        self, x, x_lengths, y, y_lengths=None, cond_input={"x_vectors": None}
+    ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
             x: [B, T]
@@ -344,7 +346,7 @@ class GlowTTS(nn.Module):
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
+    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):  # pylint: disable=no-self-use
         model_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         mel_input = batch["mel_input"]
