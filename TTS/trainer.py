@@ -33,6 +33,36 @@ from TTS.utils.generic_utils import KeepAverage, count_parameters, set_init_dict
 from TTS.utils.training import check_update, setup_torch_training_env
 
 
+@dataclass
+class TrainingArgs(Coqpit):
+    continue_path: str = field(
+        default='',
+        metadata={
+            'help':
+            'Path to a training folder to continue training. Restore the model from the last checkpoint and continue training under the same folder.'
+        })
+    restore_path: str = field(
+        default='',
+        metadata={
+            'help':
+            'Path to a model checkpoit. Restore the model with the given checkpoint and start a new training.'
+        })
+    best_path: str = field(
+        default='',
+        metadata={
+            'help':
+            "Best model file to be used for extracting best loss. If not specified, the latest best model in continue path is used"
+        })
+    config_path: str = field(
+        default='', metadata={'help': 'Path to the configuration file.'})
+    rank: int = field(
+        default=0, metadata={'help': 'Process rank in distributed training.'})
+    group_id: str = field(
+        default='',
+        metadata={'help': 'Process group id in distributed training.'})
+
+
+# pylint: disable=import-outside-toplevel, too-many-public-methods
 class TrainerTTS:
     use_cuda, num_gpus = setup_torch_training_env(True, False)
 
