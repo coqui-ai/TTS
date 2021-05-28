@@ -11,10 +11,9 @@ import torch
 
 from TTS.config import load_config
 from TTS.tts.utils.text.symbols import parse_symbols
-from TTS.utils.console_logger import ConsoleLogger
+from TTS.utils.logging import ConsoleLogger, TensorboardLogger
 from TTS.utils.generic_utils import create_experiment_folder, get_git_branch
 from TTS.utils.io import copy_model_files
-from TTS.utils.tensorboard_logger import TensorboardLogger
 
 
 def init_arguments(argv):
