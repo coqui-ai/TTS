@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from TTS.tts.layers.tacotron.gst_layers import GST
+from TTS.tts.layers.tacotron.capacitron_layers import CapacitronVAE
 from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
@@ -72,6 +73,8 @@ class Tacotron2(TacotronAbstract):
         speaker_embedding_dim=None,
         use_gst=False,
         gst=None,
+        use_capacitron_vae=False,
+        capacitron_vae=None
     ):
         super().__init__(
             num_chars,
@@ -99,6 +102,8 @@ class Tacotron2(TacotronAbstract):
             speaker_embedding_dim,
             use_gst,
             gst,
+            use_capacitron_vae,
+            capacitron_vae,
         )
 
         # speaker embedding layer
@@ -146,6 +151,16 @@ class Tacotron2(TacotronAbstract):
                 num_heads=gst.gst_num_heads,
                 num_style_tokens=gst.gst_num_style_tokens,
                 gst_embedding_dim=gst.gst_embedding_dim,
+            )
+
+        # Capacitron VAE Layers
+        if self.capacitron_vae and self.use_capacitron_vae:
+            self.capacitron_layer = CapacitronVAE(
+                num_mel=decoder_output_dim,
+                encoder_output_dim=self.encoder_in_features,
+                capacitron_embedding_dim=self.capacitron_vae.capacitron_VAE_embedding_dim,
+                speaker_embedding_dim=speaker_embedding_dim if self.embeddings_per_sample and self.capacitron_vae.capacitron_use_speaker_embedding else None,
+                text_summary_embedding_dim=self.capacitron_vae.capacitron_text_summary_embedding_dim if self.capacitron_vae.capacitron_use_text_summary_embeddings else None
             )
 
         # backward pass decoder
@@ -196,6 +211,19 @@ class Tacotron2(TacotronAbstract):
         if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, speaker_embeddings)
+        # capacitron
+        if self.capacitron_vae and self.use_capacitron_vae:
+            # B x capacitron_VAE_embedding_dim
+            encoder_outputs, *capacitron_vae_outputs = \
+                self.compute_VAE_embedding(
+                    encoder_outputs,
+                    reference_mel_info=[mel_specs, mel_lengths],
+                    text_info=[embedded_inputs.transpose(1, 2), text_lengths] if self.capacitron_vae.capacitron_use_text_summary_embeddings else None,
+                    speaker_embedding=speaker_embeddings if self.capacitron_vae.capacitron_use_speaker_embedding else None
+                )
+        else:
+            capacitron_vae_outputs = None
+
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 # B x 1 x speaker_embed_dim
@@ -227,6 +255,7 @@ class Tacotron2(TacotronAbstract):
                 postnet_outputs,
                 alignments,
                 stop_tokens,
+                capacitron_vae_outputs,
                 decoder_outputs_backward,
                 alignments_backward,
             )
@@ -239,19 +268,32 @@ class Tacotron2(TacotronAbstract):
                 postnet_outputs,
                 alignments,
                 stop_tokens,
+                capacitron_vae_outputs,
                 decoder_outputs_backward,
                 alignments_backward,
             )
-        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+        return decoder_outputs, postnet_outputs, alignments, stop_tokens, capacitron_vae_outputs
 
     @torch.no_grad()
-    def inference(self, text, speaker_ids=None, style_mel=None, speaker_embeddings=None):
+    def inference(self, text, speaker_ids=None, style_mel=None, reference_mel=None, reference_text=None, speaker_embeddings=None):
         embedded_inputs = self.embedding(text).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
 
         if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, style_mel, speaker_embeddings)
+        if self.capacitron_vae and self.use_capacitron_vae:
+            if reference_text is not None:
+                reference_text_embedding = self.embedding(reference_text)
+                reference_text_length = torch.tensor([reference_text_embedding.size(1)], dtype=torch.int64).to(encoder_outputs.device) # pylint: disable=not-callable
+            reference_mel_length = torch.tensor([reference_mel.size(1)], dtype=torch.int64).to(encoder_outputs.device) if reference_mel is not None else None # pylint: disable=not-callable
+            # B x capacitron_VAE_embedding_dim
+            encoder_outputs, *_ = self.compute_VAE_embedding(
+                encoder_outputs,
+                reference_mel_info=[reference_mel, reference_mel_length] if reference_mel is not None else None,
+                text_info=[reference_text_embedding, reference_text_length] if reference_text is not None else None,
+                speaker_embedding=speaker_embeddings if self.capacitron_vae.capacitron_use_speaker_embedding else None
+            )
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 speaker_embeddings = self.speaker_embedding(speaker_ids)[:, None]
@@ -263,7 +305,7 @@ class Tacotron2(TacotronAbstract):
         decoder_outputs, postnet_outputs, alignments = self.shape_outputs(decoder_outputs, postnet_outputs, alignments)
         return decoder_outputs, postnet_outputs, alignments, stop_tokens
 
-    def inference_truncated(self, text, speaker_ids=None, style_mel=None, speaker_embeddings=None):
+    def inference_truncated(self, text, speaker_ids=None, style_mel=None, reference_mel=None, reference_text=None, speaker_embeddings=None):
         """
         Preserve model states for continuous inference
         """
@@ -273,7 +315,18 @@ class Tacotron2(TacotronAbstract):
         if self.gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, style_mel, speaker_embeddings)
-
+        if self.capacitron_vae and self.use_capacitron_vae:
+            if reference_text is not None:
+                reference_text_embedding = self.embedding(reference_text)
+                reference_text_length = torch.tensor([reference_text_embedding.size(1)], dtype=torch.int64).to(encoder_outputs.device) # pylint: disable=not-callable
+            reference_mel_length = torch.tensor([reference_mel.size(1)], dtype=torch.int64).to(encoder_outputs.device) if reference_mel is not None else None # pylint: disable=not-callable
+            # B x capacitron_VAE_embedding_dim
+            encoder_outputs, *_ = self.compute_VAE_embedding(
+                encoder_outputs,
+                reference_mel_info=[reference_mel, reference_mel_length] if reference_mel is not None else None,
+                text_info=[reference_text_embedding, reference_text_length] if reference_text is not None else None,
+                speaker_embedding=speaker_embeddings if self.capacitron_vae.capacitron_use_speaker_embedding else None
+            )
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
                 speaker_embeddings = self.speaker_embedding(speaker_ids)[:, None]

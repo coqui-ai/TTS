@@ -8,25 +8,24 @@ class CapacitronVAE(nn.Module):
 
     See https://arxiv.org/abs/1906.03402 """
 
-    def __init__(self, num_mel, capacitron_embedding_dim, speaker_embedding_dim=None, text_summary_embedding_dim=None):
+    def __init__(self, num_mel, capacitron_embedding_dim, encoder_output_dim=256, speaker_embedding_dim=None, text_summary_embedding_dim=None):
         super().__init__()
         # Init distributions
         self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim), torch.eye(capacitron_embedding_dim))
         self.approximate_posterior_distribution = None
-        self.encoder = ReferenceEncoder(num_mel)
+        # define output ReferenceEncoder dim to the capacitron_embedding_dim
+        self.encoder = ReferenceEncoder(num_mel, out_dim=capacitron_embedding_dim)
 
         # Init beta, the lagrange-like term for the KL distribution
         self.beta = torch.nn.Parameter(torch.log(torch.exp(torch.Tensor([1.0])) - 1), requires_grad=True)
-
-        mlp_input_dimension = 128 # output size of the encoder
+        mlp_input_dimension = capacitron_embedding_dim
 
         if text_summary_embedding_dim is not None:
-            self.text_summary_net = TextSummary(text_summary_embedding_dim)
+            self.text_summary_net = TextSummary(text_summary_embedding_dim, encoder_output_dim=encoder_output_dim)
             mlp_input_dimension += text_summary_embedding_dim
         if speaker_embedding_dim is not None:
             # TODO: Figure out what to do with speaker_embedding_dim
             mlp_input_dimension += speaker_embedding_dim
-
         self.post_encoder_mlp = PostEncoderMLP(mlp_input_dimension, capacitron_embedding_dim)
 
     def forward(self, reference_mel_info=None, text_info=None, speaker_embedding=None):
@@ -36,7 +35,6 @@ class CapacitronVAE(nn.Module):
             mel_lengths = reference_mel_info[1] # [batch_size]
             enc_out = self.encoder(reference_mels, mel_lengths)
             self.device = reference_mels.device
-
             # concat speaker_embedding and/or text summary embedding
             if text_info is not None:
                 text_inputs = text_info[0] # [batch_size, num_characters, num_embedding]
@@ -72,7 +70,7 @@ class ReferenceEncoder(nn.Module):
     outputs: [batch_size, embedding_dim]
     """
 
-    def __init__(self, num_mel):
+    def __init__(self, num_mel, out_dim):
 
         super().__init__()
         self.num_mel = num_mel
@@ -97,7 +95,7 @@ class ReferenceEncoder(nn.Module):
             num_mel, 3, 2, 2, num_layers)
         self.recurrence = nn.LSTM(
             input_size=filters[-1] * post_conv_height,
-            hidden_size=128,
+            hidden_size=out_dim,
             batch_first=True,
             bidirectional=False)
 
@@ -159,9 +157,9 @@ class ReferenceEncoder(nn.Module):
         return height
 
 class TextSummary(nn.Module):
-    def __init__(self, embedding_dim):
+    def __init__(self, embedding_dim, encoder_output_dim):
         super(TextSummary, self).__init__()
-        self.lstm = nn.LSTM(256, # 256 is the hardcoded text embedding dimension from the text encoder
+        self.lstm = nn.LSTM(encoder_output_dim, # text embedding dimension from the text encoder
                             embedding_dim, # fixed length output summary the lstm creates from the input
                             batch_first=True,
                             bidirectional=False)

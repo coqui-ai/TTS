@@ -249,6 +249,11 @@ class TacotronLoss(torch.nn.Module):
     def __init__(self, c, stopnet_pos_weight=10, ga_sigma=0.4):
         super().__init__()
         self.stopnet_pos_weight = stopnet_pos_weight
+        self.use_capacitron_vae = c.use_capacitron_vae
+        if self.use_capacitron_vae:
+            self.capacitron_capacity = c.capacitron_vae.capacitron_capacity
+        else:
+            self.capacitron_capacity = None
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -284,6 +289,7 @@ class TacotronLoss(torch.nn.Module):
         linear_input,
         stopnet_output,
         stopnet_target,
+        capacitron_vae_outputs,
         output_lens,
         decoder_b_output,
         alignments,
@@ -375,6 +381,33 @@ class TacotronLoss(torch.nn.Module):
             postnet_ssim_loss = self.criterion_ssim(postnet_output, postnet_target, output_lens)
             loss += postnet_ssim_loss * self.postnet_ssim_alpha
             return_dict["postnet_ssim_loss"] = postnet_ssim_loss
+
+        if self.use_capacitron_vae:
+            # extract capacitron vae infos
+            posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
+
+            # KL divergence term between the posterior and the prior
+            kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
+
+            # VAE Loss: We use all model loss as a stand-in for the negative log likelihood,
+            # summed over all dimensions and normalised by the batch size
+            negative_log_likelihood = loss
+           
+            # pass beta through softplus
+            beta = torch.nn.functional.softplus(beta)[0]
+
+            # This is the term going to the main ADAM optimiser, we detach beta because
+            # beta is optimised by a separate, SGD optimiser below
+            reconstruction_loss = negative_log_likelihood + beta.detach() * (kl_term - self.capacitron_capacity)
+
+            # This is the term to purely optimise beta and to pass into the SGD
+            beta_loss = torch.negative(beta) * (kl_term - self.capacitron_capacity).detach()
+
+            return_dict['capacitron_vae_loss'] = reconstruction_loss
+            return_dict['capacitron_vae_beta_loss'] = beta_loss
+            return_dict['capacitron_vae_kl_term'] = kl_term
+            return_dict['capacitron_beta'] = beta
+            loss += reconstruction_loss
 
         return_dict["loss"] = loss
 

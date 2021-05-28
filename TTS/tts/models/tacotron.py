@@ -162,6 +162,7 @@ class Tacotron(TacotronAbstract):
         if self.capacitron_vae and self.use_capacitron_vae:
             self.capacitron_layer = CapacitronVAE(
                 num_mel=decoder_output_dim,
+                encoder_output_dim=self.encoder_in_features,
                 capacitron_embedding_dim=self.capacitron_vae.capacitron_VAE_embedding_dim,
                 speaker_embedding_dim=speaker_embedding_dim if self.embeddings_per_sample and self.capacitron_vae.capacitron_use_speaker_embedding else None,
                 text_summary_embedding_dim=self.capacitron_vae.capacitron_text_summary_embedding_dim if self.capacitron_vae.capacitron_use_text_summary_embeddings else None
@@ -214,13 +215,16 @@ class Tacotron(TacotronAbstract):
         # capacitron
         if self.capacitron_vae and self.use_capacitron_vae:
             # B x capacitron_VAE_embedding_dim
-            encoder_outputs, posterior_distribution, prior_distribution, capacitron_beta = \
+            encoder_outputs, *capacitron_vae_outputs = \
                 self.compute_VAE_embedding(
                     encoder_outputs,
                     reference_mel_info=[mel_specs, mel_lengths],
                     text_info=[inputs, text_lengths] if self.capacitron_vae.capacitron_use_text_summary_embeddings else None,
                     speaker_embedding=speaker_embeddings if self.capacitron_vae.capacitron_use_speaker_embedding else None
                 )
+        else:
+            capacitron_vae_outputs = None
+
         # speaker embedding
         if self.num_speakers > 1:
             if not self.embeddings_per_sample:
@@ -253,6 +257,7 @@ class Tacotron(TacotronAbstract):
                 postnet_outputs,
                 alignments,
                 stop_tokens,
+                capacitron_vae_outputs,
                 decoder_outputs_backward,
                 alignments_backward,
             )
@@ -265,20 +270,11 @@ class Tacotron(TacotronAbstract):
                 postnet_outputs,
                 alignments,
                 stop_tokens,
+                capacitron_vae_outputs,
                 decoder_outputs_backward,
                 alignments_backward,
             )
-        if self.capacitron_vae and self.use_capacitron_vae:
-            return (
-                decoder_outputs,
-                postnet_outputs,
-                alignments,
-                stop_tokens,
-                posterior_distribution,
-                prior_distribution,
-                capacitron_beta
-            )
-        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+        return decoder_outputs, postnet_outputs, alignments, stop_tokens, capacitron_vae_outputs
 
     @torch.no_grad()
     def inference(self, characters, speaker_ids=None, style_mel=None, reference_mel=None, reference_text=None, speaker_embeddings=None):
@@ -293,7 +289,7 @@ class Tacotron(TacotronAbstract):
                 reference_text_length = torch.tensor([reference_text_embedding.size(1)], dtype=torch.int64).to(encoder_outputs.device) # pylint: disable=not-callable
             reference_mel_length = torch.tensor([reference_mel.size(1)], dtype=torch.int64).to(encoder_outputs.device) if reference_mel is not None else None # pylint: disable=not-callable
             # B x capacitron_VAE_embedding_dim
-            encoder_outputs, _, _, _ = self.compute_VAE_embedding(
+            encoder_outputs, *_ = self.compute_VAE_embedding(
                 encoder_outputs,
                 reference_mel_info=[reference_mel, reference_mel_length] if reference_mel is not None else None,
                 text_info=[reference_text_embedding, reference_text_length] if reference_text is not None else None,
