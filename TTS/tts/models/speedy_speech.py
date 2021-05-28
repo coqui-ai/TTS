@@ -183,7 +183,7 @@ class SpeedySpeech(nn.Module):
             g: [B, C]
         """
         g = cond_input["x_vectors"] if "x_vectors" in cond_input else None
-        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
+        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)  # pylint: disable=not-callable
         # input sequence should be greated than the max convolution size
         inference_padding = 5
         if x.shape[1] < 13:
@@ -226,7 +226,7 @@ class SpeedySpeech(nn.Module):
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
+    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):  # pylint: disable=no-self-use
         model_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         mel_input = batch["mel_input"]

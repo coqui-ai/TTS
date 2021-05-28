@@ -1,5 +1,4 @@
 import copy
-import logging
 from abc import ABC, abstractmethod
 
 import torch
@@ -37,7 +36,7 @@ class TacotronAbstract(ABC, nn.Module):
         speaker_embedding_dim=None,
         use_gst=False,
         gst=None,
-        gradual_training=[],
+        gradual_training=None,
     ):
         """Abstract Tacotron class"""
         super().__init__()
@@ -239,4 +238,4 @@ class TacotronAbstract(ABC, nn.Module):
                 trainer.model.decoder_backward.set_r(r)
             trainer.train_loader = trainer.setup_train_dataloader(self.ap, self.model.decoder.r, verbose=True)
             trainer.eval_loader = trainer.setup_eval_dataloder(self.ap, self.model.decoder.r)
-            logging.info(f"\n > Number of output frames: {self.decoder.r}")
+            print(f"\n > Number of output frames: {self.decoder.r}")
