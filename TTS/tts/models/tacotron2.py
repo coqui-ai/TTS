@@ -1,5 +1,4 @@
 # coding: utf-8
-import numpy as np
 import torch
 from torch import nn
 
@@ -77,7 +76,7 @@ class Tacotron2(TacotronAbstract):
         speaker_embedding_dim=None,
         use_gst=False,
         gst=None,
-        gradual_training=[],
+        gradual_training=None,
     ):
         super().__init__(
             num_chars,

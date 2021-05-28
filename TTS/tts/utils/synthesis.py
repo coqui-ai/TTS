@@ -230,15 +230,16 @@ def synthesis(
         outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, x_vector=x_vector)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
+        alignments = outputs["alignments"]
     elif backend == "tf":
         decoder_output, postnet_output, alignments, stop_tokens = run_model_tf(
             model, text_inputs, CONFIG, speaker_id, style_mel
         )
-        model_outputs, decoder_output, alignment, stop_tokens = parse_outputs_tf(
+        model_outputs, decoder_output, alignments, stop_tokens = parse_outputs_tf(
             postnet_output, decoder_output, alignments, stop_tokens
         )
     elif backend == "tflite":
-        decoder_output, postnet_output, alignment, stop_tokens = run_model_tflite(
+        decoder_output, postnet_output, alignments, stop_tokens = run_model_tflite(
             model, text_inputs, CONFIG, speaker_id, style_mel
         )
         model_outputs, decoder_output = parse_outputs_tflite(postnet_output, decoder_output)
@@ -252,7 +253,7 @@ def synthesis(
             wav = trim_silence(wav, ap)
     return_dict = {
         "wav": wav,
-        "alignments": outputs["alignments"],
+        "alignments": alignments,
         "model_outputs": model_outputs,
         "text_inputs": text_inputs,
     }
