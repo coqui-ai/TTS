@@ -79,7 +79,7 @@ class Tacotron(TacotronAbstract):
         use_gst=False,
         gst=None,
         memory_size=5,
-        gradual_training=[],
+        gradual_training=None,
     ):
         super().__init__(
             num_chars,
