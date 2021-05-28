@@ -77,7 +77,7 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
                 inputs, style_mel=style_mel, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
             )
-        elif CONFIG.use_capacitron:
+        elif CONFIG.use_capacitron_vae:
             decoder_output, postnet_output, alignments, stop_tokens = model.inference(
                 inputs, reference_mel=reference_mel, reference_text=reference_text, speaker_ids=speaker_id, speaker_embeddings=speaker_embeddings
             )
@@ -128,7 +128,7 @@ def run_model_torch(model, inputs, CONFIG, truncated, speaker_id=None, style_mel
 def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, reference_mel=None):
     if CONFIG.use_gst and style_mel is not None:
         raise NotImplementedError(' [!] GST inference not implemented for TF')
-    if CONFIG.use_capacitron and reference_mel is not None:
+    if CONFIG.use_capacitron_vae and reference_mel is not None:
         raise NotImplementedError(' [!] Capacitron inference not implemented for TF')
     if truncated:
         raise NotImplementedError(" [!] Truncated inference not implemented for TF")
@@ -142,7 +142,7 @@ def run_model_tf(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=No
 def run_model_tflite(model, inputs, CONFIG, truncated, speaker_id=None, style_mel=None, reference_mel=None):
     if CONFIG.use_gst and style_mel is not None:
         raise NotImplementedError(" [!] GST inference not implemented for TfLite")
-    if CONFIG.use_capacitron and reference_mel is not None:
+    if CONFIG.use_capacitron_vae and reference_mel is not None:
         raise NotImplementedError(' [!] Capacitron inference not implemented for TF')
     if truncated:
         raise NotImplementedError(" [!] Truncated inference not implemented for TfLite")
@@ -279,7 +279,7 @@ def synthesis(model,
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
     # Capacitron processing
     reference_mel = None
-    if 'use_capacitron' in CONFIG.keys() and CONFIG.use_capacitron and reference_wav is not None:
+    if 'use_capacitron' in CONFIG.keys() and CONFIG.use_capacitron_vae and reference_wav is not None:
         reference_mel = compute_reference_mel(reference_wav, ap, cuda=use_cuda)
         reference_mel = reference_mel.transpose(1, 2) # [1, time, depth]
     # preprocess the given text

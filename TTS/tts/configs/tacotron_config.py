@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from TTS.tts.configs.shared_configs import BaseTTSConfig, GSTConfig
+from TTS.tts.configs.shared_configs import BaseTTSConfig, GSTConfig, CapacitronVAEConfig
 
 
 @dataclass
@@ -120,6 +120,8 @@ class TacotronConfig(BaseTTSConfig):
     use_gst: bool = False
     gst: GSTConfig = None
     gst_style_input: str = None
+    use_capacitron_vae: bool = False
+    capacitron_vae: CapacitronVAEConfig = None
     # model specific params
     r: int = 2
     gradual_training: List[List[int]] = None

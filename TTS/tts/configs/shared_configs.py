@@ -43,6 +43,54 @@ class GSTConfig(Coqpit):
         check_argument("gst_num_heads", c, restricted=True, min_val=2, max_val=10)
         check_argument("gst_num_style_tokens", c, restricted=True, min_val=1, max_val=1000)
 
+@dataclass
+class CapacitronVAEConfig(Coqpit):
+    """Defines the capacitron VAE Module
+    Args:
+        capacitron_reference_wav (str):
+            Path to the wav file used to define the style of the output speech at inference. Defaults to None.
+        capacitron_reference_text (str):
+            Reference audio transcript. Defaults to None.
+        capacitron_capacity (int):
+            Defines the Capacitron Capacity target. Defaults to 150.
+        capacitron_VAE_embedding_dim (int):
+            Defines the VAE encoder's LSTM size and size if posterior/prior distributions. Defaults to 128.
+        capacitron_use_text_summary_embeddings (bool):
+            if True  use text in Capacitron VAE. Defaults to True.
+        capacitron_text_summary_embedding_dim (int):
+            Defines the size of the capacitron text embedding vector dimensions. Defaults to 128.
+        capacitron_use_speaker_embedding (bool):
+            if True use speaker embeddings in Capacitron VAE. Defaults to False.
+        capacitron_SGD_lr (float):
+            Learning rate for beta optimizer. Defaults to 1e-5.
+        capacitron_SGD_momentum (float):
+            Momentum for beta optimizer. Defaults to 0.9.
+    """
+
+    capacitron_reference_wav: str = None
+    capacitron_reference_text: str = None
+    capacitron_capacity: int = 150
+    capacitron_VAE_embedding_dim: int = 128
+    capacitron_use_text_summary_embeddings: bool = True
+    capacitron_text_summary_embedding_dim: int = 128
+    capacitron_use_speaker_embedding: bool = False
+    capacitron_SGD_lr: float = 1e-5
+    capacitron_SGD_momentum: float = 0.9
+
+    def check_values(
+        self,
+    ):
+        """Check config fields"""
+        c = asdict(self)
+        super().check_values()
+        check_argument("capacitron_reference_wav", c, restricted=False)
+        check_argument("capacitron_reference_text", c, restricted=False)
+        check_argument("capacitron_capacity", c, restricted=False, min_val=1, max_val=1000)
+        check_argument("capacitron_use_speaker_embedding", c, restricted=False)
+        check_argument("capacitron_text_summary_embedding_dim", c, restricted=False, min_val=1, max_val=1000)
+        check_argument("capacitron_SGD_lr", c, restricted=False, min_val=0)
+        check_argument("capacitron_SGD_momentum", c, restricted=False, min_val=0)
+
 
 @dataclass
 class CharactersConfig(Coqpit):
@@ -80,12 +128,12 @@ class CharactersConfig(Coqpit):
     ):
         """Check config fields"""
         c = asdict(self)
-        check_argument("pad", c, "characters", restricted=True)
-        check_argument("eos", c, "characters", restricted=True)
-        check_argument("bos", c, "characters", restricted=True)
-        check_argument("characters", c, "characters", restricted=True)
+        check_argument("pad", c, prerequest="characters", restricted=True)
+        check_argument("eos", c, prerequest="characters", restricted=True)
+        check_argument("bos", c, prerequest="characters", restricted=True)
+        check_argument("characters", c, prerequest="characters", restricted=True)
         check_argument("phonemes", c, restricted=True)
-        check_argument("punctuations", c, "characters", restricted=True)
+        check_argument("punctuations", c, prerequest="characters", restricted=True)
 
 
 @dataclass

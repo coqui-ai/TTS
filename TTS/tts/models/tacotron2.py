@@ -142,7 +142,7 @@ class Tacotron2(TacotronAbstract):
         if self.gst and use_gst:
             self.gst_layer = GST(
                 num_mel=decoder_output_dim,
-                speaker_embedding_dim=speaker_embedding_dim,
+                speaker_embedding_dim=speaker_embedding_dim if self.gst.gst_use_speaker_embedding else None,
                 num_heads=gst.gst_num_heads,
                 num_style_tokens=gst.gst_num_style_tokens,
                 gst_embedding_dim=gst.gst_embedding_dim,
