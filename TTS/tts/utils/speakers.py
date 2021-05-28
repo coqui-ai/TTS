@@ -1,7 +1,7 @@
 import json
 import os
 import random
-from typing import Union, List, Any
+from typing import Any, List, Union
 
 import numpy as np
 import torch
