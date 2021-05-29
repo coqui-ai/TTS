@@ -34,12 +34,12 @@ class CapacitronVAE(nn.Module):
             reference_mels = reference_mel_info[0] # [batch_size, num_frames, num_mels]
             mel_lengths = reference_mel_info[1] # [batch_size]
             enc_out = self.encoder(reference_mels, mel_lengths)
-            self.device = reference_mels.device
+
             # concat speaker_embedding and/or text summary embedding
             if text_info is not None:
                 text_inputs = text_info[0] # [batch_size, num_characters, num_embedding]
                 input_lengths = text_info[1]
-                text_summary_out = self.text_summary_net(text_inputs, input_lengths).to(self.device)
+                text_summary_out = self.text_summary_net(text_inputs, input_lengths).to(reference_mels.device)
                 enc_out = torch.cat([enc_out, text_summary_out], dim=-1)
             if speaker_embedding is not None:
                 enc_out = torch.cat([enc_out, speaker_embedding], dim=-1)
@@ -60,7 +60,7 @@ class CapacitronVAE(nn.Module):
             VAE_embedding = self.prior_distribution.sample().unsqueeze(0)
 
         # reshape to [batch_size, 1, capacitron_embedding_dim]
-        return VAE_embedding.unsqueeze(1).to(self.device), self.approximate_posterior_distribution, self.prior_distribution, self.beta
+        return VAE_embedding.unsqueeze(1), self.approximate_posterior_distribution, self.prior_distribution, self.beta
 
 
 class ReferenceEncoder(nn.Module):
@@ -158,7 +158,7 @@ class ReferenceEncoder(nn.Module):
 
 class TextSummary(nn.Module):
     def __init__(self, embedding_dim, encoder_output_dim):
-        super(TextSummary, self).__init__()
+        super().__init__()
         self.lstm = nn.LSTM(encoder_output_dim, # text embedding dimension from the text encoder
                             embedding_dim, # fixed length output summary the lstm creates from the input
                             batch_first=True,
@@ -175,7 +175,7 @@ class TextSummary(nn.Module):
 
 class PostEncoderMLP(nn.Module):
     def __init__(self, input_size, hidden_size):
-        super(PostEncoderMLP, self).__init__()
+        super().__init__()
         self.hidden_size = hidden_size
         modules = [
             nn.Linear(input_size, hidden_size), # Hidden Layer

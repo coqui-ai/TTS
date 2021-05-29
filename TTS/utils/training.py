@@ -88,7 +88,6 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
             decay.append(param)
     return [{"params": no_decay, "weight_decay": 0.0}, {"params": decay, "weight_decay": weight_decay}]
 
-
 # pylint: disable=protected-access
 class NoamLR(torch.optim.lr_scheduler._LRScheduler):
     def __init__(self, optimizer, warmup_steps=0.1, last_epoch=-1):
@@ -101,35 +100,6 @@ class NoamLR(torch.optim.lr_scheduler._LRScheduler):
             base_lr * self.warmup_steps ** 0.5 * min(step * self.warmup_steps ** -1.5, step ** -0.5)
             for base_lr in self.base_lrs
         ]
-
-class StepwiseGradualLR(torch.optim.lr_scheduler._LRScheduler):
-    def __init__(self, optimizer, config, last_epoch=-1):
-        self.config = config
-        super(StepwiseGradualLR, self).__init__(optimizer, last_epoch)
-
-    def get_lr(self):
-        step = max(self.last_epoch, 1)
-        step_thresholds = []
-        rates = []
-        for values in self.config.gradual_learning_rates:
-            step_thresholds.append(values[0])
-            rates.append(values[1])
-
-        boolean_indeces = np.less(step_thresholds, step)
-        try:
-            first_false = np.where(boolean_indeces == False)[0]
-            first_false = first_false[0]
-        except IndexError:
-            # For the steps larger than the last step in the list
-            pass
-        lr = rates[np.max(first_false - 1, 0)]
-
-        # Return last lr if step is above the set threshold
-        lr = rates[-1] if step > step_thresholds[-1] else lr
-        # Return first lr if step is below the second threshold - first is initial lr
-        lr = rates[0] if step < step_thresholds[1] else lr
-
-        return np.tile(lr, len(self.base_lrs)) # hack?
 
 def gradual_training_scheduler(global_step, config):
     """Setup the gradual training schedule wrt number

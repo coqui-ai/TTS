@@ -303,6 +303,7 @@ class TacotronLoss(torch.nn.Module):
         postnet_target = linear_input if self.config.model.lower() in ["tacotron"] else mel_input
 
         return_dict = {}
+        loss = 0
         # remove lengths if no masking is applied
         if not self.config.loss_masking:
             output_lens = None
@@ -317,9 +318,41 @@ class TacotronLoss(torch.nn.Module):
                 decoder_loss = self.criterion(decoder_output, mel_input)
             if self.postnet_alpha > 0:
                 postnet_loss = self.criterion(postnet_output, postnet_target)
-        loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
-        return_dict["decoder_loss"] = decoder_loss
-        return_dict["postnet_loss"] = postnet_loss
+        if self.postnet_alpha > 0:
+            loss += self.postnet_alpha * postnet_loss
+            return_dict["postnet_loss"] = postnet_loss
+
+        if self.decoder_alpha > 0:
+            if self.use_capacitron_vae:
+                # extract capacitron vae infos
+                posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
+
+                # KL divergence term between the posterior and the prior
+                kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
+
+                # VAE Loss: We use the l1 decoder loss as a stand-in for the negative log likelihood,
+                # summed over all dimensions and normalised by the batch size
+                negative_log_likelihood = self.decoder_alpha * decoder_loss
+
+                # pass beta through softplus
+                beta = torch.nn.functional.softplus(beta)[0]
+
+                # This is the term going to the main ADAM optimiser, we detach beta because
+                # beta is optimised by a separate, SGD optimiser below
+                reconstruction_loss = negative_log_likelihood + beta.detach() * (kl_term - self.capacitron_capacity)
+
+                # This is the term to purely optimise beta and to pass into the SGD
+                beta_loss = torch.negative(beta) * (kl_term - self.capacitron_capacity).detach()
+                # add capacitron vae loss
+                loss += reconstruction_loss
+
+                return_dict['capacitron_vae_loss'] = reconstruction_loss
+                return_dict['capacitron_vae_beta_loss'] = beta_loss
+                return_dict['capacitron_vae_kl_term'] = kl_term
+                return_dict['capacitron_beta'] = beta
+            else:
+                loss += self.decoder_alpha * decoder_loss
+                return_dict["decoder_loss"] = decoder_loss
 
         # stopnet loss
         stop_loss = (
@@ -382,33 +415,6 @@ class TacotronLoss(torch.nn.Module):
             loss += postnet_ssim_loss * self.postnet_ssim_alpha
             return_dict["postnet_ssim_loss"] = postnet_ssim_loss
 
-        if self.use_capacitron_vae:
-            # extract capacitron vae infos
-            posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
-
-            # KL divergence term between the posterior and the prior
-            kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
-
-            # VAE Loss: We use all model loss as a stand-in for the negative log likelihood,
-            # summed over all dimensions and normalised by the batch size
-            negative_log_likelihood = loss
-           
-            # pass beta through softplus
-            beta = torch.nn.functional.softplus(beta)[0]
-
-            # This is the term going to the main ADAM optimiser, we detach beta because
-            # beta is optimised by a separate, SGD optimiser below
-            reconstruction_loss = negative_log_likelihood + beta.detach() * (kl_term - self.capacitron_capacity)
-
-            # This is the term to purely optimise beta and to pass into the SGD
-            beta_loss = torch.negative(beta) * (kl_term - self.capacitron_capacity).detach()
-
-            return_dict['capacitron_vae_loss'] = reconstruction_loss
-            return_dict['capacitron_vae_beta_loss'] = beta_loss
-            return_dict['capacitron_vae_kl_term'] = kl_term
-            return_dict['capacitron_beta'] = beta
-            loss += reconstruction_loss
-
         return_dict["loss"] = loss
 
         # check if any loss is NaN
@@ -416,174 +422,6 @@ class TacotronLoss(torch.nn.Module):
             if torch.isnan(loss):
                 raise RuntimeError(f" [!] NaN loss with {key}.")
         return return_dict
-
-class CapacitronLoss(torch.nn.Module):
-    """
-    Collection of Tacotron set-up based on provided config.
-    """
-
-    def __init__(self, c, stopnet_pos_weight=10, ga_sigma=0.4):
-        super(CapacitronLoss, self).__init__()
-        self.stopnet_pos_weight = stopnet_pos_weight
-        self.ga_alpha = c.ga_alpha
-        self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
-        self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
-        self.decoder_alpha = c.decoder_loss_alpha
-        self.postnet_alpha = c.postnet_loss_alpha
-        self.decoder_ssim_alpha = c.decoder_ssim_alpha
-        self.postnet_ssim_alpha = c.postnet_ssim_alpha
-        self.config = c
-
-        # postnet and decoder loss
-        if c.loss_masking:
-            self.criterion = L1LossMasked(c.seq_len_norm) if c.model in [
-                "Tacotron"
-            ] else MSELossMasked(c.seq_len_norm)
-            raise Exception('Loss masking for Capacitron not implemented yet!')
-        else:
-            # Main Capacitron loss
-            self.criterion = nn.L1Loss(reduction='sum')
-            self.postnet_criterion = nn.L1Loss()
-        # guided attention loss
-        if c.ga_alpha > 0:
-            self.criterion_ga = GuidedAttentionLoss(sigma=ga_sigma)
-        # differential spectral loss
-        if c.postnet_diff_spec_alpha > 0 or c.decoder_diff_spec_alpha > 0:
-            self.criterion_diff_spec = DifferentailSpectralLoss(loss_func=self.criterion)
-        # ssim loss
-        if c.postnet_ssim_alpha > 0 or c.decoder_ssim_alpha > 0:
-            self.criterion_ssim = SSIMLoss()
-        # stopnet loss
-        # pylint: disable=not-callable
-        self.criterion_st = BCELossMasked(
-            pos_weight=torch.tensor(stopnet_pos_weight)) if c.stopnet else None
-
-    def forward(self, postnet_output, decoder_output, mel_input, linear_input,
-                stopnet_output, stopnet_target, output_lens, decoder_b_output,
-                alignments, alignment_lens, alignments_backwards, input_lens,
-                capacity, posterior_distribution, prior_distribution, beta):
-
-        # decoder outputs linear or mel spectrograms for Tacotron and Tacotron2
-        # the target should be set acccordingly
-        postnet_target = linear_input if self.config.model.lower() in ["tacotron"] else mel_input
-
-        return_dict = {}
-        # remove lengths if no masking is applied
-        if not self.config.loss_masking:
-            output_lens = None
-        # decoder and postnet losses
-        if self.config.loss_masking:
-            if self.decoder_alpha > 0:
-                decoder_loss = self.criterion(decoder_output, mel_input,
-                                              output_lens)
-            if self.postnet_alpha > 0:
-                postnet_loss = self.criterion(postnet_output, postnet_target,
-                                              output_lens)
-        else:
-            if self.decoder_alpha > 0:
-                decoder_loss = self.criterion(decoder_output, mel_input) / decoder_output.size(0)
-            if self.postnet_alpha > 0:
-                postnet_loss = self.postnet_criterion(postnet_output, postnet_target) #/ postnet_output.size(0)
-
-        # KL divergence term between the posterior and the prior
-        kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
-
-        # VAE Loss: We use the l1 decoder loss as a stand-in for the negative log likelihood,
-        # summed over all dimensions and normalised by the batch size
-        negative_log_likelihood = self.decoder_alpha * decoder_loss
-
-        # pass beta through softplus
-        beta = torch.nn.functional.softplus(beta)
-
-        # This is the term going to the main ADAM optimiser, we detach beta because
-        # beta is optimised by a separate, SGD optimiser below
-        reconstruction_loss = negative_log_likelihood + beta.detach() * (kl_term - capacity)
-
-        # This is the term to purely optimise beta and to pass into the SGD
-        beta_loss = torch.negative(beta) * (kl_term - capacity).detach()
-
-        return_dict['decoder_loss'] = decoder_loss
-        return_dict['postnet_loss'] = postnet_loss
-        return_dict['reconstruction_loss'] = reconstruction_loss
-        return_dict['beta_loss'] = beta_loss
-        return_dict['kl_term'] = kl_term
-        return_dict['capacitron_beta'] = beta
-
-        # We explicitly defined reconstruction loss above, it will be used as loss from now on
-        loss = reconstruction_loss + self.postnet_alpha * postnet_loss
-
-        # stopnet loss
-        stop_loss = self.criterion_st(
-            stopnet_output, stopnet_target,
-            output_lens) if self.config.stopnet else torch.zeros(1)
-        if not self.config.separate_stopnet and self.config.stopnet:
-            loss += stop_loss
-        return_dict['stopnet_loss'] = stop_loss
-
-        # backward decoder loss (if enabled)
-        if self.config.bidirectional_decoder:
-            if self.config.loss_masking:
-                decoder_b_loss = self.criterion(
-                    torch.flip(decoder_b_output, dims=(1, )), mel_input,
-                    output_lens)
-            else:
-                decoder_b_loss = self.criterion(torch.flip(decoder_b_output, dims=(1, )), mel_input)
-            decoder_c_loss = torch.nn.functional.l1_loss(torch.flip(decoder_b_output, dims=(1, )), decoder_output)
-            loss += self.decoder_alpha * (decoder_b_loss + decoder_c_loss)
-            return_dict['decoder_b_loss'] = decoder_b_loss
-            return_dict['decoder_c_loss'] = decoder_c_loss
-
-        # double decoder consistency loss (if enabled)
-        if self.config.double_decoder_consistency:
-            if self.config.loss_masking:
-                decoder_b_loss = self.criterion(decoder_b_output, mel_input,
-                                                output_lens)
-            else:
-                decoder_b_loss = self.criterion(decoder_b_output, mel_input)
-            # decoder_c_loss = torch.nn.functional.l1_loss(decoder_b_output, decoder_output)
-            attention_c_loss = torch.nn.functional.l1_loss(alignments, alignments_backwards)
-            loss += self.decoder_alpha * (decoder_b_loss + attention_c_loss)
-            return_dict['decoder_coarse_loss'] = decoder_b_loss
-            return_dict['decoder_ddc_loss'] = attention_c_loss
-
-        # guided attention loss (if enabled)
-        if self.config.ga_alpha > 0:
-            ga_loss = self.criterion_ga(alignments, input_lens, alignment_lens)
-            loss += ga_loss * self.ga_alpha
-            return_dict['ga_loss'] = ga_loss
-
-        # decoder differential spectral loss
-        if self.config.decoder_diff_spec_alpha > 0:
-            decoder_diff_spec_loss = self.criterion_diff_spec(decoder_output, mel_input, output_lens)
-            loss += decoder_diff_spec_loss * self.decoder_diff_spec_alpha
-            return_dict['decoder_diff_spec_loss'] = decoder_diff_spec_loss
-
-        # postnet differential spectral loss
-        if self.config.postnet_diff_spec_alpha > 0:
-            postnet_diff_spec_loss = self.criterion_diff_spec(postnet_output, postnet_target, output_lens)
-            loss += postnet_diff_spec_loss * self.postnet_diff_spec_alpha
-            return_dict['postnet_diff_spec_loss'] = postnet_diff_spec_loss
-
-        # decoder ssim loss
-        if self.config.decoder_ssim_alpha > 0:
-            decoder_ssim_loss = self.criterion_ssim(decoder_output, mel_input, output_lens)
-            loss += decoder_ssim_loss * self.postnet_ssim_alpha
-            return_dict['decoder_ssim_loss'] = decoder_ssim_loss
-
-        # postnet ssim loss
-        if self.config.postnet_ssim_alpha > 0:
-            postnet_ssim_loss = self.criterion_ssim(postnet_output, postnet_target, output_lens)
-            loss += postnet_ssim_loss * self.postnet_ssim_alpha
-            return_dict['postnet_ssim_loss'] = postnet_ssim_loss
-
-        return_dict['loss'] = loss
-
-        # check if any loss is NaN
-        for key, loss in return_dict.items():
-            if torch.isnan(loss):
-                raise RuntimeError(f" [!] NaN loss with {key}.")
-        return return_dict
-
 
 class GlowTTSLoss(torch.nn.Module):
     def __init__(self):
@@ -608,7 +446,6 @@ class GlowTTSLoss(torch.nn.Module):
             if torch.isnan(loss):
                 raise RuntimeError(f" [!] NaN loss with {key}.")
         return return_dict
-
 
 class SpeedySpeechLoss(nn.Module):
     def __init__(self, c):
