@@ -1,7 +1,7 @@
 #!/bin/bash
 # take the scripts's parent's directory to prefix all the output paths.
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-CORPUS=kokoro-speech-v1_1-tiny
+CORPUS=kokoro-speech-v1_1-small
 echo $RUN_DIR
 if [ \! -d $RUN_DIR/$CORPUS ] ; then
     echo "$RUN_DIR/$CORPUS doesn't exist."
