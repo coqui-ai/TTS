@@ -2,7 +2,7 @@
     "datasets": [
         {
             "name": "kokoro",
-            "path": "./kokoro-speech-v1_1-tiny/",
+            "path": "DEFINE THIS",
             "meta_file_train": "metadata.csv",
             "meta_file_val": null
         }
@@ -106,8 +106,8 @@
     "max_seq_len": 153,
     "compute_input_seq_cache": false,
     "use_noise_augment": true,
-    "output_path": "./Models/Kokoro/",
-    "phoneme_cache_path": "./phoneme_cache/",
+    "output_path": "DEFINE THIS",
+    "phoneme_cache_path": "DEFINE THIS",
     "use_phonemes": true,
     "phoneme_language": "ja-jp",
     "characters": {
