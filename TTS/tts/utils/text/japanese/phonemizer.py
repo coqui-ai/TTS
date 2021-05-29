@@ -371,7 +371,7 @@ def text2kata(text: str) -> str:
                 res.append(word)
     return hira2kata(''.join(res))
 
-def japanese_text2phone(text: str) -> str:
+def japanese_text_to_phonemes(text: str) -> str:
     """Convert Japanese text to phonemes.
     """
     res = text2kata(text)
