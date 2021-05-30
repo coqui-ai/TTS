@@ -46,7 +46,9 @@ class L1LossMasked(nn.Module):
         else:
             mask = mask.expand_as(x)
             loss = functional.l1_loss(x * mask, target * mask, reduction="sum")
-            loss = loss / mask.sum()
+            if self.reduction == 'mean':
+                loss = loss / mask.sum()
+
         return loss
 
 
@@ -86,6 +88,7 @@ class MSELossMasked(nn.Module):
             mask = mask.expand_as(x)
             loss = functional.mse_loss(x * mask, target * mask, reduction="sum")
             loss = loss / mask.sum()
+
         return loss
 
 
@@ -323,36 +326,14 @@ class TacotronLoss(torch.nn.Module):
             return_dict["postnet_loss"] = postnet_loss
 
         if self.decoder_alpha > 0:
-            if self.use_capacitron_vae:
-                # extract capacitron vae infos
-                posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
-
-                # KL divergence term between the posterior and the prior
-                kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
-
-                # VAE Loss: We use the l1 decoder loss as a stand-in for the negative log likelihood,
-                # summed over all dimensions and normalised by the batch size
-                negative_log_likelihood = self.decoder_alpha * decoder_loss
-
-                # pass beta through softplus
-                beta = torch.nn.functional.softplus(beta)[0]
-
-                # This is the term going to the main ADAM optimiser, we detach beta because
-                # beta is optimised by a separate, SGD optimiser below
-                reconstruction_loss = negative_log_likelihood + beta.detach() * (kl_term - self.capacitron_capacity)
-
-                # This is the term to purely optimise beta and to pass into the SGD
-                beta_loss = torch.negative(beta) * (kl_term - self.capacitron_capacity).detach()
-                # add capacitron vae loss
-                loss += reconstruction_loss
-
-                return_dict['capacitron_vae_loss'] = reconstruction_loss
-                return_dict['capacitron_vae_beta_loss'] = beta_loss
-                return_dict['capacitron_vae_kl_term'] = kl_term
-                return_dict['capacitron_beta'] = beta
-            else:
+            '''if self.use_capacitron_vae:
+                # 
+                decoder_loss = functional.l1_loss(decoder_output, mel_input, reduction='sum')/decoder_output.size(0)
                 loss += self.decoder_alpha * decoder_loss
                 return_dict["decoder_loss"] = decoder_loss
+            else:'''
+            loss += self.decoder_alpha * decoder_loss
+            return_dict["decoder_loss"] = decoder_loss
 
         # stopnet loss
         stop_loss = (
@@ -414,6 +395,48 @@ class TacotronLoss(torch.nn.Module):
             postnet_ssim_loss = self.criterion_ssim(postnet_output, postnet_target, output_lens)
             loss += postnet_ssim_loss * self.postnet_ssim_alpha
             return_dict["postnet_ssim_loss"] = postnet_ssim_loss
+
+        if self.use_capacitron_vae:
+            # extract capacitron vae infos
+            posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
+
+            # KL divergence term between the posterior and the prior
+            kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
+
+            # In the Capacitron the authors do not use the the negative KL_term, instead they uses a capacity factor
+            kl_capacity = (kl_term - self.capacitron_capacity)
+
+            # pass beta through softplus
+            beta = torch.nn.functional.softplus(beta)[0]
+
+            # This is the term going to the main ADAM optimiser, we detach beta because
+            # beta is optimised by a separate, SGD optimiser below
+            capacitron_vae_loss = beta.detach() * kl_capacity
+
+            # normalize the capacitron_vae_loss as in L1Loss or MSELoss. 
+            # After this both is Loss and  capacitron_vae_loss will be in the same scale
+            # For this reason we don't need use L1Loss and MSELoss in "sum" reduction mode
+            # Note: the batch is not considered because the L1Loss was calculated in "sum" mode
+            # divided by the batch size, So dont div the capacitron_vae_loss by the B is equal
+            
+            # get B T D dimension from input
+            B, T, D = mel_input.size()
+            # normalize
+            if self.config.loss_masking:
+                # if mask loss get de T using the mask
+                T = output_lens.sum() / B
+            capacitron_vae_loss = capacitron_vae_loss / (T * D)
+
+            # This is the term to purely optimise beta and to pass into the SGD
+            beta_loss = torch.negative(beta) * kl_capacity.detach()
+
+            # add capacitron vae loss as others loss
+            loss += capacitron_vae_loss
+
+            return_dict['capacitron_vae_loss'] = capacitron_vae_loss
+            return_dict['capacitron_vae_beta_loss'] = beta_loss
+            return_dict['capacitron_vae_kl_term'] = kl_term
+            return_dict['capacitron_beta'] = beta
 
         return_dict["loss"] = loss
 
