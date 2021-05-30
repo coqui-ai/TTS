@@ -9,7 +9,7 @@ import traceback
 import torch
 from torch.utils.data import DataLoader
 
-from TTS.speaker_encoder.dataset import MyDataset
+from TTS.speaker_encoder.dataset import SpeakerEncoderDataset
 
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_model
@@ -35,7 +35,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
     if is_val:
         loader = None
     else:
-        dataset = MyDataset(
+        dataset = SpeakerEncoderDataset(
             ap,
             meta_data_eval if is_val else meta_data_train,
             voice_len=c.voice_len,
