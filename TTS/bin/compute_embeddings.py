@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.tts.utils.speakers import save_speaker_mapping
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 from TTS.config import load_config, BaseDatasetConfig
 
@@ -28,7 +28,7 @@ parser.add_argument(
     default="",
     help="Target dataset to pick a processor from TTS.tts.dataset.preprocess. Necessary to create a speakers.json file.",
 )
-parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=False)
+parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
 parser.add_argument("--separator", type=str, help="Separator used in file if CSV is passed for data_path", default="|")
 args = parser.parse_args()
 
@@ -69,9 +69,6 @@ else:
         # Parse all wav files in data_path
         wav_files = glob.glob(data_path + "/**/*.wav", recursive=True)
 
-
-os.makedirs(args.output_path, exist_ok=True)
-
 # define Encoder model
 model = setup_model(c)
 model.load_state_dict(torch.load(args.model_path)["model"])
@@ -85,6 +82,8 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     if isinstance(wav_file, list):
         speaker_name = wav_file[2]
         wav_file = wav_file[1]
+    else:
+        speaker_name = None
 
     mel_spec = ap.melspectrogram(ap.load_wav(wav_file, sr=ap.sample_rate)).T
     mel_spec = torch.FloatTensor(mel_spec[None, :, :])
@@ -93,16 +92,20 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     embedd = model.compute_embedding(mel_spec)
     embedd = embedd.detach().cpu().numpy()
 
-    if args.target_dataset != "":
-        # create speaker_mapping if target dataset is defined
-        wav_file_name = os.path.basename(wav_file)
-        speaker_mapping[wav_file_name] = {}
-        speaker_mapping[wav_file_name]["name"] = speaker_name
-        speaker_mapping[wav_file_name]["embedding"] = embedd.flatten().tolist()
+    # create speaker_mapping if target dataset is defined
+    wav_file_name = os.path.basename(wav_file)
+    speaker_mapping[wav_file_name] = {}
+    speaker_mapping[wav_file_name]["name"] = speaker_name
+    speaker_mapping[wav_file_name]["embedding"] = embedd.flatten().tolist()
 
-if args.target_dataset != "":
-    if speaker_mapping:
-        # save speaker_mapping if target dataset is defined
+if speaker_mapping:
+    # save speaker_mapping if target dataset is defined
+    if '.json' not in args.output_path:
         mapping_file_path = os.path.join(args.output_path, "speakers.json")
-        save_speaker_mapping(args.output_path, speaker_mapping)
-        print("Speaker embedding saved at:", mapping_file_path)
+    else:
+        mapping_file_path = args.output_path
+    os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
+    speaker_manager = SpeakerManager()
+    # pylint: disable=W0212
+    speaker_manager._save_json(mapping_file_path, speaker_mapping)
+    print("Speaker embeddings saved at:", mapping_file_path)
