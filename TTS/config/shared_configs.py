@@ -226,7 +226,7 @@ class BaseTrainingConfig(Coqpit):
     run_description: str = ""
     # training params
     epochs: int = 10000
-    batch_size: int = MISSING
+    batch_size: int = None
     eval_batch_size: int = None
     mixed_precision: bool = False
     # eval params
