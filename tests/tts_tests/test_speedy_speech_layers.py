@@ -45,17 +45,25 @@ def test_speedy_speech():
         model.cuda()
 
     # forward pass
-    o_de, o_dr, attn = model(x_dummy, x_lengths, y_lengths, durations)
+    outputs = model(x_dummy, x_lengths, y_lengths, durations)
+    o_de = outputs["model_outputs"]
+    attn = outputs["alignments"]
+    o_dr = outputs["durations_log"]
 
-    assert list(o_de.shape) == [B, 80, T_de], f"{list(o_de.shape)}"
+    assert list(o_de.shape) == [B, T_de, 80], f"{list(o_de.shape)}"
     assert list(attn.shape) == [B, T_de, T_en]
     assert list(o_dr.shape) == [B, T_en]
 
     # with speaker embedding
     model = SpeedySpeech(num_chars, out_channels=80, hidden_channels=128, num_speakers=10, c_in_channels=256).to(device)
-    model.forward(x_dummy, x_lengths, y_lengths, durations, g=torch.randint(0, 10, (B,)).to(device))
+    model.forward(
+        x_dummy, x_lengths, y_lengths, durations, cond_input={"x_vectors": torch.randint(0, 10, (B,)).to(device)}
+    )
+    o_de = outputs["model_outputs"]
+    attn = outputs["alignments"]
+    o_dr = outputs["durations_log"]
 
-    assert list(o_de.shape) == [B, 80, T_de], f"{list(o_de.shape)}"
+    assert list(o_de.shape) == [B, T_de, 80], f"{list(o_de.shape)}"
     assert list(attn.shape) == [B, T_de, T_en]
     assert list(o_dr.shape) == [B, T_en]
 
@@ -63,8 +71,11 @@ def test_speedy_speech():
     model = SpeedySpeech(
         num_chars, out_channels=80, hidden_channels=128, num_speakers=10, external_c=True, c_in_channels=256
     ).to(device)
-    model.forward(x_dummy, x_lengths, y_lengths, durations, g=torch.rand((B, 256)).to(device))
+    model.forward(x_dummy, x_lengths, y_lengths, durations, cond_input={"x_vectors": torch.rand((B, 256)).to(device)})
+    o_de = outputs["model_outputs"]
+    attn = outputs["alignments"]
+    o_dr = outputs["durations_log"]
 
-    assert list(o_de.shape) == [B, 80, T_de], f"{list(o_de.shape)}"
+    assert list(o_de.shape) == [B, T_de, 80], f"{list(o_de.shape)}"
     assert list(attn.shape) == [B, T_de, T_en]
     assert list(o_dr.shape) == [B, T_en]
