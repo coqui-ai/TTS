@@ -2,7 +2,7 @@ import os
 import unittest
 
 from tests import get_tests_input_path
-from TTS.tts.datasets.preprocess import common_voice
+from TTS.tts.datasets.formatters import common_voice
 
 
 class TestPreprocessors(unittest.TestCase):
