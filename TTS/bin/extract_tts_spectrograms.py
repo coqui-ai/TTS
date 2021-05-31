@@ -140,7 +140,6 @@ def inference(
     speaker_embeddings=None,
 ):
     if model_name == "glow_tts":
-        # mel_input = mel_input.permute(0, 2, 1)  # B x D x T
         speaker_c = None
         if speaker_ids is not None:
             speaker_c = speaker_ids
