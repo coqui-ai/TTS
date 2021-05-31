@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tests import get_tests_output_path
 from TTS.tts.configs import BaseTTSConfig
 from TTS.tts.datasets import TTSDataset
-from TTS.tts.datasets.preprocess import ljspeech
+from TTS.tts.datasets.formatters import ljspeech
 from TTS.utils.audio import AudioProcessor
 
 # pylint: disable=unused-variable

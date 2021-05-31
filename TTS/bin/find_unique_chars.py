@@ -3,14 +3,14 @@ import argparse
 import os
 from argparse import RawTextHelpFormatter
 
-from TTS.tts.datasets.preprocess import get_preprocessor_by_name
+from TTS.tts.datasets.formatters import get_preprocessor_by_name
 
 
 def main():
     # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
         description="""Find all the unique characters or phonemes in a dataset.\n\n"""
-        """Target dataset must be defined in TTS.tts.datasets.preprocess\n\n"""
+        """Target dataset must be defined in TTS.tts.datasets.formatters\n\n"""
         """
     Example runs:
 
@@ -20,7 +20,7 @@ def main():
     )
 
     parser.add_argument(
-        "--dataset", type=str, default="", help="One of the target dataset names in TTS.tts.datasets.preprocess."
+        "--dataset", type=str, default="", help="One of the target dataset names in TTS.tts.datasets.formatters."
     )
 
     parser.add_argument("--meta_file", type=str, default=None, help="Path to the transcriptions file of the dataset.")
