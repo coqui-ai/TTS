@@ -29,7 +29,7 @@ class LSTMWithoutProjection(nn.Module):
         return self.relu(self.linear(hidden[-1]))
 
 
-class SpeakerEncoder(nn.Module):
+class LSTMSpeakerEncoder(nn.Module):
     def __init__(self, input_dim, proj_dim=256, lstm_dim=768, num_lstm_layers=3, use_lstm_with_projection=True):
         super().__init__()
         self.use_lstm_with_projection = use_lstm_with_projection
