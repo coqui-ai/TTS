@@ -52,15 +52,15 @@ class TacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids
+            outputs = model.forward(
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
             )
-            assert torch.sigmoid(stop_tokens).data.max() <= 1.0
-            assert torch.sigmoid(stop_tokens).data.min() >= 0.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
             optimizer.zero_grad()
-            loss = criterion(mel_out, mel_spec, mel_lengths)
-            stop_loss = criterion_st(stop_tokens, stop_targets)
-            loss = loss + criterion(mel_postnet_out, mel_postnet_spec, mel_lengths) + stop_loss
+            loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
+            stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
+            loss = loss + criterion(outputs["model_outputs"], mel_postnet_spec, mel_lengths) + stop_loss
             loss.backward()
             optimizer.step()
         # check parameter changes
@@ -85,7 +85,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
         mel_lengths = torch.randint(20, 30, (8,)).long().to(device)
         mel_lengths[0] = 30
         stop_targets = torch.zeros(8, 30, 1).float().to(device)
-        speaker_embeddings = torch.rand(8, 55).to(device)
+        speaker_ids = torch.rand(8, 55).to(device)
 
         for idx in mel_lengths:
             stop_targets[:, int(idx.item()) :, 0] = 1.0
@@ -104,15 +104,15 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, speaker_embeddings=speaker_embeddings
+            outputs = model.forward(
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"x_vectors": speaker_ids}
             )
-            assert torch.sigmoid(stop_tokens).data.max() <= 1.0
-            assert torch.sigmoid(stop_tokens).data.min() >= 0.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
             optimizer.zero_grad()
-            loss = criterion(mel_out, mel_spec, mel_lengths)
-            stop_loss = criterion_st(stop_tokens, stop_targets)
-            loss = loss + criterion(mel_postnet_out, mel_postnet_spec, mel_lengths) + stop_loss
+            loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
+            stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
+            loss = loss + criterion(outputs["model_outputs"], mel_postnet_spec, mel_lengths) + stop_loss
             loss.backward()
             optimizer.step()
         # check parameter changes
@@ -157,15 +157,15 @@ class TacotronGSTTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(10):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids
+            outputs = model.forward(
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
             )
-            assert torch.sigmoid(stop_tokens).data.max() <= 1.0
-            assert torch.sigmoid(stop_tokens).data.min() >= 0.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
             optimizer.zero_grad()
-            loss = criterion(mel_out, mel_spec, mel_lengths)
-            stop_loss = criterion_st(stop_tokens, stop_targets)
-            loss = loss + criterion(mel_postnet_out, mel_postnet_spec, mel_lengths) + stop_loss
+            loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
+            stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
+            loss = loss + criterion(outputs["model_outputs"], mel_postnet_spec, mel_lengths) + stop_loss
             loss.backward()
             optimizer.step()
         # check parameter changes
@@ -213,15 +213,15 @@ class TacotronGSTTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(10):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids
+            outputs = model.forward(
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
             )
-            assert torch.sigmoid(stop_tokens).data.max() <= 1.0
-            assert torch.sigmoid(stop_tokens).data.min() >= 0.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
             optimizer.zero_grad()
-            loss = criterion(mel_out, mel_spec, mel_lengths)
-            stop_loss = criterion_st(stop_tokens, stop_targets)
-            loss = loss + criterion(mel_postnet_out, mel_postnet_spec, mel_lengths) + stop_loss
+            loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
+            stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
+            loss = loss + criterion(outputs["model_outputs"], mel_postnet_spec, mel_lengths) + stop_loss
             loss.backward()
             optimizer.step()
         # check parameter changes
@@ -270,15 +270,15 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
-            mel_out, mel_postnet_out, align, stop_tokens = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, speaker_embeddings=speaker_embeddings
+            outputs = model.forward(
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"x_vectors": speaker_embeddings}
             )
-            assert torch.sigmoid(stop_tokens).data.max() <= 1.0
-            assert torch.sigmoid(stop_tokens).data.min() >= 0.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
             optimizer.zero_grad()
-            loss = criterion(mel_out, mel_spec, mel_lengths)
-            stop_loss = criterion_st(stop_tokens, stop_targets)
-            loss = loss + criterion(mel_postnet_out, mel_postnet_spec, mel_lengths) + stop_loss
+            loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
+            stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
+            loss = loss + criterion(outputs["model_outputs"], mel_postnet_spec, mel_lengths) + stop_loss
             loss.backward()
             optimizer.step()
         # check parameter changes
