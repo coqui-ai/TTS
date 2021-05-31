@@ -21,6 +21,7 @@ config = FullbandMelganConfig(
     print_step=1,
     print_eval=True,
     data_path="tests/data/ljspeech",
+    discriminator_model_params={"base_channels": 16, "max_channels": 128, "downsample_factors": [4, 4, 4]},
     output_path=output_path,
 )
 config.audio.do_trim_silence = True
