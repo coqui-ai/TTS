@@ -152,6 +152,7 @@ def process_args(args):
         experiment_path = create_experiment_folder(config.output_path, config.run_name, args.debug)
     audio_path = os.path.join(experiment_path, "test_audios")
     # setup rank 0 process in distributed training
+    tb_logger = None
     if args.rank == 0:
         os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
