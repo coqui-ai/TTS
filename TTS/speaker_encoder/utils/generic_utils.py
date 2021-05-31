@@ -1,17 +1,17 @@
-import re
+import datetime
+import glob
 import os
+import random
+import re
+from multiprocessing import Manager
 
 import numpy as np
 import torch
-import glob
-import random
-import datetime
-
 from scipy import signal
-from multiprocessing import Manager
 
 from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
 from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
+
 
 class Storage(object):
     def __init__(self, maxsize, storage_batchs, num_speakers_in_batch, num_threads=8):
@@ -53,19 +53,19 @@ class Storage(object):
         return self.storage[random.randint(0, storage_size)]
 
     def get_random_sample_fast(self):
-        '''Call this method only when storage is full'''
+        """Call this method only when storage is full"""
         return self.storage[random.randint(0, self.safe_storage_size)]
 
-class AugmentWAV(object):
 
+class AugmentWAV(object):
     def __init__(self, ap, augmentation_config):
 
         self.ap = ap
         self.use_additive_noise = False
 
-        if 'additive' in augmentation_config.keys():
-            self.additive_noise_config = augmentation_config['additive']
-            additive_path = self.additive_noise_config['sounds_path']
+        if "additive" in augmentation_config.keys():
+            self.additive_noise_config = augmentation_config["additive"]
+            additive_path = self.additive_noise_config["sounds_path"]
             if additive_path:
                 self.use_additive_noise = True
                 # get noise types
@@ -74,12 +74,12 @@ class AugmentWAV(object):
                     if isinstance(self.additive_noise_config[key], dict):
                         self.additive_noise_types.append(key)
 
-                additive_files = glob.glob(os.path.join(additive_path, '**/*.wav'), recursive=True)
+                additive_files = glob.glob(os.path.join(additive_path, "**/*.wav"), recursive=True)
 
                 self.noise_list = {}
 
                 for wav_file in additive_files:
-                    noise_dir = wav_file.replace(additive_path, '').split(os.sep)[0]
+                    noise_dir = wav_file.replace(additive_path, "").split(os.sep)[0]
                     # ignore not listed directories
                     if noise_dir not in self.additive_noise_types:
                         continue
@@ -87,14 +87,16 @@ class AugmentWAV(object):
                         self.noise_list[noise_dir] = []
                     self.noise_list[noise_dir].append(wav_file)
 
-                print(f" | > Using Additive Noise Augmentation: with {len(additive_files)} audios instances from {self.additive_noise_types}")
+                print(
+                    f" | > Using Additive Noise Augmentation: with {len(additive_files)} audios instances from {self.additive_noise_types}"
+                )
 
         self.use_rir = False
 
-        if 'rir' in augmentation_config.keys():
-            self.rir_config = augmentation_config['rir']
-            if self.rir_config['rir_path']:
-                self.rir_files = glob.glob(os.path.join(self.rir_config['rir_path'], '**/*.wav'), recursive=True)
+        if "rir" in augmentation_config.keys():
+            self.rir_config = augmentation_config["rir"]
+            if self.rir_config["rir_path"]:
+                self.rir_files = glob.glob(os.path.join(self.rir_config["rir_path"], "**/*.wav"), recursive=True)
                 self.use_rir = True
 
             print(f" | > Using RIR Noise Augmentation: with {len(self.rir_files)} audios instances")
@@ -111,9 +113,15 @@ class AugmentWAV(object):
 
     def additive_noise(self, noise_type, audio):
 
-        clean_db = 10 * np.log10(np.mean(audio**2) + 1e-4)
+        clean_db = 10 * np.log10(np.mean(audio ** 2) + 1e-4)
 
-        noise_list = random.sample(self.noise_list[noise_type], random.randint(self.additive_noise_config[noise_type]['min_num_noises'], self.additive_noise_config[noise_type]['max_num_noises']))
+        noise_list = random.sample(
+            self.noise_list[noise_type],
+            random.randint(
+                self.additive_noise_config[noise_type]["min_num_noises"],
+                self.additive_noise_config[noise_type]["max_num_noises"],
+            ),
+        )
 
         audio_len = audio.shape[0]
         noises_wav = None
@@ -123,7 +131,10 @@ class AugmentWAV(object):
             if noiseaudio.shape[0] < audio_len:
                 continue
 
-            noise_snr = random.uniform(self.additive_noise_config[noise_type]['min_snr_in_db'], self.additive_noise_config[noise_type]['max_num_noises'])
+            noise_snr = random.uniform(
+                self.additive_noise_config[noise_type]["min_snr_in_db"],
+                self.additive_noise_config[noise_type]["max_num_noises"],
+            )
             noise_db = 10 * np.log10(np.mean(noiseaudio ** 2) + 1e-4)
             noise_wav = np.sqrt(10 ** ((clean_db - noise_db - noise_snr) / 10)) * noiseaudio
 
@@ -144,7 +155,7 @@ class AugmentWAV(object):
         rir_file = random.choice(self.rir_files)
         rir = self.ap.load_wav(rir_file, sr=self.ap.sample_rate)
         rir = rir / np.sqrt(np.sum(rir ** 2))
-        return signal.convolve(audio, rir, mode=self.rir_config['conv_mode'])[:audio_len]
+        return signal.convolve(audio, rir, mode=self.rir_config["conv_mode"])[:audio_len]
 
     def apply_one(self, audio):
         noise_type = random.choice(self.global_noise_list)
@@ -153,16 +164,24 @@ class AugmentWAV(object):
 
         return self.additive_noise(noise_type, audio)
 
+
 def to_camel(text):
     text = text.capitalize()
     return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
 
+
 def setup_model(c):
-    if c.model_params['model_name'].lower() == 'lstm':
-        model = LSTMSpeakerEncoder(c.model_params["input_dim"], c.model_params["proj_dim"], c.model_params["lstm_dim"], c.model_params["num_lstm_layers"])
-    elif c.model_params['model_name'].lower() == 'resnet':
+    if c.model_params["model_name"].lower() == "lstm":
+        model = LSTMSpeakerEncoder(
+            c.model_params["input_dim"],
+            c.model_params["proj_dim"],
+            c.model_params["lstm_dim"],
+            c.model_params["num_lstm_layers"],
+        )
+    elif c.model_params["model_name"].lower() == "resnet":
         model = ResNetSpeakerEncoder(input_dim=c.model_params["input_dim"], proj_dim=c.model_params["proj_dim"])
     return model
+
 
 def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_step, epoch):
     checkpoint_path = "checkpoint_{}.pth.tar".format(current_step)

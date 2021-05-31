@@ -162,6 +162,7 @@ class AngleProtoLoss(nn.Module):
         L = self.criterion(cos_sim_matrix, label)
         return L
 
+
 class SoftmaxLoss(nn.Module):
     """
     Implementation of the Softmax loss as defined in https://arxiv.org/abs/2003.11982
@@ -169,13 +170,14 @@ class SoftmaxLoss(nn.Module):
             - embedding_dim (float): speaker embedding dim
             - n_speakers (float): number of speakers
     """
+
     def __init__(self, embedding_dim, n_speakers):
         super().__init__()
 
         self.criterion = torch.nn.CrossEntropyLoss()
         self.fc = nn.Linear(embedding_dim, n_speakers)
 
-        print('Initialised Softmax Loss')
+        print("Initialised Softmax Loss")
 
     def forward(self, x, label=None):
         # reshape for compatibility
@@ -187,6 +189,7 @@ class SoftmaxLoss(nn.Module):
 
         return L
 
+
 class SoftmaxAngleProtoLoss(nn.Module):
     """
     Implementation of the Softmax AnglePrototypical loss as defined in https://arxiv.org/abs/2009.14153
@@ -196,13 +199,14 @@ class SoftmaxAngleProtoLoss(nn.Module):
             - init_w (float): defines the initial value of w
             - init_b (float): definies the initial value of b
     """
+
     def __init__(self, embedding_dim, n_speakers, init_w=10.0, init_b=-5.0):
         super().__init__()
 
         self.softmax = SoftmaxLoss(embedding_dim, n_speakers)
         self.angleproto = AngleProtoLoss(init_w, init_b)
 
-        print('Initialised SoftmaxAnglePrototypical Loss')
+        print("Initialised SoftmaxAnglePrototypical Loss")
 
     def forward(self, x, label=None):
         """
@@ -213,4 +217,4 @@ class SoftmaxAngleProtoLoss(nn.Module):
 
         Ls = self.softmax(x, label)
 
-        return Ls+Lp
+        return Ls + Lp

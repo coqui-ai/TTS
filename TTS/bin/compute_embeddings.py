@@ -5,11 +5,11 @@ import os
 import torch
 from tqdm import tqdm
 
+from TTS.config import BaseDatasetConfig, load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
-from TTS.config import load_config, BaseDatasetConfig
 
 parser = argparse.ArgumentParser(
     description='Compute embedding vectors for each wav file in a dataset. If "target_dataset" is defined, it generates "speakers.json" necessary for training a multi-speaker model.'
@@ -100,7 +100,7 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
 
 if speaker_mapping:
     # save speaker_mapping if target dataset is defined
-    if '.json' not in args.output_path:
+    if ".json" not in args.output_path:
         mapping_file_path = os.path.join(args.output_path, "speakers.json")
     else:
         mapping_file_path = args.output_path
