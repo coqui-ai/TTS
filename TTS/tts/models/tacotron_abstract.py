@@ -1,10 +1,12 @@
 import copy
 from abc import ABC, abstractmethod
+from typing import Dict
 
 import torch
 from torch import nn
 
 from TTS.tts.utils.data import sequence_mask
+from TTS.utils.generic_utils import format_cond_input
 from TTS.utils.training import gradual_training_scheduler
 
 
@@ -93,6 +95,10 @@ class TacotronAbstract(ABC, nn.Module):
         # additional layers
         self.decoder_backward = None
         self.coarse_decoder = None
+
+    @staticmethod
+    def _format_cond_input(cond_input: Dict) -> Dict:
+        return format_cond_input({"x_vectors": None, "speaker_ids": None}, cond_input)
 
     #############################
     # INIT FUNCTIONS
