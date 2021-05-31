@@ -1,0 +1,957 @@
+
+{
+    "model": "speaker_encoder",
+    "run_name": "speaker_encoder",
+    "run_description": "resnet speaker encoder trained with commonvoice all languages dev and train, Voxceleb 1 dev and Voxceleb 2 dev",
+    // AUDIO PARAMETERS
+    "audio":{
+        // Audio processing parameters
+        "num_mels": 80,         // size of the mel spec frame. 
+        "fft_size": 1024,       // number of stft frequency levels. Size of the linear spectogram frame.
+        "sample_rate": 16000,  // DATASET-RELATED: wav sample-rate. If different than the original data, it is resampled.
+        "win_length": 1024,     // stft window length in ms.
+        "hop_length": 256,      // stft window hop-lengh in ms.
+        "frame_length_ms": null,  // stft window length in ms.If null, 'win_length' is used.
+        "frame_shift_ms": null,   // stft window hop-lengh in ms. If null, 'hop_length' is used.
+        "preemphasis": 0.98,    // pre-emphasis to reduce spec noise and make it more structured. If 0.0, no -pre-emphasis.
+        "min_level_db": -100,   // normalization range
+        "ref_level_db": 20,     // reference level db, theoretically 20db is the sound of air.
+        "power": 1.5,           // value to sharpen wav signals after GL algorithm.
+        "griffin_lim_iters": 60,// #griffin-lim iterations. 30-60 is a good range. Larger the value, slower the generation.
+        "stft_pad_mode": "reflect",
+        // Normalization parameters
+        "signal_norm": true,    // normalize the spec values in range [0, 1]
+        "symmetric_norm": true, // move normalization to range [-1, 1]
+        "max_norm": 4.0,          // scale normalization to range [-max_norm, max_norm] or [0, max_norm]
+        "clip_norm": true,      // clip normalized values into the range.
+        "mel_fmin": 0.0,         // minimum freq level for mel-spec. ~50 for male and ~95 for female voices. Tune for dataset!!
+        "mel_fmax": 8000.0,        // maximum freq level for mel-spec. Tune for dataset!!
+        "spec_gain": 20.0, 
+        "do_trim_silence": false,  // enable trimming of slience of audio as you load it. LJspeech (false), TWEB (false), Nancy (true)
+        "trim_db": 60,          // threshold for timming silence. Set this according to your dataset.
+        "stats_path": null    // DO NOT USE WITH MULTI_SPEAKER MODEL. scaler stats file computed by 'compute_statistics.py'. If it is defined, mean-std based notmalization is used and other normalization params are ignored 
+    },
+    "reinit_layers": [],
+
+    "loss": "softmaxproto", // "ge2e" to use Generalized End-to-End loss, "angleproto" to use Angular Prototypical loss and "softmaxproto" to use Softmax with Angular Prototypical loss 
+    "grad_clip": 3.0, // upper limit for gradients for clipping.
+    "max_train_step": 1000000, // total number of steps to train.
+    "lr": 0.0001, // Initial learning rate. If Noam decay is active, maximum learning rate.
+    "lr_decay": false, // if true, Noam learning rate decaying is applied through training.
+    "warmup_steps": 4000, // Noam decay steps to increase the learning rate from 0 to "lr"
+    "tb_model_param_stats": false, // true, plots param stats per layer on tensorboard. Might be memory consuming, but good for debugging. 
+    "steps_plot_stats": 100, // number of steps to plot embeddings.
+
+    // Speakers config
+    "num_speakers_in_batch": 200, // Batch size for training.
+    "num_utters_per_speaker": 2,  //
+    "skip_speakers": true, // skip speakers with samples less than "num_utters_per_speaker"
+    "voice_len": 2, // number of seconds for each training instance
+     
+    "num_loader_workers": 8, // number of training data loader processes. Don't set it too big. 4-8 are good values.
+    "wd": 0.000001, // Weight decay weight.
+    "checkpoint": true, // If true, it saves checkpoints per "save_step"
+    "save_step": 1000, // Number of training steps expected to save the best checkpoints in training.
+    "print_step": 50, // Number of steps to log traning on console.
+    "output_path": "../../../checkpoints/speaker_encoder/resnet_voxceleb1_and_voxceleb2-and-common-voice-all/", // DATASET-RELATED: output path for all training outputs.
+
+    "audio_augmentation": {
+        "p": 0.5, // propability of apply this method, 0 is disable rir and additive noise augmentation
+        "rir":{
+            "rir_path": "/workspace/store/ecasanova/ComParE/RIRS_NOISES/simulated_rirs/",
+            "conv_mode": "full"
+        },
+        "additive":{
+            "sounds_path": "/workspace/store/ecasanova/ComParE/musan/",
+            // list of each of the directories in your data augmentation, if a directory is in "sounds_path" but is not listed here it will be ignored
+            "speech":{
+                "min_snr_in_db": 13,
+                "max_snr_in_db": 20,
+                "min_num_noises": 2,
+                "max_num_noises": 3
+                },
+            "noise":{
+                "min_snr_in_db": 0,
+                "max_snr_in_db": 15,
+                "min_num_noises": 1,
+                "max_num_noises": 1
+                },
+            "music":{
+                "min_snr_in_db": 5,
+                "max_snr_in_db": 15,
+                "min_num_noises": 1,
+                "max_num_noises": 1
+                }
+        },
+        //add a gaussian noise to the data in order to increase robustness
+        "gaussian":{ // as the insertion of Gaussian noise is quick to be calculated, we added it after loading the wav file, this way, even audios that were reused with the cache can receive this noise
+            "p": 0.5, // propability of apply this method, 0 is disable
+            "min_amplitude": 0.0,
+            "max_amplitude": 1e-5    
+        }
+    },
+    "model_params": {
+        "model_name": "resnet",
+        "input_dim": 80,
+        "proj_dim": 512
+    },
+    "storage": {
+        "sample_from_storage_p": 0.66,  // the probability with which we'll sample from the DataSet in-memory storage
+        "storage_size":  35 // the size of the in-memory storage with respect to a single batch
+    },
+    "datasets": 
+        [
+        {
+                "name": "voxceleb2",
+                "path": "/workspace/scratch/ecasanova/datasets/VoxCeleb/vox2_dev_aac/",
+                "meta_file_train": null,
+                "meta_file_val": null
+        },
+        {
+                "name": "voxceleb1",
+                "path": "/workspace/scratch/ecasanova/datasets/VoxCeleb/vox1_dev_wav/",
+                "meta_file_train": null,
+                "meta_file_val": null
+        },
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fi",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fi",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/zh-CN",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/zh-CN",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/rm-sursilv",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/rm-sursilv",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/lt",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/lt",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ka",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ka",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/sv-SE",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/sv-SE",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/pl",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/pl",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ru",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ru",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/mn",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/mn",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/nl",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/nl",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/sl",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/sl",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/es",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/es",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/pt",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/pt",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/hi",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/hi",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ja",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ja",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ia",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ia",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/br",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/br",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/id",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/id",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/dv",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/dv",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ta",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ta",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/or",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/or",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/zh-HK",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/zh-HK",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/de",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/de",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/uk",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/uk",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/en",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/en",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fa",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fa",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/vi",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/vi",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ab",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ab",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/sah",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/sah",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/vot",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/vot",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fr",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fr",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/tr",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/tr",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/lg",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/lg",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/mt",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/mt",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/rw",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/rw",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/hu",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/hu",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/rm-vallader",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/rm-vallader",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/el",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/el",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/tt",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/tt",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/zh-TW",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/zh-TW",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/et",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/et",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fy-NL",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/fy-NL",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cs",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cs",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/as",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/as",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ro",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ro",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/eo",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/eo",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/pa-IN",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/pa-IN",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/th",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/th",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/it",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/it",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ga-IE",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ga-IE",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cnh",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cnh",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ky",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ky",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ar",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ar",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/eu",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/eu",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ca",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/ca",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/kab",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/kab",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cy",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cy",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cv",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/cv",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/hsb",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/hsb",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        },
+
+         {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/lv",
+                "meta_file_train": "train.tsv",
+                "meta_file_val":  null
+        },
+
+        {
+                "name": "common_voice",
+                "path": "/workspace/scratch/ecasanova/datasets/common-voice/cv-corpus-6.1-2020-12-11_16khz/lv",
+                "meta_file_train": "dev.tsv",
+                "meta_file_val":  null
+        }
+
+        ]
+}
