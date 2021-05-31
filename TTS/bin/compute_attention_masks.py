@@ -80,7 +80,7 @@ Example run:
     model.eval()
 
     # data loader
-    preprocessor = importlib.import_module("TTS.tts.datasets.preprocess")
+    preprocessor = importlib.import_module("TTS.tts.datasets.formatters")
     preprocessor = getattr(preprocessor, args.dataset)
     meta_data = preprocessor(args.data_path, args.dataset_metafile)
     dataset = TTSDataset(
