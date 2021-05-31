@@ -191,6 +191,7 @@ class Tacotron2(TacotronAbstract):
             mel_lengths: [B]
             cond_input: 'speaker_ids': [B, 1] and  'x_vectors':[B, C]
         """
+        cond_input = self._format_cond_input(cond_input)
         outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
         # compute mask for padding
         # B x T_in_max (boolean)
@@ -248,6 +249,7 @@ class Tacotron2(TacotronAbstract):
 
     @torch.no_grad()
     def inference(self, text, cond_input=None):
+        cond_input = self._format_cond_input(cond_input)
         embedded_inputs = self.embedding(text).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
 
