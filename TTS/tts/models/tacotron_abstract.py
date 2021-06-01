@@ -145,14 +145,13 @@ class TacotronAbstract(ABC, nn.Module):
     def compute_masks(self, text_lengths, mel_lengths):
         """Compute masks  against sequence paddings."""
         # B x T_in_max (boolean)
-        device = text_lengths.device
-        input_mask = sequence_mask(text_lengths).to(device)
+        input_mask = sequence_mask(text_lengths)
         output_mask = None
         if mel_lengths is not None:
             max_len = mel_lengths.max()
             r = self.decoder.r
             max_len = max_len + (r - (max_len % r)) if max_len % r > 0 else max_len
-            output_mask = sequence_mask(mel_lengths, max_len=max_len).to(device)
+            output_mask = sequence_mask(mel_lengths, max_len=max_len)
         return input_mask, output_mask
 
     def _backward_pass(self, mel_specs, encoder_outputs, mask):
@@ -195,20 +194,19 @@ class TacotronAbstract(ABC, nn.Module):
 
     def compute_gst(self, inputs, style_input, speaker_embedding=None):
         """Compute global style token"""
-        device = inputs.device
         if isinstance(style_input, dict):
-            query = torch.zeros(1, 1, self.gst.gst_embedding_dim // 2).to(device)
+            query = torch.zeros(1, 1, self.gst.gst_embedding_dim // 2).type_as(inputs)
             if speaker_embedding is not None:
                 query = torch.cat([query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
 
             _GST = torch.tanh(self.gst_layer.style_token_layer.style_tokens)
-            gst_outputs = torch.zeros(1, 1, self.gst.gst_embedding_dim).to(device)
+            gst_outputs = torch.zeros(1, 1, self.gst.gst_embedding_dim).type_as(inputs)
             for k_token, v_amplifier in style_input.items():
                 key = _GST[int(k_token)].unsqueeze(0).expand(1, -1, -1)
                 gst_outputs_att = self.gst_layer.style_token_layer.attention(query, key)
                 gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
         elif style_input is None:
-            gst_outputs = torch.zeros(1, 1, self.gst.gst_embedding_dim).to(device)
+            gst_outputs = torch.zeros(1, 1, self.gst.gst_embedding_dim).type_as(inputs)
         else:
             gst_outputs = self.gst_layer(style_input, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
