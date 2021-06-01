@@ -149,8 +149,8 @@ class ModelManager(object):
     def _download_zip_file(file_url, output):
         """Download the github releases"""
         r = requests.get(file_url)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        z.extractall(output)
+        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+            z.extractall(output)
         for file_path in z.namelist()[1:]:
             src_path = os.path.join(output, file_path)
             dst_path = os.path.join(output, os.path.basename(file_path))
