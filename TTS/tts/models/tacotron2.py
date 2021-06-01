@@ -45,7 +45,7 @@ class Tacotron2(TacotronAbstract):
         speaker_embedding_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
         use_gst (bool, optional): enable/disable Global style token module.
         gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
-        gradual_trainin (List): Gradual training schedule. If None or `[]`, no gradual training is used.
+        gradual_training (List): Gradual training schedule. If None or `[]`, no gradual training is used.
             Defaults to `[]`.
     """
 
