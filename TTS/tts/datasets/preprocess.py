@@ -23,7 +23,7 @@ def load_meta_data(datasets, eval_split=True):
         root_path = dataset["path"]
         meta_file_train = dataset["meta_file_train"]
         meta_file_val = dataset["meta_file_val"]
-        language = dataset["language"]
+        language = dataset["language"] if dataset["language"] != None else 'default'
         # setup the right data processor
         preprocessor = get_preprocessor_by_name(name)
         # load train set
