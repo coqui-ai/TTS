@@ -193,6 +193,7 @@ class Tacotron(TacotronAbstract):
         """
         outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
         inputs = self.embedding(text)
+        input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)
         # B x T_in x encoder_in_features
         encoder_outputs = self.encoder(inputs)
         # sequence masking
