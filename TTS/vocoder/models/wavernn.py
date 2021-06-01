@@ -251,7 +251,6 @@ class WaveRNN(nn.Module):
     def inference(self, mels, batched=None, target=None, overlap=None):
 
         self.eval()
-        device = mels.device
         output = []
         start = time.time()
         rnn1 = self.get_gru_cell(self.rnn1)
@@ -259,7 +258,7 @@ class WaveRNN(nn.Module):
 
         with torch.no_grad():
             if isinstance(mels, np.ndarray):
-                mels = torch.FloatTensor(mels).to(device)
+                mels = torch.FloatTensor(mels).type_as(mels)
 
             if mels.ndim == 2:
                 mels = mels.unsqueeze(0)
@@ -275,9 +274,9 @@ class WaveRNN(nn.Module):
 
             b_size, seq_len, _ = mels.size()
 
-            h1 = torch.zeros(b_size, self.rnn_dims).to(device)
-            h2 = torch.zeros(b_size, self.rnn_dims).to(device)
-            x = torch.zeros(b_size, 1).to(device)
+            h1 = torch.zeros(b_size, self.rnn_dims).type_as(mels)
+            h2 = torch.zeros(b_size, self.rnn_dims).type_as(mels)
+            x = torch.zeros(b_size, 1).type_as(mels)
 
             if self.use_aux_net:
                 d = self.aux_dims
@@ -310,11 +309,11 @@ class WaveRNN(nn.Module):
                 if self.mode == "mold":
                     sample = sample_from_discretized_mix_logistic(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
-                    x = sample.transpose(0, 1).to(device)
+                    x = sample.transpose(0, 1).type_as(mels)
                 elif self.mode == "gauss":
                     sample = sample_from_gaussian(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
-                    x = sample.transpose(0, 1).to(device)
+                    x = sample.transpose(0, 1).type_as(mels)
                 elif isinstance(self.mode, int):
                     posterior = F.softmax(logits, dim=1)
                     distrib = torch.distributions.Categorical(posterior)
