@@ -352,6 +352,7 @@ class TrainerTTS:
             speaker_ids = None
 
         # compute durations from attention masks
+        durations = None
         if attn_mask is not None:
             durations = torch.zeros(attn_mask.shape[0], attn_mask.shape[2])
             for idx, am in enumerate(attn_mask):
