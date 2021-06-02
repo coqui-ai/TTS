@@ -2,6 +2,7 @@
 
 import re
 
+import gruut
 from packaging import version
 
 from TTS.tts.utils.text import cleaners
@@ -25,6 +26,33 @@ _CURLY_RE = re.compile(r"(.*?)\{(.+?)\}(.*)")
 # Regular expression matching punctuations, ignoring empty space
 PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 
+# language -> source phoneme -> dest phoneme
+# Used to make gruut's phonemes fit better with eSpeak's.
+GRUUT_PHONEME_MAP = {
+    "en-us": {
+        "i": "iː",
+        "ɑ": "ɑː",
+        "ɚ": "ɜːɹ",
+    },
+    "de": {
+        "ʁ": "ɾ",
+        "g": "ɡ",
+        "ʔ": "",
+    },
+    "nl": {
+        "a": "aː",
+        "e": "eː",
+        "ʏ": "ɵ",
+        "ʋ": "w",
+        "ɹ": "r",
+        "ɔː": "oː",
+    },
+    "es": {
+        "ɾ": "r",
+        "g": "ɣ",
+    },
+}
+
 
 def text2phone(text, language):
     """Convert graphemes to phonemes.
@@ -39,10 +67,39 @@ def text2phone(text, language):
     # TO REVIEW : How to have a good implementation for this?
     if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
+        print(" > Phonemes: {}".format(ph))
         return ph
 
     if language == "ja-jp":
         ph = japanese_text_to_phonemes(text)
+        print(" > Phonemes: {}".format(ph))
+        return ph
+
+    if gruut.is_language_supported(language):
+        # Use gruut for phonemization
+        ph_list = gruut.text_to_phonemes(
+            text,
+            lang=language,
+            return_format="word_phonemes",
+            phonemizer_args={
+                "remove_stress": True,  # remove primary/secondary stress
+                "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
+                "ipa_major_breaks": False,  # don't replace periods with IPA ‖
+            },
+        )
+
+        ph_map = GRUUT_PHONEME_MAP.get(language)
+        if ph_map:
+            # Re-map phonemes to fit with eSpeak conventions
+            for word in ph_list:
+                for p_idx, p in enumerate(word):
+                    word[p_idx] = ph_map.get(p, p)
+
+        # Join and re-split to break apart dipthongs, suprasegmentals, etc.
+        ph_words = ["|".join(word_phonemes) for word_phonemes in ph_list]
+        ph = "| ".join(ph_words)
+
+        print(" > Phonemes: {}".format(ph))
         return ph
 
     raise ValueError(f" [!] Language {language} is not supported for phonemization.")
