@@ -8,10 +8,10 @@ class GST(nn.Module):
 
     See https://arxiv.org/pdf/1803.09017"""
 
-    def __init__(self, num_mel, num_heads, num_style_tokens, gst_embedding_dim, speaker_embedding_dim=None):
+    def __init__(self, num_mel, num_heads, num_style_tokens, gst_embedding_dim, d_vector_dim=None):
         super().__init__()
         self.encoder = ReferenceEncoder(num_mel, gst_embedding_dim)
-        self.style_token_layer = StyleTokenLayer(num_heads, num_style_tokens, gst_embedding_dim, speaker_embedding_dim)
+        self.style_token_layer = StyleTokenLayer(num_heads, num_style_tokens, gst_embedding_dim, d_vector_dim)
 
     def forward(self, inputs, speaker_embedding=None):
         enc_out = self.encoder(inputs)
@@ -83,13 +83,13 @@ class ReferenceEncoder(nn.Module):
 class StyleTokenLayer(nn.Module):
     """NN Module attending to style tokens based on prosody encodings."""
 
-    def __init__(self, num_heads, num_style_tokens, embedding_dim, speaker_embedding_dim=None):
+    def __init__(self, num_heads, num_style_tokens, embedding_dim, d_vector_dim=None):
         super().__init__()
 
         self.query_dim = embedding_dim // 2
 
-        if speaker_embedding_dim:
-            self.query_dim += speaker_embedding_dim
+        if d_vector_dim:
+            self.query_dim += d_vector_dim
 
         self.key_dim = embedding_dim // num_heads
         self.style_tokens = nn.Parameter(torch.FloatTensor(num_style_tokens, self.key_dim))
