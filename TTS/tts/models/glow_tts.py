@@ -36,7 +36,7 @@ class GlowTTS(nn.Module):
         mean_only (bool): if True, encoder only computes mean value and uses constant variance for each time step.
         encoder_type (str): encoder module type.
         encoder_params (dict): encoder module parameters.
-        speaker_embedding_dim (int): channels of external speaker embedding vectors.
+        d_vector_dim (int): channels of external speaker embedding vectors.
     """
 
     def __init__(
@@ -62,7 +62,7 @@ class GlowTTS(nn.Module):
         mean_only=False,
         encoder_type="transformer",
         encoder_params=None,
-        speaker_embedding_dim=None,
+        d_vector_dim=None,
     ):
 
         super().__init__()
@@ -88,15 +88,15 @@ class GlowTTS(nn.Module):
         # model constants.
         self.noise_scale = 0.33  # defines the noise variance applied to the random z vector at inference.
         self.length_scale = 1.0  # scaler for the duration predictor. The larger it is, the slower the speech.
-        self.speaker_embedding_dim = speaker_embedding_dim
+        self.d_vector_dim = d_vector_dim
 
         # if is a multispeaker and c_in_channels is 0, set to 256
         if num_speakers > 1:
-            if self.c_in_channels == 0 and not self.speaker_embedding_dim:
+            if self.c_in_channels == 0 and not self.d_vector_dim:
                 # TODO: make this adjustable
                 self.c_in_channels = 256
-            elif self.speaker_embedding_dim:
-                self.c_in_channels = self.speaker_embedding_dim
+            elif self.d_vector_dim:
+                self.c_in_channels = self.d_vector_dim
 
         self.encoder = Encoder(
             num_chars,
@@ -125,7 +125,7 @@ class GlowTTS(nn.Module):
             c_in_channels=self.c_in_channels,
         )
 
-        if num_speakers > 1 and not speaker_embedding_dim:
+        if num_speakers > 1 and not d_vector_dim:
             # speaker embedding layer
             self.emb_g = nn.Embedding(num_speakers, self.c_in_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
@@ -144,7 +144,7 @@ class GlowTTS(nn.Module):
         return y_mean, y_log_scale, o_attn_dur
 
     def forward(
-        self, x, x_lengths, y, y_lengths=None, cond_input={"x_vectors": None}
+        self, x, x_lengths, y, y_lengths=None, cond_input={"d_vectors": None}
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
@@ -157,9 +157,9 @@ class GlowTTS(nn.Module):
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
         # norm speaker embeddings
-        g = cond_input["x_vectors"] if cond_input is not None and "x_vectors" in cond_input else None
+        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
         if g is not None:
-            if self.speaker_embedding_dim:
+            if self.d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)
             else:
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
@@ -197,7 +197,7 @@ class GlowTTS(nn.Module):
 
     @torch.no_grad()
     def inference_with_MAS(
-        self, x, x_lengths, y=None, y_lengths=None, cond_input={"x_vectors": None}
+        self, x, x_lengths, y=None, y_lengths=None, cond_input={"d_vectors": None}
     ):  # pylint: disable=dangerous-default-value
         """
         It's similar to the teacher forcing in Tacotron.
@@ -212,9 +212,9 @@ class GlowTTS(nn.Module):
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
         # norm speaker embeddings
-        g = cond_input["x_vectors"] if cond_input is not None and "x_vectors" in cond_input else None
+        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
         if g is not None:
-            if self.external_speaker_embedding_dim:
+            if self.external_d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)
             else:
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
@@ -258,7 +258,7 @@ class GlowTTS(nn.Module):
 
     @torch.no_grad()
     def decoder_inference(
-        self, y, y_lengths=None, cond_input={"x_vectors": None}
+        self, y, y_lengths=None, cond_input={"d_vectors": None}
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
@@ -268,10 +268,10 @@ class GlowTTS(nn.Module):
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
-        g = cond_input["x_vectors"] if cond_input is not None and "x_vectors" in cond_input else None
+        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
         # norm speaker embeddings
         if g is not None:
-            if self.external_speaker_embedding_dim:
+            if self.external_d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)
             else:
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
@@ -290,10 +290,10 @@ class GlowTTS(nn.Module):
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, x_lengths, cond_input={"x_vectors": None}):  # pylint: disable=dangerous-default-value
-        g = cond_input["x_vectors"] if cond_input is not None and "x_vectors" in cond_input else None
+    def inference(self, x, x_lengths, cond_input={"d_vectors": None}):  # pylint: disable=dangerous-default-value
+        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
         if g is not None:
-            if self.speaker_embedding_dim:
+            if self.d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)
             else:
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
@@ -338,9 +338,9 @@ class GlowTTS(nn.Module):
         text_lengths = batch["text_lengths"]
         mel_input = batch["mel_input"]
         mel_lengths = batch["mel_lengths"]
-        x_vectors = batch["x_vectors"]
+        d_vectors = batch["d_vectors"]
 
-        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, cond_input={"x_vectors": x_vectors})
+        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, cond_input={"d_vectors": d_vectors})
 
         loss_dict = criterion(
             outputs["model_outputs"],
