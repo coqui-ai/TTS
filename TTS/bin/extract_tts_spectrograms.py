@@ -39,7 +39,8 @@ def setup_loader(ap, r, verbose=False):
         enable_eos_bos=c.enable_eos_bos_chars,
         use_noise_augment=False,
         verbose=verbose,
-        speaker_mapping=speaker_manager.speaker_ids
+        speaker_id_mapping=speaker_manager.speaker_ids,
+        d_vector_mapping=speaker_manager.d_vectors
         if c.use_speaker_embedding and c.use_external_speaker_embedding_file
         else None,
     )
@@ -84,21 +85,11 @@ def format_data(data):
     mel_input = data[4]
     mel_lengths = data[5]
     item_idx = data[7]
-    attn_mask = data[9]
+    d_vectors = data[8]
+    speaker_ids = data[9]
+    attn_mask = data[10]
     avg_text_length = torch.mean(text_lengths.float())
     avg_spec_length = torch.mean(mel_lengths.float())
-
-    if c.use_speaker_embedding:
-        if c.use_external_speaker_embedding_file:
-            speaker_embeddings = data[8]
-            speaker_ids = None
-        else:
-            speaker_ids = [speaker_manager.speaker_ids[speaker_name] for speaker_name in speaker_names]
-            speaker_ids = torch.LongTensor(speaker_ids)
-            speaker_embeddings = None
-    else:
-        speaker_embeddings = None
-        speaker_ids = None
 
     # dispatch data to GPU
     if use_cuda:
