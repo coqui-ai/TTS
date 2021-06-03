@@ -95,7 +95,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, speaker_embedding_dim=55).to(device)
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, d_vector_dim=55).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0
@@ -105,7 +105,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"x_vectors": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_ids}
             )
             assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
             assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
@@ -259,7 +259,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, speaker_embedding_dim=55, use_gst=True, gst=c.gst).to(
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, d_vector_dim=55, use_gst=True, gst=c.gst).to(
             device
         )
         model.train()
@@ -271,7 +271,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"x_vectors": speaker_embeddings}
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_embeddings}
             )
             assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
             assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0

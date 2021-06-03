@@ -108,9 +108,8 @@ def format_data(data):
         mel_lengths = mel_lengths.cuda(non_blocking=True)
         if speaker_ids is not None:
             speaker_ids = speaker_ids.cuda(non_blocking=True)
-        if speaker_embeddings is not None:
-            speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
-
+        if d_vectors is not None:
+            d_vectors = d_vectors.cuda(non_blocking=True)
         if attn_mask is not None:
             attn_mask = attn_mask.cuda(non_blocking=True)
     return (
@@ -119,7 +118,7 @@ def format_data(data):
         mel_input,
         mel_lengths,
         speaker_ids,
-        speaker_embeddings,
+        d_vectors,
         avg_text_length,
         avg_spec_length,
         attn_mask,
@@ -137,23 +136,23 @@ def inference(
     mel_input,
     mel_lengths,
     speaker_ids=None,
-    speaker_embeddings=None,
+    d_vectors=None,
 ):
     if model_name == "glow_tts":
         speaker_c = None
         if speaker_ids is not None:
             speaker_c = speaker_ids
-        elif speaker_embeddings is not None:
-            speaker_c = speaker_embeddings
+        elif d_vectors is not None:
+            speaker_c = d_vectors
 
         outputs = model.inference_with_MAS(
-            text_input, text_lengths, mel_input, mel_lengths, cond_input={"x_vectors": speaker_c}
+            text_input, text_lengths, mel_input, mel_lengths, cond_input={"d_vectors": speaker_c}
         )
         model_output = outputs["model_outputs"]
         model_output = model_output.transpose(1, 2).detach().cpu().numpy()
 
     elif "tacotron" in model_name:
-        cond_input = {"speaker_ids": speaker_ids, "x_vectors": speaker_embeddings}
+        cond_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
         outputs = model(text_input, text_lengths, mel_input, mel_lengths, cond_input)
         postnet_outputs = outputs["model_outputs"]
         # normalize tacotron output
@@ -184,7 +183,7 @@ def extract_spectrograms(
             mel_input,
             mel_lengths,
             speaker_ids,
-            speaker_embeddings,
+            d_vectors,
             _,
             _,
             _,
@@ -200,7 +199,7 @@ def extract_spectrograms(
             mel_input,
             mel_lengths,
             speaker_ids,
-            speaker_embeddings,
+            d_vectors,
         )
 
         for idx in range(text_input.shape[0]):
@@ -256,7 +255,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     speaker_manager = get_speaker_manager(c, args, meta_data_train)
 
     # setup model
-    model = setup_model(num_chars, speaker_manager.num_speakers, c, speaker_embedding_dim=speaker_manager.x_vector_dim)
+    model = setup_model(num_chars, speaker_manager.num_speakers, c, d_vector_dim=speaker_manager.d_vector_dim)
 
     # restore model
     checkpoint = torch.load(args.checkpoint_path, map_location="cpu")
