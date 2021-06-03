@@ -150,11 +150,12 @@
                 }
             }
         },
-        "jp":{
+        "ja":{
             "kokoro":{
                 "tacotron2-DDC":{
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.15/tts_models--jp--kokoro--tacotron2-DDC.zip",
-                    "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
+                    "default_vocoder": "vocoder_models/universal/libri-tts/wavegrad",
+                    "description": "Tacotron2 with Double Decoder Consistency trained with Kokoro Speech Dataset.",
                     "author": "@kaiidams",
                     "commit": "401fbd89",
                     "needs_phonemizer": false
