@@ -81,7 +81,6 @@ def format_data(data):
     # setup input data
     text_input = data[0]
     text_lengths = data[1]
-    speaker_names = data[2]
     mel_input = data[4]
     mel_lengths = data[5]
     item_idx = data[7]
