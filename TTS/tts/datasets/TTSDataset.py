@@ -282,7 +282,7 @@ class TTSDataset(Dataset):
         """
 
         # Puts each data field into a tensor with outer dimension batch size
-        if isinstance(batch[0], collections.Mapping):
+        if isinstance(batch[0], collections.abc.Mapping):
 
             text_lenghts = np.array([len(d["text"]) for d in batch])
 
