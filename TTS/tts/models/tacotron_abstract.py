@@ -35,7 +35,7 @@ class TacotronAbstract(ABC, nn.Module):
         ddc_r=None,
         encoder_in_features=512,
         decoder_in_features=512,
-        speaker_embedding_dim=None,
+        d_vector_dim=None,
         use_gst=False,
         gst=None,
         gradual_training=None,
@@ -66,7 +66,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.separate_stopnet = separate_stopnet
         self.encoder_in_features = encoder_in_features
         self.decoder_in_features = decoder_in_features
-        self.speaker_embedding_dim = speaker_embedding_dim
+        self.d_vector_dim = d_vector_dim
         self.gradual_training = gradual_training
 
         # layers
@@ -76,12 +76,12 @@ class TacotronAbstract(ABC, nn.Module):
         self.postnet = None
 
         # multispeaker
-        if self.speaker_embedding_dim is None:
-            # if speaker_embedding_dim is None we need use the nn.Embedding, with default speaker_embedding_dim
-            self.embeddings_per_sample = False
+        if self.d_vector_dim is None:
+            # if d_vector_dim is None we need use the nn.Embedding, with default d_vector_dim
+            self.use_d_vectors = False
         else:
-            # if speaker_embedding_dim is not None we need use speaker embedding per sample
-            self.embeddings_per_sample = True
+            # if d_vector_dim is not None we need use speaker embedding per sample
+            self.use_d_vectors = True
 
         # global style token
         if self.gst and use_gst:
@@ -89,8 +89,8 @@ class TacotronAbstract(ABC, nn.Module):
             self.gst_layer = None
 
         # model states
-        self.speaker_embeddings = None
-        self.speaker_embeddings_projected = None
+        self.embedded_speakers = None
+        self.embedded_speakers_projected = None
 
         # additional layers
         self.decoder_backward = None
@@ -98,15 +98,15 @@ class TacotronAbstract(ABC, nn.Module):
 
     @staticmethod
     def _format_cond_input(cond_input: Dict) -> Dict:
-        return format_cond_input({"x_vectors": None, "speaker_ids": None}, cond_input)
+        return format_cond_input({"d_vectors": None, "speaker_ids": None}, cond_input)
 
     #############################
     # INIT FUNCTIONS
     #############################
 
     def _init_states(self):
-        self.speaker_embeddings = None
-        self.speaker_embeddings_projected = None
+        self.embedded_speakers = None
+        self.embedded_speakers_projected = None
 
     def _init_backward_decoder(self):
         self.decoder_backward = copy.deepcopy(self.decoder)
@@ -188,9 +188,9 @@ class TacotronAbstract(ABC, nn.Module):
         if hasattr(self, "speaker_embedding") and speaker_ids is None:
             raise RuntimeError(" [!] Model has speaker embedding layer but speaker_id is not provided")
         if hasattr(self, "speaker_embedding") and speaker_ids is not None:
-            self.speaker_embeddings = self.speaker_embedding(speaker_ids).unsqueeze(1)
+            self.embedded_speakers = self.speaker_embedding(speaker_ids).unsqueeze(1)
         if hasattr(self, "speaker_project_mel") and speaker_ids is not None:
-            self.speaker_embeddings_projected = self.speaker_project_mel(self.speaker_embeddings).squeeze(1)
+            self.embedded_speakers_projected = self.speaker_project_mel(self.embedded_speakers).squeeze(1)
 
     def compute_gst(self, inputs, style_input, speaker_embedding=None):
         """Compute global style token"""
@@ -213,15 +213,15 @@ class TacotronAbstract(ABC, nn.Module):
         return inputs
 
     @staticmethod
-    def _add_speaker_embedding(outputs, speaker_embeddings):
-        speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0), outputs.size(1), -1)
-        outputs = outputs + speaker_embeddings_
+    def _add_speaker_embedding(outputs, embedded_speakers):
+        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
+        outputs = outputs + embedded_speakers_
         return outputs
 
     @staticmethod
-    def _concat_speaker_embedding(outputs, speaker_embeddings):
-        speaker_embeddings_ = speaker_embeddings.expand(outputs.size(0), outputs.size(1), -1)
-        outputs = torch.cat([outputs, speaker_embeddings_], dim=-1)
+    def _concat_speaker_embedding(outputs, embedded_speakers):
+        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
+        outputs = torch.cat([outputs, embedded_speakers_], dim=-1)
         return outputs
 
     #############################

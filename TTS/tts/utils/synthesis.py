@@ -65,9 +65,9 @@ def compute_style_mel(style_wav, ap, cuda=False):
     return style_mel
 
 
-def run_model_torch(model, inputs, speaker_id=None, style_mel=None, x_vector=None):
+def run_model_torch(model, inputs, speaker_id=None, style_mel=None, d_vector=None):
     outputs = model.inference(
-        inputs, cond_input={"speaker_ids": speaker_id, "x_vector": x_vector, "style_mel": style_mel}
+        inputs, cond_input={"speaker_ids": speaker_id, "d_vector": d_vector, "style_mel": style_mel}
     )
     return outputs
 
@@ -140,13 +140,13 @@ def speaker_id_to_torch(speaker_id, cuda=False):
     return speaker_id
 
 
-def embedding_to_torch(x_vector, cuda=False):
-    if x_vector is not None:
-        x_vector = np.asarray(x_vector)
-        x_vector = torch.from_numpy(x_vector).unsqueeze(0).type(torch.FloatTensor)
+def embedding_to_torch(d_vector, cuda=False):
+    if d_vector is not None:
+        d_vector = np.asarray(d_vector)
+        d_vector = torch.from_numpy(d_vector).unsqueeze(0).type(torch.FloatTensor)
     if cuda:
-        return x_vector.cuda()
-    return x_vector
+        return d_vector.cuda()
+    return d_vector
 
 
 # TODO: perform GL with pytorch for batching
@@ -178,7 +178,7 @@ def synthesis(
     enable_eos_bos_chars=False,  # pylint: disable=unused-argument
     use_griffin_lim=False,
     do_trim_silence=False,
-    x_vector=None,
+    d_vector=None,
     backend="torch",
 ):
     """Synthesize voice for the given text.
@@ -210,8 +210,8 @@ def synthesis(
         if speaker_id is not None:
             speaker_id = speaker_id_to_torch(speaker_id, cuda=use_cuda)
 
-        if x_vector is not None:
-            x_vector = embedding_to_torch(x_vector, cuda=use_cuda)
+        if d_vector is not None:
+            d_vector = embedding_to_torch(d_vector, cuda=use_cuda)
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
@@ -228,7 +228,7 @@ def synthesis(
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, x_vector=x_vector)
+        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
         alignments = outputs["alignments"]
