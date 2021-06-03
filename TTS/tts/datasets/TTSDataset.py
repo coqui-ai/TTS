@@ -29,7 +29,8 @@ class TTSDataset(Dataset):
         phoneme_cache_path=None,
         phoneme_language="en-us",
         enable_eos_bos=False,
-        speaker_mapping=None,
+        speaker_id_mapping=None,
+        d_vector_mapping=None,
         use_noise_augment=False,
         verbose=False,
     ):
@@ -51,6 +52,8 @@ class TTSDataset(Dataset):
             phoneme_language (str): one the languages from
                 https://github.com/bootphon/phonemizer#languages
             enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
+            speaker_id_mapping (dict): list of speaker ids to map speaker names to numerical ids.
+            d_vector_mapping (dict): dictionary of d-vectors that maps each audio file to a pre-computed d-vector.
             use_noise_augment (bool): enable adding random noise to wav for augmentation.
             verbose (bool): print diagnostic information.
         """
@@ -70,7 +73,8 @@ class TTSDataset(Dataset):
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
-        self.speaker_mapping = speaker_mapping
+        self.speaker_id_mapping = speaker_id_mapping
+        self.d_vector_mapping = d_vector_mapping
         self.use_noise_augment = use_noise_augment
         self.verbose = verbose
         self.input_seq_computed = False
@@ -293,13 +297,18 @@ class TTSDataset(Dataset):
             item_idxs = [batch[idx]["item_idx"] for idx in ids_sorted_decreasing]
             text = [batch[idx]["text"] for idx in ids_sorted_decreasing]
 
-            speaker_name = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
-            # get speaker embeddings
-            if self.speaker_mapping is not None:
+            speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
+            # get pre-computed d-vectors
+            if self.d_vector_mapping is not None:
                 wav_files_names = [batch[idx]["wav_file_name"] for idx in ids_sorted_decreasing]
-                speaker_embedding = [self.speaker_mapping[w]["embedding"] for w in wav_files_names]
+                d_vectors = [self.speaker_mapping[w]["embedding"] for w in wav_files_names]
             else:
-                speaker_embedding = None
+                d_vectors = None
+            # get numerical speaker ids from speaker names
+            if self.speaker_id_mapping:
+                speaker_ids = [self.speaker_manager.speaker_ids[sn] for sn in speaker_names]
+            else:
+                speaker_ids = None
             # compute features
             mel = [self.ap.melspectrogram(w).astype("float32") for w in wav]
 
@@ -327,8 +336,11 @@ class TTSDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            if speaker_embedding is not None:
-                speaker_embedding = torch.FloatTensor(speaker_embedding)
+            if d_vectors is not None:
+                d_vectors = torch.FloatTensor(d_vectors)
+
+            if speaker_ids is not None:
+                speaker_ids = torch.LongTensor(speaker_ids)
 
             # compute linear spectrogram
             if self.compute_linear_spec:
@@ -355,13 +367,14 @@ class TTSDataset(Dataset):
             return (
                 text,
                 text_lenghts,
-                speaker_name,
+                speaker_names,
                 linear,
                 mel,
                 mel_lengths,
                 stop_targets,
                 item_idxs,
-                speaker_embedding,
+                d_vectors,
+                speaker_ids,
                 attns,
             )
 
