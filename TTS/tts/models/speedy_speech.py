@@ -157,7 +157,7 @@ class SpeedySpeech(nn.Module):
         return o_de, attn.transpose(1, 2)
 
     def forward(
-        self, x, x_lengths, y_lengths, dr, cond_input={"x_vectors": None, "speaker_ids": None}
+        self, x, x_lengths, y_lengths, dr, cond_input={"d_vectors": None, "speaker_ids": None}
     ):  # pylint: disable=unused-argument
         """
         TODO: speaker embedding for speaker_ids
@@ -168,21 +168,21 @@ class SpeedySpeech(nn.Module):
             dr: [B, T_max]
             g: [B, C]
         """
-        g = cond_input["x_vectors"] if "x_vectors" in cond_input else None
+        g = cond_input["d_vectors"] if "d_vectors" in cond_input else None
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
         o_dr_log = self.duration_predictor(o_en_dp.detach(), x_mask)
         o_de, attn = self._forward_decoder(o_en, o_en_dp, dr, x_mask, y_lengths, g=g)
         outputs = {"model_outputs": o_de.transpose(1, 2), "durations_log": o_dr_log.squeeze(1), "alignments": attn}
         return outputs
 
-    def inference(self, x, cond_input={"x_vectors": None, "speaker_ids": None}):  # pylint: disable=unused-argument
+    def inference(self, x, cond_input={"d_vectors": None, "speaker_ids": None}):  # pylint: disable=unused-argument
         """
         Shapes:
             x: [B, T_max]
             x_lengths: [B]
             g: [B, C]
         """
-        g = cond_input["x_vectors"] if "x_vectors" in cond_input else None
+        g = cond_input["d_vectors"] if "d_vectors" in cond_input else None
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         # input sequence should be greated than the max convolution size
         inference_padding = 5
@@ -204,11 +204,11 @@ class SpeedySpeech(nn.Module):
         text_lengths = batch["text_lengths"]
         mel_input = batch["mel_input"]
         mel_lengths = batch["mel_lengths"]
-        x_vectors = batch["x_vectors"]
+        d_vectors = batch["d_vectors"]
         speaker_ids = batch["speaker_ids"]
         durations = batch["durations"]
 
-        cond_input = {"x_vectors": x_vectors, "speaker_ids": speaker_ids}
+        cond_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids}
         outputs = self.forward(text_input, text_lengths, mel_lengths, durations, cond_input)
 
         # compute loss

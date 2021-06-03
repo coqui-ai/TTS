@@ -52,8 +52,8 @@ def get_speaker_manager(c, args, meta_data_train):
                         raise RuntimeError(
                             "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file"
                         )
-                    speaker_manager.load_x_vectors_file(c.external_speaker_embedding_file)
-                speaker_manager.set_x_vectors_from_file(speakers_file)
+                    speaker_manager.load_d_vectors_file(c.external_speaker_embedding_file)
+                speaker_manager.set_d_vectors_from_file(speakers_file)
             elif not c.use_external_speaker_embedding_file:  # restor speaker manager with speaker ID file.
                 speakers_file = os.path.dirname(args.restore_path)
                 speaker_ids_from_data = speaker_manager.speaker_ids
@@ -63,7 +63,7 @@ def get_speaker_manager(c, args, meta_data_train):
                 ), " [!] You cannot introduce new speakers to a pre-trained model."
         elif c.use_external_speaker_embedding_file and c.external_speaker_embedding_file:
             # new speaker manager with external speaker embeddings.
-            speaker_manager.set_x_vectors_from_file(c.external_speaker_embedding_file)
+            speaker_manager.set_d_vectors_from_file(c.external_speaker_embedding_file)
         elif (
             c.use_external_speaker_embedding_file and not c.external_speaker_embedding_file
         ):  # new speaker manager with speaker IDs file.
@@ -88,7 +88,7 @@ class SpeakerManager:
     {
         'clip_name.wav':{
             'name': 'speakerA',
-            'embedding'[<x_vector_values>]
+            'embedding'[<d_vector_values>]
         },
         ...
     }
@@ -103,10 +103,10 @@ class SpeakerManager:
     >>> # load a sample audio and compute embedding
     >>> waveform = ap.load_wav(sample_wav_path)
     >>> mel = ap.melspectrogram(waveform)
-    >>> x_vector = manager.compute_x_vector(mel.T)
+    >>> d_vector = manager.compute_d_vector(mel.T)
 
     Args:
-        x_vectors_file_path (str, optional): Path to the metafile including x vectors. Defaults to "".
+        d_vectors_file_path (str, optional): Path to the metafile including x vectors. Defaults to "".
         speaker_id_file_path (str, optional): Path to the metafile that maps speaker names to ids used by
         TTS models. Defaults to "".
         encoder_model_path (str, optional): Path to the speaker encoder model file. Defaults to "".
@@ -116,15 +116,15 @@ class SpeakerManager:
     def __init__(
         self,
         data_items: List[List[Any]] = None,
-        x_vectors_file_path: str = "",
+        d_vectors_file_path: str = "",
         speaker_id_file_path: str = "",
         encoder_model_path: str = "",
         encoder_config_path: str = "",
     ):
 
         self.data_items = []
-        self.x_vectors = {}
-        self.speaker_ids = []
+        self.d_vectors = {}
+        self.speaker_ids = {}
         self.clip_ids = []
         self.speaker_encoder = None
         self.speaker_encoder_ap = None
@@ -132,8 +132,8 @@ class SpeakerManager:
         if data_items:
             self.speaker_ids, _ = self.parse_speakers_from_data(self.data_items)
 
-        if x_vectors_file_path:
-            self.set_x_vectors_from_file(x_vectors_file_path)
+        if d_vectors_file_path:
+            self.set_d_vectors_from_file(d_vectors_file_path)
 
         if speaker_id_file_path:
             self.set_speaker_ids_from_file(speaker_id_file_path)
@@ -156,10 +156,10 @@ class SpeakerManager:
         return len(self.speaker_ids)
 
     @property
-    def x_vector_dim(self):
-        """Dimensionality of x_vectors. If x_vectors are not loaded, returns zero."""
-        if self.x_vectors:
-            return len(self.x_vectors[list(self.x_vectors.keys())[0]]["embedding"])
+    def d_vector_dim(self):
+        """Dimensionality of d_vectors. If d_vectors are not loaded, returns zero."""
+        if self.d_vectors:
+            return len(self.d_vectors[list(self.d_vectors.keys())[0]]["embedding"])
         return 0
 
     @staticmethod
@@ -201,73 +201,73 @@ class SpeakerManager:
         """
         self._save_json(file_path, self.speaker_ids)
 
-    def save_x_vectors_to_file(self, file_path: str) -> None:
-        """Save x_vectors to a json file.
+    def save_d_vectors_to_file(self, file_path: str) -> None:
+        """Save d_vectors to a json file.
 
         Args:
             file_path (str): Path to the output file.
         """
-        self._save_json(file_path, self.x_vectors)
+        self._save_json(file_path, self.d_vectors)
 
-    def set_x_vectors_from_file(self, file_path: str) -> None:
-        """Load x_vectors from a json file.
+    def set_d_vectors_from_file(self, file_path: str) -> None:
+        """Load d_vectors from a json file.
 
         Args:
             file_path (str): Path to the target json file.
         """
-        self.x_vectors = self._load_json(file_path)
-        self.speaker_ids = list(set(sorted(x["name"] for x in self.x_vectors.values())))
-        self.clip_ids = list(set(sorted(clip_name for clip_name in self.x_vectors.keys())))
+        self.d_vectors = self._load_json(file_path)
+        self.speaker_ids = list(set(sorted(x["name"] for x in self.d_vectors.values())))
+        self.clip_ids = list(set(sorted(clip_name for clip_name in self.d_vectors.keys())))
 
-    def get_x_vector_by_clip(self, clip_idx: str) -> List:
-        """Get x_vector by clip ID.
+    def get_d_vector_by_clip(self, clip_idx: str) -> List:
+        """Get d_vector by clip ID.
 
         Args:
             clip_idx (str): Target clip ID.
 
         Returns:
-            List: x_vector as a list.
+            List: d_vector as a list.
         """
-        return self.x_vectors[clip_idx]["embedding"]
+        return self.d_vectors[clip_idx]["embedding"]
 
-    def get_x_vectors_by_speaker(self, speaker_idx: str) -> List[List]:
-        """Get all x_vectors of a speaker.
+    def get_d_vectors_by_speaker(self, speaker_idx: str) -> List[List]:
+        """Get all d_vectors of a speaker.
 
         Args:
             speaker_idx (str): Target speaker ID.
 
         Returns:
-            List[List]: all the x_vectors of the given speaker.
+            List[List]: all the d_vectors of the given speaker.
         """
-        return [x["embedding"] for x in self.x_vectors.values() if x["name"] == speaker_idx]
+        return [x["embedding"] for x in self.d_vectors.values() if x["name"] == speaker_idx]
 
-    def get_mean_x_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False) -> np.ndarray:
-        """Get mean x_vector of a speaker ID.
+    def get_mean_d_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False) -> np.ndarray:
+        """Get mean d_vector of a speaker ID.
 
         Args:
             speaker_idx (str): Target speaker ID.
             num_samples (int, optional): Number of samples to be averaged. Defaults to None.
-            randomize (bool, optional): Pick random `num_samples`of x_vectors. Defaults to False.
+            randomize (bool, optional): Pick random `num_samples`of d_vectors. Defaults to False.
 
         Returns:
-            np.ndarray: Mean x_vector.
+            np.ndarray: Mean d_vector.
         """
-        x_vectors = self.get_x_vectors_by_speaker(speaker_idx)
+        d_vectors = self.get_d_vectors_by_speaker(speaker_idx)
         if num_samples is None:
-            x_vectors = np.stack(x_vectors).mean(0)
+            d_vectors = np.stack(d_vectors).mean(0)
         else:
-            assert len(x_vectors) >= num_samples, f" [!] speaker {speaker_idx} has number of samples < {num_samples}"
+            assert len(d_vectors) >= num_samples, f" [!] speaker {speaker_idx} has number of samples < {num_samples}"
             if randomize:
-                x_vectors = np.stack(random.choices(x_vectors, k=num_samples)).mean(0)
+                d_vectors = np.stack(random.choices(d_vectors, k=num_samples)).mean(0)
             else:
-                x_vectors = np.stack(x_vectors[:num_samples]).mean(0)
-        return x_vectors
+                d_vectors = np.stack(d_vectors[:num_samples]).mean(0)
+        return d_vectors
 
     def get_speakers(self) -> List:
         return self.speaker_ids
 
     def get_clips(self) -> List:
-        return sorted(self.x_vectors.keys())
+        return sorted(self.d_vectors.keys())
 
     def init_speaker_encoder(self, model_path: str, config_path: str) -> None:
         """Initialize a speaker encoder model.
@@ -284,14 +284,14 @@ class SpeakerManager:
         self.speaker_encoder_ap.do_sound_norm = True
         self.speaker_encoder_ap.do_trim_silence = True
 
-    def compute_x_vector_from_clip(self, wav_file: Union[str, list]) -> list:
-        """Compute a x_vector from a given audio file.
+    def compute_d_vector_from_clip(self, wav_file: Union[str, list]) -> list:
+        """Compute a d_vector from a given audio file.
 
         Args:
             wav_file (Union[str, list]): Target file path.
 
         Returns:
-            list: Computed x_vector.
+            list: Computed d_vector.
         """
 
         def _compute(wav_file: str):
@@ -299,30 +299,30 @@ class SpeakerManager:
             spec = self.speaker_encoder_ap.melspectrogram(waveform)
             spec = torch.from_numpy(spec.T)
             spec = spec.unsqueeze(0)
-            x_vector = self.speaker_encoder.compute_embedding(spec)
-            return x_vector
+            d_vector = self.speaker_encoder.compute_embedding(spec)
+            return d_vector
 
         if isinstance(wav_file, list):
-            # compute the mean x_vector
-            x_vectors = None
+            # compute the mean d_vector
+            d_vectors = None
             for wf in wav_file:
-                x_vector = _compute(wf)
-                if x_vectors is None:
-                    x_vectors = x_vector
+                d_vector = _compute(wf)
+                if d_vectors is None:
+                    d_vectors = d_vector
                 else:
-                    x_vectors += x_vector
-            return (x_vectors / len(wav_file))[0].tolist()
-        x_vector = _compute(wav_file)
-        return x_vector[0].tolist()
+                    d_vectors += d_vector
+            return (d_vectors / len(wav_file))[0].tolist()
+        d_vector = _compute(wav_file)
+        return d_vector[0].tolist()
 
-    def compute_x_vector(self, feats: Union[torch.Tensor, np.ndarray]) -> List:
-        """Compute x_vector from features.
+    def compute_d_vector(self, feats: Union[torch.Tensor, np.ndarray]) -> List:
+        """Compute d_vector from features.
 
         Args:
             feats (Union[torch.Tensor, np.ndarray]): Input features.
 
         Returns:
-            List: computed x_vector.
+            List: computed d_vector.
         """
         if isinstance(feats, np.ndarray):
             feats = torch.from_numpy(feats)

@@ -113,7 +113,7 @@ class TrainerTTS:
                 len(self.model_characters),
                 self.speaker_manager.num_speakers,
                 self.config,
-                self.speaker_manager.x_vector_dim if self.speaker_manager.x_vectors else None,
+                self.speaker_manager.d_vector_dim if self.speaker_manager.d_vectors else None,
             )
 
         # setup criterion
@@ -156,8 +156,8 @@ class TrainerTTS:
         print("\n > Model has {} parameters".format(num_params))
 
     @staticmethod
-    def get_model(num_chars: int, num_speakers: int, config: Coqpit, x_vector_dim: int) -> nn.Module:
-        model = setup_model(num_chars, num_speakers, config, x_vector_dim)
+    def get_model(num_chars: int, num_speakers: int, config: Coqpit, d_vector_dim: int) -> nn.Module:
+        model = setup_model(num_chars, num_speakers, config, d_vector_dim)
         return model
 
     @staticmethod
@@ -196,11 +196,11 @@ class TrainerTTS:
                     speakers_file = config.external_speaker_embedding_file
 
                 if config.use_external_speaker_embedding_file:
-                    speaker_manager.load_x_vectors_file(speakers_file)
+                    speaker_manager.load_d_vectors_file(speakers_file)
                 else:
                     speaker_manager.load_ids_file(speakers_file)
             elif config.use_external_speaker_embedding_file and config.external_speaker_embedding_file:
-                speaker_manager.load_x_vectors_file(config.external_speaker_embedding_file)
+                speaker_manager.load_d_vectors_file(config.external_speaker_embedding_file)
             else:
                 speaker_manager.parse_speakers_from_items(data_train)
                 file_path = os.path.join(out_path, "speakers.json")
@@ -387,8 +387,8 @@ class TrainerTTS:
             durations = to_cuda(durations) if attn_mask is not None else None
             if speaker_ids is not None:
                 speaker_ids = to_cuda(speaker_ids)
-            if speaker_embeddings is not None:
-                speaker_embeddings = to_cuda(speaker_embeddings)
+            if d_vectors is not None:
+                d_vectors = to_cuda(d_vectors)
 
         return {
             "text_input": text_input,
@@ -400,7 +400,7 @@ class TrainerTTS:
             "attn_mask": attn_mask,
             "durations": durations,
             "speaker_ids": speaker_ids,
-            "x_vectors": speaker_embeddings,
+            "d_vectors": d_vectors,
             "max_text_length": max_text_length,
             "max_spec_length": max_spec_length,
             "item_idx": item_idx,
@@ -591,7 +591,7 @@ class TrainerTTS:
                 self.use_cuda,
                 self.ap,
                 speaker_id=cond_inputs["speaker_id"],
-                x_vector=cond_inputs["x_vector"],
+                d_vector=cond_inputs["d_vector"],
                 style_wav=cond_inputs["style_wav"],
                 enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                 use_griffin_lim=True,
@@ -612,9 +612,9 @@ class TrainerTTS:
     def _get_cond_inputs(self) -> Dict:
         # setup speaker_id
         speaker_id = 0 if self.config.use_speaker_embedding else None
-        # setup x_vector
-        x_vector = (
-            self.speaker_manager.get_x_vectors_by_speaker(self.speaker_manager.speaker_ids[0])
+        # setup d_vector
+        d_vector = (
+            self.speaker_manager.get_d_vectors_by_speaker(self.speaker_manager.speaker_ids[0])
             if self.config.use_external_speaker_embedding_file and self.config.use_speaker_embedding
             else None
         )
@@ -629,7 +629,7 @@ class TrainerTTS:
             print("WARNING: You don't provided a gst style wav, for this reason we use a zero tensor!")
             for i in range(self.config.gst["gst_num_style_tokens"]):
                 style_wav[str(i)] = 0
-        cond_inputs = {"speaker_id": speaker_id, "style_wav": style_wav, "x_vector": x_vector}
+        cond_inputs = {"speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector}
         return cond_inputs
 
     def fit(self) -> None:
