@@ -269,7 +269,7 @@ class TrainerTTS:
         data_items: List,
         verbose: bool,
         speaker_ids: Union[Dict, List],
-        d_vectors: Union[Dict, List]
+        d_vectors: Union[Dict, List],
     ) -> DataLoader:
         if is_eval and not self.config.run_eval:
             loader = None
@@ -291,10 +291,10 @@ class TrainerTTS:
                 enable_eos_bos=self.config.enable_eos_bos_chars,
                 use_noise_augment=not is_eval,
                 verbose=verbose,
-                speaker_id_mapping=speaker_ids
-                if self.config.use_speaker_embedding else None,
+                speaker_id_mapping=speaker_ids if self.config.use_speaker_embedding else None,
                 d_vector_mapping=d_vectors
-                if self.config.use_speaker_embedding and self.config.use_external_speaker_embedding_file else None,
+                if self.config.use_speaker_embedding and self.config.use_external_speaker_embedding_file
+                else None,
             )
 
             if self.config.use_phonemes and self.config.compute_input_seq_cache:
@@ -384,6 +384,7 @@ class TrainerTTS:
         return {
             "text_input": text_input,
             "text_lengths": text_lengths,
+            "speaker_names": speaker_names,
             "mel_input": mel_input,
             "mel_lengths": mel_lengths,
             "linear_input": linear_input,
@@ -631,11 +632,21 @@ class TrainerTTS:
 
         # define data loaders
         self.train_loader = self.get_train_dataloader(
-            self.config.r, self.ap, self.data_train, verbose=True, speaker_ids=self.speaker_manager.speaker_ids, d_vectors=self.speaker_manager.d_vectors
+            self.config.r,
+            self.ap,
+            self.data_train,
+            verbose=True,
+            speaker_ids=self.speaker_manager.speaker_ids,
+            d_vectors=self.speaker_manager.d_vectors,
         )
         self.eval_loader = (
             self.get_eval_dataloder(
-                self.config.r, self.ap, self.data_train, verbose=True, speaker_ids=self.speaker_manager.speaker_ids, d_vectors=self.speaker_manager.d_vectors
+                self.config.r,
+                self.ap,
+                self.data_train,
+                verbose=True,
+                speaker_ids=self.speaker_manager.speaker_ids,
+                d_vectors=self.speaker_manager.d_vectors,
             )
             if self.config.run_eval
             else None
