@@ -13,6 +13,15 @@ from typing import Dict
 import torch
 
 
+def to_cuda(x: torch.Tensor) -> torch.Tensor:
+    if x is None:
+        return None
+    x = x.contiguous()
+    if torch.cuda.is_available():
+        x = x.cuda(non_blocking=True)
+    return x
+
+
 def get_cuda():
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
