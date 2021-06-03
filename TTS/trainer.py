@@ -267,7 +267,8 @@ class TrainerTTS:
         is_eval: bool,
         data_items: List,
         verbose: bool,
-        speaker_mapping: Union[Dict, List],
+        speaker_ids: Union[Dict, List],
+        d_vectors: Union[Dict, List]
     ) -> DataLoader:
         if is_eval and not self.config.run_eval:
             loader = None
@@ -289,9 +290,10 @@ class TrainerTTS:
                 enable_eos_bos=self.config.enable_eos_bos_chars,
                 use_noise_augment=not is_eval,
                 verbose=verbose,
-                speaker_mapping=speaker_mapping
-                if self.config.use_speaker_embedding and self.config.use_external_speaker_embedding_file
-                else None,
+                speaker_id_mapping=speaker_ids
+                if self.config.use_speaker_embedding else None,
+                d_vector_mapping=d_vectors
+                if self.config.use_speaker_embedding and self.config.use_external_speaker_embedding_file else None,
             )
 
             if self.config.use_phonemes and self.config.compute_input_seq_cache:
@@ -313,14 +315,14 @@ class TrainerTTS:
         return loader
 
     def get_train_dataloader(
-        self, r: int, ap: AudioProcessor, data_items: List, verbose: bool, speaker_mapping: Union[List, Dict]
+        self, r: int, ap: AudioProcessor, data_items: List, verbose: bool, speaker_ids: Dict, d_vectors: Dict
     ) -> DataLoader:
-        return self._get_loader(r, ap, False, data_items, verbose, speaker_mapping)
+        return self._get_loader(r, ap, False, data_items, verbose, speaker_ids, d_vectors)
 
     def get_eval_dataloder(
-        self, r: int, ap: AudioProcessor, data_items: List, verbose: bool, speaker_mapping: Union[List, Dict]
+        self, r: int, ap: AudioProcessor, data_items: List, verbose: bool, speaker_ids: Dict, d_vectors: Dict
     ) -> DataLoader:
-        return self._get_loader(r, ap, True, data_items, verbose, speaker_mapping)
+        return self._get_loader(r, ap, True, data_items, verbose, speaker_ids, d_vectors)
 
     def format_batch(self, batch: List) -> Dict:
         # setup input batch
@@ -332,23 +334,11 @@ class TrainerTTS:
         mel_lengths = batch[5]
         stop_targets = batch[6]
         item_idx = batch[7]
-        speaker_embeddings = batch[8]
-        attn_mask = batch[9]
+        d_vectors = batch[8]
+        speaker_ids = batch[9]
+        attn_mask = batch[10]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
-
-        # convert speaker names to ids
-        if self.config.use_speaker_embedding:
-            if self.config.use_external_speaker_embedding_file:
-                speaker_embeddings = batch[8]
-                speaker_ids = None
-            else:
-                speaker_ids = [self.speaker_manager.speaker_ids[speaker_name] for speaker_name in speaker_names]
-                speaker_ids = torch.LongTensor(speaker_ids)
-                speaker_embeddings = None
-        else:
-            speaker_embeddings = None
-            speaker_ids = None
 
         # compute durations from attention masks
         durations = None
@@ -640,11 +630,11 @@ class TrainerTTS:
 
         # define data loaders
         self.train_loader = self.get_train_dataloader(
-            self.config.r, self.ap, self.data_train, verbose=True, speaker_mapping=self.speaker_manager.speaker_ids
+            self.config.r, self.ap, self.data_train, verbose=True, speaker_ids=self.speaker_manager.speaker_ids, d_vectors=self.speaker_manager.d_vectors
         )
         self.eval_loader = (
             self.get_eval_dataloder(
-                self.config.r, self.ap, self.data_train, verbose=True, speaker_mapping=self.speaker_manager.speaker_ids
+                self.config.r, self.ap, self.data_train, verbose=True, speaker_ids=self.speaker_manager.speaker_ids, d_vectors=self.speaker_manager.d_vectors
             )
             if self.config.run_eval
             else None
