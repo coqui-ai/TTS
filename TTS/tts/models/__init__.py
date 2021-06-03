@@ -1,7 +1,7 @@
 from TTS.utils.generic_utils import find_module
 
 
-def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
+def setup_model(num_chars, num_speakers, c, d_vector_dim=None):
     print(" > Using model: {}".format(c.model))
     MyModel = find_module("TTS.tts.models", c.model.lower())
     if c.model.lower() in "tacotron":
@@ -29,7 +29,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             bidirectional_decoder=c.bidirectional_decoder,
             double_decoder_consistency=c.double_decoder_consistency,
             ddc_r=c.ddc_r,
-            speaker_embedding_dim=speaker_embedding_dim,
+            d_vector_dim=d_vector_dim,
         )
     elif c.model.lower() == "tacotron2":
         model = MyModel(
@@ -55,7 +55,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             bidirectional_decoder=c.bidirectional_decoder,
             double_decoder_consistency=c.double_decoder_consistency,
             ddc_r=c.ddc_r,
-            speaker_embedding_dim=speaker_embedding_dim,
+            d_vector_dim=d_vector_dim,
         )
     elif c.model.lower() == "glow_tts":
         model = MyModel(
@@ -79,7 +79,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
             num_squeeze=2,
             sigmoid_scale=False,
             mean_only=True,
-            speaker_embedding_dim=speaker_embedding_dim,
+            d_vector_dim=d_vector_dim,
         )
     elif c.model.lower() == "speedy_speech":
         model = MyModel(

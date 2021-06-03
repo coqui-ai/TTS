@@ -22,7 +22,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
         c = load_config(config_path)
         # create model
         num_chars = len(phonemes if c.use_phonemes else symbols)
-        model = setup_model(num_chars, 1, c, speaker_embedding_dim=None)
+        model = setup_model(num_chars, 1, c, d_vector_dim=None)
         # save model
         torch.save({"model": model.state_dict()}, checkpoint_path)
         # run test
@@ -41,7 +41,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
         c = load_config(config_path)
         # create model
         num_chars = len(phonemes if c.use_phonemes else symbols)
-        model = setup_model(num_chars, 1, c, speaker_embedding_dim=None)
+        model = setup_model(num_chars, 1, c, d_vector_dim=None)
         # save model
         torch.save({"model": model.state_dict()}, checkpoint_path)
         # run test
@@ -60,7 +60,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
         c = load_config(config_path)
         # create model
         num_chars = len(phonemes if c.use_phonemes else symbols)
-        model = setup_model(num_chars, 1, c, speaker_embedding_dim=None)
+        model = setup_model(num_chars, 1, c, d_vector_dim=None)
         # save model
         torch.save({"model": model.state_dict()}, checkpoint_path)
         # run test
