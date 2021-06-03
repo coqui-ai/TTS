@@ -116,7 +116,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
             decoder_output_dim=c.audio["num_mels"],
             r=c.r,
             memory_size=c.memory_size,
-            speaker_embedding_dim=55,
+            d_vector_dim=55,
         ).to(
             device
         )  # FIXME: missing num_speakers parameter to Tacotron ctor
@@ -130,7 +130,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"x_vectors": speaker_embeddings}
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_embeddings}
             )
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
@@ -305,7 +305,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
             gst=c.gst,
             r=c.r,
             memory_size=c.memory_size,
-            speaker_embedding_dim=55,
+            d_vector_dim=55,
         ).to(
             device
         )  # FIXME: missing num_speakers parameter to Tacotron ctor
@@ -319,7 +319,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"x_vectors": speaker_embeddings}
+                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_embeddings}
             )
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)

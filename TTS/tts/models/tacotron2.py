@@ -42,7 +42,7 @@ class Tacotron2(TacotronAbstract):
         ddc_r (int, optional): reduction rate for the coarse decoder of double decoder consistency. Defaults to None.
         encoder_in_features (int, optional): input channels for the encoder. Defaults to 512.
         decoder_in_features (int, optional): input channels for the decoder. Defaults to 512.
-        speaker_embedding_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
+        d_vector_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
         use_gst (bool, optional): enable/disable Global style token module.
         gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
         gradual_training (List): Gradual training schedule. If None or `[]`, no gradual training is used.
@@ -73,7 +73,7 @@ class Tacotron2(TacotronAbstract):
         ddc_r=None,
         encoder_in_features=512,
         decoder_in_features=512,
-        speaker_embedding_dim=None,
+        d_vector_dim=None,
         use_gst=False,
         gst=None,
         gradual_training=None,
@@ -101,7 +101,7 @@ class Tacotron2(TacotronAbstract):
             ddc_r,
             encoder_in_features,
             decoder_in_features,
-            speaker_embedding_dim,
+            d_vector_dim,
             use_gst,
             gst,
             gradual_training,
@@ -109,14 +109,14 @@ class Tacotron2(TacotronAbstract):
 
         # speaker embedding layer
         if self.num_speakers > 1:
-            if not self.embeddings_per_sample:
-                speaker_embedding_dim = 512
-                self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
+            if not self.use_d_vectors:
+                d_vector_dim = 512
+                self.speaker_embedding = nn.Embedding(self.num_speakers, d_vector_dim)
                 self.speaker_embedding.weight.data.normal_(0, 0.3)
 
         # speaker and gst embeddings is concat in decoder input
         if self.num_speakers > 1:
-            self.decoder_in_features += speaker_embedding_dim  # add speaker embedding dim
+            self.decoder_in_features += d_vector_dim  # add speaker embedding dim
 
         # embedding layer
         self.embedding = nn.Embedding(num_chars, 512, padding_idx=0)
@@ -142,13 +142,13 @@ class Tacotron2(TacotronAbstract):
         self.postnet = Postnet(self.postnet_output_dim)
 
         # setup prenet dropout
-        self.decoder.prenet.dropout_at_inference = prenet_dropout_at_inference
+        self.decoder.prenet.dropout_at_g = prenet_dropout_at_inference
 
         # global style token layers
         if self.gst and use_gst:
             self.gst_layer = GST(
                 num_mel=decoder_output_dim,
-                speaker_embedding_dim=speaker_embedding_dim,
+                d_vector_dim=d_vector_dim,
                 num_heads=gst.gst_num_heads,
                 num_style_tokens=gst.gst_num_style_tokens,
                 gst_embedding_dim=gst.gst_embedding_dim,
@@ -189,7 +189,7 @@ class Tacotron2(TacotronAbstract):
             text_lengths: [B]
             mel_specs: [B, T_out, C]
             mel_lengths: [B]
-            cond_input: 'speaker_ids': [B, 1] and  'x_vectors':[B, C]
+            cond_input: 'speaker_ids': [B, 1] and  'd_vectors':[B, C]
         """
         cond_input = self._format_cond_input(cond_input)
         outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
@@ -202,15 +202,15 @@ class Tacotron2(TacotronAbstract):
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, cond_input["x_vectors"])
+            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, cond_input["d_vectors"])
         if self.num_speakers > 1:
-            if not self.embeddings_per_sample:
+            if not self.use_d_vectors:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
+                embedded_speakers = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
             else:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = torch.unsqueeze(cond_input["x_vectors"], 1)
-            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, speaker_embeddings)
+                embedded_speakers = torch.unsqueeze(cond_input["d_vectors"], 1)
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
 
         encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(encoder_outputs)
 
@@ -255,14 +255,14 @@ class Tacotron2(TacotronAbstract):
 
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, cond_input["style_mel"], cond_input["x_vectors"])
+            encoder_outputs = self.compute_gst(encoder_outputs, cond_input["style_mel"], cond_input["d_vectors"])
         if self.num_speakers > 1:
-            if not self.embeddings_per_sample:
-                x_vector = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
+            if not self.use_d_vectors:
+                embedded_speakers = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
             else:
-                x_vector = cond_input["x_vectors"]
+                embedded_speakers = cond_input["d_vectors"]
 
-            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, x_vector)
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
 
         decoder_outputs, alignments, stop_tokens = self.decoder.inference(encoder_outputs)
         postnet_outputs = self.postnet(decoder_outputs)
@@ -290,7 +290,7 @@ class Tacotron2(TacotronAbstract):
         linear_input = batch["linear_input"]
         stop_targets = batch["stop_targets"]
         speaker_ids = batch["speaker_ids"]
-        x_vectors = batch["x_vectors"]
+        d_vectors = batch["d_vectors"]
 
         # forward pass model
         outputs = self.forward(
@@ -298,7 +298,7 @@ class Tacotron2(TacotronAbstract):
             text_lengths,
             mel_input,
             mel_lengths,
-            cond_input={"speaker_ids": speaker_ids, "x_vectors": x_vectors},
+            cond_input={"speaker_ids": speaker_ids, "d_vectors": d_vectors},
         )
 
         # set the [alignment] lengths wrt reduction factor for guided attention
@@ -309,7 +309,7 @@ class Tacotron2(TacotronAbstract):
         else:
             alignment_lengths = mel_lengths // self.decoder.r
 
-        cond_input = {"speaker_ids": speaker_ids, "x_vectors": x_vectors}
+        cond_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
         outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, cond_input)
 
         # compute loss

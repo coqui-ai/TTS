@@ -57,7 +57,7 @@ def test_speedy_speech():
     # with speaker embedding
     model = SpeedySpeech(num_chars, out_channels=80, hidden_channels=128, num_speakers=10, c_in_channels=256).to(device)
     model.forward(
-        x_dummy, x_lengths, y_lengths, durations, cond_input={"x_vectors": torch.randint(0, 10, (B,)).to(device)}
+        x_dummy, x_lengths, y_lengths, durations, cond_input={"d_vectors": torch.randint(0, 10, (B,)).to(device)}
     )
     o_de = outputs["model_outputs"]
     attn = outputs["alignments"]
@@ -71,7 +71,7 @@ def test_speedy_speech():
     model = SpeedySpeech(
         num_chars, out_channels=80, hidden_channels=128, num_speakers=10, external_c=True, c_in_channels=256
     ).to(device)
-    model.forward(x_dummy, x_lengths, y_lengths, durations, cond_input={"x_vectors": torch.rand((B, 256)).to(device)})
+    model.forward(x_dummy, x_lengths, y_lengths, durations, cond_input={"d_vectors": torch.rand((B, 256)).to(device)})
     o_de = outputs["model_outputs"]
     attn = outputs["alignments"]
     o_dr = outputs["durations_log"]
