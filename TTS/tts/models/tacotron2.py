@@ -4,6 +4,7 @@ from torch import nn
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
 from TTS.tts.layers.tacotron.adverserial_classifier import ReversalClassifier
+from TTS.tts.layers.tacotron.generated_encoder import GeneratedConvolutionalEncoder
 from TTS.tts.models.tacotron_abstract import TacotronAbstract
 
 
@@ -84,6 +85,7 @@ class Tacotron2(TacotronAbstract):
         reversal_classifier=True,
         reversal_classifier_dim=256,
         reversal_gradient_clipping=0.25,
+        generated_encoder=False
     ):
         super(Tacotron2, self).__init__(
             num_chars,
@@ -153,6 +155,8 @@ class Tacotron2(TacotronAbstract):
         if num_langs > 1:
             self.encoder = Encoder(
                 self.encoder_in_features, num_langs, language_embedding_dim if language_embedding_dim else num_langs
+            ) if not generated_encoder else GeneratedConvolutionalEncoder(
+                self.encoder_in_features, self.encoder_in_features, groups=num_langs
             )
         else:
             self.encoder = Encoder(self.encoder_in_features)

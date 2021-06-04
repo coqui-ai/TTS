@@ -25,6 +25,7 @@ from TTS.utils.arguments import parse_arguments, process_args
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import DistributedSampler, apply_gradient_allreduce, init_distributed, reduce_tensor
 from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
+from TTS.utils.samplers import get_weighted_sampler, get_perfect_language_sampler
 from TTS.utils.radam import RAdam
 from TTS.utils.training import (
     NoamLR,
@@ -70,36 +71,16 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
             dataset.sort_items()
 
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+
         language_weighted_sampler = getattr(c, "language_weighted_sampler", False)
         speaker_weighted_sampler = getattr(c, "speaker_weighted_sampler", False)
         if (language_weighted_sampler or speaker_weighted_sampler) and sampler is None and not is_val:
             print("Using weighted sampler")
-
-            if speaker_weighted_sampler:
-                speaker_names = np.array([item[2] for item in dataset.items])
-                unique_speaker_names = np.unique(speaker_names).tolist()
-                speaker_ids = [unique_speaker_names.index(s) for s in speaker_names]
-                speaker_count = np.array([len(np.where(speaker_names == s)[0]) for s in unique_speaker_names])
-                weight_speaker = 1. / speaker_count
-                samples_weight = np.array([weight_speaker[s] for s in speaker_ids])
-
-            if language_weighted_sampler:
-                # get speaker/language names
-                language_names = np.array([item[3] for item in dataset.items])
-                unique_language_names = np.unique(language_names).tolist()
-                language_ids = [unique_language_names.index(l) for l in language_names]
-                # count number samples by speaker/language
-                language_count = np.array([len(np.where(language_names == l)[0]) for l in unique_language_names])
-                # create weight
-                weight_language = 1. / language_count
-                if speaker_weighted_sampler:
-                    samples_weight += np.array([weight_language[l] for l in language_ids])
-                else:
-                    samples_weight = np.array([weight_language[l] for l in language_ids])
-
-            dataset_samples_weight = torch.from_numpy(samples_weight).double()
-            # create sampler
-            sampler = torch.utils.data.sampler.WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
+            sampler = get_weighted_sampler(dataset, speaker_weighted_sampler, language_weighted_sampler)
+        
+        if(getattr(c, "perfect_language_sampler", False)):
+            print("Using perfect language sampler")
+            sampler = get_perfect_language_sampler(dataset, c, is_val)
 
         loader = DataLoader(
             dataset,

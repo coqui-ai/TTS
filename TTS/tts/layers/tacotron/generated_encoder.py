@@ -7,7 +7,7 @@ from torch._six import container_abcs
 
 from itertools import repeat
 from typing import List
-from torch import Tensor, Module
+from torch import Tensor
 from typing import Sequence, Tuple
 
 
@@ -20,7 +20,7 @@ def _ntuple(n):
 
 _pair = _ntuple(2)
 
-class _ConstantPadNd(Module):
+class _ConstantPadNd(torch.nn.Module):
     __constants__ = ['padding', 'value']
     value: float
     padding: Sequence[int]
@@ -112,6 +112,8 @@ class Conv1dGenerated(torch.nn.Module):
         self._bias = Linear(bottleneck_dim, out_channels // groups) if bias else None
         
     def forward(self, generator_embedding, x):
+
+        print(generator_embedding.shape)
 
         assert generator_embedding.shape[0] == self._groups, ('Number of groups of a convolutional layer must match the number of generators.')
 
@@ -206,7 +208,7 @@ class ConvBlockGenerated(torch.nn.Module):
                                      padding=0, dilation=dilation, groups=groups, bias=(not batch_norm))
         self._regularizer = BatchNorm1dGenerated(embedding_dim, bottleneck_dim, output_channels, groups=groups) if batch_norm else None
         self._activation = Sequential(
-            torch.nn.ReLU,
+            torch.nn.ReLU(),
             torch.nn.Dropout()
         )
 
@@ -256,7 +258,7 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
         see ConvolutionalEncoder
     """
 
-    def __init__(self, input_dim, output_dim, dropout, embedding_dim, bottleneck_dim, groups=1):
+    def __init__(self, input_dim, output_dim, dropout=0.05, embedding_dim=10, bottleneck_dim=4, groups=1):
         super(GeneratedConvolutionalEncoder, self).__init__()
         
         self._groups = groups
@@ -282,28 +284,28 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
         self._layers = Sequential(*layers)
         self._embedding = Embedding(groups, embedding_dim)
 
-    def forward(self, x, x_lenghts=None, x_langs=None):
+    def forward(self, x, x_lenghts=None, language_ids=None):
 
-        # x_langs is specified during inference with batch size 1, so we need to 
+        # language_ids is specified during inference with batch size 1, so we need to 
         # expand the single language to create complete groups (all langs. in parallel)
-        if x_langs is not None and x_langs.shape[0] == 1:
+        if language_ids is not None and language_ids.shape[0] == 1:
             x = x.expand((self._groups, -1, -1))
 
         # create generator embeddings for all groups
-        e = self._embedding(torch.arange(self._groups, device=x.device))
+        e = self._embedding(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
 
         bs = x.shape[0]
         x = x.transpose(1, 2)
-        x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)   
+        x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)
         _, x = self._layers((e, x))
         x = x.reshape(bs, self._output_dim, -1)
         x = x.transpose(1, 2)
 
-        if x_langs is not None and x_langs.shape[0] == 1:
+        if language_ids is not None and language_ids.shape[0] == 1:
             xr = torch.zeros(1, x.shape[1], x.shape[2], device=x.device)
-            x_langs_normed = x_langs / x_langs.sum(2, keepdim=True)[0]
+            language_ids_normed = language_ids / language_ids.sum(2, keepdim=True)[0]
             for l in range(self._groups):
-                w = x_langs_normed[0,:,l].reshape(-1,1)
+                w = language_ids_normed[0,:,l].reshape(-1,1)
                 xr[0] += w * x[l]
             x = xr
 
