@@ -1,0 +1,38 @@
+name: Publish Python 🐍 distributions 📦 to PyPI
+on:
+  release:
+    types: [published]
+defaults:
+  run:
+    shell:
+      bash
+jobs:
+  build-package:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Verify tag matches version
+        run: |
+          set -ex
+          version=$(cat TTS/VERSION)
+          tag="${GITHUB_REF/refs\/tags\/}"
+          if [[ "v$version" != "$tag" ]]; then
+            exit 1
+          fi
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - run: |
+          python -m pip install -U pip setuptools twine toml
+          python -c 'import toml; c = toml.load("pyproject.toml"); print("\n".join(c["build-system"]["requires"]))' | pip install -r /dev/stdin
+      - run: |
+          python setup.py sdist
+      - name: Setup PyPI config
+        run: |
+          cat << EOF > ~/.pypirc
+          [pypi]
+          username=__token__
+          password=${{ secrets.PYPI_TOKEN }}
+          EOF
+      - run: |
+          twine upload --repository pypi dist/*.tar.gz
