@@ -63,6 +63,7 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
                 speaker_mapping=(
                     speaker_mapping if (c.use_speaker_embedding and c.use_external_speaker_embedding_file) else None
                 ),
+                perfect_sampler=getattr(c, "perfect_language_sampler", False),
             )
 
             if c.use_phonemes and c.compute_input_seq_cache:

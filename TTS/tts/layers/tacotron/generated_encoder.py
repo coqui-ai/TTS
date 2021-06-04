@@ -113,8 +113,6 @@ class Conv1dGenerated(torch.nn.Module):
         
     def forward(self, generator_embedding, x):
 
-        print(generator_embedding.shape)
-
         assert generator_embedding.shape[0] == self._groups, ('Number of groups of a convolutional layer must match the number of generators.')
 
         e = self._bottleneck(generator_embedding)
@@ -292,20 +290,20 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
             x = x.expand((self._groups, -1, -1))
 
         # create generator embeddings for all groups
-        e = self._embedding(language_ids).unsqueeze(-1).expand(-1, -1, x.shape[-1])
+        e = self._embedding(torch.arange(self._groups, device=x.device))
 
         bs = x.shape[0]
         x = x.transpose(1, 2)
-        x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)
+        x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)   
         _, x = self._layers((e, x))
         x = x.reshape(bs, self._output_dim, -1)
         x = x.transpose(1, 2)
 
         if language_ids is not None and language_ids.shape[0] == 1:
             xr = torch.zeros(1, x.shape[1], x.shape[2], device=x.device)
-            language_ids_normed = language_ids / language_ids.sum(2, keepdim=True)[0]
+            x_langs_normed = language_ids / language_ids.sum(2, keepdim=True)[0]
             for l in range(self._groups):
-                w = language_ids_normed[0,:,l].reshape(-1,1)
+                w = x_langs_normed[0,:,l].reshape(-1,1)
                 xr[0] += w * x[l]
             x = xr
 

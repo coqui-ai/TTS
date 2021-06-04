@@ -132,7 +132,8 @@ class Tacotron2(TacotronAbstract):
             self.speaker_embedding.weight.data.normal_(0, 0.3)
             if not language_embedding_dim:
                 language_embedding_dim = num_langs // 2 * 2 # Allow for odd number of languages
-            self.decoder_in_features += language_embedding_dim
+            if not generated_encoder:
+                self.decoder_in_features += language_embedding_dim
 
         # adverserial speaker classifier
         self.reversal_classifier = reversal_classifier
