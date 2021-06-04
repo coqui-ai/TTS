@@ -255,8 +255,11 @@ class TacotronLoss(torch.nn.Module):
         self.use_capacitron_vae = c.use_capacitron_vae
         if self.use_capacitron_vae:
             self.capacitron_capacity = c.capacitron_vae.capacitron_capacity
+            self.capacitron_vae_loss_alpha = c.capacitron_vae.capacitron_VAE_loss_alpha
         else:
             self.capacitron_capacity = None
+            self.capacitron_vae_loss_alpha = None
+
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -326,12 +329,6 @@ class TacotronLoss(torch.nn.Module):
             return_dict["postnet_loss"] = postnet_loss
 
         if self.decoder_alpha > 0:
-            '''if self.use_capacitron_vae:
-                # 
-                decoder_loss = functional.l1_loss(decoder_output, mel_input, reduction='sum')/decoder_output.size(0)
-                loss += self.decoder_alpha * decoder_loss
-                return_dict["decoder_loss"] = decoder_loss
-            else:'''
             loss += self.decoder_alpha * decoder_loss
             return_dict["decoder_loss"] = decoder_loss
 
@@ -411,21 +408,24 @@ class TacotronLoss(torch.nn.Module):
 
             # This is the term going to the main ADAM optimiser, we detach beta because
             # beta is optimised by a separate, SGD optimiser below
-            capacitron_vae_loss = beta.detach() * kl_capacity
+            capacitron_vae_loss = (beta.detach() * kl_capacity)
 
-            # normalize the capacitron_vae_loss as in L1Loss or MSELoss. 
+            # normalize the capacitron_vae_loss as in L1Loss or MSELoss.
             # After this both is Loss and  capacitron_vae_loss will be in the same scale
             # For this reason we don't need use L1Loss and MSELoss in "sum" reduction mode
             # Note: the batch is not considered because the L1Loss was calculated in "sum" mode
             # divided by the batch size, So dont div the capacitron_vae_loss by the B is equal
-            
+
             # get B T D dimension from input
             B, T, D = mel_input.size()
             # normalize
             if self.config.loss_masking:
                 # if mask loss get de T using the mask
                 T = output_lens.sum() / B
+
             capacitron_vae_loss = capacitron_vae_loss / (T * D)
+            capacitron_vae_loss = capacitron_vae_loss * self.capacitron_vae_loss_alpha
+
 
             # This is the term to purely optimise beta and to pass into the SGD
             beta_loss = torch.negative(beta) * kl_capacity.detach()

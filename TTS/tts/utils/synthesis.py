@@ -1,12 +1,7 @@
-from .text import text_to_sequence, phoneme_to_sequence
-import numpy as np
-import torch
-import pkg_resources
 import os
-
+import torch
 import numpy as np
 import pkg_resources
-import torch
 
 from .text import phoneme_to_sequence, text_to_sequence
 

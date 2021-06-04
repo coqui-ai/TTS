@@ -69,6 +69,7 @@ class CapacitronVAEConfig(Coqpit):
 
     capacitron_reference_wav: str = None
     capacitron_reference_text: str = None
+    capacitron_VAE_loss_alpha: int = 1
     capacitron_capacity: int = 150
     capacitron_VAE_embedding_dim: int = 128
     capacitron_use_text_summary_embeddings: bool = True
