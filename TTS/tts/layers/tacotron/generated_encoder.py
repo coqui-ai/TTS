@@ -290,7 +290,7 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
             x = x.expand((self._groups, -1, -1))
 
         # create generator embeddings for all groups
-        e = self._embedding(torch.arange(self._groups, device=x.device))
+        e = self._embedding(torch.arange(self._groups-1, -1, -1, device=x.device)) # all embeddings in the reversed order
 
         bs = x.shape[0]
         x = x.transpose(1, 2)
