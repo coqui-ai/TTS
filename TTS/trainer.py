@@ -21,7 +21,7 @@ from TTS.tts.datasets import TTSDataset, load_meta_data
 from TTS.tts.layers import setup_loss
 from TTS.tts.models import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
-from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -186,25 +186,7 @@ class TrainerTTS:
     def get_speaker_manager(
         config: Coqpit, restore_path: str = "", out_path: str = "", data_train: List = None
     ) -> SpeakerManager:
-        speaker_manager = SpeakerManager()
-            if restore_path:
-                speakers_file = os.path.join(os.path.dirname(restore_path), "speaker.json")
-                if not os.path.exists(speakers_file):
-                    print(
-                        "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
-                    )
-                    speakers_file = config.external_speaker_embedding_file
-
-                if config.use_external_speaker_embedding_file:
-                    speaker_manager.load_d_vectors_file(speakers_file)
-                else:
-                    speaker_manager.load_ids_file(speakers_file)
-            elif config.use_external_speaker_embedding_file and config.external_speaker_embedding_file:
-                speaker_manager.load_d_vectors_file(config.external_speaker_embedding_file)
-            else:
-                speaker_manager.parse_speakers_from_items(data_train)
-                file_path = os.path.join(out_path, "speakers.json")
-                speaker_manager.save_ids_file(file_path)
+        speaker_manager = get_speaker_manager(config, restore_path, data_train, out_path)
         return speaker_manager
 
     @staticmethod
