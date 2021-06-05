@@ -34,16 +34,16 @@ def save_speaker_mapping(out_path, speaker_mapping):
             json.dump(speaker_mapping, f, indent=4)
 
 
-def get_speaker_manager(c, args, meta_data_train):
+def get_speaker_manager(c, restore_path, meta_data_train, out_path=None):
     """Inititalize and return a `SpeakerManager` based on config values"""
     speaker_manager = SpeakerManager()
     if c.use_speaker_embedding:
         speaker_manager.set_speaker_ids_from_data(meta_data_train)
-        if args.restore_path:
+        if restore_path:
             # restoring speaker manager from a previous run.
             if c.use_external_speaker_embedding_file:
                 # restore speaker manager with the embedding file
-                speakers_file = os.path.dirname(args.restore_path)
+                speakers_file = os.path.dirname(restore_path)
                 if not os.path.exists(speakers_file):
                     print(
                         "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
@@ -55,7 +55,7 @@ def get_speaker_manager(c, args, meta_data_train):
                     speaker_manager.load_d_vectors_file(c.external_speaker_embedding_file)
                 speaker_manager.set_d_vectors_from_file(speakers_file)
             elif not c.use_external_speaker_embedding_file:  # restor speaker manager with speaker ID file.
-                speakers_file = os.path.dirname(args.restore_path)
+                speakers_file = os.path.dirname(restore_path)
                 speaker_ids_from_data = speaker_manager.speaker_ids
                 speaker_manager.set_speaker_ids_from_file(speakers_file)
                 assert all(
@@ -73,6 +73,14 @@ def get_speaker_manager(c, args, meta_data_train):
                 speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
             )
         )
+        # save file if path is defined
+        if out_path:
+            out_file_path = os.path.join(out_path, "speaker.json")
+            print(" > Saving `speaker.json` to {out_file_path}.")
+            if c.use_external_speaker_embedding_file and c.external_speaker_embedding_file:
+                speaker_manager.save_d_vectors_to_file(out_file_path)
+            else:
+                speaker_manager.save_speaker_ids_to_file(out_file_path)
     return speaker_manager
 
 
