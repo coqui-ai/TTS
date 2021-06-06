@@ -30,7 +30,7 @@ def main():
     parser.add_argument(
         "--config_path", type=str, help="Path to config file for training.", required="--continue_path" not in sys.argv
     )
-    args = parser.parse_args()
+    args, unargs = parser.parse_known_args()
 
     num_gpus = torch.cuda.device_count()
     group_id = time.strftime("%Y_%m_%d-%H%M%S")
@@ -42,6 +42,7 @@ def main():
     command.append("--restore_path={}".format(args.restore_path))
     command.append("--config_path={}".format(args.config_path))
     command.append("--group_id=group_{}".format(group_id))
+    command += unargs
     command.append("")
 
     # run processes
