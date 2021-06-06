@@ -47,6 +47,7 @@ class Tacotron2(TacotronAbstract):
         gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
         gradual_training (List): Gradual training schedule. If None or `[]`, no gradual training is used.
             Defaults to `[]`.
+        max_decoder_steps (int): Maximum number of steps allowed for the decoder. Defaults to 10000.
     """
 
     def __init__(
@@ -77,6 +78,7 @@ class Tacotron2(TacotronAbstract):
         use_gst=False,
         gst=None,
         gradual_training=None,
+        max_decoder_steps=500,
     ):
         super().__init__(
             num_chars,
@@ -138,6 +140,7 @@ class Tacotron2(TacotronAbstract):
             location_attn,
             attn_K,
             separate_stopnet,
+            max_decoder_steps,
         )
         self.postnet = Postnet(self.postnet_output_dim)
 
@@ -174,6 +177,7 @@ class Tacotron2(TacotronAbstract):
                 location_attn,
                 attn_K,
                 separate_stopnet,
+                max_decoder_steps,
             )
 
     @staticmethod

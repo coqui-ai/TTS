@@ -30,6 +30,7 @@ def setup_model(num_chars, num_speakers, c, d_vector_dim=None):
             double_decoder_consistency=c.double_decoder_consistency,
             ddc_r=c.ddc_r,
             d_vector_dim=d_vector_dim,
+            max_decoder_steps=c.max_decoder_steps,
         )
     elif c.model.lower() == "tacotron2":
         model = MyModel(
@@ -56,6 +57,7 @@ def setup_model(num_chars, num_speakers, c, d_vector_dim=None):
             double_decoder_consistency=c.double_decoder_consistency,
             ddc_r=c.ddc_r,
             d_vector_dim=d_vector_dim,
+            max_decoder_steps=c.max_decoder_steps,
         )
     elif c.model.lower() == "glow_tts":
         model = MyModel(
