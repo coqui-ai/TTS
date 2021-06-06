@@ -24,6 +24,7 @@ config = Tacotron2Config(
     epochs=1,
     print_step=1,
     print_eval=True,
+    max_decoder_steps=50,
 )
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60

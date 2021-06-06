@@ -61,6 +61,7 @@ class DecoderTests(unittest.TestCase):
             forward_attn_mask=True,
             location_attn=True,
             separate_stopnet=True,
+            max_decoder_steps=50,
         )
         dummy_input = T.rand(4, 8, 256)
         dummy_memory = T.rand(4, 2, 80)
