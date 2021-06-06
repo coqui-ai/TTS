@@ -261,9 +261,13 @@ class Tacotron2(TacotronAbstract):
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, cond_input["style_mel"], cond_input["d_vectors"])
         if self.num_speakers > 1:
-            if not self.embeddings_per_sample:
-                x_vector = self.speaker_embedding(cond_input['speaker_ids'])[:, None]
-                x_vector = torch.unsqueeze(x_vector, 0).transpose(1, 2)
+            if not self.use_d_vectors:
+                embedded_speakers = self.speaker_embedding(cond_input["speaker_ids"])[None]
+                # reshape embedded_speakers
+                if embedded_speakers.ndim == 1:
+                    embedded_speakers = embedded_speakers[None, None, :]
+                elif embedded_speakers.ndim == 2:
+                    embedded_speakers = embedded_speakers[None, :]
             else:
                 embedded_speakers = cond_input["d_vectors"]
 
