@@ -107,6 +107,21 @@ def ljspeech(root_path, meta_file):
     return items
 
 
+def ljspeech_test(root_path, meta_file):
+    """Normalizes the LJSpeech meta data file for TTS testing
+    https://keithito.com/LJ-Speech-Dataset/"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = "ljspeech"
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        for idx, line in enumerate(ttf):
+            cols = line.split("|")
+            wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
+            text = cols[1]
+            items.append([text, wav_file, f"ljspeech-{idx}"])
+    return items
+
+
 def sam_accenture(root_path, meta_file):
     """Normalizes the sam-accenture meta data file to TTS format
     https://github.com/Sam-Accenture-Non-Binary-Voice/non-binary-voice-files"""

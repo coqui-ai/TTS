@@ -301,12 +301,12 @@ class TTSDataset(Dataset):
             # get pre-computed d-vectors
             if self.d_vector_mapping is not None:
                 wav_files_names = [batch[idx]["wav_file_name"] for idx in ids_sorted_decreasing]
-                d_vectors = [self.speaker_mapping[w]["embedding"] for w in wav_files_names]
+                d_vectors = [self.d_vector_mapping[w]["embedding"] for w in wav_files_names]
             else:
                 d_vectors = None
             # get numerical speaker ids from speaker names
             if self.speaker_id_mapping:
-                speaker_ids = [self.speaker_manager.speaker_ids[sn] for sn in speaker_names]
+                speaker_ids = [self.speaker_id_mapping[sn] for sn in speaker_names]
             else:
                 speaker_ids = None
             # compute features
