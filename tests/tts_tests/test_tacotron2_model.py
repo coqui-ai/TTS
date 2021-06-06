@@ -259,9 +259,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
-        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, d_vector_dim=55, use_gst=True, gst=c.gst).to(
-            device
-        )
+        model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, d_vector_dim=55, use_gst=True, gst=c.gst).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
         count = 0
