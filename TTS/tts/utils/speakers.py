@@ -11,9 +11,16 @@ from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.utils.audio import AudioProcessor
 
 
-def make_speakers_json_path(out_path):
-    """Returns conventional speakers.json location."""
-    return os.path.join(out_path, "speakers.json")
+def _set_file_path(path):
+    """Find the speakers.json under the given path or the above it.
+    Intended to band aid the different paths returned in restored and continued training."""
+    path_restore = os.path.join(os.path.dirname(path), "speakers.json")
+    path_continue = os.path.join(path, "speakers.json")
+    if os.path.exists(path_restore):
+        return path_restore
+    if os.path.exists(path_continue):
+        return path_continue
+    raise FileNotFoundError(f" [!] `speakers.json` not found in {path}")
 
 
 def load_speaker_mapping(out_path):
@@ -21,7 +28,7 @@ def load_speaker_mapping(out_path):
     if os.path.splitext(out_path)[1] == ".json":
         json_file = out_path
     else:
-        json_file = make_speakers_json_path(out_path)
+        json_file = _set_file_path(out_path)
     with open(json_file) as f:
         return json.load(f)
 
@@ -29,7 +36,7 @@ def load_speaker_mapping(out_path):
 def save_speaker_mapping(out_path, speaker_mapping):
     """Saves speaker mapping if not yet present."""
     if out_path is not None:
-        speakers_json_path = make_speakers_json_path(out_path)
+        speakers_json_path = _set_file_path(out_path)
         with open(speakers_json_path, "w") as f:
             json.dump(speaker_mapping, f, indent=4)
 
@@ -40,10 +47,10 @@ def get_speaker_manager(c, restore_path, meta_data_train, out_path=None):
     if c.use_speaker_embedding:
         speaker_manager.set_speaker_ids_from_data(meta_data_train)
         if restore_path:
+            speakers_file = _set_file_path(restore_path)
             # restoring speaker manager from a previous run.
             if c.use_external_speaker_embedding_file:
                 # restore speaker manager with the embedding file
-                speakers_file = os.path.dirname(restore_path)
                 if not os.path.exists(speakers_file):
                     print(
                         "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
@@ -55,7 +62,6 @@ def get_speaker_manager(c, restore_path, meta_data_train, out_path=None):
                     speaker_manager.load_d_vectors_file(c.external_speaker_embedding_file)
                 speaker_manager.set_d_vectors_from_file(speakers_file)
             elif not c.use_external_speaker_embedding_file:  # restor speaker manager with speaker ID file.
-                speakers_file = os.path.dirname(restore_path)
                 speaker_ids_from_data = speaker_manager.speaker_ids
                 speaker_manager.set_speaker_ids_from_file(speakers_file)
                 assert all(
@@ -75,8 +81,8 @@ def get_speaker_manager(c, restore_path, meta_data_train, out_path=None):
         )
         # save file if path is defined
         if out_path:
-            out_file_path = os.path.join(out_path, "speaker.json")
-            print(" > Saving `speaker.json` to {out_file_path}.")
+            out_file_path = os.path.join(out_path, "speakers.json")
+            print(f" > Saving `speakers.json` to {out_file_path}.")
             if c.use_external_speaker_embedding_file and c.external_speaker_embedding_file:
                 speaker_manager.save_d_vectors_to_file(out_file_path)
             else:
@@ -138,7 +144,7 @@ class SpeakerManager:
         self.speaker_encoder_ap = None
 
         if data_items:
-            self.speaker_ids, _ = self.parse_speakers_from_data(self.data_items)
+            self.speaker_ids, self.speaker_names, _ = self.parse_speakers_from_data(self.data_items)
 
         if d_vectors_file_path:
             self.set_d_vectors_from_file(d_vectors_file_path)
@@ -162,6 +168,10 @@ class SpeakerManager:
     @property
     def num_speakers(self):
         return len(self.speaker_ids)
+
+    @property
+    def speaker_names(self):
+        return list(self.speaker_ids.keys())
 
     @property
     def d_vector_dim(self):
@@ -224,7 +234,8 @@ class SpeakerManager:
             file_path (str): Path to the target json file.
         """
         self.d_vectors = self._load_json(file_path)
-        self.speaker_ids = list(set(sorted(x["name"] for x in self.d_vectors.values())))
+        speakers = sorted({x["name"] for x in self.d_vectors.values()})
+        self.speaker_ids = {name: i for i, name in enumerate(speakers)}
         self.clip_ids = list(set(sorted(clip_name for clip_name in self.d_vectors.keys())))
 
     def get_d_vector_by_clip(self, clip_idx: str) -> List:
