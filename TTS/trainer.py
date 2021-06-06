@@ -101,9 +101,7 @@ class TrainerTTS:
         self.data_train, self.data_eval = load_meta_data(self.config.datasets)
 
         # default speaker manager
-        self.speaker_manager = self.get_speaker_manager(
-            self.config, args.restore_path, self.config.output_path, self.data_train
-        )
+        self.speaker_manager = self.get_speaker_manager(self.config, args.restore_path, output_path, self.data_train)
 
         # init TTS model
         if model is not None:
@@ -587,7 +585,7 @@ class TrainerTTS:
         speaker_id = 0 if self.config.use_speaker_embedding else None
         # setup d_vector
         d_vector = (
-            self.speaker_manager.get_d_vectors_by_speaker(self.speaker_manager.speaker_ids[0])
+            self.speaker_manager.get_d_vectors_by_speaker(self.speaker_manager.speaker_names[0])
             if self.config.use_external_speaker_embedding_file and self.config.use_speaker_embedding
             else None
         )
