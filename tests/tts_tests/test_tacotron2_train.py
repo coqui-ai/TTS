@@ -23,6 +23,9 @@ config = Tacotron2Config(
     test_delay_epochs=-1,
     epochs=1,
     print_step=1,
+    test_sentences=[
+        "Be a voice, not an echo.",
+    ],
     print_eval=True,
     max_decoder_steps=50,
 )
