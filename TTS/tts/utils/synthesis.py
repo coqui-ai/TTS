@@ -1,8 +1,10 @@
 import os
+from typing import Dict
 
 import numpy as np
 import pkg_resources
 import torch
+from torch import nn
 
 from .text import phoneme_to_sequence, text_to_sequence
 
@@ -64,9 +66,34 @@ def compute_style_mel(style_wav, ap, cuda=False):
     return style_mel
 
 
-def run_model_torch(model, inputs, speaker_id=None, style_mel=None, d_vector=None):
+def run_model_torch(
+    model: nn.Module,
+    inputs: torch.Tensor,
+    speaker_id: int = None,
+    style_mel: torch.Tensor = None,
+    d_vector: torch.Tensor = None,
+) -> Dict:
+    """Run a torch model for inference. It does not support batch inference.
+
+    Args:
+        model (nn.Module): The model to run inference.
+        inputs (torch.Tensor): Input tensor with character ids.
+        speaker_id (int, optional): Input speaker ids for multi-speaker models. Defaults to None.
+        style_mel (torch.Tensor, optional): Spectrograms used for voice styling . Defaults to None.
+        d_vector (torch.Tensor, optional): d-vector for multi-speaker models    . Defaults to None.
+
+    Returns:
+        Dict: model outputs.
+    """
+    input_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)
     outputs = model.inference(
-        inputs, cond_input={"speaker_ids": speaker_id, "d_vector": d_vector, "style_mel": style_mel}
+        inputs,
+        cond_input={
+            "x_lengths": input_lengths,
+            "speaker_ids": speaker_id,
+            "d_vectors": d_vector,
+            "style_mel": style_mel,
+        },
     )
     return outputs
 
