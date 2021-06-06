@@ -8,7 +8,6 @@ from TTS.tts.configs import Tacotron2Config
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
-
 config = Tacotron2Config(
     r=5,
     batch_size=8,
