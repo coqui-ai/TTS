@@ -290,7 +290,10 @@ class GlowTTS(nn.Module):
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, x_lengths, cond_input={"d_vectors": None}):  # pylint: disable=dangerous-default-value
+    def inference(
+        self, x, cond_input={"x_lengths": None, "d_vectors": None}
+    ):  # pylint: disable=dangerous-default-value
+        x_lengths = cond_input["x_lengths"]
         g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
         if g is not None:
             if self.d_vector_dim:
