@@ -3,13 +3,13 @@ import os
 import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
-from TTS.tts.configs import TacotronConfig
+from TTS.tts.configs import Tacotron2Config
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
-
-config = TacotronConfig(
+config = Tacotron2Config(
+    r=5,
     batch_size=8,
     eval_batch_size=8,
     num_loader_workers=0,
@@ -22,13 +22,14 @@ config = TacotronConfig(
     test_delay_epochs=-1,
     epochs=1,
     print_step=1,
+    print_eval=True,
     test_sentences=[
         "Be a voice, not an echo.",
     ],
-    print_eval=True,
-    r=5,
+    use_speaker_embedding=True,
     max_decoder_steps=50,
 )
+
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 config.save_json(config_path)
@@ -37,11 +38,11 @@ config.save_json(config_path)
 command_train = (
     f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --config_path {config_path} "
     f"--coqpit.output_path {output_path} "
-    "--coqpit.datasets.0.name ljspeech "
+    "--coqpit.datasets.0.name ljspeech_test "
     "--coqpit.datasets.0.meta_file_train metadata.csv "
     "--coqpit.datasets.0.meta_file_val metadata.csv "
     "--coqpit.datasets.0.path tests/data/ljspeech "
-    "--coqpit.test_delay_epochs 0"
+    "--coqpit.test_delay_epochs 0 "
 )
 run_cli(command_train)
 

@@ -23,6 +23,9 @@ config = SpeedySpeechConfig(
     epochs=1,
     print_step=1,
     print_eval=True,
+    test_sentences=[
+        "Be a voice, not an echo.",
+    ],
 )
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
