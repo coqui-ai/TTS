@@ -112,7 +112,6 @@ def ljspeech_test(root_path, meta_file):
     https://keithito.com/LJ-Speech-Dataset/"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
-    speaker_name = "ljspeech"
     with open(txt_file, "r", encoding="utf-8") as ttf:
         for idx, line in enumerate(ttf):
             cols = line.split("|")
