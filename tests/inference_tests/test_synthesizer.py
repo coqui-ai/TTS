@@ -1,12 +1,13 @@
 import os
 import unittest
 
-from tests import get_tests_output_path
 from TTS.config import load_config
 from TTS.tts.models import setup_model
 from TTS.tts.utils.io import save_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.synthesizer import Synthesizer
+
+from .. import get_tests_output_path
 
 
 class SynthesizerTest(unittest.TestCase):
