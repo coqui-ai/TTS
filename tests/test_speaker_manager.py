@@ -66,10 +66,10 @@ class SpeakerManagerTest(unittest.TestCase):
         print(manager.clip_ids)
         d_vector = manager.get_d_vector_by_clip(manager.clip_ids[0])
         assert len(d_vector) == 256
-        d_vectors = manager.get_d_vectors_by_speaker(manager.speaker_ids[0])
+        d_vectors = manager.get_d_vectors_by_speaker(manager.speaker_names[0])
         assert len(d_vectors[0]) == 256
-        d_vector1 = manager.get_mean_d_vector(manager.speaker_ids[0], num_samples=2, randomize=True)
+        d_vector1 = manager.get_mean_d_vector(manager.speaker_names[0], num_samples=2, randomize=True)
         assert len(d_vector1) == 256
-        d_vector2 = manager.get_mean_d_vector(manager.speaker_ids[0], num_samples=2, randomize=False)
+        d_vector2 = manager.get_mean_d_vector(manager.speaker_names[0], num_samples=2, randomize=False)
         assert len(d_vector2) == 256
         assert np.sum(np.array(d_vector1) - np.array(d_vector2)) != 0

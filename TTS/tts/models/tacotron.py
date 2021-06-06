@@ -262,7 +262,12 @@ class Tacotron(TacotronAbstract):
         if self.num_speakers > 1:
             if not self.use_d_vectors:
                 # B x 1 x speaker_embed_dim
-                embedded_speakers = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
+                embedded_speakers = self.speaker_embedding(cond_input["speaker_ids"])
+                # reshape embedded_speakers
+                if embedded_speakers.ndim == 1:
+                    embedded_speakers = embedded_speakers[None, None, :]
+                elif embedded_speakers.ndim == 2:
+                    embedded_speakers = embedded_speakers[None, :]
             else:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = torch.unsqueeze(cond_input["d_vectors"], 1)
