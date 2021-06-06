@@ -46,6 +46,8 @@ class TacotronConfig(BaseTTSConfig):
         stopnet_pos_weight (float):
             Weight that is applied to over-weight positive instances in the Stopnet loss. Use larger values with
             datasets with longer sentences. Defaults to 10.
+        max_decoder_steps (int):
+            Max number of steps allowed for the decoder. Defaults to 10000.
         separate_stopnet (bool):
             Use a distinct Stopnet which is trained separately from the rest of the model. Defaults to True.
         attention_type (str):
@@ -137,6 +139,7 @@ class TacotronConfig(BaseTTSConfig):
     stopnet: bool = True
     separate_stopnet: bool = True
     stopnet_pos_weight: float = 10.0
+    max_decoder_steps: int = 10000
 
     # attention layers
     attention_type: str = "original"

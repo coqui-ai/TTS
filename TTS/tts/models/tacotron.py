@@ -49,6 +49,7 @@ class Tacotron(TacotronAbstract):
             output frames to the prenet.
         gradual_trainin (List): Gradual training schedule. If None or `[]`, no gradual training is used.
             Defaults to `[]`.
+        max_decoder_steps (int): Maximum number of steps allowed for the decoder. Defaults to 10000.
     """
 
     def __init__(
@@ -80,6 +81,7 @@ class Tacotron(TacotronAbstract):
         gst=None,
         memory_size=5,
         gradual_training=None,
+        max_decoder_steps=500,
     ):
         super().__init__(
             num_chars,
@@ -143,6 +145,7 @@ class Tacotron(TacotronAbstract):
             location_attn,
             attn_K,
             separate_stopnet,
+            max_decoder_steps,
         )
         self.postnet = PostCBHG(decoder_output_dim)
         self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, postnet_output_dim)
@@ -180,6 +183,7 @@ class Tacotron(TacotronAbstract):
                 location_attn,
                 attn_K,
                 separate_stopnet,
+                max_decoder_steps,
             )
 
     def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, cond_input=None):
