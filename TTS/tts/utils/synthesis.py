@@ -87,7 +87,11 @@ def run_model_torch(
         Dict: model outputs.
     """
     input_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)
-    outputs = model.inference(
+    if hasattr(model, "module"):
+        _func = model.module.inference
+    else:
+        _func = model.inference
+    outputs = _func(
         inputs,
         cond_input={
             "x_lengths": input_lengths,
