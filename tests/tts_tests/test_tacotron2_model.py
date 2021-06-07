@@ -53,7 +53,7 @@ class TacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
             )
             assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
             assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
@@ -105,7 +105,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"d_vectors": speaker_ids}
             )
             assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
             assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
@@ -158,7 +158,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(10):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
             )
             assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
             assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
@@ -214,7 +214,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(10):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
             )
             assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
             assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
@@ -269,7 +269,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for i in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_embeddings}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"d_vectors": speaker_embeddings}
             )
             assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
             assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0

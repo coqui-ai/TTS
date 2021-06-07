@@ -144,7 +144,7 @@ class GlowTTS(nn.Module):
         return y_mean, y_log_scale, o_attn_dur
 
     def forward(
-        self, x, x_lengths, y, y_lengths=None, cond_input={"d_vectors": None}
+        self, x, x_lengths, y, y_lengths=None, aux_input={"d_vectors": None}
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
@@ -157,7 +157,7 @@ class GlowTTS(nn.Module):
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
         # norm speaker embeddings
-        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
+        g = aux_input["d_vectors"] if aux_input is not None and "d_vectors" in aux_input else None
         if g is not None:
             if self.d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)
@@ -197,7 +197,7 @@ class GlowTTS(nn.Module):
 
     @torch.no_grad()
     def inference_with_MAS(
-        self, x, x_lengths, y=None, y_lengths=None, cond_input={"d_vectors": None}
+        self, x, x_lengths, y=None, y_lengths=None, aux_input={"d_vectors": None}
     ):  # pylint: disable=dangerous-default-value
         """
         It's similar to the teacher forcing in Tacotron.
@@ -212,7 +212,7 @@ class GlowTTS(nn.Module):
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
         # norm speaker embeddings
-        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
+        g = aux_input["d_vectors"] if aux_input is not None and "d_vectors" in aux_input else None
         if g is not None:
             if self.external_d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)
@@ -258,7 +258,7 @@ class GlowTTS(nn.Module):
 
     @torch.no_grad()
     def decoder_inference(
-        self, y, y_lengths=None, cond_input={"d_vectors": None}
+        self, y, y_lengths=None, aux_input={"d_vectors": None}
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
@@ -268,7 +268,7 @@ class GlowTTS(nn.Module):
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
-        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
+        g = aux_input["d_vectors"] if aux_input is not None and "d_vectors" in aux_input else None
         # norm speaker embeddings
         if g is not None:
             if self.external_d_vector_dim:
@@ -290,11 +290,9 @@ class GlowTTS(nn.Module):
         return outputs
 
     @torch.no_grad()
-    def inference(
-        self, x, cond_input={"x_lengths": None, "d_vectors": None}
-    ):  # pylint: disable=dangerous-default-value
-        x_lengths = cond_input["x_lengths"]
-        g = cond_input["d_vectors"] if cond_input is not None and "d_vectors" in cond_input else None
+    def inference(self, x, aux_input={"x_lengths": None, "d_vectors": None}):  # pylint: disable=dangerous-default-value
+        x_lengths = aux_input["x_lengths"]
+        g = aux_input["d_vectors"] if aux_input is not None and "d_vectors" in aux_input else None
         if g is not None:
             if self.d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)
@@ -343,7 +341,7 @@ class GlowTTS(nn.Module):
         mel_lengths = batch["mel_lengths"]
         d_vectors = batch["d_vectors"]
 
-        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, cond_input={"d_vectors": d_vectors})
+        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input={"d_vectors": d_vectors})
 
         loss_dict = criterion(
             outputs["model_outputs"],
