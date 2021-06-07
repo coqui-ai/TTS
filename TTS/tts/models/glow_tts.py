@@ -7,13 +7,14 @@ from torch.nn import functional as F
 from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.layers.glow_tts.encoder import Encoder
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
+from TTS.tts.models.abstract_tts import TTSModel
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 
-class GlowTTS(nn.Module):
+class GlowTTS(TTSModel):
     """Glow TTS models from https://arxiv.org/abs/2005.11129
 
     Args:
