@@ -248,12 +248,8 @@ def synthesis(
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
         text_inputs = text_inputs.unsqueeze(0)
-    elif backend == "tf":
+    elif backend in ["tf", "tflite"]:
         # TODO: handle speaker id for tf model
-        style_mel = numpy_to_tf(style_mel, tf.float32)
-        text_inputs = numpy_to_tf(text_inputs, tf.int32)
-        text_inputs = tf.expand_dims(text_inputs, 0)
-    elif backend == "tflite":
         style_mel = numpy_to_tf(style_mel, tf.float32)
         text_inputs = numpy_to_tf(text_inputs, tf.int32)
         text_inputs = tf.expand_dims(text_inputs, 0)
