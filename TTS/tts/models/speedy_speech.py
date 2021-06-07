@@ -6,13 +6,14 @@ from TTS.tts.layers.feed_forward.duration_predictor import DurationPredictor
 from TTS.tts.layers.feed_forward.encoder import Encoder
 from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path
+from TTS.tts.models.abstract_tts import TTSModel
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 
-class SpeedySpeech(nn.Module):
+class SpeedySpeech(TTSModel):
     """Speedy Speech model
     https://arxiv.org/abs/2008.03802
 
