@@ -92,7 +92,7 @@ def run_model_torch(
         _func = model.inference
     outputs = _func(
         inputs,
-        cond_input={
+        aux_input={
             "x_lengths": input_lengths,
             "speaker_ids": speaker_id,
             "d_vectors": d_vector,
