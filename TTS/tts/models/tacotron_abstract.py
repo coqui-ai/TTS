@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from TTS.tts.utils.data import sequence_mask
-from TTS.utils.generic_utils import format_cond_input
+from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.training import gradual_training_scheduler
 
 
@@ -97,8 +97,8 @@ class TacotronAbstract(ABC, nn.Module):
         self.coarse_decoder = None
 
     @staticmethod
-    def _format_cond_input(cond_input: Dict) -> Dict:
-        return format_cond_input({"d_vectors": None, "speaker_ids": None}, cond_input)
+    def _format_aux_input(aux_input: Dict) -> Dict:
+        return format_aux_input({"d_vectors": None, "speaker_ids": None}, aux_input)
 
     #############################
     # INIT FUNCTIONS

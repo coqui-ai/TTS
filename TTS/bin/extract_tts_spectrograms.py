@@ -136,14 +136,14 @@ def inference(
             speaker_c = d_vectors
 
         outputs = model.inference_with_MAS(
-            text_input, text_lengths, mel_input, mel_lengths, cond_input={"d_vectors": speaker_c}
+            text_input, text_lengths, mel_input, mel_lengths, aux_input={"d_vectors": speaker_c}
         )
         model_output = outputs["model_outputs"]
         model_output = model_output.transpose(1, 2).detach().cpu().numpy()
 
     elif "tacotron" in model_name:
-        cond_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
-        outputs = model(text_input, text_lengths, mel_input, mel_lengths, cond_input)
+        aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
+        outputs = model(text_input, text_lengths, mel_input, mel_lengths, aux_input)
         postnet_outputs = outputs["model_outputs"]
         # normalize tacotron output
         if model_name == "tacotron":
