@@ -136,7 +136,7 @@ def set_init_dict(model_dict, checkpoint_state, c):
     return model_dict
 
 
-def format_cond_input(def_args: Dict, kwargs: Dict) -> Dict:
+def format_aux_input(def_args: Dict, kwargs: Dict) -> Dict:
     """Format kwargs to hande auxilary inputs to models.
 
     Args:

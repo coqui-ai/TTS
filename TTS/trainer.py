@@ -573,7 +573,7 @@ class TrainerTTS:
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        cond_inputs = self._get_cond_inputs()
+        aux_inputs = self._get_aux_inputs()
         for idx, sen in enumerate(test_sentences):
             wav, alignment, model_outputs, _ = synthesis(
                 self.model,
@@ -581,9 +581,9 @@ class TrainerTTS:
                 self.config,
                 self.use_cuda,
                 self.ap,
-                speaker_id=cond_inputs["speaker_id"],
-                d_vector=cond_inputs["d_vector"],
-                style_wav=cond_inputs["style_wav"],
+                speaker_id=aux_inputs["speaker_id"],
+                d_vector=aux_inputs["d_vector"],
+                style_wav=aux_inputs["style_wav"],
                 enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                 use_griffin_lim=True,
                 do_trim_silence=False,
@@ -600,7 +600,7 @@ class TrainerTTS:
         self.tb_logger.tb_test_audios(self.total_steps_done, test_audios, self.config.audio["sample_rate"])
         self.tb_logger.tb_test_figures(self.total_steps_done, test_figures)
 
-    def _get_cond_inputs(self) -> Dict:
+    def _get_aux_inputs(self) -> Dict:
         # setup speaker_id
         speaker_id = 0 if self.config.use_speaker_embedding else None
         # setup d_vector
@@ -620,8 +620,8 @@ class TrainerTTS:
             print("WARNING: You don't provided a gst style wav, for this reason we use a zero tensor!")
             for i in range(self.config.gst["gst_num_style_tokens"]):
                 style_wav[str(i)] = 0
-        cond_inputs = {"speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector}
-        return cond_inputs
+        aux_inputs = {"speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector}
+        return aux_inputs
 
     def fit(self) -> None:
         if self.restore_step != 0 or self.args.best_path:

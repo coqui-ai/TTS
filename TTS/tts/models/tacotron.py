@@ -186,14 +186,14 @@ class Tacotron(TacotronAbstract):
                 max_decoder_steps,
             )
 
-    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, cond_input=None):
+    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, aux_input=None):
         """
         Shapes:
             text: [B, T_in]
             text_lengths: [B]
             mel_specs: [B, T_out, C]
             mel_lengths: [B]
-            cond_input: 'speaker_ids': [B, 1] and  'd_vectors':[B, C]
+            aux_input: 'speaker_ids': [B, 1] and  'd_vectors':[B, C]
         """
         outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
         inputs = self.embedding(text)
@@ -205,15 +205,15 @@ class Tacotron(TacotronAbstract):
         # global style token
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, cond_input["d_vectors"])
+            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, aux_input["d_vectors"])
         # speaker embedding
         if self.num_speakers > 1:
             if not self.use_d_vectors:
                 # B x 1 x speaker_embed_dim
-                embedded_speakers = self.speaker_embedding(cond_input["speaker_ids"])[:, None]
+                embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[:, None]
             else:
                 # B x 1 x speaker_embed_dim
-                embedded_speakers = torch.unsqueeze(cond_input["d_vectors"], 1)
+                embedded_speakers = torch.unsqueeze(aux_input["d_vectors"], 1)
             encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
         # decoder_outputs: B x decoder_in_features x T_out
         # alignments: B x T_in x encoder_in_features
@@ -252,17 +252,17 @@ class Tacotron(TacotronAbstract):
         return outputs
 
     @torch.no_grad()
-    def inference(self, text_input, cond_input=None):
-        cond_input = self._format_cond_input(cond_input)
+    def inference(self, text_input, aux_input=None):
+        aux_input = self._format_aux_input(aux_input)
         inputs = self.embedding(text_input)
         encoder_outputs = self.encoder(inputs)
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, cond_input["style_mel"], cond_input["d_vectors"])
+            encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
         if self.num_speakers > 1:
             if not self.use_d_vectors:
                 # B x 1 x speaker_embed_dim
-                embedded_speakers = self.speaker_embedding(cond_input["speaker_ids"])
+                embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])
                 # reshape embedded_speakers
                 if embedded_speakers.ndim == 1:
                     embedded_speakers = embedded_speakers[None, None, :]
@@ -270,7 +270,7 @@ class Tacotron(TacotronAbstract):
                     embedded_speakers = embedded_speakers[None, :]
             else:
                 # B x 1 x speaker_embed_dim
-                embedded_speakers = torch.unsqueeze(cond_input["d_vectors"], 1)
+                embedded_speakers = torch.unsqueeze(aux_input["d_vectors"], 1)
             encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
         decoder_outputs, alignments, stop_tokens = self.decoder.inference(encoder_outputs)
         postnet_outputs = self.postnet(decoder_outputs)
@@ -306,7 +306,7 @@ class Tacotron(TacotronAbstract):
             text_lengths,
             mel_input,
             mel_lengths,
-            cond_input={"speaker_ids": speaker_ids, "d_vectors": d_vectors},
+            aux_input={"speaker_ids": speaker_ids, "d_vectors": d_vectors},
         )
 
         # set the [alignment] lengths wrt reduction factor for guided attention
@@ -317,8 +317,8 @@ class Tacotron(TacotronAbstract):
         else:
             alignment_lengths = mel_lengths // self.decoder.r
 
-        cond_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
-        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, cond_input)
+        aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
+        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input)
 
         # compute loss
         loss_dict = criterion(
