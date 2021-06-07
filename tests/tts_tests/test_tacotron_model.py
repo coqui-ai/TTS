@@ -69,7 +69,7 @@ class TacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
             )
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
@@ -130,7 +130,7 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_embeddings}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"d_vectors": speaker_embeddings}
             )
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
@@ -194,7 +194,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(10):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
             )
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
@@ -257,7 +257,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(10):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"speaker_ids": speaker_ids}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
             )
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
@@ -319,7 +319,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(5):
             outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, cond_input={"d_vectors": speaker_embeddings}
+                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"d_vectors": speaker_embeddings}
             )
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
