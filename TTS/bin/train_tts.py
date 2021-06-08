@@ -2,7 +2,7 @@ import os
 import sys
 import traceback
 
-from TTS.trainer import TrainerTTS
+from TTS.tts.trainer_tts import TrainerTTS
 from TTS.utils.arguments import init_training
 from TTS.utils.generic_utils import remove_experiment_folder
 
