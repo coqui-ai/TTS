@@ -29,7 +29,10 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import KeepAverage, count_parameters, set_init_dict, to_cuda
 from TTS.utils.logging import ConsoleLogger, TensorboardLogger
-from TTS.utils.training import check_update, setup_torch_training_env
+from TTS.utils.training import check_update, is_apex_available, setup_torch_training_env
+
+if is_apex_available():
+    from apex import amp
 
 
 class TrainerTTS(TrainerAbstract):
@@ -64,6 +67,8 @@ class TrainerTTS(TrainerAbstract):
 
         self.keep_avg_train = None
         self.keep_avg_eval = None
+
+        self.use_apex = self._is_apex_available()
 
         log_file = os.path.join(self.output_path, f"trainer_{args.rank}_log.txt")
         self._setup_logger_config(log_file)
@@ -109,11 +114,17 @@ class TrainerTTS(TrainerAbstract):
             self.model.cuda()
             self.criterion.cuda()
 
-        # scalers for mixed precision training
-        self.scaler = torch.cuda.amp.GradScaler() if self.config.mixed_precision and self.use_cuda else None
-
         # setup optimizer
         self.optimizer = self.get_optimizer(self.model, self.config)
+
+        # setup mixed precision training
+        # use apex if available
+        # else fallback to `torch.amp`
+        if self.use_apex:
+            self.scaler = None
+            self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level="O1")
+        else:
+            self.scaler = torch.cuda.amp.GradScaler() if self.config.mixed_precision and self.use_cuda else None
 
         if self.args.restore_path:
             self.model, self.optimizer, self.scaler, self.restore_step = self.restore_model(
@@ -379,13 +390,27 @@ class TrainerTTS(TrainerAbstract):
             raise RuntimeError(f"Detected NaN loss at step {self.total_steps_done}.")
 
         # optimizer step
+        apply_lr_schedule = True
         if self.config.mixed_precision:
-            # model optimizer step in mixed precision mode
-            self.scaler.scale(loss_dict["loss"]).backward()
-            self.scaler.unscale_(self.optimizer)
-            grad_norm, _ = check_update(self.model, self.config.grad_clip, ignore_stopnet=True)
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            if self.use_apex:
+                with amp.scale_loss(loss_dict["loss"], self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    amp.master_params(self.optimizer),
+                    self.config.grad_clip,
+                )
+            else:
+                # model optimizer step in mixed precision mode
+                self.scaler.scale(loss_dict["loss"]).backward()
+                self.scaler.unscale_(self.optimizer)
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    self.model.parameters(),
+                    self.config.grad_clip,
+                )
+                scale_prev = self.scaler.get_scale()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+                apply_lr_schedule = scale_prev <= self.scaler.get_scale()
         else:
             # main model optimizer step
             loss_dict["loss"].backward()
@@ -395,7 +420,7 @@ class TrainerTTS(TrainerAbstract):
         step_time = time.time() - step_start_time
 
         # setup lr
-        if self.config.lr_scheduler:
+        if self.config.lr_scheduler and apply_lr_schedule:
             self.scheduler.step()
 
         # detach loss values
@@ -453,7 +478,7 @@ class TrainerTTS(TrainerAbstract):
                         self.output_path,
                         model_loss=loss_dict["loss"],
                         characters=self.model_characters,
-                        scaler=self.scaler.state_dict() if self.config.mixed_precision else None,
+                        scaler=self.scaler.state_dict() if self.scaler else None,
                     )
                 # training visualizations
                 if hasattr(self.model, "module"):

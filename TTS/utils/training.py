@@ -1,3 +1,5 @@
+import importlib
+
 import numpy as np
 import torch
 
@@ -11,6 +13,10 @@ def setup_torch_training_env(cudnn_enable, cudnn_benchmark):
     print(" > Using CUDA: ", use_cuda)
     print(" > Number of GPUs: ", num_gpus)
     return use_cuda, num_gpus
+
+
+def is_apex_available():
+    return importlib.util.find_spec("apex") is not None
 
 
 def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None):
@@ -64,9 +70,14 @@ def adam_weight_decay(optimizer):
 
 # pylint: disable=dangerous-default-value
 def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn", "lstm", "gru", "embedding"}):
-    """
-    Skip biases, BatchNorm parameters, rnns.
-    and attention projection layer v
+    """Skip certain layers as setting up weight decay. Skip biases, BatchNorm parameters, rnns and attention
+    projection layer `v` by default.
+
+    Args:
+        model (nn.Module): Model instance to apply weight decay.
+        weigth_decay (float): weight decay coefficient.
+        skip_list (dict, optional): List of layer names to avoid applying weight decay. Defaults to
+            `{"decoder.attention.v", "rnn", "lstm", "gru", "embedding"}`
     """
     decay = []
     no_decay = []

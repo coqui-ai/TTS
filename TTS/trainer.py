@@ -13,6 +13,7 @@ from coqpit import Coqpit
 from torch import nn
 
 from TTS.utils.logging import ConsoleLogger, TensorboardLogger
+from TTS.utils.training import is_apex_available
 
 _DataLoader = TypeVar("_DataLoader")
 
@@ -62,7 +63,7 @@ class TrainerAbstract(ABC):
 
     @staticmethod
     def _is_apex_available():
-        return importlib.util.find_spec("apex") is not None
+        return is_apex_available()
 
     @abstractmethod
     def get_model(*args, **kwargs) -> nn.Module:
