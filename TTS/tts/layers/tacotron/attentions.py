@@ -65,8 +65,8 @@ class GravesAttention(nn.Module):
         self.init_layers()
 
     def init_layers(self):
-        torch.nn.init.constant_(self.N_a[2].bias[(2 * self.K) : (3 * self.K)], 1.0)  # bias mean
-        torch.nn.init.constant_(self.N_a[2].bias[self.K : (2 * self.K)], 10)  # bias std
+        torch.nn.init.constant_(self.N_a[2].bias[(2 * self.K): (3 * self.K)], 1.0)  # bias mean
+        torch.nn.init.constant_(self.N_a[2].bias[self.K: (2 * self.K)], 10)  # bias std
 
     def init_states(self, inputs):
         if self.J is None or inputs.shape[1] + 1 > self.J.shape[-1]:
@@ -150,7 +150,7 @@ class OriginalAttention(nn.Module):
 
     Args:
         query_dim (int): number of channels in the query tensor.
-        embedding_dim (int): number of channels in the vakue tensor. In general, the value tensor is the output of the encoder layer.
+        embedding_dim (int): number of channels in the value tensor. In general, the value tensor is the output of the encoder layer.
         attention_dim (int): number of channels of the inner attention layers.
         location_attention (bool): enable/disable location sensitive attention.
         attention_location_n_filters (int): number of location attention filters.
@@ -271,7 +271,7 @@ class OriginalAttention(nn.Module):
             _, n = fwd_shifted_alpha.max(1)
             val, _ = alpha.max(1)
             for b in range(alignment.shape[0]):
-                alpha[b, n[b] + 3 :] = 0
+                alpha[b, n[b] + 3:] = 0
                 alpha[b, : (n[b] - 1)] = 0  # ignore all previous states to prevent repetition.
                 alpha[b, (n[b] - 2)] = 0.01 * val[b]  # smoothing factor for the prev step
         # renormalize attention weights

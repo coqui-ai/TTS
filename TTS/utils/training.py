@@ -13,14 +13,19 @@ def setup_torch_training_env(cudnn_enable, cudnn_benchmark):
     return use_cuda, num_gpus
 
 
-def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None):
-    r"""Check model gradient against unexpected jumps and failures"""
-    skip_flag = False
+def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None, ignore_capacitron_beta=False):
+    r'''Check model gradient against unexpected jumps and failures'''
+    ignore_list = []
     if ignore_stopnet:
+        ignore_list.append('stopnet')
+    if ignore_capacitron_beta:
+        ignore_list.append('capacitron_beta')
+
+    skip_flag = False
+    if ignore_list:
         if not amp_opt_params:
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                [param for name, param in model.named_parameters() if "stopnet" not in name], grad_clip
-            )
+                [param for name, param in model.named_parameters() if any([to_ignore not in name for to_ignore in ignore_list])], grad_clip)
         else:
             grad_norm = torch.nn.utils.clip_grad_norm_(amp_opt_params, grad_clip)
     else:
@@ -71,6 +76,9 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
     decay = []
     no_decay = []
     for name, param in model.named_parameters():
+        # skip beta because we're sending it to another optimizer
+        if name == 'capacitron_layer.beta':
+            continue
         if not param.requires_grad:
             continue
 
@@ -94,6 +102,34 @@ class NoamLR(torch.optim.lr_scheduler._LRScheduler):
             for base_lr in self.base_lrs
         ]
 
+class StepwiseGradualLR(torch.optim.lr_scheduler._LRScheduler):
+    def __init__(self, optimizer, config, last_epoch=-1):
+        self.config = config
+        super(StepwiseGradualLR, self).__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        step = max(self.last_epoch, 1)
+        step_thresholds = []
+        rates = []
+        for values in self.config.gradual_learning_rates:
+            step_thresholds.append(values[0])
+            rates.append(values[1])
+
+        boolean_indeces = np.less(step_thresholds, step)
+        try:
+            first_false = np.where(boolean_indeces == False)[0]
+            first_false = first_false[0]
+        except IndexError:
+            # For the steps larger than the last step in the list
+            pass
+        lr = rates[np.max(first_false - 1, 0)]
+
+        # Return last lr if step is above the set threshold
+        lr = rates[-1] if step > step_thresholds[-1] else lr
+        # Return first lr if step is below the second threshold - first is initial lr
+        lr = rates[0] if step < step_thresholds[1] else lr
+
+        return np.tile(lr, len(self.base_lrs)) # hack?
 
 def gradual_training_scheduler(global_step, config):
     """Setup the gradual training schedule wrt number

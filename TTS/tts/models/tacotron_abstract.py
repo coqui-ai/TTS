@@ -6,8 +6,8 @@ from torch import nn
 
 from TTS.tts.utils.generic_utils import sequence_mask
 
-
 class TacotronAbstract(ABC, nn.Module):
+    # pylint: disable=C0330
     def __init__(
         self,
         num_chars,
@@ -15,7 +15,7 @@ class TacotronAbstract(ABC, nn.Module):
         r,
         postnet_output_dim=80,
         decoder_output_dim=80,
-        attn_type="original",
+        attn_type='original',
         attn_win=False,
         attn_norm="softmax",
         prenet_type="original",
@@ -33,8 +33,17 @@ class TacotronAbstract(ABC, nn.Module):
         encoder_in_features=512,
         decoder_in_features=512,
         speaker_embedding_dim=None,
-        use_gst=False,
-        gst=None,
+        gst=False,
+        gst_embedding_dim=512,
+        gst_num_heads=4,
+        gst_style_tokens=10,
+        gst_use_speaker_embedding=False,
+        capacitron=False,
+        capacitron_VAE_embedding_dim=128,
+        capacitron_use_text_summary_embeddings=True,
+        capacitron_text_summary_embedding_dim=128,
+        capacitron_capacity=150,
+        capacitron_use_speaker_embedding=False,
     ):
         """Abstract Tacotron class"""
         super().__init__()
@@ -44,6 +53,16 @@ class TacotronAbstract(ABC, nn.Module):
         self.postnet_output_dim = postnet_output_dim
         self.use_gst = use_gst
         self.gst = gst
+        self.gst_embedding_dim = gst_embedding_dim
+        self.gst_num_heads = gst_num_heads
+        self.gst_style_tokens = gst_style_tokens
+        self.gst_use_speaker_embedding = gst_use_speaker_embedding
+        self.capacitron = capacitron
+        self.capacitron_VAE_embedding_dim = capacitron_VAE_embedding_dim
+        self.capacitron_use_text_summary_embeddings = capacitron_use_text_summary_embeddings
+        self.capacitron_text_summary_embedding_dim = capacitron_text_summary_embedding_dim
+        self.capacitron_capacity = capacitron_capacity
+        self.capacitron_use_speaker_embedding = capacitron_use_speaker_embedding
         self.num_speakers = num_speakers
         self.bidirectional_decoder = bidirectional_decoder
         self.double_decoder_consistency = double_decoder_consistency
@@ -82,6 +101,11 @@ class TacotronAbstract(ABC, nn.Module):
         if self.gst and use_gst:
             self.decoder_in_features += self.gst.gst_embedding_dim  # add gst embedding dim
             self.gst_layer = None
+
+        # capacitron
+        if self.capacitron:
+            self.decoder_in_features += capacitron_VAE_embedding_dim  # add capacitron embedding dim
+            self.capacitron_layer = None
 
         # model states
         self.speaker_embeddings = None
@@ -204,6 +228,14 @@ class TacotronAbstract(ABC, nn.Module):
             gst_outputs = self.gst_layer(style_input, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
+
+    def compute_VAE_embedding(self, inputs, reference_mel_info, text_info=None, speaker_embedding=None):
+        """ Capacitron Variational Autoencoder  """
+        VAE_outputs, posterior_distribution, prior_distribution, capacitron_beta = self.capacitron_layer(reference_mel_info, # pylint: disable=not-callable
+                                                                                                         text_info,
+                                                                                                         speaker_embedding)
+        encoder_output = self._concat_speaker_embedding(inputs, VAE_outputs) # concatenate to the output of the basic tacotron encoder
+        return encoder_output, posterior_distribution, prior_distribution, capacitron_beta
 
     @staticmethod
     def _add_speaker_embedding(outputs, speaker_embeddings):

@@ -416,7 +416,7 @@ class Decoder(nn.Module):
         else:
             # use only the last frame prediction
             # assert new_memory.shape[-1] == self.r * self.frame_channels
-            self.memory_input = new_memory[:, self.frame_channels * (self.r - 1) :]
+            self.memory_input = new_memory[:, self.frame_channels * (self.r - 1):]
 
     def forward(self, inputs, memory, mask):
         """
