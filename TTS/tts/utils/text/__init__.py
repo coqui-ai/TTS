@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import unicodedata
 
 import gruut
 from packaging import version
@@ -26,32 +27,34 @@ _CURLY_RE = re.compile(r"(.*?)\{(.+?)\}(.*)")
 # Regular expression matching punctuations, ignoring empty space
 PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 
-# language -> source phoneme -> dest phoneme
-# Used to make gruut's phonemes fit better with eSpeak's.
-GRUUT_PHONEME_MAP = {
-    "en-us": {
-        "i": "iː",
-        "ɑ": "ɑː",
-        "ɚ": "ɜːɹ",
-    },
-    "de": {
-        "ʁ": "ɾ",
-        "g": "ɡ",
-        "ʔ": "",
-    },
-    "nl": {
-        "a": "aː",
-        "e": "eː",
-        "ʏ": "ɵ",
-        "ʋ": "w",
-        "ɹ": "r",
-        "ɔː": "oː",
-    },
-    "es": {
-        "ɾ": "r",
-        "g": "ɣ",
-    },
-}
+# Table for str.translate to fix gruut/TTS phoneme mismatch
+GRUUT_TRANS_TABLE = str.maketrans("g", "ɡ")
+
+
+def clean_gruut_phonemes(ph_list):
+    """Decompose, substitute, and clean gruut phonemes for TTS.
+
+    Parameters:
+            ph_list (list[str]): list of phonemes from gruut
+
+    Returns:
+            clean_list (list[str]): decomposed/clean list of phonemes for TTS
+                    Dipthongs, etc. are decomposed into single characters
+                    Unicode combining characters are removed (e.g., ties)
+    """
+    cleaned_phonemes = []
+
+    for phoneme_text in ph_list:
+        # Decompose into codepoints (ã -> ["a", "\u0303"])
+        phoneme_text = unicodedata.normalize("NFD", phoneme_text)
+        for codepoint in phoneme_text.translate(GRUUT_TRANS_TABLE):
+            if unicodedata.combining(codepoint) > 0:
+                # Skip combining characters like ties
+                continue
+
+            cleaned_phonemes.append(codepoint)
+
+    return cleaned_phonemes
 
 
 def text2phone(text, language):
@@ -82,21 +85,14 @@ def text2phone(text, language):
             lang=language,
             return_format="word_phonemes",
             phonemizer_args={
-                "remove_stress": True,  # remove primary/secondary stress
+                "remove_accents": True,  # remove accute/grave accents (Swedish)
                 "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
                 "ipa_major_breaks": False,  # don't replace periods with IPA ‖
             },
         )
 
-        ph_map = GRUUT_PHONEME_MAP.get(language)
-        if ph_map:
-            # Re-map phonemes to fit with eSpeak conventions
-            for word in ph_list:
-                for p_idx, p in enumerate(word):
-                    word[p_idx] = ph_map.get(p, p)
-
         # Join and re-split to break apart dipthongs, suprasegmentals, etc.
-        ph_words = ["|".join(word_phonemes) for word_phonemes in ph_list]
+        ph_words = ["|".join(clean_gruut_phonemes(word_phonemes)) for word_phonemes in ph_list]
         ph = "| ".join(ph_words)
 
         print(" > Phonemes: {}".format(ph))
