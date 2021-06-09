@@ -12,7 +12,7 @@ from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 
-class SpeedySpeech(nn.Module):
+class SpeedySpeech(TTSModel):
     """Speedy Speech model
     https://arxiv.org/abs/2008.03802
 

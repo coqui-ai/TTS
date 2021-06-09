@@ -13,7 +13,7 @@ from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 
-class AlignTTS(nn.Module):
+class AlignTTS(TTSModel):
     """AlignTTS with modified duration predictor.
     https://arxiv.org/pdf/2003.01950.pdf
 

@@ -13,7 +13,7 @@ from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 
-class GlowTTS(nn.Module):
+class GlowTTS(TTSModel):
     """Glow TTS models from https://arxiv.org/abs/2005.11129
 
     Args:
