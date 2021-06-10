@@ -27,7 +27,7 @@ def get_weighted_sampler(dataset, speaker_weighted_sampler, language_weighted_sa
 
     dataset_samples_weight = torch.from_numpy(samples_weight).double()
     # create sampler
-    return torch.utils.data.sampler.WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
+    return WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
 
 def get_perfect_language_sampler(dataset, c, is_val):
     assert not getattr(c, "gradual_training", False), 'batch size must be constant to use perfect sampler'
@@ -67,7 +67,7 @@ class PerfectBatchSampler(Sampler):
         self._batch_size = batch_size
         self.prepared_batch = []
 
-    def __iter__(self):
+    def __iter__(self): #TODO: check what happens when a language have more samples than the others
 
             iters = [iter(s) for s in self._samplers]
             done = False
@@ -85,8 +85,8 @@ class PerfectBatchSampler(Sampler):
                         if done: 
                             break
                         self.prepared_batch += b
-                        if len(self.prepared_batch) == self._batch_size:
-                            break
+                if done: 
+                    break
                 yield self.prepared_batch.pop()
         
     def __len__(self):

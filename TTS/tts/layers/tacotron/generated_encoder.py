@@ -284,9 +284,24 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
 
     def forward(self, x, x_lenghts=None, language_ids=None):
 
+        # create generator embeddings for all groups
+        e = self._embedding(torch.arange(self._groups-1, -1, -1, device=x.device)) # all embeddings in the reversed order
+
+        bs = x.shape[0]
+        x = x.transpose(1, 2)
+        x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)   
+        _, x = self._layers((e, x))
+        x = x.reshape(bs, self._output_dim, -1)
+        x = x.transpose(1, 2)
+
+        return x
+
+    def inference(self, x, x_lenghts=None, language_ids=None):
+
         # language_ids is specified during inference with batch size 1, so we need to 
         # expand the single language to create complete groups (all langs. in parallel)
         if language_ids is not None and language_ids.shape[0] == 1:
+            language_ids = torch.nn.functional.one_hot(language_ids, num_classes=self._groups).expand(x.shape[2],-1).unsqueeze(0)
             x = x.expand((self._groups, -1, -1))
 
         # create generator embeddings for all groups
