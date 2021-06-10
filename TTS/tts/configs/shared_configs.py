@@ -54,7 +54,7 @@ class CapacitronVAEConfig(Coqpit):
         capacitron_capacity (int):
             Defines the Capacitron Capacity target. Defaults to 150.
         capacitron_VAE_embedding_dim (int):
-            Defines the VAE encoder's LSTM size and size if posterior/prior distributions. Defaults to 128.
+            Defines the VAE encoder's LSTM size and size of posterior/prior distributions. Defaults to 128.
         capacitron_use_text_summary_embeddings (bool):
             if True  use text in Capacitron VAE. Defaults to True.
         capacitron_text_summary_embedding_dim (int):
