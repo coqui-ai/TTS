@@ -34,13 +34,21 @@ GRUUT_TRANS_TABLE = str.maketrans("g", "ɡ")
 def clean_gruut_phonemes(ph_list):
     """Decompose, substitute, and clean gruut phonemes for TTS.
 
-    Parameters:
-            ph_list (list[str]): list of phonemes from gruut
+    gruut phonemes may contain any IPA characters (e.g., "ẽ" for the nasalized
+    "e"), and may be composed of multiple characters (e.g., "aɪ" in the English
+    "r[i]ce").
+
+    TTS phonemes come from a fixed set of symbols, and do not include every
+    possible variation of every vowel/consonant. Here, we decompose dipthongs,
+    etc. into single characters and then filter out Unicode combining characters
+    such as ties. This ensures that (most) phonemes will exist in the TTS symbol
+    table.
+
+    Args:
+        ph_list (list[str]): list of phonemes from gruut
 
     Returns:
-            clean_list (list[str]): decomposed/clean list of phonemes for TTS
-                    Dipthongs, etc. are decomposed into single characters
-                    Unicode combining characters are removed (e.g., ties)
+        clean_list (list[str]): decomposed/clean list of phonemes for TTS
     """
     cleaned_phonemes = []
 
