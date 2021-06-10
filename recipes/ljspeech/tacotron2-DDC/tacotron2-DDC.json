@@ -41,7 +41,7 @@
     "run_description": "tacotron2 with double decoder consistency.",
     "batch_size": 64,
     "eval_batch_size": 16,
-    "mixed_precision": true,
+    "mixed_precision": false,
     "loss_masking": true,
     "decoder_loss_alpha": 0.25,
     "postnet_loss_alpha": 0.25,
