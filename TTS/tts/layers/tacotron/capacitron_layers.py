@@ -8,17 +8,17 @@ class CapacitronVAE(nn.Module):
 
     See https://arxiv.org/abs/1906.03402 """
 
-    def __init__(self, num_mel, capacitron_embedding_dim, encoder_output_dim=256, speaker_embedding_dim=None, text_summary_embedding_dim=None):
+    def __init__(self, num_mel, capacitron_embedding_dim, encoder_output_dim=256, reference_encoder_out_dim=128, speaker_embedding_dim=None, text_summary_embedding_dim=None):
         super().__init__()
         # Init distributions
         self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim), torch.eye(capacitron_embedding_dim))
         self.approximate_posterior_distribution = None
         # define output ReferenceEncoder dim to the capacitron_embedding_dim
-        self.encoder = ReferenceEncoder(num_mel, out_dim=capacitron_embedding_dim)
+        self.encoder = ReferenceEncoder(num_mel, out_dim=reference_encoder_out_dim)
 
         # Init beta, the lagrange-like term for the KL distribution
         self.beta = torch.nn.Parameter(torch.log(torch.exp(torch.Tensor([1.0])) - 1), requires_grad=True)
-        mlp_input_dimension = capacitron_embedding_dim
+        mlp_input_dimension = reference_encoder_out_dim
 
         if text_summary_embedding_dim is not None:
             self.text_summary_net = TextSummary(text_summary_embedding_dim, encoder_output_dim=encoder_output_dim)
