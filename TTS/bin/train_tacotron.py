@@ -287,7 +287,8 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, optimizer_SGD,
             # main model optimizer step
             loss_dict["loss"].backward()
             optimizer, current_lr = adam_weight_decay(optimizer)
-            grad_norm, _ = check_update(model, config.grad_clip, ignore_stopnet=True)
+            grad_norm, _ = check_update(model, config.grad_clip, ignore_stopnet=True, ignore_capacitron_beta=True)
+
             optimizer.step()
 
             # stopnet optimizer step
