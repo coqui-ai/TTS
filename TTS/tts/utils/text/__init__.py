@@ -53,6 +53,11 @@ def clean_gruut_phonemes(ph_list):
     cleaned_phonemes = []
 
     for phoneme_text in ph_list:
+        phoneme_text = unicodedata.normalize("NFC", phoneme_text)
+        if phoneme_text in phonemes:
+            cleaned_phonemes.append(phoneme_text)
+            continue
+
         # Decompose into codepoints (ã -> ["a", "\u0303"])
         phoneme_text = unicodedata.normalize("NFD", phoneme_text)
         for codepoint in phoneme_text.translate(GRUUT_TRANS_TABLE):
