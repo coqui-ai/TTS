@@ -31,7 +31,7 @@ class MyDataset(Dataset):
         enable_eos_bos=False,
         speaker_mapping=None,
         use_noise_augment=False,
-        perfect_sampler=False,
+        generated_encoder=False,
         verbose=False,
     ):
         """
@@ -75,7 +75,7 @@ class MyDataset(Dataset):
         self.use_noise_augment = use_noise_augment
         self.verbose = verbose
         self.input_seq_computed = False
-        self.perfect_sampler = perfect_sampler
+        self.generated_encoder = generated_encoder
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
@@ -289,7 +289,7 @@ class MyDataset(Dataset):
 
             text_lenghts = np.array([len(d["text"]) for d in batch])
             ids_sorted_decreasing = torch.LongTensor([i for i in range(len(text_lenghts))])
-            if not self.perfect_sampler:
+            if not self.generated_encoder:
                 # sort items with text input length for RNN efficiency
                 text_lenghts, ids_sorted_decreasing = torch.sort(torch.LongTensor(text_lenghts), dim=0, descending=True)
 

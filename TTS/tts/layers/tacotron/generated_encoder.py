@@ -207,7 +207,7 @@ class ConvBlockGenerated(torch.nn.Module):
         self._regularizer = BatchNorm1dGenerated(embedding_dim, bottleneck_dim, output_channels, groups=groups) if batch_norm else None
         self._activation = Sequential(
             torch.nn.ReLU(),
-            torch.nn.Dropout()
+            torch.nn.Dropout(dropout)
         )
 
     def forward(self, x):
@@ -288,7 +288,6 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
         e = self._embedding(torch.arange(self._groups-1, -1, -1, device=x.device)) # all embeddings in the reversed order
 
         bs = x.shape[0]
-        x = x.transpose(1, 2)
         x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)   
         _, x = self._layers((e, x))
         x = x.reshape(bs, self._output_dim, -1)
@@ -308,7 +307,6 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
         e = self._embedding(torch.arange(self._groups-1, -1, -1, device=x.device)) # all embeddings in the reversed order
 
         bs = x.shape[0]
-        x = x.transpose(1, 2)
         x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)   
         _, x = self._layers((e, x))
         x = x.reshape(bs, self._output_dim, -1)
