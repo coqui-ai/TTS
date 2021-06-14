@@ -90,11 +90,11 @@ def run_model_torch(
         if hasattr(model, "module"):
             # distributed model
             postnet_output, _, _, _, alignments, _, _ = model.module.inference(
-                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings, language_ids=language_id
             )
         else:
             postnet_output, _, _, _, alignments, _, _ = model.inference(
-                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings, language_ids=language_id
             )
         postnet_output = postnet_output.permute(0, 2, 1)
         # these only belong to tacotron models.

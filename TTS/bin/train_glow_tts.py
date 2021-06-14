@@ -20,7 +20,7 @@ from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.io import save_best_model, save_checkpoint
 from TTS.tts.utils.measures import alignment_diagonal_score
-from TTS.tts.utils.speakers import parse_speakers
+from TTS.tts.utils.speakers import parse_speakers, parse_languages
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -30,6 +30,7 @@ from TTS.utils.distribute import init_distributed, reduce_tensor
 from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, setup_torch_training_env
+from TTS.utils.samplers import get_weighted_sampler, get_perfect_language_sampler
 
 use_cuda, num_gpus = setup_torch_training_env(True, False)
 
@@ -66,6 +67,13 @@ def setup_loader(ap, r, is_val=False, verbose=False):
         dataset.sort_items()
 
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+
+        language_weighted_sampler = getattr(c, "language_weighted_sampler", False)
+        speaker_weighted_sampler = getattr(c, "speaker_weighted_sampler", False)
+        if (language_weighted_sampler or speaker_weighted_sampler) and sampler is None and not is_val:
+            print("Using weighted sampler")
+            sampler = get_weighted_sampler(dataset, speaker_weighted_sampler, language_weighted_sampler)
+
         loader = DataLoader(
             dataset,
             batch_size=c.eval_batch_size if is_val else c.batch_size,
@@ -86,8 +94,9 @@ def format_data(data):
     speaker_names = data[2]
     mel_input = data[4].permute(0, 2, 1)  # B x D x T
     mel_lengths = data[5]
-    item_idx = data[7]
-    attn_mask = data[9]
+    language_names = data[7]
+    item_idx = data[8]
+    attn_mask = data[10]
     avg_text_length = torch.mean(text_lengths.float())
     avg_spec_length = torch.mean(mel_lengths.float())
 
@@ -102,6 +111,12 @@ def format_data(data):
     else:
         speaker_c = None
 
+    if c.use_language_embedding:
+        language_ids = [language_mapping[language_name] for language_name in language_names]
+        language_ids = torch.LongTensor(language_ids)
+    else:
+        language_ids = None
+
     # dispatch data to GPU
     if use_cuda:
         text_input = text_input.cuda(non_blocking=True)
@@ -112,18 +127,32 @@ def format_data(data):
             speaker_c = speaker_c.cuda(non_blocking=True)
         if attn_mask is not None:
             attn_mask = attn_mask.cuda(non_blocking=True)
+        if language_ids is not None:
+            language_ids = language_ids.cuda(non_blocking=True)
     return (
         text_input,
         text_lengths,
         mel_input,
         mel_lengths,
         speaker_c,
+        language_ids,
         avg_text_length,
         avg_spec_length,
         attn_mask,
         item_idx,
     )
 
+def extract_parameters(test_sentence):
+    splited = test_sentence.split('|')
+    if len(splited) == 1: # No language or speaker info
+        return (splited[0], None, None)
+    if len(splited) == 2: # No language info
+        sentence, speaker = splited
+        return (sentence, speaker_mapping[speaker], None)
+    if len(splited) == 3:
+        sentence, speaker, language = splited
+        return (sentence, speaker_mapping[speaker], language_mapping[language])
+    raise RuntimeError("Invalid line was given in the test sentence file.")
 
 def data_depended_init(data_loader, model):
     """Data depended initialization for activation normalization."""
@@ -143,10 +172,10 @@ def data_depended_init(data_loader, model):
         for _, data in enumerate(data_loader):
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, spekaer_embed, _, _, attn_mask, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, spekaer_embed, language_ids, _, _, attn_mask, _ = format_data(data)
 
             # forward pass model
-            _ = model.forward(text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=spekaer_embed)
+            _ = model.forward(text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=spekaer_embed, language_ids=language_ids)
             if num_iter == c.data_dep_init_iter:
                 break
             num_iter += 1
@@ -184,6 +213,7 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
             mel_input,
             mel_lengths,
             speaker_c,
+            language_ids,
             avg_text_length,
             avg_spec_length,
             attn_mask,
@@ -198,7 +228,7 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
         # forward pass model
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c
+                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids
             )
 
             # compute loss
@@ -294,9 +324,9 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
                 target_speaker = None if speaker_c is None else speaker_c[:1]
 
                 if hasattr(model, "module"):
-                    spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker)
+                    spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
                 else:
-                    spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker)
+                    spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
 
                 spec_pred = spec_pred.permute(0, 2, 1)
                 gt_spec = mel_input.permute(0, 2, 1)
@@ -341,11 +371,11 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, speaker_c, _, _, attn_mask, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, speaker_c, language_ids, _, _, attn_mask, _ = format_data(data)
 
             # forward pass model
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c
+                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids,
             )
 
             # compute loss
@@ -388,9 +418,9 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             # direct pass on model for spec predictions
             target_speaker = None if speaker_c is None else speaker_c[:1]
             if hasattr(model, "module"):
-                spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker)
+                spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
             else:
-                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker)
+                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
             spec_pred = spec_pred.permute(0, 2, 1)
             gt_spec = mel_input.permute(0, 2, 1)
 
@@ -445,6 +475,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         style_wav = c.get("style_wav_for_test")
         for idx, test_sentence in enumerate(test_sentences):
             try:
+                test_sentence, speaker_id, language_id = extract_parameters(test_sentence)
                 wav, alignment, _, postnet_output, _, _ = synthesis(
                     model,
                     test_sentence,
@@ -452,6 +483,8 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     use_cuda,
                     ap,
                     speaker_id=speaker_id,
+                    language_id=language_id,
+                    language_mapping=language_mapping,
                     speaker_embedding=speaker_embedding,
                     style_wav=style_wav,
                     truncated=False,
@@ -477,7 +510,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping
+    global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping, language_mapping
     # Audio processor
     ap = AudioProcessor(**c.audio)
     if "characters" in c.keys():
@@ -502,9 +535,10 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # parse speakers
     num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
+    num_langs, language_embedding_dim, language_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
 
     # setup model
-    model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim=speaker_embedding_dim)
+    model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, language_embedding_dim)
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
     criterion = GlowTTSLoss()
 

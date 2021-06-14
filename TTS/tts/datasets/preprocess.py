@@ -328,7 +328,8 @@ def brspeech(root_path, meta_file):
             cols = line.split("|")
             wav_file = os.path.join(root_path, cols[0])
             text = cols[2]
-            speaker_name = cols[3]
+            # remove blank spaces and break line from speaker name
+            speaker_name = cols[3].replace("\n", "").replace(" ", "")
             items.append([text, wav_file, speaker_name])
     return items
 
