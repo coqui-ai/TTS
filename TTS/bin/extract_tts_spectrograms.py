@@ -299,5 +299,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     c = load_config(args.config_path)
-    C.audio['do_trim_silence'] = False
+    c.audio['do_trim_silence'] = False  # IMPORTANT!!!!!!!!!!!!!!! disable to align mel
     main(args)
