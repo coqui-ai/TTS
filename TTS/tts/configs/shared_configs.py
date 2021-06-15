@@ -97,6 +97,8 @@ class BaseTTSConfig(BaseTrainingConfig):
             Audio processor config object instance.
         use_phonemes (bool):
             enable / disable phoneme use.
+        use_espeak_phonemes (bool):
+            enable / disable eSpeak-compatible phonemes (only if use_phonemes = `True`).
         compute_input_seq_cache (bool):
             enable / disable precomputation of the phoneme sequences. At the expense of some delay at the beginning of
             the training, It allows faster data loader time and precise limitation with `max_seq_len` and
@@ -136,6 +138,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     # phoneme settings
     use_phonemes: bool = False
+    use_espeak_phonemes: bool = True
     phoneme_language: str = None
     compute_input_seq_cache: bool = False
     text_cleaner: str = MISSING

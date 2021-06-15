@@ -31,46 +31,7 @@ PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 GRUUT_TRANS_TABLE = str.maketrans("g", "ɡ")
 
 
-def clean_gruut_phonemes(ph_list):
-    """Decompose, substitute, and clean gruut phonemes for TTS.
-
-    gruut phonemes may contain any IPA characters (e.g., "ẽ" for the nasalized
-    "e"), and may be composed of multiple characters (e.g., "aɪ" in the English
-    "r[i]ce").
-
-    TTS phonemes come from a fixed set of symbols, and do not include every
-    possible variation of every vowel/consonant. Here, we decompose dipthongs,
-    etc. into single characters and then filter out Unicode combining characters
-    such as ties. This ensures that (most) phonemes will exist in the TTS symbol
-    table.
-
-    Args:
-        ph_list (list[str]): list of phonemes from gruut
-
-    Returns:
-        clean_list (list[str]): decomposed/clean list of phonemes for TTS
-    """
-    cleaned_phonemes = []
-
-    for phoneme_text in ph_list:
-        phoneme_text = unicodedata.normalize("NFC", phoneme_text)
-        if phoneme_text in phonemes:
-            cleaned_phonemes.append(phoneme_text)
-            continue
-
-        # Decompose into codepoints (ã -> ["a", "\u0303"])
-        phoneme_text = unicodedata.normalize("NFD", phoneme_text)
-        for codepoint in phoneme_text.translate(GRUUT_TRANS_TABLE):
-            if unicodedata.combining(codepoint) > 0:
-                # Skip combining characters like ties
-                continue
-
-            cleaned_phonemes.append(codepoint)
-
-    return cleaned_phonemes
-
-
-def text2phone(text, language):
+def text2phone(text, language, use_espeak_phonemes=False):
     """Convert graphemes to phonemes.
     Parameters:
             text (str): text to phonemize
@@ -93,20 +54,31 @@ def text2phone(text, language):
 
     if gruut.is_language_supported(language):
         # Use gruut for phonemization
+        phonemizer_args={
+            "remove_stress": True,
+            "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
+            "ipa_major_breaks": False,  # don't replace periods with IPA ‖
+        }
+
+        if use_espeak_phonemes:
+            # Use a lexicon/g2p model train on eSpeak IPA instead of gruut IPA.
+            # This is intended for backwards compatibility with TTS<=v0.0.13
+            # pre-trained models.
+            phonemizer_args["model_prefix"] = "espeak"
+
         ph_list = gruut.text_to_phonemes(
             text,
             lang=language,
             return_format="word_phonemes",
-            phonemizer_args={
-                "remove_accents": True,  # remove accute/grave accents (Swedish)
-                "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
-                "ipa_major_breaks": False,  # don't replace periods with IPA ‖
-            },
+            phonemizer_args=phonemizer_args,
         )
 
         # Join and re-split to break apart dipthongs, suprasegmentals, etc.
-        ph_words = ["|".join(clean_gruut_phonemes(word_phonemes)) for word_phonemes in ph_list]
+        ph_words = ["|".join(word_phonemes) for word_phonemes in ph_list]
         ph = "| ".join(ph_words)
+
+        # Fix a few phonemes
+        ph = ph.translate(GRUUT_TRANS_TABLE)
 
         print(" > Phonemes: {}".format(ph))
         return ph
@@ -132,7 +104,7 @@ def pad_with_eos_bos(phoneme_sequence, tp=None):
     return [_phonemes_to_id[_bos]] + list(phoneme_sequence) + [_phonemes_to_id[_eos]]
 
 
-def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None, add_blank=False):
+def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None, add_blank=False, use_espeak_phonemes=False):
     # pylint: disable=global-statement
     global _phonemes_to_id, _phonemes
     if tp:
@@ -141,7 +113,7 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
 
     sequence = []
     clean_text = _clean_text(text, cleaner_names)
-    to_phonemes = text2phone(clean_text, language)
+    to_phonemes = text2phone(clean_text, language, use_espeak_phonemes=use_espeak_phonemes)
     if to_phonemes is None:
         print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
     # iterate by skipping empty strings - NOTE: might be useful to keep it to have a better intonation.
@@ -152,6 +124,7 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
         sequence = pad_with_eos_bos(sequence, tp=tp)
     if add_blank:
         sequence = intersperse(sequence, len(_phonemes))  # add a blank token (new), whose id number is len(_phonemes)
+
     return sequence
 
 
