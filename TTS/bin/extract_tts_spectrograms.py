@@ -299,4 +299,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     c = load_config(args.config_path)
+    C.audio['do_trim_silence'] = False
     main(args)
