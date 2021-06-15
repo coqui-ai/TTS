@@ -1,54 +1,15 @@
 """Tests for text to phoneme converstion"""
 import unittest
 
-import gruut
-from gruut_ipa import IPA, Phonemes
-
-from TTS.tts.utils.text import clean_gruut_phonemes, phoneme_to_sequence
-from TTS.tts.utils.text import phonemes as all_phonemes
-from TTS.tts.utils.text import sequence_to_phoneme
+from TTS.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme, text2phone
 
 # -----------------------------------------------------------------------------
 
+LANG = "en-us"
+
 EXAMPLE_TEXT = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
 
-# Raw phonemes from run of gruut with example text (en-us).
-# This includes IPA ties, etc.
-EXAMPLE_PHONEMES = [
-    ["ɹ", "ˈi", "s", "ə", "n", "t"],
-    ["ɹ", "i", "s", "ˈɚ", "t͡ʃ"],
-    ["ˈæ", "t"],
-    ["h", "ˈɑ", "ɹ", "v", "ɚ", "d"],
-    ["h", "ˈæ", "z"],
-    ["ʃ", "ˈoʊ", "n"],
-    ["m", "ˈɛ", "d", "ɪ", "t", "ˌeɪ", "t", "ɪ", "ŋ"],
-    ["f", "ɚ"],
-    ["ˈæ", "z"],
-    ["l", "ˈɪ", "t", "ə", "l"],
-    ["ˈæ", "z"],
-    ["ˈeɪ", "t"],
-    ["w", "ˈi", "k", "s"],
-    ["k", "ə", "n"],
-    ["ˈæ", "k", "t͡ʃ", "ə", "l", "i"],
-    ["ɪ", "ŋ", "k", "ɹ", "ˈi", "s"],
-    [","],
-    ["ð", "ə"],
-    ["ɡ", "ɹ", "ˈeɪ"],
-    ["m", "ˈæ", "t", "ɚ"],
-    ["ˈɪ", "n"],
-    ["ð", "ə"],
-    ["p", "ˈɑ", "ɹ", "t", "s"],
-    ["ə", "v"],
-    ["ð", "ə"],
-    ["b", "ɹ", "ˈeɪ", "n"],
-    ["ɹ", "i", "s", "p", "ˈɑ", "n", "s", "ɪ", "b", "ə", "l"],
-    ["f", "ɚ"],
-    ["ɪ", "m", "ˈoʊ", "ʃ", "ə", "n", "ə", "l"],
-    ["ɹ", "ˌɛ", "ɡ", "j", "ə", "l", "ˈeɪ", "ʃ", "ə", "n"],
-    ["ˈæ", "n", "d"],
-    ["l", "ˈɚ", "n", "ɪ", "ŋ"],
-    ["!"],
-]
+EXPECTED_PHONEMES = "ɹ|iː|s|ə|n|t| ɹ|ᵻ|s|ɜː|tʃ| æ|t| h|ɑːɹ|v|ɚ|d| h|æ|z| ʃ|oʊ|n| m|ɛ|d|ᵻ|t|eɪ|ɾ|ɪ|ŋ| f|ɔːɹ| æ|z| l|ɪ|ɾ|əl| æ|z| eɪ|t| w|iː|k|s| k|æ|n| æ|k|tʃ|uː|əl|i| ɪ|ŋ|k|ɹ|iː|s| ,| ð|ə| ɡ|ɹ|eɪ| m|æ|ɾ|ɚ| ɪ|n| ð|ə| p|ɑːɹ|t|s| ʌ|v| ð|ə| b|ɹ|eɪ|n| ɹ|ᵻ|s|p|ɑː|n|s|ᵻ|b|əl| f|ɔːɹ| ɪ|m|oʊ|ʃ|ə|n|əl| ɹ|ɛ|ɡ|j|ʊ|l|eɪ|ʃ|ə|n| æ|n|d| l|ɜː|n|ɪ|ŋ| !"
 
 # -----------------------------------------------------------------------------
 
@@ -56,79 +17,84 @@ EXAMPLE_PHONEMES = [
 class TextProcessingTextCase(unittest.TestCase):
     """Tests for text to phoneme conversion"""
 
-    def test_all_phonemes_in_tts(self):
-        """Ensure that all phonemes from gruut are present in TTS phonemes"""
-        tts_phonemes = set(all_phonemes)
-
-        # Check stress characters
-        for suprasegmental in [IPA.STRESS_PRIMARY, IPA.STRESS_SECONDARY]:
-            self.assertIn(suprasegmental, tts_phonemes)
-
-        # Check that gruut's phonemes are a subset of TTS phonemes
-        for lang in gruut.get_supported_languages():
-            for phoneme in Phonemes.from_language(lang):
-                for codepoint in clean_gruut_phonemes(phoneme.text):
-
-                    self.assertIn(codepoint, tts_phonemes)
-
     def test_phoneme_to_sequence(self):
-        """Verify example (text -> sequence -> phoneme string) pipeline"""
-        lang = "en-us"
-        expected_phoneme_str = " ".join(
-            "".join(clean_gruut_phonemes(word_phonemes)) for word_phonemes in EXAMPLE_PHONEMES
-        )
-
-        # Ensure that TTS produces same phoneme string
-        text_cleaner = ["phoneme_cleaners"]
-        actual_sequence = phoneme_to_sequence(EXAMPLE_TEXT, text_cleaner, lang)
-        actual_phoneme_str = sequence_to_phoneme(actual_sequence)
-
-        self.assertEqual(actual_phoneme_str, expected_phoneme_str)
+        """Verify en-us sentence phonemes without blank token"""
+        self._test_phoneme_to_sequence(add_blank=False)
 
     def test_phoneme_to_sequence_with_blank_token(self):
-        """Verify example (text -> sequence -> phoneme string) pipeline with blank token"""
-        lang = "en-us"
+        """Verify en-us sentence phonemes with blank token"""
+        self._test_phoneme_to_sequence(add_blank=True)
+
+    def _test_phoneme_to_sequence(self, add_blank):
         text_cleaner = ["phoneme_cleaners"]
+        sequence = phoneme_to_sequence(EXAMPLE_TEXT, text_cleaner, LANG, add_blank=add_blank, use_espeak_phonemes=True)
+        text_hat = sequence_to_phoneme(sequence)
+        text_hat_with_params = sequence_to_phoneme(sequence)
+        gt = EXPECTED_PHONEMES.replace("|", "")
+        self.assertEqual(text_hat, text_hat_with_params)
+        self.assertEqual(text_hat, gt)
 
-        # Create with/without blank sequences
-        sequence_without_blank = phoneme_to_sequence(EXAMPLE_TEXT, text_cleaner, lang, add_blank=False)
-        sequence_with_blank = phoneme_to_sequence(EXAMPLE_TEXT, text_cleaner, lang, add_blank=True)
+        # multiple punctuations
+        text = "Be a voice, not an! echo?"
+        sequence = phoneme_to_sequence(text, text_cleaner, LANG, add_blank=add_blank, use_espeak_phonemes=True)
+        text_hat = sequence_to_phoneme(sequence)
+        text_hat_with_params = sequence_to_phoneme(sequence)
+        gt = "biː ɐ vɔɪs , nɑːt ɐn ! ɛkoʊ ?"
+        print(text_hat)
+        print(len(sequence))
+        self.assertEqual(text_hat, text_hat_with_params)
+        self.assertEqual(text_hat, gt)
 
-        # With blank sequence should be bigger
-        self.assertGreater(len(sequence_with_blank), len(sequence_without_blank))
+        # not ending with punctuation
+        text = "Be a voice, not an! echo"
+        sequence = phoneme_to_sequence(text, text_cleaner, LANG, add_blank=add_blank, use_espeak_phonemes=True)
+        text_hat = sequence_to_phoneme(sequence)
+        text_hat_with_params = sequence_to_phoneme(sequence)
+        gt = "biː ɐ vɔɪs , nɑːt ɐn ! ɛkoʊ"
+        print(text_hat)
+        print(len(sequence))
+        self.assertEqual(text_hat, text_hat_with_params)
+        self.assertEqual(text_hat, gt)
 
-        # But phoneme strings should still be identical
-        phoneme_str_without_blank = sequence_to_phoneme(sequence_without_blank, add_blank=False)
-        phoneme_str_with_blank = sequence_to_phoneme(sequence_with_blank, add_blank=True)
+        # original
+        text = "Be a voice, not an echo!"
+        sequence = phoneme_to_sequence(text, text_cleaner, LANG, add_blank=add_blank, use_espeak_phonemes=True)
+        text_hat = sequence_to_phoneme(sequence)
+        text_hat_with_params = sequence_to_phoneme(sequence)
+        gt = "biː ɐ vɔɪs , nɑːt ɐn ɛkoʊ !"
+        print(text_hat)
+        print(len(sequence))
+        self.assertEqual(text_hat, text_hat_with_params)
+        self.assertEqual(text_hat, gt)
 
-        self.assertEqual(phoneme_str_with_blank, phoneme_str_without_blank)
+        # extra space after the sentence
+        text = "Be a voice, not an! echo.  "
+        sequence = phoneme_to_sequence(text, text_cleaner, LANG, add_blank=add_blank, use_espeak_phonemes=True)
+        text_hat = sequence_to_phoneme(sequence)
+        text_hat_with_params = sequence_to_phoneme(sequence)
+        gt = "biː ɐ vɔɪs , nɑːt ɐn ! ɛkoʊ ."
+        print(text_hat)
+        print(len(sequence))
+        self.assertEqual(text_hat, text_hat_with_params)
+        self.assertEqual(text_hat, gt)
 
-    def test_messy_text(self):
-        """Verify text with extra punctuation/whitespace/etc. makes it through the pipeline"""
-        text = '"Be" a! voice, [NOT]? (an eCHo.   '
-        lang = "en-us"
-        expected_phonemes = [
-            ["b", "ˈi"],
-            ["ə"],
-            ["!"],
-            ["v", "ˈɔɪ", "s"],
-            [","],
-            ["n", "ˈɑ", "t"],
-            ["?"],
-            ["ə", "n"],
-            ["ˈɛ", "k", "oʊ"],
-            ["."],
-        ]
-        expected_phoneme_str = " ".join(
-            "".join(clean_gruut_phonemes(word_phonemes)) for word_phonemes in expected_phonemes
+        # extra space after the sentence
+        text = "Be a voice, not an! echo.  "
+        sequence = phoneme_to_sequence(
+            text, text_cleaner, LANG, enable_eos_bos=True, add_blank=add_blank, use_espeak_phonemes=True
         )
+        text_hat = sequence_to_phoneme(sequence)
+        text_hat_with_params = sequence_to_phoneme(sequence)
+        gt = "^biː ɐ vɔɪs , nɑːt ɐn ! ɛkoʊ .~"
+        print(text_hat)
+        print(len(sequence))
+        self.assertEqual(text_hat, text_hat_with_params)
+        self.assertEqual(text_hat, gt)
 
-        # Ensure that TTS produces same phoneme string
-        text_cleaner = ["phoneme_cleaners"]
-        actual_sequence = phoneme_to_sequence(text, text_cleaner, lang)
-        actual_phoneme_str = sequence_to_phoneme(actual_sequence)
-
-        self.assertEqual(actual_phoneme_str, expected_phoneme_str)
+    def test_text2phone(self):
+        text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
+        ph = text2phone(EXAMPLE_TEXT, LANG)
+        self.assertEqual(ph, EXPECTED_PHONEMES)
 
 
 # -----------------------------------------------------------------------------
