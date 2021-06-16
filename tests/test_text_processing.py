@@ -94,7 +94,7 @@ class TextProcessingTextCase(unittest.TestCase):
 
     def test_text2phone(self):
         """Verify phones directly (with |)"""
-        ph = text2phone(EXAMPLE_TEXT, LANG)
+        ph = text2phone(EXAMPLE_TEXT, LANG, use_espeak_phonemes=True)
         self.assertEqual(ph, EXPECTED_PHONEMES)
 
 
