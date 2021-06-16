@@ -25,7 +25,7 @@ def text_to_seqvec(text, CONFIG):
                 CONFIG.enable_eos_bos_chars,
                 tp=CONFIG.characters,
                 add_blank=CONFIG.add_blank,
-                use_espeak_phonemes=CONFIG.use_espeak_phonemes
+                use_espeak_phonemes=CONFIG.use_espeak_phonemes,
             ),
             dtype=np.int32,
         )

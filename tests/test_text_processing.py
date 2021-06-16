@@ -26,6 +26,7 @@ class TextProcessingTextCase(unittest.TestCase):
         self._test_phoneme_to_sequence(add_blank=True)
 
     def _test_phoneme_to_sequence(self, add_blank):
+        """Verify en-us sentence phonemes"""
         text_cleaner = ["phoneme_cleaners"]
         sequence = phoneme_to_sequence(EXAMPLE_TEXT, text_cleaner, LANG, add_blank=add_blank, use_espeak_phonemes=True)
         text_hat = sequence_to_phoneme(sequence)
@@ -92,7 +93,7 @@ class TextProcessingTextCase(unittest.TestCase):
         self.assertEqual(text_hat, gt)
 
     def test_text2phone(self):
-        text = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
+        """Verify phones directly (with |)"""
         ph = text2phone(EXAMPLE_TEXT, LANG)
         self.assertEqual(ph, EXPECTED_PHONEMES)
 
