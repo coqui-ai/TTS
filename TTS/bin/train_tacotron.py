@@ -82,17 +82,26 @@ def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
         if(getattr(c, "perfect_language_sampler", False)):
             print("Using perfect language sampler")
             sampler = get_perfect_language_sampler(dataset, c, is_val)
-
-        loader = DataLoader(
-            dataset,
-            batch_size=c.eval_batch_size if is_val else c.batch_size,
-            shuffle=False,
-            collate_fn=dataset.collate_fn,
-            drop_last=False,
-            sampler=sampler,
-            num_workers=c.num_val_loader_workers if is_val else c.num_loader_workers,
-            pin_memory=False,
-        )
+            loader = DataLoader(
+                dataset,
+                shuffle=False,
+                collate_fn=dataset.collate_fn,
+                drop_last=False,
+                batch_sampler=sampler,
+                num_workers=c.num_val_loader_workers if is_val else c.num_loader_workers,
+                pin_memory=False,
+            )
+        else:
+            loader = DataLoader(
+                dataset,
+                batch_size=c.eval_batch_size if is_val else c.batch_size,
+                shuffle=False,
+                collate_fn=dataset.collate_fn,
+                drop_last=False,
+                sampler=sampler,
+                num_workers=c.num_val_loader_workers if is_val else c.num_loader_workers,
+                pin_memory=False,
+            )
     return loader
 
 

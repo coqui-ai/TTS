@@ -67,28 +67,27 @@ class PerfectBatchSampler(Sampler):
         self._batch_size = batch_size
         self.prepared_batch = []
 
-    def __iter__(self): #TODO: check what happens when a language have more samples than the others
-
-            iters = [iter(s) for s in self._samplers]
-            done = False
-            
-            while True:
-                if len(self.prepared_batch) == 0:
-                    while len(self.prepared_batch) != self._batch_size:
-                        b = []
-                        for it in iters:
-                            idx = next(it, None)
-                            if idx is None:
-                                done = True
-                                break
-                            b.append(idx)
-                        if done: 
-                            break
-                        self.prepared_batch += b
-                if done: 
+    def __iter__(self):
+        
+        batch = []
+        iters = [iter(s) for s in self._samplers]
+        done = False
+        
+        while True:
+            b = []
+            for it in iters:
+                idx = next(it, None)
+                if idx is None:
+                    done = True
                     break
-                yield self.prepared_batch.pop()
+                b.append(idx)
+            if done: break
+            batch += b
+            if len(batch) == self._batch_size:
+                yield batch
+                batch = []
         
     def __len__(self):
+        print("Hello")
         language_batch_size = self._batch_size // len(self._samplers)
         return min(((len(s) + language_batch_size - 1) // language_batch_size) for s in self._samplers)

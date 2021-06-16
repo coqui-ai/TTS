@@ -368,6 +368,19 @@ def vctk_slim(root_path, meta_files=None, wavs_path="wav48"):
     return items
 
 
+def mls(root_path, meta_files=None):
+    """http://www.openslr.org/94/"""
+    items = []
+    with open(os.path.join(root_path, meta_files), "r") as meta:
+        isTrain = "train" in meta_files
+        for line in meta:
+            file, text = line.split('\t')
+            speaker, book, no = file.split('_')
+            wav_file = os.path.join(root_path, "train" if isTrain else "dev", 'audio', speaker, book, file + ".wav")
+            items.append([text, wav_file, "MLS_" + speaker])
+    return items
+
+
 # ======================================== VOX CELEB ===========================================
 def voxceleb2(root_path, meta_file=None):
     """
