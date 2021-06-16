@@ -54,7 +54,7 @@ def text2phone(text, language, use_espeak_phonemes=False):
 
     if gruut.is_language_supported(language):
         # Use gruut for phonemization
-        phonemizer_args={
+        phonemizer_args = {
             "remove_stress": True,
             "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
             "ipa_major_breaks": False,  # don't replace periods with IPA ‖
@@ -104,7 +104,9 @@ def pad_with_eos_bos(phoneme_sequence, tp=None):
     return [_phonemes_to_id[_bos]] + list(phoneme_sequence) + [_phonemes_to_id[_eos]]
 
 
-def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=None, add_blank=False, use_espeak_phonemes=False):
+def phoneme_to_sequence(
+    text, cleaner_names, language, enable_eos_bos=False, tp=None, add_blank=False, use_espeak_phonemes=False
+):
     # pylint: disable=global-statement
     global _phonemes_to_id, _phonemes
     if tp:
