@@ -187,10 +187,10 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler, ap,
     model.train()
     epoch_time = 0
     keep_avg = KeepAverage()
-    if use_cuda:
+    if use_cuda and num_gpus > 1:
         batch_n_iter = int(len(data_loader.dataset) / (c.batch_size * num_gpus))
     else:
-        batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
+        batch_n_iter = int(len(data_loader))
     end_time = time.time()
     c_logger.print_train_start()
     for num_iter, data in enumerate(data_loader):

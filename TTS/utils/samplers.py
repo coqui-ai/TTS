@@ -88,6 +88,5 @@ class PerfectBatchSampler(Sampler):
                 batch = []
         
     def __len__(self):
-        print("Hello")
         language_batch_size = self._batch_size // len(self._samplers)
         return min(((len(s) + language_batch_size - 1) // language_batch_size) for s in self._samplers)
