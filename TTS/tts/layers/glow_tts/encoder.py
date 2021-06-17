@@ -83,6 +83,8 @@ class Encoder(nn.Module):
         mean_only=False,
         use_prenet=True,
         c_in_channels=0,
+        num_langs=1,
+        language_embedding_dim=None
     ):
         super().__init__()
         # class arguments
@@ -98,6 +100,19 @@ class Encoder(nn.Module):
         # embedding layer
         self.emb = nn.Embedding(num_chars, hidden_channels)
         nn.init.normal_(self.emb.weight, 0.0, hidden_channels ** -0.5)
+
+        # set multilingual variables
+        if num_langs > 1:
+            if language_embedding_dim is None:
+                language_embedding_dim = num_langs # // 2 * 2# Allow for odd number of languages
+            self._language_embedding = nn.Embedding(num_langs, language_embedding_dim)
+            torch.nn.init.xavier_uniform_(self._language_embedding.weight)
+            self.multilingual = True
+            self.hidden_channels += language_embedding_dim
+            hidden_channels += language_embedding_dim
+        else:
+            self.multilingual = False
+
         # init encoder module
         if encoder_type.lower() == "rel_pos_transformer":
             if use_prenet:
@@ -136,7 +151,7 @@ class Encoder(nn.Module):
             hidden_channels + c_in_channels, hidden_channels_dp, 3, dropout_p_dp
         )
 
-    def forward(self, x, x_lengths, g=None):
+    def forward(self, x, x_lengths, g=None, language_ids=None):
         """
         Shapes:
             x: [B, C, T]
@@ -146,6 +161,12 @@ class Encoder(nn.Module):
         # embedding layer
         # [B ,T, D]
         x = self.emb(x) * math.sqrt(self.hidden_channels)
+
+        if self.multilingual:
+            l = self._language_embedding(language_ids).unsqueeze(1)
+            l = l.expand(x.size(0), x.size(1), -1)
+            x = torch.cat((x, l), dim=-1) 
+
         # [B, D, T]
         x = torch.transpose(x, 1, -1)
         # compute input sequence mask
