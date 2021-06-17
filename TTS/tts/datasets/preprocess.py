@@ -291,7 +291,7 @@ def libri_tts(root_path, meta_files=None):
             for line in ttf:
                 cols = line.split("\t")
                 wav_file = os.path.join(_root_path, cols[0] + ".wav")
-                text = cols[1]
+                text = cols[2]
                 items.append([text, wav_file, "LTTS_" + speaker_name])
     for item in items:
         assert os.path.exists(item[1]), f" [!] wav files don't exist - {item[1]}"
