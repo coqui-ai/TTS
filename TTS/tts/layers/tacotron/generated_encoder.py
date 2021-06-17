@@ -283,9 +283,8 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
         self._embedding = Embedding(groups, embedding_dim)
 
     def forward(self, x, x_lenghts=None, language_ids=None):
-
         # create generator embeddings for all groups
-        e = self._embedding(torch.arange(self._groups-1, -1, -1, device=x.device)) # all embeddings in the reversed order
+        e = self._embedding(torch.arange(self._groups, device=x.device))
 
         bs = x.shape[0]
         x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)   
@@ -299,12 +298,11 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
 
         # language_ids is specified during inference with batch size 1, so we need to 
         # expand the single language to create complete groups (all langs. in parallel)
-        if language_ids is not None and language_ids.shape[0] == 1:
-            language_ids = torch.nn.functional.one_hot(language_ids, num_classes=self._groups).expand(x.shape[2],-1).unsqueeze(0)
-            x = x.expand((self._groups, -1, -1))
+        assert language_ids is not None and language_ids.shape[0] == 1, 'At inference, batch size must be 1'
+        x = x.expand((self._groups, -1, -1))
 
         # create generator embeddings for all groups
-        e = self._embedding(torch.arange(self._groups-1, -1, -1, device=x.device)) # all embeddings in the reversed order
+        e = self._embedding(torch.arange(self._groups, device=x.device))
 
         bs = x.shape[0]
         x = x.reshape(bs // self._groups, self._groups * self._input_dim, -1)   
@@ -312,12 +310,4 @@ class GeneratedConvolutionalEncoder(torch.nn.Module):
         x = x.reshape(bs, self._output_dim, -1)
         x = x.transpose(1, 2)
 
-        if language_ids is not None and language_ids.shape[0] == 1:
-            xr = torch.zeros(1, x.shape[1], x.shape[2], device=x.device)
-            x_langs_normed = language_ids / language_ids.sum(2, keepdim=True)[0]
-            for l in range(self._groups):
-                w = x_langs_normed[0,:,l].reshape(-1,1)
-                xr[0] += w * x[l]
-            x = xr
-
-        return x
+        return x[language_ids[0]]

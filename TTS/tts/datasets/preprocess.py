@@ -29,14 +29,14 @@ def load_meta_data(datasets, eval_split=True):
         # load train set
         meta_data_train = preprocessor(root_path, meta_file_train)
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
-        if language:
-            meta_data_train = [[*item, language] for item in meta_data_train]
+        meta_data_train = [[*item, language] for item in meta_data_train]
         # load evaluation split if set
         if eval_split:
             if meta_file_val is None:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train)
             else:
                 meta_data_eval = preprocessor(root_path, meta_file_val)
+                meta_data_eval = [[*item, language] for item in meta_data_eval]
             meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
         # load attention masks for duration predictor training
@@ -375,6 +375,7 @@ def mls(root_path, meta_files=None):
         isTrain = "train" in meta_files
         for line in meta:
             file, text = line.split('\t')
+            text = text[:-1]
             speaker, book, no = file.split('_')
             wav_file = os.path.join(root_path, "train" if isTrain else "dev", 'audio', speaker, book, file + ".wav")
             items.append([text, wav_file, "MLS_" + speaker])
