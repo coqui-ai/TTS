@@ -44,6 +44,8 @@ class GlowTTS(nn.Module):
         use_encoder_prenet,
         hidden_channels_dp,
         out_channels,
+        num_langs=1,
+        language_embedding_dim=None,
         num_flow_blocks_dec=12,
         kernel_size_dec=5,
         dilation_rate=5,
@@ -103,6 +105,8 @@ class GlowTTS(nn.Module):
             use_prenet=use_encoder_prenet,
             dropout_p_dp=dropout_p_dp,
             c_in_channels=self.c_in_channels,
+            num_langs=num_langs,
+            language_embedding_dim=language_embedding_dim
         )
 
         self.decoder = Decoder(
@@ -137,7 +141,7 @@ class GlowTTS(nn.Module):
         o_attn_dur = torch.log(1 + torch.sum(attn, -1)) * x_mask
         return y_mean, y_log_scale, o_attn_dur
 
-    def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None):
+    def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, language_ids=None):
         """
         Shapes:
             x: [B, T]
@@ -155,7 +159,7 @@ class GlowTTS(nn.Module):
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
 
         # embedding pass
-        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g)
+        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g, language_ids=language_ids)
         # drop redisual frames wrt num_squeeze and set y_lengths.
         y, y_lengths, y_max_length, attn = self.preprocess(y, y_lengths, y_max_length, None)
         # create masks
@@ -177,7 +181,7 @@ class GlowTTS(nn.Module):
         return z, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
 
     @torch.no_grad()
-    def inference(self, x, x_lengths, g=None):
+    def inference(self, x, x_lengths, g=None, language_ids=None):
         if g is not None:
             if self.external_speaker_embedding_dim:
                 g = F.normalize(g).unsqueeze(-1)
@@ -185,7 +189,7 @@ class GlowTTS(nn.Module):
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
 
         # embedding pass
-        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g)
+        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g, language_ids=language_ids)
         # compute output durations
         w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)
