@@ -23,6 +23,10 @@ class TacotronConfig(BaseTTSConfig):
         gst_style_input (str):
             Path to the wav file used at inference to set the speech style through GST. If `GST` is enabled and
             this is not defined, the model uses a zero vector as an input. Defaults to None.
+        num_chars (int):
+            Number of characters used by the model. It must be defined before initializing the model. Defaults to None.
+        num_speakers (int):
+            Number of speakers for multi-speaker models. Defaults to 1.
         r (int):
             Initial number of output frames that the decoder computed per iteration. Larger values makes training and inference
             faster but reduces the quality of the output frames. This must be equal to the largest `r` value used in
@@ -47,7 +51,13 @@ class TacotronConfig(BaseTTSConfig):
             Weight that is applied to over-weight positive instances in the Stopnet loss. Use larger values with
             datasets with longer sentences. Defaults to 10.
         max_decoder_steps (int):
-            Max number of steps allowed for the decoder. Defaults to 10000.
+            Max number of steps allowed for the decoder. Defaults to 50.
+        encoder_in_features (int):
+            Channels of encoder input and character embedding tensors. Defaults to 256.
+        decoder_in_features (int):
+            Channels of decoder input and encoder output tensors. Defaults to 256.
+        out_channels (int):
+            Channels of the final model output. It must match the spectragram size. Defaults to 80.
         separate_stopnet (bool):
             Use a distinct Stopnet which is trained separately from the rest of the model. Defaults to True.
         attention_type (str):
@@ -76,9 +86,9 @@ class TacotronConfig(BaseTTSConfig):
         use_speaker_embedding (bool):
             enable / disable using speaker embeddings for multi-speaker models. If set True, the model is
             in the multi-speaker mode. Defaults to False.
-        use_external_speaker_embedding_file (bool):
+        use_d_vector_file (bool):
             enable /disable using external speaker embeddings in place of the learned embeddings. Defaults to False.
-        external_speaker_embedding_file (str):
+        d_vector_file (str):
             Path to the file including pre-computed speaker embeddings. Defaults to None.
         optimizer (str):
             Optimizer used for the training. Set one from `torch.optim.Optimizer` or `TTS.utils.training`.
@@ -111,6 +121,7 @@ class TacotronConfig(BaseTTSConfig):
             Weight for the postnet differential loss of the Tacotron model. If set less than or equal to zero, it disables the
             corresponding loss function. Defaults to 0.25
         decoder_diff_spec_alpha (float):
+
             Weight for the decoder differential loss of the Tacotron model. If set less than or equal to zero, it disables the
             corresponding loss function. Defaults to 0.25
         decoder_ssim_alpha (float):
@@ -125,11 +136,14 @@ class TacotronConfig(BaseTTSConfig):
     """
 
     model: str = "tacotron"
+    # model_params: TacotronArgs = field(default_factory=lambda: TacotronArgs())
     use_gst: bool = False
     gst: GSTConfig = None
     gst_style_input: str = None
 
     # model specific params
+    num_speakers: int = 1
+    num_chars: int = 0
     r: int = 2
     gradual_training: List[List[int]] = None
     memory_size: int = -1
@@ -139,12 +153,17 @@ class TacotronConfig(BaseTTSConfig):
     stopnet: bool = True
     separate_stopnet: bool = True
     stopnet_pos_weight: float = 10.0
-    max_decoder_steps: int = 10000
+    max_decoder_steps: int = 500
+    encoder_in_features: int = 256
+    decoder_in_features: int = 256
+    decoder_output_dim: int = 80
+    out_channels: int = 513
 
     # attention layers
     attention_type: str = "original"
     attention_heads: int = None
     attention_norm: str = "sigmoid"
+    attention_win: bool = False
     windowing: bool = False
     use_forward_attn: bool = False
     forward_attn_mask: bool = False
@@ -158,8 +177,10 @@ class TacotronConfig(BaseTTSConfig):
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
-    use_external_speaker_embedding_file: bool = False
-    external_speaker_embedding_file: str = False
+    speaker_embedding_dim: int = 512
+    use_d_vector_file: bool = False
+    d_vector_file: str = False
+    d_vector_dim: int = None
 
     # optimizer parameters
     optimizer: str = "RAdam"
@@ -196,3 +217,9 @@ class TacotronConfig(BaseTTSConfig):
             assert (
                 self.gradual_training[0][1] == self.r
             ), f"[!] the first scheduled gradual training `r` must be equal to the model's `r` value. {self.gradual_training[0][1]} vs {self.r}"
+        if self.model == "tacotron" and self.audio is not None:
+            assert self.out_channels == (
+                self.audio.fft_size // 2 + 1
+            ), f"{self.out_channels} vs {self.audio.fft_size // 2 + 1}"
+        if self.model == "tacotron2" and self.audio is not None:
+            assert self.out_channels == self.audio.num_mels
