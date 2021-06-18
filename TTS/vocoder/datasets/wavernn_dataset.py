@@ -10,16 +10,7 @@ class WaveRNNDataset(Dataset):
     """
 
     def __init__(
-        self,
-        ap,
-        items,
-        seq_len,
-        hop_len,
-        pad,
-        mode,
-        mulaw,
-        is_training=True,
-        verbose=False,
+        self, ap, items, seq_len, hop_len, pad, mode, mulaw, is_training=True, verbose=False, return_segments=True
     ):
 
         super().__init__()
@@ -34,6 +25,7 @@ class WaveRNNDataset(Dataset):
         self.mulaw = mulaw
         self.is_training = is_training
         self.verbose = verbose
+        self.return_segments = return_segments
 
         assert self.seq_len % self.hop_len == 0
 
@@ -44,6 +36,16 @@ class WaveRNNDataset(Dataset):
         item = self.load_item(index)
         return item
 
+    def load_test_samples(self, num_samples):
+        samples = []
+        return_segments = self.return_segments
+        self.return_segments = False
+        for idx in range(num_samples):
+            mel, audio, _ = self.load_item(idx)
+            samples.append([mel, audio])
+        self.return_segments = return_segments
+        return samples
+
     def load_item(self, index):
         """
         load (audio, feat) couple if feature_path is set
@@ -53,7 +55,10 @@ class WaveRNNDataset(Dataset):
 
             wavpath = self.item_list[index]
             audio = self.ap.load_wav(wavpath)
-            min_audio_len = 2 * self.seq_len + (2 * self.pad * self.hop_len)
+            if self.return_segments:
+                min_audio_len = 2 * self.seq_len + (2 * self.pad * self.hop_len)
+            else:
+                min_audio_len = audio.shape[0] + (2 * self.pad * self.hop_len)
             if audio.shape[0] < min_audio_len:
                 print(" [!] Instance is too short! : {}".format(wavpath))
                 audio = np.pad(audio, [0, min_audio_len - audio.shape[0] + self.hop_len])

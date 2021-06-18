@@ -3,10 +3,21 @@ import os
 from pathlib import Path
 
 import numpy as np
+from coqpit import Coqpit
 from tqdm import tqdm
 
+from TTS.utils.audio import AudioProcessor
 
-def preprocess_wav_files(out_path, config, ap):
+
+def preprocess_wav_files(out_path: str, config: Coqpit, ap: AudioProcessor):
+    """Process wav and compute mel and quantized wave signal.
+    It is mainly used by WaveRNN dataloader.
+
+    Args:
+        out_path (str): Parent folder path to save the files.
+        config (Coqpit): Model config.
+        ap (AudioProcessor): Audio processor.
+    """
     os.makedirs(os.path.join(out_path, "quant"), exist_ok=True)
     os.makedirs(os.path.join(out_path, "mel"), exist_ok=True)
     wav_files = find_wav_files(config.data_path)
@@ -18,7 +29,9 @@ def preprocess_wav_files(out_path, config, ap):
         mel = ap.melspectrogram(y)
         np.save(mel_path, mel)
         if isinstance(config.mode, int):
-            quant = ap.mulaw_encode(y, qc=config.mode) if config.mulaw else ap.quantize(y, bits=config.mode)
+            quant = (
+                ap.mulaw_encode(y, qc=config.mode) if config.model_params.mulaw else ap.quantize(y, bits=config.mode)
+            )
             np.save(quant_path, quant)
 
 
