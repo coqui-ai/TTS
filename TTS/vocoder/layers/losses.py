@@ -1,7 +1,11 @@
+from typing import Dict, Union
+
 import librosa
 import torch
 from torch import nn
 from torch.nn import functional as F
+
+from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
 
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
@@ -374,7 +378,7 @@ class GeneratorLoss(nn.Module):
             feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
             return_dict["G_feat_match_loss"] = feat_match_loss
             adv_loss = adv_loss + self.feat_match_loss_weight * feat_match_loss
-        return_dict["G_loss"] = gen_loss + adv_loss
+        return_dict["loss"] = gen_loss + adv_loss
         return_dict["G_gen_loss"] = gen_loss
         return_dict["G_adv_loss"] = adv_loss
         return return_dict
@@ -419,5 +423,22 @@ class DiscriminatorLoss(nn.Module):
             return_dict["D_hinge_gan_fake_loss"] = hinge_D_fake_loss
             loss += hinge_D_loss
 
-        return_dict["D_loss"] = loss
+        return_dict["loss"] = loss
         return return_dict
+
+
+class WaveRNNLoss(nn.Module):
+    def __init__(self, wave_rnn_mode: Union[str, int]):
+        super().__init__()
+        if wave_rnn_mode == "mold":
+            self.loss_func = discretized_mix_logistic_loss
+        elif wave_rnn_mode == "gauss":
+            self.loss_func = gaussian_loss
+        elif isinstance(wave_rnn_mode, int):
+            self.loss_func = torch.nn.CrossEntropyLoss()
+        else:
+            raise ValueError(" [!] Unknown mode for Wavernn.")
+
+    def forward(self, y_hat, y) -> Dict:
+        loss = self.loss_func(y_hat, y)
+        return {"loss": loss}
