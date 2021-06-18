@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
+from TTS.tts.models.speedy_speech import SpeedySpeechArgs
 
 
 @dataclass
@@ -16,30 +17,8 @@ class SpeedySpeechConfig(BaseTTSConfig):
     Args:
         model (str):
             Model name used for selecting the right model at initialization. Defaults to `speedy_speech`.
-        positional_encoding (bool):
-            enable / disable positional encoding applied to the encoder output. Defaults to True.
-        hidden_channels (int):
-            Base number of hidden channels. Defines all the layers expect ones defined by the specific encoder or decoder
-            parameters. Defaults to 128.
-        encoder_type (str):
-            Type of the encoder used by the model. Look at `TTS.tts.layers.feed_forward.encoder` for more details.
-            Defaults to `residual_conv_bn`.
-        encoder_params (dict):
-            Parameters used to define the encoder network. Look at `TTS.tts.layers.feed_forward.encoder` for more details.
-            Defaults to `{"kernel_size": 4, "dilations": [1, 2, 4, 1, 2, 4, 1, 2, 4, 1, 2, 4, 1], "num_conv_blocks": 2, "num_res_blocks": 13}`
-        decoder_type (str):
-            Type of the decoder used by the model. Look at `TTS.tts.layers.feed_forward.decoder` for more details.
-            Defaults to `residual_conv_bn`.
-        decoder_params (dict):
-            Parameters used to define the decoder network. Look at `TTS.tts.layers.feed_forward.decoder` for more details.
-            Defaults to `{"kernel_size": 4, "dilations": [1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1], "num_conv_blocks": 2, "num_res_blocks": 17}`
-        hidden_channels_encoder (int):
-            Number of base hidden channels used by the encoder network. It defines the input and the output channel sizes,
-            and for some encoder types internal hidden channels sizes too. Defaults to 192.
-        hidden_channels_decoder (int):
-            Number of base hidden channels used by the decoder WaveNet network. Defaults to 192 as in the original work.
-        hidden_channels_duration_predictor (int):
-            Number of layer channels of the duration predictor network. Defaults to 256 as in the original work.
+        model_args (Coqpit):
+            Model class arguments. Check `SpeedySpeechArgs` for more details. Defaults to `SpeedySpeechArgs()`.
         data_dep_init_steps (int):
             Number of steps used for computing normalization parameters at the beginning of the training. GlowTTS uses
             Activation Normalization that pre-computes normalization stats at the beginning and use the same values
@@ -47,9 +26,9 @@ class SpeedySpeechConfig(BaseTTSConfig):
         use_speaker_embedding (bool):
             enable / disable using speaker embeddings for multi-speaker models. If set True, the model is
             in the multi-speaker mode. Defaults to False.
-        use_external_speaker_embedding_file (bool):
+        use_d_vector_file (bool):
             enable /disable using external speaker embeddings in place of the learned embeddings. Defaults to False.
-        external_speaker_embedding_file (str):
+        d_vector_file (str):
             Path to the file including pre-computed speaker embeddings. Defaults to None.
         noam_schedule (bool):
             enable / disable the use of Noam LR scheduler. Defaults to False.
@@ -73,31 +52,12 @@ class SpeedySpeechConfig(BaseTTSConfig):
 
     model: str = "speedy_speech"
     # model specific params
-    positional_encoding: bool = True
-    hidden_channels: int = 128
-    encoder_type: str = "residual_conv_bn"
-    encoder_params: dict = field(
-        default_factory=lambda: {
-            "kernel_size": 4,
-            "dilations": [1, 2, 4, 1, 2, 4, 1, 2, 4, 1, 2, 4, 1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 13,
-        }
-    )
-    decoder_type: str = "residual_conv_bn"
-    decoder_params: dict = field(
-        default_factory=lambda: {
-            "kernel_size": 4,
-            "dilations": [1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 4, 8, 1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 17,
-        }
-    )
+    model_args: SpeedySpeechArgs = field(default_factory=SpeedySpeechArgs)
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
-    use_external_speaker_embedding_file: bool = False
-    external_speaker_embedding_file: str = False
+    use_d_vector_file: bool = False
+    d_vector_file: str = False
 
     # optimizer parameters
     optimizer: str = "RAdam"

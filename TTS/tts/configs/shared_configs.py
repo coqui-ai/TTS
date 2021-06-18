@@ -1,7 +1,7 @@
 from dataclasses import asdict, dataclass, field
 from typing import List
 
-from coqpit import MISSING, Coqpit, check_argument
+from coqpit import Coqpit, check_argument
 
 from TTS.config import BaseAudioConfig, BaseDatasetConfig, BaseTrainingConfig
 
@@ -150,7 +150,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     use_phonemes: bool = False
     phoneme_language: str = None
     compute_input_seq_cache: bool = False
-    text_cleaner: str = MISSING
+    text_cleaner: str = None
     enable_eos_bos_chars: bool = False
     test_sentences_file: str = ""
     phoneme_cache_path: str = None
@@ -168,10 +168,14 @@ class BaseTTSConfig(BaseTrainingConfig):
     # dataset
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # optimizer
-    optimizer: str = MISSING
-    optimizer_params: dict = MISSING
+    optimizer: str = None
+    optimizer_params: dict = None
     # scheduler
     lr_scheduler: str = ""
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # testing
     test_sentences: List[str] = field(default_factory=lambda: [])
+    # multi-speaker
+    use_speaker_embedding: bool = False
+    use_d_vector_file: bool = False
+    d_vector_dim: int = 0
