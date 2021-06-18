@@ -1,9 +1,9 @@
-from coqpit import Coqpit
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
+from coqpit import Coqpit
 from torch import nn
 
 from TTS.utils.audio import AudioProcessor
@@ -11,8 +11,8 @@ from TTS.utils.audio import AudioProcessor
 # pylint: skip-file
 
 
-class TTSModel(nn.Module, ABC):
-    """Abstract TTS class. Every new `tts` model must inherit this.
+class BaseModel(nn.Module, ABC):
+    """Abstract 🐸TTS class. Every new 🐸TTS model must inherit this.
 
     Notes on input/output tensor shapes:
         Any input or output tensor of the model must be shaped as
@@ -77,7 +77,6 @@ class TTSModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    @abstractmethod
     def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
         """Create visualizations and waveform examples for training.
 
@@ -92,10 +91,7 @@ class TTSModel(nn.Module, ABC):
         Returns:
             Tuple[Dict, np.ndarray]: training plots and output waveform.
         """
-        figures_dict = {}
-        output_wav = np.array()
-        ...
-        return figures_dict, output_wav
+        return None, None
 
     @abstractmethod
     def eval_step(self, batch: Dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
@@ -114,13 +110,9 @@ class TTSModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    @abstractmethod
     def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
         """The same as `train_log()`"""
-        figures_dict = {}
-        output_wav = np.array()
-        ...
-        return figures_dict, output_wav
+        return None, None
 
     @abstractmethod
     def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False) -> None:
@@ -132,3 +124,24 @@ class TTSModel(nn.Module, ABC):
             eval (bool, optional): If true, init model for inference else for training. Defaults to False.
         """
         ...
+
+    def get_optimizer(self) -> Union["Optimizer", List["Optimizer"]]:
+        """Setup an return optimizer or optimizers."""
+        pass
+
+    def get_lr(self) -> Union[float, List[float]]:
+        """Return learning rate(s).
+
+        Returns:
+            Union[float, List[float]]: Model's initial learning rates.
+        """
+        pass
+
+    def get_scheduler(self, optimizer: torch.optim.Optimizer):
+        pass
+
+    def get_criterion(self):
+        pass
+
+    def format_batch(self):
+        pass

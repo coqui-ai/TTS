@@ -4,130 +4,89 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from TTS.tts.configs import GlowTTSConfig
 from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.layers.glow_tts.encoder import Encoder
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
+from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 
-class GlowTTS(TTSModel):
+class GlowTTS(BaseTTS):
     """Glow TTS models from https://arxiv.org/abs/2005.11129
 
-    Args:
-        num_chars (int): number of embedding characters.
-        hidden_channels_enc (int): number of embedding and encoder channels.
-        hidden_channels_dec (int): number of decoder channels.
-        use_encoder_prenet (bool): enable/disable prenet for encoder. Prenet modules are hard-coded for each alternative encoder.
-        hidden_channels_dp (int): number of duration predictor channels.
-        out_channels (int): number of output channels. It should be equal to the number of spectrogram filter.
-        num_flow_blocks_dec (int): number of decoder blocks.
-        kernel_size_dec (int): decoder kernel size.
-        dilation_rate (int): rate to increase dilation by each layer in a decoder block.
-        num_block_layers (int): number of decoder layers in each decoder block.
-        dropout_p_dec (float): dropout rate for decoder.
-        num_speaker (int): number of speaker to define the size of speaker embedding layer.
-        c_in_channels (int): number of speaker embedding channels. It is set to 512 if embeddings are learned.
-        num_splits (int): number of split levels in inversible conv1x1 operation.
-        num_squeeze (int): number of squeeze levels. When squeezing channels increases and time steps reduces by the factor 'num_squeeze'.
-        sigmoid_scale (bool): enable/disable sigmoid scaling in decoder.
-        mean_only (bool): if True, encoder only computes mean value and uses constant variance for each time step.
-        encoder_type (str): encoder module type.
-        encoder_params (dict): encoder module parameters.
-        d_vector_dim (int): channels of external speaker embedding vectors.
+    Paper abstract:
+        Recently, text-to-speech (TTS) models such as FastSpeech and ParaNet have been proposed to generate
+        mel-spectrograms from text in parallel. Despite the advantage, the parallel TTS models cannot be trained
+        without guidance from autoregressive TTS models as their external aligners. In this work, we propose Glow-TTS,
+        a flow-based generative model for parallel TTS that does not require any external aligner. By combining the
+        properties of flows and dynamic programming, the proposed model searches for the most probable monotonic
+        alignment between text and the latent representation of speech on its own. We demonstrate that enforcing hard
+        monotonic alignments enables robust TTS, which generalizes to long utterances, and employing generative flows
+        enables fast, diverse, and controllable speech synthesis. Glow-TTS obtains an order-of-magnitude speed-up over
+        the autoregressive model, Tacotron 2, at synthesis with comparable speech quality. We further show that our
+        model can be easily extended to a multi-speaker setting.
+
+    Check `GlowTTSConfig` for class arguments.
     """
 
-    def __init__(
-        self,
-        num_chars,
-        hidden_channels_enc,
-        hidden_channels_dec,
-        use_encoder_prenet,
-        hidden_channels_dp,
-        out_channels,
-        num_flow_blocks_dec=12,
-        inference_noise_scale=0.33,
-        kernel_size_dec=5,
-        dilation_rate=5,
-        num_block_layers=4,
-        dropout_p_dp=0.1,
-        dropout_p_dec=0.05,
-        num_speakers=0,
-        c_in_channels=0,
-        num_splits=4,
-        num_squeeze=1,
-        sigmoid_scale=False,
-        mean_only=False,
-        encoder_type="transformer",
-        encoder_params=None,
-        d_vector_dim=None,
-    ):
+    def __init__(self, config: GlowTTSConfig):
 
         super().__init__()
-        self.num_chars = num_chars
-        self.hidden_channels_dp = hidden_channels_dp
-        self.hidden_channels_enc = hidden_channels_enc
-        self.hidden_channels_dec = hidden_channels_dec
-        self.out_channels = out_channels
-        self.num_flow_blocks_dec = num_flow_blocks_dec
-        self.kernel_size_dec = kernel_size_dec
-        self.dilation_rate = dilation_rate
-        self.num_block_layers = num_block_layers
-        self.dropout_p_dec = dropout_p_dec
-        self.num_speakers = num_speakers
-        self.c_in_channels = c_in_channels
-        self.num_splits = num_splits
-        self.num_squeeze = num_squeeze
-        self.sigmoid_scale = sigmoid_scale
-        self.mean_only = mean_only
-        self.use_encoder_prenet = use_encoder_prenet
-        self.inference_noise_scale = inference_noise_scale
 
-        # model constants.
-        self.noise_scale = 0.33  # defines the noise variance applied to the random z vector at inference.
-        self.length_scale = 1.0  # scaler for the duration predictor. The larger it is, the slower the speech.
-        self.d_vector_dim = d_vector_dim
+        chars, self.config = self.get_characters(config)
+        self.num_chars = len(chars)
+        self.decoder_output_dim = config.out_channels
+        self.init_multispeaker(config)
+
+        # pass all config fields to `self`
+        # for fewer code change
+        self.config = config
+        for key in config:
+            setattr(self, key, config[key])
 
         # if is a multispeaker and c_in_channels is 0, set to 256
-        if num_speakers > 1:
-            if self.c_in_channels == 0 and not self.d_vector_dim:
+        self.c_in_channels = 0
+        if self.num_speakers > 1:
+            if self.d_vector_dim:
+                self.c_in_channels = self.d_vector_dim
+            elif self.c_in_channels == 0 and not self.d_vector_dim:
                 # TODO: make this adjustable
                 self.c_in_channels = 256
-            elif self.d_vector_dim:
-                self.c_in_channels = self.d_vector_dim
 
         self.encoder = Encoder(
-            num_chars,
-            out_channels=out_channels,
-            hidden_channels=hidden_channels_enc,
-            hidden_channels_dp=hidden_channels_dp,
-            encoder_type=encoder_type,
-            encoder_params=encoder_params,
-            mean_only=mean_only,
-            use_prenet=use_encoder_prenet,
-            dropout_p_dp=dropout_p_dp,
+            self.num_chars,
+            out_channels=self.out_channels,
+            hidden_channels=self.hidden_channels_enc,
+            hidden_channels_dp=self.hidden_channels_dp,
+            encoder_type=self.encoder_type,
+            encoder_params=self.encoder_params,
+            mean_only=self.mean_only,
+            use_prenet=self.use_encoder_prenet,
+            dropout_p_dp=self.dropout_p_dp,
             c_in_channels=self.c_in_channels,
         )
 
         self.decoder = Decoder(
-            out_channels,
-            hidden_channels_dec,
-            kernel_size_dec,
-            dilation_rate,
-            num_flow_blocks_dec,
-            num_block_layers,
-            dropout_p=dropout_p_dec,
-            num_splits=num_splits,
-            num_squeeze=num_squeeze,
-            sigmoid_scale=sigmoid_scale,
+            self.out_channels,
+            self.hidden_channels_dec,
+            self.kernel_size_dec,
+            self.dilation_rate,
+            self.num_flow_blocks_dec,
+            self.num_block_layers,
+            dropout_p=self.dropout_p_dec,
+            num_splits=self.num_splits,
+            num_squeeze=self.num_squeeze,
+            sigmoid_scale=self.sigmoid_scale,
             c_in_channels=self.c_in_channels,
         )
 
-        if num_speakers > 1 and not d_vector_dim:
+        if self.num_speakers > 1 and not self.d_vector_dim:
             # speaker embedding layer
-            self.emb_g = nn.Embedding(num_speakers, self.c_in_channels)
+            self.emb_g = nn.Embedding(self.num_speakers, self.c_in_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
     @staticmethod
@@ -376,7 +335,7 @@ class GlowTTS(TTSModel):
 
         # Sample audio
         train_audio = ap.inv_melspectrogram(pred_spec.T)
-        return figures, train_audio
+        return figures, {"audio": train_audio}
 
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
@@ -405,3 +364,8 @@ class GlowTTS(TTSModel):
             self.eval()
             self.store_inverse()
             assert not self.training
+
+    def get_criterion(self):
+        from TTS.tts.layers.losses import GlowTTSLoss  # pylint: disable=import-outside-toplevel
+
+        return GlowTTSLoss()

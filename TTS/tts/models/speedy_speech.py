@@ -1,4 +1,7 @@
+from dataclasses import dataclass, field
+
 import torch
+from coqpit import Coqpit
 from torch import nn
 
 from TTS.tts.layers.feed_forward.decoder import Decoder
@@ -6,24 +9,16 @@ from TTS.tts.layers.feed_forward.duration_predictor import DurationPredictor
 from TTS.tts.layers.feed_forward.encoder import Encoder
 from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path
+from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 
-class SpeedySpeech(TTSModel):
-    """Speedy Speech model
-    https://arxiv.org/abs/2008.03802
-
-    Encoder -> DurationPredictor -> Decoder
-
-    This model is able to achieve a reasonable performance with only
-    ~3M model parameters and convolutional layers.
-
-    This model requires precomputed phoneme durations to train a duration predictor. At inference
-    it only uses the duration predictor to compute durations and expand encoder outputs respectively.
-
+@dataclass
+class SpeedySpeechArgs(Coqpit):
+    """
     Args:
         num_chars (int): number of unique input to characters
         out_channels (int): number of output tensor channels. It is equal to the expected spectrogram size.
@@ -35,49 +30,107 @@ class SpeedySpeech(TTSModel):
         decoder_type (str, optional): decoder type. Defaults to 'residual_conv_bn'.
         decoder_params (dict, optional): set decoder parameters depending on 'decoder_type'. Defaults to { "kernel_size": 4, "dilations": 4 * [1, 2, 4, 8] + [1], "num_conv_blocks": 2, "num_res_blocks": 17 }.
         num_speakers (int, optional): number of speakers for multi-speaker training. Defaults to 0.
-        external_c (bool, optional): enable external speaker embeddings. Defaults to False.
-        c_in_channels (int, optional): number of channels in speaker embedding vectors. Defaults to 0.
+        use_d_vector (bool, optional): enable external speaker embeddings. Defaults to False.
+        d_vector_dim (int, optional): number of channels in speaker embedding vectors. Defaults to 0.
     """
 
-    # pylint: disable=dangerous-default-value
-
-    def __init__(
-        self,
-        num_chars,
-        out_channels,
-        hidden_channels,
-        positional_encoding=True,
-        length_scale=1,
-        encoder_type="residual_conv_bn",
-        encoder_params={"kernel_size": 4, "dilations": 4 * [1, 2, 4] + [1], "num_conv_blocks": 2, "num_res_blocks": 13},
-        decoder_type="residual_conv_bn",
-        decoder_params={
+    num_chars: int = None
+    out_channels: int = 80
+    hidden_channels: int = 128
+    num_speakers: int = 0
+    positional_encoding: bool = True
+    length_scale: int = 1
+    encoder_type: str = "residual_conv_bn"
+    encoder_params: dict = field(
+        default_factory=lambda: {
+            "kernel_size": 4,
+            "dilations": 4 * [1, 2, 4] + [1],
+            "num_conv_blocks": 2,
+            "num_res_blocks": 13,
+        }
+    )
+    decoder_type: str = "residual_conv_bn"
+    decoder_params: dict = field(
+        default_factory=lambda: {
             "kernel_size": 4,
             "dilations": 4 * [1, 2, 4, 8] + [1],
             "num_conv_blocks": 2,
             "num_res_blocks": 17,
-        },
-        num_speakers=0,
-        external_c=False,
-        c_in_channels=0,
-    ):
+        }
+    )
+    use_d_vector: bool = False
+    d_vector_dim: int = 0
 
+
+class SpeedySpeech(BaseTTS):
+    """Speedy Speech model
+    https://arxiv.org/abs/2008.03802
+
+    Encoder -> DurationPredictor -> Decoder
+
+    Paper abstract:
+        While recent neural sequence-to-sequence models have greatly improved the quality of speech
+        synthesis, there has not been a system capable of fast training, fast inference and high-quality audio synthesis
+        at the same time. We propose a student-teacher network capable of high-quality faster-than-real-time spectrogram
+        synthesis, with low requirements on computational resources and fast training time. We show that self-attention
+        layers are not necessary for generation of high quality audio. We utilize simple convolutional blocks with
+        residual connections in both student and teacher networks and use only a single attention layer in the teacher
+        model. Coupled with a MelGAN vocoder, our model's voice quality was rated significantly higher than Tacotron 2.
+        Our model can be efficiently trained on a single GPU and can run in real time even on a CPU. We provide both
+        our source code and audio samples in our GitHub repository.
+
+    Notes:
+        The vanilla model is able to achieve a reasonable performance with only
+        ~3M model parameters and convolutional layers.
+
+        This model requires precomputed phoneme durations to train a duration predictor. At inference
+        it only uses the duration predictor to compute durations and expand encoder outputs respectively.
+
+        You can also mix and match different encoder and decoder networks beyond the paper.
+
+    Check `SpeedySpeechArgs` for arguments.
+    """
+
+    # pylint: disable=dangerous-default-value
+
+    def __init__(self, config: Coqpit):
         super().__init__()
-        self.length_scale = float(length_scale) if isinstance(length_scale, int) else length_scale
-        self.emb = nn.Embedding(num_chars, hidden_channels)
-        self.encoder = Encoder(hidden_channels, hidden_channels, encoder_type, encoder_params, c_in_channels)
-        if positional_encoding:
-            self.pos_encoder = PositionalEncoding(hidden_channels)
-        self.decoder = Decoder(out_channels, hidden_channels, decoder_type, decoder_params)
-        self.duration_predictor = DurationPredictor(hidden_channels + c_in_channels)
+        self.config = config
 
-        if num_speakers > 1 and not external_c:
+        if "characters" in config:
+            chars, self.config = self.get_characters(config)
+            self.num_chars = len(chars)
+
+        self.length_scale = (
+            float(config.model_args.length_scale)
+            if isinstance(config.model_args.length_scale, int)
+            else config.model_args.length_scale
+        )
+        self.emb = nn.Embedding(config.model_args.num_chars, config.model_args.hidden_channels)
+        self.encoder = Encoder(
+            config.model_args.hidden_channels,
+            config.model_args.hidden_channels,
+            config.model_args.encoder_type,
+            config.model_args.encoder_params,
+            config.model_args.d_vector_dim,
+        )
+        if config.model_args.positional_encoding:
+            self.pos_encoder = PositionalEncoding(config.model_args.hidden_channels)
+        self.decoder = Decoder(
+            config.model_args.out_channels,
+            config.model_args.hidden_channels,
+            config.model_args.decoder_type,
+            config.model_args.decoder_params,
+        )
+        self.duration_predictor = DurationPredictor(config.model_args.hidden_channels + config.model_args.d_vector_dim)
+
+        if config.model_args.num_speakers > 1 and not config.model_args.use_d_vector:
             # speaker embedding layer
-            self.emb_g = nn.Embedding(num_speakers, c_in_channels)
+            self.emb_g = nn.Embedding(config.model_args.num_speakers, config.model_args.d_vector_dim)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
-        if c_in_channels > 0 and c_in_channels != hidden_channels:
-            self.proj_g = nn.Conv1d(c_in_channels, hidden_channels, 1)
+        if config.model_args.d_vector_dim > 0 and config.model_args.d_vector_dim != config.model_args.hidden_channels:
+            self.proj_g = nn.Conv1d(config.model_args.d_vector_dim, config.model_args.hidden_channels, 1)
 
     @staticmethod
     def expand_encoder_outputs(en, dr, x_mask, y_mask):
@@ -243,7 +296,7 @@ class SpeedySpeech(TTSModel):
 
         # Sample audio
         train_audio = ap.inv_melspectrogram(pred_spec.T)
-        return figures, train_audio
+        return figures, {"audio": train_audio}
 
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
@@ -259,3 +312,8 @@ class SpeedySpeech(TTSModel):
         if eval:
             self.eval()
             assert not self.training
+
+    def get_criterion(self):
+        from TTS.tts.layers.losses import SpeedySpeechLoss  # pylint: disable=import-outside-toplevel
+
+        return SpeedySpeechLoss(self.config)
