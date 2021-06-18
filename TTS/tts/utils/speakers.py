@@ -5,89 +5,11 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
+from coqpit import Coqpit
 
 from TTS.config import load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.utils.audio import AudioProcessor
-
-
-def _set_file_path(path):
-    """Find the speakers.json under the given path or the above it.
-    Intended to band aid the different paths returned in restored and continued training."""
-    path_restore = os.path.join(os.path.dirname(path), "speakers.json")
-    path_continue = os.path.join(path, "speakers.json")
-    if os.path.exists(path_restore):
-        return path_restore
-    if os.path.exists(path_continue):
-        return path_continue
-    raise FileNotFoundError(f" [!] `speakers.json` not found in {path}")
-
-
-def load_speaker_mapping(out_path):
-    """Loads speaker mapping if already present."""
-    if os.path.splitext(out_path)[1] == ".json":
-        json_file = out_path
-    else:
-        json_file = _set_file_path(out_path)
-    with open(json_file) as f:
-        return json.load(f)
-
-
-def save_speaker_mapping(out_path, speaker_mapping):
-    """Saves speaker mapping if not yet present."""
-    if out_path is not None:
-        speakers_json_path = _set_file_path(out_path)
-        with open(speakers_json_path, "w") as f:
-            json.dump(speaker_mapping, f, indent=4)
-
-
-def get_speaker_manager(c, restore_path, meta_data_train, out_path=None):
-    """Inititalize and return a `SpeakerManager` based on config values"""
-    speaker_manager = SpeakerManager()
-    if c.use_speaker_embedding:
-        speaker_manager.set_speaker_ids_from_data(meta_data_train)
-        if restore_path:
-            speakers_file = _set_file_path(restore_path)
-            # restoring speaker manager from a previous run.
-            if c.use_external_speaker_embedding_file:
-                # restore speaker manager with the embedding file
-                if not os.path.exists(speakers_file):
-                    print(
-                        "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
-                    )
-                    if not os.path.exists(c.external_speaker_embedding_file):
-                        raise RuntimeError(
-                            "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file"
-                        )
-                    speaker_manager.load_d_vectors_file(c.external_speaker_embedding_file)
-                speaker_manager.set_d_vectors_from_file(speakers_file)
-            elif not c.use_external_speaker_embedding_file:  # restor speaker manager with speaker ID file.
-                speaker_ids_from_data = speaker_manager.speaker_ids
-                speaker_manager.set_speaker_ids_from_file(speakers_file)
-                assert all(
-                    speaker in speaker_manager.speaker_ids for speaker in speaker_ids_from_data
-                ), " [!] You cannot introduce new speakers to a pre-trained model."
-        elif c.use_external_speaker_embedding_file and c.external_speaker_embedding_file:
-            # new speaker manager with external speaker embeddings.
-            speaker_manager.set_d_vectors_from_file(c.external_speaker_embedding_file)
-        elif (
-            c.use_external_speaker_embedding_file and not c.external_speaker_embedding_file
-        ):  # new speaker manager with speaker IDs file.
-            raise "use_external_speaker_embedding_file is True, so you need pass a external speaker embedding file, run GE2E-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb or AngularPrototypical-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb notebook in notebooks/ folder"
-        print(
-            " > Training with {} speakers: {}".format(
-                speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
-            )
-        )
-        # save file if path is defined
-        if out_path:
-            out_file_path = os.path.join(out_path, "speakers.json")
-            print(f" > Saving `speakers.json` to {out_file_path}.")
-            if c.use_external_speaker_embedding_file and c.external_speaker_embedding_file:
-                speaker_manager.save_d_vectors_to_file(out_file_path)
-            else:
-                speaker_manager.save_speaker_ids_to_file(out_file_path)
-    return speaker_manager
 
 
 class SpeakerManager:
@@ -356,3 +278,90 @@ class SpeakerManager:
     def plot_embeddings(self):
         # TODO: implement speaker encoder
         raise NotImplementedError
+
+
+def _set_file_path(path):
+    """Find the speakers.json under the given path or the above it.
+    Intended to band aid the different paths returned in restored and continued training."""
+    path_restore = os.path.join(os.path.dirname(path), "speakers.json")
+    path_continue = os.path.join(path, "speakers.json")
+    if os.path.exists(path_restore):
+        return path_restore
+    if os.path.exists(path_continue):
+        return path_continue
+    raise FileNotFoundError(f" [!] `speakers.json` not found in {path}")
+
+
+def load_speaker_mapping(out_path):
+    """Loads speaker mapping if already present."""
+    if os.path.splitext(out_path)[1] == ".json":
+        json_file = out_path
+    else:
+        json_file = _set_file_path(out_path)
+    with open(json_file) as f:
+        return json.load(f)
+
+
+def save_speaker_mapping(out_path, speaker_mapping):
+    """Saves speaker mapping if not yet present."""
+    if out_path is not None:
+        speakers_json_path = _set_file_path(out_path)
+        with open(speakers_json_path, "w") as f:
+            json.dump(speaker_mapping, f, indent=4)
+
+
+def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, out_path: str = None) -> SpeakerManager:
+    """Create a SpeakerManager instance based on provided configuration.
+
+    Args:
+        c (Coqpit): Model configuration.
+        restore_path (str): Path to a previous training folder.
+        data (List): Data samples used in training to infer speakers from. It must be provided if speaker embedding
+            layers is used. Defaults to None.
+        out_path (str, optional): Save the generated speaker IDs to a output path. Defaults to None.
+
+    Returns:
+        SpeakerManager:
+    """
+    speaker_manager = SpeakerManager()
+    if c.use_speaker_embedding:
+        if data is not None:
+            speaker_manager.set_speaker_ids_from_data(data)
+        if restore_path:
+            speakers_file = _set_file_path(restore_path)
+            # restoring speaker manager from a previous run.
+            if c.use_d_vector_file:
+                # restore speaker manager with the embedding file
+                if not os.path.exists(speakers_file):
+                    print("WARNING: speakers.json was not found in restore_path, trying to use CONFIG.d_vector_file")
+                    if not os.path.exists(c.d_vector_file):
+                        raise RuntimeError(
+                            "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.d_vector_file"
+                        )
+                    speaker_manager.load_d_vectors_file(c.d_vector_file)
+                speaker_manager.set_d_vectors_from_file(speakers_file)
+            elif not c.use_d_vector_file:  # restor speaker manager with speaker ID file.
+                speaker_ids_from_data = speaker_manager.speaker_ids
+                speaker_manager.set_speaker_ids_from_file(speakers_file)
+                assert all(
+                    speaker in speaker_manager.speaker_ids for speaker in speaker_ids_from_data
+                ), " [!] You cannot introduce new speakers to a pre-trained model."
+        elif c.use_d_vector_file and c.d_vector_file:
+            # new speaker manager with external speaker embeddings.
+            speaker_manager.set_d_vectors_from_file(c.d_vector_file)
+        elif c.use_d_vector_file and not c.d_vector_file:  # new speaker manager with speaker IDs file.
+            raise "use_d_vector_file is True, so you need pass a external speaker embedding file, run GE2E-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb or AngularPrototypical-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb notebook in notebooks/ folder"
+        print(
+            " > Training with {} speakers: {}".format(
+                speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
+            )
+        )
+        # save file if path is defined
+        if out_path:
+            out_file_path = os.path.join(out_path, "speakers.json")
+            print(f" > Saving `speakers.json` to {out_file_path}.")
+            if c.use_d_vector_file and c.d_vector_file:
+                speaker_manager.save_d_vectors_to_file(out_file_path)
+            else:
+                speaker_manager.save_speaker_ids_to_file(out_file_path)
+    return speaker_manager
