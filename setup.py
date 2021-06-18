@@ -11,9 +11,8 @@ import setuptools.command.develop
 from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 
-
 if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.9"):
-    raise RuntimeError("TTS requires python >= 3.6 and <3.9 " "but your Python version is {}".format(sys.version))
+    raise RuntimeError("TTS requires python >= 3.6 and <=3.10 " "but your Python version is {}".format(sys.version))
 
 
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -99,7 +98,7 @@ setup(
         "notebooks": requirements_notebooks,
         "tf": requirements_tf,
     },
-    python_requires=">=3.6.0, <3.9",
+    python_requires=">=3.6.0, <3.10",
     entry_points={"console_scripts": ["tts=TTS.bin.synthesize:main", "tts-server = TTS.server.server:main"]},
     classifiers=[
         "Programming Language :: Python",
