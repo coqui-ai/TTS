@@ -1,13 +1,21 @@
 import sys
 import time
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from coqpit import Coqpit
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
-# fix this
-from TTS.utils.audio import AudioProcessor as ap
+from TTS.tts.utils.visual import plot_spectrogram
+from TTS.utils.audio import AudioProcessor
+from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
+from TTS.vocoder.layers.losses import WaveRNNLoss
+from TTS.vocoder.models.base_vocoder import BaseVocoder
 from TTS.vocoder.utils.distribution import sample_from_discretized_mix_logistic, sample_from_gaussian
 
 
@@ -135,89 +143,145 @@ class Upsample(nn.Module):
         return m.transpose(1, 2), aux
 
 
-class WaveRNN(nn.Module):
-    def __init__(
-        self,
-        rnn_dims,
-        fc_dims,
-        mode,
-        mulaw,
-        pad,
-        use_aux_net,
-        use_upsample_net,
-        upsample_factors,
-        feat_dims,
-        compute_dims,
-        res_out_dims,
-        num_res_blocks,
-        hop_length,
-        sample_rate,
-    ):
+@dataclass
+class WavernnArgs(Coqpit):
+    """🐸 WaveRNN model arguments.
+
+    rnn_dims (int):
+        Number of hidden channels in RNN layers. Defaults to 512.
+    fc_dims (int):
+        Number of hidden channels in fully-conntected layers. Defaults to 512.
+    compute_dims (int):
+        Number of hidden channels in the feature ResNet. Defaults to 128.
+    res_out_dim (int):
+        Number of hidden channels in the feature ResNet output. Defaults to 128.
+    num_res_blocks (int):
+        Number of residual blocks in the ResNet. Defaults to 10.
+    use_aux_net (bool):
+        enable/disable the feature ResNet. Defaults to True.
+    use_upsample_net (bool):
+        enable/ disable the upsampling networl. If False, basic upsampling is used. Defaults to True.
+    upsample_factors (list):
+        Upsampling factors. The multiply of the values must match the `hop_length`. Defaults to ```[4, 8, 8]```.
+    mode (str):
+        Output mode of the WaveRNN vocoder. `mold` for Mixture of Logistic Distribution, `gauss` for a single
+        Gaussian Distribution and `bits` for quantized bits as the model's output.
+    mulaw (bool):
+        enable / disable the use of Mulaw quantization for training. Only applicable if `mode == 'bits'`. Defaults
+        to `True`.
+    pad (int):
+            Padding applied to the input feature frames against the convolution layers of the feature network.
+            Defaults to 2.
+    """
+
+    rnn_dims: int = 512
+    fc_dims: int = 512
+    compute_dims: int = 128
+    res_out_dims: int = 128
+    num_res_blocks: int = 10
+    use_aux_net: bool = True
+    use_upsample_net: bool = True
+    upsample_factors: List[int] = field(default_factory=lambda: [4, 8, 8])
+    mode: str = "mold"  # mold [string], gauss [string], bits [int]
+    mulaw: bool = True  # apply mulaw if mode is bits
+    pad: int = 2
+    feat_dims: int = 80
+
+
+class Wavernn(BaseVocoder):
+    def __init__(self, config: Coqpit):
+        """🐸 WaveRNN model.
+        Original paper - https://arxiv.org/abs/1802.08435
+        Official implementation - https://github.com/fatchord/WaveRNN
+
+        Args:
+            config (Coqpit): [description]
+
+        Raises:
+            RuntimeError: [description]
+
+        Examples:
+            >>> from TTS.vocoder.configs import WavernnConfig
+            >>> config = WavernnConfig()
+            >>> model = Wavernn(config)
+
+        Paper Abstract:
+            Sequential models achieve state-of-the-art results in audio, visual and textual domains with respect to
+            both estimating the data distribution and generating high-quality samples. Efficient sampling for this
+            class of models has however remained an elusive problem. With a focus on text-to-speech synthesis, we
+            describe a set of general techniques for reducing sampling time while maintaining high output quality.
+            We first describe a single-layer recurrent neural network, the WaveRNN, with a dual softmax layer that
+            matches the quality of the state-of-the-art WaveNet model. The compact form of the network makes it
+            possible to generate 24kHz 16-bit audio 4x faster than real time on a GPU. Second, we apply a weight
+            pruning technique to reduce the number of weights in the WaveRNN. We find that, for a constant number of
+            parameters, large sparse networks perform better than small dense networks and this relationship holds for
+            sparsity levels beyond 96%. The small number of weights in a Sparse WaveRNN makes it possible to sample
+            high-fidelity audio on a mobile CPU in real time. Finally, we propose a new generation scheme based on
+            subscaling that folds a long sequence into a batch of shorter sequences and allows one to generate multiple
+            samples at once. The Subscale WaveRNN produces 16 samples per step without loss of quality and offers an
+            orthogonal method for increasing sampling efficiency.
+        """
         super().__init__()
-        self.mode = mode
-        self.mulaw = mulaw
-        self.pad = pad
-        self.use_upsample_net = use_upsample_net
-        self.use_aux_net = use_aux_net
-        if isinstance(self.mode, int):
-            self.n_classes = 2 ** self.mode
-        elif self.mode == "mold":
+
+        self.args = config.model_params
+        self.config = config
+
+        if isinstance(self.args.mode, int):
+            self.n_classes = 2 ** self.args.mode
+        elif self.args.mode == "mold":
             self.n_classes = 3 * 10
-        elif self.mode == "gauss":
+        elif self.args.mode == "gauss":
             self.n_classes = 2
         else:
-            raise RuntimeError("Unknown model mode value - ", self.mode)
+            raise RuntimeError("Unknown model mode value - ", self.args.mode)
 
-        self.rnn_dims = rnn_dims
-        self.aux_dims = res_out_dims // 4
-        self.hop_length = hop_length
-        self.sample_rate = sample_rate
+        self.aux_dims = self.args.res_out_dims // 4
 
-        if self.use_upsample_net:
+        if self.args.use_upsample_net:
             assert (
-                np.cumproduct(upsample_factors)[-1] == self.hop_length
+                np.cumproduct(self.args.upsample_factors)[-1] == config.audio.hop_length
             ), " [!] upsample scales needs to be equal to hop_length"
             self.upsample = UpsampleNetwork(
-                feat_dims,
-                upsample_factors,
-                compute_dims,
-                num_res_blocks,
-                res_out_dims,
-                pad,
-                use_aux_net,
+                self.args.feat_dims,
+                self.args.upsample_factors,
+                self.args.compute_dims,
+                self.args.num_res_blocks,
+                self.args.res_out_dims,
+                self.args.pad,
+                self.args.use_aux_net,
             )
         else:
             self.upsample = Upsample(
-                hop_length,
-                pad,
-                num_res_blocks,
-                feat_dims,
-                compute_dims,
-                res_out_dims,
-                use_aux_net,
+                config.audio.hop_length,
+                self.args.pad,
+                self.args.num_res_blocks,
+                self.args.feat_dims,
+                self.args.compute_dims,
+                self.args.res_out_dims,
+                self.args.use_aux_net,
             )
-        if self.use_aux_net:
-            self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
-            self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-            self.rnn2 = nn.GRU(rnn_dims + self.aux_dims, rnn_dims, batch_first=True)
-            self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
-            self.fc2 = nn.Linear(fc_dims + self.aux_dims, fc_dims)
-            self.fc3 = nn.Linear(fc_dims, self.n_classes)
+        if self.args.use_aux_net:
+            self.I = nn.Linear(self.args.feat_dims + self.aux_dims + 1, self.args.rnn_dims)
+            self.rnn1 = nn.GRU(self.args.rnn_dims, self.args.rnn_dims, batch_first=True)
+            self.rnn2 = nn.GRU(self.args.rnn_dims + self.aux_dims, self.args.rnn_dims, batch_first=True)
+            self.fc1 = nn.Linear(self.args.rnn_dims + self.aux_dims, self.args.fc_dims)
+            self.fc2 = nn.Linear(self.args.fc_dims + self.aux_dims, self.args.fc_dims)
+            self.fc3 = nn.Linear(self.args.fc_dims, self.n_classes)
         else:
-            self.I = nn.Linear(feat_dims + 1, rnn_dims)
-            self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-            self.rnn2 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-            self.fc1 = nn.Linear(rnn_dims, fc_dims)
-            self.fc2 = nn.Linear(fc_dims, fc_dims)
-            self.fc3 = nn.Linear(fc_dims, self.n_classes)
+            self.I = nn.Linear(self.args.feat_dims + 1, self.args.rnn_dims)
+            self.rnn1 = nn.GRU(self.args.rnn_dims, self.args.rnn_dims, batch_first=True)
+            self.rnn2 = nn.GRU(self.args.rnn_dims, self.args.rnn_dims, batch_first=True)
+            self.fc1 = nn.Linear(self.args.rnn_dims, self.args.fc_dims)
+            self.fc2 = nn.Linear(self.args.fc_dims, self.args.fc_dims)
+            self.fc3 = nn.Linear(self.args.fc_dims, self.n_classes)
 
     def forward(self, x, mels):
         bsize = x.size(0)
-        h1 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
-        h2 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
+        h1 = torch.zeros(1, bsize, self.args.rnn_dims).to(x.device)
+        h2 = torch.zeros(1, bsize, self.args.rnn_dims).to(x.device)
         mels, aux = self.upsample(mels)
 
-        if self.use_aux_net:
+        if self.args.use_aux_net:
             aux_idx = [self.aux_dims * i for i in range(5)]
             a1 = aux[:, :, aux_idx[0] : aux_idx[1]]
             a2 = aux[:, :, aux_idx[1] : aux_idx[2]]
@@ -226,7 +290,7 @@ class WaveRNN(nn.Module):
 
         x = (
             torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
-            if self.use_aux_net
+            if self.args.use_aux_net
             else torch.cat([x.unsqueeze(-1), mels], dim=2)
         )
         x = self.I(x)
@@ -236,15 +300,15 @@ class WaveRNN(nn.Module):
 
         x = x + res
         res = x
-        x = torch.cat([x, a2], dim=2) if self.use_aux_net else x
+        x = torch.cat([x, a2], dim=2) if self.args.use_aux_net else x
         self.rnn2.flatten_parameters()
         x, _ = self.rnn2(x, h2)
 
         x = x + res
-        x = torch.cat([x, a3], dim=2) if self.use_aux_net else x
+        x = torch.cat([x, a3], dim=2) if self.args.use_aux_net else x
         x = F.relu(self.fc1(x))
 
-        x = torch.cat([x, a4], dim=2) if self.use_aux_net else x
+        x = torch.cat([x, a4], dim=2) if self.args.use_aux_net else x
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
@@ -262,9 +326,9 @@ class WaveRNN(nn.Module):
 
             if mels.ndim == 2:
                 mels = mels.unsqueeze(0)
-            wave_len = (mels.size(-1) - 1) * self.hop_length
+            wave_len = (mels.size(-1) - 1) * self.config.audio.hop_length
 
-            mels = self.pad_tensor(mels.transpose(1, 2), pad=self.pad, side="both")
+            mels = self.pad_tensor(mels.transpose(1, 2), pad=self.args.pad, side="both")
             mels, aux = self.upsample(mels.transpose(1, 2))
 
             if batched:
@@ -274,11 +338,11 @@ class WaveRNN(nn.Module):
 
             b_size, seq_len, _ = mels.size()
 
-            h1 = torch.zeros(b_size, self.rnn_dims).type_as(mels)
-            h2 = torch.zeros(b_size, self.rnn_dims).type_as(mels)
+            h1 = torch.zeros(b_size, self.args.rnn_dims).type_as(mels)
+            h2 = torch.zeros(b_size, self.args.rnn_dims).type_as(mels)
             x = torch.zeros(b_size, 1).type_as(mels)
 
-            if self.use_aux_net:
+            if self.args.use_aux_net:
                 d = self.aux_dims
                 aux_split = [aux[:, :, d * i : d * (i + 1)] for i in range(4)]
 
@@ -286,35 +350,35 @@ class WaveRNN(nn.Module):
 
                 m_t = mels[:, i, :]
 
-                if self.use_aux_net:
+                if self.args.use_aux_net:
                     a1_t, a2_t, a3_t, a4_t = (a[:, i, :] for a in aux_split)
 
-                x = torch.cat([x, m_t, a1_t], dim=1) if self.use_aux_net else torch.cat([x, m_t], dim=1)
+                x = torch.cat([x, m_t, a1_t], dim=1) if self.args.use_aux_net else torch.cat([x, m_t], dim=1)
                 x = self.I(x)
                 h1 = rnn1(x, h1)
 
                 x = x + h1
-                inp = torch.cat([x, a2_t], dim=1) if self.use_aux_net else x
+                inp = torch.cat([x, a2_t], dim=1) if self.args.use_aux_net else x
                 h2 = rnn2(inp, h2)
 
                 x = x + h2
-                x = torch.cat([x, a3_t], dim=1) if self.use_aux_net else x
+                x = torch.cat([x, a3_t], dim=1) if self.args.use_aux_net else x
                 x = F.relu(self.fc1(x))
 
-                x = torch.cat([x, a4_t], dim=1) if self.use_aux_net else x
+                x = torch.cat([x, a4_t], dim=1) if self.args.use_aux_net else x
                 x = F.relu(self.fc2(x))
 
                 logits = self.fc3(x)
 
-                if self.mode == "mold":
+                if self.args.mode == "mold":
                     sample = sample_from_discretized_mix_logistic(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
                     x = sample.transpose(0, 1).type_as(mels)
-                elif self.mode == "gauss":
+                elif self.args.mode == "gauss":
                     sample = sample_from_gaussian(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
                     x = sample.transpose(0, 1).type_as(mels)
-                elif isinstance(self.mode, int):
+                elif isinstance(self.args.mode, int):
                     posterior = F.softmax(logits, dim=1)
                     distrib = torch.distributions.Categorical(posterior)
 
@@ -322,7 +386,7 @@ class WaveRNN(nn.Module):
                     output.append(sample)
                     x = sample.unsqueeze(-1)
                 else:
-                    raise RuntimeError("Unknown model mode value - ", self.mode)
+                    raise RuntimeError("Unknown model mode value - ", self.args.mode)
 
                 if i % 100 == 0:
                     self.gen_display(i, seq_len, b_size, start)
@@ -337,22 +401,22 @@ class WaveRNN(nn.Module):
         else:
             output = output[0]
 
-        if self.mulaw and isinstance(self.mode, int):
-            output = ap.mulaw_decode(output, self.mode)
+        if self.args.mulaw and isinstance(self.args.mode, int):
+            output = AudioProcessor.mulaw_decode(output, self.args.mode)
 
         # Fade-out at the end to avoid signal cutting out suddenly
-        fade_out = np.linspace(1, 0, 20 * self.hop_length)
+        fade_out = np.linspace(1, 0, 20 * self.config.audio.hop_length)
         output = output[:wave_len]
 
         if wave_len > len(fade_out):
-            output[-20 * self.hop_length :] *= fade_out
+            output[-20 * self.config.audio.hop_length :] *= fade_out
 
         self.train()
         return output
 
     def gen_display(self, i, seq_len, b_size, start):
         gen_rate = (i + 1) / (time.time() - start) * b_size / 1000
-        realtime_ratio = gen_rate * 1000 / self.sample_rate
+        realtime_ratio = gen_rate * 1000 / self.config.audio.sample_rate
         stream(
             "%i/%i -- batch_size: %i -- gen_rate: %.1f kHz -- x_realtime: %.1f  ",
             (i * b_size, seq_len * b_size, b_size, gen_rate, realtime_ratio),
@@ -486,3 +550,83 @@ class WaveRNN(nn.Module):
         if eval:
             self.eval()
             assert not self.training
+
+    def train_step(self, batch: Dict, criterion: Dict) -> Tuple[Dict, Dict]:
+        mels = batch["input"]
+        waveform = batch["waveform"]
+        waveform_coarse = batch["waveform_coarse"]
+
+        y_hat = self.forward(waveform, mels)
+        if isinstance(self.args.mode, int):
+            y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
+        else:
+            waveform_coarse = waveform_coarse.float()
+        waveform_coarse = waveform_coarse.unsqueeze(-1)
+        # compute losses
+        loss_dict = criterion(y_hat, waveform_coarse)
+        return {"model_output": y_hat}, loss_dict
+
+    def eval_step(self, batch: Dict, criterion: Dict) -> Tuple[Dict, Dict]:
+        return self.train_step(batch, criterion)
+
+    @torch.no_grad()
+    def test_run(
+        self, ap: AudioProcessor, samples: List[Dict], output: Dict  # pylint: disable=unused-argument
+    ) -> Tuple[Dict, Dict]:
+        figures = {}
+        audios = {}
+        for idx, sample in enumerate(samples):
+            x = sample["input"]
+            y_hat = self.inference(x, self.config.batched, self.config.target_samples, self.config.overlap_samples)
+            x_hat = ap.melspectrogram(y_hat)
+            figures.update(
+                {
+                    f"test_{idx}/ground_truth": plot_spectrogram(x.T),
+                    f"test_{idx}/prediction": plot_spectrogram(x_hat.T),
+                }
+            )
+            audios.update({f"test_{idx}/audio", y_hat})
+        return figures, audios
+
+    @staticmethod
+    def format_batch(batch: Dict) -> Dict:
+        waveform = batch[0]
+        mels = batch[1]
+        waveform_coarse = batch[2]
+        return {"input": mels, "waveform": waveform, "waveform_coarse": waveform_coarse}
+
+    def get_data_loader(  # pylint: disable=no-self-use
+        self,
+        config: Coqpit,
+        ap: AudioProcessor,
+        is_eval: True,
+        data_items: List,
+        verbose: bool,
+        num_gpus: int,
+    ):
+        dataset = WaveRNNDataset(
+            ap=ap,
+            items=data_items,
+            seq_len=config.seq_len,
+            hop_len=ap.hop_length,
+            pad=config.model_params.pad,
+            mode=config.model_params.mode,
+            mulaw=config.model_params.mulaw,
+            is_training=not is_eval,
+            verbose=verbose,
+        )
+        sampler = DistributedSampler(dataset, shuffle=True) if num_gpus > 1 else None
+        loader = DataLoader(
+            dataset,
+            batch_size=1 if is_eval else config.batch_size,
+            shuffle=num_gpus == 0,
+            collate_fn=dataset.collate,
+            sampler=sampler,
+            num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
+            pin_memory=True,
+        )
+        return loader
+
+    def get_criterion(self):
+        # define train functions
+        return WaveRNNLoss(self.args.mode)
