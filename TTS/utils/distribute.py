@@ -1,53 +1,8 @@
 # edited from https://github.com/fastai/imagenet-fast/blob/master/imagenet_nv/distributed.py
-import math
-
 import torch
 import torch.distributed as dist
 from torch._utils import _flatten_dense_tensors, _unflatten_dense_tensors
 from torch.autograd import Variable
-from torch.utils.data.sampler import Sampler
-
-
-class DistributedSampler(Sampler):
-    """
-    Non shuffling Distributed Sampler
-    """
-
-    def __init__(self, dataset, num_replicas=None, rank=None):
-        super().__init__(dataset)
-        if num_replicas is None:
-            if not dist.is_available():
-                raise RuntimeError("Requires distributed package to be available")
-            num_replicas = dist.get_world_size()
-        if rank is None:
-            if not dist.is_available():
-                raise RuntimeError("Requires distributed package to be available")
-            rank = dist.get_rank()
-        self.dataset = dataset
-        self.num_replicas = num_replicas
-        self.rank = rank
-        self.epoch = 0
-        self.num_samples = int(math.ceil(len(self.dataset) * 1.0 / self.num_replicas))
-        self.total_size = self.num_samples * self.num_replicas
-
-    def __iter__(self):
-        indices = torch.arange(len(self.dataset)).tolist()
-
-        # add extra samples to make it evenly divisible
-        indices += indices[: (self.total_size - len(indices))]
-        assert len(indices) == self.total_size
-
-        # subsample
-        indices = indices[self.rank : self.total_size : self.num_replicas]
-        assert len(indices) == self.num_samples
-
-        return iter(indices)
-
-    def __len__(self):
-        return self.num_samples
-
-    def set_epoch(self, epoch):
-        self.epoch = epoch
 
 
 def reduce_tensor(tensor, num_gpus):
