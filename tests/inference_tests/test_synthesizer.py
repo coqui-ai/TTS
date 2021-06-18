@@ -3,8 +3,7 @@ import unittest
 
 from TTS.config import load_config
 from TTS.tts.models import setup_model
-from TTS.tts.utils.io import save_checkpoint
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.utils.io import save_checkpoint
 from TTS.utils.synthesizer import Synthesizer
 
 from .. import get_tests_output_path
@@ -14,15 +13,10 @@ class SynthesizerTest(unittest.TestCase):
     # pylint: disable=R0201
     def _create_random_model(self):
         # pylint: disable=global-statement
-        global symbols, phonemes
         config = load_config(os.path.join(get_tests_output_path(), "dummy_model_config.json"))
-        if config.has("characters") and config.characters:
-            symbols, phonemes = make_symbols(**config.characters.to_dict())
-
-        num_chars = len(phonemes) if config.use_phonemes else len(symbols)
-        model = setup_model(num_chars, 0, config)
+        model = setup_model(config)
         output_path = os.path.join(get_tests_output_path())
-        save_checkpoint(model, None, 10, 10, 1, output_path, None)
+        save_checkpoint(config, model, None, None, 10, 1, output_path)
 
     def test_in_out(self):
         self._create_random_model()
