@@ -99,7 +99,9 @@ if args.vocoder_path is not None:
     vocoder_config_path = args.vocoder_config_path
 
 # load models
-synthesizer = Synthesizer(model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, args.use_cuda)
+synthesizer = Synthesizer(
+    model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, use_cuda=args.use_cuda
+)
 
 use_multi_speaker = synthesizer.speaker_manager is not None
 # TODO: set this from SpeakerManager

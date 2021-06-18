@@ -1,6 +1,7 @@
-import torch
 import numpy as np
+import torch
 import torch.nn as nn
+
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=8):
@@ -10,7 +11,7 @@ class SELayer(nn.Module):
             nn.Linear(channel, channel // reduction),
             nn.ReLU(inplace=True),
             nn.Linear(channel // reduction, channel),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
@@ -18,6 +19,7 @@ class SELayer(nn.Module):
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
         return x * y
+
 
 class SEBasicBlock(nn.Module):
     expansion = 1
@@ -51,12 +53,22 @@ class SEBasicBlock(nn.Module):
         out = self.relu(out)
         return out
 
+
 class ResNetSpeakerEncoder(nn.Module):
     """Implementation of the model H/ASP without batch normalization in speaker embedding. This model was proposed in: https://arxiv.org/abs/2009.14153
     Adapted from: https://github.com/clovaai/voxceleb_trainer
     """
+
     # pylint: disable=W0102
-    def __init__(self, input_dim=64, proj_dim=512, layers=[3, 4, 6, 3], num_filters=[32, 64, 128, 256], encoder_type='ASP', log_input=False):
+    def __init__(
+        self,
+        input_dim=64,
+        proj_dim=512,
+        layers=[3, 4, 6, 3],
+        num_filters=[32, 64, 128, 256],
+        encoder_type="ASP",
+        log_input=False,
+    ):
         super(ResNetSpeakerEncoder, self).__init__()
 
         self.encoder_type = encoder_type
@@ -74,7 +86,7 @@ class ResNetSpeakerEncoder(nn.Module):
 
         self.instancenorm = nn.InstanceNorm1d(input_dim)
 
-        outmap_size = int(self.input_dim/8)
+        outmap_size = int(self.input_dim / 8)
 
         self.attention = nn.Sequential(
             nn.Conv1d(num_filters[3] * outmap_size, 128, kernel_size=1),
@@ -82,14 +94,14 @@ class ResNetSpeakerEncoder(nn.Module):
             nn.BatchNorm1d(128),
             nn.Conv1d(128, num_filters[3] * outmap_size, kernel_size=1),
             nn.Softmax(dim=2),
-            )
+        )
 
         if self.encoder_type == "SAP":
             out_dim = num_filters[3] * outmap_size
         elif self.encoder_type == "ASP":
             out_dim = num_filters[3] * outmap_size * 2
         else:
-            raise ValueError('Undefined encoder')
+            raise ValueError("Undefined encoder")
 
         self.fc = nn.Linear(out_dim, proj_dim)
 
@@ -98,7 +110,7 @@ class ResNetSpeakerEncoder(nn.Module):
     def _init_layers(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -107,8 +119,7 @@ class ResNetSpeakerEncoder(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
+                nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
@@ -131,7 +142,7 @@ class ResNetSpeakerEncoder(nn.Module):
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
                 if self.log_input:
-                    x = (x+1e-6).log()
+                    x = (x + 1e-6).log()
                 x = self.instancenorm(x).unsqueeze(1)
 
         x = self.conv1(x)
@@ -151,7 +162,7 @@ class ResNetSpeakerEncoder(nn.Module):
             x = torch.sum(x * w, dim=2)
         elif self.encoder_type == "ASP":
             mu = torch.sum(x * w, dim=2)
-            sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu ** 2).clamp(min=1e-5))
+            sg = torch.sqrt((torch.sum((x ** 2) * w, dim=2) - mu ** 2).clamp(min=1e-5))
             x = torch.cat((mu, sg), 1)
 
         x = x.view(x.size()[0], -1)
@@ -172,12 +183,12 @@ class ResNetSpeakerEncoder(nn.Module):
         if max_len < num_frames:
             num_frames = max_len
 
-        offsets = np.linspace(0, max_len-num_frames, num=num_eval)
+        offsets = np.linspace(0, max_len - num_frames, num=num_eval)
 
         frames_batch = []
         for offset in offsets:
             offset = int(offset)
-            end_offset = int(offset+num_frames)
+            end_offset = int(offset + num_frames)
             frames = x[:, offset:end_offset]
             frames_batch.append(frames)
 

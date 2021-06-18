@@ -6,11 +6,14 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
+from TTS.config import BaseDatasetConfig, load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
+
 from TTS.config import load_config
+
 
 parser = argparse.ArgumentParser(
     description='Compute embedding vectors for each wav file in a dataset.'
@@ -74,6 +77,7 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
 if speaker_mapping:
     # save speaker_mapping if target dataset is defined
     if '.json' not in args.output_path and '.npy' not in args.output_path:
+
         mapping_file_path = os.path.join(args.output_path, "speakers.json")
         mapping_npy_file_path = os.path.join(args.output_path, "speakers.npy")
     else:
