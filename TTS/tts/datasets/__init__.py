@@ -7,10 +7,6 @@ import numpy as np
 from TTS.tts.datasets.formatters import *
 from TTS.tts.datasets.TTSDataset import TTSDataset
 
-####################
-# UTILITIES
-####################
-
 
 def split_dataset(items):
     speakers = [item[-1] for item in items]
