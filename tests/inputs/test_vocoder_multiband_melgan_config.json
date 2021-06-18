@@ -157,7 +157,7 @@
 
     // DATA LOADING
     "num_loader_workers": 0,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
-    "num_val_loader_workers": 0,    // number of evaluation data loader processes.
+    "num_eval_loader_workers": 0,    // number of evaluation data loader processes.
     "eval_split_size": 10,
 
     // PATHS
