@@ -2,40 +2,41 @@
 import argparse
 import os
 from argparse import RawTextHelpFormatter
-
-from TTS.tts.datasets.preprocess import get_preprocessor_by_name
+from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.config import load_config
 
 
 def main():
     # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
         description="""Find all the unique characters or phonemes in a dataset.\n\n"""
-        """Target dataset must be defined in TTS.tts.datasets.preprocess\n\n"""
+        """\n\n"""
         """
     Example runs:
 
-    python TTS/bin/find_unique_chars.py --dataset ljspeech --meta_file /path/to/LJSpeech/metadata.csv
+    python TTS/bin/find_unique_chars.py --config_path config.json
     """,
         formatter_class=RawTextHelpFormatter,
     )
-
     parser.add_argument(
-        "--dataset", type=str, default="", help="One of the target dataset names in TTS.tts.datasets.preprocess."
+        "--config_path", type=str, help="Path to dataset config file.", required=True
     )
-
-    parser.add_argument("--meta_file", type=str, default=None, help="Path to the transcriptions file of the dataset.")
-
     args = parser.parse_args()
 
-    preprocessor = get_preprocessor_by_name(args.dataset)
-    items = preprocessor(os.path.dirname(args.meta_file), os.path.basename(args.meta_file))
+    c = load_config(args.config_path)
+    # load all datasets
+    train_items, dev_items = load_meta_data(c.datasets, eval_split=True, ignore_generated_eval=True)
+    items = train_items + dev_items
+
     texts = "".join(item[0] for item in items)
     chars = set(texts)
     lower_chars = filter(lambda c: c.islower(), chars)
+    chars_force_lower = set([c.lower() for c in chars])
+
     print(f" > Number of unique characters: {len(chars)}")
     print(f" > Unique characters: {''.join(sorted(chars))}")
     print(f" > Unique lower characters: {''.join(sorted(lower_chars))}")
-
+    print(f" > Unique all forced to lower characters: {''.join(sorted(chars_force_lower))}")
 
 if __name__ == "__main__":
     main()
