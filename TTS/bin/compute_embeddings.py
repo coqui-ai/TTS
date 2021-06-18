@@ -6,7 +6,6 @@ import numpy as np
 from tqdm import tqdm
 from TTS.config import load_config
 
-from TTS.config import BaseDatasetConfig, load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.utils.speakers import SpeakerManager
