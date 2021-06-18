@@ -5,7 +5,7 @@ inflect
 jieba
 librosa==0.8.0
 matplotlib
-numpy==1.18.5
+numpy==1.19.5
 pandas
 pypinyin
 pysbd
