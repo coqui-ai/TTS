@@ -357,7 +357,7 @@ class Decoder(nn.Module):
             if stop_token > self.stop_threshold and t > inputs.shape[0] // 2:
                 break
             if len(outputs) == self.max_decoder_steps:
-                print("   | > Decoder stopped with 'max_decoder_steps")
+                print(f"   > Decoder stopped with `max_decoder_steps` {self.max_decoder_steps}")
                 break
 
             memory = self._update_memory(decoder_output)
