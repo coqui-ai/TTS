@@ -16,9 +16,10 @@ import torch
 def to_cuda(x: torch.Tensor) -> torch.Tensor:
     if x is None:
         return None
-    x = x.contiguous()
-    if torch.cuda.is_available():
-        x = x.cuda(non_blocking=True)
+    if torch.is_tensor(x):
+        x = x.contiguous()
+        if torch.cuda.is_available():
+            x = x.cuda(non_blocking=True)
     return x
 
 
@@ -57,13 +58,10 @@ def get_commit_hash():
     return commit
 
 
-def create_experiment_folder(root_path, model_name, debug):
+def create_experiment_folder(root_path, model_name):
     """Create a folder with the current date and time"""
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
-    if debug:
-        commit_hash = "debug"
-    else:
-        commit_hash = get_commit_hash()
+    commit_hash = get_commit_hash()
     output_folder = os.path.join(root_path, model_name + "-" + date_str + "-" + commit_hash)
     os.makedirs(output_folder, exist_ok=True)
     print(" > Experiment folder: {}".format(output_folder))

@@ -34,6 +34,8 @@ class TensorboardLogger(object):
 
     def dict_to_tb_audios(self, scope_name, audios, step, sample_rate):
         for key, value in audios.items():
+            if value.dtype == "float16":
+                value = value.astype("float32")
             try:
                 self.writer.add_audio("{}/{}".format(scope_name, key), value, step, sample_rate=sample_rate)
             except RuntimeError:
