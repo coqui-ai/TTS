@@ -41,64 +41,11 @@ class GlowTTSTrainTest(unittest.TestCase):
         criterion = GlowTTSLoss()
 
         # model to train
-        model = GlowTTS(
-            num_chars=32,
-            hidden_channels_enc=48,
-            hidden_channels_dec=48,
-            hidden_channels_dp=32,
-            out_channels=80,
-            encoder_type="rel_pos_transformer",
-            encoder_params={
-                "kernel_size": 3,
-                "dropout_p": 0.1,
-                "num_layers": 6,
-                "num_heads": 2,
-                "hidden_channels_ffn": 16,  # 4 times the hidden_channels
-                "input_length": None,
-            },
-            use_encoder_prenet=True,
-            num_flow_blocks_dec=12,
-            kernel_size_dec=5,
-            dilation_rate=1,
-            num_block_layers=4,
-            dropout_p_dec=0.0,
-            num_speakers=0,
-            c_in_channels=0,
-            num_splits=4,
-            num_squeeze=1,
-            sigmoid_scale=False,
-            mean_only=False,
-        ).to(device)
+        config = GlowTTSConfig(num_chars=32)
+        model = GlowTTS(config).to(device)
 
         # reference model to compare model weights
-        model_ref = GlowTTS(
-            num_chars=32,
-            hidden_channels_enc=48,
-            hidden_channels_dec=48,
-            hidden_channels_dp=32,
-            out_channels=80,
-            encoder_type="rel_pos_transformer",
-            encoder_params={
-                "kernel_size": 3,
-                "dropout_p": 0.1,
-                "num_layers": 6,
-                "num_heads": 2,
-                "hidden_channels_ffn": 16,  # 4 times the hidden_channels
-                "input_length": None,
-            },
-            use_encoder_prenet=True,
-            num_flow_blocks_dec=12,
-            kernel_size_dec=5,
-            dilation_rate=1,
-            num_block_layers=4,
-            dropout_p_dec=0.0,
-            num_speakers=0,
-            c_in_channels=0,
-            num_splits=4,
-            num_squeeze=1,
-            sigmoid_scale=False,
-            mean_only=False,
-        ).to(device)
+        model_ref = GlowTTS(config).to(device)
 
         model.train()
         print(" > Num parameters for GlowTTS model:%s" % (count_parameters(model)))
@@ -149,34 +96,8 @@ class GlowTTSInferenceTest(unittest.TestCase):
         speaker_ids = torch.randint(0, 5, (8,)).long().to(device)
 
         # create model
-        model = GlowTTS(
-            num_chars=32,
-            hidden_channels_enc=48,
-            hidden_channels_dec=48,
-            hidden_channels_dp=32,
-            out_channels=80,
-            encoder_type="rel_pos_transformer",
-            encoder_params={
-                "kernel_size": 3,
-                "dropout_p": 0.1,
-                "num_layers": 6,
-                "num_heads": 2,
-                "hidden_channels_ffn": 16,  # 4 times the hidden_channels
-                "input_length": None,
-            },
-            use_encoder_prenet=True,
-            num_flow_blocks_dec=12,
-            kernel_size_dec=5,
-            dilation_rate=1,
-            num_block_layers=4,
-            dropout_p_dec=0.0,
-            num_speakers=0,
-            c_in_channels=0,
-            num_splits=4,
-            num_squeeze=1,
-            sigmoid_scale=False,
-            mean_only=False,
-        ).to(device)
+        config = GlowTTSConfig(num_chars=32)
+        model = GlowTTS(config).to(device)
 
         model.eval()
         print(" > Num parameters for GlowTTS model:%s" % (count_parameters(model)))

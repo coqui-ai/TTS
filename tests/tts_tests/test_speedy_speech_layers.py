@@ -1,7 +1,8 @@
 import torch
 
+from TTS.tts.configs import SpeedySpeechConfig
 from TTS.tts.layers.feed_forward.duration_predictor import DurationPredictor
-from TTS.tts.models.speedy_speech import SpeedySpeech
+from TTS.tts.models.speedy_speech import SpeedySpeech, SpeedySpeechArgs
 from TTS.tts.utils.data import sequence_mask
 
 use_cuda = torch.cuda.is_available()
@@ -40,7 +41,8 @@ def test_speedy_speech():
 
     y_lengths = durations.sum(1)
 
-    model = SpeedySpeech(num_chars, out_channels=80, hidden_channels=128)
+    config = SpeedySpeechConfig(model_args=SpeedySpeechArgs(num_chars=num_chars, out_channels=80, hidden_channels=128))
+    model = SpeedySpeech(config)
     if use_cuda:
         model.cuda()
 
@@ -55,7 +57,12 @@ def test_speedy_speech():
     assert list(o_dr.shape) == [B, T_en]
 
     # with speaker embedding
-    model = SpeedySpeech(num_chars, out_channels=80, hidden_channels=128, num_speakers=10, c_in_channels=256).to(device)
+    config = SpeedySpeechConfig(
+        model_args=SpeedySpeechArgs(
+            num_chars=num_chars, out_channels=80, hidden_channels=128, num_speakers=80, d_vector_dim=256
+        )
+    )
+    model = SpeedySpeech(config).to(device)
     model.forward(
         x_dummy, x_lengths, y_lengths, durations, aux_input={"d_vectors": torch.randint(0, 10, (B,)).to(device)}
     )
@@ -68,9 +75,17 @@ def test_speedy_speech():
     assert list(o_dr.shape) == [B, T_en]
 
     # with speaker external embedding
-    model = SpeedySpeech(
-        num_chars, out_channels=80, hidden_channels=128, num_speakers=10, external_c=True, c_in_channels=256
-    ).to(device)
+    config = SpeedySpeechConfig(
+        model_args=SpeedySpeechArgs(
+            num_chars=num_chars,
+            out_channels=80,
+            hidden_channels=128,
+            num_speakers=10,
+            use_d_vector=True,
+            d_vector_dim=256,
+        )
+    )
+    model = SpeedySpeech(config).to(device)
     model.forward(x_dummy, x_lengths, y_lengths, durations, aux_input={"d_vectors": torch.rand((B, 256)).to(device)})
     o_de = outputs["model_outputs"]
     attn = outputs["alignments"]
