@@ -14,7 +14,6 @@ from TTS.tts.datasets import load_meta_data
 from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import get_speaker_manager
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters
 
@@ -40,9 +39,7 @@ def setup_loader(ap, r, verbose=False):
         use_noise_augment=False,
         verbose=verbose,
         speaker_id_mapping=speaker_manager.speaker_ids,
-        d_vector_mapping=speaker_manager.d_vectors
-        if c.use_speaker_embedding and c.use_external_speaker_embedding_file
-        else None,
+        d_vector_mapping=speaker_manager.d_vectors if c.use_speaker_embedding and c.use_d_vector_file else None,
     )
 
     if c.use_phonemes and c.compute_input_seq_cache:
@@ -224,16 +221,10 @@ def extract_spectrograms(
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data, symbols, phonemes, model_characters, speaker_manager
+    global meta_data, speaker_manager
 
     # Audio processor
     ap = AudioProcessor(**c.audio)
-    if "characters" in c.keys() and c["characters"]:
-        symbols, phonemes = make_symbols(**c.characters)
-
-    # set model characters
-    model_characters = phonemes if c.use_phonemes else symbols
-    num_chars = len(model_characters)
 
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)
@@ -245,7 +236,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     speaker_manager = get_speaker_manager(c, args, meta_data_train)
 
     # setup model
-    model = setup_model(num_chars, speaker_manager.num_speakers, c, d_vector_dim=speaker_manager.d_vector_dim)
+    model = setup_model(c)
 
     # restore model
     checkpoint = torch.load(args.checkpoint_path, map_location="cpu")
@@ -283,4 +274,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     c = load_config(args.config_path)
+    c.audio.trim_silence = False
     main(args)
