@@ -31,18 +31,18 @@ c = load_config(config_path)
 num_speakers = 0
 
 # init torch model
-num_chars = len(phonemes) if c.use_phonemes else len(symbols)
-model = setup_model(num_chars, num_speakers, c)
+model = setup_model(c)
 checkpoint = torch.load(args.torch_model_path, map_location=torch.device("cpu"))
 state_dict = checkpoint["model"]
 model.load_state_dict(state_dict)
 
 # init tf model
+num_chars = len(phonemes) if c.use_phonemes else len(symbols)
 model_tf = Tacotron2(
     num_chars=num_chars,
     num_speakers=num_speakers,
     r=model.decoder.r,
-    postnet_output_dim=c.audio["num_mels"],
+    out_channels=c.audio["num_mels"],
     decoder_output_dim=c.audio["num_mels"],
     attn_type=c.attention_type,
     attn_win=c.windowing,

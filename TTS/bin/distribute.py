@@ -1,36 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import argparse
 import os
 import pathlib
 import subprocess
-import sys
 import time
 
 import torch
+
+from TTS.trainer import TrainingArgs
 
 
 def main():
     """
     Call train.py as a new process and pass command arguments
     """
-    parser = argparse.ArgumentParser()
+    parser = TrainingArgs().init_argparse(arg_prefix="")
     parser.add_argument("--script", type=str, help="Target training script to distibute.")
-    parser.add_argument(
-        "--continue_path",
-        type=str,
-        help='Training output folder to continue training. Use to continue a training. If it is used, "config_path" is ignored.',
-        default="",
-        required="--config_path" not in sys.argv,
-    )
-    parser.add_argument(
-        "--restore_path", type=str, help="Model file to be restored. Use to finetune a model.", default=""
-    )
-    parser.add_argument(
-        "--config_path", type=str, help="Path to config file for training.", required="--continue_path" not in sys.argv
-    )
     args, unargs = parser.parse_known_args()
+    breakpoint()
 
     num_gpus = torch.cuda.device_count()
     group_id = time.strftime("%Y_%m_%d-%H%M%S")
@@ -51,6 +39,7 @@ def main():
         my_env = os.environ.copy()
         my_env["PYTHON_EGG_CACHE"] = "/tmp/tmp{}".format(i)
         command[-1] = "--rank={}".format(i)
+        # prevent stdout for processes with rank != 0
         stdout = None if i == 0 else open(os.devnull, "w")
         p = subprocess.Popen(["python3"] + command, stdout=stdout, env=my_env)  # pylint: disable=consider-using-with
         processes.append(p)
