@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
+from TTS.tts.models.align_tts import AlignTTSArgs
 
 
 @dataclass
@@ -49,9 +50,9 @@ class AlignTTSConfig(BaseTTSConfig):
         use_speaker_embedding (bool):
             enable / disable using speaker embeddings for multi-speaker models. If set True, the model is
             in the multi-speaker mode. Defaults to False.
-        use_external_speaker_embedding_file (bool):
+        use_d_vector_file (bool):
             enable /disable using external speaker embeddings in place of the learned embeddings. Defaults to False.
-        external_speaker_embedding_file (str):
+        d_vector_file (str):
             Path to the file including pre-computed speaker embeddings. Defaults to None.
         noam_schedule (bool):
             enable / disable the use of Noam LR scheduler. Defaults to False.
@@ -68,17 +69,7 @@ class AlignTTSConfig(BaseTTSConfig):
 
     model: str = "align_tts"
     # model specific params
-    positional_encoding: bool = True
-    hidden_channels_dp: int = 256
-    hidden_channels: int = 256
-    encoder_type: str = "fftransformer"
-    encoder_params: dict = field(
-        default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1}
-    )
-    decoder_type: str = "fftransformer"
-    decoder_params: dict = field(
-        default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1}
-    )
+    model_args: AlignTTSArgs = field(default_factory=AlignTTSArgs)
     phase_start_steps: List[int] = None
 
     ssim_alpha: float = 1.0
@@ -88,8 +79,8 @@ class AlignTTSConfig(BaseTTSConfig):
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
-    use_external_speaker_embedding_file: bool = False
-    external_speaker_embedding_file: str = False
+    use_d_vector_file: bool = False
+    d_vector_file: str = False
 
     # optimizer parameters
     optimizer: str = "Adam"
