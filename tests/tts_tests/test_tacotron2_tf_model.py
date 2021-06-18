@@ -110,7 +110,7 @@ class TacotronTFTrainTest(unittest.TestCase):
             num_chars=24,
             num_speakers=0,
             r=3,
-            postnet_output_dim=80,
+            out_channels=80,
             decoder_output_dim=80,
             attn_type="original",
             attn_win=False,

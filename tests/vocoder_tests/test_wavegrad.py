@@ -4,7 +4,8 @@ import numpy as np
 import torch
 from torch import optim
 
-from TTS.vocoder.models.wavegrad import Wavegrad
+from TTS.vocoder.configs import WavegradConfig
+from TTS.vocoder.models.wavegrad import Wavegrad, WavegradArgs
 
 # pylint: disable=unused-variable
 
@@ -20,19 +21,16 @@ class WavegradTrainTest(unittest.TestCase):
         mel_spec = torch.rand(8, 80, 20).to(device)
 
         criterion = torch.nn.L1Loss().to(device)
-        model = Wavegrad(
+        args = WavegradArgs(
             in_channels=80,
             out_channels=1,
             upsample_factors=[5, 5, 3, 2, 2],
             upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 4, 8], [1, 2, 4, 8], [1, 2, 4, 8]],
         )
+        config = WavegradConfig(model_params=args)
+        model = Wavegrad(config)
 
-        model_ref = Wavegrad(
-            in_channels=80,
-            out_channels=1,
-            upsample_factors=[5, 5, 3, 2, 2],
-            upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 4, 8], [1, 2, 4, 8], [1, 2, 4, 8]],
-        )
+        model_ref = Wavegrad(config)
         model.train()
         model.to(device)
         betas = np.linspace(1e-6, 1e-2, 1000)
