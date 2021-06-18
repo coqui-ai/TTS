@@ -34,7 +34,7 @@ class LSTMSpeakerEncoderTests(unittest.TestCase):
         assert abs(assert_diff) < 1e-4, f" [!] output_norm has wrong values - {assert_diff}"
         # compute d for a given batch
         dummy_input = T.rand(1, 240, 80)  # B x T x D
-        output = model.compute_embedding(dummy_input, num_frames=160, overlap=0.5)
+        output = model.compute_embedding(dummy_input, num_frames=160, num_eval=5)
         assert output.shape[0] == 1
         assert output.shape[1] == 256
         assert len(output.shape) == 2

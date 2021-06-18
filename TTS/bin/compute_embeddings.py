@@ -1,16 +1,16 @@
 import argparse
-import glob
 import os
 
 import torch
 import numpy as np
 from tqdm import tqdm
+from TTS.config import load_config
 
 from TTS.speaker_encoder.utils.generic_utils import setup_model
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
-from TTS.config import load_config
+
 
 parser = argparse.ArgumentParser(
     description='Compute embedding vectors for each wav file in a dataset.'

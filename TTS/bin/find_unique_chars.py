@@ -1,6 +1,5 @@
 """Find all the unique characters in a dataset"""
 import argparse
-import os
 from argparse import RawTextHelpFormatter
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.config import load_config
@@ -31,7 +30,8 @@ def main():
     texts = "".join(item[0] for item in items)
     chars = set(texts)
     lower_chars = filter(lambda c: c.islower(), chars)
-    chars_force_lower = set([c.lower() for c in chars])
+    chars_force_lower = [c.lower() for c in chars])
+    chars_force_lower = set(chars_force_lower)
 
     print(f" > Number of unique characters: {len(chars)}")
     print(f" > Unique characters: {''.join(sorted(chars))}")
