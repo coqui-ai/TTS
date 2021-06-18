@@ -12,7 +12,7 @@ class Tacotron2(keras.models.Model):
         num_chars,
         num_speakers,
         r,
-        postnet_output_dim=80,
+        out_channels=80,
         decoder_output_dim=80,
         attn_type="original",
         attn_win=False,
@@ -31,7 +31,7 @@ class Tacotron2(keras.models.Model):
         super().__init__()
         self.r = r
         self.decoder_output_dim = decoder_output_dim
-        self.postnet_output_dim = postnet_output_dim
+        self.out_channels = out_channels
         self.bidirectional_decoder = bidirectional_decoder
         self.num_speakers = num_speakers
         self.speaker_embed_dim = 256
@@ -58,7 +58,7 @@ class Tacotron2(keras.models.Model):
             name="decoder",
             enable_tflite=enable_tflite,
         )
-        self.postnet = Postnet(postnet_output_dim, 5, name="postnet")
+        self.postnet = Postnet(out_channels, 5, name="postnet")
 
     @tf.function(experimental_relax_shapes=True)
     def call(self, characters, text_lengths=None, frames=None, training=None):
