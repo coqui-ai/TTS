@@ -61,6 +61,9 @@ confidence=
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
 disable=missing-docstring,
+        too-many-public-methods,
+        too-many-lines,
+        bare-except,
         line-too-long,
         fixme,
         wrong-import-order,
