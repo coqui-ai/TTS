@@ -30,7 +30,7 @@ def main():
     texts = "".join(item[0] for item in items)
     chars = set(texts)
     lower_chars = filter(lambda c: c.islower(), chars)
-    chars_force_lower = [c.lower() for c in chars])
+    chars_force_lower = [c.lower() for c in chars]
     chars_force_lower = set(chars_force_lower)
 
     print(f" > Number of unique characters: {len(chars)}")
