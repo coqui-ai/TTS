@@ -6,6 +6,7 @@ from tests import get_tests_input_path
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
 from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
+
 file_path = get_tests_input_path()
 
 
@@ -39,6 +40,7 @@ class LSTMSpeakerEncoderTests(unittest.TestCase):
         assert output.shape[1] == 256
         assert len(output.shape) == 2
 
+
 class ResNetSpeakerEncoderTests(unittest.TestCase):
     # pylint: disable=R0201
     def test_in_out(self):
@@ -64,6 +66,7 @@ class ResNetSpeakerEncoderTests(unittest.TestCase):
         assert output.shape[0] == 1
         assert output.shape[1] == 256
         assert len(output.shape) == 2
+
 
 class GE2ELossTests(unittest.TestCase):
     # pylint: disable=R0201
@@ -91,6 +94,7 @@ class GE2ELossTests(unittest.TestCase):
         loss = GE2ELoss(loss_method="softmax")
         output = loss.forward(dummy_input)
         assert output.item() < 0.005
+
 
 class AngleProtoLossTests(unittest.TestCase):
     # pylint: disable=R0201
@@ -120,6 +124,7 @@ class AngleProtoLossTests(unittest.TestCase):
         loss = AngleProtoLoss()
         output = loss.forward(dummy_input)
         assert output.item() < 0.005
+
 
 class SoftmaxAngleProtoLossTests(unittest.TestCase):
     # pylint: disable=R0201

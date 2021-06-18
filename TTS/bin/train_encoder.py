@@ -10,10 +10,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from TTS.speaker_encoder.dataset import SpeakerEncoderDataset
-
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_model
-
 from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets.preprocess import load_meta_data
 from TTS.utils.arguments import init_training
@@ -45,7 +43,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             storage_size=c.storage["storage_size"],
             sample_from_storage_p=c.storage["sample_from_storage_p"],
             verbose=verbose,
-            augmentation_config=c.audio_augmentation
+            augmentation_config=c.audio_augmentation,
         )
 
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
@@ -170,19 +168,18 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         raise Exception("The %s  not is a loss supported" % c.loss)
 
-
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
         try:
             model.load_state_dict(checkpoint["model"])
 
-            if 'criterion' in checkpoint:
+            if "criterion" in checkpoint:
                 criterion.load_state_dict(checkpoint["criterion"])
 
         except (KeyError, RuntimeError):
             print(" > Partial model initialization.")
             model_dict = model.state_dict()
-            model_dict = set_init_dict(model_dict, checkpoint['model'], c)
+            model_dict = set_init_dict(model_dict, checkpoint["model"], c)
             model.load_state_dict(model_dict)
             del model_dict
         for group in optimizer.param_groups:

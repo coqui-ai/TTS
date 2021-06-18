@@ -1,24 +1,25 @@
-
 import random
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+
 from TTS.speaker_encoder.utils.generic_utils import AugmentWAV, Storage
+
 
 class SpeakerEncoderDataset(Dataset):
     def __init__(
-            self,
-            ap,
-            meta_data,
-            voice_len=1.6,
-            num_speakers_in_batch=64,
-            storage_size=1,
-            sample_from_storage_p=0.5,
-            num_utter_per_speaker=10,
-            skip_speakers=False,
-            verbose=False,
-            augmentation_config=None
+        self,
+        ap,
+        meta_data,
+        voice_len=1.6,
+        num_speakers_in_batch=64,
+        storage_size=1,
+        sample_from_storage_p=0.5,
+        num_utter_per_speaker=10,
+        skip_speakers=False,
+        verbose=False,
+        augmentation_config=None,
     ):
         """
         Args:
@@ -38,23 +39,25 @@ class SpeakerEncoderDataset(Dataset):
         self.verbose = verbose
         self.__parse_items()
         storage_max_size = storage_size * num_speakers_in_batch
-        self.storage = Storage(maxsize=storage_max_size, storage_batchs=storage_size, num_speakers_in_batch=num_speakers_in_batch)
+        self.storage = Storage(
+            maxsize=storage_max_size, storage_batchs=storage_size, num_speakers_in_batch=num_speakers_in_batch
+        )
         self.sample_from_storage_p = float(sample_from_storage_p)
 
         speakers_aux = list(self.speakers)
         speakers_aux.sort()
-        self.speakerid_to_classid = {key : i for i, key in enumerate(speakers_aux)}
+        self.speakerid_to_classid = {key: i for i, key in enumerate(speakers_aux)}
 
         # Augmentation
         self.augmentator = None
         self.gaussian_augmentation_config = None
         if augmentation_config:
-            self.data_augmentation_p = augmentation_config['p']
-            if self.data_augmentation_p and ('additive' in augmentation_config or 'rir' in augmentation_config):
+            self.data_augmentation_p = augmentation_config["p"]
+            if self.data_augmentation_p and ("additive" in augmentation_config or "rir" in augmentation_config):
                 self.augmentator = AugmentWAV(ap, augmentation_config)
 
-            if 'gaussian' in augmentation_config.keys():
-                self.gaussian_augmentation_config = augmentation_config['gaussian']
+            if "gaussian" in augmentation_config.keys():
+                self.gaussian_augmentation_config = augmentation_config["gaussian"]
 
         if self.verbose:
             print("\n > DataLoader initialization")
@@ -231,9 +234,13 @@ class SpeakerEncoderDataset(Dataset):
                 offset = random.randint(0, wav.shape[0] - self.seq_len)
                 wav = wav[offset : offset + self.seq_len]
                 # add random gaussian noise
-                if self.gaussian_augmentation_config and self.gaussian_augmentation_config['p']:
-                    if random.random() < self.gaussian_augmentation_config['p']:
-                        wav += np.random.normal(self.gaussian_augmentation_config['min_amplitude'], self.gaussian_augmentation_config['max_amplitude'], size=len(wav))
+                if self.gaussian_augmentation_config and self.gaussian_augmentation_config["p"]:
+                    if random.random() < self.gaussian_augmentation_config["p"]:
+                        wav += np.random.normal(
+                            self.gaussian_augmentation_config["min_amplitude"],
+                            self.gaussian_augmentation_config["max_amplitude"],
+                            size=len(wav),
+                        )
                 mel = self.ap.melspectrogram(wav)
                 feats_.append(torch.FloatTensor(mel))
 

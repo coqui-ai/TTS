@@ -25,10 +25,7 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
         }
     )
 
-    audio_augmentation : dict = field(
-        default_factory=lambda: {
-        }
-    )
+    audio_augmentation: dict = field(default_factory=lambda: {})
 
     storage: dict = field(
         default_factory=lambda: {
