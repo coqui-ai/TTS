@@ -123,7 +123,7 @@
    "text_cleaner": "english_cleaners",
    "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
    "num_loader_workers": 0,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
-   "num_val_loader_workers": 0,    // number of evaluation data loader processes.
+   "num_eval_loader_workers": 0,    // number of evaluation data loader processes.
    "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
    "min_seq_len": 2,       // DATASET-RELATED: minimum text length to use in training
    "max_seq_len": 300,     // DATASET-RELATED: maximum text length
@@ -140,8 +140,8 @@
 
    // MULTI-SPEAKER and GST
    "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
-   "use_external_speaker_embedding_file": false, // if true, forces the model to use external embedding per sample instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
-   "external_speaker_embedding_file": "/home/erogol/Data/libritts/speakers.json", // if not null and use_external_speaker_embedding_file is true, it is used to load a specific embedding file and thus uses these embeddings instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+   "use_d_vector_file": false, // if true, forces the model to use external embedding per sample instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
+   "d_vector_file": "/home/erogol/Data/libritts/speakers.json", // if not null and use_d_vector_file is true, it is used to load a specific embedding file and thus uses these embeddings instead of nn.embeddings, that is, it supports external embeddings such as those used at: https://arxiv.org/abs /1806.04558
 
 
     // DATASETS
