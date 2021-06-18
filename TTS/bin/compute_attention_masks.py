@@ -75,7 +75,7 @@ Example run:
     # load the model
     num_chars = len(phonemes) if C.use_phonemes else len(symbols)
     # TODO: handle multi-speaker
-    model = setup_model(num_chars, num_speakers=0, c=C)
+    model = setup_model(C)
     model, _ = load_checkpoint(model, args.model_path, None, args.use_cuda)
     model.eval()
 
