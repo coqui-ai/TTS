@@ -13,8 +13,8 @@ from TTS.speaker_encoder.dataset import SpeakerEncoderDataset
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_model
 from TTS.speaker_encoder.utils.visual import plot_embeddings
+from TTS.trainer import init_training
 from TTS.tts.datasets import load_meta_data
-from TTS.utils.arguments import init_training
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
