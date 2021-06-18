@@ -124,7 +124,9 @@ version.py
 # jupyter dummy files
 core
 
+# files used internally fro dev, test etc.
 tests/outputs/*
+tests/train_outputs/*
 TODO.txt
 .vscode/*
 data/*
@@ -132,7 +134,19 @@ notebooks/data/*
 TTS/tts/layers/glow_tts/monotonic_align/core.c
 .vscode-upload.json
 temp_build/*
-recipes/*
-
-# nohup logs
+recipes/WIP/*
+old_configs/*
+model_importers/*
+model_profiling/*
+docs/*
+.noseids
+.dccache
+log.txt
+umap.png
 *.out
+SocialMedia.txt
+output.wav
+tts_output.wav
+deps.json
+speakers.json
+internal/*
