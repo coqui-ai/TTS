@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython", "numpy==1.18.5"]
+requires = ["setuptools", "wheel", "Cython", "numpy==1.19.5"]
 
 [flake8]
 max-line-length=120
