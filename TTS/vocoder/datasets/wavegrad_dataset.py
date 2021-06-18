@@ -136,4 +136,4 @@ class WaveGradDataset(Dataset):
             mels[idx, :, : mel.shape[1]] = mel
             audios[idx, : audio.shape[0]] = audio
 
-        return mels, audios
+        return audios, mels
