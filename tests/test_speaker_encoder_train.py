@@ -46,7 +46,7 @@ run_cli(command_train)
 shutil.rmtree(continue_path)
 
 # test resnet speaker encoder
-config.model_params['model_name'] = "resnet"
+config.model_params["model_name"] = "resnet"
 config.save_json(config_path)
 
 # train the model for one epoch

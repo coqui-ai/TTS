@@ -6,6 +6,7 @@ from packaging import version
 
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.chinese_mandarin.phonemizer import chinese_text_to_phonemes
+from TTS.tts.utils.text.japanese.phonemizer import japanese_text_to_phonemes
 from TTS.tts.utils.text.symbols import _bos, _eos, _punctuations, make_symbols, phonemes, symbols
 
 # pylint: disable=unnecessary-comprehension
@@ -39,6 +40,11 @@ def text2phone(text, language):
     if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
         return ph
+
+    if language == "ja-jp":
+        ph = japanese_text_to_phonemes(text)
+        return ph
+
     raise ValueError(f" [!] Language {language} is not supported for phonemization.")
 
 
