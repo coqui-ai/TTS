@@ -14,7 +14,7 @@ class MultibandMelganConfig(BaseGANVocoderConfig):
 
     Args:
         model (str):
-            Model name used for selecting the right model at initialization. Defaults to `melgan`.
+            Model name used for selecting the right model at initialization. Defaults to `multiband_melgan`.
         discriminator_model (str): One of the discriminators from `TTS.vocoder.models.*_discriminator`. Defaults to
             'melgan_multiscale_discriminator`.
         discriminator_model_params (dict): The discriminator model parameters. Defaults to

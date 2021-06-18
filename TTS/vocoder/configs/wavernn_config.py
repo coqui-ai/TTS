@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from TTS.vocoder.configs.shared_configs import BaseVocoderConfig
+from TTS.vocoder.models.wavernn import WavernnArgs
 
 
 @dataclass
@@ -47,9 +48,7 @@ class WavernnConfig(BaseVocoderConfig):
             Batch size used at training. Larger values use more memory. Defaults to 256.
         seq_len (int):
             Audio segment length used at training. Larger values use more memory. Defaults to 1280.
-        padding (int):
-            Padding applied to the input feature frames against the convolution layers of the feature network.
-            Defaults to 2.
+
         use_noise_augment (bool):
             enable / disable random noise added to the input waveform. The noise is added after computing the
             features. Defaults to True.
@@ -60,7 +59,7 @@ class WavernnConfig(BaseVocoderConfig):
             enable / disable mixed precision training. Default is True.
         eval_split_size (int):
             Number of samples used for evalutaion. Defaults to 50.
-        test_every_epoch (int):
+        num_epochs_before_test (int):
             Number of epochs waited to run the next evalution. Since inference takes some time, it is better to
             wait some number of epochs not ot waste training time. Defaults to 10.
         grad_clip (float):
@@ -76,21 +75,8 @@ class WavernnConfig(BaseVocoderConfig):
     model: str = "wavernn"
 
     # Model specific params
-    mode: str = "mold"  # mold [string], gauss [string], bits [int]
-    mulaw: bool = True  # apply mulaw if mode is bits
-    generator_model: str = "WaveRNN"
-    wavernn_model_params: dict = field(
-        default_factory=lambda: {
-            "rnn_dims": 512,
-            "fc_dims": 512,
-            "compute_dims": 128,
-            "res_out_dims": 128,
-            "num_res_blocks": 10,
-            "use_aux_net": True,
-            "use_upsample_net": True,
-            "upsample_factors": [4, 8, 8],  # this needs to correctly factorise hop_length
-        }
-    )
+    model_params: WavernnArgs = field(default_factory=WavernnArgs)
+    target_loss: str = "loss"
 
     # Inference
     batched: bool = True
@@ -101,12 +87,13 @@ class WavernnConfig(BaseVocoderConfig):
     epochs: int = 10000
     batch_size: int = 256
     seq_len: int = 1280
-    padding: int = 2
     use_noise_augment: bool = False
     use_cache: bool = True
     mixed_precision: bool = True
     eval_split_size: int = 50
-    test_every_epochs: int = 10  # number of epochs to wait until the next test run (synthesizing a full audio clip).
+    num_epochs_before_test: int = (
+        10  # number of epochs to wait until the next test run (synthesizing a full audio clip).
+    )
 
     # optimizer overrides
     grad_clip: float = 4.0
