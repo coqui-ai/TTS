@@ -115,7 +115,7 @@
     "text_cleaner": "phoneme_cleaners",
     "enable_eos_bos_chars": false, // enable/disable beginning of sentence and end of sentence chars.
     "num_loader_workers": 0,        // number of training data loader processes. Don't set it too big. 4-8 are good values.
-    "num_val_loader_workers": 0,    // number of evaluation data loader processes.
+    "num_eval_loader_workers": 0,    // number of evaluation data loader processes.
     "batch_group_size": 0,  //Number of batches to shuffle after bucketing.
     "min_seq_len": 3,       // DATASET-RELATED: minimum text length to use in training
     "max_seq_len": 500,     // DATASET-RELATED: maximum text length
@@ -132,8 +132,8 @@
     "phoneme_language": "en-us",     // depending on your target language, pick one from  https://github.com/bootphon/phonemizer#languages
 
     // MULTI-SPEAKER and GST
-    "use_external_speaker_embedding_file": false,
-    "external_speaker_embedding_file": null,
+    "use_d_vector_file": false,
+    "d_vector_file": null,
     "use_speaker_embedding": false,     // use speaker embedding to enable multi-speaker learning.
 
     // DATASETS
