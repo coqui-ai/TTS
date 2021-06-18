@@ -137,7 +137,7 @@ class ModelManager(object):
                 # set scale stats path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
-                config.external_speaker_embedding_file = output_speakers_path
+                config.d_vector_file = output_speakers_path
                 config.save_json(config_path)
         return output_model_path, output_config_path, model_item
 

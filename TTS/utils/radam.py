@@ -1,4 +1,4 @@
-# from https://github.com/LiyuanLucasLiu/RAdam
+# modified from https://github.com/LiyuanLucasLiu/RAdam
 
 import math
 
