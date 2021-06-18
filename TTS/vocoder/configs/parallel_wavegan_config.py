@@ -9,7 +9,7 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
 
     Args:
         model (str):
-            Model name used for selecting the right configuration at initialization. Defaults to `parallel_wavegan`.
+            Model name used for selecting the right configuration at initialization. Defaults to `gan`.
         discriminator_model (str): One of the discriminators from `TTS.vocoder.models.*_discriminator`. Defaults to
             'parallel_wavegan_discriminator`.
         discriminator_model_params (dict): The discriminator model kwargs. Defaults to
