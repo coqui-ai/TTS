@@ -1,7 +1,8 @@
 import torch
 
+from TTS.vocoder.configs import WavegradConfig
 from TTS.vocoder.layers.wavegrad import DBlock, FiLM, PositionalEncoding, UBlock
-from TTS.vocoder.models.wavegrad import Wavegrad
+from TTS.vocoder.models.wavegrad import Wavegrad, WavegradArgs
 
 
 def test_positional_encoding():
@@ -75,12 +76,14 @@ def test_wavegrad_forward():
     c = torch.rand(32, 80, 20)
     noise_scale = torch.rand(32)
 
-    model = Wavegrad(
+    args = WavegradArgs(
         in_channels=80,
         out_channels=1,
         upsample_factors=[5, 5, 3, 2, 2],
         upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 4, 8], [1, 2, 4, 8], [1, 2, 4, 8]],
     )
+    config = WavegradConfig(model_params=args)
+    model = Wavegrad(config)
     o = model.forward(x, c, noise_scale)
 
     assert o.shape[0] == 32

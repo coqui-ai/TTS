@@ -13,7 +13,7 @@ config = Tacotron2Config(
     batch_size=8,
     eval_batch_size=8,
     num_loader_workers=0,
-    num_val_loader_workers=0,
+    num_eval_loader_workers=0,
     text_cleaner="english_cleaners",
     use_phonemes=False,
     phoneme_language="en-us",
@@ -24,11 +24,11 @@ config = Tacotron2Config(
     print_step=1,
     print_eval=True,
     use_speaker_embedding=True,
-    use_external_speaker_embedding_file=True,
+    use_d_vector_file=True,
     test_sentences=[
         "Be a voice, not an echo.",
     ],
-    external_speaker_embedding_file="tests/data/ljspeech/speakers.json",
+    d_vector_file="tests/data/ljspeech/speakers.json",
     max_decoder_steps=50,
 )
 
