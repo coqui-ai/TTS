@@ -145,33 +145,43 @@ def vad_collector(sample_rate, frame_duration_ms,
 
 def remove_silence(filepath):
     filename = os.path.basename(filepath)
-    output_path = filepath.replace(os.path.join(args.input_dir,''),os.path.join(args.output_dir,''))
+    output_path = filepath.replace(os.path.join(args.input_dir, ''),os.path.join(args.output_dir, ''))
+    # ignore if the file exists 
+    if os.path.exists(output_path) and not args.force:
+        return False
     # create all directory structure
     pathlib.Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    padding_duration_ms = 300 #default 300
+    padding_duration_ms = 300 # default 300
     audio, sample_rate = read_wave(filepath)
     vad = webrtcvad.Vad(int(args.aggressiveness))
     frames = frame_generator(30, audio, sample_rate)
     frames = list(frames)
     segments = vad_collector(sample_rate, 30, padding_duration_ms, vad, frames)
     flag = False
-    for i, segment in reversed(list(enumerate(segments))):
-        if i >= 1:
-            if flag == False:
-                concat_segment = segment
-                flag = True
+    if len(list(segments)):
+        for i, segment in reversed(list(enumerate(segments))):
+            if i >= 1:
+                if flag == False:
+                    concat_segment = segment
+                    flag = True
+                else:
+                    concat_segment = segment + concat_segment
             else:
-                concat_segment = segment + concat_segment
-        else:
-            if flag:
-                segment = segment + concat_segment
-            write_wave(output_path, segment, sample_rate)
-            # print("File saved:", output_path)
-            return True
+                if flag:
+                    segment = segment + concat_segment
+                write_wave(output_path, segment, sample_rate)
+                return True
+    else:
+        print("> Just Copying the file to:", output_path)
+        # if fail to remove silence just write the file
+        write_wave(output_path, audio, sample_rate)
 
 def preprocess_audios():
     files = sorted(glob.glob(os.path.join(args.input_dir, args.glob), recursive=True))
     print("> Number of files: ", len(files))
+    if not args.force:
+        print("> Ignoring files that already exist in the output directory.")
+
     if files:
         # create threads
         num_threads = multiprocessing.cpu_count()
@@ -189,6 +199,8 @@ if __name__ == "__main__":
                         help='Dataset root dir')
     parser.add_argument('-o', '--output_dir', type=str, default='../VCTK-Corpus-removed-silence',
                         help='Output Dataset dir')
+    parser.add_argument('-f', '--force', type=bool, default=False,
+                        help='Force the replace of exists files')
     parser.add_argument('-g', '--glob', type=str, default='**/*.wav',
                         help='path in glob format for acess wavs from input_dir. ex: wav48/*/*.wav')
     parser.add_argument('-a', '--aggressiveness', type=int, default=2,
