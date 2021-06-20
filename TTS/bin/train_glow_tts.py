@@ -103,7 +103,7 @@ def format_data(data):
     if c.use_speaker_embedding:
         if c.use_external_speaker_embedding_file:
             # return precomputed embedding vector
-            speaker_c = data[8]
+            speaker_c = data[9]
         else:
             # return speaker_id to be used by an embedding layer
             speaker_c = [speaker_mapping[speaker_name] for speaker_name in speaker_names]
@@ -145,13 +145,17 @@ def format_data(data):
 def extract_parameters(test_sentence):
     splited = test_sentence.split('|')
     if len(splited) == 1: # No language or speaker info
-        return (splited[0], None, None)
+        return (splited[0], None, None, None)
     if len(splited) == 2: # No language info
         sentence, speaker = splited
-        return (sentence, speaker_mapping[speaker], None)
+        return (sentence, speaker, None, None)
     if len(splited) == 3:
         sentence, speaker, language = splited
-        return (sentence, speaker_mapping[speaker], language_mapping[language])
+        return (sentence, speaker, language_mapping[language], None)
+    if len(splited) == 4:
+        sentence, speaker, language, wav_ref_name = splited
+        return (sentence, speaker, language_mapping[language], wav_ref_name)
+
     raise RuntimeError("Invalid line was given in the test sentence file.")
 
 def data_depended_init(data_loader, model):
@@ -475,7 +479,12 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         style_wav = c.get("style_wav_for_test")
         for idx, test_sentence in enumerate(test_sentences):
             try:
-                test_sentence, speaker_id, language_id = extract_parameters(test_sentence)
+                test_sentence, speaker_name, language_id, wav_ref_name = extract_parameters(test_sentence)
+                if wav_ref_name is not None and c.use_speaker_embedding and c.use_external_speaker_embedding_file:
+                    speaker_embedding = speaker_mapping[wav_ref_name]["embedding"]
+                elif speaker_id is not None and c.use_speaker_embedding:
+                    speaker_id = speaker_mapping[speaker_name]
+
                 wav, alignment, _, postnet_output, _, _ = synthesis(
                     model,
                     test_sentence,
@@ -540,7 +549,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     # setup model
     model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, language_embedding_dim)
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
-    criterion = GlowTTSLoss()
+    criterion = GlowTTSLoss(c)
 
     if args.restore_path:
         print(f" > Restoring from {os.path.basename(args.restore_path)} ...")

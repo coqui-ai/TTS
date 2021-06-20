@@ -410,8 +410,9 @@ class TacotronLoss(torch.nn.Module):
 
 
 class GlowTTSLoss(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, c):
         super().__init__()
+        self.use_stochastic_duration_predictor = getattr(c, "use_stochastic_duration_predictor", False)
         self.constant_factor = 0.5 * math.log(2 * math.pi)
 
     def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths):
@@ -419,10 +420,13 @@ class GlowTTSLoss(torch.nn.Module):
         # flow loss - neg log likelihood
         pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means) ** 2)
         log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (torch.sum(y_lengths) * z.shape[1])
-        # duration loss - MSE
-        # loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
-        # duration loss - huber loss
-        loss_dur = torch.nn.functional.smooth_l1_loss(o_dur_log, o_attn_dur, reduction="sum") / torch.sum(x_lengths)
+        if self.use_stochastic_duration_predictor:
+            loss_dur = torch.sum(o_dur_log.float())
+        else:
+            # duration loss - MSE
+            # loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+            # duration loss - huber loss
+            loss_dur = torch.nn.functional.smooth_l1_loss(o_dur_log, o_attn_dur, reduction="sum") / torch.sum(x_lengths)
         return_dict["loss"] = log_mle + loss_dur
         return_dict["log_mle"] = log_mle
         return_dict["loss_dur"] = loss_dur

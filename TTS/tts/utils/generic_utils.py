@@ -139,6 +139,7 @@ def setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim=Non
             sigmoid_scale=False,
             mean_only=True,
             external_speaker_embedding_dim=speaker_embedding_dim,
+            use_stochastic_dp=getattr(c, "use_stochastic_duration_predictor", False),
         )
     elif c.model.lower() == "speedy_speech":
         model = MyModel(

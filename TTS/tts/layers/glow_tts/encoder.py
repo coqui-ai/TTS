@@ -6,7 +6,6 @@ from torch import nn
 from TTS.tts.layers.generic.gated_conv import GatedConvBlock
 from TTS.tts.layers.generic.res_conv_bn import ResidualConv1dBNBlock
 from TTS.tts.layers.generic.time_depth_sep_conv import TimeDepthSeparableConvBlock
-from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.glow import ResidualConv1dLayerNormBlock
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.utils.generic_utils import sequence_mask
@@ -25,13 +24,12 @@ class Encoder(nn.Module):
     Args:
         num_chars (int): number of characters.
         out_channels (int): number of output channels.
-        hidden_channels (int): encoder's embedding size.
-        hidden_channels_ffn (int): transformer's feed-forward channels.
+        self.hidden_channels (int): encoder's embedding size.
+        self.hidden_channels_ffn (int): transformer's feed-forward channels.
         kernel_size (int): kernel size for conv layers and duration predictor.
         dropout_p (float): dropout rate for any dropout layer.
         mean_only (bool): if True, output only mean values and use constant std.
         use_prenet (bool): if True, use pre-convolutional layers before transformer layers.
-        c_in_channels (int): number of channels in conditional input.
 
     Shapes:
         - input: (B, T, C)
@@ -45,7 +43,7 @@ class Encoder(nn.Module):
                 'dropout_p': 0.1,
                 'num_layers': 6,
                 'num_heads': 2,
-                'hidden_channels_ffn': 768,  # 4 times the hidden_channels
+                'self.hidden_channels_ffn': 768,  # 4 times the self.hidden_channels
                 'input_length': None
             }
 
@@ -82,7 +80,6 @@ class Encoder(nn.Module):
         dropout_p_dp=0.1,
         mean_only=False,
         use_prenet=True,
-        c_in_channels=0,
         num_langs=1,
         language_embedding_dim=None
     ):
@@ -95,63 +92,53 @@ class Encoder(nn.Module):
         self.dropout_p_dp = dropout_p_dp
         self.mean_only = mean_only
         self.use_prenet = use_prenet
-        self.c_in_channels = c_in_channels
         self.encoder_type = encoder_type
+        self.num_langs = num_langs
         # embedding layer
-        self.emb = nn.Embedding(num_chars, hidden_channels)
-        nn.init.normal_(self.emb.weight, 0.0, hidden_channels ** -0.5)
+        self.emb = nn.Embedding(num_chars, self.hidden_channels)
+        nn.init.normal_(self.emb.weight, 0.0, self.hidden_channels ** -0.5)
 
-        # set multilingual variables
+        # language embedding
         if num_langs > 1:
-            if language_embedding_dim is None:
-                language_embedding_dim = num_langs # // 2 * 2# Allow for odd number of languages
             self._language_embedding = nn.Embedding(num_langs, language_embedding_dim)
             torch.nn.init.xavier_uniform_(self._language_embedding.weight)
-            self.multilingual = True
             self.hidden_channels += language_embedding_dim
-            hidden_channels += language_embedding_dim
-        else:
-            self.multilingual = False
 
         # init encoder module
         if encoder_type.lower() == "rel_pos_transformer":
             if use_prenet:
                 self.prenet = ResidualConv1dLayerNormBlock(
-                    hidden_channels, hidden_channels, hidden_channels, kernel_size=5, num_layers=3, dropout_p=0.5
+                    self.hidden_channels, self.hidden_channels, self.hidden_channels, kernel_size=5, num_layers=3, dropout_p=0.5
                 )
             self.encoder = RelativePositionTransformer(
-                hidden_channels, hidden_channels, hidden_channels, **encoder_params
+                self.hidden_channels, self.hidden_channels, self.hidden_channels, **encoder_params
             )
         elif encoder_type.lower() == "gated_conv":
-            self.encoder = GatedConvBlock(hidden_channels, **encoder_params)
+            self.encoder = GatedConvBlock(self.hidden_channels, **encoder_params)
         elif encoder_type.lower() == "residual_conv_bn":
             if use_prenet:
-                self.prenet = nn.Sequential(nn.Conv1d(hidden_channels, hidden_channels, 1), nn.ReLU())
-            self.encoder = ResidualConv1dBNBlock(hidden_channels, hidden_channels, hidden_channels, **encoder_params)
+                self.prenet = nn.Sequential(nn.Conv1d(self.hidden_channels, self.hidden_channels, 1), nn.ReLU())
+            self.encoder = ResidualConv1dBNBlock(self.hidden_channels, self.hidden_channels, self.hidden_channels, **encoder_params)
             self.postnet = nn.Sequential(
                 nn.Conv1d(self.hidden_channels, self.hidden_channels, 1), nn.BatchNorm1d(self.hidden_channels)
             )
         elif encoder_type.lower() == "time_depth_separable":
             if use_prenet:
                 self.prenet = ResidualConv1dLayerNormBlock(
-                    hidden_channels, hidden_channels, hidden_channels, kernel_size=5, num_layers=3, dropout_p=0.5
+                    self.hidden_channels, self.hidden_channels, self.hidden_channels, kernel_size=5, num_layers=3, dropout_p=0.5
                 )
             self.encoder = TimeDepthSeparableConvBlock(
-                hidden_channels, hidden_channels, hidden_channels, **encoder_params
+                self.hidden_channels, self.hidden_channels, self.hidden_channels, **encoder_params
             )
         else:
             raise ValueError(" [!] Unkown encoder type.")
 
         # final projection layers
-        self.proj_m = nn.Conv1d(hidden_channels, out_channels, 1)
+        self.proj_m = nn.Conv1d(self.hidden_channels, out_channels, 1)
         if not mean_only:
-            self.proj_s = nn.Conv1d(hidden_channels, out_channels, 1)
-        # duration predictor
-        self.duration_predictor = DurationPredictor(
-            hidden_channels + c_in_channels, hidden_channels_dp, 3, dropout_p_dp
-        )
+            self.proj_s = nn.Conv1d(self.hidden_channels, out_channels, 1)
 
-    def forward(self, x, x_lengths, g=None, language_ids=None):
+    def forward(self, x, x_lengths, language_ids=None):
         """
         Shapes:
             x: [B, C, T]
@@ -162,7 +149,7 @@ class Encoder(nn.Module):
         # [B ,T, D]
         x = self.emb(x) * math.sqrt(self.hidden_channels)
 
-        if self.multilingual:
+        if self.num_langs > 1:
             l = self._language_embedding(language_ids).unsqueeze(1)
             l = l.expand(x.size(0), x.size(1), -1)
             x = torch.cat((x, l), dim=-1) 
@@ -179,18 +166,10 @@ class Encoder(nn.Module):
         # postnet
         if hasattr(self, "postnet"):
             x = self.postnet(x) * x_mask
-        # set duration predictor input
-        if g is not None:
-            g_exp = g.expand(-1, -1, x.size(-1))
-            x_dp = torch.cat([torch.detach(x), g_exp], 1)
-        else:
-            x_dp = torch.detach(x)
         # final projection layer
         x_m = self.proj_m(x) * x_mask
         if not self.mean_only:
             x_logs = self.proj_s(x) * x_mask
         else:
             x_logs = torch.zeros_like(x_m)
-        # duration predictor
-        logw = self.duration_predictor(x_dp, x_mask)
-        return x_m, x_logs, logw, x_mask
+        return x_m, x_logs, x, x_mask

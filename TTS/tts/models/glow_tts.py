@@ -8,7 +8,7 @@ from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.layers.glow_tts.encoder import Encoder
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.utils.generic_utils import sequence_mask
-
+from TTS.tts.layers.glow_tts.duration_predictor import DeterministicDurationPredictor, StochasticDurationPredictor
 
 class GlowTTS(nn.Module):
     """Glow TTS models from https://arxiv.org/abs/2005.11129
@@ -45,7 +45,7 @@ class GlowTTS(nn.Module):
         hidden_channels_dp,
         out_channels,
         num_langs=1,
-        language_embedding_dim=None,
+        language_embedding_dim=0,
         num_flow_blocks_dec=12,
         kernel_size_dec=5,
         dilation_rate=5,
@@ -61,6 +61,7 @@ class GlowTTS(nn.Module):
         encoder_type="transformer",
         encoder_params=None,
         external_speaker_embedding_dim=None,
+        use_stochastic_dp=False,
     ):
 
         super().__init__()
@@ -81,18 +82,25 @@ class GlowTTS(nn.Module):
         self.sigmoid_scale = sigmoid_scale
         self.mean_only = mean_only
         self.use_encoder_prenet = use_encoder_prenet
+        self.use_stochastic_dp = use_stochastic_dp
 
         # model constants.
         self.noise_scale = 0.33  # defines the noise variance applied to the random z vector at inference.
         self.length_scale = 1.0  # scaler for the duration predictor. The larger it is, the slower the speech.
+        self.noise_scale_w = 1.0 # defines the noise variance applied to the duration predictor z vector at inference.
+
         self.external_speaker_embedding_dim = external_speaker_embedding_dim
 
-        # if is a multispeaker and c_in_channels is 0, set to 256
+        # if is a multispeaker and c_in_channels is 0, set to 512
         if num_speakers > 1:
             if self.c_in_channels == 0 and not self.external_speaker_embedding_dim:
                 self.c_in_channels = 512
             elif self.external_speaker_embedding_dim:
                 self.c_in_channels = self.external_speaker_embedding_dim
+
+        if num_langs > 1:
+            if language_embedding_dim is None: 
+                language_embedding_dim = num_langs if num_langs % 2 == 0 else num_langs + 1 # Allow for odd number of languages
 
         self.encoder = Encoder(
             num_chars,
@@ -104,7 +112,6 @@ class GlowTTS(nn.Module):
             mean_only=mean_only,
             use_prenet=use_encoder_prenet,
             dropout_p_dp=dropout_p_dp,
-            c_in_channels=self.c_in_channels,
             num_langs=num_langs,
             language_embedding_dim=language_embedding_dim
         )
@@ -122,6 +129,14 @@ class GlowTTS(nn.Module):
             sigmoid_scale=sigmoid_scale,
             c_in_channels=self.c_in_channels,
         )
+        if self.use_stochastic_dp:
+            self.duration_predictor = StochasticDurationPredictor(
+                hidden_channels_enc + language_embedding_dim, hidden_channels_dp, 3, g_channels=self.c_in_channels
+            )
+        else:
+            self.duration_predictor = DeterministicDurationPredictor(
+                    hidden_channels_enc + self.c_in_channels + language_embedding_dim, hidden_channels_dp, 3, dropout_p_dp
+                )
 
         if num_speakers > 1 and not external_speaker_embedding_dim:
             # speaker embedding layer
@@ -159,7 +174,7 @@ class GlowTTS(nn.Module):
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
 
         # embedding pass
-        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g, language_ids=language_ids)
+        o_mean, o_log_scale, x_dp, x_mask = self.encoder(x, x_lengths, language_ids=language_ids)
         # drop redisual frames wrt num_squeeze and set y_lengths.
         y, y_lengths, y_max_length, attn = self.preprocess(y, y_lengths, y_max_length, None)
         # create masks
@@ -176,9 +191,19 @@ class GlowTTS(nn.Module):
             logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
+        # duration predictor
+        if self.use_stochastic_dp:
+            logw = self.duration_predictor(x_dp, x_mask, torch.sum(attn, -1), g=g)
+            logw = logw / torch.sum(x_mask)
+        else:
+            if g is not None:
+                g_exp = g.expand(-1, -1, x_dp.size(-1))
+                x_dp = torch.cat([x_dp, g_exp], 1)
+            logw = self.duration_predictor(x_dp, x_mask)
+
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
         attn = attn.squeeze(1).permute(0, 2, 1)
-        return z, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
+        return z, logdet, y_mean, y_log_scale, attn, logw, o_attn_dur
 
     @torch.no_grad()
     def inference(self, x, x_lengths, g=None, language_ids=None):
@@ -189,9 +214,21 @@ class GlowTTS(nn.Module):
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
 
         # embedding pass
-        o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g, language_ids=language_ids)
+        o_mean, o_log_scale, x_dp, x_mask = self.encoder(x, x_lengths, language_ids=language_ids)
+
+        # duration predictor
+        if self.use_stochastic_dp:
+            # reverse flow and predict the duration
+            o_dur_log = self.duration_predictor(x_dp, x_mask,  g=g, reverse=True, noise_scale=self.noise_scale_w)
+            w = torch.exp(o_dur_log) * x_mask * self.length_scale
+        else:
+            if g is not None:
+                g_exp = g.expand(-1, -1, x_dp.size(-1))
+                x_dp = torch.cat([x_dp, g_exp], 1)
+            o_dur_log = self.duration_predictor(x_dp, x_mask)
+            w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
+    
         # compute output durations
-        w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
         y_max_length = None
