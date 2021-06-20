@@ -24,8 +24,8 @@ class Encoder(nn.Module):
     Args:
         num_chars (int): number of characters.
         out_channels (int): number of output channels.
-        self.hidden_channels (int): encoder's embedding size.
-        self.hidden_channels_ffn (int): transformer's feed-forward channels.
+        hidden_channels (int): encoder's embedding size.
+        hidden_channels_ffn (int): transformer's feed-forward channels.
         kernel_size (int): kernel size for conv layers and duration predictor.
         dropout_p (float): dropout rate for any dropout layer.
         mean_only (bool): if True, output only mean values and use constant std.
@@ -43,7 +43,7 @@ class Encoder(nn.Module):
                 'dropout_p': 0.1,
                 'num_layers': 6,
                 'num_heads': 2,
-                'self.hidden_channels_ffn': 768,  # 4 times the self.hidden_channels
+                'hidden_channels_ffn': 768,  # 4 times the self.hidden_channels
                 'input_length': None
             }
 
