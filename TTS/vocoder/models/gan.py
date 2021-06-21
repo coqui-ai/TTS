@@ -144,20 +144,24 @@ class GAN(BaseVocoder):
 
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    @staticmethod
+    def _log(name: str, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
         y_hat = outputs[0]["model_outputs"]
         y = batch["waveform"]
-        figures = plot_results(y_hat, y, ap, "train")
+        figures = plot_results(y_hat, y, ap, name)
         sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
-        audios = {"train/audio": sample_voice}
+        audios = {f"{name}/audio": sample_voice}
         return figures, audios
+
+    def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+        return self._log("train", ap, batch, outputs)
 
     @torch.no_grad()
     def eval_step(self, batch: Dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
         return self.train_step(batch, criterion, optimizer_idx)
 
     def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
-        return self.train_log(ap, batch, outputs)
+        return self._log("eval", ap, batch, outputs)
 
     def load_checkpoint(
         self,
