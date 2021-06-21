@@ -50,6 +50,9 @@ def setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim=Non
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module("TTS.tts.models." + c.model.lower())
     MyModel = getattr(MyModel, to_camel(c.model))
+    # add extra slots for new languages
+    num_langs += getattr(c, "num_extras_language_slots", 0)
+
     if c.model.lower() in "tacotron":
         model = MyModel(
             num_chars=num_chars + getattr(c, "add_blank", False),
