@@ -36,7 +36,7 @@ from TTS.utils.generic_utils import (
 )
 from TTS.utils.io import copy_model_files, save_best_model, save_checkpoint
 from TTS.utils.logging import ConsoleLogger, TensorboardLogger
-from TTS.utils.trainer_utils import *
+from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_available, setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model as setup_vocoder_model
 
