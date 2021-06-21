@@ -98,6 +98,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - WaveRNN: [origin](https://github.com/fatchord/WaveRNN/)
 - WaveGrad: [paper](https://arxiv.org/abs/2009.00713)
 - HiFiGAN: [paper](https://arxiv.org/abs/2010.05646)
+- UnivNet: [paper](https://arxiv.org/pdf/2106.07889.pdf)
 
 You can also help us implement more models. Some 🐸TTS related work can be found [here](https://github.com/erogol/TTS-papers).
 
