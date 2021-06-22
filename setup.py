@@ -11,7 +11,7 @@ import setuptools.command.develop
 from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 
-if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.9"):
+if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.10"):
     raise RuntimeError("TTS requires python >= 3.6 and <=3.10 " "but your Python version is {}".format(sys.version))
 
 
@@ -106,6 +106,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
