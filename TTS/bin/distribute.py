@@ -18,7 +18,6 @@ def main():
     parser = TrainingArgs().init_argparse(arg_prefix="")
     parser.add_argument("--script", type=str, help="Target training script to distibute.")
     args, unargs = parser.parse_known_args()
-    breakpoint()
 
     num_gpus = torch.cuda.device_count()
     group_id = time.strftime("%Y_%m_%d-%H%M%S")
