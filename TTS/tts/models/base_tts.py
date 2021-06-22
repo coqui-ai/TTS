@@ -164,7 +164,7 @@ class BaseTTS(BaseModel):
                 compute_linear_spec=config.model.lower() == "tacotron",
                 meta_data=data_items,
                 ap=ap,
-                tp=config.characters,
+                characters=config.characters,
                 add_blank=config["add_blank"],
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_seq_len=config.min_seq_len,
