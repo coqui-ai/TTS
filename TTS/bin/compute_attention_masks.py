@@ -89,7 +89,7 @@ Example run:
         compute_linear_spec=False,
         ap=ap,
         meta_data=meta_data,
-        tp=C.characters if "characters" in C.keys() else None,
+        characters=c.characters if "characters" in C.keys() else None,
         add_blank=C["add_blank"] if "add_blank" in C.keys() else False,
         use_phonemes=C.use_phonemes,
         phoneme_cache_path=C.phoneme_cache_path,

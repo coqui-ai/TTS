@@ -44,7 +44,7 @@ class TestTTSDataset(unittest.TestCase):
             compute_linear_spec=True,
             ap=self.ap,
             meta_data=items,
-            tp=c.characters,
+            characters=c.characters,
             batch_group_size=bgs,
             min_seq_len=c.min_seq_len,
             max_seq_len=float("inf"),
