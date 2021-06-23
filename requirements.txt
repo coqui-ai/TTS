@@ -15,8 +15,8 @@ soundfile
 tensorboardX
 torch>=1.7
 tqdm
-numba==0.52
-umap-learn==0.4.6
+numba==0.53
+umap-learn==0.5.1
 anyascii
 coqpit
 # japanese g2p deps
