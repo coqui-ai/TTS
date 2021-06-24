@@ -24,7 +24,10 @@ def main():
 
     # set arguments for train.py
     folder_path = pathlib.Path(__file__).parent.absolute()
-    command = [os.path.join(folder_path, args.script)]
+    if os.path.exists(os.path.join(folder_path, args.script)):
+        command = [os.path.join(folder_path, args.script)]
+    else:
+        command = [args.script]
     command.append("--continue_path={}".format(args.continue_path))
     command.append("--restore_path={}".format(args.restore_path))
     command.append("--config_path={}".format(args.config_path))
