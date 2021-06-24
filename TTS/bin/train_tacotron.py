@@ -170,16 +170,16 @@ def format_data(data):
     )
 
 
-def extract_parameters(test_sentence):
+def extract_parameters(test_sentence, c):
     splited = test_sentence.split('|')
     if len(splited) == 1: # No language or speaker info
         return (splited[0], None, None)
     if len(splited) == 2: # No language info
         sentence, speaker = splited
-        return (sentence, speaker_mapping[speaker], None)
+        return (sentence, speaker_mapping[speaker]["embedding"] if c.use_external_speaker_embedding_file else speaker_mapping[speaker], None)
     if len(splited) == 3:
         sentence, speaker, language = splited
-        return (sentence, speaker_mapping[speaker], language_mapping[language])
+        return (sentence, speaker_mapping[speaker]["embedding"] if c.use_external_speaker_embedding_file else speaker_mapping[speaker], language_mapping[language])
     raise RuntimeError("Invalid line was given in the test sentence file.")
 
 
@@ -619,7 +619,10 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
         style_wav = c.get("gst_style_input")
         for idx, test_sentence in enumerate(test_sentences):
             try:
-                test_sentence, speaker_id, language_id = extract_parameters(test_sentence)
+                if c.use_external_speaker_embedding_file and c.use_speaker_embedding:
+                    test_sentence, speaker_embedding, language_id = extract_parameters(test_sentence, c)
+                else:
+                    test_sentence, speaker_id, language_id = extract_parameters(test_sentence, c)
                 wav, alignment, decoder_output, postnet_output, stop_tokens, _ = synthesis(
                     model,
                     test_sentence,
@@ -752,14 +755,12 @@ def main(args):  # pylint: disable=redefined-outer-name
         print(f" > Starting with loaded last best loss {best_loss}.")
     keep_all_best = c.get("keep_all_best", False)
     keep_after = c.get("keep_after", 10000)  # void if keep_all_best False
-
-    # define data loaders
-    train_loader = setup_loader(ap, model.decoder.r, is_val=False, verbose=True)
-    eval_loader = setup_loader(ap, model.decoder.r, is_val=True)
+    
 
     global_step = args.restore_step
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
+        train_loader = setup_loader(ap, model.decoder.r, is_val=False, verbose=True)
         # set gradual training
         if c.gradual_training is not None:
             r, c.batch_size = gradual_training_scheduler(global_step, c)
@@ -768,9 +769,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             if c.bidirectional_decoder:
                 model.decoder_backward.set_r(r)
             train_loader.dataset.outputs_per_step = r
-            eval_loader.dataset.outputs_per_step = r
             train_loader = setup_loader(ap, model.decoder.r, is_val=False, dataset=train_loader.dataset)
-            eval_loader = setup_loader(ap, model.decoder.r, is_val=True, dataset=eval_loader.dataset)
             print("\n > Number of output frames:", model.decoder.r)
         # train one epoch
         train_avg_loss_dict, global_step = train(
@@ -787,6 +786,10 @@ def main(args):  # pylint: disable=redefined-outer-name
             scaler_st,
         )
         # eval one epoch
+        eval_loader = setup_loader(ap, model.decoder.r, is_val=True)
+        if c.gradual_training is not None:
+            eval_loader.dataset.outputs_per_step = r
+            eval_loader = setup_loader(ap, model.decoder.r, is_val=True, dataset=eval_loader.dataset)
         eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict["avg_postnet_loss"]
