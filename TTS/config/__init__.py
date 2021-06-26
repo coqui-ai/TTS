@@ -1,8 +1,10 @@
 import json
 import os
 import re
+from typing import Dict
 
 import yaml
+from coqpit import Coqpit
 
 from TTS.config.shared_configs import *
 from TTS.utils.generic_utils import find_module
@@ -20,7 +22,18 @@ def read_json_with_comments(json_path):
     return data
 
 
-def _search_configs(model_name):
+def register_config(model_name: str) -> Coqpit:
+    """Find the right config for the given model name.
+
+    Args:
+        model_name (str): Model name.
+
+    Raises:
+        ModuleNotFoundError: No matching config for the model name.
+
+    Returns:
+        Coqpit: config class.
+    """
     config_class = None
     paths = ["TTS.tts.configs", "TTS.vocoder.configs", "TTS.speaker_encoder"]
     for path in paths:
@@ -33,7 +46,15 @@ def _search_configs(model_name):
     return config_class
 
 
-def _process_model_name(config_dict):
+def _process_model_name(config_dict: Dict) -> str:
+    """Format the model name as expected. It is a band-aid for the old `vocoder` model names.
+
+    Args:
+        config_dict (Dict): A dictionary including the config fields.
+
+    Returns:
+        str: Formatted modelname.
+    """
     model_name = config_dict["model"] if "model" in config_dict else config_dict["generator_model"]
     model_name = model_name.replace("_generator", "").replace("_discriminator", "")
     return model_name
@@ -69,7 +90,7 @@ def load_config(config_path: str) -> None:
         raise TypeError(f" [!] Unknown config file type {ext}")
     config_dict.update(data)
     model_name = _process_model_name(config_dict)
-    config_class = _search_configs(model_name.lower())
+    config_class = register_config(model_name.lower())
     config = config_class()
     config.from_dict(config_dict)
     return config
