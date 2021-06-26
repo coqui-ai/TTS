@@ -180,6 +180,14 @@ class BaseTrainingConfig(Coqpit):
     among all the models.
 
     Args:
+        model (str):
+            Name of the model that is used in the training.
+        run_name (str):
+            Name of the experiment. This prefixes the output folder name.
+        run_description (str):
+            Short description of the experiment.
+        epochs (int):
+            Number training epochs. Defaults to 10000.
         batch_size (int):
             Training batch size.
         eval_batch_size (int):
