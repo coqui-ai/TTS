@@ -18,7 +18,7 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
 
-from TTS.config import load_config
+from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.models import setup_model as setup_tts_model
 from TTS.tts.utils.text.symbols import parse_symbols
@@ -940,7 +940,10 @@ def process_args(args, config=None):
         c_logger (TTS.utils.console_logger.ConsoleLogger): Class that does
             logging to the console.
         tb_logger (TTS.utils.tensorboard.TensorboardLogger): Class that does
-            the TensorBoard loggind.
+            the TensorBoard logging.
+
+    TODO:
+        - Interactive config definition.
     """
     if isinstance(args, tuple):
         args, coqpit_overrides = args
@@ -951,9 +954,17 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-    # setup output paths and read configs
-    if config is None:
+    # init config
+    if config is None and args.config_path:
+        # init from a file
         config = load_config(args.config_path)
+    else:
+        # init from console args
+        from TTS.config.shared_configs import BaseTrainingConfig
+
+        config_base = BaseTrainingConfig()
+        config_base.parse_known_args(coqpit_overrides)
+        config = register_config(config_base.model)()
     # override values from command-line args
     config.parse_known_args(coqpit_overrides, relaxed_parser=True)
     if config.mixed_precision:
