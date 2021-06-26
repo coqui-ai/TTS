@@ -102,10 +102,10 @@ class ModelManager(object):
         output_model_path = os.path.join(output_path, "model_file.pth.tar")
         output_config_path = os.path.join(output_path, "config.json")
         # NOTE : band-aid for removing phoneme support
-        if "needs_phonemizer" in model_item and model_item["needs_phonemizer"]:
-            raise RuntimeError(
-                " [!] Use 🐸TTS <= v0.0.13 for this model. Current version does not support phoneme based models."
-            )
+        # if "needs_phonemizer" in model_item and model_item["needs_phonemizer"]:
+        #     raise RuntimeError(
+        #         " [!] Use 🐸TTS <= v0.0.13 for this model. Current version does not support phoneme based models."
+        #     )
         if os.path.exists(output_path):
             print(f" > {model_name} is already downloaded.")
         else:
