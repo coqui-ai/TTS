@@ -140,7 +140,7 @@ events.out*
 old_configs/*
 model_importers/*
 model_profiling/*
-docs/*
+docs/source/TODO/*
 .noseids
 .dccache
 log.txt
