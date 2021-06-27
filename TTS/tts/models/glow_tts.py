@@ -85,7 +85,7 @@ class GlowTTS(nn.Module):
         self.use_stochastic_dp = use_stochastic_dp
 
         # model constants.
-        self.noise_scale = 0.33  # defines the noise variance applied to the random z vector at inference.
+        self.noise_scale = 0.0  # defines the noise variance applied to the random z vector at inference.
         self.length_scale = 1.0  # scaler for the duration predictor. The larger it is, the slower the speech.
         self.noise_scale_w = 1.0 # defines the noise variance applied to the duration predictor z vector at inference.
 
