@@ -6,16 +6,6 @@ help:
 
 target_dirs := tests TTS notebooks
 
-system-deps:	## install linux system deps
-	sudo apt-get install -y libsndfile1-dev
-
-dev-deps:  ## install development deps
-	pip install -r requirements.dev.txt
-	pip install -r requirements.tf.txt
-
-deps:	## install 🐸 requirements.
-	pip install -r requirements.txt
-
 test_all:	## run tests and don't stop on an error.
 	nosetests --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
 	./run_bash_tests.sh
@@ -33,6 +23,22 @@ style:	## update code style.
 
 lint:	## run pylint linter.
 	pylint ${target_dirs}
+
+system-deps:	## install linux system deps
+	sudo apt-get install -y libsndfile1-dev
+
+dev-deps:  ## install development deps
+	pip install -r requirements.dev.txt
+	pip install -r requirements.tf.txt
+
+doc-deps:  ## install docs dependencies
+	pip install -r docs/requirements.txt
+
+hub-deps:  ## install deps for torch hub use
+	pip install -r requirements.hub.txt
+
+deps:	## install 🐸 requirements.
+	pip install -r requirements.txt
 
 install:	## install 🐸 TTS for development.
 	pip install -e .[all]
