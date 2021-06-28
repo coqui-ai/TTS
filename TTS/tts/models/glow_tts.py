@@ -224,7 +224,7 @@ class GlowTTS(nn.Module):
         else:
             o_dur_log = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding)
             w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
-    
+
         # compute output durations
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
@@ -256,6 +256,11 @@ class GlowTTS(nn.Module):
                 g = F.normalize(g).unsqueeze(-1)
             else:
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
+        if g_target is not None:
+            if self.external_speaker_embedding_dim:
+                g_target = F.normalize(g_target).unsqueeze(-1)
+            else:
+                g_target = F.normalize(self.emb_g(g_target)).unsqueeze(-1)  # [b, h, 1]
 
         y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length), 1).to(y.dtype)
 
