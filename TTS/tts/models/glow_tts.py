@@ -62,6 +62,7 @@ class GlowTTS(nn.Module):
         encoder_params=None,
         external_speaker_embedding_dim=None,
         use_stochastic_dp=False,
+        dp_use_language_embedding=False,
     ):
 
         super().__init__()
@@ -131,11 +132,13 @@ class GlowTTS(nn.Module):
         )
         if self.use_stochastic_dp:
             self.duration_predictor = StochasticDurationPredictor(
-                hidden_channels_enc + language_embedding_dim, hidden_channels_dp, 3, g_channels=self.c_in_channels
+                hidden_channels_enc + language_embedding_dim, hidden_channels_dp, 3, g_channels=self.c_in_channels, 
+                language_embedding_dim=language_embedding_dim, use_language_embedding=dp_use_language_embedding,
             )
         else:
             self.duration_predictor = DeterministicDurationPredictor(
-                    hidden_channels_enc + self.c_in_channels + language_embedding_dim, hidden_channels_dp, 3, dropout_p_dp
+                    hidden_channels_enc + self.c_in_channels + language_embedding_dim, hidden_channels_dp, 3, dropout_p_dp, 
+                    language_embedding_dim=language_embedding_dim, use_language_embedding=dp_use_language_embedding,
                 )
 
         if num_speakers > 1 and not external_speaker_embedding_dim:
@@ -174,7 +177,7 @@ class GlowTTS(nn.Module):
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
 
         # embedding pass
-        o_mean, o_log_scale, x_dp, x_mask = self.encoder(x, x_lengths, language_ids=language_ids)
+        o_mean, o_log_scale, x_dp, x_mask, language_embedding = self.encoder(x, x_lengths, language_ids=language_ids)
         # drop redisual frames wrt num_squeeze and set y_lengths.
         y, y_lengths, y_max_length, attn = self.preprocess(y, y_lengths, y_max_length, None)
         # create masks
@@ -193,13 +196,10 @@ class GlowTTS(nn.Module):
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
         # duration predictor
         if self.use_stochastic_dp:
-            logw = self.duration_predictor(x_dp, x_mask, torch.sum(attn, -1), g=g)
+            logw = self.duration_predictor(x_dp, x_mask, torch.sum(attn, -1), g=g, language_embedding=language_embedding)
             logw = logw / torch.sum(x_mask)
         else:
-            if g is not None:
-                g_exp = g.expand(-1, -1, x_dp.size(-1))
-                x_dp = torch.cat([x_dp, g_exp], 1)
-            logw = self.duration_predictor(x_dp, x_mask)
+            logw = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding)
 
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
         attn = attn.squeeze(1).permute(0, 2, 1)
@@ -214,18 +214,15 @@ class GlowTTS(nn.Module):
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h]
 
         # embedding pass
-        o_mean, o_log_scale, x_dp, x_mask = self.encoder(x, x_lengths, language_ids=language_ids)
+        o_mean, o_log_scale, x_dp, x_mask, language_embedding = self.encoder(x, x_lengths, language_ids=language_ids)
 
         # duration predictor
         if self.use_stochastic_dp:
             # reverse flow and predict the duration
-            o_dur_log = self.duration_predictor(x_dp, x_mask,  g=g, reverse=True, noise_scale=self.noise_scale_w)
+            o_dur_log = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding, reverse=True, noise_scale=self.noise_scale_w)
             w = torch.exp(o_dur_log) * x_mask * self.length_scale
         else:
-            if g is not None:
-                g_exp = g.expand(-1, -1, x_dp.size(-1))
-                x_dp = torch.cat([x_dp, g_exp], 1)
-            o_dur_log = self.duration_predictor(x_dp, x_mask)
+            o_dur_log = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding)
             w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
     
         # compute output durations
@@ -244,6 +241,34 @@ class GlowTTS(nn.Module):
         y, logdet = self.decoder(z, y_mask, g=g, reverse=True)
         attn = attn.squeeze(1).permute(0, 2, 1)
         return y, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
+    @torch.no_grad()
+    def decoder_inference(self, y, y_lengths=None, g=None, g_target=None):
+        """
+        Shapes:
+            y: [B, C, T]
+            y_lengths: B
+            g: [B, C] or B
+        """
+        y_max_length = y.size(2)
+        # norm speaker embeddings
+        if g is not None:
+            if self.external_speaker_embedding_dim:
+                g = F.normalize(g).unsqueeze(-1)
+            else:
+                g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
+
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length), 1).to(y.dtype)
+
+        # decoder pass
+        z, logdet = self.decoder(y, y_mask, g=g, reverse=False)
+
+        # if g_target is None set g_target as g
+        if g_target is None:
+            g_target = g
+        # reverse decoder and predict
+        y, logdet = self.decoder(z, y_mask, g=g_target, reverse=True)
+
+        return y, logdet
 
     def preprocess(self, y, y_lengths, y_max_length, attn=None):
         if y_max_length is not None:

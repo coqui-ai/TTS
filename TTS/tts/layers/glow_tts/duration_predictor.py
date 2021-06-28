@@ -7,7 +7,7 @@ from .dp_utils import ElementwiseAffine, ConvFlow, DDSConv, Flip
 
 
 class StochasticDurationPredictor(nn.Module):
-    def __init__(self, in_channels, hidden_channels, kernel_size, p_dropout=0.5, n_flows=4, g_channels=0):
+    def __init__(self, in_channels, hidden_channels, kernel_size, p_dropout=0.5, n_flows=4, g_channels=0, language_embedding_dim=0, use_language_embedding=False):
         super().__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
@@ -15,6 +15,7 @@ class StochasticDurationPredictor(nn.Module):
         self.p_dropout = p_dropout
         self.n_flows = n_flows
         self.g_channels = g_channels
+        self.use_language_embedding = use_language_embedding
 
         self.flows = nn.ModuleList()
         self.flows.append(ElementwiseAffine(2))
@@ -38,15 +39,26 @@ class StochasticDurationPredictor(nn.Module):
         self.proj = nn.Conv1d(self.hidden_channels, self.hidden_channels, 1)
 
         self.convs = DDSConv(self.hidden_channels, kernel_size, n_layers=3, p_dropout=p_dropout)
+
         if g_channels != 0:
             self.cond = nn.Conv1d(g_channels, self.hidden_channels, 1)
 
-    def forward(self, x, x_mask, w=None, g=None, reverse=False, noise_scale=1.0):
+        if use_language_embedding and language_embedding_dim != 0:
+            self.cond_lang = nn.Conv1d(language_embedding_dim, self.hidden_channels, 1)
+        else:
+            self.use_language_embedding = False
+
+    def forward(self, x, x_mask, w=None, g=None, language_embedding=None, reverse=False, noise_scale=1.0):
         x = torch.detach(x)
         x = self.pre(x)
+
         if g is not None:
             g = torch.detach(g)
             x = x + self.cond(g)
+
+        if self.use_language_embedding:
+            language_embedding = torch.detach(language_embedding).transpose(2, 1)
+            x = x + self.cond_lang(language_embedding)
 
         x = self.convs(x, x_mask)
         x = self.proj(x) * x_mask
@@ -102,13 +114,15 @@ class DeterministicDurationPredictor(nn.Module):
             dropout_p ([type]): [description]
     """
 
-    def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p):
+    def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p, language_embedding_dim=0, use_language_embedding=False):
         super().__init__()
         # class arguments
         self.in_channels = in_channels
-        self.self.hidden_channels = hidden_channels
+        self.hidden_channels = hidden_channels
         self.kernel_size = kernel_size
         self.dropout_p = dropout_p
+        self.use_language_embedding = use_language_embedding
+
         # layers
         self.drop = nn.Dropout(dropout_p)
         self.conv_1 = nn.Conv1d(in_channels, hidden_channels, kernel_size, padding=kernel_size // 2)
@@ -118,7 +132,12 @@ class DeterministicDurationPredictor(nn.Module):
         # output layer
         self.proj = nn.Conv1d(hidden_channels, 1, 1)
 
-    def forward(self, x, x_mask):
+        if use_language_embedding and language_embedding_dim != 0:
+            self.cond_lang = nn.Conv1d(language_embedding_dim, in_channels, 1)
+        else:
+            self.use_language_embedding = False
+
+    def forward(self, x, x_mask, g=None, language_embedding=None):
         """
         Shapes:
             x: [B, C, T]
@@ -128,6 +147,15 @@ class DeterministicDurationPredictor(nn.Module):
             [type]: [description]
         """
         x = torch.detach(x)
+        if g is not None:
+            g = torch.detach(g)
+            g = g.expand(-1, -1, x.size(-1))
+            x = torch.cat([x, g], 1)
+
+        if self.use_language_embedding:
+            language_embedding = torch.detach(language_embedding).transpose(2, 1)
+            x = x + self.cond_lang(language_embedding)
+
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
         x = self.norm_1(x)

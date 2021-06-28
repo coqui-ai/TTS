@@ -150,9 +150,10 @@ class Encoder(nn.Module):
         x = self.emb(x) * math.sqrt(self.hidden_channels)
 
         if self.num_langs > 1:
-            l = self._language_embedding(language_ids).unsqueeze(1)
-            l = l.expand(x.size(0), x.size(1), -1)
-            x = torch.cat((x, l), dim=-1) 
+            l_emb = self._language_embedding(language_ids).unsqueeze(1)
+            x = torch.cat((x, l_emb.expand(x.size(0), x.size(1), -1)), dim=-1) 
+        else:
+            l_emb = None
 
         # [B, D, T]
         x = torch.transpose(x, 1, -1)
@@ -172,4 +173,4 @@ class Encoder(nn.Module):
             x_logs = self.proj_s(x) * x_mask
         else:
             x_logs = torch.zeros_like(x_m)
-        return x_m, x_logs, x, x_mask
+        return x_m, x_logs, x, x_mask, l_emb
