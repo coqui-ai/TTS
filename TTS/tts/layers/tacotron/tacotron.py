@@ -1,4 +1,6 @@
 # coding: utf-8
+# adapted from https://github.com/r9y9/tacotron_pytorch
+
 import torch
 from torch import nn
 
