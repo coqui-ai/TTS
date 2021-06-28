@@ -1,5 +1,5 @@
 dependencies = [
-    'torch', 'gdown', 'pysbd', 'phonemizer', 'unidecode', 'pypinyin'
+    'torch', 'gdown', 'pysbd', 'gruut', 'anyascii', 'pypinyin', 'coqpit', 'mecab-python3', 'unidic-lite`
 ]
 import torch
 
