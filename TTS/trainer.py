@@ -1012,17 +1012,18 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-    # init config
-    if config is None and args.config_path:
-        # init from a file
-        config = load_config(args.config_path)
-    else:
-        # init from console args
-        from TTS.config.shared_configs import BaseTrainingConfig  # pylint: disable=import-outside-toplevel
+    # init config if not already defined
+    if config is None:
+        if args.config_path:
+            # init from a file
+            config = load_config(args.config_path)
+        else:
+            # init from console args
+            from TTS.config.shared_configs import BaseTrainingConfig  # pylint: disable=import-outside-toplevel
 
-        config_base = BaseTrainingConfig()
-        config_base.parse_known_args(coqpit_overrides)
-        config = register_config(config_base.model)()
+            config_base = BaseTrainingConfig()
+            config_base.parse_known_args(coqpit_overrides)
+            config = register_config(config_base.model)()
     # override values from command-line args
     config.parse_known_args(coqpit_overrides, relaxed_parser=True)
     if config.mixed_precision:
