@@ -1018,7 +1018,7 @@ def process_args(args, config=None):
         config = load_config(args.config_path)
     else:
         # init from console args
-        from TTS.config.shared_configs import BaseTrainingConfig
+        from TTS.config.shared_configs import BaseTrainingConfig  # pylint: disable=import-outside-toplevel
 
         config_base = BaseTrainingConfig()
         config_base.parse_known_args(coqpit_overrides)
