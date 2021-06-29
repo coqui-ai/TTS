@@ -25,10 +25,9 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | Type                            | Platforms                               |
 | ------------------------------- | --------------------------------------- |
 | 🚨 **Bug Reports**              | [GitHub Issue Tracker]                  |
-| ❔ **FAQ**                      | [TTS/Wiki](https://github.com/coqui-ai/TTS/wiki/FAQ)                              |
 | 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
 | 👩‍💻 **Usage Questions**          | [Github Discussions]                    |
-| 🗯 **General Discussion**       | [Github Discussions] or [Gitter Room]|
+| 🗯 **General Discussion**       | [Github Discussions] or [Gitter Room]   |
 
 [github issue tracker]: https://github.com/coqui-ai/tts/issues
 [github discussions]: https://github.com/coqui-ai/TTS/discussions
