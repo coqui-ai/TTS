@@ -10,6 +10,10 @@ test_all:	## run tests and don't stop on an error.
 	nosetests --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
 	./run_bash_tests.sh
 
+test_all:	## run tests and don't stop on an error.
+	nosetests --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
+	./run_bash_tests.sh
+
 test:	## run tests.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
 	./run_bash_tests.sh

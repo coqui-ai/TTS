@@ -31,6 +31,7 @@ def setup_model(config: Coqpit):
 
 
 def setup_generator(c):
+    """ TODO: use config object as arguments"""
     print(" > Generator Model: {}".format(c.generator_model))
     MyModel = importlib.import_module("TTS.vocoder.models." + c.generator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.generator_model))
@@ -85,12 +86,15 @@ def setup_generator(c):
             use_weight_norm=True,
             upsample_factors=c.generator_model_params["upsample_factors"],
         )
+    elif c.generator_model.lower() in "univnet_generator":
+        model = MyModel(**c.generator_model_params)
     else:
         raise NotImplementedError(f"Model {c.generator_model} not implemented!")
     return model
 
 
 def setup_discriminator(c):
+    """ TODO: use config objekt as arguments"""
     print(" > Discriminator Model: {}".format(c.discriminator_model))
     if "parallel_wavegan" in c.discriminator_model:
         MyModel = importlib.import_module("TTS.vocoder.models.parallel_wavegan_discriminator")
@@ -144,4 +148,6 @@ def setup_discriminator(c):
             nonlinear_activation_params={"negative_slope": 0.2},
             bias=True,
         )
+    if c.discriminator_model == "univnet_discriminator":
+        model = MyModel()
     return model
