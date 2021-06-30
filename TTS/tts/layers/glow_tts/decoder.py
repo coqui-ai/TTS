@@ -12,7 +12,8 @@ def squeeze(x, x_mask=None, num_sqz=2):
 
     Note:
         each 's' is a n-dimensional vector.
-        [s1,s2,s3,s4,s5,s6] --> [[s1, s3, s5], [s2, s4, s6]]"""
+        ``[s1,s2,s3,s4,s5,s6] --> [[s1, s3, s5], [s2, s4, s6]]``
+    """
     b, c, t = x.size()
 
     t = (t // num_sqz) * num_sqz
@@ -32,7 +33,8 @@ def unsqueeze(x, x_mask=None, num_sqz=2):
 
     Note:
         each 's' is a n-dimensional vector.
-        [[s1, s3, s5], [s2, s4, s6]] --> [[s1, s3, s5], [s2, s4, s6]]"""
+        ``[[s1, s3, s5], [s2, s4, s6]] --> [[s1, s3, s5], [s2, s4, s6]]``
+    """
     b, c, t = x.size()
 
     x_unsqz = x.view(b, num_sqz, c // num_sqz, t)
@@ -47,7 +49,10 @@ def unsqueeze(x, x_mask=None, num_sqz=2):
 
 class Decoder(nn.Module):
     """Stack of Glow Decoder Modules.
-    Squeeze -> ActNorm -> InvertibleConv1x1 -> AffineCoupling -> Unsqueeze
+
+    ::
+
+        Squeeze -> ActNorm -> InvertibleConv1x1 -> AffineCoupling -> Unsqueeze
 
     Args:
         in_channels (int): channels of input tensor.
@@ -106,6 +111,12 @@ class Decoder(nn.Module):
             )
 
     def forward(self, x, x_mask, g=None, reverse=False):
+        """
+        Shapes:
+            - x:  :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1 ,T]`
+            - g: :math:`[B, C]`
+        """
         if not reverse:
             flows = self.flows
             logdet_tot = 0

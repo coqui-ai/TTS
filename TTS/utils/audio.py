@@ -54,7 +54,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
             Tensor: spectrogram frames.
 
         Shapes:
-            x: [B x T] or [B x 1 x T]
+            x: [B x T] or [:math:`[B, 1, T]`]
         """
         if x.ndim == 2:
             x = x.unsqueeze(1)

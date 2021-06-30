@@ -113,7 +113,7 @@ def sample_from_discretized_mix_logistic(y, log_scale_min=None):
     """
     Sample from discretized mixture of logistic distributions
     Args:
-        y (Tensor): B x C x T
+        y (Tensor): :math:`[B, C, T]`
         log_scale_min (float): Log scale minimum value
     Returns:
         Tensor: sample in range of [-1, 1].

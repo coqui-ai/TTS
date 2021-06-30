@@ -50,6 +50,43 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'TODO/*']
 
 source_suffix = [".rst", ".md"]
 
+# extensions
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.autosectionlabel',
+    'myst_parser',
+    "sphinx_copybutton",
+    "sphinx_inline_tabs",
+]
+
+# 'sphinxcontrib.katex',
+# 'sphinx.ext.autosectionlabel',
+
+
+# autosectionlabel throws warnings if section names are duplicated.
+# The following tells autosectionlabel to not throw a warning for
+# duplicated section names that are in different documents.
+autosectionlabel_prefix_document = True
+
+language = None
+
+autodoc_inherit_docstrings = False
+
+# Disable displaying type annotations, these can be very verbose
+autodoc_typehints = 'none'
+
+# Enable overriding of function signatures in the first line of the docstring.
+autodoc_docstring_signature = True
+
+napoleon_custom_sections = [('Shapes', 'shape')]
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -80,23 +117,3 @@ html_sidebars = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-
-# using markdown
-extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.autosectionlabel',
-    'myst_parser',
-    "sphinx_copybutton",
-    "sphinx_inline_tabs",
-]
-
-# 'sphinxcontrib.katex',
-# 'sphinx.ext.autosectionlabel',

@@ -1,4 +1,4 @@
-# AudioProcessor
+# AudioProcessor API
 
 `TTS.utils.audio.AudioProcessor` is the core class for all the audio processing routines. It provides an API for
 

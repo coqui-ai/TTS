@@ -19,6 +19,6 @@ Model API provides you a set of functions that easily make your model compatible
 ## Base `vocoder` Model
 
 ```{eval-rst}
-.. autoclass:: TTS.tts.models.base_vocoder.BaseVocoder`
+.. autoclass:: TTS.vocoder.models.base_vocoder.BaseVocoder
     :members:
 ```

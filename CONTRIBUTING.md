@@ -2,7 +2,7 @@
 
 Welcome to the 🐸TTS!
 
-This repository is governed by the Contributor Covenant Code of Conduct - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+This repository is governed by [the Contributor Covenant Code of Conduct](https://github.com/coqui-ai/TTS/blob/main/CODE_OF_CONDUCT.md).
 
 ## Where to start.
 We welcome everyone who likes to contribute to 🐸TTS.
