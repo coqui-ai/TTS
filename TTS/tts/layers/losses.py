@@ -244,7 +244,7 @@ class ReversalClassifierLoss(nn.Module):
     @staticmethod
     def forward(input_lengths, speakers, prediction):
         ignore_index = -100
-        ml = torch.max(input_lengths)
+        ml = prediction.size(1)
         input_mask = torch.arange(ml, device=input_lengths.device)[None, :] < input_lengths[:, None]
         target = speakers.repeat(ml, 1).transpose(0, 1)
         target[~input_mask] = ignore_index
@@ -395,6 +395,7 @@ class TacotronLoss(torch.nn.Module):
 
         # adversarial classifier loss (if enabled)
         if self.config.reversal_classifier:
+            print(speaker_ids)
             reversal_classifier_loss = self.criterion_reversal(input_lens, speaker_ids, speaker_prediction)
             reversal_classifier_loss *= self.config.reversal_classifier_w / (self.config.audio["num_mels"] + 2)
             loss += reversal_classifier_loss
@@ -412,10 +413,15 @@ class TacotronLoss(torch.nn.Module):
 class GlowTTSLoss(torch.nn.Module):
     def __init__(self, c):
         super().__init__()
+        self.config = c
         self.use_stochastic_duration_predictor = getattr(c, "use_stochastic_duration_predictor", False)
+        self.use_reversal_classifier = getattr(c, "reversal_classifier", False)
+        if self.use_reversal_classifier:
+            self.criterion_reversal = ReversalClassifierLoss()
+
         self.constant_factor = 0.5 * math.log(2 * math.pi)
 
-    def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths):
+    def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths, speaker_prediction=None, speaker_ids=None):
         return_dict = {}
         # flow loss - neg log likelihood
         pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means) ** 2)
@@ -430,6 +436,12 @@ class GlowTTSLoss(torch.nn.Module):
         return_dict["loss"] = log_mle + loss_dur
         return_dict["log_mle"] = log_mle
         return_dict["loss_dur"] = loss_dur
+
+        if self.use_reversal_classifier:
+            reversal_classifier_loss = self.criterion_reversal(y_lengths, speaker_ids, speaker_prediction)
+            reversal_classifier_loss *= self.config.reversal_classifier_w / (self.config.audio["num_mels"] + 2)
+            return_dict["loss"] += reversal_classifier_loss
+            return_dict["reversal_classifier_loss"] = reversal_classifier_loss
 
         # check if any loss is NaN
         for key, loss in return_dict.items():

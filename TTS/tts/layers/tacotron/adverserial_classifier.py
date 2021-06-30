@@ -40,6 +40,7 @@ class ReversalClassifier(torch.nn.Module):
         )
 
     def forward(self, x):
+
         x = GradientReversalFunction.apply(x, self._lambda, self._clipping)
         x = self._classifier(x)
         return x

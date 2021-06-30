@@ -8,6 +8,7 @@ from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.layers.glow_tts.encoder import Encoder
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.layers.tacotron.adverserial_classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DeterministicDurationPredictor, StochasticDurationPredictor
 
 class GlowTTS(nn.Module):
@@ -63,6 +64,9 @@ class GlowTTS(nn.Module):
         external_speaker_embedding_dim=None,
         use_stochastic_dp=False,
         dp_use_language_embedding=False,
+        reversal_classifier=False,
+        reversal_classifier_dim=256,
+        reversal_gradient_clipping=0.25,
     ):
 
         super().__init__()
@@ -91,6 +95,8 @@ class GlowTTS(nn.Module):
         self.noise_scale_w = 1.0 # defines the noise variance applied to the duration predictor z vector at inference.
 
         self.external_speaker_embedding_dim = external_speaker_embedding_dim
+
+        self.reversal_classifier = reversal_classifier
 
         # if is a multispeaker and c_in_channels is 0, set to 512
         if num_speakers > 1:
@@ -146,6 +152,15 @@ class GlowTTS(nn.Module):
             self.emb_g = nn.Embedding(num_speakers, self.c_in_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
+        # adverserial speaker classifier
+        if self.reversal_classifier:
+            self._reversal_classifier = ReversalClassifier(
+                input_dim=out_channels,
+                hidden_dim=reversal_classifier_dim,
+                output_dim=num_speakers,
+                gradient_clipping_bounds=reversal_gradient_clipping,
+            )
+
     @staticmethod
     def compute_outputs(attn, o_mean, o_log_scale, x_mask):
         # compute final values with the computed alignment
@@ -185,6 +200,9 @@ class GlowTTS(nn.Module):
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         # decoder pass
         z, logdet = self.decoder(y, y_mask, g=g, reverse=False)
+
+        speaker_prediction = self._reversal_classifier(z.transpose(1, 2)) if self.reversal_classifier else None
+
         # find the alignment path
         with torch.no_grad():
             o_scale = torch.exp(-2 * o_log_scale)
@@ -203,7 +221,7 @@ class GlowTTS(nn.Module):
 
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
         attn = attn.squeeze(1).permute(0, 2, 1)
-        return z, logdet, y_mean, y_log_scale, attn, logw, o_attn_dur
+        return z, logdet, y_mean, y_log_scale, attn, logw, o_attn_dur, speaker_prediction
 
     @torch.no_grad()
     def inference(self, x, x_lengths, g=None, language_ids=None):
@@ -256,20 +274,20 @@ class GlowTTS(nn.Module):
                 g = F.normalize(g).unsqueeze(-1)
             else:
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
+
         if g_target is not None:
             if self.external_speaker_embedding_dim:
                 g_target = F.normalize(g_target).unsqueeze(-1)
             else:
                 g_target = F.normalize(self.emb_g(g_target)).unsqueeze(-1)  # [b, h, 1]
+        else:
+            g_target = g
 
         y_mask = torch.unsqueeze(sequence_mask(y_lengths, y_max_length), 1).to(y.dtype)
 
         # decoder pass
         z, logdet = self.decoder(y, y_mask, g=g, reverse=False)
-
-        # if g_target is None set g_target as g
-        if g_target is None:
-            g_target = g
+     
         # reverse decoder and predict
         y, logdet = self.decoder(z, y_mask, g=g_target, reverse=True)
 

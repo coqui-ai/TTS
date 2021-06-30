@@ -111,7 +111,7 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH):
         speaker_embedding_dim = None
         speaker_mapping = None
 
-    return num_speakers, speaker_embedding_dim, speaker_mapping
+    return num_speakers, speakers, speaker_embedding_dim, speaker_mapping
 
 
 def parse_languages(c, args, meta_data_train, OUT_PATH):

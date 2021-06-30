@@ -99,8 +99,10 @@ def format_data(data):
     attn_mask = data[10]
     avg_text_length = torch.mean(text_lengths.float())
     avg_spec_length = torch.mean(mel_lengths.float())
-
+    speaker_ids = None
     if c.use_speaker_embedding:
+        speaker_ids = [speaker_list.index(speaker_name) for speaker_name in speaker_names]
+        speaker_ids = torch.LongTensor(speaker_ids)
         if c.use_external_speaker_embedding_file:
             # return precomputed embedding vector
             speaker_c = data[9]
@@ -125,6 +127,8 @@ def format_data(data):
         mel_lengths = mel_lengths.cuda(non_blocking=True)
         if speaker_c is not None:
             speaker_c = speaker_c.cuda(non_blocking=True)
+        if speaker_ids is not None:
+            speaker_ids = speaker_ids.cuda(non_blocking=True)
         if attn_mask is not None:
             attn_mask = attn_mask.cuda(non_blocking=True)
         if language_ids is not None:
@@ -135,6 +139,7 @@ def format_data(data):
         mel_input,
         mel_lengths,
         speaker_c,
+        speaker_ids,
         language_ids,
         avg_text_length,
         avg_spec_length,
@@ -176,7 +181,7 @@ def data_depended_init(data_loader, model):
         for _, data in enumerate(data_loader):
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, spekaer_embed, language_ids, _, _, attn_mask, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, spekaer_embed, _, language_ids, _, _, attn_mask, _ = format_data(data)
 
             # forward pass model
             _ = model.forward(text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=spekaer_embed, language_ids=language_ids)
@@ -217,6 +222,7 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
             mel_input,
             mel_lengths,
             speaker_c,
+            speaker_ids,
             language_ids,
             avg_text_length,
             avg_spec_length,
@@ -231,12 +237,12 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
 
         # forward pass model
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
-            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
+            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction = model.forward(
                 text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids
             )
 
             # compute loss
-            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths)
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids)
 
         # backward pass with loss scaling
         if c.mixed_precision:
@@ -375,15 +381,15 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, speaker_c, language_ids, _, _, attn_mask, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, speaker_c, speaker_ids, language_ids, _, _, attn_mask, _ = format_data(data)
 
             # forward pass model
-            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
+            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction = model.forward(
                 text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids,
             )
 
             # compute loss
-            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths)
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids, speaker_prediction, speaker_ids)
 
             # step time
             step_time = time.time() - start_time
@@ -519,7 +525,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping, language_mapping
+    global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping, language_mapping, speaker_list
     # Audio processor
     ap = AudioProcessor(**c.audio)
     if "characters" in c.keys():
@@ -543,7 +549,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         meta_data_eval = meta_data_eval[: int(len(meta_data_eval) * c.eval_portion)]
 
     # parse speakers
-    num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
+    num_speakers, speaker_list, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
     num_langs, language_embedding_dim, language_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
 
     # setup model
