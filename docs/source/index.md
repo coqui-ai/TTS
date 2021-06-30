@@ -2,7 +2,6 @@
 ```{include} ../../README.md
 :relative-images:
 ```
-
 ----
 
 # Documentation Content
@@ -27,14 +26,28 @@
     formatting_your_dataset
     what_makes_a_good_dataset
     tts_datasets
+    converting_torch_to_tf
 
 .. toctree::
     :maxdepth: 2
     :caption: Main Classes
 
-    trainer_api
-    audio_processor
-    model_api
-    configuration
-    dataset
+    main_classes/trainer_api
+    main_classes/audio_processor
+    main_classes/model_api
+    main_classes/dataset
+    main_classes/gan
+
+.. toctree::
+    :maxdepth: 2
+    :caption: `tts` Models
+
+    models/glow_tts.md
+
+.. toctree::
+    :maxdepth: 2
+    :caption: `vocoder` Models
+
+    main_classes/gan
 ```
+

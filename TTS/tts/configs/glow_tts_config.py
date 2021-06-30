@@ -7,7 +7,7 @@ from TTS.tts.configs.shared_configs import BaseTTSConfig
 class GlowTTSConfig(BaseTTSConfig):
     """Defines parameters for GlowTTS model.
 
-     Example:
+    Example:
 
         >>> from TTS.tts.configs import GlowTTSConfig
         >>> config = GlowTTSConfig()

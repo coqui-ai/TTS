@@ -30,23 +30,30 @@ class GlowTTS(BaseTTS):
         the autoregressive model, Tacotron 2, at synthesis with comparable speech quality. We further show that our
         model can be easily extended to a multi-speaker setting.
 
-    Check `GlowTTSConfig` for class arguments.
+    Check :class:`TTS.tts.configs.glow_tts_config.GlowTTSConfig` for class arguments.
+
+    Examples:
+        >>> from TTS.tts.configs import GlowTTSConfig
+        >>> from TTS.tts.models.glow_tts import GlowTTS
+        >>> config = GlowTTSConfig()
+        >>> model = GlowTTS(config)
+
     """
 
     def __init__(self, config: GlowTTSConfig):
 
         super().__init__()
 
-        chars, self.config = self.get_characters(config)
-        self.num_chars = len(chars)
-        self.decoder_output_dim = config.out_channels
-        self.init_multispeaker(config)
-
         # pass all config fields to `self`
         # for fewer code change
         self.config = config
         for key in config:
             setattr(self, key, config[key])
+
+        chars, self.config = self.get_characters(config)
+        self.num_chars = len(chars)
+        self.decoder_output_dim = config.out_channels
+        self.init_multispeaker(config)
 
         # if is a multispeaker and c_in_channels is 0, set to 256
         self.c_in_channels = 0
@@ -91,7 +98,7 @@ class GlowTTS(BaseTTS):
 
     @staticmethod
     def compute_outputs(attn, o_mean, o_log_scale, x_mask):
-        # compute final values with the computed alignment
+        """ Compute and format the mode outputs with the given alignment map"""
         y_mean = torch.matmul(attn.squeeze(1).transpose(1, 2), o_mean.transpose(1, 2)).transpose(
             1, 2
         )  # [b, t', t], [b, t, d] -> [b, d, t']
@@ -107,11 +114,11 @@ class GlowTTS(BaseTTS):
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
-            x: [B, T]
-            x_lenghts: B
-            y: [B, T, C]
-            y_lengths: B
-            g: [B, C] or B
+            - x: :math:`[B, T]`
+            - x_lenghts::math:` B`
+            - y: :math:`[B, T, C]`
+            - y_lengths::math:` B`
+            - g: :math:`[B, C] or B`
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
@@ -161,12 +168,13 @@ class GlowTTS(BaseTTS):
         """
         It's similar to the teacher forcing in Tacotron.
         It was proposed in: https://arxiv.org/abs/2104.05557
+
         Shapes:
-            x: [B, T]
-            x_lenghts: B
-            y: [B, T, C]
-            y_lengths: B
-            g: [B, C] or B
+            - x: :math:`[B, T]`
+            - x_lenghts: :math:`B`
+            - y: :math:`[B, T, C]`
+            - y_lengths: :math:`B`
+            - g: :math:`[B, C] or B`
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
@@ -221,9 +229,9 @@ class GlowTTS(BaseTTS):
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
-            y: [B, T, C]
-            y_lengths: B
-            g: [B, C] or B
+            - y: :math:`[B, T, C]`
+            - y_lengths: :math:`B`
+            - g: :math:`[B, C] or B`
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)

@@ -34,7 +34,7 @@ class PQMF(tf.keras.layers.Layer):
 
     def analysis(self, x):
         """
-        x : B x 1 x T
+        x : :math:`[B, 1, T]`
         """
         x = tf.transpose(x, perm=[0, 2, 1])
         x = tf.pad(x, [[0, 0], [self.taps // 2, self.taps // 2], [0, 0]], constant_values=0.0)
