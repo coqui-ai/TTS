@@ -48,6 +48,5 @@
     :maxdepth: 2
     :caption: `vocoder` Models
 
-    main_classes/gan
 ```
 
