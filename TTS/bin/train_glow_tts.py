@@ -389,7 +389,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             )
 
             # compute loss
-            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids, speaker_prediction, speaker_ids)
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids)
 
             # step time
             step_time = time.time() - start_time
@@ -549,7 +549,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         meta_data_eval = meta_data_eval[: int(len(meta_data_eval) * c.eval_portion)]
 
     # parse speakers
-    num_speakers, speaker_list, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
+    num_speakers, speaker_list, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval)
     num_langs, language_embedding_dim, language_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
 
     # setup model

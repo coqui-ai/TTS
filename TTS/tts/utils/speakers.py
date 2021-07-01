@@ -64,10 +64,15 @@ def get_languages(items):
     return sorted(languages)
 
 
-def parse_speakers(c, args, meta_data_train, OUT_PATH):
+def parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval=None):
     """ Returns number of speakers, speaker embedding shape and speaker mapping"""
     if c.use_speaker_embedding:
         speakers = get_speakers(meta_data_train)
+
+        if meta_data_eval is not None:
+            speakers += get_speakers(meta_data_eval)
+            speakers = list(set(speakers))
+
         if args.restore_path:
             if c.use_external_speaker_embedding_file:  # if restore checkpoint and use External Embedding file
                 prev_out_path = os.path.dirname(args.restore_path)
