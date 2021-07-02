@@ -195,7 +195,7 @@ class Synthesizer(object):
         if self.tts_speakers_file:
             # get the speaker embedding from the saved d_vectors.
             if speaker_idx and isinstance(speaker_idx, str):
-                speaker_embedding = self.speaker_manager.get_d_vectors_by_speaker(speaker_idx)[0]
+                speaker_embedding = self.tts_model.speaker_manager.get_d_vectors_by_speaker(speaker_idx)[0]
             elif not speaker_idx and not speaker_wav:
                 raise ValueError(
                     " [!] Look like you use a multi-speaker model. "
