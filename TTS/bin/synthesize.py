@@ -239,7 +239,7 @@ def main():
         print(
             " > Available speaker ids: (Set --speaker_idx flag to one of these values to use the multi-speaker model."
         )
-        print(synthesizer.speaker_manager.speaker_ids)
+        print(synthesizer.tts_model.speaker_manager.speaker_ids)
         return
 
     # check the arguments against a multi-speaker model.
