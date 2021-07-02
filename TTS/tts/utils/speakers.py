@@ -64,7 +64,7 @@ def get_languages(items):
     return sorted(languages)
 
 
-def parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval=None):
+def parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval=None, training=True):
     """ Returns number of speakers, speaker embedding shape and speaker mapping"""
     if c.use_speaker_embedding:
         speakers = get_speakers(meta_data_train)
@@ -75,17 +75,21 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval=None):
 
         if args.restore_path:
             if c.use_external_speaker_embedding_file:  # if restore checkpoint and use External Embedding file
-                prev_out_path = os.path.dirname(args.restore_path)
-                speaker_mapping = load_speaker_mapping(prev_out_path)
-                if not speaker_mapping:
-                    print(
-                        "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
-                    )
+                if not training:
                     speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
+                else:
+                    prev_out_path = os.path.dirname(args.restore_path)
+                    speaker_mapping = load_speaker_mapping(prev_out_path)
+                    
                     if not speaker_mapping:
-                        raise RuntimeError(
-                            "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file"
+                        print(
+                            "WARNING: speakers.json was not found in restore_path, trying to use CONFIG.external_speaker_embedding_file"
                         )
+                        speaker_mapping = load_speaker_mapping(c.external_speaker_embedding_file)
+                        if not speaker_mapping:
+                            raise RuntimeError(
+                                "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.external_speaker_embedding_file"
+                            )
                 speaker_embedding_dim = len(speaker_mapping[list(speaker_mapping.keys())[0]]["embedding"])
             elif (
                 not c.use_external_speaker_embedding_file
@@ -108,7 +112,8 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval=None):
         else:  # if start new train and don't use External Embedding file
             speaker_mapping = {name: i for i, name in enumerate(speakers)}
             speaker_embedding_dim = None
-        save_speaker_mapping(OUT_PATH, speaker_mapping)
+        if OUT_PATH is not None:    
+            save_speaker_mapping(OUT_PATH, speaker_mapping)
         num_speakers = len(speaker_mapping)
         print(" > Training with {} speakers: {}".format(len(speakers), ", ".join(speakers)))
     else:
@@ -126,6 +131,10 @@ def parse_languages(c, args, meta_data_train, OUT_PATH):
             prev_out_path = os.path.dirname(args.restore_path)
             language_mapping = load_language_mapping(prev_out_path)
             language_embedding_dim = None
+            if not language_mapping:
+                raise RuntimeError(
+                    "You must copy the file languages.json to restore_path"
+                )
             assert all([language in language_mapping for language in languages]), (
                 "As of now you, you cannot " "introduce new languages to " "a previously trained model."
             )
