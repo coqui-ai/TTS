@@ -41,7 +41,8 @@ class BaseTTS(BaseModel):
 
             config.characters = parse_symbols()
         model_characters = phonemes if config.use_phonemes else symbols
-        return model_characters, config
+        num_chars = len(model_characters) + getattr(config, "add_blank", False)
+        return model_characters, config, num_chars
 
     def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:
         return get_speaker_manager(config, restore_path, data, out_path)
