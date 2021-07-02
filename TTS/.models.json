@@ -4,10 +4,9 @@
             "ek1":{
                 "tacotron2": {
                     "description": "EK1 en-rp tacotron2 by NMStoker",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--en--ek1--tacotron2.zip",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--ek1--tacotron2.zip",
                     "default_vocoder": "vocoder_models/en/ek1/wavegrad",
-                    "commit": "c802255",
-                    "needs_phonemizer": true
+                    "commit": "c802255"
                 }
             },
             "ljspeech":{
@@ -18,8 +17,7 @@
                     "commit": "bae2ad0f",
                     "author": "Eren Gölge @erogol",
                     "license": "",
-                    "contact":"egolge@coqui.com",
-                    "needs_phonemizer": false
+                    "contact":"egolge@coqui.com"
                 },
                 "glow-tts":{
                     "description": "",
@@ -29,8 +27,7 @@
                     "commit": "",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
-                    "contact":"egolge@coqui.com",
-                    "needs_phonemizer": true
+                    "contact":"egolge@coqui.com"
                 },
                 "tacotron2-DCA": {
                     "description": "",
@@ -39,30 +36,27 @@
                     "commit": "",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
-                    "contact":"egolge@coqui.com",
-                    "needs_phonemizer": true
+                    "contact":"egolge@coqui.com"
                 },
                 "speedy-speech-wn":{
                     "description": "Speedy Speech model with wavenet decoder.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--en--ljspeech--speedy-speech-wn.zip",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--ljspeech--speedy-speech-wn.zip",
                     "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
                     "commit": "77b6145",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
-                    "contact":"egolge@coqui.com",
-                    "needs_phonemizer": true
+                    "contact":"egolge@coqui.com"
                 }
             },
             "vctk":{
                 "sc-glow-tts": {
                     "description": "Multi-Speaker Transformers based SC-Glow model from https://arxiv.org/abs/2104.05557.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.12/tts_models--en--vctk--sc-glowtts-transformer.zip",
-                    "default_vocoder": null,
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--vctk--sc-glowtts-transformer.zip",
+                    "default_vocoder": "vocoder_models/en/vctk/hifigan_v2",
                     "commit": "b531fa69",
                     "author": "Edresson Casanova",
                     "license": "",
-                    "contact":"",
-                    "needs_phonemizer": true
+                    "contact":""
 
 
                 }
@@ -75,8 +69,7 @@
                     "commit": "bae2ad0f",
                     "author": "Eren Gölge @erogol",
                     "license": "",
-                    "contact":"egolge@coqui.com",
-                    "needs_phonemizer": true
+                    "contact":"egolge@coqui.com"
                 }
             }
         },
@@ -88,8 +81,7 @@
                     "commit": "",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
-                    "contact":"egolge@coqui.com",
-                    "needs_phonemizer": true
+                    "contact":"egolge@coqui.com"
                 }
             }
         },
@@ -101,8 +93,7 @@
                     "commit": "",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
-                    "contact":"egolge@coqui.com",
-                    "needs_phonemizer": true
+                    "contact":"egolge@coqui.com"
                 }
             }
         },
@@ -122,8 +113,7 @@
                     "author": "@r-dh",
                     "default_vocoder": "vocoder_models/nl/mai/parallel-wavegan",
                     "stats_file": null,
-                    "commit": "540d811",
-                    "needs_phonemizer": true
+                    "commit": "540d811"
                 }
             }
         },
@@ -134,8 +124,7 @@
                     "author": "@erogol",
                     "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
                     "license":"",
-                    "contact": "egolge@coqui.com",
-                    "needs_phonemizer": true
+                    "contact": "egolge@coqui.com"
                 }
             }
         },
@@ -145,8 +134,7 @@
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.11/tts_models--de--thorsten--tacotron2-DCA.zip",
                     "default_vocoder": "vocoder_models/de/thorsten/wavegrad",
                     "author": "@thorstenMueller",
-                    "commit": "unknown",
-                    "needs_phonemizer": true
+                    "commit": "unknown"
                 }
             }
         },
@@ -157,8 +145,7 @@
                     "default_vocoder": "vocoder_models/universal/libri-tts/wavegrad",
                     "description": "Tacotron2 with Double Decoder Consistency trained with Kokoro Speech Dataset.",
                     "author": "@kaiidams",
-                    "commit": "401fbd89",
-                    "needs_phonemizer": false
+                    "commit": "401fbd89"
                 }
             }
         }
