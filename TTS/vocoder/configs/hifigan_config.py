@@ -9,7 +9,7 @@ class HifiganConfig(BaseGANVocoderConfig):
 
     Example:
 
-        >>> from TTS.vocoder.configs import HifiganConfig
+        >>> # from TTS.vocoder.configs import HifiganConfig
         >>> config = HifiganConfig()
 
     Args:
@@ -129,7 +129,7 @@ class HifiganConfig(BaseGANVocoderConfig):
             "win_length": 1024,
             "n_mels": 80,
             "mel_fmin": 0.0,
-            "mel_fmax": None,
+            "mel_fmax": 8000.0,
         }
     )
 
