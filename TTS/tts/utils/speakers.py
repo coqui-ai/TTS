@@ -13,33 +13,27 @@ from TTS.utils.audio import AudioProcessor
 
 
 class SpeakerManager:
-    """It manages the multi-speaker setup for 🐸TTS models. It loads the speaker files and parses the information
-    in a way that you can query. There are 3 different scenarios considered.
+    """Manage the speakers for multi-speaker 🐸TTS models. Load a datafile and parse the information
+    in a way that can be queried by speaker or clip.
 
-    1. Models using speaker embedding layers. The metafile only includes a mapping of speaker names to ids.
-    2. Models using external embedding vectors (x vectors). The metafile includes a dictionary in the following
-    format.
+    There are 3 different scenarios considered:
 
-    ```
-    {
-        'clip_name.wav':{
-            'name': 'speakerA',
-            'embedding'[<d_vector_values>]
-        },
-        ...
-    }
-    ```
+    1. Models using speaker embedding layers. The datafile only maps speaker names to ids used by the embedding layer.
+    2. Models using d-vectors. The datafile includes a dictionary in the following format.
 
-    3. Computing x vectors at inference with the speaker encoder. It loads the speaker encoder model and
-    computes x vectors for a given instance.
+    ::
 
-    >>> >>> # load audio processor and speaker encoder
-    >>> ap = AudioProcessor(**config.audio)
-    >>> manager = SpeakerManager(encoder_model_path=encoder_model_path, encoder_config_path=encoder_config_path)
-    >>> # load a sample audio and compute embedding
-    >>> waveform = ap.load_wav(sample_wav_path)
-    >>> mel = ap.melspectrogram(waveform)
-    >>> d_vector = manager.compute_d_vector(mel.T)
+        {
+            'clip_name.wav':{
+                'name': 'speakerA',
+                'embedding'[<d_vector_values>]
+            },
+            ...
+        }
+
+
+    3. Computing the d-vectors by the speaker encoder. It loads the speaker encoder model and
+    computes the d-vectors for a given clip or speaker.
 
     Args:
         d_vectors_file_path (str, optional): Path to the metafile including x vectors. Defaults to "".
@@ -47,6 +41,15 @@ class SpeakerManager:
         TTS models. Defaults to "".
         encoder_model_path (str, optional): Path to the speaker encoder model file. Defaults to "".
         encoder_config_path (str, optional): Path to the spealer encoder config file. Defaults to "".
+
+    Examples:
+        >>> # load audio processor and speaker encoder
+        >>> ap = AudioProcessor(**config.audio)
+        >>> manager = SpeakerManager(encoder_model_path=encoder_model_path, encoder_config_path=encoder_config_path)
+        >>> # load a sample audio and compute embedding
+        >>> waveform = ap.load_wav(sample_wav_path)
+        >>> mel = ap.melspectrogram(waveform)
+        >>> d_vector = manager.compute_d_vector(mel.T)
     """
 
     def __init__(
@@ -188,7 +191,7 @@ class SpeakerManager:
         Args:
             speaker_idx (str): Target speaker ID.
             num_samples (int, optional): Number of samples to be averaged. Defaults to None.
-            randomize (bool, optional): Pick random `num_samples`of d_vectors. Defaults to False.
+            randomize (bool, optional): Pick random `num_samples` of d_vectors. Defaults to False.
 
         Returns:
             np.ndarray: Mean d_vector.
@@ -311,7 +314,7 @@ def save_speaker_mapping(out_path, speaker_mapping):
 
 
 def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, out_path: str = None) -> SpeakerManager:
-    """Create a SpeakerManager instance based on provided configuration.
+    """Initiate a `SpeakerManager` instance by the provided config.
 
     Args:
         c (Coqpit): Model configuration.
@@ -321,7 +324,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
         out_path (str, optional): Save the generated speaker IDs to a output path. Defaults to None.
 
     Returns:
-        SpeakerManager:
+        SpeakerManager: initialized and ready to use instance.
     """
     speaker_manager = SpeakerManager()
     if c.use_speaker_embedding:
