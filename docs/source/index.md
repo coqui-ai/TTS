@@ -37,6 +37,7 @@
     main_classes/model_api
     main_classes/dataset
     main_classes/gan
+    main_classes/speaker_manager
 
 .. toctree::
     :maxdepth: 2
