@@ -114,7 +114,7 @@ class AlignTTS(BaseTTS):
         )
 
         if not self.config.model_args.num_chars:
-            chars, self.config, num_chars = self.get_characters(config)
+            _, self.config, num_chars = self.get_characters(config)
             self.config.model_args.num_chars = num_chars
 
         self.emb = nn.Embedding(self.config.model_args.num_chars, self.config.model_args.hidden_channels)

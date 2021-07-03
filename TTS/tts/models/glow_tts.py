@@ -51,7 +51,7 @@ class GlowTTS(BaseTTS):
         for key in config:
             setattr(self, key, config[key])
 
-        chars, self.config, self.num_chars = self.get_characters(config)
+        _, self.config, self.num_chars = self.get_characters(config)
         self.decoder_output_dim = config.out_channels
 
         self.init_multispeaker(config)
