@@ -51,7 +51,7 @@
             "vctk":{
                 "sc-glow-tts": {
                     "description": "Multi-Speaker Transformers based SC-Glow model from https://arxiv.org/abs/2104.05557.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--vctk--sc-glowtts-transformer.zip",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--vctk--sc-glow-tts.zip",
                     "default_vocoder": "vocoder_models/en/vctk/hifigan_v2",
                     "commit": "b531fa69",
                     "author": "Edresson Casanova",
