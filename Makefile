@@ -34,6 +34,9 @@ dev-deps:  ## install development deps
 doc-deps:  ## install docs dependencies
 	pip install -r docs/requirements.txt
 
+build-docs: ## build the docs
+	cd docs && make clean && make build
+
 hub-deps:  ## install deps for torch hub use
 	pip install -r requirements.hub.txt
 
