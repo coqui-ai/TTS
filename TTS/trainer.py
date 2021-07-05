@@ -18,7 +18,6 @@ from coqpit import Coqpit
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
-
 from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.models import setup_model as setup_tts_model
@@ -36,7 +35,8 @@ from TTS.utils.generic_utils import (
     to_cuda,
 )
 from TTS.utils.io import copy_model_files, save_best_model, save_checkpoint
-from TTS.utils.logging import ConsoleLogger, TensorboardLogger
+from TTS.utils.logging import ConsoleLogger, TensorboardLogger, WandbLogger
+
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_available, setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model as setup_vocoder_model
@@ -47,6 +47,7 @@ if platform.system() != "Windows":
 
     rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
     resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
+
 
 if is_apex_available():
     from apex import amp
@@ -88,6 +89,7 @@ class Trainer:
         output_path: str,
         c_logger: ConsoleLogger = None,
         tb_logger: TensorboardLogger = None,
+        wandb_logger: WandbLogger = None,
         model: nn.Module = None,
         cudnn_benchmark: bool = False,
     ) -> None:
@@ -113,6 +115,9 @@ class Trainer:
                 console logger is used. Defaults to None.
 
             tb_logger (TensorboardLogger, optional): Tensorboard logger. If not provided, the default logger is used.
+                Defaults to None.
+
+            wandb_logger (WandbLogger, optional): W&B logger. If not provided, the default logger is used.
                 Defaults to None.
 
             model (nn.Module, optional): Initialized and ready-to-train model. If it is not defined, `Trainer`
@@ -164,6 +169,16 @@ class Trainer:
             self.tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
         else:
             self.tb_logger = tb_logger
+
+        if wandb_logger is None:
+            self.wandb_logger = WandbLogger(
+                project=os.path(output_path).stem,
+                name=config.model,
+                config=config,
+            )
+        else:
+            self.wandb_logger = wandb_logger
+
         log_file = os.path.join(self.output_path, f"trainer_{args.rank}_log.txt")
         self._setup_logger_config(log_file)
 
@@ -611,6 +626,7 @@ class Trainer:
                 iter_stats = log_dict
                 iter_stats.update(loss_dict)
                 self.tb_logger.tb_train_step_stats(self.total_steps_done, iter_stats)
+                self.wandb_logger.log(iter_stats, "train/", flush=True)
             if self.total_steps_done % self.config.save_step == 0 and self.total_steps_done != 0:
                 if self.config.checkpoint:
                     # checkpoint the model
@@ -635,10 +651,14 @@ class Trainer:
                     figures, audios = self.model.train_log(self.ap, batch, outputs)
                 if figures is not None:
                     self.tb_logger.tb_train_figures(self.total_steps_done, figures)
+                    self.wandb_logger.log_figures(figures, "train/")
                 if audios is not None:
                     self.tb_logger.tb_train_audios(self.total_steps_done, audios, self.ap.sample_rate)
+                    self.wandb_logger.log_audios(audios, self.ap.sample_rate, "train/")
+
         self.total_steps_done += 1
         self.callbacks.on_train_step_end()
+        self.wandb_logger.flush()
         return outputs, loss_dict
 
     def train_epoch(self) -> None:
@@ -664,6 +684,7 @@ class Trainer:
             epoch_stats = {"epoch_time": epoch_time}
             epoch_stats.update(self.keep_avg_train.avg_values)
             self.tb_logger.tb_train_epoch_stats(self.total_steps_done, epoch_stats)
+            self.wandb_logger.log_scalars(epoch_stats, "train/")
             if self.config.tb_model_param_stats:
                 self.tb_logger.tb_model_weights(self.model, self.total_steps_done)
 
@@ -756,9 +777,12 @@ class Trainer:
                 figures, audios = self.model.eval_log(self.ap, batch, outputs)
             if figures is not None:
                 self.tb_logger.tb_eval_figures(self.total_steps_done, figures)
+                self.wandb_logger.log_figures(figures, "eval/")
             if audios is not None:
                 self.tb_logger.tb_eval_audios(self.total_steps_done, audios, self.ap.sample_rate)
+                self.wandb_logger.log_audios(audios, self.ap.sample_rate, "eval/")
             self.tb_logger.tb_eval_stats(self.total_steps_done, self.keep_avg_eval.avg_values)
+            self.wandb_logger.log_scalars(self.keep_avg_eval.avg_values, "eval/")
 
     def test_run(self) -> None:
         """Run test and log the results. Test run must be defined by the model.
@@ -771,6 +795,8 @@ class Trainer:
                 figures, audios = self.model.test_run()
             self.tb_logger.tb_test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
             self.tb_logger.tb_test_figures(self.total_steps_done, figures)
+            self.wandb_logger.log_audios(audios, self.config.audio["sample_rate"], "test/")
+            self.wandb_logger.log_figures(figures, "test/")
 
     def _fit(self) -> None:
         """🏃 train -> evaluate -> test for the number of epochs."""
@@ -999,6 +1025,7 @@ def process_args(args, config=None):
             logging to the console.
         tb_logger (TTS.utils.tensorboard.TensorboardLogger): Class that does
             the TensorBoard logging.
+        wandb_logger (TTS.utils.tensorboard.WandbLogger): Class that does the W&B Loggin
 
     TODO:
         - Interactive config definition.
@@ -1012,14 +1039,17 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-    # init config if not already defined
+    # setup output paths and read configs
+    if config is None:
+        config = load_config(args.config_path)
+    # init config
     if config is None:
         if args.config_path:
             # init from a file
             config = load_config(args.config_path)
         else:
             # init from console args
-            from TTS.config.shared_configs import BaseTrainingConfig  # pylint: disable=import-outside-toplevel
+            from TTS.config.shared_configs import BaseTrainingConfig
 
             config_base = BaseTrainingConfig()
             config_base.parse_known_args(coqpit_overrides)
@@ -1034,6 +1064,7 @@ def process_args(args, config=None):
     audio_path = os.path.join(experiment_path, "test_audios")
     # setup rank 0 process in distributed training
     tb_logger = None
+    wandb_logger = None
     if args.rank == 0:
         os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
@@ -1052,8 +1083,15 @@ def process_args(args, config=None):
         tb_logger = TensorboardLogger(experiment_path, model_name=config.model)
         # write model desc to tensorboard
         tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
+
+        wandb_logger = WandbLogger(
+            project=config.model,
+            name=os.path.basename(experiment_path),
+            config=config,
+        )
+
     c_logger = ConsoleLogger()
-    return config, experiment_path, audio_path, c_logger, tb_logger
+    return config, experiment_path, audio_path, c_logger, tb_logger, wandb_logger
 
 
 def init_training(argv: Union[List, Coqpit], config: Coqpit = None):
@@ -1063,5 +1101,5 @@ def init_training(argv: Union[List, Coqpit], config: Coqpit = None):
     else:
         parser = init_arguments()
     args = parser.parse_known_args()
-    config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args, config)
-    return args[0], config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger
+    config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger, wandb_logger = process_args(args, config)
+    return args[0], config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger, wandb_logger
