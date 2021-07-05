@@ -25,6 +25,6 @@ config = GlowTTSConfig(
     output_path=output_path,
     datasets=[dataset_config],
 )
-args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
-trainer = Trainer(args, config, output_path, c_logger, tb_logger)
+args, config, output_path, _, c_logger, tb_logger, wandb_logger = init_training(TrainingArgs(), config)
+trainer = Trainer(args, config, output_path, c_logger, tb_logger, wandb_logger)
 trainer.fit()
