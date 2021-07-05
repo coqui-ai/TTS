@@ -784,10 +784,12 @@ def main(args):  # pylint: disable=redefined-outer-name
             scaler_st,
         )
         # eval one epoch
+        time.sleep(2)
         eval_loader = setup_loader(ap, model.decoder.r, is_val=True)
         if c.gradual_training is not None:
             eval_loader.dataset.outputs_per_step = r
             eval_loader = setup_loader(ap, model.decoder.r, is_val=True, dataset=eval_loader.dataset)
+        time.sleep(2)
         eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap, global_step, epoch)
         c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
         target_loss = train_avg_loss_dict["avg_postnet_loss"]
@@ -812,6 +814,8 @@ def main(args):  # pylint: disable=redefined-outer-name
 if __name__ == "__main__":
     args = parse_arguments(sys.argv)
     c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args, model_class="tts")
+
+    torch.multiprocessing.set_sharing_strategy('file_system')
 
     try:
         main(args)

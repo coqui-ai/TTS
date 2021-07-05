@@ -336,6 +336,9 @@ def brspeech(root_path, meta_file):
             # remove blank spaces and break line from speaker name
             speaker_name = cols[3].replace("\n", "").replace(" ", "")
             items.append([text, wav_file, speaker_name])
+    for item in items:
+        if not os.path.exists(item[1]):
+            print(f" [!] wav files don't exist - {item[1]}")
     return items
 
 
@@ -384,6 +387,9 @@ def mls(root_path, meta_files=None):
             speaker, book, *_ = file.split('_')
             wav_file = os.path.join(root_path, os.path.dirname(meta_files), 'audio', speaker, book, file + ".wav")
             items.append([text, wav_file, "MLS_" + speaker])
+    for item in items:
+        if not os.path.exists(item[1]):
+            print(f" [!] wav files don't exist - {item[1]}")
     return items
 
 
