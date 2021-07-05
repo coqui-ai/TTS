@@ -1,4 +1,4 @@
-# Converting Torch Tacotron to TF 2
+# Converting Torch to TF 2
 
 Currently, 🐸TTS supports the vanilla Tacotron2 and MelGAN models in TF 2.It does not support advanced attention methods and other small tricks used by the Torch models. You can convert any Torch model trained after v0.0.2.
 

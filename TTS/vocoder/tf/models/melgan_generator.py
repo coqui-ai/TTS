@@ -92,7 +92,7 @@ class MelganGenerator(tf.keras.models.Model):
     @tf.function(experimental_relax_shapes=True)
     def call(self, c, training=False):
         """
-        c : B x C x T
+        c : :math:`[B, C, T]`
         """
         if training:
             raise NotImplementedError()

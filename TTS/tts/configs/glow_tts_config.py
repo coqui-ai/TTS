@@ -7,7 +7,7 @@ from TTS.tts.configs.shared_configs import BaseTTSConfig
 class GlowTTSConfig(BaseTTSConfig):
     """Defines parameters for GlowTTS model.
 
-     Example:
+    Example:
 
         >>> from TTS.tts.configs import GlowTTSConfig
         >>> config = GlowTTSConfig()
@@ -41,7 +41,7 @@ class GlowTTSConfig(BaseTTSConfig):
         kernel_size_dec (int):
             Decoder kernel size. Defaults to 5
         dilation_rate (int):
-            Rate to increase dilation by each layer in a decoder block. Defaults to 5.
+            Rate to increase dilation by each layer in a decoder block. Defaults to 1.
         num_block_layers (int):
             Number of decoder layers in each decoder block.  Defaults to 4.
         dropout_p_dec (float):
@@ -54,7 +54,7 @@ class GlowTTSConfig(BaseTTSConfig):
             Number of split levels in inversible conv1x1 operation. Defaults to 4.
         num_squeeze (int):
             Number of squeeze levels. When squeezing channels increases and time steps reduces by the factor
-            'num_squeeze'. Defaults to 1.
+            'num_squeeze'. Defaults to 2.
         sigmoid_scale (bool):
             enable/disable sigmoid scaling in decoder. Defaults to False.
         mean_only (bool):
@@ -74,6 +74,8 @@ class GlowTTSConfig(BaseTTSConfig):
             Path to the wav file used for changing the style of the speech. Defaults to None.
         inference_noise_scale (float):
             Variance used for sampling the random noise added to the decoder's input at inference. Defaults to 0.0.
+        length_scale (float):
+            Multiply the predicted durations with this value to change the speech speed. Defaults to 1.
         use_speaker_embedding (bool):
             enable / disable using speaker embeddings for multi-speaker models. If set True, the model is
             in the multi-speaker mode. Defaults to False.
@@ -120,14 +122,13 @@ class GlowTTSConfig(BaseTTSConfig):
     num_flow_blocks_dec: int = 12
     inference_noise_scale: float = 0.33
     kernel_size_dec: int = 5
-    dilation_rate: int = 5
+    dilation_rate: int = 1
     num_block_layers: int = 4
     num_speakers: int = 0
     c_in_channels: int = 0
     num_splits: int = 4
-    num_squeeze: int = 1
+    num_squeeze: int = 2
     sigmoid_scale: bool = False
-    mean_only: bool = False
     encoder_type: str = "rel_pos_transformer"
     encoder_params: dict = field(
         default_factory=lambda: {
@@ -147,6 +148,7 @@ class GlowTTSConfig(BaseTTSConfig):
     # inference params
     style_wav_for_test: str = None
     inference_noise_scale: float = 0.0
+    length_scale: float = 1.0
 
     # multi-speaker settings
     use_speaker_embedding: bool = False

@@ -140,11 +140,8 @@ events.out*
 old_configs/*
 model_importers/*
 model_profiling/*
-<<<<<<< HEAD
 docs/source/TODO/*
-=======
-docs/*
->>>>>>> univnet
+docs/source/models/*
 .noseids
 .dccache
 log.txt

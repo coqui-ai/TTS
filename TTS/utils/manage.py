@@ -3,7 +3,7 @@ import json
 import os
 import zipfile
 from pathlib import Path
-from shutil import copyfile
+from shutil import copyfile, rmtree
 
 import gdown
 import requests
@@ -83,7 +83,7 @@ class ModelManager(object):
             'type/language/dataset/model'
             e.g. 'tts_model/en/ljspeech/tacotron'
 
-        Every model must have the following files
+        Every model must have the following files:
             - *.pth.tar : pytorch model checkpoint file.
             - config.json : model config file.
             - scale_stats.npy (if exist): scale values for preprocessing.
@@ -101,11 +101,7 @@ class ModelManager(object):
         output_path = os.path.join(self.output_prefix, model_full_name)
         output_model_path = os.path.join(output_path, "model_file.pth.tar")
         output_config_path = os.path.join(output_path, "config.json")
-        # NOTE : band-aid for removing phoneme support
-        # if "needs_phonemizer" in model_item and model_item["needs_phonemizer"]:
-        #     raise RuntimeError(
-        #         " [!] Use 🐸TTS <= v0.0.13 for this model. Current version does not support phoneme based models."
-        #     )
+
         if os.path.exists(output_path):
             print(f" > {model_name} is already downloaded.")
         else:
@@ -116,7 +112,6 @@ class ModelManager(object):
             # download files to the output path
             if self._check_dict_key(model_item, "github_rls_url"):
                 # download from github release
-                # TODO: pass output_path
                 self._download_zip_file(model_item["github_rls_url"], output_path)
             else:
                 # download from gdrive
@@ -146,15 +141,20 @@ class ModelManager(object):
         gdown.download(f"{self.url_prefix}{gdrive_idx}", output=output, quiet=False)
 
     @staticmethod
-    def _download_zip_file(file_url, output):
+    def _download_zip_file(file_url, output_folder):
         """Download the github releases"""
+        # download the file
         r = requests.get(file_url)
+        # extract the file
         with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-            z.extractall(output)
+            z.extractall(output_folder)
+        # move the files to the outer path
         for file_path in z.namelist()[1:]:
-            src_path = os.path.join(output, file_path)
-            dst_path = os.path.join(output, os.path.basename(file_path))
+            src_path = os.path.join(output_folder, file_path)
+            dst_path = os.path.join(output_folder, os.path.basename(file_path))
             copyfile(src_path, dst_path)
+        # remove the extracted folder
+        rmtree(os.path.join(output_folder, z.namelist()[0]))
 
     @staticmethod
     def _check_dict_key(my_dict, key):

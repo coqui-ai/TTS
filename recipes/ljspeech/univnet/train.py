@@ -1,5 +1,6 @@
 import os
 
+from TTS.config.shared_configs import BaseAudioConfig
 from TTS.trainer import Trainer, TrainingArgs, init_training
 from TTS.vocoder.configs import UnivnetConfig
 

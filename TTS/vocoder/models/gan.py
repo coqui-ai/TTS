@@ -22,6 +22,9 @@ class GAN(BaseVocoder):
         """Wrap a generator and a discriminator network. It provides a compatible interface for the trainer.
         It also helps mixing and matching different generator and disciminator networks easily.
 
+        To implement a new GAN models, you just need to define the generator and the discriminator networks, the rest
+        is handled by the `GAN` class.
+
         Args:
             config (Coqpit): Model configuration.
 
@@ -39,12 +42,41 @@ class GAN(BaseVocoder):
         self.y_hat_g = None  # the last generator prediction to be passed onto the discriminator
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Run the generator's forward pass.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: output of the GAN generator network.
+        """
         return self.model_g.forward(x)
 
     def inference(self, x: torch.Tensor) -> torch.Tensor:
+        """Run the generator's inference pass.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+        Returns:
+            torch.Tensor: output of the GAN generator network.
+        """
         return self.model_g.inference(x)
 
     def train_step(self, batch: Dict, criterion: Dict, optimizer_idx: int) -> Tuple[Dict, Dict]:
+        """Compute model outputs and the loss values. `optimizer_idx` selects the generator or the discriminator for
+        network on the current pass.
+
+        Args:
+            batch (Dict): Batch of samples returned by the dataloader.
+            criterion (Dict): Criterion used to compute the losses.
+            optimizer_idx (int): ID of the optimizer in use on the current pass.
+
+        Raises:
+            ValueError: `optimizer_idx` is an unexpected value.
+
+        Returns:
+            Tuple[Dict, Dict]: model outputs and the computed loss values.
+        """
         outputs = None
         loss_dict = None
 
@@ -145,7 +177,18 @@ class GAN(BaseVocoder):
         return outputs, loss_dict
 
     @staticmethod
-    def _log(name: str, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    def _log(name: str, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
+        """Logging shared by the training and evaluation.
+
+        Args:
+            name (str): Name of the run. `train` or `eval`,
+            ap (AudioProcessor): Audio processor used in training.
+            batch (Dict): Batch used in the last train/eval step.
+            outputs (Dict): Model outputs from the last train/eval step.
+
+        Returns:
+            Tuple[Dict, Dict]: log figures and audio samples.
+        """
         y_hat = outputs[0]["model_outputs"]
         y = batch["waveform"]
         figures = plot_results(y_hat, y, ap, name)
@@ -154,13 +197,16 @@ class GAN(BaseVocoder):
         return figures, audios
 
     def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+        """Call `_log()` for training."""
         return self._log("train", ap, batch, outputs)
 
     @torch.no_grad()
     def eval_step(self, batch: Dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
+        """Call `train_step()` with `no_grad()`"""
         return self.train_step(batch, criterion, optimizer_idx)
 
     def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+        """Call `_log()` for evaluation."""
         return self._log("eval", ap, batch, outputs)
 
     def load_checkpoint(
@@ -169,6 +215,13 @@ class GAN(BaseVocoder):
         checkpoint_path: str,
         eval: bool = False,  # pylint: disable=unused-argument, redefined-builtin
     ) -> None:
+        """Load a GAN checkpoint and initialize model parameters.
+
+        Args:
+            config (Coqpit): Model config.
+            checkpoint_path (str): Checkpoint file path.
+            eval (bool, optional): If true, load the model for inference. If falseDefaults to False.
+        """
         state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
         # band-aid for older than v0.0.15 GAN models
         if "model_disc" in state:
@@ -181,9 +234,21 @@ class GAN(BaseVocoder):
                     self.model_g.remove_weight_norm()
 
     def on_train_step_start(self, trainer) -> None:
+        """Enable the discriminator training based on `steps_to_start_discriminator`
+
+        Args:
+            trainer (Trainer): Trainer object.
+        """
         self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator
 
-    def get_optimizer(self):
+    def get_optimizer(self) -> List:
+        """Initiate and return the GAN optimizers based on the config parameters.
+
+        It returnes 2 optimizers in a list. First one is for the generator and the second one is for the discriminator.
+
+        Returns:
+            List: optimizers.
+        """
         optimizer1 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, self.model_g
         )
@@ -192,16 +257,37 @@ class GAN(BaseVocoder):
         )
         return [optimizer1, optimizer2]
 
-    def get_lr(self):
+    def get_lr(self) -> List:
+        """Set the initial learning rates for each optimizer.
+
+        Returns:
+            List: learning rates for each optimizer.
+        """
         return [self.config.lr_gen, self.config.lr_disc]
 
-    def get_scheduler(self, optimizer):
+    def get_scheduler(self, optimizer) -> List:
+        """Set the schedulers for each optimizer.
+
+        Args:
+            optimizer (List[`torch.optim.Optimizer`]): List of optimizers.
+
+        Returns:
+            List: Schedulers, one for each optimizer.
+        """
         scheduler1 = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
         scheduler2 = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
         return [scheduler1, scheduler2]
 
     @staticmethod
-    def format_batch(batch):
+    def format_batch(batch: List) -> Dict:
+        """Format the batch for training.
+
+        Args:
+            batch (List): Batch out of the dataloader.
+
+        Returns:
+            Dict: formatted model inputs.
+        """
         if isinstance(batch[0], list):
             x_G, y_G = batch[0]
             x_D, y_D = batch[1]
@@ -218,6 +304,19 @@ class GAN(BaseVocoder):
         verbose: bool,
         num_gpus: int,
     ):
+        """Initiate and return the GAN dataloader.
+
+        Args:
+            config (Coqpit): Model config.
+            ap (AudioProcessor): Audio processor.
+            is_eval (True): Set the dataloader for evaluation if true.
+            data_items (List): Data samples.
+            verbose (bool): Log information if true.
+            num_gpus (int): Number of GPUs in use.
+
+        Returns:
+            DataLoader: Torch dataloader.
+        """
         dataset = GANDataset(
             ap=ap,
             items=data_items,

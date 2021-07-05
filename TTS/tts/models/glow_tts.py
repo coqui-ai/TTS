@@ -11,6 +11,7 @@ from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
@@ -30,23 +31,30 @@ class GlowTTS(BaseTTS):
         the autoregressive model, Tacotron 2, at synthesis with comparable speech quality. We further show that our
         model can be easily extended to a multi-speaker setting.
 
-    Check `GlowTTSConfig` for class arguments.
+    Check :class:`TTS.tts.configs.glow_tts_config.GlowTTSConfig` for class arguments.
+
+    Examples:
+        >>> from TTS.tts.configs import GlowTTSConfig
+        >>> from TTS.tts.models.glow_tts import GlowTTS
+        >>> config = GlowTTSConfig()
+        >>> model = GlowTTS(config)
+
     """
 
     def __init__(self, config: GlowTTSConfig):
 
         super().__init__()
 
-        chars, self.config = self.get_characters(config)
-        self.num_chars = len(chars)
-        self.decoder_output_dim = config.out_channels
-        self.init_multispeaker(config)
-
         # pass all config fields to `self`
         # for fewer code change
         self.config = config
         for key in config:
             setattr(self, key, config[key])
+
+        _, self.config, self.num_chars = self.get_characters(config)
+        self.decoder_output_dim = config.out_channels
+
+        self.init_multispeaker(config)
 
         # if is a multispeaker and c_in_channels is 0, set to 256
         self.c_in_channels = 0
@@ -84,14 +92,28 @@ class GlowTTS(BaseTTS):
             c_in_channels=self.c_in_channels,
         )
 
-        if self.num_speakers > 1 and not self.d_vector_dim:
-            # speaker embedding layer
-            self.emb_g = nn.Embedding(self.num_speakers, self.c_in_channels)
+    def init_multispeaker(self, config: "Coqpit", data: list = None) -> None:
+        """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
+        or with external `d_vectors` computed from a speaker encoder model.
+
+        If you need a different behaviour, override this function for your model.
+
+        Args:
+            config (Coqpit): Model configuration.
+            data (List, optional): Dataset items to infer number of speakers. Defaults to None.
+        """
+        # init speaker manager
+        self.speaker_manager = get_speaker_manager(config, data=data)
+        self.num_speakers = self.speaker_manager.num_speakers
+        # init speaker embedding layer
+        if config.use_speaker_embedding and not config.use_d_vector_file:
+            self.embedded_speaker_dim = self.c_in_channels
+            self.emb_g = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
     @staticmethod
     def compute_outputs(attn, o_mean, o_log_scale, x_mask):
-        # compute final values with the computed alignment
+        """ Compute and format the mode outputs with the given alignment map"""
         y_mean = torch.matmul(attn.squeeze(1).transpose(1, 2), o_mean.transpose(1, 2)).transpose(
             1, 2
         )  # [b, t', t], [b, t, d] -> [b, d, t']
@@ -107,11 +129,11 @@ class GlowTTS(BaseTTS):
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
-            x: [B, T]
-            x_lenghts: B
-            y: [B, T, C]
-            y_lengths: B
-            g: [B, C] or B
+            - x: :math:`[B, T]`
+            - x_lenghts::math:` B`
+            - y: :math:`[B, T, C]`
+            - y_lengths::math:` B`
+            - g: :math:`[B, C] or B`
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
@@ -161,12 +183,13 @@ class GlowTTS(BaseTTS):
         """
         It's similar to the teacher forcing in Tacotron.
         It was proposed in: https://arxiv.org/abs/2104.05557
+
         Shapes:
-            x: [B, T]
-            x_lenghts: B
-            y: [B, T, C]
-            y_lengths: B
-            g: [B, C] or B
+            - x: :math:`[B, T]`
+            - x_lenghts: :math:`B`
+            - y: :math:`[B, T, C]`
+            - y_lengths: :math:`B`
+            - g: :math:`[B, C] or B`
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
@@ -221,9 +244,9 @@ class GlowTTS(BaseTTS):
     ):  # pylint: disable=dangerous-default-value
         """
         Shapes:
-            y: [B, T, C]
-            y_lengths: B
-            g: [B, C] or B
+            - y: :math:`[B, T, C]`
+            - y_lengths: :math:`B`
+            - g: :math:`[B, C] or B`
         """
         y = y.transpose(1, 2)
         y_max_length = y.size(2)
@@ -252,6 +275,7 @@ class GlowTTS(BaseTTS):
     def inference(self, x, aux_input={"x_lengths": None, "d_vectors": None}):  # pylint: disable=dangerous-default-value
         x_lengths = aux_input["x_lengths"]
         g = aux_input["d_vectors"] if aux_input is not None and "d_vectors" in aux_input else None
+
         if g is not None:
             if self.d_vector_dim:
                 g = F.normalize(g).unsqueeze(-1)

@@ -105,7 +105,7 @@ The best approach is to pick a set of promising models and run a Mean-Opinion-Sc
 - Check the 4th step under "How can I check model performance?"
 
 ## How can I test a trained model?
-- The best way is to use `tts` or `tts-server` commands. For details check {ref}`here <Synthesizing Speech>`.
+- The best way is to use `tts` or `tts-server` commands. For details check {ref}`here <synthesizing_speech>`.
 - If you need to code your own ```TTS.utils.synthesizer.Synthesizer``` class.
 
 ## My Tacotron model does not stop - I see "Decoder stopped with 'max_decoder_steps" - Stopnet does not work.

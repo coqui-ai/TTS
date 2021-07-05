@@ -1011,7 +1011,7 @@ def get_last_checkpoint(path):
 
 
 def process_args(args, config=None):
-    """Process parsed comand line arguments.
+    """Process parsed comand line arguments and initialize the config if not provided.
 
     Args:
         args (argparse.Namespace or dict like): Parsed input arguments.

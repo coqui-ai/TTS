@@ -10,10 +10,6 @@ test_all:	## run tests and don't stop on an error.
 	nosetests --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
 	./run_bash_tests.sh
 
-test_all:	## run tests and don't stop on an error.
-	nosetests --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
-	./run_bash_tests.sh
-
 test:	## run tests.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
 	./run_bash_tests.sh
@@ -37,6 +33,9 @@ dev-deps:  ## install development deps
 
 doc-deps:  ## install docs dependencies
 	pip install -r docs/requirements.txt
+
+build-docs: ## build the docs
+	cd docs && make clean && make build
 
 hub-deps:  ## install deps for torch hub use
 	pip install -r requirements.hub.txt

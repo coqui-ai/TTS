@@ -15,13 +15,16 @@ from TTS.tts.utils.data import sequence_mask
 class Encoder(nn.Module):
     """Glow-TTS encoder module.
 
-    embedding -> <prenet> -> encoder_module -> <postnet> --> proj_mean
-                                                         |
-                                                         |-> proj_var
-                                                         |
-                                                         |-> concat -> duration_predictor
-                                                                ↑
-                                                          speaker_embed
+    ::
+
+        embedding -> <prenet> -> encoder_module -> <postnet> --> proj_mean
+                                                             |
+                                                             |-> proj_var
+                                                             |
+                                                             |-> concat -> duration_predictor
+                                                                    ↑
+                                                              speaker_embed
+
     Args:
         num_chars (int): number of characters.
         out_channels (int): number of output channels.
@@ -36,7 +39,8 @@ class Encoder(nn.Module):
     Shapes:
         - input: (B, T, C)
 
-    Notes:
+    ::
+
         suggested encoder params...
 
         for encoder_type == 'rel_pos_transformer'
@@ -139,9 +143,9 @@ class Encoder(nn.Module):
     def forward(self, x, x_lengths, g=None):
         """
         Shapes:
-            x: [B, C, T]
-            x_lengths: [B]
-            g (optional): [B, 1, T]
+            - x: :math:`[B, C, T]`
+            - x_lengths: :math:`[B]`
+            - g (optional): :math:`[B, 1, T]`
         """
         # embedding layer
         # [B ,T, D]

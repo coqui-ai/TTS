@@ -8,10 +8,11 @@ version: 2
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
   builder: html
-  configuration: docs/conf.py
+  configuration: docs/source/conf.py
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
-  version: 3.8
+  version: 3.7
   install:
-    - requirements: doc/requirements.txt
+    - requirements: docs/requirements.txt
+    - requirements: requirements.txt

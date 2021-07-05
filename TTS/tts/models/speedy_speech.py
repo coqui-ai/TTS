@@ -98,8 +98,7 @@ class SpeedySpeech(BaseTTS):
         self.config = config
 
         if "characters" in config:
-            chars, self.config = self.get_characters(config)
-            self.num_chars = len(chars)
+            _, self.config, self.num_chars = self.get_characters(config)
 
         self.length_scale = (
             float(config.model_args.length_scale)
