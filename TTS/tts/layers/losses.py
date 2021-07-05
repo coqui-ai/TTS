@@ -395,7 +395,6 @@ class TacotronLoss(torch.nn.Module):
 
         # adversarial classifier loss (if enabled)
         if self.config.reversal_classifier:
-            print(speaker_ids)
             reversal_classifier_loss = self.criterion_reversal(input_lens, speaker_ids, speaker_prediction)
             reversal_classifier_loss *= self.config.reversal_classifier_w / (self.config.audio["num_mels"] + 2)
             loss += reversal_classifier_loss

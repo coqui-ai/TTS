@@ -117,18 +117,17 @@ def format_data(data):
     language_names = data[7]
     max_text_length = torch.max(text_lengths.float())
     max_spec_length = torch.max(mel_lengths.float())
+    speaker_embeddings = None
+    speaker_ids = None
 
     if c.use_speaker_embedding:
         if c.use_external_speaker_embedding_file:
+            speaker_ids = [speaker_list.index(speaker_name) for speaker_name in speaker_names]
+            speaker_ids = torch.LongTensor(speaker_ids)
             speaker_embeddings = data[9]
-            speaker_ids = None
         else:
             speaker_ids = [speaker_mapping[speaker_name] for speaker_name in speaker_names]
             speaker_ids = torch.LongTensor(speaker_ids)
-            speaker_embeddings = None
-    else:
-        speaker_embeddings = None
-        speaker_ids = None
 
     if c.use_language_embedding:
         language_ids = [language_mapping[language_name] for language_name in language_names]
@@ -148,8 +147,7 @@ def format_data(data):
         mel_lengths = mel_lengths.cuda(non_blocking=True)
         linear_input = linear_input.cuda(non_blocking=True) if c.model in ["Tacotron"] else None
         stop_targets = stop_targets.cuda(non_blocking=True)
-        if speaker_ids is not None:
-            speaker_ids = speaker_ids.cuda(non_blocking=True)
+        speaker_ids = speaker_ids.cuda(non_blocking=True)
         if speaker_embeddings is not None:
             speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
         if language_ids is not None:
@@ -657,7 +655,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters, language_mapping
+    global meta_data_train, meta_data_eval, speaker_mapping, symbols, phonemes, model_characters, language_mapping, speaker_list
     # Audio processor
     ap = AudioProcessor(**c.audio)
 
@@ -682,7 +680,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         meta_data_eval = meta_data_eval[: int(len(meta_data_eval) * c.eval_portion)]
 
     # parse speakers
-    num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
+    num_speakers, speaker_list, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH)
     num_langs, language_embedding_dim, language_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
 
     model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, language_embedding_dim)
