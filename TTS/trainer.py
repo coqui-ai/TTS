@@ -89,7 +89,7 @@ class Trainer:
         output_path: str,
         c_logger: ConsoleLogger = None,
         tb_logger: TensorboardLogger = None,
-        wandb_logger: WandbLogger = None,
+        wandb_logger:WandbLogger = None,
         model: nn.Module = None,
         cudnn_benchmark: bool = False,
     ) -> None:
@@ -169,7 +169,7 @@ class Trainer:
             self.tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
         else:
             self.tb_logger = tb_logger
-
+        
         if wandb_logger is None:
             self.wandb_logger = WandbLogger(
                 project=os.path(output_path).stem,
@@ -178,7 +178,7 @@ class Trainer:
             )
         else:
             self.wandb_logger = wandb_logger
-
+            
         log_file = os.path.join(self.output_path, f"trainer_{args.rank}_log.txt")
         self._setup_logger_config(log_file)
 
@@ -626,7 +626,7 @@ class Trainer:
                 iter_stats = log_dict
                 iter_stats.update(loss_dict)
                 self.tb_logger.tb_train_step_stats(self.total_steps_done, iter_stats)
-                self.wandb_logger.log(iter_stats, "train/", flush=True)
+                self.wandb_logger.log(iter_stats, 'train/', flush=True)
             if self.total_steps_done % self.config.save_step == 0 and self.total_steps_done != 0:
                 if self.config.checkpoint:
                     # checkpoint the model
@@ -655,11 +655,12 @@ class Trainer:
                 if audios is not None:
                     self.tb_logger.tb_train_audios(self.total_steps_done, audios, self.ap.sample_rate)
                     self.wandb_logger.log_audios(audios, self.ap.sample_rate, "train/")
-
+                    
         self.total_steps_done += 1
         self.callbacks.on_train_step_end()
         self.wandb_logger.flush()
         return outputs, loss_dict
+
 
     def train_epoch(self) -> None:
         """Main entry point for the training loop. Run training on the all training samples."""
@@ -780,9 +781,10 @@ class Trainer:
                 self.wandb_logger.log_figures(figures, "eval/")
             if audios is not None:
                 self.tb_logger.tb_eval_audios(self.total_steps_done, audios, self.ap.sample_rate)
-                self.wandb_logger.log_audios(audios, self.ap.sample_rate, "eval/")
+                self.wandb_logger.log_audios(audios,  self.ap.sample_rate, "eval/")
             self.tb_logger.tb_eval_stats(self.total_steps_done, self.keep_avg_eval.avg_values)
             self.wandb_logger.log_scalars(self.keep_avg_eval.avg_values, "eval/")
+
 
     def test_run(self) -> None:
         """Run test and log the results. Test run must be defined by the model.
@@ -797,6 +799,7 @@ class Trainer:
             self.tb_logger.tb_test_figures(self.total_steps_done, figures)
             self.wandb_logger.log_audios(audios, self.config.audio["sample_rate"], "test/")
             self.wandb_logger.log_figures(figures, "test/")
+            
 
     def _fit(self) -> None:
         """🏃 train -> evaluate -> test for the number of epochs."""
@@ -1011,7 +1014,7 @@ def get_last_checkpoint(path):
 
 
 def process_args(args, config=None):
-    """Process parsed comand line arguments and initialize the config if not provided.
+    """Process parsed comand line arguments.
 
     Args:
         args (argparse.Namespace or dict like): Parsed input arguments.
@@ -1039,17 +1042,15 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-    # setup output paths and read configs
-    if config is None:
-        config = load_config(args.config_path)
-    # init config
+            
+    # init config if not already defined
     if config is None:
         if args.config_path:
             # init from a file
             config = load_config(args.config_path)
         else:
             # init from console args
-            from TTS.config.shared_configs import BaseTrainingConfig
+            from TTS.config.shared_configs import BaseTrainingConfig # pylint: disable=import-outside-toplevel
 
             config_base = BaseTrainingConfig()
             config_base.parse_known_args(coqpit_overrides)
@@ -1083,13 +1084,14 @@ def process_args(args, config=None):
         tb_logger = TensorboardLogger(experiment_path, model_name=config.model)
         # write model desc to tensorboard
         tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
-
+        
         wandb_logger = WandbLogger(
-            project=config.model,
-            name=os.path.basename(experiment_path),
-            config=config,
-        )
+                    project=config.model,
+                    name=os.path.basename(experiment_path),
+                    config=config,
+                   )
 
+        
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, tb_logger, wandb_logger
 
