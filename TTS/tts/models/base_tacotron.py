@@ -281,6 +281,4 @@ class BaseTacotron(BaseTTS):
             self.decoder.set_r(r)
             if trainer.config.bidirectional_decoder:
                 trainer.model.decoder_backward.set_r(r)
-            trainer.train_loader = trainer.setup_train_dataloader(self.ap, self.model.decoder.r, verbose=True)
-            trainer.eval_loader = trainer.setup_eval_dataloder(self.ap, self.model.decoder.r)
             print(f"\n > Number of output frames: {self.decoder.r}")
