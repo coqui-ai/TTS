@@ -181,3 +181,10 @@ class TestAudio(unittest.TestCase):
         mel_norm = ap.melspectrogram(wav)
         mel_denorm = ap.denormalize(mel_norm)
         assert abs(mel_reference - mel_denorm).max() < 1e-4
+
+    def test_compute_f0(self):
+        ap = AudioProcessor(**conf)
+        wav = ap.load_wav(WAV_FILE)
+        pitch = ap.compute_f0(wav)
+        mel = ap.melspectrogram(wav)
+        assert pitch.shape[0] == mel.shape[1]

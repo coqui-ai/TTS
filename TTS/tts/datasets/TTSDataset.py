@@ -22,6 +22,7 @@ class TTSDataset(Dataset):
         compute_linear_spec: bool,
         ap: AudioProcessor,
         meta_data: List[List],
+        compute_f0: bool = False,
         characters: Dict = None,
         custom_symbols: List = None,
         add_blank: bool = False,
@@ -53,6 +54,8 @@ class TTSDataset(Dataset):
             ap (TTS.tts.utils.AudioProcessor): Audio processor object.
 
             meta_data (list): List of dataset instances.
+
+            compute_f0 (bool): compute f0 if True. Defaults to False.
 
             characters (dict): `dict` of custom text characters used for converting texts to sequences.
 
@@ -103,6 +106,7 @@ class TTSDataset(Dataset):
         self.cleaners = text_cleaner
         self.compute_linear_spec = compute_linear_spec
         self.return_wav = return_wav
+        self.compute_f0 = compute_f0
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
@@ -457,6 +461,16 @@ class TTSDataset(Dataset):
                     w = w[: mel_length * self.ap.hop_length]
                     wav_padded[i, :, : w.shape[0]] = torch.from_numpy(w)
                 wav_padded.transpose_(1, 2)
+
+            # compute f0
+            # TODO: compare perf in collate_fn vs in load_data
+            pitch = None
+            if self.compute_f0:
+                pitch = [self.ap.compute_f0(w).astype("float32") for w in wav]
+                pitch = prepare_tensor(pitch, self.outputs_per_step)
+                pitch = pitch.transpose(0, 2, 1)
+                assert mel.shape[1] == pitch.shape[1]
+                pitch = torch.FloatTensor(pitch).contiguous()
 
             # collate attention alignments
             if batch[0]["attn"] is not None:

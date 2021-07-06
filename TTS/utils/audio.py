@@ -623,17 +623,41 @@ class AudioProcessor(object):
             return 0, pad
         return pad // 2, pad // 2 + pad % 2
 
-    ### Compute F0 ###
-    # TODO: pw causes some dep issues
-    # def compute_f0(self, x):
-    #     f0, t = pw.dio(
-    #         x.astype(np.double),
-    #         fs=self.sample_rate,
-    #         f0_ceil=self.mel_fmax,
-    #         frame_period=1000 * self.hop_length / self.sample_rate,
-    #     )
-    #     f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-    #     return f0
+    def compute_f0(self, x: np.ndarray) -> np.ndarray:
+        """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
+
+        Args:
+            x (np.ndarray): Waveform.
+
+        Returns:
+            np.ndarray: Pitch.
+
+        Examples:
+            >>> WAV_FILE = filename = librosa.util.example_audio_file()
+            >>> from TTS.config import BaseAudioConfig
+            >>> from TTS.utils.audio import AudioProcessor
+            >>> conf = BaseAudioConfig(mel_fmax=8000)
+            >>> ap = AudioProcessor(**conf)
+            >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
+            >>> pitch = ap.compute_f0(wav)
+        """
+        # f0, t = pw.dio(
+        #     x.astype(np.double),
+        #     fs=self.sample_rate,
+        #     f0_ceil=self.mel_fmax,
+        #     frame_period=1000 * self.hop_length / self.sample_rate,
+        # )
+        # f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
+        # f0 = compute_yin(, self.sample_rate, self.hop_length, self.fft_size)
+        f0, _, _ = librosa.pyin(
+            x.astype(np.double),
+            fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
+            fmax=self.mel_fmax,
+            frame_length=self.win_length,
+            sr=self.sample_rate,
+            fill_na=0.0,
+        )
+        return f0
 
     ### Audio Processing ###
     def find_endpoint(self, wav: np.ndarray, threshold_db=-40, min_silence_sec=0.8) -> int:
