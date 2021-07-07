@@ -8,9 +8,9 @@ except ImportError:
 
 
 class WandbLogger:
-    def __init__(self, **kwargs):
+    def __init__(self, disabled=False, **kwargs):
         self.run = None
-        if wandb:
+        if wandb and not disabled:
             self.run = wandb.init(**kwargs) if not wandb.run else wandb.run
         self.log_dict = {}
 

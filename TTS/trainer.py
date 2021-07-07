@@ -174,10 +174,16 @@ class Trainer:
             self.tb_logger = tb_logger
 
         if wandb_logger is None:
-            self.wandb_logger = WandbLogger(
-                project=os.path(output_path).stem,
-                name=config.model,
+            wandb_project_name = config.model
+            if config.wandb_project_name:
+                wandb_project_name = config.wandb_project_name
+
+            wandb_logger = WandbLogger(
+                disabled=config.wandb_disabled,
+                project=wandb_project_name,
+                name=config.run_name,
                 config=config,
+                entity=config.wandb_entity,
             )
         else:
             self.wandb_logger = wandb_logger
@@ -1158,14 +1164,17 @@ def process_args(args, config=None):
         # write model desc to tensorboard
         tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
 
-        if not config.wandb_disabled:
-            wandb_project_name = config.model
-            if config.wandb_project_name:
-                wandb_project_name = config.wandb_project_name
+        wandb_project_name = config.model
+        if config.wandb_project_name:
+            wandb_project_name = config.wandb_project_name
 
-            wandb_logger = WandbLogger(
-                project=wandb_project_name, name=config.run_name, config=config, entity=config.wandb_entity
-            )
+        wandb_logger = WandbLogger(
+            disabled=config.wandb_disabled,
+            project=wandb_project_name,
+            name=config.run_name,
+            config=config,
+            entity=config.wandb_entity,
+        )
 
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, tb_logger, wandb_logger
