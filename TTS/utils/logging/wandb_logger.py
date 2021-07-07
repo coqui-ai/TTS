@@ -2,7 +2,7 @@ from pathlib import Path
 
 try:
     import wandb
-    from wandb import init, finish
+    from wandb import finish, init  # pylint: disable=W0611
 except ImportError:
     wandb = None
 
@@ -15,10 +15,6 @@ class WandbLogger:
         self.log_dict = {}
 
     def log(self, log_dict, prefix="", flush=False):
-        """
-        This function accumulates data in self.log_dict. If flush is set.
-        the accumulated metrics will be logged directly to wandb dashboard.
-        """
         for key, value in log_dict.items():
             self.log_dict[prefix + key] = value
         if flush:  # for cases where you don't want to accumulate data
@@ -53,13 +49,14 @@ class WandbLogger:
         self.log_dict = {}
 
     def finish(self):
-        """
-        Finish this W&B run
-        """
-        self.run.finish()
+        if self.run:
+            self.run.finish()
 
-    def log_artifact(self, file_or_dir, name, type, aliases=[]):
-        artifact = wandb.Artifact(name, type=type)
+    def log_artifact(self, file_or_dir, name, artifact_type, aliases=None):
+        if not self.run:
+            return
+        name = "_".join([self.run.id, name])
+        artifact = wandb.Artifact(name, type=artifact_type)
         data_path = Path(file_or_dir)
         if data_path.is_dir():
             artifact.add_dir(str(data_path))
