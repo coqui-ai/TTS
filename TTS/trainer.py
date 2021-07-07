@@ -159,7 +159,7 @@ class Trainer:
         self.use_cuda, self.num_gpus = setup_torch_training_env(True, cudnn_benchmark)
         if config is None:
             # parse config from console arguments
-            config, output_path, _, c_logger, tb_logger = process_args(args)
+            config, output_path, _, c_logger, tb_logger, wandb_logger = process_args(args)
 
         self.output_path = output_path
         self.args = args
@@ -657,6 +657,15 @@ class Trainer:
                         self.output_path,
                         model_loss=target_avg_loss,
                     )
+
+                    if (
+                        self.config.wandb_log_model_step
+                        and self.total_steps_done % self.config.wandb_log_model_step == 0
+                    ):
+                        # log checkpoint as W&B artifact
+                        aliases = [f"epoch-{self.epochs_done}", f"step-{self.total_steps_done}"]
+                        self.wandb_logger.log_artifact(self.output_path, "checkpoint", "model", aliases)
+
                 # training visualizations
                 figures, audios = None, None
                 if hasattr(self.model, "module") and hasattr(self.model.module, "train_log"):
@@ -860,10 +869,13 @@ class Trainer:
         """Where the ✨️magic✨️ happens..."""
         try:
             self._fit()
+            self.wandb_logger.finish()
         except KeyboardInterrupt:
             self.callbacks.on_keyboard_interrupt()
             # if the output folder is empty remove the run.
             remove_experiment_folder(self.output_path)
+            # finish the wandb run and sync data
+            self.wandb_logger.finish()
             # stop without error signal
             try:
                 sys.exit(0)
@@ -1092,7 +1104,7 @@ def process_args(args, config=None):
             logging to the console.
         tb_logger (TTS.utils.tensorboard.TensorboardLogger): Class that does
             the TensorBoard logging.
-        wandb_logger (TTS.utils.tensorboard.WandbLogger): Class that does the W&B Loggin
+        wandb_logger (TTS.utils.tensorboard.WandbLogger): Class that does the W&B Logging
 
     TODO:
         - Interactive config definition.
@@ -1106,17 +1118,15 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-    # setup output paths and read configs
-    if config is None:
-        config = load_config(args.config_path)
-    # init config
+
+    # init config if not already defined
     if config is None:
         if args.config_path:
             # init from a file
             config = load_config(args.config_path)
         else:
             # init from console args
-            from TTS.config.shared_configs import BaseTrainingConfig
+            from TTS.config.shared_configs import BaseTrainingConfig  # pylint: disable=import-outside-toplevel
 
             config_base = BaseTrainingConfig()
             config_base.parse_known_args(coqpit_overrides)
@@ -1148,11 +1158,14 @@ def process_args(args, config=None):
         # write model desc to tensorboard
         tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
 
-        wandb_logger = WandbLogger(
-            project=config.model,
-            name=os.path.basename(experiment_path),
-            config=config,
-        )
+        if not config.wandb_disabled:
+            wandb_project_name = config.model
+            if config.wandb_project_name:
+                wandb_project_name = config.wandb_project_name
+
+            wandb_logger = WandbLogger(
+                project=wandb_project_name, name=config.run_name, config=config, entity=config.wandb_entity
+            )
 
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, tb_logger, wandb_logger
