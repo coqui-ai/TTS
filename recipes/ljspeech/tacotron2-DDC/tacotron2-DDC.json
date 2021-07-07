@@ -1,4 +1,5 @@
 {
+    "model": "Tacotron2",
     "datasets": [
         {
             "name": "ljspeech",
@@ -38,7 +39,6 @@
     },
     "distributed_backend": "gloo",
     "distributed_url": "tcp:\/\/localhost:54321",
-    "model": "Tacotron2",
     "run_name": "ljspeech-ddc",
     "run_description": "tacotron2 with double decoder consistency.",
     "batch_size": 64,
