@@ -231,6 +231,16 @@ class BaseTrainingConfig(Coqpit):
         tb_model_param_stats (bool):
             Enable / Disable logging internal model stats for model diagnostic. It might be useful for model debugging.
             Defaults to ```False```.
+            wandb_disabled: bool = False
+
+        wandb_project_name (str):
+            Name of the W&B project. Defaults to config.model
+
+        wandb_entity (str):
+            Name of W&B entity/team. Enables collaboration across a team or org.
+
+        wandb_log_model_step (int):
+            Number of steps required to log a checkpoint as W&B artifact
 
         save_step (int):ipt
             Number of steps required to save the next checkpoint.
@@ -276,6 +286,10 @@ class BaseTrainingConfig(Coqpit):
     print_step: int = 25
     tb_plot_step: int = 100
     tb_model_param_stats: bool = False
+    wandb_disabled: bool = False
+    wandb_project_name: str = None
+    wandb_entity: str = None
+    wandb_log_model_step: int = None
     # checkpointing
     save_step: int = 10000
     checkpoint: bool = True
