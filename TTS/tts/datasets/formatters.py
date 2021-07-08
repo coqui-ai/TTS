@@ -338,23 +338,41 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
         return [x.strip().split("|") for x in f.readlines()]
 
 
-def baker(root_path: str, meta_file: str) -> List[List[str]]:
-    """Normalizes the Baker meta data file to TTS format
-
-    Args:
-        root_path (str): path to the baker dataset
-        meta_file (str): name of the meta dataset containing names of wav to select and the transcript of the sentence
-    Returns:
-        List[List[str]]: List of (text, wav_path, speaker_name) associated with each sentences
-    """
+def bakerpinyin(root_path: str, meta_file: str) -> List[List[str]]:
     txt_file = os.path.join(root_path, meta_file)
     items = []
-    speaker_name = "baker"
+    speaker_name = "bakerpinyin"
     with open(txt_file, "r") as ttf:
+        i = 1
+        texts = []
         for line in ttf:
-            wav_name, text = line.rstrip("\n").split("|")
-            wav_path = os.path.join(root_path, "clips_22", wav_name)
-            items.append([text, wav_path, speaker_name])
+            if (i % 2 == 0):
+                text = line.strip()
+                items.append([text, texts[1], speaker_name])
+                texts.clear()
+            else:
+                texts.append(line.split("	")[0])
+                texts.append(os.path.join(root_path, "Wave", texts[0] + ".wav"))
+            i += 1
+            
+    return items
+
+
+def bakercn(root_path: str, meta_file: str) -> List[List[str]]:
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = "bakercn"
+    with open(txt_file, "r") as ttf:
+        i = 1
+        for line in ttf:
+            if (i % 2 != 0):
+                wav_name, text = line.rstrip("\n").split("	")
+                if (len(text) > 0):
+                    wav_file = os.path.join(root_path, "Wave", wav_name + ".wav")
+                    items.append([text, wav_file, speaker_name])
+
+            i += 1
+
     return items
 
 
