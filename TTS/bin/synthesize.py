@@ -39,6 +39,12 @@ def main():
     $ ./TTS/bin/synthesize.py --list_models
     ```
 
+    - download pre-trained models
+
+    ```
+    $ ./TTS/bin/synthesize.py --download_model "<language>/<dataset>/<model_name>"
+    ```
+
     - run tts with default models.
 
     ```
@@ -48,7 +54,7 @@ def main():
     - run a tts model with its default vocoder model.
 
     ```
-    $ ./TTS/bin synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
+    $ ./TTS/bin synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>"
     ```
 
     - run with specific tts and vocoder models from the list
@@ -99,6 +105,12 @@ def main():
         const=True,
         default=False,
         help="list available pre-trained tts and vocoder models.",
+    )
+    parser.add_argument(
+        "--download_model",
+        type=str,
+        default=None,
+        help="Download one of the pre-trained tts or vocoder models",
     )
     parser.add_argument("--text", type=str, default=None, help="Text to generate speech.")
 
@@ -179,8 +191,8 @@ def main():
 
     args = parser.parse_args()
 
-    # print the description if either text or list_models is not set
-    if args.text is None and not args.list_models and not args.list_speaker_idxs:
+    # print the description if either text or list_models or download_model are not set
+    if args.text is None and not args.list_models and not args.download_model and not args.list_speaker_idxs:
         parser.parse_args(["-h"])
 
     # load model manager
@@ -199,8 +211,13 @@ def main():
     if args.list_models:
         manager.list_models()
         sys.exit()
+        
+    # CASE2: download pre-trained TTS model
+    if args.download_model:
+        manager.download_model(args.download_model)
+        sys.exit()
 
-    # CASE2: load pre-trained model paths
+    # CASE3: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
         args.vocoder_name = model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
@@ -208,7 +225,7 @@ def main():
     if args.vocoder_name is not None and not args.vocoder_path:
         vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
-    # CASE3: set custome model paths
+    # CASE4: set custom model paths
     if args.model_path is not None:
         model_path = args.model_path
         config_path = args.config_path
