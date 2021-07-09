@@ -1,5 +1,7 @@
-from pathlib import Path
+# pylint: disable=W0613
+
 import traceback
+from pathlib import Path
 
 try:
     import wandb
@@ -23,16 +25,14 @@ class WandbLogger:
         layer_num = 1
         for name, param in model.named_parameters():
             if param.numel() == 1:
-                self.dict_to_scalar("weights",{"layer{}-{}/value".format(layer_num, name): param.max()})
+                self.dict_to_scalar("weights", {"layer{}-{}/value".format(layer_num, name): param.max()})
             else:
                 self.dict_to_scalar("weights", {"layer{}-{}/max".format(layer_num, name): param.max()})
                 self.dict_to_scalar("weights", {"layer{}-{}/min".format(layer_num, name): param.min()})
                 self.dict_to_scalar("weights", {"layer{}-{}/mean".format(layer_num, name): param.mean()})
                 self.dict_to_scalar("weights", {"layer{}-{}/std".format(layer_num, name): param.std()})
-                '''
-                self.writer.add_histogram("layer{}-{}/param".format(layer_num, name), param, step)
-                self.writer.add_histogram("layer{}-{}/grad".format(layer_num, name), param.grad, step)
-                '''
+                self.log_dict["weights/layer{}-{}/param".format(layer_num, name)] = wandb.Histogram(param)
+                self.log_dict["weights/layer{}-{}/grad".format(layer_num, name)] = wandb.Histogram(param.grad)
             layer_num += 1
 
     def dict_to_scalar(self, scope_name, stats):
@@ -51,7 +51,6 @@ class WandbLogger:
                 self.log_dict["{}/{}".format(scope_name, key)] = wandb.Audio(value, sample_rate=sample_rate)
             except RuntimeError:
                 traceback.print_exc()
-
 
     def log(self, log_dict, prefix="", flush=False):
         for key, value in log_dict.items():

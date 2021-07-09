@@ -184,7 +184,6 @@ class Trainer:
         if not self.config.log_model_step:
             self.config.log_model_step = self.config.save_step
 
-
         log_file = os.path.join(self.output_path, f"trainer_{args.rank}_log.txt")
         self._setup_logger_config(log_file)
 
@@ -1147,7 +1146,7 @@ def process_args(args, config=None):
         os.chmod(experiment_path, 0o775)
 
         if config.dashboard_logger == "tensorboard":
-            dashboard_logger = TensorboardLogger(output_path, model_name=config.model)
+            dashboard_logger = TensorboardLogger(config.output_path, model_name=config.model)
             dashboard_logger.add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
 
         elif config.dashboard_logger == "wandb":
@@ -1161,7 +1160,6 @@ def process_args(args, config=None):
                 config=config,
                 entity=config.wandb_entity,
             )
-
 
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, dashboard_logger

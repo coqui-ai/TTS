@@ -7,8 +7,6 @@ class TensorboardLogger(object):
     def __init__(self, log_dir, model_name):
         self.model_name = model_name
         self.writer = SummaryWriter(log_dir)
-        self.train_stats = {}
-        self.eval_stats = {}
 
     def model_weights(self, model, step):
         layer_num = 1
@@ -71,11 +69,11 @@ class TensorboardLogger(object):
     def add_text(self, title, text, step):
         self.writer.add_text(title, text, step)
 
-    def log_artifact(self, file_or_dir, name, artifact_type, aliases=None):
-        return
-    
+    def log_artifact(self, file_or_dir, name, artifact_type, aliases=None): # pylint: disable=W0613, R0201
+        yield
+
     def flush(self):
-        return
-    
+        self.writer.flush()
+
     def finish(self):
-        return
+        self.writer.close()
