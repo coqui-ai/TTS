@@ -211,7 +211,7 @@ def main():
     if args.list_models:
         manager.list_models()
         sys.exit()
-        
+
     # CASE2: download pre-trained TTS model
     if args.download_model:
         manager.download_model(args.download_model)
