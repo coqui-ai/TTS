@@ -92,8 +92,7 @@ class Trainer:
         config: Coqpit,
         output_path: str,
         c_logger: ConsoleLogger = None,
-        tb_logger: TensorboardLogger = None,
-        wandb_logger: WandbLogger = None,
+        dashboard_logger: Union[TensorboardLogger, WandbLogger] = None,
         model: nn.Module = None,
         cudnn_benchmark: bool = False,
     ) -> None:
@@ -118,10 +117,7 @@ class Trainer:
             c_logger (ConsoleLogger, optional): Console logger for printing training status. If not provided, the default
                 console logger is used. Defaults to None.
 
-            tb_logger (TensorboardLogger, optional): Tensorboard logger. If not provided, the default logger is used.
-                Defaults to None.
-
-            wandb_logger (WandbLogger, optional): W&B logger. If not provided, the default logger is used.
+            dashboard_logger Union[TensorboardLogger, WandbLogger]: Dashboard logger. If not provided, the tensorboard logger is used.
                 Defaults to None.
 
             model (nn.Module, optional): Initialized and ready-to-train model. If it is not defined, `Trainer`
@@ -143,8 +139,8 @@ class Trainer:
             Running trainer on a config.
 
             >>> config = WavegradConfig(data_path="/home/erogol/nvme/gdrive/Datasets/LJSpeech-1.1/wavs/", output_path=output_path,)
-            >>> args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
-            >>> trainer = Trainer(args, config, output_path, c_logger, tb_logger)
+            >>> args, config, output_path, _, c_logger, dashboard_logger = init_training(TrainingArgs(), config)
+            >>> trainer = Trainer(args, config, output_path, c_logger, dashboard_logger)
             >>> trainer.fit()
 
         TODO:
@@ -159,7 +155,7 @@ class Trainer:
         self.use_cuda, self.num_gpus = setup_torch_training_env(True, cudnn_benchmark)
         if config is None:
             # parse config from console arguments
-            config, output_path, _, c_logger, tb_logger, wandb_logger = process_args(args)
+            config, output_path, _, c_logger, dashboard_logger = process_args(args)
 
         self.output_path = output_path
         self.args = args
@@ -167,26 +163,27 @@ class Trainer:
 
         # init loggers
         self.c_logger = ConsoleLogger() if c_logger is None else c_logger
-        if tb_logger is None:
-            self.tb_logger = TensorboardLogger(output_path, model_name=config.model)
-            self.tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
-        else:
-            self.tb_logger = tb_logger
+        self.dashboard_logger = dashboard_logger
 
-        if wandb_logger is None:
-            wandb_project_name = config.model
-            if config.wandb_project_name:
-                wandb_project_name = config.wandb_project_name
+        if self.dashboard_logger is None:
+            if config.dashboard_logger == "tensorboard":
+                self.dashboard_logger = TensorboardLogger(output_path, model_name=config.model)
+                self.dashboard_logger.add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
 
-            wandb_logger = WandbLogger(
-                disabled=config.wandb_disabled,
-                project=wandb_project_name,
-                name=config.run_name,
-                config=config,
-                entity=config.wandb_entity,
-            )
-        else:
-            self.wandb_logger = wandb_logger
+            elif config.dashboard_logger == "wandb":
+                project_name = config.model
+                if config.project_name:
+                    project_name = config.project_name
+
+                self.dashboard_logger = WandbLogger(
+                    project=project_name,
+                    name=config.run_name,
+                    config=config,
+                    entity=config.wandb_entity,
+                )
+        if not self.config.log_model_step:
+            self.config.log_model_step = self.config.save_step
+
 
         log_file = os.path.join(self.output_path, f"trainer_{args.rank}_log.txt")
         self._setup_logger_config(log_file)
@@ -646,9 +643,8 @@ class Trainer:
         if self.args.rank == 0:
             # Plot Training Iter Stats
             # reduce TB load and don't log every step
-            if self.total_steps_done % self.config.tb_plot_step == 0:
-                self.tb_logger.tb_train_step_stats(self.total_steps_done, loss_dict)
-                self.wandb_logger.log(loss_dict, "train/", flush=True)
+            if self.total_steps_done % self.config.plot_step == 0:
+                self.dashboard_logger.train_step_stats(self.total_steps_done, loss_dict)
             if self.total_steps_done % self.config.save_step == 0 and self.total_steps_done != 0:
                 if self.config.checkpoint:
                     # checkpoint the model
@@ -664,13 +660,10 @@ class Trainer:
                         model_loss=target_avg_loss,
                     )
 
-                    if (
-                        self.config.wandb_log_model_step
-                        and self.total_steps_done % self.config.wandb_log_model_step == 0
-                    ):
-                        # log checkpoint as W&B artifact
+                    if self.total_steps_done % self.config.log_model_step == 0:
+                        # log checkpoint as artifact
                         aliases = [f"epoch-{self.epochs_done}", f"step-{self.total_steps_done}"]
-                        self.wandb_logger.log_artifact(self.output_path, "checkpoint", "model", aliases)
+                        self.dashboard_logger.log_artifact(self.output_path, "checkpoint", "model", aliases)
 
                 # training visualizations
                 figures, audios = None, None
@@ -679,15 +672,13 @@ class Trainer:
                 elif hasattr(self.model, "train_log"):
                     figures, audios = self.model.train_log(self.ap, batch, outputs)
                 if figures is not None:
-                    self.tb_logger.tb_train_figures(self.total_steps_done, figures)
-                    self.wandb_logger.log_figures(figures, "train/")
+                    self.dashboard_logger.train_figures(self.total_steps_done, figures)
                 if audios is not None:
-                    self.tb_logger.tb_train_audios(self.total_steps_done, audios, self.ap.sample_rate)
-                    self.wandb_logger.log_audios(audios, self.ap.sample_rate, "train/")
+                    self.dashboard_logger.train_audios(self.total_steps_done, audios, self.ap.sample_rate)
 
         self.total_steps_done += 1
         self.callbacks.on_train_step_end()
-        self.wandb_logger.flush()
+        self.dashboard_logger.flush()
         return outputs, loss_dict
 
     def train_epoch(self) -> None:
@@ -712,10 +703,9 @@ class Trainer:
         if self.args.rank == 0:
             epoch_stats = {"epoch_time": epoch_time}
             epoch_stats.update(self.keep_avg_train.avg_values)
-            self.tb_logger.tb_train_epoch_stats(self.total_steps_done, epoch_stats)
-            self.wandb_logger.log_scalars(epoch_stats, "train/")
-            if self.config.tb_model_param_stats:
-                self.tb_logger.tb_model_weights(self.model, self.total_steps_done)
+            self.dashboard_logger.train_epoch_stats(self.total_steps_done, epoch_stats)
+            if self.config.model_param_stats:
+                self.logger.model_weights(self.model, self.total_steps_done)
         # scheduler step after the epoch
         if self.scheduler is not None and self.config.scheduler_after_epoch:
             if isinstance(self.scheduler, list):
@@ -816,13 +806,10 @@ class Trainer:
             elif hasattr(self.model, "eval_log"):
                 figures, audios = self.model.eval_log(self.ap, batch, outputs)
             if figures is not None:
-                self.tb_logger.tb_eval_figures(self.total_steps_done, figures)
-                self.wandb_logger.log_figures(figures, "eval/")
+                self.dashboard_logger.eval_figures(self.total_steps_done, figures)
             if audios is not None:
-                self.tb_logger.tb_eval_audios(self.total_steps_done, audios, self.ap.sample_rate)
-                self.wandb_logger.log_audios(audios, self.ap.sample_rate, "eval/")
-            self.tb_logger.tb_eval_stats(self.total_steps_done, self.keep_avg_eval.avg_values)
-            self.wandb_logger.log_scalars(self.keep_avg_eval.avg_values, "eval/")
+                self.dashboard_logger.eval_audios(self.total_steps_done, audios, self.ap.sample_rate)
+            self.dashboard_logger.eval_stats(self.total_steps_done, self.keep_avg_eval.avg_values)
 
     def test_run(self) -> None:
         """Run test and log the results. Test run must be defined by the model.
@@ -839,11 +826,9 @@ class Trainer:
                 samples = self.eval_loader.dataset.load_test_samples(1)
                 figures, audios = self.model.test_run(self.ap, samples, None)
             else:
-                figures, audios = self.model.test_run(self.ap)
-            self.tb_logger.tb_test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
-            self.tb_logger.tb_test_figures(self.total_steps_done, figures)
-            self.wandb_logger.log_audios(audios, self.config.audio["sample_rate"], "test/")
-            self.wandb_logger.log_figures(figures, "test/")
+                figures, audios = self.model.test_run()
+            self.dashboard_logger.test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
+            self.dashboard_logger.test_figures(self.total_steps_done, figures)
 
     def _fit(self) -> None:
         """🏃 train -> evaluate -> test for the number of epochs."""
@@ -875,13 +860,13 @@ class Trainer:
         """Where the ✨️magic✨️ happens..."""
         try:
             self._fit()
-            self.wandb_logger.finish()
+            self.dashboard_logger.finish()
         except KeyboardInterrupt:
             self.callbacks.on_keyboard_interrupt()
             # if the output folder is empty remove the run.
             remove_experiment_folder(self.output_path)
             # finish the wandb run and sync data
-            self.wandb_logger.finish()
+            self.dashboard_logger.finish()
             # stop without error signal
             try:
                 sys.exit(0)
@@ -1108,9 +1093,8 @@ def process_args(args, config=None):
         audio_path (str): Path to save generated test audios.
         c_logger (TTS.utils.console_logger.ConsoleLogger): Class that does
             logging to the console.
-        tb_logger (TTS.utils.tensorboard.TensorboardLogger): Class that does
-            the TensorBoard logging.
-        wandb_logger (TTS.utils.tensorboard.WandbLogger): Class that does the W&B Logging
+
+        dashboard_logger (WandbLogger or TensorboardLogger): Class that does the dashboard Logging
 
     TODO:
         - Interactive config definition.
@@ -1146,8 +1130,7 @@ def process_args(args, config=None):
         experiment_path = get_experiment_folder_path(config.output_path, config.run_name)
     audio_path = os.path.join(experiment_path, "test_audios")
     # setup rank 0 process in distributed training
-    tb_logger = None
-    wandb_logger = None
+    dashboard_logger = None
     if args.rank == 0:
         new_fields = {}
         if args.restore_path:
@@ -1160,24 +1143,28 @@ def process_args(args, config=None):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(config, experiment_path, new_fields)
-        tb_logger = TensorboardLogger(experiment_path, model_name=config.model)
-        # write model desc to tensorboard
-        tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
+        os.chmod(audio_path, 0o775)
+        os.chmod(experiment_path, 0o775)
 
-        wandb_project_name = config.model
-        if config.wandb_project_name:
-            wandb_project_name = config.wandb_project_name
+        if config.dashboard_logger == "tensorboard":
+            dashboard_logger = TensorboardLogger(output_path, model_name=config.model)
+            dashboard_logger.add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)
 
-        wandb_logger = WandbLogger(
-            disabled=config.wandb_disabled,
-            project=wandb_project_name,
-            name=config.run_name,
-            config=config,
-            entity=config.wandb_entity,
-        )
+        elif config.dashboard_logger == "wandb":
+            project_name = config.model
+            if config.project_name:
+                project_name = config.project_name
+
+            dashboard_logger = WandbLogger(
+                project=project_name,
+                name=config.run_name,
+                config=config,
+                entity=config.wandb_entity,
+            )
+
 
     c_logger = ConsoleLogger()
-    return config, experiment_path, audio_path, c_logger, tb_logger, wandb_logger
+    return config, experiment_path, audio_path, c_logger, dashboard_logger
 
 
 def init_arguments():
@@ -1193,5 +1180,5 @@ def init_training(argv: Union[List, Coqpit], config: Coqpit = None):
     else:
         parser = init_arguments()
     args = parser.parse_known_args()
-    config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger, wandb_logger = process_args(args, config)
-    return args[0], config, OUT_PATH, AUDIO_PATH, c_logger, tb_logger, wandb_logger
+    config, OUT_PATH, AUDIO_PATH, c_logger, dashboard_logger = process_args(args, config)
+    return args[0], config, OUT_PATH, AUDIO_PATH, c_logger, dashboard_logger
