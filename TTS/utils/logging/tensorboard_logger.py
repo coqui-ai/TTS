@@ -69,7 +69,7 @@ class TensorboardLogger(object):
     def add_text(self, title, text, step):
         self.writer.add_text(title, text, step)
 
-    def log_artifact(self, file_or_dir, name, artifact_type, aliases=None): # pylint: disable=W0613, R0201
+    def log_artifact(self, file_or_dir, name, artifact_type, aliases=None):  # pylint: disable=W0613, R0201
         yield
 
     def flush(self):
