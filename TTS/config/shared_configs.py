@@ -225,15 +225,17 @@ class BaseTrainingConfig(Coqpit):
         print_step (int):
             Number of steps required to print the next training log.
 
-        tb_plot_step (int):
+        log_dashboard (str): "tensorboard" or "wandb"
+            Set the experiment tracking tool
+
+        plot_step (int):
             Number of steps required to log training on Tensorboard.
 
-        tb_model_param_stats (bool):
+        model_param_stats (bool):
             Enable / Disable logging internal model stats for model diagnostic. It might be useful for model debugging.
             Defaults to ```False```.
-            wandb_disabled: bool = False
 
-        wandb_project_name (str):
+        project_name (str):
             Name of the W&B project. Defaults to config.model
 
         wandb_entity (str):
@@ -283,13 +285,13 @@ class BaseTrainingConfig(Coqpit):
     test_delay_epochs: int = 0
     print_eval: bool = False
     # logging
+    dashboard_logger: str = "tensorboard"
     print_step: int = 25
-    tb_plot_step: int = 100
-    tb_model_param_stats: bool = False
-    wandb_disabled: bool = False
-    wandb_project_name: str = None
+    plot_step: int = 100
+    model_param_stats: bool = False
+    project_name: str = None
+    log_model_step: int = None
     wandb_entity: str = None
-    wandb_log_model_step: int = None
     # checkpointing
     save_step: int = 10000
     checkpoint: bool = True

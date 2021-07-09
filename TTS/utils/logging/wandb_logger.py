@@ -1,4 +1,5 @@
 from pathlib import Path
+import traceback
 
 try:
     import wandb
@@ -8,11 +9,49 @@ except ImportError:
 
 
 class WandbLogger:
-    def __init__(self, disabled=False, **kwargs):
+    def __init__(self, **kwargs):
+
+        if not wandb:
+            raise Exception("install wandb using `pip install wandb` to use WandbLogger")
+
         self.run = None
-        if wandb and not disabled:
-            self.run = wandb.init(**kwargs) if not wandb.run else wandb.run
+        self.run = wandb.init(**kwargs) if not wandb.run else wandb.run
+        self.model_name = self.run.config.model
         self.log_dict = {}
+
+    def model_weights(self, model):
+        layer_num = 1
+        for name, param in model.named_parameters():
+            if param.numel() == 1:
+                self.dict_to_scalar("weights",{"layer{}-{}/value".format(layer_num, name): param.max()})
+            else:
+                self.dict_to_scalar("weights", {"layer{}-{}/max".format(layer_num, name): param.max()})
+                self.dict_to_scalar("weights", {"layer{}-{}/min".format(layer_num, name): param.min()})
+                self.dict_to_scalar("weights", {"layer{}-{}/mean".format(layer_num, name): param.mean()})
+                self.dict_to_scalar("weights", {"layer{}-{}/std".format(layer_num, name): param.std()})
+                '''
+                self.writer.add_histogram("layer{}-{}/param".format(layer_num, name), param, step)
+                self.writer.add_histogram("layer{}-{}/grad".format(layer_num, name), param.grad, step)
+                '''
+            layer_num += 1
+
+    def dict_to_scalar(self, scope_name, stats):
+        for key, value in stats.items():
+            self.log_dict["{}/{}".format(scope_name, key)] = value
+
+    def dict_to_figure(self, scope_name, figures):
+        for key, value in figures.items():
+            self.log_dict["{}/{}".format(scope_name, key)] = wandb.Image(value)
+
+    def dict_to_audios(self, scope_name, audios, sample_rate):
+        for key, value in audios.items():
+            if value.dtype == "float16":
+                value = value.astype("float32")
+            try:
+                self.log_dict["{}/{}".format(scope_name, key)] = wandb.Audio(value, sample_rate=sample_rate)
+            except RuntimeError:
+                traceback.print_exc()
+
 
     def log(self, log_dict, prefix="", flush=False):
         for key, value in log_dict.items():
@@ -20,28 +59,35 @@ class WandbLogger:
         if flush:  # for cases where you don't want to accumulate data
             self.flush()
 
-    def log_scalars(self, log_dict, prefix=""):
-        if not self.run:
-            return
+    def train_step_stats(self, step, stats):
+        self.dict_to_scalar(f"{self.model_name}_TrainIterStats", stats)
 
-        for key, value in log_dict.items():
-            self.log_dict[prefix + key] = value
+    def train_epoch_stats(self, step, stats):
+        self.dict_to_scalar(f"{self.model_name}_TrainEpochStats", stats)
 
-    def log_audios(self, log_dict, sample_rate, prefix=""):
-        if not self.run:
-            return
+    def train_figures(self, step, figures):
+        self.dict_to_figure(f"{self.model_name}_TrainFigures", figures)
 
-        prefix = "audios/" + prefix
-        for key, value in log_dict.items():
-            self.log_dict[prefix + key] = wandb.Audio(value, sample_rate=int(sample_rate))
+    def train_audios(self, step, audios, sample_rate):
+        self.dict_to_audios(f"{self.model_name}_TrainAudios", audios, sample_rate)
 
-    def log_figures(self, log_dict, prefix=""):
-        if not self.run:
-            return
+    def eval_stats(self, step, stats):
+        self.dict_to_scalar(f"{self.model_name}_EvalStats", stats)
 
-        prefix = "figures/" + prefix
-        for key, value in log_dict.items():
-            self.log_dict[prefix + key] = wandb.Image(value)
+    def eval_figures(self, step, figures):
+        self.dict_to_figure(f"{self.model_name}_EvalFigures", figures)
+
+    def eval_audios(self, step, audios, sample_rate):
+        self.dict_to_audios(f"{self.model_name}_EvalAudios", audios, sample_rate)
+
+    def test_audios(self, step, audios, sample_rate):
+        self.dict_to_audios(f"{self.model_name}_TestAudios", audios, sample_rate)
+
+    def test_figures(self, step, figures):
+        self.dict_to_figure(f"{self.model_name}_TestFigures", figures)
+
+    def add_text(self, title, text, step):
+        self.log_dict[title] = wandb.HTML(f"<p> {text} </p>")
 
     def flush(self):
         if self.run:
