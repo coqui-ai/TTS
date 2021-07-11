@@ -3,7 +3,7 @@ import argparse
 import os
 from argparse import RawTextHelpFormatter
 
-from TTS.tts.datasets.formatters import get_preprocessor_by_name
+from TTS.tts.datasets import _get_preprocessor_by_name
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
 
     args = parser.parse_args()
 
-    preprocessor = get_preprocessor_by_name(args.dataset)
+    preprocessor = _get_preprocessor_by_name(args.dataset)
     items = preprocessor(os.path.dirname(args.meta_file), os.path.basename(args.meta_file))
     texts = "".join(item[0] for item in items)
     chars = set(texts)
