@@ -9,8 +9,7 @@ import torch
 from torch import nn
 
 from TTS.tts.utils.data import StandardScaler
-
-# import pyworld as pw
+from TTS.utils.yin import compute_yin
 
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
@@ -648,15 +647,53 @@ class AudioProcessor(object):
         #     frame_period=1000 * self.hop_length / self.sample_rate,
         # )
         # f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-        # f0 = compute_yin(, self.sample_rate, self.hop_length, self.fft_size)
-        f0, _, _ = librosa.pyin(
-            x.astype(np.double),
-            fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
-            fmax=self.mel_fmax,
-            frame_length=self.win_length,
-            sr=self.sample_rate,
-            fill_na=0.0,
+        f0, _, _, _ = compute_yin(
+            x,
+            self.sample_rate,
+            self.win_length,
+            self.hop_length,
+            65 if self.mel_fmin == 0 else self.mel_fmin,
+            self.mel_fmax,
         )
+        # import pyworld as pw
+        # f0, _ = pw.dio(x.astype(np.float64), self.sample_rate,
+        #                   frame_period=self.hop_length / self.sample_rate * 1000)
+        pad = int((self.win_length / self.hop_length) / 2)
+        f0 = [0.0] * pad + f0 + [0.0] * pad
+        f0 = np.array(f0, dtype=np.float32)
+
+        # f01, _, _ = librosa.pyin(
+        #     x,
+        #     fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
+        #     fmax=self.mel_fmax,
+        #     frame_length=self.win_length,
+        #     sr=self.sample_rate,
+        #     fill_na=0.0,
+        # )
+
+        # f02 = librosa.yin(
+        #     x,
+        #     fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
+        #     fmax=self.mel_fmax,
+        #     frame_length=self.win_length,
+        #     sr=self.sample_rate
+        # )
+
+        # spec = self.melspectrogram(x)
+
+        # from matplotlib import pyplot as plt
+        # plt.figure()
+        # plt.plot(f0, linewidth=2.5, color='red')
+        # plt.plot(f01, linewidth=2.5, linestyle='-.')
+        # plt.plot(f02, linewidth=2.5)
+        # plt.xlabel('time')
+        # plt.ylabel('F0')
+        # plt.savefig('save_img.png')
+
+        # # plt.figure()
+        # plt.imshow(spec, aspect="auto", origin="lower")
+        # plt.savefig('save_img2.png')
+        # breakpoint()
         return f0
 
     ### Audio Processing ###
