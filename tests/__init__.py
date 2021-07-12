@@ -1,5 +1,6 @@
 import os
 
+from TTS.config import BaseDatasetConfig
 from TTS.utils.generic_utils import get_cuda
 
 
@@ -30,3 +31,7 @@ def get_tests_output_path():
 def run_cli(command):
     exit_status = os.system(command)
     assert exit_status == 0, f" [!] command `{command}` failed."
+
+
+def get_test_data_config():
+    return BaseDatasetConfig(name="ljspeech", path="tests/data/ljspeech/", meta_file_train="metadata.csv")
