@@ -116,6 +116,7 @@ class BaseTTS(BaseModel):
         speaker_ids = batch[9]
         attn_mask = batch[10]
         waveform = batch[11]
+        pitch = batch[13]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
 
@@ -162,6 +163,7 @@ class BaseTTS(BaseModel):
             "max_spec_length": float(max_spec_length),
             "item_idx": item_idx,
             "waveform": waveform,
+            "pitch": pitch,
         }
 
     def get_data_loader(
@@ -200,6 +202,7 @@ class BaseTTS(BaseModel):
                 text_cleaner=config.text_cleaner,
                 compute_linear_spec=config.model.lower() == "tacotron" or config.compute_linear_spec,
                 comnpute_f0=config.get("compute_f0", False),
+                f0_cache_path=config.get("f0_cache_path", None),
                 meta_data=data_items,
                 ap=ap,
                 characters=config.characters,
@@ -253,6 +256,14 @@ class BaseTTS(BaseModel):
 
             # sort input sequences from short to long
             dataset.sort_and_filter_items(config.get("sort_by_audio_len", default=False))
+
+            # compute pitch frames and write to files.
+            if config.compute_f0 and not os.path.exists(config.f0_cache_path) and rank in [None, 0]:
+                dataset.compute_pitch(config.get("f0_cache_path", None), config.num_loader_workers)
+
+            # halt DDP processes for the main process to finish computing the F0 cache
+            if num_gpus > 1:
+                dist.barrier()
 
             # sampler for DDP
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
