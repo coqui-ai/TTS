@@ -2,6 +2,7 @@ import collections
 import os
 import random
 from multiprocessing import Pool
+from typing import Dict, List
 
 import numpy as np
 import torch
@@ -10,49 +11,82 @@ from torch.utils.data import Dataset
 
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.tts.utils.text import pad_with_eos_bos, phoneme_to_sequence, text_to_sequence
+from TTS.utils.audio import AudioProcessor
 
 
-class MyDataset(Dataset):
+class TTSDataset(Dataset):
     def __init__(
         self,
-        outputs_per_step,
-        text_cleaner,
-        compute_linear_spec,
-        ap,
-        meta_data,
-        tp=None,
-        add_blank=False,
-        batch_group_size=0,
-        min_seq_len=0,
-        max_seq_len=float("inf"),
-        use_phonemes=False,
-        phoneme_cache_path=None,
-        phoneme_language="en-us",
-        enable_eos_bos=False,
-        speaker_mapping=None,
-        use_noise_augment=False,
-        verbose=False,
+        outputs_per_step: int,
+        text_cleaner: list,
+        compute_linear_spec: bool,
+        ap: AudioProcessor,
+        meta_data: List[List],
+        characters: Dict = None,
+        add_blank: bool = False,
+        batch_group_size: int = 0,
+        min_seq_len: int = 0,
+        max_seq_len: int = float("inf"),
+        use_phonemes: bool = False,
+        phoneme_cache_path: str = None,
+        phoneme_language: str = "en-us",
+        enable_eos_bos: bool = False,
+        speaker_id_mapping: Dict = None,
+        d_vector_mapping: Dict = None,
+        use_noise_augment: bool = False,
+        verbose: bool = False,
     ):
-        """
+        """Generic 📂 data loader for `tts` models. It is configurable for different outputs and needs.
+
+        If you need something different, you can either override or create a new class as the dataset is
+        initialized by the model.
+
         Args:
-            outputs_per_step (int): number of time frames predicted per step.
-            text_cleaner (str): text cleaner used for the dataset.
+            outputs_per_step (int): Number of time frames predicted per step.
+
+            text_cleaner (list): List of text cleaners to clean the input text before converting to sequence IDs.
+
             compute_linear_spec (bool): compute linear spectrogram if True.
-            ap (TTS.tts.utils.AudioProcessor): audio processor object.
-            meta_data (list): list of dataset instances.
-            tp (dict): dict of custom text characters used for converting texts to sequences.
-            batch_group_size (int): (0) range of batch randomization after sorting
-                sequences by length.
-            min_seq_len (int): (0) minimum sequence length to be processed
-                by the loader.
-            max_seq_len (int): (float("inf")) maximum sequence length.
-            use_phonemes (bool): (true) if true, text converted to phonemes.
-            phoneme_cache_path (str): path to cache phoneme features.
-            phoneme_language (str): one the languages from
-                https://github.com/bootphon/phonemizer#languages
-            enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
-            use_noise_augment (bool): enable adding random noise to wav for augmentation.
-            verbose (bool): print diagnostic information.
+
+            ap (TTS.tts.utils.AudioProcessor): Audio processor object.
+
+            meta_data (list): List of dataset instances.
+
+            characters (dict): `dict` of custom text characters used for converting texts to sequences.
+
+            add_blank (bool): Add a special `blank` character after every other character. It helps some
+                models achieve better results. Defaults to false.
+
+            batch_group_size (int): Range of batch randomization after sorting
+                sequences by length. It shuffles each batch with bucketing to gather similar lenght sequences in a
+                batch. Set 0 to disable. Defaults to 0.
+
+            min_seq_len (int): Minimum input sequence length to be processed
+                by the loader. Filter out input sequences that are shorter than this. Some models have a
+                minimum input length due to its architecture. Defaults to 0.
+
+            max_seq_len (int): Maximum input sequence length. Filter out input sequences that are longer than this.
+                It helps for controlling the VRAM usage against long input sequences. Especially models with
+                RNN layers are sensitive to input length. Defaults to `Inf`.
+
+            use_phonemes (bool): If true, input text converted to phonemes. Defaults to false.
+
+            phoneme_cache_path (str): Path to cache phoneme features. It writes computed phonemes to files to use in
+                the coming iterations. Defaults to None.
+
+            phoneme_language (str): One the languages from supported by the phonemizer interface. Defaults to `en-us`.
+
+            enable_eos_bos (bool): Enable the `end of sentence` and the `beginning of sentences characters`. Defaults
+                to False.
+
+            speaker_id_mapping (dict): Mapping of speaker names to IDs used to compute embedding vectors by the
+                embedding layer. Defaults to None.
+
+            d_vector_mapping (dict): Mapping of wav files to computed d-vectors. Defaults to None.
+
+            use_noise_augment (bool): Enable adding random noise to wav for augmentation. Defaults to False.
+
+            verbose (bool): Print diagnostic information. Defaults to false.
         """
         super().__init__()
         self.batch_group_size = batch_group_size
@@ -64,13 +98,14 @@ class MyDataset(Dataset):
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
-        self.tp = tp
+        self.characters = characters
         self.add_blank = add_blank
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
-        self.speaker_mapping = speaker_mapping
+        self.speaker_id_mapping = speaker_id_mapping
+        self.d_vector_mapping = d_vector_mapping
         self.use_noise_augment = use_noise_augment
         self.verbose = verbose
         self.input_seq_computed = False
@@ -93,13 +128,13 @@ class MyDataset(Dataset):
         return data
 
     @staticmethod
-    def _generate_and_cache_phoneme_sequence(text, cache_path, cleaners, language, tp, add_blank):
+    def _generate_and_cache_phoneme_sequence(text, cache_path, cleaners, language, characters, add_blank):
         """generate a phoneme sequence from text.
         since the usage is for subsequent caching, we never add bos and
         eos chars here. Instead we add those dynamically later; based on the
         config option."""
         phonemes = phoneme_to_sequence(
-            text, [cleaners], language=language, enable_eos_bos=False, tp=tp, add_blank=add_blank
+            text, [cleaners], language=language, enable_eos_bos=False, tp=characters, add_blank=add_blank
         )
         phonemes = np.asarray(phonemes, dtype=np.int32)
         np.save(cache_path, phonemes)
@@ -107,7 +142,7 @@ class MyDataset(Dataset):
 
     @staticmethod
     def _load_or_generate_phoneme_sequence(
-        wav_file, text, phoneme_cache_path, enable_eos_bos, cleaners, language, tp, add_blank
+        wav_file, text, phoneme_cache_path, enable_eos_bos, cleaners, language, characters, add_blank
     ):
         file_name = os.path.splitext(os.path.basename(wav_file))[0]
 
@@ -117,16 +152,16 @@ class MyDataset(Dataset):
         try:
             phonemes = np.load(cache_path)
         except FileNotFoundError:
-            phonemes = MyDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, tp, add_blank
+            phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
+                text, cache_path, cleaners, language, characters, add_blank
             )
         except (ValueError, IOError):
             print(" [!] failed loading phonemes for {}. " "Recomputing.".format(wav_file))
-            phonemes = MyDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, tp, add_blank
+            phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
+                text, cache_path, cleaners, language, characters, add_blank
             )
         if enable_eos_bos:
-            phonemes = pad_with_eos_bos(phonemes, tp=tp)
+            phonemes = pad_with_eos_bos(phonemes, tp=characters)
             phonemes = np.asarray(phonemes, dtype=np.int32)
         return phonemes
 
@@ -154,13 +189,14 @@ class MyDataset(Dataset):
                     self.enable_eos_bos,
                     self.cleaners,
                     self.phoneme_language,
-                    self.tp,
+                    self.characters,
                     self.add_blank,
                 )
 
             else:
                 text = np.asarray(
-                    text_to_sequence(text, [self.cleaners], tp=self.tp, add_blank=self.add_blank), dtype=np.int32
+                    text_to_sequence(text, [self.cleaners], tp=self.characters, add_blank=self.add_blank),
+                    dtype=np.int32,
                 )
 
         assert text.size > 0, self.items[idx][1]
@@ -190,7 +226,7 @@ class MyDataset(Dataset):
         item = args[0]
         func_args = args[1]
         text, wav_file, *_ = item
-        phonemes = MyDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
+        phonemes = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
         return phonemes
 
     def compute_input_seq(self, num_workers=0):
@@ -202,7 +238,8 @@ class MyDataset(Dataset):
             for idx, item in enumerate(tqdm.tqdm(self.items)):
                 text, *_ = item
                 sequence = np.asarray(
-                    text_to_sequence(text, [self.cleaners], tp=self.tp, add_blank=self.add_blank), dtype=np.int32
+                    text_to_sequence(text, [self.cleaners], tp=self.characters, add_blank=self.add_blank),
+                    dtype=np.int32,
                 )
                 self.items[idx][0] = sequence
 
@@ -212,7 +249,7 @@ class MyDataset(Dataset):
                 self.enable_eos_bos,
                 self.cleaners,
                 self.phoneme_language,
-                self.tp,
+                self.characters,
                 self.add_blank,
             ]
             if self.verbose:
@@ -225,7 +262,7 @@ class MyDataset(Dataset):
                 with Pool(num_workers) as p:
                     phonemes = list(
                         tqdm.tqdm(
-                            p.imap(MyDataset._phoneme_worker, [[item, func_args] for item in self.items]),
+                            p.imap(TTSDataset._phoneme_worker, [[item, func_args] for item in self.items]),
                             total=len(self.items),
                         )
                     )
@@ -282,7 +319,7 @@ class MyDataset(Dataset):
         """
 
         # Puts each data field into a tensor with outer dimension batch size
-        if isinstance(batch[0], collections.Mapping):
+        if isinstance(batch[0], collections.abc.Mapping):
 
             text_lenghts = np.array([len(d["text"]) for d in batch])
 
@@ -293,13 +330,18 @@ class MyDataset(Dataset):
             item_idxs = [batch[idx]["item_idx"] for idx in ids_sorted_decreasing]
             text = [batch[idx]["text"] for idx in ids_sorted_decreasing]
 
-            speaker_name = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
-            # get speaker embeddings
-            if self.speaker_mapping is not None:
+            speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
+            # get pre-computed d-vectors
+            if self.d_vector_mapping is not None:
                 wav_files_names = [batch[idx]["wav_file_name"] for idx in ids_sorted_decreasing]
-                speaker_embedding = [self.speaker_mapping[w]["embedding"] for w in wav_files_names]
+                d_vectors = [self.d_vector_mapping[w]["embedding"] for w in wav_files_names]
             else:
-                speaker_embedding = None
+                d_vectors = None
+            # get numerical speaker ids from speaker names
+            if self.speaker_id_mapping:
+                speaker_ids = [self.speaker_id_mapping[sn] for sn in speaker_names]
+            else:
+                speaker_ids = None
             # compute features
             mel = [self.ap.melspectrogram(w).astype("float32") for w in wav]
 
@@ -327,8 +369,11 @@ class MyDataset(Dataset):
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
 
-            if speaker_embedding is not None:
-                speaker_embedding = torch.FloatTensor(speaker_embedding)
+            if d_vectors is not None:
+                d_vectors = torch.FloatTensor(d_vectors)
+
+            if speaker_ids is not None:
+                speaker_ids = torch.LongTensor(speaker_ids)
 
             # compute linear spectrogram
             if self.compute_linear_spec:
@@ -355,13 +400,14 @@ class MyDataset(Dataset):
             return (
                 text,
                 text_lenghts,
-                speaker_name,
+                speaker_names,
                 linear,
                 mel,
                 mel_lengths,
                 stop_targets,
                 item_idxs,
-                speaker_embedding,
+                d_vectors,
+                speaker_ids,
                 attns,
             )
 

@@ -1,65 +1,105 @@
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple
+
 import numpy as np
 import torch
+from coqpit import Coqpit
 from torch import nn
 from torch.nn.utils import weight_norm
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
-from ..layers.wavegrad import Conv1d, DBlock, FiLM, UBlock
+from TTS.model import BaseModel
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.trainer_utils import get_optimizer, get_scheduler
+from TTS.vocoder.datasets import WaveGradDataset
+from TTS.vocoder.layers.wavegrad import Conv1d, DBlock, FiLM, UBlock
+from TTS.vocoder.utils.generic_utils import plot_results
 
 
-class Wavegrad(nn.Module):
+@dataclass
+class WavegradArgs(Coqpit):
+    in_channels: int = 80
+    out_channels: int = 1
+    use_weight_norm: bool = False
+    y_conv_channels: int = 32
+    x_conv_channels: int = 768
+    dblock_out_channels: List[int] = field(default_factory=lambda: [128, 128, 256, 512])
+    ublock_out_channels: List[int] = field(default_factory=lambda: [512, 512, 256, 128, 128])
+    upsample_factors: List[int] = field(default_factory=lambda: [4, 4, 4, 2, 2])
+    upsample_dilations: List[List[int]] = field(
+        default_factory=lambda: [[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 4, 8], [1, 2, 4, 8], [1, 2, 4, 8]]
+    )
+
+
+class Wavegrad(BaseModel):
+    """🐸 🌊 WaveGrad 🌊 model.
+    Paper - https://arxiv.org/abs/2009.00713
+
+    Examples:
+        Initializing the model.
+
+        >>> from TTS.vocoder.configs import WavegradConfig
+        >>> config = WavegradConfig()
+        >>> model = Wavegrad(config)
+
+    Paper Abstract:
+        This paper introduces WaveGrad, a conditional model for waveform generation which estimates gradients of the
+        data density. The model is built on prior work on score matching and diffusion probabilistic models. It starts
+        from a Gaussian white noise signal and iteratively refines the signal via a gradient-based sampler conditioned
+        on the mel-spectrogram. WaveGrad offers a natural way to trade inference speed for sample quality by adjusting
+        the number of refinement steps, and bridges the gap between non-autoregressive and autoregressive models in
+        terms of audio quality. We find that it can generate high fidelity audio samples using as few as six iterations.
+        Experiments reveal WaveGrad to generate high fidelity audio, outperforming adversarial non-autoregressive
+        baselines and matching a strong likelihood-based autoregressive baseline using fewer sequential operations.
+        Audio samples are available at this https URL.
+    """
+
     # pylint: disable=dangerous-default-value
-    def __init__(
-        self,
-        in_channels=80,
-        out_channels=1,
-        use_weight_norm=False,
-        y_conv_channels=32,
-        x_conv_channels=768,
-        dblock_out_channels=[128, 128, 256, 512],
-        ublock_out_channels=[512, 512, 256, 128, 128],
-        upsample_factors=[5, 5, 3, 2, 2],
-        upsample_dilations=[[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 4, 8], [1, 2, 4, 8], [1, 2, 4, 8]],
-    ):
+    def __init__(self, config: Coqpit):
         super().__init__()
-
-        self.use_weight_norm = use_weight_norm
-        self.hop_len = np.prod(upsample_factors)
+        self.config = config
+        self.use_weight_norm = config.model_params.use_weight_norm
+        self.hop_len = np.prod(config.model_params.upsample_factors)
         self.noise_level = None
         self.num_steps = None
         self.beta = None
         self.alpha = None
         self.alpha_hat = None
-        self.noise_level = None
         self.c1 = None
         self.c2 = None
         self.sigma = None
 
         # dblocks
-        self.y_conv = Conv1d(1, y_conv_channels, 5, padding=2)
+        self.y_conv = Conv1d(1, config.model_params.y_conv_channels, 5, padding=2)
         self.dblocks = nn.ModuleList([])
-        ic = y_conv_channels
-        for oc, df in zip(dblock_out_channels, reversed(upsample_factors)):
+        ic = config.model_params.y_conv_channels
+        for oc, df in zip(config.model_params.dblock_out_channels, reversed(config.model_params.upsample_factors)):
             self.dblocks.append(DBlock(ic, oc, df))
             ic = oc
 
         # film
         self.film = nn.ModuleList([])
-        ic = y_conv_channels
-        for oc in reversed(ublock_out_channels):
+        ic = config.model_params.y_conv_channels
+        for oc in reversed(config.model_params.ublock_out_channels):
             self.film.append(FiLM(ic, oc))
             ic = oc
 
-        # ublocks
+        # ublocksn
         self.ublocks = nn.ModuleList([])
-        ic = x_conv_channels
-        for oc, uf, ud in zip(ublock_out_channels, upsample_factors, upsample_dilations):
+        ic = config.model_params.x_conv_channels
+        for oc, uf, ud in zip(
+            config.model_params.ublock_out_channels,
+            config.model_params.upsample_factors,
+            config.model_params.upsample_dilations,
+        ):
             self.ublocks.append(UBlock(ic, oc, uf, ud))
             ic = oc
 
-        self.x_conv = Conv1d(in_channels, x_conv_channels, 3, padding=1)
-        self.out_conv = Conv1d(oc, out_channels, 3, padding=1)
+        self.x_conv = Conv1d(config.model_params.in_channels, config.model_params.x_conv_channels, 3, padding=1)
+        self.out_conv = Conv1d(oc, config.model_params.out_channels, 3, padding=1)
 
-        if use_weight_norm:
+        if config.model_params.use_weight_norm:
             self.apply_weight_norm()
 
     def forward(self, x, spectrogram, noise_scale):
@@ -180,7 +220,7 @@ class Wavegrad(nn.Module):
         if eval:
             self.eval()
             assert not self.training
-            if self.use_weight_norm:
+            if self.config.model_params.use_weight_norm:
                 self.remove_weight_norm()
             betas = np.linspace(
                 config["test_noise_schedule"]["min_val"],
@@ -195,3 +235,93 @@ class Wavegrad(nn.Module):
                 config["train_noise_schedule"]["num_steps"],
             )
             self.compute_noise_level(betas)
+
+    def train_step(self, batch: Dict, criterion: Dict) -> Tuple[Dict, Dict]:
+        # format data
+        x = batch["input"]
+        y = batch["waveform"]
+
+        # set noise scale
+        noise, x_noisy, noise_scale = self.compute_y_n(y)
+
+        # forward pass
+        noise_hat = self.forward(x_noisy, x, noise_scale)
+
+        # compute losses
+        loss = criterion(noise, noise_hat)
+        return {"model_output": noise_hat}, {"loss": loss}
+
+    def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+        return None, None
+
+    @torch.no_grad()
+    def eval_step(self, batch: Dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
+        return self.train_step(batch, criterion)
+
+    def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+        return None, None
+
+    def test_run(self, ap: AudioProcessor, samples: List[Dict], ouputs: Dict):  # pylint: disable=unused-argument
+        # setup noise schedule and inference
+        noise_schedule = self.config["test_noise_schedule"]
+        betas = np.linspace(noise_schedule["min_val"], noise_schedule["max_val"], noise_schedule["num_steps"])
+        self.compute_noise_level(betas)
+        for sample in samples:
+            x = sample["input"]
+            y = sample["waveform"]
+            # compute voice
+            y_pred = self.inference(x)
+            # compute spectrograms
+            figures = plot_results(y_pred, y, ap, "test")
+            # Sample audio
+            sample_voice = y_pred[0].squeeze(0).detach().cpu().numpy()
+        return figures, {"test/audio": sample_voice}
+
+    def get_optimizer(self):
+        return get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, self)
+
+    def get_scheduler(self, optimizer):
+        return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+
+    def get_criterion(self):
+        return torch.nn.L1Loss()
+
+    @staticmethod
+    def format_batch(batch: Dict) -> Dict:
+        # return a whole audio segment
+        m, y = batch[0], batch[1]
+        y = y.unsqueeze(1)
+        return {"input": m, "waveform": y}
+
+    def get_data_loader(
+        self, config: Coqpit, ap: AudioProcessor, is_eval: True, data_items: List, verbose: bool, num_gpus: int
+    ):
+        dataset = WaveGradDataset(
+            ap=ap,
+            items=data_items,
+            seq_len=self.config.seq_len,
+            hop_len=ap.hop_length,
+            pad_short=self.config.pad_short,
+            conv_pad=self.config.conv_pad,
+            is_training=not is_eval,
+            return_segments=True,
+            use_noise_augment=False,
+            use_cache=config.use_cache,
+            verbose=verbose,
+        )
+        sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        loader = DataLoader(
+            dataset,
+            batch_size=self.config.batch_size,
+            shuffle=num_gpus <= 1,
+            drop_last=False,
+            sampler=sampler,
+            num_workers=self.config.num_eval_loader_workers if is_eval else self.config.num_loader_workers,
+            pin_memory=False,
+        )
+        return loader
+
+    def on_epoch_start(self, trainer):  # pylint: disable=unused-argument
+        noise_schedule = self.config["train_noise_schedule"]
+        betas = np.linspace(noise_schedule["min_val"], noise_schedule["max_val"], noise_schedule["num_steps"])
+        self.compute_noise_level(betas)

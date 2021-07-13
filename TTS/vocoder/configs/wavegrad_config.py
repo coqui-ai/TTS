@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from TTS.vocoder.configs.shared_configs import BaseVocoderConfig
+from TTS.vocoder.models.wavegrad import WavegradArgs
 
 
 @dataclass
@@ -16,19 +17,7 @@ class WavegradConfig(BaseVocoderConfig):
             Model name used for selecting the right model at initialization. Defaults to `wavegrad`.
         generator_model (str): One of the generators from TTS.vocoder.models.*`. Every other non-GAN vocoder model is
             considered as a generator too. Defaults to `wavegrad`.
-        model_params (dict):
-            WaveGrad kwargs. Defaults to
-            `
-            {
-                "use_weight_norm": True,
-                "y_conv_channels": 32,
-                "x_conv_channels": 768,
-                "ublock_out_channels": [512, 512, 256, 128, 128],
-                "dblock_out_channels": [128, 128, 256, 512],
-                "upsample_factors": [4, 4, 4, 2, 2],
-                "upsample_dilations": [[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 4, 8], [1, 2, 4, 8], [1, 2, 4, 8]],
-            }
-            `
+        model_params (WavegradArgs): Model parameters. Check `WavegradArgs` for default values.
         target_loss (str):
             Target loss name that defines the quality of the model. Defaults to `avg_wavegrad_loss`.
         epochs (int):
@@ -70,18 +59,8 @@ class WavegradConfig(BaseVocoderConfig):
     model: str = "wavegrad"
     # Model specific params
     generator_model: str = "wavegrad"
-    model_params: dict = field(
-        default_factory=lambda: {
-            "use_weight_norm": True,
-            "y_conv_channels": 32,
-            "x_conv_channels": 768,
-            "ublock_out_channels": [512, 512, 256, 128, 128],
-            "dblock_out_channels": [128, 128, 256, 512],
-            "upsample_factors": [4, 4, 4, 2, 2],
-            "upsample_dilations": [[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 4, 8], [1, 2, 4, 8], [1, 2, 4, 8]],
-        }
-    )
-    target_loss: str = "avg_wavegrad_loss"  # loss value to pick the best model to save after each epoch
+    model_params: WavegradArgs = field(default_factory=WavegradArgs)
+    target_loss: str = "loss"  # loss value to pick the best model to save after each epoch
 
     # Training - overrides
     epochs: int = 10000

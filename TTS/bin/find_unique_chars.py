@@ -1,7 +1,7 @@
 """Find all the unique characters in a dataset"""
 import argparse
 from argparse import RawTextHelpFormatter
-from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.datasets import load_meta_data
 from TTS.config import load_config
 
 
@@ -9,7 +9,6 @@ def main():
     # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
         description="""Find all the unique characters or phonemes in a dataset.\n\n"""
-        """\n\n"""
         """
     Example runs:
 
@@ -23,9 +22,10 @@ def main():
     args = parser.parse_args()
 
     c = load_config(args.config_path)
+
     # load all datasets
-    train_items, dev_items = load_meta_data(c.datasets, eval_split=True, ignore_generated_eval=True)
-    items = train_items + dev_items
+    train_items, eval_items = load_meta_data(c.datasets, eval_split=True, ignore_generated_eval=True)
+    items = train_items + eval_items
 
     texts = "".join(item[0] for item in items)
     chars = set(texts)

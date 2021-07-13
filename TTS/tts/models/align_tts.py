@@ -1,5 +1,9 @@
+from dataclasses import dataclass, field
+from typing import Dict, Tuple
+
 import torch
 import torch.nn as nn
+from coqpit import Coqpit
 
 from TTS.tts.layers.align_tts.mdn import MDNBlock
 from TTS.tts.layers.feed_forward.decoder import Decoder
@@ -7,32 +11,16 @@ from TTS.tts.layers.feed_forward.duration_predictor import DurationPredictor
 from TTS.tts.layers.feed_forward.encoder import Encoder
 from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
-from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.models.base_tts import BaseTTS
+from TTS.tts.utils.data import sequence_mask
+from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.audio import AudioProcessor
 
 
-class AlignTTS(nn.Module):
-    """AlignTTS with modified duration predictor.
-    https://arxiv.org/pdf/2003.01950.pdf
-
-    Encoder -> DurationPredictor -> Decoder
-
-    AlignTTS's Abstract - Targeting at both high efficiency and performance, we propose AlignTTS to predict the
-    mel-spectrum in parallel. AlignTTS is based on a Feed-Forward Transformer which generates mel-spectrum from a
-    sequence of characters, and the duration of each character is determined by a duration predictor.Instead of
-    adopting the attention mechanism in Transformer TTS to align text to mel-spectrum, the alignment loss is presented
-    to consider all possible alignments in training by use of dynamic programming. Experiments on the LJSpeech dataset s
-    how that our model achieves not only state-of-the-art performance which outperforms Transformer TTS by 0.03 in mean
-    option score (MOS), but also a high efficiency which is more than 50 times faster than real-time.
-
-    Note:
-        Original model uses a separate character embedding layer for duration predictor. However, it causes the
-        duration predictor to overfit and prevents learning higher level interactions among characters. Therefore,
-        we predict durations based on encoder outputs which has higher level information about input characters. This
-        enables training without phases as in the original paper.
-
-        Original model uses Transormers in encoder and decoder layers. However, here you can set the architecture
-        differently based on your requirements using ```encoder_type``` and ```decoder_type``` parameters.
-
+@dataclass
+class AlignTTSArgs(Coqpit):
+    """
     Args:
         num_chars (int):
             number of unique input to characters
@@ -60,42 +48,102 @@ class AlignTTS(nn.Module):
             number of channels in speaker embedding vectors. Defaults to 0.
     """
 
+    num_chars: int = None
+    out_channels: int = 80
+    hidden_channels: int = 256
+    hidden_channels_dp: int = 256
+    encoder_type: str = "fftransformer"
+    encoder_params: dict = field(
+        default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1}
+    )
+    decoder_type: str = "fftransformer"
+    decoder_params: dict = field(
+        default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1}
+    )
+    length_scale: float = 1.0
+    num_speakers: int = 0
+    use_speaker_embedding: bool = False
+    use_d_vector_file: bool = False
+    d_vector_dim: int = 0
+
+
+class AlignTTS(BaseTTS):
+    """AlignTTS with modified duration predictor.
+    https://arxiv.org/pdf/2003.01950.pdf
+
+    Encoder -> DurationPredictor -> Decoder
+
+    Check :class:`AlignTTSArgs` for the class arguments.
+
+    Paper Abstract:
+        Targeting at both high efficiency and performance, we propose AlignTTS to predict the
+        mel-spectrum in parallel. AlignTTS is based on a Feed-Forward Transformer which generates mel-spectrum from a
+        sequence of characters, and the duration of each character is determined by a duration predictor.Instead of
+        adopting the attention mechanism in Transformer TTS to align text to mel-spectrum, the alignment loss is presented
+        to consider all possible alignments in training by use of dynamic programming. Experiments on the LJSpeech dataset s
+        how that our model achieves not only state-of-the-art performance which outperforms Transformer TTS by 0.03 in mean
+        option score (MOS), but also a high efficiency which is more than 50 times faster than real-time.
+
+    Note:
+        Original model uses a separate character embedding layer for duration predictor. However, it causes the
+        duration predictor to overfit and prevents learning higher level interactions among characters. Therefore,
+        we predict durations based on encoder outputs which has higher level information about input characters. This
+        enables training without phases as in the original paper.
+
+        Original model uses Transormers in encoder and decoder layers. However, here you can set the architecture
+        differently based on your requirements using ```encoder_type``` and ```decoder_type``` parameters.
+
+    Examples:
+        >>> from TTS.tts.configs import AlignTTSConfig
+        >>> config = AlignTTSConfig()
+        >>> model = AlignTTS(config)
+
+    """
+
     # pylint: disable=dangerous-default-value
 
-    def __init__(
-        self,
-        num_chars,
-        out_channels,
-        hidden_channels=256,
-        hidden_channels_dp=256,
-        encoder_type="fftransformer",
-        encoder_params={"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1},
-        decoder_type="fftransformer",
-        decoder_params={"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 6, "dropout_p": 0.1},
-        length_scale=1,
-        num_speakers=0,
-        external_c=False,
-        c_in_channels=0,
-    ):
+    def __init__(self, config: Coqpit):
 
         super().__init__()
-        self.length_scale = float(length_scale) if isinstance(length_scale, int) else length_scale
-        self.emb = nn.Embedding(num_chars, hidden_channels)
-        self.pos_encoder = PositionalEncoding(hidden_channels)
-        self.encoder = Encoder(hidden_channels, hidden_channels, encoder_type, encoder_params, c_in_channels)
-        self.decoder = Decoder(out_channels, hidden_channels, decoder_type, decoder_params)
-        self.duration_predictor = DurationPredictor(hidden_channels_dp)
+        self.config = config
+        self.phase = -1
+        self.length_scale = (
+            float(config.model_args.length_scale)
+            if isinstance(config.model_args.length_scale, int)
+            else config.model_args.length_scale
+        )
 
-        self.mod_layer = nn.Conv1d(hidden_channels, hidden_channels, 1)
-        self.mdn_block = MDNBlock(hidden_channels, 2 * out_channels)
+        if not self.config.model_args.num_chars:
+            _, self.config, num_chars = self.get_characters(config)
+            self.config.model_args.num_chars = num_chars
 
-        if num_speakers > 1 and not external_c:
-            # speaker embedding layer
-            self.emb_g = nn.Embedding(num_speakers, c_in_channels)
-            nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
+        self.emb = nn.Embedding(self.config.model_args.num_chars, self.config.model_args.hidden_channels)
 
-        if c_in_channels > 0 and c_in_channels != hidden_channels:
-            self.proj_g = nn.Conv1d(c_in_channels, hidden_channels, 1)
+        self.embedded_speaker_dim = 0
+        self.init_multispeaker(config)
+
+        self.pos_encoder = PositionalEncoding(config.model_args.hidden_channels)
+        self.encoder = Encoder(
+            config.model_args.hidden_channels,
+            config.model_args.hidden_channels,
+            config.model_args.encoder_type,
+            config.model_args.encoder_params,
+            self.embedded_speaker_dim,
+        )
+        self.decoder = Decoder(
+            config.model_args.out_channels,
+            config.model_args.hidden_channels,
+            config.model_args.decoder_type,
+            config.model_args.decoder_params,
+        )
+        self.duration_predictor = DurationPredictor(config.model_args.hidden_channels_dp)
+
+        self.mod_layer = nn.Conv1d(config.model_args.hidden_channels, config.model_args.hidden_channels, 1)
+
+        self.mdn_block = MDNBlock(config.model_args.hidden_channels, 2 * config.model_args.out_channels)
+
+        if self.embedded_speaker_dim > 0 and self.embedded_speaker_dim != config.model_args.hidden_channels:
+            self.proj_g = nn.Conv1d(self.embedded_speaker_dim, config.model_args.hidden_channels, 1)
 
     @staticmethod
     def compute_log_probs(mu, log_sigma, y):
@@ -129,15 +177,15 @@ class AlignTTS(nn.Module):
         """Generate attention alignment map from durations and
         expand encoder outputs
 
-        Example:
-            encoder output: [a,b,c,d]
-            durations: [1, 3, 2, 1]
+        Examples::
+            - encoder output: [a,b,c,d]
+            - durations: [1, 3, 2, 1]
 
-            expanded: [a, b, b, b, c, c, d]
-            attention map: [[0, 0, 0, 0, 0, 0, 1],
-                            [0, 0, 0, 0, 1, 1, 0],
-                            [0, 1, 1, 1, 0, 0, 0],
-                            [1, 0, 0, 0, 0, 0, 0]]
+            - expanded: [a, b, b, b, c, c, d]
+            - attention map: [[0, 0, 0, 0, 0, 0, 1],
+                             [0, 0, 0, 0, 1, 1, 0],
+                             [0, 1, 1, 1, 0, 0, 0],
+                             [1, 0, 0, 0, 0, 0, 0]]
         """
         attn = self.convert_dr_to_align(dr, x_mask, y_mask)
         o_en_ex = torch.matmul(attn.squeeze(1).transpose(1, 2), en.transpose(1, 2)).transpose(1, 2)
@@ -159,11 +207,12 @@ class AlignTTS(nn.Module):
         # project g to decoder dim.
         if hasattr(self, "proj_g"):
             g = self.proj_g(g)
+
         return x + g
 
     def _forward_encoder(self, x, x_lengths, g=None):
         if hasattr(self, "emb_g"):
-            g = nn.functional.normalize(self.emb_g(g))  # [B, C, 1]
+            g = nn.functional.normalize(self.speaker_embedding(g))  # [B, C, 1]
 
         if g is not None:
             g = g.unsqueeze(-1)
@@ -207,15 +256,19 @@ class AlignTTS(nn.Module):
         dr_mas, logp = self.compute_align_path(mu, log_sigma, y, x_mask, y_mask)
         return dr_mas, mu, log_sigma, logp
 
-    def forward(self, x, x_lengths, y, y_lengths, phase=None, g=None):  # pylint: disable=unused-argument
+    def forward(
+        self, x, x_lengths, y, y_lengths, aux_input={"d_vectors": None}, phase=None
+    ):  # pylint: disable=unused-argument
         """
         Shapes:
-            x: [B, T_max]
-            x_lengths: [B]
-            y_lengths: [B]
-            dr: [B, T_max]
-            g: [B, C]
+            - x: :math:`[B, T_max]`
+            - x_lengths: :math:`[B]`
+            - y_lengths: :math:`[B]`
+            - dr: :math:`[B, T_max]`
+            - g: :math:`[B, C]`
         """
+        y = y.transpose(1, 2)
+        g = aux_input["d_vectors"] if "d_vectors" in aux_input else None
         o_de, o_dr_log, dr_mas_log, attn, mu, log_sigma, logp = None, None, None, None, None, None, None
         if phase == 0:
             # train encoder and MDN
@@ -247,16 +300,27 @@ class AlignTTS(nn.Module):
             o_de, attn = self._forward_decoder(o_en, o_en_dp, dr_mas, x_mask, y_lengths, g=g)
             o_dr_log = o_dr_log.squeeze(1)
         dr_mas_log = torch.log(dr_mas + 1).squeeze(1)
-        return o_de, o_dr_log, dr_mas_log, attn, mu, log_sigma, logp
+        outputs = {
+            "model_outputs": o_de.transpose(1, 2),
+            "alignments": attn,
+            "durations_log": o_dr_log,
+            "durations_mas_log": dr_mas_log,
+            "mu": mu,
+            "log_sigma": log_sigma,
+            "logp": logp,
+        }
+        return outputs
 
     @torch.no_grad()
-    def inference(self, x, x_lengths, g=None):  # pylint: disable=unused-argument
+    def inference(self, x, aux_input={"d_vectors": None}):  # pylint: disable=unused-argument
         """
         Shapes:
-            x: [B, T_max]
-            x_lengths: [B]
-            g: [B, C]
+            - x: :math:`[B, T_max]`
+            - x_lengths: :math:`[B]`
+            - g: :math:`[B, C]`
         """
+        g = aux_input["d_vectors"] if "d_vectors" in aux_input else None
+        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         # pad input to prevent dropping the last word
         # x = torch.nn.functional.pad(x, pad=(0, 5), mode='constant', value=0)
         o_en, o_en_dp, x_mask, g = self._forward_encoder(x, x_lengths, g)
@@ -266,7 +330,61 @@ class AlignTTS(nn.Module):
         o_dr = self.format_durations(o_dr_log, x_mask).squeeze(1)
         y_lengths = o_dr.sum(1)
         o_de, attn = self._forward_decoder(o_en, o_en_dp, o_dr, x_mask, y_lengths, g=g)
-        return o_de, attn
+        outputs = {"model_outputs": o_de.transpose(1, 2), "alignments": attn}
+        return outputs
+
+    def train_step(self, batch: dict, criterion: nn.Module):
+        text_input = batch["text_input"]
+        text_lengths = batch["text_lengths"]
+        mel_input = batch["mel_input"]
+        mel_lengths = batch["mel_lengths"]
+        d_vectors = batch["d_vectors"]
+        speaker_ids = batch["speaker_ids"]
+
+        aux_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids}
+        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input, self.phase)
+        loss_dict = criterion(
+            outputs["logp"],
+            outputs["model_outputs"],
+            mel_input,
+            mel_lengths,
+            outputs["durations_log"],
+            outputs["durations_mas_log"],
+            text_lengths,
+            phase=self.phase,
+        )
+
+        # compute alignment error (the lower the better )
+        align_error = 1 - alignment_diagonal_score(outputs["alignments"], binary=True)
+        loss_dict["align_error"] = align_error
+        return outputs, loss_dict
+
+    def train_log(
+        self, ap: AudioProcessor, batch: dict, outputs: dict
+    ) -> Tuple[Dict, Dict]:  # pylint: disable=no-self-use
+        model_outputs = outputs["model_outputs"]
+        alignments = outputs["alignments"]
+        mel_input = batch["mel_input"]
+
+        pred_spec = model_outputs[0].data.cpu().numpy()
+        gt_spec = mel_input[0].data.cpu().numpy()
+        align_img = alignments[0].data.cpu().numpy()
+
+        figures = {
+            "prediction": plot_spectrogram(pred_spec, ap, output_fig=False),
+            "ground_truth": plot_spectrogram(gt_spec, ap, output_fig=False),
+            "alignment": plot_alignment(align_img, output_fig=False),
+        }
+
+        # Sample audio
+        train_audio = ap.inv_melspectrogram(pred_spec.T)
+        return figures, {"audio": train_audio}
+
+    def eval_step(self, batch: dict, criterion: nn.Module):
+        return self.train_step(batch, criterion)
+
+    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
+        return self.train_log(ap, batch, outputs)
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
@@ -276,3 +394,29 @@ class AlignTTS(nn.Module):
         if eval:
             self.eval()
             assert not self.training
+
+    def get_criterion(self):
+        from TTS.tts.layers.losses import AlignTTSLoss  # pylint: disable=import-outside-toplevel
+
+        return AlignTTSLoss(self.config)
+
+    @staticmethod
+    def _set_phase(config, global_step):
+        """Decide AlignTTS training phase"""
+        if isinstance(config.phase_start_steps, list):
+            vals = [i < global_step for i in config.phase_start_steps]
+            if not True in vals:
+                phase = 0
+            else:
+                phase = (
+                    len(config.phase_start_steps)
+                    - [i < global_step for i in config.phase_start_steps][::-1].index(True)
+                    - 1
+                )
+        else:
+            phase = None
+        return phase
+
+    def on_epoch_start(self, trainer):
+        """Set AlignTTS training phase on epoch start."""
+        self.phase = self._set_phase(trainer.config, trainer.total_steps_done)

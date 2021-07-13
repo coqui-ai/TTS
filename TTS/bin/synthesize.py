@@ -157,7 +157,7 @@ def main():
     parser.add_argument(
         "--speaker_wav",
         nargs="+",
-        help="wav file(s) to condition a multi-speaker TTS model with a Speaker Encoder. You can give multiple file paths. The x_vectors is computed as their average.",
+        help="wav file(s) to condition a multi-speaker TTS model with a Speaker Encoder. You can give multiple file paths. The d_vectors is computed as their average.",
         default=None,
     )
     parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
@@ -239,7 +239,7 @@ def main():
         print(
             " > Available speaker ids: (Set --speaker_idx flag to one of these values to use the multi-speaker model."
         )
-        print(synthesizer.speaker_manager.speaker_ids)
+        print(synthesizer.tts_model.speaker_manager.speaker_ids)
         return
 
     # check the arguments against a multi-speaker model.

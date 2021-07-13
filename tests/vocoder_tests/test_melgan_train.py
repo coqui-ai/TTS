@@ -12,14 +12,14 @@ config = MelganConfig(
     batch_size=4,
     eval_batch_size=4,
     num_loader_workers=0,
-    num_val_loader_workers=0,
+    num_eval_loader_workers=0,
     run_eval=True,
     test_delay_epochs=-1,
     epochs=1,
     seq_len=2048,
     eval_split_size=1,
     print_step=1,
-    discriminator_model_params={"base_channels": 16, "max_channels": 256, "downsample_factors": [4, 4, 4]},
+    discriminator_model_params={"base_channels": 16, "max_channels": 64, "downsample_factors": [4, 4, 4]},
     print_eval=True,
     data_path="tests/data/ljspeech",
     output_path=output_path,
@@ -29,9 +29,7 @@ config.audio.trim_db = 60
 config.save_json(config_path)
 
 # train the model for one epoch
-command_train = (
-    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_vocoder_gan.py --config_path {config_path} "
-)
+command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_vocoder.py --config_path {config_path} "
 run_cli(command_train)
 
 # Find latest folder
@@ -39,7 +37,7 @@ continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getm
 
 # restore the model and continue training for one more epoch
 command_train = (
-    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_vocoder_gan.py --continue_path {continue_path} "
+    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_vocoder.py --continue_path {continue_path} "
 )
 run_cli(command_train)
 shutil.rmtree(continue_path)

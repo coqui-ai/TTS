@@ -15,11 +15,11 @@ encoder_config_path = os.path.join(get_tests_input_path(), "test_speaker_encoder
 encoder_model_path = os.path.join(get_tests_input_path(), "checkpoint_0.pth.tar")
 sample_wav_path = os.path.join(get_tests_input_path(), "../data/ljspeech/wavs/LJ001-0001.wav")
 sample_wav_path2 = os.path.join(get_tests_input_path(), "../data/ljspeech/wavs/LJ001-0002.wav")
-x_vectors_file_path = os.path.join(get_tests_input_path(), "../data/dummy_speakers.json")
+d_vectors_file_path = os.path.join(get_tests_input_path(), "../data/dummy_speakers.json")
 
 
 class SpeakerManagerTest(unittest.TestCase):
-    """Test SpeakerManager for loading embedding files and computing x_vectors from waveforms"""
+    """Test SpeakerManager for loading embedding files and computing d_vectors from waveforms"""
 
     @staticmethod
     def test_speaker_embedding():
@@ -38,38 +38,38 @@ class SpeakerManagerTest(unittest.TestCase):
         # load a sample audio and compute embedding
         waveform = ap.load_wav(sample_wav_path)
         mel = ap.melspectrogram(waveform)
-        x_vector = manager.compute_x_vector(mel.T)
-        assert x_vector.shape[1] == 256
+        d_vector = manager.compute_d_vector(mel.T)
+        assert d_vector.shape[1] == 256
 
-        # compute x_vector directly from an input file
-        x_vector = manager.compute_x_vector_from_clip(sample_wav_path)
-        x_vector2 = manager.compute_x_vector_from_clip(sample_wav_path)
-        x_vector = torch.FloatTensor(x_vector)
-        x_vector2 = torch.FloatTensor(x_vector2)
-        assert x_vector.shape[0] == 256
-        assert (x_vector - x_vector2).sum() == 0.0
+        # compute d_vector directly from an input file
+        d_vector = manager.compute_d_vector_from_clip(sample_wav_path)
+        d_vector2 = manager.compute_d_vector_from_clip(sample_wav_path)
+        d_vector = torch.FloatTensor(d_vector)
+        d_vector2 = torch.FloatTensor(d_vector2)
+        assert d_vector.shape[0] == 256
+        assert (d_vector - d_vector2).sum() == 0.0
 
-        # compute x_vector from a list of wav files.
-        x_vector3 = manager.compute_x_vector_from_clip([sample_wav_path, sample_wav_path2])
-        x_vector3 = torch.FloatTensor(x_vector3)
-        assert x_vector3.shape[0] == 256
-        assert (x_vector - x_vector3).sum() != 0.0
+        # compute d_vector from a list of wav files.
+        d_vector3 = manager.compute_d_vector_from_clip([sample_wav_path, sample_wav_path2])
+        d_vector3 = torch.FloatTensor(d_vector3)
+        assert d_vector3.shape[0] == 256
+        assert (d_vector - d_vector3).sum() != 0.0
 
         # remove dummy model
         os.remove(encoder_model_path)
 
     @staticmethod
     def test_speakers_file_processing():
-        manager = SpeakerManager(x_vectors_file_path=x_vectors_file_path)
+        manager = SpeakerManager(d_vectors_file_path=d_vectors_file_path)
         print(manager.num_speakers)
-        print(manager.x_vector_dim)
+        print(manager.d_vector_dim)
         print(manager.clip_ids)
-        x_vector = manager.get_x_vector_by_clip(manager.clip_ids[0])
-        assert len(x_vector) == 256
-        x_vectors = manager.get_x_vectors_by_speaker(manager.speaker_ids[0])
-        assert len(x_vectors[0]) == 256
-        x_vector1 = manager.get_mean_x_vector(manager.speaker_ids[0], num_samples=2, randomize=True)
-        assert len(x_vector1) == 256
-        x_vector2 = manager.get_mean_x_vector(manager.speaker_ids[0], num_samples=2, randomize=False)
-        assert len(x_vector2) == 256
-        assert np.sum(np.array(x_vector1) - np.array(x_vector2)) != 0
+        d_vector = manager.get_d_vector_by_clip(manager.clip_ids[0])
+        assert len(d_vector) == 256
+        d_vectors = manager.get_d_vectors_by_speaker(manager.speaker_names[0])
+        assert len(d_vectors[0]) == 256
+        d_vector1 = manager.get_mean_d_vector(manager.speaker_names[0], num_samples=2, randomize=True)
+        assert len(d_vector1) == 256
+        d_vector2 = manager.get_mean_d_vector(manager.speaker_names[0], num_samples=2, randomize=False)
+        assert len(d_vector2) == 256
+        assert np.sum(np.array(d_vector1) - np.array(d_vector2)) != 0

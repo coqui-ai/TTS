@@ -13,8 +13,8 @@ from TTS.speaker_encoder.dataset import SpeakerEncoderDataset
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_model
 from TTS.speaker_encoder.utils.visual import plot_embeddings
-from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.utils.arguments import init_training
+from TTS.trainer import init_training
+from TTS.tts.datasets import load_meta_data
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.radam import RAdam
@@ -164,7 +164,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     elif c.loss == "angleproto":
         criterion = AngleProtoLoss()
     elif c.loss == "softmaxproto":
-        criterion = SoftmaxAngleProtoLoss(c.model["proj_dim"], num_speakers)
+        criterion = SoftmaxAngleProtoLoss(c.model_params["proj_dim"], num_speakers)
     else:
         raise Exception("The %s  not is a loss supported" % c.loss)
 

@@ -1,83 +1,11 @@
-import librosa
+from typing import Dict, Union
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-
-class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
-    """TODO: Merge this with audio.py"""
-
-    def __init__(
-        self,
-        n_fft,
-        hop_length,
-        win_length,
-        pad_wav=False,
-        window="hann_window",
-        sample_rate=None,
-        mel_fmin=0,
-        mel_fmax=None,
-        n_mels=80,
-        use_mel=False,
-    ):
-        super().__init__()
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.win_length = win_length
-        self.pad_wav = pad_wav
-        self.sample_rate = sample_rate
-        self.mel_fmin = mel_fmin
-        self.mel_fmax = mel_fmax
-        self.n_mels = n_mels
-        self.use_mel = use_mel
-        self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
-        self.mel_basis = None
-        if use_mel:
-            self._build_mel_basis()
-
-    def __call__(self, x):
-        """Compute spectrogram frames by torch based stft.
-
-        Args:
-            x (Tensor): input waveform
-
-        Returns:
-            Tensor: spectrogram frames.
-
-        Shapes:
-            x: [B x T] or [B x 1 x T]
-        """
-        if x.ndim == 2:
-            x = x.unsqueeze(1)
-        if self.pad_wav:
-            padding = int((self.n_fft - self.hop_length) / 2)
-            x = torch.nn.functional.pad(x, (padding, padding), mode="reflect")
-        # B x D x T x 2
-        o = torch.stft(
-            x.squeeze(1),
-            self.n_fft,
-            self.hop_length,
-            self.win_length,
-            self.window,
-            center=True,
-            pad_mode="reflect",  # compatible with audio.py
-            normalized=False,
-            onesided=True,
-            return_complex=False,
-        )
-        M = o[:, :, :, 0]
-        P = o[:, :, :, 1]
-        S = torch.sqrt(torch.clamp(M ** 2 + P ** 2, min=1e-8))
-        if self.use_mel:
-            S = torch.matmul(self.mel_basis.to(x), S)
-        return S
-
-    def _build_mel_basis(self):
-        mel_basis = librosa.filters.mel(
-            self.sample_rate, self.n_fft, n_mels=self.n_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
-        )
-        self.mel_basis = torch.from_numpy(mel_basis).float()
-
+from TTS.utils.audio import TorchSTFT
+from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
 
 #################################
 # GENERATOR LOSSES
@@ -271,7 +199,7 @@ def _apply_D_loss(scores_fake, scores_real, loss_func):
             loss += total_loss
             real_loss += real_loss
             fake_loss += fake_loss
-        # normalize loss values with number of scales
+        # normalize loss values with number of scales (discriminators)
         loss /= len(scores_fake)
         real_loss /= len(scores_real)
         fake_loss /= len(scores_fake)
@@ -374,7 +302,7 @@ class GeneratorLoss(nn.Module):
             feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
             return_dict["G_feat_match_loss"] = feat_match_loss
             adv_loss = adv_loss + self.feat_match_loss_weight * feat_match_loss
-        return_dict["G_loss"] = gen_loss + adv_loss
+        return_dict["loss"] = gen_loss + adv_loss
         return_dict["G_gen_loss"] = gen_loss
         return_dict["G_adv_loss"] = adv_loss
         return return_dict
@@ -419,5 +347,22 @@ class DiscriminatorLoss(nn.Module):
             return_dict["D_hinge_gan_fake_loss"] = hinge_D_fake_loss
             loss += hinge_D_loss
 
-        return_dict["D_loss"] = loss
+        return_dict["loss"] = loss
         return return_dict
+
+
+class WaveRNNLoss(nn.Module):
+    def __init__(self, wave_rnn_mode: Union[str, int]):
+        super().__init__()
+        if wave_rnn_mode == "mold":
+            self.loss_func = discretized_mix_logistic_loss
+        elif wave_rnn_mode == "gauss":
+            self.loss_func = gaussian_loss
+        elif isinstance(wave_rnn_mode, int):
+            self.loss_func = torch.nn.CrossEntropyLoss()
+        else:
+            raise ValueError(" [!] Unknown mode for Wavernn.")
+
+    def forward(self, y_hat, y) -> Dict:
+        loss = self.loss_func(y_hat, y)
+        return {"loss": loss}
