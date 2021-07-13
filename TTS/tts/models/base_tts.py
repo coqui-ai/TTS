@@ -70,7 +70,7 @@ class BaseTTS(BaseModel):
 
     def get_aux_input(self, **kwargs) -> Dict:
         """Prepare and return `aux_input` used by `forward()`"""
-        pass
+        return {"speaker_id": None, "style_wav": None, "d_vector": None}
 
     def format_batch(self, batch: Dict) -> Dict:
         """Generic batch formatting for `TTSDataset`.
@@ -200,7 +200,7 @@ class BaseTTS(BaseModel):
             )
         return loader
 
-    def test_run(self, use_cuda=True, ap=None) -> Tuple[Dict, Dict]:
+    def test_run(self, ap, use_cuda) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.

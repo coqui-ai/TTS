@@ -261,13 +261,16 @@ class Wavegrad(BaseModel):
     def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
         return None, None
 
-    def test_run(self, ap: AudioProcessor, samples: List[Dict], ouputs: Dict):  # pylint: disable=unused-argument
+    def test_run(self, ap: AudioProcessor, samples: List[Dict], ouputs: Dict, use_cuda):  # pylint: disable=unused-argument
         # setup noise schedule and inference
         noise_schedule = self.config["test_noise_schedule"]
         betas = np.linspace(noise_schedule["min_val"], noise_schedule["max_val"], noise_schedule["num_steps"])
         self.compute_noise_level(betas)
         for sample in samples:
+            sample = self.format_batch(sample)
             x = sample["input"]
+            if use_cuda:
+                x = x.cuda()
             y = sample["waveform"]
             # compute voice
             y_pred = self.inference(x)

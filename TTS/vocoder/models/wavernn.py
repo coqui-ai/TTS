@@ -322,7 +322,7 @@ class Wavernn(BaseVocoder):
 
         with torch.no_grad():
             if isinstance(mels, np.ndarray):
-                mels = torch.FloatTensor(mels).type_as(mels)
+                mels = torch.FloatTensor(mels)
 
             if mels.ndim == 2:
                 mels = mels.unsqueeze(0)
@@ -571,12 +571,14 @@ class Wavernn(BaseVocoder):
 
     @torch.no_grad()
     def test_run(
-        self, ap: AudioProcessor, samples: List[Dict], output: Dict  # pylint: disable=unused-argument
+        self, ap: AudioProcessor, samples: List[Dict], output: Dict, use_cuda # pylint: disable=unused-argument
     ) -> Tuple[Dict, Dict]:
         figures = {}
         audios = {}
         for idx, sample in enumerate(samples):
-            x = sample["input"]
+            x = torch.FloatTensor(sample[0])
+            if use_cuda:
+                x = x.cuda()
             y_hat = self.inference(x, self.config.batched, self.config.target_samples, self.config.overlap_samples)
             x_hat = ap.melspectrogram(y_hat)
             figures.update(
@@ -585,7 +587,7 @@ class Wavernn(BaseVocoder):
                     f"test_{idx}/prediction": plot_spectrogram(x_hat.T),
                 }
             )
-            audios.update({f"test_{idx}/audio", y_hat})
+            audios.update({f"test_{idx}/audio": y_hat})
         return figures, audios
 
     @staticmethod
