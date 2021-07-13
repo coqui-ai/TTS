@@ -244,6 +244,7 @@ class TTSDataset(Dataset):
             # TODO: find a better fix
             return self.load_data(self.rescue_item_idx)
 
+        pitch = None
         if self.compute_f0:
             pitch = self._load_or_compute_pitch(self.ap, wav_file, self.f0_cache_path)
 
