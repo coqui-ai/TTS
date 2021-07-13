@@ -764,11 +764,11 @@ class Trainer:
         """Run test and log the results. Test run must be defined by the model.
         Model must return figures and audios to be logged by the Tensorboard."""
         if hasattr(self.model, "test_run"):
-            if hasattr(self.eval_loader.load_test_samples):
+            if hasattr(self.eval_loader, "load_test_samples"):
                 samples = self.eval_loader.load_test_samples(1)
                 figures, audios = self.model.test_run(samples)
             else:
-                figures, audios = self.model.test_run()
+                figures, audios = self.model.test_run(use_cuda=self.use_cuda, ap=self.ap)
             self.tb_logger.tb_test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
             self.tb_logger.tb_test_figures(self.total_steps_done, figures)
 
@@ -790,7 +790,7 @@ class Trainer:
             self.train_epoch()
             if self.config.run_eval:
                 self.eval_epoch()
-            if epoch >= self.config.test_delay_epochs and self.args.rank < 0:
+            if epoch >= self.config.test_delay_epochs and self.args.rank <= 0:
                 self.test_run()
             self.c_logger.print_epoch_end(
                 epoch, self.keep_avg_eval.avg_values if self.config.run_eval else self.keep_avg_train.avg_values
