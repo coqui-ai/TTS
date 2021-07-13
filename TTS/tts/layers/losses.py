@@ -687,7 +687,7 @@ class FastPitchLoss(nn.Module):
 
         spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
         ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
-        dur_loss = self.dur_loss(dur_output[:, : ,None], dur_target[:, :, None], input_lens)
+        dur_loss = self.dur_loss(dur_output[:, :, None], dur_target[:, :, None], input_lens)
         pitch_loss = self.pitch_loss(pitch_output.transpose(1, 2), pitch_target.transpose(1, 2), input_lens)
         loss = (
             self.spec_loss_alpha * spec_loss

@@ -45,12 +45,10 @@ def text2phone(text, language, use_espeak_phonemes=False):
     # TO REVIEW : How to have a good implementation for this?
     if language == "zh-CN":
         ph = chinese_text_to_phonemes(text)
-        print(" > Phonemes: {}".format(ph))
         return ph
 
     if language == "ja-jp":
         ph = japanese_text_to_phonemes(text)
-        print(" > Phonemes: {}".format(ph))
         return ph
 
     if gruut.is_language_supported(language):
@@ -80,7 +78,6 @@ def text2phone(text, language, use_espeak_phonemes=False):
 
         # Fix a few phonemes
         ph = ph.translate(GRUUT_TRANS_TABLE)
-
         return ph
 
     raise ValueError(f" [!] Language {language} is not supported for phonemization.")
