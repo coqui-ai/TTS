@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.models import setup_model as setup_tts_model
+from TTS.vocoder.models.wavegrad import Wavegrad
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.callbacks import TrainerCallback
@@ -764,11 +765,13 @@ class Trainer:
         """Run test and log the results. Test run must be defined by the model.
         Model must return figures and audios to be logged by the Tensorboard."""
         if hasattr(self.model, "test_run"):
-            if hasattr(self.eval_loader, "load_test_samples"):
-                samples = self.eval_loader.load_test_samples(1)
-                figures, audios = self.model.test_run(samples)
+            if isinstance(self.model, Wavegrad):
+                return None # TODO: Fix inference on WaveGrad
+            elif hasattr(self.eval_loader.dataset, "load_test_samples"):
+                samples = self.eval_loader.dataset.load_test_samples(1)
+                figures, audios = self.model.test_run(self.ap, samples, None, self.use_cuda)
             else:
-                figures, audios = self.model.test_run(use_cuda=self.use_cuda, ap=self.ap)
+                figures, audios = self.model.test_run(self.ap, self.use_cuda)
             self.tb_logger.tb_test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
             self.tb_logger.tb_test_figures(self.total_steps_done, figures)
 
