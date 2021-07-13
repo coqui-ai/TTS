@@ -571,7 +571,7 @@ class Wavernn(BaseVocoder):
 
     @torch.no_grad()
     def test_run(
-        self, ap: AudioProcessor, samples: List[Dict], output: Dict, use_cuda # pylint: disable=unused-argument
+        self, ap: AudioProcessor, samples: List[Dict], output: Dict, use_cuda  # pylint: disable=unused-argument
     ) -> Tuple[Dict, Dict]:
         figures = {}
         audios = {}
