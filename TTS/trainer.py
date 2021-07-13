@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.models import setup_model as setup_tts_model
-from TTS.vocoder.models.wavegrad import Wavegrad
 from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.callbacks import TrainerCallback
@@ -41,6 +40,7 @@ from TTS.utils.logging import ConsoleLogger, TensorboardLogger
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_available, setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model as setup_vocoder_model
+from TTS.vocoder.models.wavegrad import Wavegrad
 
 if platform.system() != "Windows":
     # https://github.com/pytorch/pytorch/issues/973
@@ -766,14 +766,15 @@ class Trainer:
         Model must return figures and audios to be logged by the Tensorboard."""
         if hasattr(self.model, "test_run"):
             if isinstance(self.model, Wavegrad):
-                return None # TODO: Fix inference on WaveGrad
-            elif hasattr(self.eval_loader.dataset, "load_test_samples"):
+                return None  # TODO: Fix inference on WaveGrad
+            if hasattr(self.eval_loader.dataset, "load_test_samples"):
                 samples = self.eval_loader.dataset.load_test_samples(1)
                 figures, audios = self.model.test_run(self.ap, samples, None, self.use_cuda)
             else:
                 figures, audios = self.model.test_run(self.ap, self.use_cuda)
             self.tb_logger.tb_test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
             self.tb_logger.tb_test_figures(self.total_steps_done, figures)
+        return None
 
     def _fit(self) -> None:
         """🏃 train -> evaluate -> test for the number of epochs."""
