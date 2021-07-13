@@ -227,7 +227,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
 
     # load data instances
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=True, ignore_generated_eval=True)
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=args.eval, ignore_generated_eval=True)
 
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval
@@ -271,6 +271,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", default=False, action="store_true", help="Save audio files for debug")
     parser.add_argument("--save_audio", default=False, action="store_true", help="Save audio files")
     parser.add_argument("--quantized", action="store_true", help="Save quantized audio files")
+    parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
     args = parser.parse_args()
 
     c = load_config(args.config_path)

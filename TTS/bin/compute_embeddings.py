@@ -1,13 +1,10 @@
 
 import argparse
-import glob
 import os
 
-import torch
 from tqdm import tqdm
 
-from TTS.config import BaseDatasetConfig, load_config
-from TTS.speaker_encoder.utils.generic_utils import setup_model
+from TTS.config import load_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.utils.speakers import SpeakerManager
 
