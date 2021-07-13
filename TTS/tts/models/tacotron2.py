@@ -19,8 +19,8 @@ class Tacotron2(BaseTacotron):
     Check `TacotronConfig` for the arguments.
     """
 
-    def __init__(self, config: Coqpit):
-        super().__init__(config)
+    def __init__(self, config: Coqpit, data):
+        super().__init__(config, data)
 
         chars, self.config = self.get_characters(config)
         self.num_chars = len(chars)
@@ -30,10 +30,6 @@ class Tacotron2(BaseTacotron):
         # for fewer code change
         for key in config:
             setattr(self, key, config[key])
-
-        # speaker embedding layer
-        if self.num_speakers > 1:
-            self.init_multispeaker(config)
 
         # speaker and gst embeddings is concat in decoder input
         if self.num_speakers > 1:
@@ -134,7 +130,7 @@ class Tacotron2(BaseTacotron):
                 encoder_outputs, mel_specs, aux_input["d_vectors"] if "d_vectors" in aux_input else None
             )
         if self.num_speakers > 1:
-            if not self.use_d_vectors:
+            if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[:, None]
             else:
@@ -187,7 +183,7 @@ class Tacotron2(BaseTacotron):
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
         if self.num_speakers > 1:
-            if not self.use_d_vectors:
+            if not self.use_d_vector_file:
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[None]
                 # reshape embedded_speakers
                 if embedded_speakers.ndim == 1:

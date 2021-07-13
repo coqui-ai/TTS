@@ -41,7 +41,7 @@ class GlowTTS(BaseTTS):
 
     """
 
-    def __init__(self, config: GlowTTSConfig):
+    def __init__(self, config: GlowTTSConfig, data):
 
         super().__init__()
 
@@ -54,7 +54,7 @@ class GlowTTS(BaseTTS):
         _, self.config, self.num_chars = self.get_characters(config)
         self.decoder_output_dim = config.out_channels
 
-        self.init_multispeaker(config)
+        self.init_multispeaker(config, data)
 
         # if is a multispeaker and c_in_channels is 0, set to 256
         self.c_in_channels = 0

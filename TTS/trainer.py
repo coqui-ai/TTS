@@ -203,7 +203,7 @@ class Trainer:
         if model is not None:
             self.model = model
         else:
-            self.model = self.get_model(self.config)
+            self.model = self.get_model(self.config, self.data_train)
 
         # setup criterion
         self.criterion = self.get_criterion(self.model)
@@ -263,7 +263,7 @@ class Trainer:
         self.callbacks.on_init_end()
 
     @staticmethod
-    def get_model(config: Coqpit) -> nn.Module:
+    def get_model(config: Coqpit, data) -> nn.Module:
         """Initialize model from config.
 
         Args:
@@ -274,7 +274,7 @@ class Trainer:
         """
         # TODO: better model setup
         try:
-            model = setup_tts_model(config)
+            model = setup_tts_model(config, data)
         except ModuleNotFoundError:
             model = setup_vocoder_model(config)
         return model

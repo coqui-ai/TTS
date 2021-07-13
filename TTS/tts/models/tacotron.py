@@ -20,8 +20,8 @@ class Tacotron(BaseTacotron):
     Check `TacotronConfig` for the arguments.
     """
 
-    def __init__(self, config: Coqpit):
-        super().__init__(config)
+    def __init__(self, config: Coqpit, data):
+        super().__init__(config, data)
 
         self.num_chars, self.config = self.get_characters(config)
 
@@ -29,10 +29,6 @@ class Tacotron(BaseTacotron):
         # for fewer code change
         for key in config:
             setattr(self, key, config[key])
-
-        # speaker embedding layer
-        if self.num_speakers > 1:
-            self.init_multispeaker(config)
 
         # speaker and gst embeddings is concat in decoder input
         if self.num_speakers > 1:
@@ -130,7 +126,7 @@ class Tacotron(BaseTacotron):
             )
         # speaker embedding
         if self.num_speakers > 1:
-            if not self.use_d_vectors:
+            if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[:, None]
             else:
@@ -182,7 +178,7 @@ class Tacotron(BaseTacotron):
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
         if self.num_speakers > 1:
-            if not self.use_d_vectors:
+            if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])
                 # reshape embedded_speakers

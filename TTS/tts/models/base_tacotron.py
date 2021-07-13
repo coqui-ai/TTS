@@ -49,7 +49,7 @@ class BaseTacotronArgs(Coqpit):
 
 
 class BaseTacotron(BaseTTS):
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, data):
         """Abstract Tacotron class"""
         super().__init__()
 
@@ -76,7 +76,7 @@ class BaseTacotron(BaseTTS):
         self.coarse_decoder = None
 
         # init multi-speaker layers
-        self.init_multispeaker(config)
+        self.init_multispeaker(config, data)
 
     @staticmethod
     def _format_aux_input(aux_input: Dict) -> Dict:

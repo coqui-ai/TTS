@@ -2,7 +2,7 @@ from TTS.tts.utils.text.symbols import make_symbols, parse_symbols
 from TTS.utils.generic_utils import find_module
 
 
-def setup_model(config):
+def setup_model(config, data):
     print(" > Using model: {}".format(config.model))
 
     MyModel = find_module("TTS.tts.models", config.model.lower())
@@ -24,7 +24,7 @@ def setup_model(config):
         config.model_params.num_chars = num_chars
     if "model_args" in config:
         config.model_args.num_chars = num_chars
-    model = MyModel(config)
+    model = MyModel(config, data)
     return model
 
 
