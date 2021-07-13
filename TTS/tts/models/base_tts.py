@@ -200,7 +200,7 @@ class BaseTTS(BaseModel):
             )
         return loader
 
-    def test_run(self) -> Tuple[Dict, Dict]:
+    def test_run(self, use_cuda=True, ap=None) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.
@@ -212,14 +212,14 @@ class BaseTTS(BaseModel):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        aux_inputs = self._get_aux_inputs()
+        aux_inputs = self.get_aux_input()
         for idx, sen in enumerate(test_sentences):
             wav, alignment, model_outputs, _ = synthesis(
-                self.model,
+                self,
                 sen,
                 self.config,
-                self.use_cuda,
-                self.ap,
+                use_cuda,
+                ap,
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 style_wav=aux_inputs["style_wav"],
@@ -229,6 +229,6 @@ class BaseTTS(BaseModel):
             ).values()
 
             test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-prediction".format(idx)] = plot_spectrogram(model_outputs, self.ap, output_fig=False)
+            test_figures["{}-prediction".format(idx)] = plot_spectrogram(model_outputs, ap, output_fig=False)
             test_figures["{}-alignment".format(idx)] = plot_alignment(alignment, output_fig=False)
         return test_figures, test_audios
