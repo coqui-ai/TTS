@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def _pad_data(x, length):
@@ -65,3 +66,12 @@ class StandardScaler:
         X *= self.scale_
         X += self.mean_
         return X
+
+
+# from https://gist.github.com/jihunchoi/f1434a77df9db1bb337417854b398df1
+def sequence_mask(sequence_length, max_len=None):
+    if max_len is None:
+        max_len = sequence_length.data.max()
+    seq_range = torch.arange(max_len, dtype=sequence_length.dtype, device=sequence_length.device)
+    # B x T_max
+    return seq_range.unsqueeze(0) < sequence_length.unsqueeze(1)

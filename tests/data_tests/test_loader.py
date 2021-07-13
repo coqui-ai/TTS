@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tests import get_tests_output_path
 from TTS.tts.configs import BaseTTSConfig
 from TTS.tts.datasets import TTSDataset
-from TTS.tts.datasets.preprocess import ljspeech
+from TTS.tts.datasets.formatters import ljspeech
 from TTS.utils.audio import AudioProcessor
 
 # pylint: disable=unused-variable
@@ -38,13 +38,13 @@ class TestTTSDataset(unittest.TestCase):
 
     def _create_dataloader(self, batch_size, r, bgs):
         items = ljspeech(c.data_path, "metadata.csv")
-        dataset = TTSDataset.MyDataset(
+        dataset = TTSDataset(
             r,
             c.text_cleaner,
             compute_linear_spec=True,
             ap=self.ap,
             meta_data=items,
-            tp=c.characters,
+            characters=c.characters,
             batch_group_size=bgs,
             min_seq_len=c.min_seq_len,
             max_seq_len=float("inf"),

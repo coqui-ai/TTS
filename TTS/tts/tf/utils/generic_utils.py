@@ -44,8 +44,7 @@ def sequence_mask(sequence_length, max_len=None):
     batch_size = sequence_length.size(0)
     seq_range = np.empty([0, max_len], dtype=np.int8)
     seq_range_expand = seq_range.unsqueeze(0).expand(batch_size, max_len)
-    if sequence_length.is_cuda:
-        seq_range_expand = seq_range_expand.cuda()
+    seq_range_expand = seq_range_expand.type_as(sequence_length)
     seq_length_expand = sequence_length.unsqueeze(1).expand_as(seq_range_expand)
     # B x T_max
     return seq_range_expand < seq_length_expand
@@ -84,7 +83,7 @@ def setup_model(num_chars, num_speakers, c, enable_tflite=False):
         num_chars=num_chars,
         num_speakers=num_speakers,
         r=c.r,
-        postnet_output_dim=c.audio["num_mels"],
+        out_channels=c.audio["num_mels"],
         decoder_output_dim=c.audio["num_mels"],
         attn_type=c.attention_type,
         attn_win=c.windowing,

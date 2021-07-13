@@ -17,16 +17,18 @@ class RelativePositionMultiHeadAttention(nn.Module):
 
     Note:
         Example with relative attention window size 2
-        input = [a, b, c, d, e]
-        rel_attn_embeddings = [e(t-2), e(t-1), e(t+1), e(t+2)]
+
+        - input = [a, b, c, d, e]
+        - rel_attn_embeddings = [e(t-2), e(t-1), e(t+1), e(t+2)]
 
         So it learns 4 embedding vectors (in total 8) separately for key and value vectors.
 
         Considering the input c
-            e(t-2) corresponds to c -> a
-            e(t-2) corresponds to c -> b
-            e(t-2) corresponds to c -> d
-            e(t-2) corresponds to c -> e
+
+        - e(t-2) corresponds to c -> a
+        - e(t-2) corresponds to c -> b
+        - e(t-2) corresponds to c -> d
+        - e(t-2) corresponds to c -> e
 
         These embeddings are shared among different time steps. So input a, b, d and e also uses
         the same embeddings.
@@ -106,6 +108,12 @@ class RelativePositionMultiHeadAttention(nn.Module):
         nn.init.xavier_uniform_(self.conv_v.weight)
 
     def forward(self, x, c, attn_mask=None):
+        """
+        Shapes:
+            - x: :math:`[B, C, T]`
+            - c: :math:`[B, C, T]`
+            - attn_mask: :math:`[B, 1, T, T]`
+        """
         q = self.conv_q(x)
         k = self.conv_k(c)
         v = self.conv_v(c)
@@ -163,9 +171,9 @@ class RelativePositionMultiHeadAttention(nn.Module):
             re (Tensor): relative value embedding vector. (a_(i,j)^V)
 
         Shapes:
-            p_attn: [B, H, T, V]
-            re: [H or 1, V, D]
-            logits: [B, H, T, D]
+            -p_attn: :math:`[B, H, T, V]`
+            -re: :math:`[H or 1, V, D]`
+            -logits: :math:`[B, H, T, D]`
         """
         logits = torch.matmul(p_attn, re.unsqueeze(0))
         return logits
@@ -178,9 +186,9 @@ class RelativePositionMultiHeadAttention(nn.Module):
             re (Tensor): relative key embedding vector. (a_(i,j)^K)
 
         Shapes:
-            query: [B, H, T, D]
-            re: [H or 1, V, D]
-            logits: [B, H, T, V]
+            - query: :math:`[B, H, T, D]`
+            - re: :math:`[H or 1, V, D]`
+            - logits: :math:`[B, H, T, V]`
         """
         # logits = torch.einsum('bhld, kmd -> bhlm', [query, re.to(query.dtype)])
         logits = torch.matmul(query, re.unsqueeze(0).transpose(-2, -1))
@@ -202,10 +210,10 @@ class RelativePositionMultiHeadAttention(nn.Module):
     @staticmethod
     def _relative_position_to_absolute_position(x):
         """Converts tensor from relative to absolute indexing for local attention.
-        Args:
-            x: [B, D, length, 2 * length - 1]
+        Shapes:
+            x: :math:`[B, C, T, 2 * T - 1]`
         Returns:
-            A Tensor of shape [B, D, length, length]
+            A Tensor of shape :math:`[B, C, T, T]`
         """
         batch, heads, length, _ = x.size()
         # Pad to shift from relative to absolute indexing.
@@ -220,8 +228,9 @@ class RelativePositionMultiHeadAttention(nn.Module):
     @staticmethod
     def _absolute_position_to_relative_position(x):
         """
-        x: [B, H, T, T]
-        ret: [B, H, T, 2*T-1]
+        Shapes:
+            - x: :math:`[B, C, T, T]`
+            - ret: :math:`[B, C, T, 2*T-1]`
         """
         batch, heads, length, _ = x.size()
         # padd along column
@@ -239,7 +248,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         Args:
             length (int): an integer scalar.
         Returns:
-            a Tensor with shape [1, 1, length, length]
+            a Tensor with shape :math:`[1, 1, T, T]`
         """
         # L
         r = torch.arange(length, dtype=torch.float32)
@@ -362,8 +371,8 @@ class RelativePositionTransformer(nn.Module):
     def forward(self, x, x_mask):
         """
         Shapes:
-            x: [B, C, T]
-            x_mask: [B, 1, T]
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
         """
         attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
         for i in range(self.num_layers):

@@ -6,7 +6,7 @@ import pysbd
 import torch
 
 from TTS.config import load_config
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.models import setup_model as setup_tts_model
 from TTS.tts.utils.speakers import SpeakerManager
 
 # pylint: disable=unused-wildcard-import
@@ -14,7 +14,8 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis, trim_silence
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
-from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input, setup_generator
+from TTS.vocoder.models import setup_model as setup_vocoder_model
+from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
 
 
 class Synthesizer(object):
@@ -63,7 +64,7 @@ class Synthesizer(object):
         self.speaker_manager = None
         self.num_speakers = 0
         self.tts_speakers = {}
-        self.speaker_embedding_dim = 0
+        self.d_vector_dim = 0
         self.seg = self._get_segmenter("en")
         self.use_cuda = use_cuda
 
@@ -98,9 +99,9 @@ class Synthesizer(object):
         self.speaker_manager = SpeakerManager(
             encoder_model_path=self.encoder_checkpoint, encoder_config_path=self.encoder_config
         )
-        self.speaker_manager.load_x_vectors_file(self.tts_config.get("external_speaker_embedding_file", speaker_file))
+        self.speaker_manager.load_d_vectors_file(self.tts_config.get("d_vector_file", speaker_file))
         self.num_speakers = self.speaker_manager.num_speakers
-        self.speaker_embedding_dim = self.speaker_manager.x_vector_dim
+        self.d_vector_dim = self.speaker_manager.d_vector_dim
 
     def _load_tts(self, tts_checkpoint: str, tts_config_path: str, use_cuda: bool) -> None:
         """Load the TTS model.
@@ -127,16 +128,11 @@ class Synthesizer(object):
 
         if self.tts_config.use_speaker_embedding is True:
             self.tts_speakers_file = (
-                self.tts_speakers_file if self.tts_speakers_file else self.tts_config["external_speaker_embedding_file"]
+                self.tts_speakers_file if self.tts_speakers_file else self.tts_config["d_vector_file"]
             )
-            self._load_speakers(self.tts_speakers_file)
+            self.tts_config["d_vector_file"] = self.tts_speakers_file
 
-        self.tts_model = setup_model(
-            self.input_size,
-            num_speakers=self.num_speakers,
-            c=self.tts_config,
-            speaker_embedding_dim=self.speaker_embedding_dim,
-        )
+        self.tts_model = setup_tts_model(config=self.tts_config)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
@@ -151,7 +147,7 @@ class Synthesizer(object):
         """
         self.vocoder_config = load_config(model_config)
         self.vocoder_ap = AudioProcessor(verbose=False, **self.vocoder_config.audio)
-        self.vocoder_model = setup_generator(self.vocoder_config)
+        self.vocoder_model = setup_vocoder_model(self.vocoder_config)
         self.vocoder_model.load_checkpoint(self.vocoder_config, model_file, eval=True)
         if use_cuda:
             self.vocoder_model.cuda()
@@ -197,9 +193,9 @@ class Synthesizer(object):
         print(sens)
 
         if self.tts_speakers_file:
-            # get the speaker embedding from the saved x_vectors.
+            # get the speaker embedding from the saved d_vectors.
             if speaker_idx and isinstance(speaker_idx, str):
-                speaker_embedding = self.speaker_manager.get_x_vectors_by_speaker(speaker_idx)[0]
+                speaker_embedding = self.tts_model.speaker_manager.get_d_vectors_by_speaker(speaker_idx)[0]
             elif not speaker_idx and not speaker_wav:
                 raise ValueError(
                     " [!] Look like you use a multi-speaker model. "
@@ -214,15 +210,15 @@ class Synthesizer(object):
                     "Define path for speaker.json if it is a multi-speaker model or remove defined speaker idx. "
                 )
 
-        # compute a new x_vector from the given clip.
+        # compute a new d_vector from the given clip.
         if speaker_wav is not None:
-            speaker_embedding = self.speaker_manager.compute_x_vector_from_clip(speaker_wav)
+            speaker_embedding = self.speaker_manager.compute_d_vector_from_clip(speaker_wav)
 
         use_gl = self.vocoder_model is None
 
         for sen in sens:
             # synthesize voice
-            waveform, _, _, mel_postnet_spec, _, _ = synthesis(
+            outputs = synthesis(
                 model=self.tts_model,
                 text=sen,
                 CONFIG=self.tts_config,
@@ -230,11 +226,12 @@ class Synthesizer(object):
                 ap=self.ap,
                 speaker_id=None,
                 style_wav=style_wav,
-                truncated=False,
                 enable_eos_bos_chars=self.tts_config.enable_eos_bos_chars,
                 use_griffin_lim=use_gl,
-                speaker_embedding=speaker_embedding,
+                d_vector=speaker_embedding,
             )
+            waveform = outputs["wav"]
+            mel_postnet_spec = outputs["model_outputs"]
             if not use_gl:
                 # denormalize tts output based on tts audio config
                 mel_postnet_spec = self.ap.denormalize(mel_postnet_spec.T).T

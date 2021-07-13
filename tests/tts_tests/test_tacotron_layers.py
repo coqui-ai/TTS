@@ -4,7 +4,7 @@ import torch as T
 
 from TTS.tts.layers.losses import L1LossMasked, SSIMLoss
 from TTS.tts.layers.tacotron.tacotron import CBHG, Decoder, Encoder, Prenet
-from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.utils.data import sequence_mask
 
 # pylint: disable=unused-variable
 
@@ -61,6 +61,7 @@ class DecoderTests(unittest.TestCase):
             forward_attn_mask=True,
             location_attn=True,
             separate_stopnet=True,
+            max_decoder_steps=50,
         )
         dummy_input = T.rand(4, 8, 256)
         dummy_memory = T.rand(4, 2, 80)

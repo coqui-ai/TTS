@@ -1,12 +1,91 @@
+from typing import Dict, Tuple
+
 import librosa
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
 import soundfile as sf
+import torch
+from torch import nn
 
 from TTS.tts.utils.data import StandardScaler
 
 # import pyworld as pw
+
+
+class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
+    """TODO: Merge this with audio.py"""
+
+    def __init__(
+        self,
+        n_fft,
+        hop_length,
+        win_length,
+        pad_wav=False,
+        window="hann_window",
+        sample_rate=None,
+        mel_fmin=0,
+        mel_fmax=None,
+        n_mels=80,
+        use_mel=False,
+    ):
+        super().__init__()
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.win_length = win_length
+        self.pad_wav = pad_wav
+        self.sample_rate = sample_rate
+        self.mel_fmin = mel_fmin
+        self.mel_fmax = mel_fmax
+        self.n_mels = n_mels
+        self.use_mel = use_mel
+        self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
+        self.mel_basis = None
+        if use_mel:
+            self._build_mel_basis()
+
+    def __call__(self, x):
+        """Compute spectrogram frames by torch based stft.
+
+        Args:
+            x (Tensor): input waveform
+
+        Returns:
+            Tensor: spectrogram frames.
+
+        Shapes:
+            x: [B x T] or [:math:`[B, 1, T]`]
+        """
+        if x.ndim == 2:
+            x = x.unsqueeze(1)
+        if self.pad_wav:
+            padding = int((self.n_fft - self.hop_length) / 2)
+            x = torch.nn.functional.pad(x, (padding, padding), mode="reflect")
+        # B x D x T x 2
+        o = torch.stft(
+            x.squeeze(1),
+            self.n_fft,
+            self.hop_length,
+            self.win_length,
+            self.window,
+            center=True,
+            pad_mode="reflect",  # compatible with audio.py
+            normalized=False,
+            onesided=True,
+            return_complex=False,
+        )
+        M = o[:, :, :, 0]
+        P = o[:, :, :, 1]
+        S = torch.sqrt(torch.clamp(M ** 2 + P ** 2, min=1e-8))
+        if self.use_mel:
+            S = torch.matmul(self.mel_basis.to(x), S)
+        return S
+
+    def _build_mel_basis(self):
+        mel_basis = librosa.filters.mel(
+            self.sample_rate, self.n_fft, n_mels=self.n_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
+        )
+        self.mel_basis = torch.from_numpy(mel_basis).float()
 
 
 # pylint: disable=too-many-public-methods
@@ -140,7 +219,12 @@ class AudioProcessor(object):
     ### setting up the parameters ###
     def _build_mel_basis(
         self,
-    ):
+    ) -> np.ndarray:
+        """Build melspectrogram basis.
+
+        Returns:
+            np.ndarray: melspectrogram basis.
+        """
         if self.mel_fmax is not None:
             assert self.mel_fmax <= self.sample_rate // 2
         return librosa.filters.mel(
@@ -149,8 +233,12 @@ class AudioProcessor(object):
 
     def _stft_parameters(
         self,
-    ):
-        """Compute necessary stft parameters with given time values"""
+    ) -> Tuple[int, int]:
+        """Compute the real STFT parameters from the time values.
+
+        Returns:
+            Tuple[int, int]: hop length and window length for STFT.
+        """
         factor = self.frame_length_ms / self.frame_shift_ms
         assert (factor).is_integer(), " [!] frame_shift_ms should divide frame_length_ms"
         hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
@@ -158,8 +246,18 @@ class AudioProcessor(object):
         return hop_length, win_length
 
     ### normalization ###
-    def normalize(self, S):
-        """Put values in [0, self.max_norm] or [-self.max_norm, self.max_norm]"""
+    def normalize(self, S: np.ndarray) -> np.ndarray:
+        """Normalize values into `[0, self.max_norm]` or `[-self.max_norm, self.max_norm]`
+
+        Args:
+            S (np.ndarray): Spectrogram to normalize.
+
+        Raises:
+            RuntimeError: Mean and variance is computed from incompatible parameters.
+
+        Returns:
+            np.ndarray: Normalized spectrogram.
+        """
         # pylint: disable=no-else-return
         S = S.copy()
         if self.signal_norm:
@@ -189,8 +287,18 @@ class AudioProcessor(object):
         else:
             return S
 
-    def denormalize(self, S):
-        """denormalize values"""
+    def denormalize(self, S: np.ndarray) -> np.ndarray:
+        """Denormalize spectrogram values.
+
+        Args:
+            S (np.ndarray): Spectrogram to denormalize.
+
+        Raises:
+            RuntimeError: Mean and variance are incompatible.
+
+        Returns:
+            np.ndarray: Denormalized spectrogram.
+        """
         # pylint: disable=no-else-return
         S_denorm = S.copy()
         if self.signal_norm:
@@ -218,7 +326,16 @@ class AudioProcessor(object):
             return S_denorm
 
     ### Mean-STD scaling ###
-    def load_stats(self, stats_path):
+    def load_stats(self, stats_path: str) -> Tuple[np.array, np.array, np.array, np.array, Dict]:
+        """Loading mean and variance statistics from a `npy` file.
+
+        Args:
+            stats_path (str): Path to the `npy` file containing
+
+        Returns:
+            Tuple[np.array, np.array, np.array, np.array, Dict]: loaded statistics and the config used to
+                compute them.
+        """
         stats = np.load(stats_path, allow_pickle=True).item()  # pylint: disable=unexpected-keyword-arg
         mel_mean = stats["mel_mean"]
         mel_std = stats["mel_std"]
@@ -237,7 +354,17 @@ class AudioProcessor(object):
         return mel_mean, mel_std, linear_mean, linear_std, stats_config
 
     # pylint: disable=attribute-defined-outside-init
-    def setup_scaler(self, mel_mean, mel_std, linear_mean, linear_std):
+    def setup_scaler(
+        self, mel_mean: np.ndarray, mel_std: np.ndarray, linear_mean: np.ndarray, linear_std: np.ndarray
+    ) -> None:
+        """Initialize scaler objects used in mean-std normalization.
+
+        Args:
+            mel_mean (np.ndarray): Mean for melspectrograms.
+            mel_std (np.ndarray): STD for melspectrograms.
+            linear_mean (np.ndarray): Mean for full scale spectrograms.
+            linear_std (np.ndarray): STD for full scale spectrograms.
+        """
         self.mel_scaler = StandardScaler()
         self.mel_scaler.set_stats(mel_mean, mel_std)
         self.linear_scaler = StandardScaler()
@@ -245,32 +372,78 @@ class AudioProcessor(object):
 
     ### DB and AMP conversion ###
     # pylint: disable=no-self-use
-    def _amp_to_db(self, x):
+    def _amp_to_db(self, x: np.ndarray) -> np.ndarray:
+        """Convert amplitude values to decibels.
+
+        Args:
+            x (np.ndarray): Amplitude spectrogram.
+
+        Returns:
+            np.ndarray: Decibels spectrogram.
+        """
+
         return self.spec_gain * _log(np.maximum(1e-5, x), self.base)
 
     # pylint: disable=no-self-use
-    def _db_to_amp(self, x):
+    def _db_to_amp(self, x: np.ndarray) -> np.ndarray:
+        """Convert decibels spectrogram to amplitude spectrogram.
+
+        Args:
+            x (np.ndarray): Decibels spectrogram.
+
+        Returns:
+            np.ndarray: Amplitude spectrogram.
+        """
         return _exp(x / self.spec_gain, self.base)
 
     ### Preemphasis ###
-    def apply_preemphasis(self, x):
+    def apply_preemphasis(self, x: np.ndarray) -> np.ndarray:
+        """Apply pre-emphasis to the audio signal. Useful to reduce the correlation between neighbouring signal values.
+
+        Args:
+            x (np.ndarray): Audio signal.
+
+        Raises:
+            RuntimeError: Preemphasis coeff is set to 0.
+
+        Returns:
+            np.ndarray: Decorrelated audio signal.
+        """
         if self.preemphasis == 0:
             raise RuntimeError(" [!] Preemphasis is set 0.0.")
         return scipy.signal.lfilter([1, -self.preemphasis], [1], x)
 
-    def apply_inv_preemphasis(self, x):
+    def apply_inv_preemphasis(self, x: np.ndarray) -> np.ndarray:
+        """Reverse pre-emphasis."""
         if self.preemphasis == 0:
             raise RuntimeError(" [!] Preemphasis is set 0.0.")
         return scipy.signal.lfilter([1], [1, -self.preemphasis], x)
 
     ### SPECTROGRAMs ###
-    def _linear_to_mel(self, spectrogram):
+    def _linear_to_mel(self, spectrogram: np.ndarray) -> np.ndarray:
+        """Project a full scale spectrogram to a melspectrogram.
+
+        Args:
+            spectrogram (np.ndarray): Full scale spectrogram.
+
+        Returns:
+            np.ndarray: Melspectrogram
+        """
         return np.dot(self.mel_basis, spectrogram)
 
-    def _mel_to_linear(self, mel_spec):
+    def _mel_to_linear(self, mel_spec: np.ndarray) -> np.ndarray:
+        """Convert a melspectrogram to full scale spectrogram."""
         return np.maximum(1e-10, np.dot(self.inv_mel_basis, mel_spec))
 
-    def spectrogram(self, y):
+    def spectrogram(self, y: np.ndarray) -> np.ndarray:
+        """Compute a spectrogram from a waveform.
+
+        Args:
+            y (np.ndarray): Waveform.
+
+        Returns:
+            np.ndarray: Spectrogram.
+        """
         if self.preemphasis != 0:
             D = self._stft(self.apply_preemphasis(y))
         else:
@@ -278,7 +451,8 @@ class AudioProcessor(object):
         S = self._amp_to_db(np.abs(D))
         return self.normalize(S).astype(np.float32)
 
-    def melspectrogram(self, y):
+    def melspectrogram(self, y: np.ndarray) -> np.ndarray:
+        """Compute a melspectrogram from a waveform."""
         if self.preemphasis != 0:
             D = self._stft(self.apply_preemphasis(y))
         else:
@@ -286,8 +460,8 @@ class AudioProcessor(object):
         S = self._amp_to_db(self._linear_to_mel(np.abs(D)))
         return self.normalize(S).astype(np.float32)
 
-    def inv_spectrogram(self, spectrogram):
-        """Converts spectrogram to waveform using librosa"""
+    def inv_spectrogram(self, spectrogram: np.ndarray) -> np.ndarray:
+        """Convert a spectrogram to a waveform using Griffi-Lim vocoder."""
         S = self.denormalize(spectrogram)
         S = self._db_to_amp(S)
         # Reconstruct phase
@@ -295,8 +469,8 @@ class AudioProcessor(object):
             return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
         return self._griffin_lim(S ** self.power)
 
-    def inv_melspectrogram(self, mel_spectrogram):
-        """Converts melspectrogram to waveform using librosa"""
+    def inv_melspectrogram(self, mel_spectrogram: np.ndarray) -> np.ndarray:
+        """Convert a melspectrogram to a waveform using Griffi-Lim vocoder."""
         D = self.denormalize(mel_spectrogram)
         S = self._db_to_amp(D)
         S = self._mel_to_linear(S)  # Convert back to linear
@@ -304,7 +478,15 @@ class AudioProcessor(object):
             return self.apply_inv_preemphasis(self._griffin_lim(S ** self.power))
         return self._griffin_lim(S ** self.power)
 
-    def out_linear_to_mel(self, linear_spec):
+    def out_linear_to_mel(self, linear_spec: np.ndarray) -> np.ndarray:
+        """Convert a full scale linear spectrogram output of a network to a melspectrogram.
+
+        Args:
+            linear_spec (np.ndarray): Normalized full scale linear spectrogram.
+
+        Returns:
+            np.ndarray: Normalized melspectrogram.
+        """
         S = self.denormalize(linear_spec)
         S = self._db_to_amp(S)
         S = self._linear_to_mel(np.abs(S))
@@ -313,7 +495,15 @@ class AudioProcessor(object):
         return mel
 
     ### STFT and ISTFT ###
-    def _stft(self, y):
+    def _stft(self, y: np.ndarray) -> np.ndarray:
+        """Librosa STFT wrapper.
+
+        Args:
+            y (np.ndarray): Audio signal.
+
+        Returns:
+            np.ndarray: Complex number array.
+        """
         return librosa.stft(
             y=y,
             n_fft=self.fft_size,
@@ -324,7 +514,8 @@ class AudioProcessor(object):
             center=True,
         )
 
-    def _istft(self, y):
+    def _istft(self, y: np.ndarray) -> np.ndarray:
+        """Librosa iSTFT wrapper."""
         return librosa.istft(y, hop_length=self.hop_length, win_length=self.win_length)
 
     def _griffin_lim(self, S):
@@ -337,7 +528,8 @@ class AudioProcessor(object):
         return y
 
     def compute_stft_paddings(self, x, pad_sides=1):
-        """compute right padding (final frame) or both sides padding (first and final frames)"""
+        """Compute paddings used by Librosa's STFT. Compute right padding (final frame) or both sides padding
+        (first and final frames)"""
         assert pad_sides in (1, 2)
         pad = (x.shape[0] // self.hop_length + 1) * self.hop_length - x.shape[0]
         if pad_sides == 1:
@@ -357,7 +549,17 @@ class AudioProcessor(object):
     #     return f0
 
     ### Audio Processing ###
-    def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
+    def find_endpoint(self, wav: np.ndarray, threshold_db=-40, min_silence_sec=0.8) -> int:
+        """Find the last point without silence at the end of a audio signal.
+
+        Args:
+            wav (np.ndarray): Audio signal.
+            threshold_db (int, optional): Silence threshold in decibels. Defaults to -40.
+            min_silence_sec (float, optional): Ignore silences that are shorter then this in secs. Defaults to 0.8.
+
+        Returns:
+            int: Last point without silence.
+        """
         window_length = int(self.sample_rate * min_silence_sec)
         hop_length = int(window_length / 4)
         threshold = self._db_to_amp(threshold_db)
@@ -375,11 +577,28 @@ class AudioProcessor(object):
         ]
 
     @staticmethod
-    def sound_norm(x):
+    def sound_norm(x: np.ndarray) -> np.ndarray:
+        """Normalize the volume of an audio signal.
+
+        Args:
+            x (np.ndarray): Raw waveform.
+
+        Returns:
+            np.ndarray: Volume normalized waveform.
+        """
         return x / abs(x).max() * 0.95
 
     ### save and load ###
-    def load_wav(self, filename, sr=None):
+    def load_wav(self, filename: str, sr: int = None) -> np.ndarray:
+        """Read a wav file using Librosa and optionally resample, silence trim, volume normalize.
+
+        Args:
+            filename (str): Path to the wav file.
+            sr (int, optional): Sampling rate for resampling. Defaults to None.
+
+        Returns:
+            np.ndarray: Loaded waveform.
+        """
         if self.resample:
             x, sr = librosa.load(filename, sr=self.sample_rate)
         elif sr is None:
@@ -396,12 +615,19 @@ class AudioProcessor(object):
             x = self.sound_norm(x)
         return x
 
-    def save_wav(self, wav, path, sr=None):
+    def save_wav(self, wav: np.ndarray, path: str, sr: int = None) -> None:
+        """Save a waveform to a file using Scipy.
+
+        Args:
+            wav (np.ndarray): Waveform to save.
+            path (str): Path to a output file.
+            sr (int, optional): Sampling rate used for saving to the file. Defaults to None.
+        """
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
         scipy.io.wavfile.write(path, sr if sr else self.sample_rate, wav_norm.astype(np.int16))
 
     @staticmethod
-    def mulaw_encode(wav, qc):
+    def mulaw_encode(wav: np.ndarray, qc: int) -> np.ndarray:
         mu = 2 ** qc - 1
         # wav_abs = np.minimum(np.abs(wav), 1.0)
         signal = np.sign(wav) * np.log(1 + mu * np.abs(wav)) / np.log(1.0 + mu)
@@ -423,11 +649,21 @@ class AudioProcessor(object):
         return np.clip(x * 2 ** 15, -(2 ** 15), 2 ** 15 - 1).astype(np.int16)
 
     @staticmethod
-    def quantize(x, bits):
+    def quantize(x: np.ndarray, bits: int) -> np.ndarray:
+        """Quantize a waveform to a given number of bits.
+
+        Args:
+            x (np.ndarray): Waveform to quantize. Must be normalized into the range `[-1, 1]`.
+            bits (int): Number of quantization bits.
+
+        Returns:
+            np.ndarray: Quantized waveform.
+        """
         return (x + 1.0) * (2 ** bits - 1) / 2
 
     @staticmethod
     def dequantize(x, bits):
+        """Dequantize a waveform from the given number of bits."""
         return 2 * x / (2 ** bits - 1) - 1
 
 

@@ -1,157 +1,86 @@
 # coding: utf-8
+
+from typing import Dict, Tuple
+
 import torch
+from coqpit import Coqpit
 from torch import nn
 
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron import Decoder, Encoder, PostCBHG
-from TTS.tts.models.tacotron_abstract import TacotronAbstract
+from TTS.tts.models.base_tacotron import BaseTacotron
+from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.audio import AudioProcessor
 
 
-class Tacotron(TacotronAbstract):
+class Tacotron(BaseTacotron):
     """Tacotron as in https://arxiv.org/abs/1703.10135
-
     It's an autoregressive encoder-attention-decoder-postnet architecture.
-
-    Args:
-        num_chars (int): number of input characters to define the size of embedding layer.
-        num_speakers (int): number of speakers in the dataset. >1 enables multi-speaker training and model learns speaker embeddings.
-        r (int): initial model reduction rate.
-        postnet_output_dim (int, optional): postnet output channels. Defaults to 80.
-        decoder_output_dim (int, optional): decoder output channels. Defaults to 80.
-        attn_type (str, optional): attention type. Check ```TTS.tts.layers.attentions.init_attn```. Defaults to 'original'.
-        attn_win (bool, optional): enable/disable attention windowing.
-            It especially useful at inference to keep attention alignment diagonal. Defaults to False.
-        attn_norm (str, optional): Attention normalization method. "sigmoid" or "softmax". Defaults to "softmax".
-        prenet_type (str, optional): prenet type for the decoder. Defaults to "original".
-        prenet_dropout (bool, optional): prenet dropout rate. Defaults to True.
-        prenet_dropout_at_inference (bool, optional): use dropout at inference time. This leads to a better quality for
-            some models. Defaults to False.
-        forward_attn (bool, optional): enable/disable forward attention.
-            It is only valid if ```attn_type``` is ```original```.  Defaults to False.
-        trans_agent (bool, optional): enable/disable transition agent in forward attention. Defaults to False.
-        forward_attn_mask (bool, optional): enable/disable extra masking over forward attention. Defaults to False.
-        location_attn (bool, optional): enable/disable location sensitive attention.
-            It is only valid if ```attn_type``` is ```original```. Defaults to True.
-        attn_K (int, optional): Number of attention heads for GMM attention. Defaults to 5.
-        separate_stopnet (bool, optional): enable/disable separate stopnet training without only gradient
-            flow from stopnet to the rest of the model.  Defaults to True.
-        bidirectional_decoder (bool, optional): enable/disable bidirectional decoding. Defaults to False.
-        double_decoder_consistency (bool, optional): enable/disable double decoder consistency. Defaults to False.
-        ddc_r (int, optional): reduction rate for the coarse decoder of double decoder consistency. Defaults to None.
-        encoder_in_features (int, optional): input channels for the encoder. Defaults to 512.
-        decoder_in_features (int, optional): input channels for the decoder. Defaults to 512.
-        speaker_embedding_dim (int, optional): external speaker conditioning vector channels. Defaults to None.
-        use_gst (bool, optional): enable/disable Global style token module.
-        gst (Coqpit, optional): Coqpit to initialize the GST module. If `None`, GST is disabled. Defaults to None.
-        memory_size (int, optional): size of the history queue fed to the prenet. Model feeds the last ```memory_size```
-            output frames to the prenet.
+    Check `TacotronConfig` for the arguments.
     """
 
-    def __init__(
-        self,
-        num_chars,
-        num_speakers,
-        r=5,
-        postnet_output_dim=1025,
-        decoder_output_dim=80,
-        attn_type="original",
-        attn_win=False,
-        attn_norm="sigmoid",
-        prenet_type="original",
-        prenet_dropout=True,
-        prenet_dropout_at_inference=False,
-        forward_attn=False,
-        trans_agent=False,
-        forward_attn_mask=False,
-        location_attn=True,
-        attn_K=5,
-        separate_stopnet=True,
-        bidirectional_decoder=False,
-        double_decoder_consistency=False,
-        ddc_r=None,
-        encoder_in_features=256,
-        decoder_in_features=256,
-        speaker_embedding_dim=None,
-        use_gst=False,
-        gst=None,
-        memory_size=5,
-    ):
-        super().__init__(
-            num_chars,
-            num_speakers,
-            r,
-            postnet_output_dim,
-            decoder_output_dim,
-            attn_type,
-            attn_win,
-            attn_norm,
-            prenet_type,
-            prenet_dropout,
-            prenet_dropout_at_inference,
-            forward_attn,
-            trans_agent,
-            forward_attn_mask,
-            location_attn,
-            attn_K,
-            separate_stopnet,
-            bidirectional_decoder,
-            double_decoder_consistency,
-            ddc_r,
-            encoder_in_features,
-            decoder_in_features,
-            speaker_embedding_dim,
-            use_gst,
-            gst,
-        )
+    def __init__(self, config: Coqpit):
+        super().__init__(config)
 
-        # speaker embedding layers
+        self.num_chars, self.config = self.get_characters(config)
+
+        # pass all config fields to `self`
+        # for fewer code change
+        for key in config:
+            setattr(self, key, config[key])
+
+        # speaker embedding layer
         if self.num_speakers > 1:
-            if not self.embeddings_per_sample:
-                speaker_embedding_dim = 256
-                self.speaker_embedding = nn.Embedding(self.num_speakers, speaker_embedding_dim)
-                self.speaker_embedding.weight.data.normal_(0, 0.3)
+            self.init_multispeaker(config)
 
         # speaker and gst embeddings is concat in decoder input
         if self.num_speakers > 1:
-            self.decoder_in_features += speaker_embedding_dim  # add speaker embedding dim
+            self.decoder_in_features += self.embedded_speaker_dim  # add speaker embedding dim
+
+        if self.use_gst:
+            self.decoder_in_features += self.gst.gst_embedding_dim
 
         # embedding layer
-        self.embedding = nn.Embedding(num_chars, 256, padding_idx=0)
+        self.embedding = nn.Embedding(self.num_chars, 256, padding_idx=0)
         self.embedding.weight.data.normal_(0, 0.3)
 
         # base model layers
         self.encoder = Encoder(self.encoder_in_features)
         self.decoder = Decoder(
             self.decoder_in_features,
-            decoder_output_dim,
-            r,
-            memory_size,
-            attn_type,
-            attn_win,
-            attn_norm,
-            prenet_type,
-            prenet_dropout,
-            forward_attn,
-            trans_agent,
-            forward_attn_mask,
-            location_attn,
-            attn_K,
-            separate_stopnet,
+            self.decoder_output_dim,
+            self.r,
+            self.memory_size,
+            self.attention_type,
+            self.windowing,
+            self.attention_norm,
+            self.prenet_type,
+            self.prenet_dropout,
+            self.use_forward_attn,
+            self.transition_agent,
+            self.forward_attn_mask,
+            self.location_attn,
+            self.attention_heads,
+            self.separate_stopnet,
+            self.max_decoder_steps,
         )
-        self.postnet = PostCBHG(decoder_output_dim)
-        self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, postnet_output_dim)
+        self.postnet = PostCBHG(self.decoder_output_dim)
+        self.last_linear = nn.Linear(self.postnet.cbhg.gru_features * 2, self.out_channels)
 
         # setup prenet dropout
-        self.decoder.prenet.dropout_at_inference = prenet_dropout_at_inference
+        self.decoder.prenet.dropout_at_inference = self.prenet_dropout_at_inference
 
         # global style token layers
         if self.gst and self.use_gst:
             self.gst_layer = GST(
-                num_mel=decoder_output_dim,
-                speaker_embedding_dim=speaker_embedding_dim,
-                num_heads=gst.gst_num_heads,
-                num_style_tokens=gst.gst_num_style_tokens,
-                gst_embedding_dim=gst.gst_embedding_dim,
+                num_mel=self.decoder_output_dim,
+                d_vector_dim=self.d_vector_dim
+                if self.config.gst.gst_use_speaker_embedding and self.use_speaker_embedding
+                else None,
+                num_heads=self.gst.gst_num_heads,
+                num_style_tokens=self.gst.gst_num_style_tokens,
+                gst_embedding_dim=self.gst.gst_embedding_dim,
             )
         # backward pass decoder
         if self.bidirectional_decoder:
@@ -160,35 +89,35 @@ class Tacotron(TacotronAbstract):
         if self.double_decoder_consistency:
             self.coarse_decoder = Decoder(
                 self.decoder_in_features,
-                decoder_output_dim,
-                ddc_r,
-                memory_size,
-                attn_type,
-                attn_win,
-                attn_norm,
-                prenet_type,
-                prenet_dropout,
-                forward_attn,
-                trans_agent,
-                forward_attn_mask,
-                location_attn,
-                attn_K,
-                separate_stopnet,
+                self.decoder_output_dim,
+                self.ddc_r,
+                self.memory_size,
+                self.attention_type,
+                self.windowing,
+                self.attention_norm,
+                self.prenet_type,
+                self.prenet_dropout,
+                self.use_forward_attn,
+                self.transition_agent,
+                self.forward_attn_mask,
+                self.location_attn,
+                self.attention_heads,
+                self.separate_stopnet,
+                self.max_decoder_steps,
             )
 
-    def forward(self, characters, text_lengths, mel_specs, mel_lengths=None, speaker_ids=None, speaker_embeddings=None):
+    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, aux_input=None):
         """
         Shapes:
-            characters: [B, T_in]
+            text: [B, T_in]
             text_lengths: [B]
             mel_specs: [B, T_out, C]
             mel_lengths: [B]
-            speaker_ids: [B, 1]
-            speaker_embeddings: [B, C]
+            aux_input: 'speaker_ids': [B, 1] and  'd_vectors':[B, C]
         """
+        outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
+        inputs = self.embedding(text)
         input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)
-        # B x T_in x embed_dim
-        inputs = self.embedding(characters)
         # B x T_in x encoder_in_features
         encoder_outputs = self.encoder(inputs)
         # sequence masking
@@ -196,16 +125,18 @@ class Tacotron(TacotronAbstract):
         # global style token
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs, speaker_embeddings)
+            encoder_outputs = self.compute_gst(
+                encoder_outputs, mel_specs, aux_input["d_vectors"] if "d_vectors" in aux_input else None
+            )
         # speaker embedding
         if self.num_speakers > 1:
-            if not self.embeddings_per_sample:
+            if not self.use_d_vectors:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = self.speaker_embedding(speaker_ids)[:, None]
+                embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[:, None]
             else:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = torch.unsqueeze(speaker_embeddings, 1)
-            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, speaker_embeddings)
+                embedded_speakers = torch.unsqueeze(aux_input["d_vectors"], 1)
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
         # decoder_outputs: B x decoder_in_features x T_out
         # alignments: B x T_in x encoder_in_features
         # stop_tokens: B x T_in
@@ -224,45 +155,139 @@ class Tacotron(TacotronAbstract):
         decoder_outputs = decoder_outputs.transpose(1, 2).contiguous()
         if self.bidirectional_decoder:
             decoder_outputs_backward, alignments_backward = self._backward_pass(mel_specs, encoder_outputs, input_mask)
-            return (
-                decoder_outputs,
-                postnet_outputs,
-                alignments,
-                stop_tokens,
-                decoder_outputs_backward,
-                alignments_backward,
-            )
+            outputs["alignments_backward"] = alignments_backward
+            outputs["decoder_outputs_backward"] = decoder_outputs_backward
         if self.double_decoder_consistency:
             decoder_outputs_backward, alignments_backward = self._coarse_decoder_pass(
                 mel_specs, encoder_outputs, alignments, input_mask
             )
-            return (
-                decoder_outputs,
-                postnet_outputs,
-                alignments,
-                stop_tokens,
-                decoder_outputs_backward,
-                alignments_backward,
-            )
-        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+            outputs["alignments_backward"] = alignments_backward
+            outputs["decoder_outputs_backward"] = decoder_outputs_backward
+        outputs.update(
+            {
+                "model_outputs": postnet_outputs,
+                "decoder_outputs": decoder_outputs,
+                "alignments": alignments,
+                "stop_tokens": stop_tokens,
+            }
+        )
+        return outputs
 
     @torch.no_grad()
-    def inference(self, characters, speaker_ids=None, style_mel=None, speaker_embeddings=None):
-        inputs = self.embedding(characters)
+    def inference(self, text_input, aux_input=None):
+        aux_input = self._format_aux_input(aux_input)
+        inputs = self.embedding(text_input)
         encoder_outputs = self.encoder(inputs)
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, style_mel, speaker_embeddings)
+            encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
         if self.num_speakers > 1:
-            if not self.embeddings_per_sample:
+            if not self.use_d_vectors:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = self.speaker_embedding(speaker_ids)[:, None]
+                embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])
+                # reshape embedded_speakers
+                if embedded_speakers.ndim == 1:
+                    embedded_speakers = embedded_speakers[None, None, :]
+                elif embedded_speakers.ndim == 2:
+                    embedded_speakers = embedded_speakers[None, :]
             else:
                 # B x 1 x speaker_embed_dim
-                speaker_embeddings = torch.unsqueeze(speaker_embeddings, 1)
-            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, speaker_embeddings)
+                embedded_speakers = torch.unsqueeze(aux_input["d_vectors"], 1)
+            encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
         decoder_outputs, alignments, stop_tokens = self.decoder.inference(encoder_outputs)
         postnet_outputs = self.postnet(decoder_outputs)
         postnet_outputs = self.last_linear(postnet_outputs)
         decoder_outputs = decoder_outputs.transpose(1, 2)
-        return decoder_outputs, postnet_outputs, alignments, stop_tokens
+        outputs = {
+            "model_outputs": postnet_outputs,
+            "decoder_outputs": decoder_outputs,
+            "alignments": alignments,
+            "stop_tokens": stop_tokens,
+        }
+        return outputs
+
+    def train_step(self, batch, criterion):
+        """Perform a single training step by fetching the right set if samples from the batch.
+
+        Args:
+            batch ([type]): [description]
+            criterion ([type]): [description]
+        """
+        text_input = batch["text_input"]
+        text_lengths = batch["text_lengths"]
+        mel_input = batch["mel_input"]
+        mel_lengths = batch["mel_lengths"]
+        linear_input = batch["linear_input"]
+        stop_targets = batch["stop_targets"]
+        speaker_ids = batch["speaker_ids"]
+        d_vectors = batch["d_vectors"]
+
+        # forward pass model
+        outputs = self.forward(
+            text_input,
+            text_lengths,
+            mel_input,
+            mel_lengths,
+            aux_input={"speaker_ids": speaker_ids, "d_vectors": d_vectors},
+        )
+
+        # set the [alignment] lengths wrt reduction factor for guided attention
+        if mel_lengths.max() % self.decoder.r != 0:
+            alignment_lengths = (
+                mel_lengths + (self.decoder.r - (mel_lengths.max() % self.decoder.r))
+            ) // self.decoder.r
+        else:
+            alignment_lengths = mel_lengths // self.decoder.r
+
+        aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
+        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input)
+
+        # compute loss
+        loss_dict = criterion(
+            outputs["model_outputs"],
+            outputs["decoder_outputs"],
+            mel_input,
+            linear_input,
+            outputs["stop_tokens"],
+            stop_targets,
+            mel_lengths,
+            outputs["decoder_outputs_backward"],
+            outputs["alignments"],
+            alignment_lengths,
+            outputs["alignments_backward"],
+            text_lengths,
+        )
+
+        # compute alignment error (the lower the better )
+        align_error = 1 - alignment_diagonal_score(outputs["alignments"])
+        loss_dict["align_error"] = align_error
+        return outputs, loss_dict
+
+    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict) -> Tuple[Dict, Dict]:
+        postnet_outputs = outputs["model_outputs"]
+        alignments = outputs["alignments"]
+        alignments_backward = outputs["alignments_backward"]
+        mel_input = batch["mel_input"]
+
+        pred_spec = postnet_outputs[0].data.cpu().numpy()
+        gt_spec = mel_input[0].data.cpu().numpy()
+        align_img = alignments[0].data.cpu().numpy()
+
+        figures = {
+            "prediction": plot_spectrogram(pred_spec, ap, output_fig=False),
+            "ground_truth": plot_spectrogram(gt_spec, ap, output_fig=False),
+            "alignment": plot_alignment(align_img, output_fig=False),
+        }
+
+        if self.bidirectional_decoder or self.double_decoder_consistency:
+            figures["alignment_backward"] = plot_alignment(alignments_backward[0].data.cpu().numpy(), output_fig=False)
+
+        # Sample audio
+        train_audio = ap.inv_spectrogram(pred_spec.T)
+        return figures, {"audio": train_audio}
+
+    def eval_step(self, batch, criterion):
+        return self.train_step(batch, criterion)
+
+    def eval_log(self, ap, batch, outputs):
+        return self.train_log(ap, batch, outputs)

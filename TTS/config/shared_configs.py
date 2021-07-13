@@ -1,7 +1,7 @@
 from dataclasses import asdict, dataclass
 from typing import List
 
-from coqpit import MISSING, Coqpit, check_argument
+from coqpit import Coqpit, check_argument
 
 
 @dataclass
@@ -180,6 +180,14 @@ class BaseTrainingConfig(Coqpit):
     among all the models.
 
     Args:
+        model (str):
+            Name of the model that is used in the training.
+        run_name (str):
+            Name of the experiment. This prefixes the output folder name.
+        run_description (str):
+            Short description of the experiment.
+        epochs (int):
+            Number training epochs. Defaults to 10000.
         batch_size (int):
             Training batch size.
         eval_batch_size (int):
@@ -214,7 +222,7 @@ class BaseTrainingConfig(Coqpit):
             to 10000.
         num_loader_workers (int):
             Number of workers for training time dataloader.
-        num_val_loader_workers (int):
+        num_eval_loader_workers (int):
             Number of workers for evaluation time dataloader.
         output_path (str):
             Path for training output folder. The nonexist part of the given path is created automatically.
@@ -243,8 +251,8 @@ class BaseTrainingConfig(Coqpit):
     keep_all_best: bool = False
     keep_after: int = 10000
     # dataloading
-    num_loader_workers: int = MISSING
-    num_val_loader_workers: int = 0
+    num_loader_workers: int = None
+    num_eval_loader_workers: int = 0
     use_noise_augment: bool = False
     # paths
     output_path: str = None

@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -8,21 +10,24 @@ from ..generic.normalization import LayerNorm
 
 
 class ResidualConv1dLayerNormBlock(nn.Module):
+    """Conv1d with Layer Normalization and residual connection as in GlowTTS paper.
+    https://arxiv.org/pdf/1811.00002.pdf
+
+    ::
+
+        x |-> conv1d -> layer_norm -> relu -> dropout -> + -> o
+          |---------------> conv1d_1x1 -----------------------|
+
+    Args:
+        in_channels (int): number of input tensor channels.
+        hidden_channels (int): number of inner layer channels.
+        out_channels (int): number of output tensor channels.
+        kernel_size (int): kernel size of conv1d filter.
+        num_layers (int): number of blocks.
+        dropout_p (float): dropout rate for each block.
+    """
+
     def __init__(self, in_channels, hidden_channels, out_channels, kernel_size, num_layers, dropout_p):
-        """Conv1d with Layer Normalization and residual connection as in GlowTTS paper.
-        https://arxiv.org/pdf/1811.00002.pdf
-
-         x |-> conv1d -> layer_norm -> relu -> dropout -> + -> o
-           |---------------> conv1d_1x1 -----------------------|
-
-        Args:
-            in_channels (int): number of input tensor channels.
-            hidden_channels (int): number of inner layer channels.
-            out_channels (int): number of output tensor channels.
-            kernel_size (int): kernel size of conv1d filter.
-            num_layers (int): number of blocks.
-            dropout_p (float): dropout rate for each block.
-        """
         super().__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
@@ -49,6 +54,11 @@ class ResidualConv1dLayerNormBlock(nn.Module):
         self.proj.bias.data.zero_()
 
     def forward(self, x, x_mask):
+        """
+        Shapes:
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
+        """
         x_res = x
         for i in range(self.num_layers):
             x = self.conv_layers[i](x * x_mask)
@@ -81,7 +91,11 @@ class InvConvNear(nn.Module):
         self.no_jacobian = no_jacobian
         self.weight_inv = None
 
-        w_init = torch.qr(torch.FloatTensor(self.num_splits, self.num_splits).normal_())[0]
+        if LooseVersion(torch.__version__) < LooseVersion("1.9"):
+            w_init = torch.qr(torch.FloatTensor(self.num_splits, self.num_splits).normal_())[0]
+        else:
+            w_init = torch.linalg.qr(torch.FloatTensor(self.num_splits, self.num_splits).normal_(), "complete")[0]
+
         if torch.det(w_init) < 0:
             w_init[:, 0] = -1 * w_init[:, 0]
         self.weight = nn.Parameter(w_init)
@@ -89,8 +103,8 @@ class InvConvNear(nn.Module):
     def forward(self, x, x_mask=None, reverse=False, **kwargs):  # pylint: disable=unused-argument
         """
         Shapes:
-            x: B x C x T
-            x_mask: B x 1 x T
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
         """
 
         b, c, t = x.size()
@@ -133,10 +147,12 @@ class CouplingBlock(nn.Module):
     """Glow Affine Coupling block as in GlowTTS paper.
     https://arxiv.org/pdf/1811.00002.pdf
 
-     x --> x0 -> conv1d -> wavenet -> conv1d --> t, s -> concat(s*x1 + t, x0) -> o
-       '-> x1 - - - - - - - - - - - - - - - - - - - - - - - - - ^
+    ::
 
-     Args:
+        x --> x0 -> conv1d -> wavenet -> conv1d --> t, s -> concat(s*x1 + t, x0) -> o
+        '-> x1 - - - - - - - - - - - - - - - - - - - - - - - - - ^
+
+    Args:
          in_channels (int): number of input tensor channels.
          hidden_channels (int): number of hidden channels.
          kernel_size (int): WaveNet filter kernel size.
@@ -146,8 +162,8 @@ class CouplingBlock(nn.Module):
          dropout_p (int): wavenet dropout rate.
          sigmoid_scale (bool): enable/disable sigmoid scaling for output scale.
 
-     Note:
-         It does not use conditional inputs differently from WaveGlow.
+    Note:
+         It does not use the conditional inputs differently from WaveGlow.
     """
 
     def __init__(
@@ -187,9 +203,9 @@ class CouplingBlock(nn.Module):
     def forward(self, x, x_mask=None, reverse=False, g=None, **kwargs):  # pylint: disable=unused-argument
         """
         Shapes:
-            x: B x C x T
-            x_mask: B x 1 x T
-            g: B x C x 1
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
+            - g: :math:`[B, C, 1]`
         """
         if x_mask is None:
             x_mask = 1

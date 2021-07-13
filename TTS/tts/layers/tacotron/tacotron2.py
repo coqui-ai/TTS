@@ -135,6 +135,7 @@ class Decoder(nn.Module):
         location_attn (bool): if true, use location sensitive attention.
         attn_K (int): number of attention heads for GravesAttention.
         separate_stopnet (bool): if true, detach stopnet input to prevent gradient flow.
+        max_decoder_steps (int): Maximum number of steps allowed for the decoder. Defaults to 10000.
     """
 
     # Pylint gets confused by PyTorch conventions here
@@ -155,6 +156,7 @@ class Decoder(nn.Module):
         location_attn,
         attn_K,
         separate_stopnet,
+        max_decoder_steps,
     ):
         super().__init__()
         self.frame_channels = frame_channels
@@ -162,7 +164,7 @@ class Decoder(nn.Module):
         self.r = r
         self.encoder_embedding_dim = in_channels
         self.separate_stopnet = separate_stopnet
-        self.max_decoder_steps = 1000
+        self.max_decoder_steps = max_decoder_steps
         self.stop_threshold = 0.5
 
         # model dimensions
@@ -355,7 +357,7 @@ class Decoder(nn.Module):
             if stop_token > self.stop_threshold and t > inputs.shape[0] // 2:
                 break
             if len(outputs) == self.max_decoder_steps:
-                print("   | > Decoder stopped with 'max_decoder_steps")
+                print(f"   > Decoder stopped with `max_decoder_steps` {self.max_decoder_steps}")
                 break
 
             memory = self._update_memory(decoder_output)

@@ -1,0 +1,5 @@
+furo
+myst-parser == 0.15.1
+sphinx == 4.0.2
+sphinx_inline_tabs
+sphinx_copybutton

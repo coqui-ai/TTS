@@ -8,8 +8,8 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from TTS.tts.datasets.TTSDataset import MyDataset
-from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.datasets.TTSDataset import TTSDataset
+from TTS.tts.models import setup_model
 from TTS.tts.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
@@ -75,21 +75,21 @@ Example run:
     # load the model
     num_chars = len(phonemes) if C.use_phonemes else len(symbols)
     # TODO: handle multi-speaker
-    model = setup_model(num_chars, num_speakers=0, c=C)
+    model = setup_model(C)
     model, _ = load_checkpoint(model, args.model_path, None, args.use_cuda)
     model.eval()
 
     # data loader
-    preprocessor = importlib.import_module("TTS.tts.datasets.preprocess")
+    preprocessor = importlib.import_module("TTS.tts.datasets.formatters")
     preprocessor = getattr(preprocessor, args.dataset)
     meta_data = preprocessor(args.data_path, args.dataset_metafile)
-    dataset = MyDataset(
+    dataset = TTSDataset(
         model.decoder.r,
         C.text_cleaner,
         compute_linear_spec=False,
         ap=ap,
         meta_data=meta_data,
-        tp=C.characters if "characters" in C.keys() else None,
+        characters=C.characters if "characters" in C.keys() else None,
         add_blank=C["add_blank"] if "add_blank" in C.keys() else False,
         use_phonemes=C.use_phonemes,
         phoneme_cache_path=C.phoneme_cache_path,

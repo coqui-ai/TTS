@@ -8,8 +8,19 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Dict
 
 import torch
+
+
+def to_cuda(x: torch.Tensor) -> torch.Tensor:
+    if x is None:
+        return None
+    if torch.is_tensor(x):
+        x = x.contiguous()
+        if torch.cuda.is_available():
+            x = x.cuda(non_blocking=True)
+    return x
 
 
 def get_cuda():
@@ -47,13 +58,10 @@ def get_commit_hash():
     return commit
 
 
-def create_experiment_folder(root_path, model_name, debug):
+def create_experiment_folder(root_path, model_name):
     """Create a folder with the current date and time"""
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
-    if debug:
-        commit_hash = "debug"
-    else:
-        commit_hash = get_commit_hash()
+    commit_hash = get_commit_hash()
     output_folder = os.path.join(root_path, model_name + "-" + date_str + "-" + commit_hash)
     os.makedirs(output_folder, exist_ok=True)
     print(" > Experiment folder: {}".format(output_folder))
@@ -124,6 +132,22 @@ def set_init_dict(model_dict, checkpoint_state, c):
     model_dict.update(pretrained_dict)
     print(" | > {} / {} layers are restored.".format(len(pretrained_dict), len(model_dict)))
     return model_dict
+
+
+def format_aux_input(def_args: Dict, kwargs: Dict) -> Dict:
+    """Format kwargs to hande auxilary inputs to models.
+
+    Args:
+        def_args (Dict): A dictionary of argument names and their default values if not defined in `kwargs`.
+        kwargs (Dict): A `dict` or `kwargs` that includes auxilary inputs to the model.
+
+    Returns:
+        Dict: arguments with formatted auxilary inputs.
+    """
+    for name in def_args:
+        if name not in kwargs:
+            kwargs[def_args[name]] = None
+    return kwargs
 
 
 class KeepAverage:

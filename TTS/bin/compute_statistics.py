@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 # from TTS.utils.io import load_config
 from TTS.config import load_config
-from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.datasets import load_meta_data
 from TTS.utils.audio import AudioProcessor
 
 
@@ -77,7 +77,7 @@ def main():
     print(f" > Avg mel spec mean: {mel_mean.mean()}")
     print(f" > Avg mel spec scale: {mel_scale.mean()}")
     print(f" > Avg linear spec mean: {linear_mean.mean()}")
-    print(f" > Avg lienar spec scale: {linear_scale.mean()}")
+    print(f" > Avg linear spec scale: {linear_scale.mean()}")
 
     # set default config values for mean-var scaling
     CONFIG.audio.stats_path = output_file_path

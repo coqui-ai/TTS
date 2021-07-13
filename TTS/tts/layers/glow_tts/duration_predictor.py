@@ -6,13 +6,16 @@ from ..generic.normalization import LayerNorm
 
 class DurationPredictor(nn.Module):
     """Glow-TTS duration prediction model.
-    [2 x (conv1d_kxk -> relu -> layer_norm -> dropout)] -> conv1d_1x1 -> durs
 
-        Args:
-            in_channels ([type]): [description]
-            hidden_channels ([type]): [description]
-            kernel_size ([type]): [description]
-            dropout_p ([type]): [description]
+    ::
+
+        [2 x (conv1d_kxk -> relu -> layer_norm -> dropout)] -> conv1d_1x1 -> durs
+
+    Args:
+        in_channels (int): Number of channels of the input tensor.
+        hidden_channels (int): Number of hidden channels of the network.
+        kernel_size (int): Kernel size for the conv layers.
+        dropout_p (float): Dropout rate used after each conv layer.
     """
 
     def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p):
@@ -34,11 +37,8 @@ class DurationPredictor(nn.Module):
     def forward(self, x, x_mask):
         """
         Shapes:
-            x: [B, C, T]
-            x_mask: [B, 1, T]
-
-        Returns:
-            [type]: [description]
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
         """
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
