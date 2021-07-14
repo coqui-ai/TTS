@@ -86,7 +86,7 @@ class WandbLogger:
         self.dict_to_figure(f"{self.model_name}_TestFigures", figures)
 
     def add_text(self, title, text, step):
-        self.log_dict[title] = wandb.HTML(f"<p> {text} </p>")
+        pass
 
     def flush(self):
         if self.run:
