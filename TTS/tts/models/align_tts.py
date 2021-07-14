@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -102,7 +102,7 @@ class AlignTTS(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, data: List = None):
 
         super().__init__()
         self.config = config
@@ -120,7 +120,7 @@ class AlignTTS(BaseTTS):
         self.emb = nn.Embedding(self.config.model_args.num_chars, self.config.model_args.hidden_channels)
 
         self.embedded_speaker_dim = 0
-        self.init_multispeaker(config)
+        self.init_multispeaker(config, data)
 
         self.pos_encoder = PositionalEncoding(config.model_args.hidden_channels)
         self.encoder = Encoder(

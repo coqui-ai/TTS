@@ -5,7 +5,7 @@ import unittest
 import torch
 from torch import nn, optim
 
-from tests import get_tests_input_path
+from tests import get_tests_input_path, get_tests_path
 from TTS.tts.configs import GSTConfig, TacotronConfig
 from TTS.tts.layers.losses import L1LossMasked
 from TTS.tts.models.tacotron import Tacotron
@@ -17,7 +17,9 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-config_global = TacotronConfig(num_chars=32, num_speakers=5, out_channels=513, decoder_output_dim=80)
+config_global = TacotronConfig(
+    num_chars=32, num_speakers=5, out_channels=513, decoder_output_dim=80, use_speaker_embedding=True
+)
 
 ap = AudioProcessor(**config_global.audio)
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
@@ -40,7 +42,6 @@ class TacotronTrainTest(unittest.TestCase):
         mel_lengths = torch.randint(20, 30, (8,)).long().to(device)
         mel_lengths[-1] = mel_spec.size(1)
         stop_targets = torch.zeros(8, 30, 1).float().to(device)
-        speaker_ids = torch.randint(0, 5, (8,)).long().to(device)
 
         for idx in mel_lengths:
             stop_targets[:, int(idx.item()) :, 0] = 1.0
@@ -50,6 +51,7 @@ class TacotronTrainTest(unittest.TestCase):
 
         criterion = L1LossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
+        config.use_speaker_embedding = False
         model = Tacotron(config).to(device)  # FIXME: missing num_speakers parameter to Tacotron ctor
         model.train()
         print(" > Num parameters for Tacotron model:%s" % (count_parameters(model)))
@@ -60,9 +62,7 @@ class TacotronTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=config.lr)
         for _ in range(5):
-            outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
-            )
+            outputs = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": None})
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
             stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
@@ -103,6 +103,8 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
         criterion = L1LossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         config.d_vector_dim = 55
+        config.use_d_vector_file = True
+        config.d_vector_file = os.path.join(get_tests_path(), "data", "dummy_speakers.json")
         model = Tacotron(config).to(device)  # FIXME: missing num_speakers parameter to Tacotron ctor
         model.train()
         print(" > Num parameters for Tacotron model:%s" % (count_parameters(model)))
@@ -146,7 +148,6 @@ class TacotronGSTTrainTest(unittest.TestCase):
         mel_lengths = torch.randint(20, 120, (8,)).long().to(device)
         mel_lengths[-1] = 120
         stop_targets = torch.zeros(8, 120, 1).float().to(device)
-        speaker_ids = torch.randint(0, 5, (8,)).long().to(device)
 
         for idx in mel_lengths:
             stop_targets[:, int(idx.item()) :, 0] = 1.0
@@ -158,6 +159,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         config.use_gst = True
         config.gst = GSTConfig()
+        config.use_speaker_embedding = False
         model = Tacotron(config).to(device)  # FIXME: missing num_speakers parameter to Tacotron ctor
         model.train()
         # print(model)
@@ -169,9 +171,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=config.lr)
         for _ in range(10):
-            outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
-            )
+            outputs = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": None})
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
             stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
@@ -200,7 +200,6 @@ class TacotronGSTTrainTest(unittest.TestCase):
         mel_lengths = torch.randint(20, mel_spec.size(1), (8,)).long().to(device)
         mel_lengths[-1] = mel_spec.size(1)
         stop_targets = torch.zeros(8, mel_spec.size(1), 1).float().to(device)
-        speaker_ids = torch.randint(0, 5, (8,)).long().to(device)
 
         for idx in mel_lengths:
             stop_targets[:, int(idx.item()) :, 0] = 1.0
@@ -221,9 +220,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=config.lr)
         for _ in range(10):
-            outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
-            )
+            outputs = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": None})
             optimizer.zero_grad()
             loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
             stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
@@ -263,6 +260,8 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
         criterion = L1LossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         config.d_vector_dim = 55
+        config.use_d_vector_file = True
+        config.d_vector_file = os.path.join(get_tests_path(), "data", "dummy_speakers.json")
         model = Tacotron(config).to(device)  # FIXME: missing num_speakers parameter to Tacotron ctor
         model.train()
         print(" > Num parameters for Tacotron model:%s" % (count_parameters(model)))

@@ -263,7 +263,7 @@ class Trainer:
         self.callbacks.on_init_end()
 
     @staticmethod
-    def get_model(config: Coqpit, data) -> nn.Module:
+    def get_model(config: Coqpit, data: List = None) -> nn.Module:
         """Initialize model from config.
 
         Args:

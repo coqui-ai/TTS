@@ -49,7 +49,7 @@ class BaseTacotronArgs(Coqpit):
 
 
 class BaseTacotron(BaseTTS):
-    def __init__(self, config: Coqpit, data):
+    def __init__(self, config: Coqpit, data: List = None):
         """Abstract Tacotron class"""
         super().__init__()
 

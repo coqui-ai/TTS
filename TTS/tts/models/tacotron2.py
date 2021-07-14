@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 from coqpit import Coqpit
@@ -19,7 +19,7 @@ class Tacotron2(BaseTacotron):
     Check `TacotronConfig` for the arguments.
     """
 
-    def __init__(self, config: Coqpit, data):
+    def __init__(self, config: Coqpit, data: List = None):
         super().__init__(config, data)
 
         chars, self.config = self.get_characters(config)
@@ -32,7 +32,7 @@ class Tacotron2(BaseTacotron):
             setattr(self, key, config[key])
 
         # speaker and gst embeddings is concat in decoder input
-        if self.num_speakers > 1:
+        if self.use_speaker_embedding:
             self.decoder_in_features += self.embedded_speaker_dim  # add speaker embedding dim
 
         if self.use_gst:
@@ -129,7 +129,7 @@ class Tacotron2(BaseTacotron):
             encoder_outputs = self.compute_gst(
                 encoder_outputs, mel_specs, aux_input["d_vectors"] if "d_vectors" in aux_input else None
             )
-        if self.num_speakers > 1:
+        if self.use_speaker_embedding:
             if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[:, None]
@@ -182,7 +182,7 @@ class Tacotron2(BaseTacotron):
         if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
-        if self.num_speakers > 1:
+        if self.use_speaker_embedding:
             if not self.use_d_vector_file:
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[None]
                 # reshape embedded_speakers

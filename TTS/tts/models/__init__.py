@@ -1,8 +1,12 @@
+from typing import List
+
+from coqpit import Coqpit
+
 from TTS.tts.utils.text.symbols import make_symbols, parse_symbols
 from TTS.utils.generic_utils import find_module
 
 
-def setup_model(config, data):
+def setup_model(config: Coqpit, data: List = None):
     print(" > Using model: {}".format(config.model))
 
     MyModel = find_module("TTS.tts.models", config.model.lower())

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import List
 
 import torch
 from coqpit import Coqpit
@@ -93,7 +94,7 @@ class SpeedySpeech(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, data: List = None): # pylint: disable=unused-argument
         super().__init__()
         self.config = config
 

@@ -60,13 +60,22 @@ class BaseTTS(BaseModel):
         # init speaker manager
         self.speaker_manager = get_speaker_manager(config, data=data)
         self.num_speakers = self.speaker_manager.num_speakers
-        # init speaker embedding layer
-        if config.use_speaker_embedding and not config.use_d_vector_file:
-            self.embedded_speaker_dim = (
-                config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
-            )
-            self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
-            self.speaker_embedding.weight.data.normal_(0, 0.3)
+        # init speaker embedding
+        if config.use_speaker_embedding:
+            if config.use_d_vector_file:
+                self.embedded_speaker_dim = (
+                    config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
+                )
+            else:
+                self.embedded_speaker_dim = (
+                    config.speaker_embedding_dim
+                    if "speaker_embedding_dim" in config and config.speaker_embedding_dim is not None
+                    else 512
+                )
+                self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
+                self.speaker_embedding.weight.data.normal_(0, 0.3)
+        else:
+            self.embedded_speaker_dim = 0
 
     def get_aux_input(self, **kwargs) -> Dict:
         """Prepare and return `aux_input` used by `forward()`"""

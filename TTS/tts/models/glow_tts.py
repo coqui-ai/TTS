@@ -1,4 +1,5 @@
 import math
+from typing import List
 
 import torch
 from torch import nn
@@ -41,7 +42,7 @@ class GlowTTS(BaseTTS):
 
     """
 
-    def __init__(self, config: GlowTTSConfig, data):
+    def __init__(self, config: GlowTTSConfig, data: List = None):
 
         super().__init__()
 
@@ -58,7 +59,7 @@ class GlowTTS(BaseTTS):
 
         # if is a multispeaker and c_in_channels is 0, set to 256
         self.c_in_channels = 0
-        if self.num_speakers > 1:
+        if self.use_speaker_embedding:
             if self.d_vector_dim:
                 self.c_in_channels = self.d_vector_dim
             elif self.c_in_channels == 0 and not self.d_vector_dim:
