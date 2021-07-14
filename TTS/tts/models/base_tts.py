@@ -258,8 +258,10 @@ class BaseTTS(BaseModel):
             dataset.sort_and_filter_items(config.get("sort_by_audio_len", default=False))
 
             # compute pitch frames and write to files.
-            if config.compute_f0 and not os.path.exists(config.f0_cache_path) and rank in [None, 0]:
-                dataset.compute_pitch(config.get("f0_cache_path", None), config.num_loader_workers)
+            if config.compute_f0 and rank in [None, 0]:
+                if not os.path.exists(config.f0_cache_path):
+                    dataset.compute_pitch(config.get("f0_cache_path", None), config.num_loader_workers)
+                dataset.load_pitch_stats(config.get("f0_cache_path", None))
 
             # halt DDP processes for the main process to finish computing the F0 cache
             if num_gpus > 1:
