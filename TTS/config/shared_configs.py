@@ -236,7 +236,7 @@ class BaseTrainingConfig(Coqpit):
             Defaults to ```False```.
 
         project_name (str):
-            Name of the W&B project. Defaults to config.model
+            Name of the project. Defaults to config.model
 
         wandb_entity (str):
             Name of W&B entity/team. Enables collaboration across a team or org.
