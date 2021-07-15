@@ -769,9 +769,9 @@ class Trainer:
                 return None  # TODO: Fix inference on WaveGrad
             if hasattr(self.eval_loader.dataset, "load_test_samples"):
                 samples = self.eval_loader.dataset.load_test_samples(1)
-                figures, audios = self.model.test_run(self.ap, samples, None, self.use_cuda)
+                figures, audios = self.model.test_run(self.ap, samples, None)
             else:
-                figures, audios = self.model.test_run(self.ap, self.use_cuda)
+                figures, audios = self.model.test_run(self.ap)
             self.tb_logger.tb_test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
             self.tb_logger.tb_test_figures(self.total_steps_done, figures)
         return None
