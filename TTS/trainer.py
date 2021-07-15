@@ -775,9 +775,14 @@ class Trainer:
     def _fit(self) -> None:
         """🏃 train -> evaluate -> test for the number of epochs."""
         if self.restore_step != 0 or self.args.best_path:
-            print(" > Restoring best loss from " f"{os.path.basename(self.args.best_path)} ...")
-            self.best_loss = torch.load(self.args.best_path, map_location="cpu")["model_loss"]
-            print(f" > Starting with loaded last best loss {self.best_loss}.")
+            try:
+                print(" > Restoring best loss from " f"{os.path.basename(self.args.best_path)} ...")
+                self.best_loss = torch.load(self.args.best_path, map_location="cpu")["model_loss"]
+                print(f" > Starting with loaded last best loss {self.best_loss}.")
+            except:
+                print(" > Restoring last loss from " f"{os.path.basename(self.args.restore_path)} ...")
+                self.best_loss = torch.load(self.args.restore_path, map_location="cpu")["model_loss"]
+                print(f" > Starting with loaded last loss {self.best_loss}.")
 
         self.total_steps_done = self.restore_step
 

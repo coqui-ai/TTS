@@ -191,7 +191,7 @@ class Tacotron2(BaseTacotron):
                 elif embedded_speakers.ndim == 2:
                     embedded_speakers = embedded_speakers[None, :]
             else:
-                embedded_speakers = aux_input["d_vectors"]
+                embedded_speakers = torch.mean(aux_input["d_vectors"], dim=1)
 
             encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
 
