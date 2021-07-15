@@ -200,7 +200,7 @@ class BaseTTS(BaseModel):
             )
         return loader
 
-    def test_run(self, ap, use_cuda) -> Tuple[Dict, Dict]:
+    def test_run(self, ap) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.
@@ -218,7 +218,7 @@ class BaseTTS(BaseModel):
                 self,
                 sen,
                 self.config,
-                use_cuda,
+                "cuda" in str(next(self.parameters()).device),
                 ap,
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
