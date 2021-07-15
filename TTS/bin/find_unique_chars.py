@@ -24,7 +24,7 @@ def main():
     c = load_config(args.config_path)
 
     # load all datasets
-    train_items, eval_items = load_meta_data(c.datasets, eval_split=True, ignore_generated_eval=True)
+    train_items, eval_items = load_meta_data(c.datasets, eval_split=True)
     items = train_items + eval_items
 
     texts = "".join(item[0] for item in items)

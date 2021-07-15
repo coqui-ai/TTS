@@ -30,7 +30,7 @@ def split_dataset(items):
     return items[:eval_split_size], items[eval_split_size:]
 
 
-def load_meta_data(datasets, eval_split=True, ignore_generated_eval=False):
+def load_meta_data(datasets, eval_split=True):
     meta_data_train_all = []
     meta_data_eval_all = [] if eval_split else None
     for dataset in datasets:
@@ -47,11 +47,9 @@ def load_meta_data(datasets, eval_split=True, ignore_generated_eval=False):
         if eval_split:
             if meta_file_val:
                 meta_data_eval = preprocessor(root_path, meta_file_val)
-                meta_data_eval_all += meta_data_eval
-            elif not ignore_generated_eval:
+            else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train)
-                meta_data_eval_all += meta_data_eval
-
+            meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
         # load attention masks for duration predictor training
         if dataset.meta_file_attn_mask:

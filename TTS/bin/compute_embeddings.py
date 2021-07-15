@@ -32,8 +32,8 @@ args = parser.parse_args()
 
 c_dataset = load_config(args.config_dataset_path)
 
-train_files, dev_files = load_meta_data(c_dataset.datasets, eval_split=args.eval, ignore_generated_eval=True)
-wav_files = train_files + dev_files
+meta_data_train, meta_data_eval = load_meta_data(c_dataset.datasets, eval_split=args.eval)
+wav_files = meta_data_train + meta_data_eval
 
 speaker_manager = SpeakerManager(encoder_model_path=args.model_path, encoder_config_path=args.config_path, use_cuda=args.use_cuda)
 
