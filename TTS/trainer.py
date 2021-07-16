@@ -268,8 +268,12 @@ class Trainer:
                 self.config, args.restore_path, self.model, self.optimizer, self.scaler
             )
 
-        # setup scheduler
+
+         # setup scheduler
         self.scheduler = self.get_scheduler(self.model, self.config, self.optimizer)
+
+        if self.args.continue_path:
+            self.scheduler.last_epoch = self.restore_step
 
         # DISTRUBUTED
         if self.num_gpus > 1:
@@ -291,7 +295,6 @@ class Trainer:
         Returns:
             nn.Module: initialized model.
         """
-        # TODO: better model setup
         try:
             model = setup_vocoder_model(config)
         except ModuleNotFoundError:
