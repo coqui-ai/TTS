@@ -40,7 +40,6 @@ from TTS.utils.logging import ConsoleLogger, TensorboardLogger
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_available, setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model as setup_vocoder_model
-from TTS.vocoder.models.wavegrad import Wavegrad
 
 if platform.system() != "Windows":
     # https://github.com/pytorch/pytorch/issues/973
@@ -772,7 +771,6 @@ class Trainer:
                 figures, audios = self.model.test_run(self.ap)
             self.tb_logger.tb_test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
             self.tb_logger.tb_test_figures(self.total_steps_done, figures)
-        return None
 
     def _fit(self) -> None:
         """🏃 train -> evaluate -> test for the number of epochs."""
