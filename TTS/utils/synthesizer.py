@@ -232,7 +232,7 @@ class Synthesizer(object):
 
         # compute a new d_vector from the given clip.
         if speaker_wav is not None:
-            speaker_embedding = self.speaker_manager.compute_d_vector_from_clip(speaker_wav)
+            speaker_embedding = self.tts_model.speaker_manager.compute_d_vector_from_clip(speaker_wav)
 
         use_gl = self.vocoder_model is None
 
