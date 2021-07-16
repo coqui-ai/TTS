@@ -148,10 +148,12 @@ Example run:
                 alignment = alignment[: mel_lengths[idx], : text_lengths[idx]].cpu().numpy()
                 # set file paths
                 wav_file_name = os.path.basename(item_idx)
-                align_file_name = os.path.splitext(wav_file_name)[0] + ".npy"
+                align_file_name = os.path.splitext(wav_file_name)[0] + "_attn.npy"
                 file_path = item_idx.replace(wav_file_name, align_file_name)
                 # save output
-                file_paths.append([item_idx, file_path])
+                wav_file_abs_path = os.path.abspath(item_idx)
+                file_abs_path = os.path.abspath(file_path)
+                file_paths.append([wav_file_abs_path, file_abs_path])
                 np.save(file_path, alignment)
 
         # ourput metafile
