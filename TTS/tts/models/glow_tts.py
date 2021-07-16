@@ -113,7 +113,7 @@ class GlowTTS(BaseTTS):
 
     @staticmethod
     def compute_outputs(attn, o_mean, o_log_scale, x_mask):
-        """ Compute and format the mode outputs with the given alignment map"""
+        """Compute and format the mode outputs with the given alignment map"""
         y_mean = torch.matmul(attn.squeeze(1).transpose(1, 2), o_mean.transpose(1, 2)).transpose(
             1, 2
         )  # [b, t', t], [b, t, d] -> [b, d, t']

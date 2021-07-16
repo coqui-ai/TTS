@@ -31,7 +31,7 @@ def setup_model(config: Coqpit):
 
 
 def setup_generator(c):
-    """ TODO: use config object as arguments"""
+    """TODO: use config object as arguments"""
     print(" > Generator Model: {}".format(c.generator_model))
     MyModel = importlib.import_module("TTS.vocoder.models." + c.generator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.generator_model))
@@ -94,7 +94,7 @@ def setup_generator(c):
 
 
 def setup_discriminator(c):
-    """ TODO: use config objekt as arguments"""
+    """TODO: use config objekt as arguments"""
     print(" > Discriminator Model: {}".format(c.discriminator_model))
     if "parallel_wavegan" in c.discriminator_model:
         MyModel = importlib.import_module("TTS.vocoder.models.parallel_wavegan_discriminator")
