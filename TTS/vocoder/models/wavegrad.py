@@ -273,7 +273,7 @@ class Wavegrad(BaseModel):
         self.compute_noise_level(betas)
         for sample in samples:
             x = sample[0]
-            x = x[None, : , :].to(next(self.parameters()).device)
+            x = x[None, :, :].to(next(self.parameters()).device)
             y = sample[1]
             y = y[None, :]
             # compute voice
