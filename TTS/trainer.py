@@ -765,8 +765,6 @@ class Trainer:
         """Run test and log the results. Test run must be defined by the model.
         Model must return figures and audios to be logged by the Tensorboard."""
         if hasattr(self.model, "test_run"):
-            if isinstance(self.model, Wavegrad):
-                return None  # TODO: Fix inference on WaveGrad
             if hasattr(self.eval_loader.dataset, "load_test_samples"):
                 samples = self.eval_loader.dataset.load_test_samples(1)
                 figures, audios = self.model.test_run(self.ap, samples, None)
