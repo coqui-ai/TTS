@@ -2,6 +2,7 @@ import glob
 import os
 import random
 from multiprocessing import Manager
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -67,7 +68,19 @@ class WaveGradDataset(Dataset):
         item = self.load_item(idx)
         return item
 
-    def load_test_samples(self, num_samples):
+    def load_test_samples(self, num_samples: int) -> List[Tuple]:
+        """Return test samples.
+
+        Args:
+            num_samples (int): Number of samples to return.
+
+        Returns:
+            List[Tuple]: melspectorgram and audio.
+
+        Shapes:
+            - melspectrogram (Tensor): :math:`[C, T]`
+            - audio (Tensor): :math:`[T_audio]`
+        """
         samples = []
         return_segments = self.return_segments
         self.return_segments = False

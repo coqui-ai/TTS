@@ -6,6 +6,7 @@ from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.speaker_encoder.speaker_encoder_config import SpeakerEncoderConfig
 
+
 def run_test_train():
     command = (
         f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_encoder.py --config_path {config_path} "
@@ -16,6 +17,7 @@ def run_test_train():
         "--coqpit.datasets.0.path tests/data/ljspeech "
     )
     run_cli(command)
+
 
 config_path = os.path.join(get_tests_output_path(), "test_speaker_encoder_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
