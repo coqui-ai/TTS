@@ -3,8 +3,11 @@ import os
 from TTS.config import BaseAudioConfig, BaseDatasetConfig
 from TTS.trainer import Trainer, TrainingArgs, init_training
 from TTS.tts.configs import FastPitchConfig
+from TTS.utils.manage import ModelManager
 
 output_path = os.path.dirname(os.path.abspath(__file__))
+
+# init configs
 dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv",  meta_file_attn_mask=os.path.join(output_path, "../LJSpeech-1.1/metadata_attn_mask.txt"), path=os.path.join(output_path, "../LJSpeech-1.1/"))
 audio_config = BaseAudioConfig(
     sample_rate=22050,
@@ -40,6 +43,14 @@ config = FastPitchConfig(
     output_path=output_path,
     datasets=[dataset_config]
 )
+
+# compute alignments
+manager = ModelManager()
+model_path, config_path, _ = manager.download_model("tts_models/en/ljspeech/tacotron2-DCA")
+# TODO: make compute_attention python callable
+os.system(f"python TTS/bin/compute_attention_masks.py --model_path {model_path} --config_path {config_path} --dataset ljspeech --dataset_metafile metadata.csv --data_path ./recipes/ljspeech/LJSpeech-1.1/  --use_cuda true")
+
+# train the model
 args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
 trainer = Trainer(args, config, output_path, c_logger, tb_logger)
 trainer.fit()

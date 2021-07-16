@@ -1,6 +1,7 @@
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -30,7 +31,17 @@ def split_dataset(items):
     return items[:eval_split_size], items[eval_split_size:]
 
 
-def load_meta_data(datasets, eval_split=True):
+def load_meta_data(datasets: List[Dict], eval_split=True) -> Tuple[List[List], List[List]]:
+    """Parse the dataset, load the samples as a list and load the attention alignments if provided.
+
+    Args:
+        datasets (List[Dict]): A list of dataset dictionaries or dataset configs.
+        eval_split (bool, optional): If true, create a evaluation split. If an eval split provided explicitly, generate
+            an eval split automatically. Defaults to True.
+
+    Returns:
+        Tuple[List[List], List[List]: training and evaluation splits of the dataset.
+    """
     meta_data_train_all = []
     meta_data_eval_all = [] if eval_split else None
     for dataset in datasets:
@@ -51,15 +62,15 @@ def load_meta_data(datasets, eval_split=True):
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train)
             meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
-        # load attention masks for duration predictor training
+        # load attention masks for the duration predictor training
         if dataset.meta_file_attn_mask:
             meta_data = dict(load_attention_mask_meta_data(dataset["meta_file_attn_mask"]))
             for idx, ins in enumerate(meta_data_train_all):
-                attn_file = meta_data[ins[1]].strip()
+                attn_file = meta_data[os.path.abspath(ins[1])].strip()
                 meta_data_train_all[idx].append(attn_file)
             if meta_data_eval_all:
                 for idx, ins in enumerate(meta_data_eval_all):
-                    attn_file = meta_data[ins[1]].strip()
+                    attn_file = meta_data[os.path.abspath(ins[1])].strip()
                     meta_data_eval_all[idx].append(attn_file)
     return meta_data_train_all, meta_data_eval_all
 
