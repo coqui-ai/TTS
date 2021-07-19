@@ -307,6 +307,7 @@ class TacotronLoss(torch.nn.Module):
         input_lens,
         speaker_prediction,
         speaker_ids,
+        eval_mode=False,
     ):
 
         # decoder outputs linear or mel spectrograms for Tacotron and Tacotron2
@@ -394,7 +395,7 @@ class TacotronLoss(torch.nn.Module):
             return_dict["postnet_ssim_loss"] = postnet_ssim_loss
 
         # adversarial classifier loss (if enabled)
-        if self.config.reversal_classifier:
+        if self.config.reversal_classifier and not eval_mode:
             reversal_classifier_loss = self.criterion_reversal(input_lens, speaker_ids, speaker_prediction)
             reversal_classifier_loss *= self.config.reversal_classifier_w / (self.config.audio["num_mels"] + 2)
             loss += reversal_classifier_loss

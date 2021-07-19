@@ -478,6 +478,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     speaker_ids=speaker_ids,
                     language_ids=language_ids,
                     speaker_embeddings=speaker_embeddings,
+                    eval_mode=True,
                 )
             else:
                 decoder_output, postnet_output, alignments, stop_tokens, speaker_prediction = model(
@@ -487,6 +488,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                     speaker_ids=speaker_ids,
                     language_ids=language_ids,
                     speaker_embeddings=speaker_embeddings,
+                    eval_mode=True,
                 )
                 decoder_backward_output = None
                 alignments_backward = None
@@ -515,6 +517,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 text_lengths,
                 speaker_prediction,
                 speaker_ids,
+                eval_mode=True
             )
 
             # step time

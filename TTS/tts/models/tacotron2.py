@@ -227,6 +227,7 @@ class Tacotron2(TacotronAbstract):
         speaker_ids=None,
         language_ids=None,
         speaker_embeddings=None,
+        eval_mode=False
     ):
         """
         Shapes:
@@ -246,7 +247,7 @@ class Tacotron2(TacotronAbstract):
         # B x T_in_max x D_en
         encoder_outputs = self.encoder(embedded_inputs, text_lengths, language_ids=language_ids)
 
-        speaker_prediction = self._reversal_classifier(encoder_outputs) if self.reversal_classifier else None
+        speaker_prediction = self._reversal_classifier(encoder_outputs) if self.reversal_classifier and not eval_mode else None
 
         if self.gst:
             # B x gst_dim
