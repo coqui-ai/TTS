@@ -164,7 +164,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     elif c.loss == "angleproto":
         criterion = AngleProtoLoss()
     elif c.loss == "softmaxproto":
-        criterion = SoftmaxAngleProtoLoss(c.model["proj_dim"], num_speakers)
+        criterion = SoftmaxAngleProtoLoss(c.model_params["proj_dim"], num_speakers)
     else:
         raise Exception("The %s  not is a loss supported" % c.loss)
 
