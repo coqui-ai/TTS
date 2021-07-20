@@ -27,10 +27,19 @@ def prepare_tensor(inputs, out_steps):
     return np.stack([_pad_tensor(x, pad_len) for x in inputs])
 
 
-def _pad_stop_target(x, length):
-    _pad = 0.0
+def _pad_stop_target(x: np.ndarray, length: int, pad_val=1) -> np.ndarray:
+    """Pad stop target array.
+
+    Args:
+        x (np.ndarray): Stop target array.
+        length (int): Length after padding.
+        pad_val (int, optional): Padding value. Defaults to 1.
+
+    Returns:
+        np.ndarray: Padded stop target array.
+    """
     assert x.ndim == 1
-    return np.pad(x, (0, length - x.shape[0]), mode="constant", constant_values=_pad)
+    return np.pad(x, (0, length - x.shape[0]), mode="constant", constant_values=pad_val)
 
 
 def prepare_stop_target(inputs, out_steps):
