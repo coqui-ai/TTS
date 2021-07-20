@@ -207,7 +207,7 @@ class TestTTSDataset(unittest.TestCase):
                 assert linear_input[1 - idx, -1].sum() == 0
                 assert mel_input[1 - idx, -1].sum() == 0
                 assert stop_target[1, mel_lengths[1] - 1] == 1
-                assert stop_target[1, mel_lengths[1] :].sum() == 0
+                assert stop_target[1, mel_lengths[1] :].sum() == stop_target.shape[1] - mel_lengths[1]
                 assert len(mel_lengths.shape) == 1
 
                 # check batch zero-frame conditions (zero-frame disabled)
