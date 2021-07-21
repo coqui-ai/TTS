@@ -8,7 +8,7 @@ import torch
 import tqdm
 from torch.utils.data import Dataset
 
-from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
+from TTS.tts.utils.data import _pad_tensor, prepare_data, prepare_stop_target, prepare_tensor
 from TTS.tts.utils.text import pad_with_eos_bos, phoneme_to_sequence, text_to_sequence
 
 
@@ -32,6 +32,8 @@ class MyDataset(Dataset):
         speaker_mapping=None,
         use_noise_augment=False,
         generated_encoder=False,
+        compute_f0=False,
+        f0_cache_path=None,
         verbose=False,
     ):
         """
@@ -53,6 +55,7 @@ class MyDataset(Dataset):
                 https://github.com/bootphon/phonemizer#languages
             enable_eos_bos (bool): enable end of sentence and beginning of sentences characters.
             use_noise_augment (bool): enable adding random noise to wav for augmentation.
+            compute_f0 (bool): compute f0 if True. Defaults to False.
             verbose (bool): print diagnostic information.
         """
         super().__init__()
@@ -76,6 +79,9 @@ class MyDataset(Dataset):
         self.verbose = verbose
         self.input_seq_computed = False
         self.generated_encoder = generated_encoder
+        self.compute_f0 = compute_f0
+        self.f0_cache_path = f0_cache_path
+
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
@@ -177,9 +183,15 @@ class MyDataset(Dataset):
             # TODO: find a better fix
             return self.load_data(100)
 
+        pitch = None
+        if self.compute_f0:
+            pitch = self._load_or_compute_pitch(self.ap, wav_file, self.f0_cache_path)
+            pitch = self.normalize_pitch(pitch)
+
         sample = {
             "text": text,
             "wav": wav,
+            "pitch": pitch,
             "attn": attn,
             "item_idx": self.items[idx][1],
             "speaker_name": speaker_name,
@@ -234,6 +246,96 @@ class MyDataset(Dataset):
                     )
                     for idx, p in enumerate(phonemes):
                         self.items[idx][0] = p
+    ################
+    # Pitch Methods
+    ###############
+    # TODO: Refactor Pitch methods into a separate class
+
+    @staticmethod
+    def create_pitch_file_path(wav_file, cache_path):
+        file_name = os.path.splitext(os.path.basename(wav_file))[0]
+        pitch_file = os.path.join(cache_path, file_name + "_pitch.npy")
+        return pitch_file
+
+    @staticmethod
+    def _compute_and_save_pitch(ap, wav_file, pitch_file=None):
+        wav = ap.load_wav(wav_file)
+        pitch = ap.compute_f0(wav)
+        if pitch_file:
+            np.save(pitch_file, pitch)
+        return pitch
+
+    @staticmethod
+    def compute_pitch_stats(pitch_vecs):
+        nonzeros = np.concatenate([v[np.where(v != 0.0)[0]] for v in pitch_vecs])
+        mean, std = np.mean(nonzeros), np.std(nonzeros)
+        return mean, std
+
+    def normalize_pitch(self, pitch):
+        zero_idxs = np.where(pitch == 0.0)[0]
+        pitch -= self.mean
+        pitch /= self.std
+        pitch[zero_idxs] = 0.0
+        return pitch
+
+    @staticmethod
+    def _load_or_compute_pitch(ap, wav_file, cache_path):
+        """
+        compute pitch and return a numpy array of pitch values
+        """
+        pitch_file = MyDataset.create_pitch_file_path(wav_file, cache_path)
+        if not os.path.exists(pitch_file):
+            pitch = MyDataset._compute_and_save_pitch(ap, wav_file, pitch_file)
+        else:
+            pitch = np.load(pitch_file)
+        return pitch
+
+    @staticmethod
+    def _pitch_worker(args):
+        item = args[0]
+        ap = args[1]
+        cache_path = args[2]
+        _, wav_file, *_ = item
+        pitch_file = MyDataset.create_pitch_file_path(wav_file, cache_path)
+        if not os.path.exists(pitch_file):
+            pitch = MyDataset._compute_and_save_pitch(ap, wav_file, pitch_file)
+            return pitch
+        return None
+
+    def compute_pitch(self, cache_path, num_workers=0, eval_data=False):
+        """Compute the input sequences with multi-processing.
+        Call it before passing dataset to the data loader to cache the input sequences for faster data loading."""
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path, exist_ok=True)
+
+        if self.verbose:
+            print(" | > Computing pitch features ...")
+        if num_workers == 0:
+            pitch_vecs = []
+            for _, item in enumerate(tqdm.tqdm(self.items)):
+                pitch_vecs += [self._pitch_worker([item, self.ap, cache_path])]
+        else:
+            with Pool(num_workers) as p:
+                pitch_vecs = list(
+                    tqdm.tqdm(
+                        p.imap(MyDataset._pitch_worker, [[item, self.ap, cache_path] for item in self.items]),
+                        total=len(self.items),
+                    )
+                )
+        pitch_mean, pitch_std = self.compute_pitch_stats(pitch_vecs)
+        if not eval_data:
+            pitch_stats = {"mean": pitch_mean, "std": pitch_std}
+            np.save(os.path.join(cache_path, "pitch_stats"), pitch_stats, allow_pickle=True)
+
+    def load_pitch_stats(self, cache_path):
+        stats_path = os.path.join(cache_path, "pitch_stats.npy")
+        stats = np.load(stats_path, allow_pickle=True).item()
+        self.mean = stats["mean"]
+        self.std = stats["std"]
+
+    ###################
+    # End Pitch Methods
+    ###################
 
     def sort_items(self):
         r"""Sort instances based on text length in ascending order"""
@@ -347,6 +449,20 @@ class MyDataset(Dataset):
             else:
                 linear = None
 
+            # compute f0
+            # TODO: compare perf in collate_fn vs in load_data
+            if self.compute_f0:
+                pitch = [b["pitch"] for b in batch]
+                pitch = prepare_data(pitch)
+                if mel.shape[1] != pitch.shape[1]:
+                    # print(f"Pitch {pitch.shape} and Mel {mel.shape} frames not match ! Padding")
+                    pitch = _pad_tensor(pitch, mel.shape[1])
+
+                assert mel.shape[1] == pitch.shape[1], f"[!] {mel.shape} vs {pitch.shape}"
+                pitch = torch.FloatTensor(pitch)[:, None, :].contiguous()  # B x 1 xT
+            else:
+                pitch = None
+
             # collate attention alignments
             if batch[0]["attn"] is not None:
                 attns = [batch[idx]["attn"].T for idx in ids_sorted_decreasing]
@@ -371,6 +487,7 @@ class MyDataset(Dataset):
                 item_idxs,
                 speaker_embedding,
                 attns,
+                pitch,
             )
 
         raise TypeError(

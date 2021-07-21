@@ -146,7 +146,9 @@ def setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim=Non
             dp_use_language_embedding=getattr(c, "dp_use_language_embedding", False),
             reversal_classifier=getattr(c, "reversal_classifier", False), 
             reversal_classifier_dim=getattr(c, "reversal_classifier_dim", 256),
-            reversal_gradient_clipping=getattr(c, "reversal_gradient_clipping", 0.25)
+            reversal_gradient_clipping=getattr(c, "reversal_gradient_clipping", 0.25),
+            use_pitch_predictor=getattr(c, "use_pitch_predictor", False),
+            pitch_predictor_use_language_embedding=getattr(c, "pitch_predictor_use_language_embedding", False),
         )
     elif c.model.lower() == "speedy_speech":
         model = MyModel(

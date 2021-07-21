@@ -11,6 +11,24 @@ from TTS.tts.utils.generic_utils import sequence_mask
 from TTS.tts.layers.tacotron.adverserial_classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DeterministicDurationPredictor, StochasticDurationPredictor
 
+def average_pitch(pitch, durs):
+    durs_cums_ends = torch.cumsum(durs, dim=1).long()
+    durs_cums_starts = torch.nn.functional.pad(durs_cums_ends[:, :-1], (1, 0))
+    pitch_nonzero_cums = torch.nn.functional.pad(torch.cumsum(pitch != 0.0, dim=2), (1, 0))
+    pitch_cums = torch.nn.functional.pad(torch.cumsum(pitch, dim=2), (1, 0))
+
+    bs, l = durs_cums_ends.size()
+    n_formants = pitch.size(1)
+    dcs = durs_cums_starts[:, None, :].expand(bs, n_formants, l)
+    dce = durs_cums_ends[:, None, :].expand(bs, n_formants, l)
+
+    pitch_sums = (torch.gather(pitch_cums, 2, dce) - torch.gather(pitch_cums, 2, dcs)).float()
+    pitch_nelems = (torch.gather(pitch_nonzero_cums, 2, dce) - torch.gather(pitch_nonzero_cums, 2, dcs)).float()
+
+    pitch_avg = torch.where(pitch_nelems == 0.0, pitch_nelems, pitch_sums / pitch_nelems)
+
+    return pitch_avg
+
 class GlowTTS(nn.Module):
     """Glow TTS models from https://arxiv.org/abs/2005.11129
 
@@ -67,6 +85,13 @@ class GlowTTS(nn.Module):
         reversal_classifier=False,
         reversal_classifier_dim=256,
         reversal_gradient_clipping=0.25,
+        use_pitch_predictor=False,
+        pitch_predictor_use_language_embedding=False,
+        pitch_predictor_hidden_channels=256,
+        pitch_predictor_dropout=0.1,
+        pitch_predictor_kernel_size=3,
+        pitch_predictor_dropout_p=0.1,
+        pitch_embedding_kernel_size=3,
     ):
 
         super().__init__()
@@ -88,6 +113,7 @@ class GlowTTS(nn.Module):
         self.mean_only = mean_only
         self.use_encoder_prenet = use_encoder_prenet
         self.use_stochastic_dp = use_stochastic_dp
+        self.use_pitch_predictor = use_pitch_predictor
 
         # model constants.
         self.noise_scale = 0.0  # defines the noise variance applied to the random z vector at inference.
@@ -147,6 +173,20 @@ class GlowTTS(nn.Module):
                     language_embedding_dim=language_embedding_dim, use_language_embedding=dp_use_language_embedding,
                 )
 
+        if self.use_pitch_predictor:
+            self.pitch_predictor = DeterministicDurationPredictor(
+                    out_channels, pitch_predictor_hidden_channels, pitch_predictor_kernel_size, pitch_predictor_dropout, 
+                    language_embedding_dim=language_embedding_dim, use_language_embedding=pitch_predictor_use_language_embedding,
+                )
+            # nn.Sequential(
+            self.pitch_emb = nn.Conv1d(
+                1,
+                out_channels,
+                kernel_size=pitch_embedding_kernel_size,
+                padding=int((pitch_embedding_kernel_size- 1) / 2),
+            )
+
+
         if num_speakers > 1 and not external_speaker_embedding_dim:
             # speaker embedding layer
             self.emb_g = nn.Embedding(num_speakers, self.c_in_channels)
@@ -174,7 +214,17 @@ class GlowTTS(nn.Module):
         o_attn_dur = torch.log(1 + torch.sum(attn, -1)) * x_mask
         return y_mean, y_log_scale, o_attn_dur
 
-    def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, language_ids=None):
+    def _forward_pitch_predictor(self, o_en, x_mask, pitch=None, dr=None, language_embedding=None):
+        o_pitch = self.pitch_predictor(o_en, x_mask, language_embedding=language_embedding)
+        if pitch is not None:
+            avg_pitch = average_pitch(pitch, dr)
+            o_pitch_emb = self.pitch_emb(avg_pitch)
+            return o_pitch_emb, o_pitch, avg_pitch
+
+        o_pitch_emb = self.pitch_emb(o_pitch)
+        return o_pitch_emb, o_pitch, None
+
+    def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, language_ids=None, pitch=None):
         """
         Shapes:
             x: [B, T]
@@ -212,19 +262,30 @@ class GlowTTS(nn.Module):
             logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
+
+        attn_dur = torch.sum(attn, -1)
+
         # duration predictor
         if self.use_stochastic_dp:
-            logw = self.duration_predictor(x_dp, x_mask, torch.sum(attn, -1), g=g, language_embedding=language_embedding)
+            logw = self.duration_predictor(x_dp, x_mask, attn_dur, g=g, language_embedding=language_embedding)
             logw = logw / torch.sum(x_mask)
         else:
             logw = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding)
 
+        if self.use_pitch_predictor:
+            # add pitch
+            o_pitch_emb, o_pitch, avg_pitch = self._forward_pitch_predictor(o_mean, x_mask, pitch=pitch, dr=attn_dur.squeeze(), language_embedding=language_embedding)
+            o_mean += o_pitch_emb
+        else:
+            o_pitch, avg_pitch = None, None
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
-        attn = attn.squeeze(1).permute(0, 2, 1)
-        return z, logdet, y_mean, y_log_scale, attn, logw, o_attn_dur, speaker_prediction
 
+
+        attn = attn.squeeze(1).permute(0, 2, 1)
+        return z, logdet, y_mean, y_log_scale, attn, logw, o_attn_dur, speaker_prediction, o_pitch, avg_pitch
+    
     @torch.no_grad()
-    def inference(self, x, x_lengths, g=None, language_ids=None):
+    def inference(self, x, x_lengths, g=None, language_ids=None, pitch=None):
         if g is not None:
             if self.external_speaker_embedding_dim:
                 g = F.normalize(g).unsqueeze(-1)
@@ -238,6 +299,7 @@ class GlowTTS(nn.Module):
         if self.use_stochastic_dp:
             # reverse flow and predict the duration
             o_dur_log = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding, reverse=True, noise_scale=self.noise_scale_w)
+            # check if exp here is necessary, during the training the duration preditor 
             w = torch.exp(o_dur_log) * x_mask * self.length_scale
         else:
             o_dur_log = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding)
@@ -252,6 +314,12 @@ class GlowTTS(nn.Module):
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         # compute attention mask
         attn = generate_path(w_ceil.squeeze(1), attn_mask.squeeze(1)).unsqueeze(1)
+
+        if self.use_pitch_predictor:
+            # add pitch
+            o_pitch_emb, _, _ = self._forward_pitch_predictor(o_mean, x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze(), language_embedding=language_embedding)
+            o_mean += o_pitch_emb
+
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
 
         z = (y_mean + torch.exp(y_log_scale) * torch.randn_like(y_mean) * self.noise_scale) * y_mask
@@ -261,7 +329,7 @@ class GlowTTS(nn.Module):
         return y, logdet, y_mean, y_log_scale, attn, o_dur_log, o_attn_dur
 
     @torch.no_grad()
-    def inference_with_MAS(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, language_ids=None):
+    def inference_with_MAS(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, language_ids=None, pitch=None):
         """
         It's similar to the teacher forcing in Tacotron.
         It was proposed in: https://arxiv.org/abs/2104.05557
@@ -297,6 +365,11 @@ class GlowTTS(nn.Module):
         logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
         logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
         attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
+
+        if self.use_pitch_predictor:
+            # add pitch
+            o_pitch_emb, _, _ = self._forward_pitch_predictor(o_mean, x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze())
+            o_mean += o_pitch_emb
 
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
         attn = attn.squeeze(1).permute(0, 2, 1)

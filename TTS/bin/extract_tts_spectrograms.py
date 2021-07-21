@@ -6,6 +6,7 @@ import os
 
 import numpy as np
 import torch
+from shutil import copyfile
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -225,23 +226,26 @@ def extract_spectrograms(
 
         for idx in range(text_input.shape[0]):
             wav_file_path = item_idx[idx]
-            wav = ap.load_wav(wav_file_path)
             _, wavq_path, mel_path, wav_gl_path, wav_path = set_filename(wav_file_path, output_path)
 
             # quantize and save wav
             if quantized_wav:
+                wav = ap.load_wav(wav_file_path)
                 wavq = ap.quantize(wav)
                 np.save(wavq_path, wavq)
 
-            # save TTS mel
-            mel = model_output[idx]
-            mel_length = mel_lengths[idx]
-            mel = mel[:mel_length, :].T
-            np.save(mel_path, mel)
+            if not os.path.exists(mel_path):
+                # save TTS mel
+                mel = model_output[idx]
+                mel_length = mel_lengths[idx]
+                mel = mel[:mel_length, :].T
+                np.save(mel_path, mel)
 
             export_metadata.append([wav_file_path, mel_path])
             if save_audio:
-                ap.save_wav(wav, wav_path)
+                if not os.path.exists(wav_path):
+                    copyfile(wav_file_path, wav_path)
+                    # ap.save_wav(wav, wav_path)
 
             if debug:
                 print("Audio for debug saved at:", wav_gl_path)
@@ -268,6 +272,10 @@ def main(args):  # pylint: disable=redefined-outer-name
     # load data instances
     meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=True, ignore_generated_eval=True)
 
+    # use eval and training partitions
+    meta_data = meta_data_train + meta_data_eval
+    print("Num samples:", len(meta_data))
+
     # parse speakers
     num_speakers, _, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, None, meta_data_eval, training=False)
 
@@ -275,9 +283,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     language_mapping = load_language_mapping(os.path.dirname(args.restore_path))
     num_langs = len(language_mapping.keys())
     language_embedding_dim = None
-
-    # use eval and training partitions
-    meta_data = meta_data_train + meta_data_eval
 
     # setup model
     model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, language_embedding_dim)

@@ -55,6 +55,8 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             phoneme_language=c.phoneme_language,
             enable_eos_bos=c.enable_eos_bos_chars,
             use_noise_augment=c["use_noise_augment"] and not is_val,
+            compute_f0=getattr(c, "use_pitch_predictor", False),
+            f0_cache_path=getattr(c, "f0_cache_path", None),
             verbose=verbose,
             speaker_mapping=speaker_mapping
             if c.use_speaker_embedding and c.use_external_speaker_embedding_file
@@ -65,6 +67,12 @@ def setup_loader(ap, r, is_val=False, verbose=False):
             # precompute phonemes to have a better estimate of sequence lengths.
             dataset.compute_input_seq(c.num_loader_workers)
         dataset.sort_items()
+
+        # compute pitch frames and write to files
+        if getattr(c, "use_pitch_predictor", False):
+            if not os.path.exists(c.f0_cache_path):
+                dataset.compute_pitch(c.f0_cache_path, c.num_loader_workers, eval_data=is_val)
+            dataset.load_pitch_stats(c.f0_cache_path)
 
         sampler = DistributedSampler(dataset) if num_gpus > 1 else None
 
@@ -118,6 +126,9 @@ def format_data(data):
         language_ids = torch.LongTensor(language_ids)
     else:
         language_ids = None
+    pitch = None
+    if getattr(c, "use_pitch_predictor", False):
+        pitch = data[11]
 
     # dispatch data to GPU
     if use_cuda:
@@ -133,6 +144,8 @@ def format_data(data):
             attn_mask = attn_mask.cuda(non_blocking=True)
         if language_ids is not None:
             language_ids = language_ids.cuda(non_blocking=True)
+        if pitch is not None:
+            pitch = pitch.cuda(non_blocking=True)
     return (
         text_input,
         text_lengths,
@@ -145,6 +158,7 @@ def format_data(data):
         avg_spec_length,
         attn_mask,
         item_idx,
+        pitch,
     )
 
 def extract_parameters(test_sentence):
@@ -181,10 +195,10 @@ def data_depended_init(data_loader, model):
         for _, data in enumerate(data_loader):
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, spekaer_embed, _, language_ids, _, _, attn_mask, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, spekaer_embed, _, language_ids, _, _, attn_mask, _, pitch = format_data(data)
 
             # forward pass model
-            _ = model.forward(text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=spekaer_embed, language_ids=language_ids)
+            _ = model.forward(text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=spekaer_embed, language_ids=language_ids, pitch=pitch)
             if num_iter == c.data_dep_init_iter:
                 break
             num_iter += 1
@@ -228,6 +242,7 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
             avg_spec_length,
             attn_mask,
             _,
+            pitch,
         ) = format_data(data)
 
         loader_time = time.time() - end_time
@@ -237,12 +252,12 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
 
         # forward pass model
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
-            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids
+            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction, o_pitch, avg_pitch = model.forward(
+                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids, pitch=pitch
             )
 
             # compute loss
-            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids)
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids, o_pitch, avg_pitch)
 
         # backward pass with loss scaling
         if c.mixed_precision:
@@ -381,15 +396,15 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             start_time = time.time()
 
             # format data
-            text_input, text_lengths, mel_input, mel_lengths, speaker_c, speaker_ids, language_ids, _, _, attn_mask, _ = format_data(data)
+            text_input, text_lengths, mel_input, mel_lengths, speaker_c, speaker_ids, language_ids, _, _, attn_mask, _, pitch = format_data(data)
 
             # forward pass model
-            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction = model.forward(
-                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids,
+            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction, o_pitch, avg_pitch = model.forward(
+                text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids, pitch=pitch
             )
 
             # compute loss
-            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids)
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, mel_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids, o_pitch, avg_pitch)
 
             # step time
             step_time = time.time() - start_time
