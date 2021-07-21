@@ -416,12 +416,17 @@ class GlowTTSLoss(torch.nn.Module):
         self.config = c
         self.use_stochastic_duration_predictor = getattr(c, "use_stochastic_duration_predictor", False)
         self.use_reversal_classifier = getattr(c, "reversal_classifier", False)
+        self.use_pitch_predictor = getattr(c, "use_pitch_predictor", False)
+
+        if self.use_pitch_predictor:
+            self.pitch_loss = MSELossMasked(False)
+
         if self.use_reversal_classifier:
             self.criterion_reversal = ReversalClassifierLoss()
 
         self.constant_factor = 0.5 * math.log(2 * math.pi)
 
-    def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths, speaker_prediction=None, speaker_ids=None):
+    def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths, speaker_prediction=None, speaker_ids=None, pitch_output=None, pitch_target=None):
         return_dict = {}
         # flow loss - neg log likelihood
         pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means) ** 2)
@@ -436,6 +441,13 @@ class GlowTTSLoss(torch.nn.Module):
         return_dict["loss"] = log_mle + loss_dur
         return_dict["log_mle"] = log_mle
         return_dict["loss_dur"] = loss_dur
+
+        if self.use_pitch_predictor:
+            self.pitch_loss = MSELossMasked(False)
+            pitch_loss = self.pitch_loss(pitch_output.transpose(1, 2), pitch_target.transpose(1, 2), x_lengths)
+            return_dict["loss"] += pitch_loss
+            return_dict["pitch_loss"] = pitch_loss
+
 
         if self.use_reversal_classifier:
             reversal_classifier_loss = self.criterion_reversal(y_lengths, speaker_ids, speaker_prediction)

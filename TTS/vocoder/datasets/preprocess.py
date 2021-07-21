@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
+from TTS.tts.datasets.preprocess import load_meta_data
 
 def preprocess_wav_files(out_path, config, ap):
     os.makedirs(os.path.join(out_path, "quant"), exist_ok=True)
@@ -73,6 +74,30 @@ def load_wav_feat_data(data_path, feat_path, eval_split_size):
     assert len(common_stems) > 100
     print(f" > training with {len(common_stems)} samples")
     items = list(zip(common_wav_paths, common_feat_paths))
+    np.random.seed(0)
+    np.random.shuffle(items)
+    return items[:eval_split_size], items[eval_split_size:]
+
+def load_from_datasets(datasets, feat_path, eval_split_size):
+    train_metada, eval_metadata = load_meta_data(datasets, eval_split=True)
+    items = train_metada + eval_metadata
+    if feat_path:
+        print(f" > Loading features from: {feat_path}")
+        feat_paths = find_feat_files(feat_path)
+        items.sort(key=lambda x: Path(x[1]).stem)
+        feat_paths.sort(key=lambda x: Path(x).stem)
+        assert len(items) == len(feat_paths), f"Num. wav files: {len(items)} != Num. feat files: {len(feat_paths)}"
+        wav_paths = []
+        for wav, feat in zip(items, feat_paths):
+            wav_paths.append(wav[1])
+            wav_name = Path(wav).stem
+            feat_name = Path(feat).stem
+            assert wav_name == feat_name
+        items = list(zip(wav_paths, feat_paths))
+    else:
+        for i in range(len(items)):
+            items[i] = items[i][1]
+
     np.random.seed(0)
     np.random.shuffle(items)
     return items[:eval_split_size], items[eval_split_size:]

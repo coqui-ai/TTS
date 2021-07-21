@@ -21,7 +21,7 @@ from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.training import setup_torch_training_env
 from TTS.vocoder.datasets.gan_dataset import GANDataset
-from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
+from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data, load_from_datasets
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
 from TTS.vocoder.utils.generic_utils import plot_results, setup_discriminator, setup_generator
 from TTS.vocoder.utils.io import save_best_model, save_checkpoint
@@ -462,11 +462,14 @@ def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global train_data, eval_data
     print(f" > Loading wavs from: {c.data_path}")
-    if c.feature_path is not None:
-        print(f" > Loading features from: {c.feature_path}")
-        eval_data, train_data = load_wav_feat_data(c.data_path, c.feature_path, c.eval_split_size)
+    if "datasets" in c.keys():
+        eval_data, train_data = load_from_datasets(c.datasets, c.feature_path, c.eval_split_size)        
     else:
-        eval_data, train_data = load_wav_data(c.data_path, c.eval_split_size)
+        if c.feature_path is not None:
+            print(f" > Loading features from: {c.feature_path}")
+            eval_data, train_data = load_wav_feat_data(c.data_path, c.feature_path, c.eval_split_size)
+        else:
+            eval_data, train_data = load_wav_data(c.data_path, c.eval_split_size)
 
     # setup audio processor
     ap = AudioProcessor(**c.audio)
