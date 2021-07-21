@@ -40,19 +40,39 @@ def load_wav_data(data_path, eval_split_size):
 
 
 def load_wav_feat_data(data_path, feat_path, eval_split_size):
-    wav_paths = find_wav_files(data_path)
+    if isinstance(data_path, list):
+        wav_paths = []
+        for path in data_path:
+            wav_paths += find_wav_files(path)
+    else:
+        wav_paths = find_wav_files(data_path)
+
     feat_paths = find_feat_files(feat_path)
 
     wav_paths.sort(key=lambda x: Path(x).stem)
     feat_paths.sort(key=lambda x: Path(x).stem)
 
-    assert len(wav_paths) == len(feat_paths)
-    for wav, feat in zip(wav_paths, feat_paths):
+    wav_stems = set([Path(x).stem for x in wav_paths])
+    feat_stems = set([Path(x).stem for x in feat_paths])
+    common_stems = wav_stems.intersection(feat_stems)
+    
+    common_wav_paths = []
+    common_feat_paths = []
+
+    for i in range(max(len(wav_paths), len(feat_stems))):
+        if i < len(wav_paths) and Path(wav_paths[i]).stem in common_stems:
+            common_wav_paths.append(wav_paths[i])
+        if i < len(feat_paths) and Path(feat_paths[i]).stem in common_stems:
+            common_feat_paths.append(feat_paths[i])
+
+    assert len(common_wav_paths) == len(common_feat_paths)
+    for wav, feat in zip(common_wav_paths, common_feat_paths):
         wav_name = Path(wav).stem
         feat_name = Path(feat).stem
         assert wav_name == feat_name
-
-    items = list(zip(wav_paths, feat_paths))
+    assert len(common_stems) > 100
+    print(f" > training with {len(common_stems)} samples")
+    items = list(zip(common_wav_paths, common_feat_paths))
     np.random.seed(0)
     np.random.shuffle(items)
     return items[:eval_split_size], items[eval_split_size:]
