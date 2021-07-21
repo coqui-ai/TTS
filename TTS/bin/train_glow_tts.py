@@ -275,6 +275,26 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
         if c.noam_schedule:
             scheduler.step()
 
+        """sum_pr = 0
+        for param in model.encoder.parameters():
+            sum_pr += torch.sum(param)
+        print("Encoder sum params:",  sum_pr)
+
+        sum_pr = 0
+        for param in model.decoder.parameters():
+            sum_pr += torch.sum(param)
+        print("Decoder sum params:",  sum_pr)
+
+        sum_pr = 0
+        for param in model.duration_predictor.parameters():
+            sum_pr += torch.sum(param)
+        print("Duration predictor sum params:",  sum_pr)
+
+        sum_pr = 0
+        for param in model.pitch_predictor.parameters():
+            sum_pr += torch.sum(param)
+        print("Pitch predictor sum params:",  sum_pr)"""
+
         # current_lr
         current_lr = optimizer.param_groups[0]["lr"]
 
@@ -284,7 +304,7 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
 
         step_time = time.time() - start_time
         epoch_time += step_time
-
+    
         # aggregate losses from processes
         if num_gpus > 1:
             loss_dict["log_mle"] = reduce_tensor(loss_dict["log_mle"].data, num_gpus)
@@ -569,8 +589,38 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     # setup model
     model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, language_embedding_dim)
+
+    if c.get("freeze_encoder", False):
+        print(" > Freezing the encoder !")
+        for param in model.encoder.parameters():
+                param.requires_grad = False
+
+    if c.get("freeze_decoder", False):
+        print(" > Freezing the decoder !")
+        for param in model.decoder.parameters():
+                param.requires_grad = False
+
+    if c.get("freeze_duration_predictor", False):
+        print(" > Freezing the Duration Predictor !")
+        for param in model.duration_predictor.parameters():
+                param.requires_grad = False
+    
+    if c.get("freeze_pitch_predictor", False):
+        print(" > Freezing the Pitch Predictor !")
+        for param in model.pitch_predictor.parameters():
+                param.requires_grad = False
+        for param in model.pitch_emb.parameters():
+                param.requires_grad = False
+
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
     criterion = GlowTTSLoss(c)
+
+    print("Trainable params: ")
+    print("#"*20)
+    for name, param in  model.named_parameters():
+        if param.requires_grad:
+            print(name)
+    print("#"*20)
 
     if args.restore_path:
         print(f" > Restoring from {os.path.basename(args.restore_path)} ...")
