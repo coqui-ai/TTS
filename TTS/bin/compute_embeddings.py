@@ -4,13 +4,18 @@ import os
 
 from tqdm import tqdm
 
+from argparse import RawTextHelpFormatter
 from TTS.config import load_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.utils.speakers import SpeakerManager
 
-
 parser = argparse.ArgumentParser(
-    description='Compute embedding vectors for each wav file in a dataset.'
+    description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
+        """
+    Example runs:
+    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth.tar speaker_encoder_config.json  dataset_config.json embeddings_output_path/
+    """,
+        formatter_class=RawTextHelpFormatter,
 )
 parser.add_argument("model_path", type=str, help="Path to model checkpoint file.")
 parser.add_argument(
