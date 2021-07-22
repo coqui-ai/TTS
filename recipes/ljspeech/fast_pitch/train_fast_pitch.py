@@ -8,7 +8,12 @@ from TTS.utils.manage import ModelManager
 output_path = os.path.dirname(os.path.abspath(__file__))
 
 # init configs
-dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv",  meta_file_attn_mask=os.path.join(output_path, "../LJSpeech-1.1/metadata_attn_mask.txt"), path=os.path.join(output_path, "../LJSpeech-1.1/"))
+dataset_config = BaseDatasetConfig(
+    name="ljspeech",
+    meta_file_train="metadata.csv",
+    meta_file_attn_mask=os.path.join(output_path, "../LJSpeech-1.1/metadata_attn_mask.txt"),
+    path=os.path.join(output_path, "../LJSpeech-1.1/"),
+)
 audio_config = BaseAudioConfig(
     sample_rate=22050,
     do_trim_silence=False,
