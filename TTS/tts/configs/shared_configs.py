@@ -103,6 +103,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     """Shared parameters among all the tts models.
 
     Args:
+
         audio (BaseAudioConfig):
             Audio processor config object instance.
 
