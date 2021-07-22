@@ -7,7 +7,7 @@ def alignment_diagonal_score(alignments, binary=False):
         binary (bool): if True, ignore scores and consider attention
         as a binary mask.
     Shape:
-        alignments : batch x decoder_steps x encoder_steps
+        - alignments : :math:`[B, T_de, T_en]`
     """
     maxs = alignments.max(dim=1)[0]
     if binary:

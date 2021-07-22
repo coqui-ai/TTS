@@ -693,7 +693,6 @@ class AudioProcessor(object):
         # # plt.figure()
         # plt.imshow(spec, aspect="auto", origin="lower")
         # plt.savefig('save_img2.png')
-        # breakpoint()
         return f0
 
     ### Audio Processing ###
