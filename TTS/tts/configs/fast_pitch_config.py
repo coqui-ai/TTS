@@ -63,15 +63,15 @@ class FastPitchConfig(BaseTTSConfig):
     d_vector_dim: int = 0
 
     # optimizer parameters
-    optimizer: str = "RAdam"
-    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.9, 0.998], "weight_decay": 1e-6})
+    optimizer: str = "Adam"
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.9, 0.98], "weight_decay": 1e-6})
     lr_scheduler: str = "NoamLR"
     lr_scheduler_params: dict = field(default_factory=lambda: {"warmup_steps": 4000})
     lr: float = 1e-4
-    grad_clip: float = 5.0
+    grad_clip: float = 1000.0
 
     # loss params
-    ssim_loss_alpha: float = 1.0
+    ssim_loss_alpha: float = 0.0
     dur_loss_alpha: float = 1.0
     spec_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 1.0
