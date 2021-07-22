@@ -69,9 +69,9 @@ class MSELossMasked(nn.Module):
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
         Shapes:
-            x: B x T X D
-            target: B x T x D
-            length: B
+            - x: :math:`[B, T, D]`
+            - target: :math:`[B, T, D]`
+            - length: :math:`B`
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
