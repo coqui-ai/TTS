@@ -268,8 +268,7 @@ class Trainer:
                 self.config, args.restore_path, self.model, self.optimizer, self.scaler
             )
 
-
-         # setup scheduler
+        # setup scheduler
         self.scheduler = self.get_scheduler(self.model, self.config, self.optimizer)
 
         if self.args.continue_path:
