@@ -21,8 +21,10 @@ def convert_pad_shape(pad_shape):
 
 def generate_path(duration, mask):
     """
-    duration: [b, t_x]
-    mask: [b, t_x, t_y]
+    Shapes:
+        - duration: :math:`[B, T_en]`
+        - mask: :math:'[B, T_en, T_de]`
+        - path: :math:`[B, T_en, T_de]`
     """
     device = duration.device
     b, t_x, t_y = mask.shape
