@@ -10,7 +10,6 @@ from TTS.tts.layers.glow_tts.encoder import Encoder
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
-from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -341,9 +340,6 @@ class GlowTTS(BaseTTS):
             text_lengths,
         )
 
-        # compute alignment error (the lower the better )
-        align_error = 1 - alignment_diagonal_score(outputs["alignments"], binary=True)
-        loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
     def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):  # pylint: disable=no-self-use
