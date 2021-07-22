@@ -176,15 +176,20 @@ class BaseDatasetConfig(Coqpit):
     Args:
         name (str):
             Dataset name that defines the preprocessor in use. Defaults to None.
+
         path (str):
             Root path to the dataset files. Defaults to None.
+
         meta_file_train (str):
             Name of the dataset meta file. Or a list of speakers to be ignored at training for multi-speaker datasets.
             Defaults to None.
+
         unused_speakers (List):
             List of speakers IDs that are not used at the training. Default None.
+
         meta_file_val (str):
             Name of the dataset meta file that defines the instances used at validation.
+
         meta_file_attn_mask (str):
             Path to the file that lists the attention mask files used with models that require attention masks to
             train the duration predictor.
