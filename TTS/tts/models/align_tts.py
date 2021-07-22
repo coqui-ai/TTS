@@ -13,7 +13,6 @@ from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
-from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
@@ -355,9 +354,6 @@ class AlignTTS(BaseTTS):
             phase=self.phase,
         )
 
-        # compute alignment error (the lower the better )
-        align_error = 1 - alignment_diagonal_score(outputs["alignments"], binary=True)
-        loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
     def train_log(
