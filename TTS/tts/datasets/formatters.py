@@ -202,16 +202,20 @@ def libri_tts(root_path, meta_files=None):
     items = []
     if meta_files is None:
         meta_files = glob(f"{root_path}/**/*trans.tsv", recursive=True)
+    else:
+        if isinstance(meta_files, str):
+            meta_files = [os.path.join(root_path, meta_files)]
+
     for meta_file in meta_files:
         _meta_file = os.path.basename(meta_file).split(".")[0]
-        speaker_name = _meta_file.split("_")[0]
-        chapter_id = _meta_file.split("_")[1]
-        _root_path = os.path.join(root_path, f"{speaker_name}/{chapter_id}")
         with open(meta_file, "r") as ttf:
             for line in ttf:
                 cols = line.split("\t")
-                wav_file = os.path.join(_root_path, cols[0] + ".wav")
-                text = cols[1]
+                file_name = cols[0]
+                speaker_name, chapter_id, *_ = cols[0].split("_")
+                _root_path = os.path.join(root_path, f"{speaker_name}/{chapter_id}")
+                wav_file = os.path.join(_root_path, file_name + ".wav")
+                text = cols[2]
                 items.append([text, wav_file, "LTTS_" + speaker_name])
     for item in items:
         assert os.path.exists(item[1]), f" [!] wav files don't exist - {item[1]}"
@@ -287,6 +291,17 @@ def vctk_slim(root_path, meta_files=None, wavs_path="wav48"):
 
     return items
 
+def mls(root_path, meta_files=None):
+    """http://www.openslr.org/94/"""
+    items = []
+    with open(os.path.join(root_path, meta_files), "r") as meta:
+        for line in meta:
+            file, text = line.split('\t')
+            text = text[:-1]
+            speaker, book, *_ = file.split('_')
+            wav_file = os.path.join(root_path, os.path.dirname(meta_files), 'audio', speaker, book, file + ".wav")
+            items.append([text, wav_file, "MLS_" + speaker])
+    return items
 
 # ======================================== VOX CELEB ===========================================
 def voxceleb2(root_path, meta_file=None):

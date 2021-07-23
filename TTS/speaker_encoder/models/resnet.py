@@ -199,3 +199,12 @@ class ResNetSpeakerEncoder(nn.Module):
             embeddings = torch.mean(embeddings, dim=0, keepdim=True)
 
         return embeddings
+
+    def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False, use_cuda: bool = False):
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"])
+        if use_cuda:
+            self.cuda()
+        if eval:
+            self.eval()
+            assert not self.training
