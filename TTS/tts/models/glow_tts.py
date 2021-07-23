@@ -227,16 +227,14 @@ class GlowTTS(nn.Module):
             avg_pitch = average_pitch(pitch, dr)
             o_pitch_emb = self.pitch_emb(avg_pitch)
             return o_pitch_emb, o_pitch, avg_pitch
-        if self.pitch_transform:
-            # if not self.disable_pitch_norm:
-            #     o_pitch = pitch_transform_norm(o_pitch, dr)
+
+        if self.pitch_transform is not None:
             o_pitch = self.apply_pitch_trans(o_pitch, self.pitch_transform)
 
         o_pitch_emb = self.pitch_emb(o_pitch)
         return o_pitch_emb, o_pitch, None
 
     def apply_pitch_trans(self, pitch, trans):
-
         if trans == 'flatten':
             pitch = pitch * 0.0
         elif trans == 'invert':
@@ -244,7 +242,10 @@ class GlowTTS(nn.Module):
         elif trans == 'amplify':
             pitch = pitch * self.pitch_transform_amplify_factor 
         elif trans == 'shift':
-            pitch =  (pitch + self.pitch_transform_shift_factor) / self.pitch_std
+            pitch = (pitch + self.pitch_transform_shift_factor) / self.pitch_std
+        else:
+            raise RuntimeError("Invalid Pitch Tranform: {}".format(trans))
+        return pitch
 
     def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, language_ids=None, pitch=None):
         """
