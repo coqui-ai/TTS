@@ -141,6 +141,8 @@ class GlowTTS(nn.Module):
         if num_langs > 1:
             if language_embedding_dim is None: 
                 language_embedding_dim = num_langs if num_langs % 2 == 0 else num_langs + 1 # Allow for odd number of languages
+        else:
+            language_embedding_dim = 0
 
         self.encoder = Encoder(
             num_chars,

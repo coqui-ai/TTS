@@ -118,6 +118,7 @@ def parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval=None, trai
         print(" > Training with {} speakers: {}".format(len(speakers), ", ".join(speakers)))
     else:
         num_speakers = 0
+        speakers = None
         speaker_embedding_dim = None
         speaker_mapping = None
 

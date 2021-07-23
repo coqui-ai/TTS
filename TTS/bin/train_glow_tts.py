@@ -370,11 +370,12 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
                 # Diagnostic visualizations
                 # direct pass on model for spec predictions
                 target_speaker = None if speaker_c is None else speaker_c[:1]
+                target_language = None if language_ids is None else language_ids[:1]
 
                 if hasattr(model, "module"):
-                    spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
+                    spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language)
                 else:
-                    spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
+                    spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language)
 
                 spec_pred = spec_pred.permute(0, 2, 1)
                 gt_spec = mel_input.permute(0, 2, 1)
@@ -468,10 +469,12 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             # Diagnostic visualizations
             # direct pass on model for spec predictions
             target_speaker = None if speaker_c is None else speaker_c[:1]
+            target_language = None if language_ids is None else language_ids[:1]
+
             if hasattr(model, "module"):
-                spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
+                spec_pred, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language)
             else:
-                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=language_ids[:1])
+                spec_pred, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language)
             spec_pred = spec_pred.permute(0, 2, 1)
             gt_spec = mel_input.permute(0, 2, 1)
 
