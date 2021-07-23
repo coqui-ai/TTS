@@ -120,6 +120,13 @@ class GlowTTS(nn.Module):
         self.length_scale = 1.0  # scaler for the duration predictor. The larger it is, the slower the speech.
         self.noise_scale_w = 1.0 # defines the noise variance applied to the duration predictor z vector at inference.
 
+        self.pitch_transform = None
+        self.pitch_mean = None
+        self.pitch_std = None
+
+        self.pitch_transform_amplify_factor = 1.0
+        self.pitch_transform_shift_factor = 0.0
+
         self.external_speaker_embedding_dim = external_speaker_embedding_dim
 
         self.reversal_classifier = reversal_classifier
@@ -220,9 +227,24 @@ class GlowTTS(nn.Module):
             avg_pitch = average_pitch(pitch, dr)
             o_pitch_emb = self.pitch_emb(avg_pitch)
             return o_pitch_emb, o_pitch, avg_pitch
+        if self.pitch_transform:
+            # if not self.disable_pitch_norm:
+            #     o_pitch = pitch_transform_norm(o_pitch, dr)
+            o_pitch = self.apply_pitch_trans(o_pitch, self.pitch_transform)
 
         o_pitch_emb = self.pitch_emb(o_pitch)
         return o_pitch_emb, o_pitch, None
+
+    def apply_pitch_trans(self, pitch, trans):
+
+        if trans == 'flatten':
+            pitch = pitch * 0.0
+        elif trans == 'invert':
+            pitch = pitch * -1.0
+        elif trans == 'amplify':
+            pitch = pitch * self.pitch_transform_amplify_factor 
+        elif trans == 'shift':
+            pitch =  (pitch + self.pitch_transform_shift_factor) / self.pitch_std
 
     def forward(self, x, x_lengths, y=None, y_lengths=None, attn=None, g=None, language_ids=None, pitch=None):
         """

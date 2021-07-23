@@ -89,7 +89,7 @@ def save_checkpoint(model, optimizer, current_step, epoch, r, output_folder, cha
 
 
 def save_best_model(
-    target_loss, best_loss, model, optimizer, current_step, epoch, r, output_folder, characters, **kwargs
+    target_loss, best_loss, model, optimizer, current_step, epoch, r, output_folder, characters, speaker_encoder, **kwargs
 ):
     """Save model checkpoint, intended for saving the best model after each epoch.
     It compares the current model loss with the best loss so far and saves the
@@ -112,6 +112,10 @@ def save_best_model(
     if target_loss < best_loss:
         file_name = "best_model.pth.tar"
         checkpoint_path = os.path.join(output_folder, file_name)
+        if speaker_encoder is not None:
+            se_checkpoint_path = os.path.join(output_folder, "speaker_encoder.pth.tar")
+            torch.save({"model": speaker_encoder.state_dict()}, se_checkpoint_path)
+            print(" >> BEST SPEAKER ENCODER MODEL : {}".format(se_checkpoint_path))
         print(" >> BEST MODEL : {}".format(checkpoint_path))
         save_model(
             model, optimizer, current_step, epoch, r, checkpoint_path, characters, model_loss=target_loss, **kwargs

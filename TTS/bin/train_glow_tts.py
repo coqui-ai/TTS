@@ -250,6 +250,9 @@ def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, 
         global_step += 1
         optimizer.zero_grad()
 
+        if c.get("finetuning_speaker_encoder", False):
+            speaker_c = speaker_encoder(mel_input.transpose(1, 2), l2_norm=True)
+
         # forward pass model
         with torch.cuda.amp.autocast(enabled=c.mixed_precision):
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction, o_pitch, avg_pitch = model.forward(
@@ -418,6 +421,9 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             # format data
             text_input, text_lengths, mel_input, mel_lengths, speaker_c, speaker_ids, language_ids, _, _, attn_mask, _, pitch = format_data(data)
 
+            if c.get("finetuning_speaker_encoder", False):
+                speaker_c = speaker_encoder(mel_input.transpose(1, 2), l2_norm=True)
+
             # forward pass model
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction, o_pitch, avg_pitch = model.forward(
                 text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c, language_ids=language_ids, pitch=pitch
@@ -522,7 +528,11 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
             try:
                 test_sentence, speaker_name, language_id, wav_ref_name = extract_parameters(test_sentence)
                 if wav_ref_name is not None and c.use_speaker_embedding and c.use_external_speaker_embedding_file:
-                    speaker_embedding = speaker_mapping[wav_ref_name]["embedding"]
+                    if c.get("finetuning_speaker_encoder", False):
+                        # just select tree speaker for test
+                        speaker_embedding = speaker_c[randrange(0, min(2, speaker_c.size(0)))]
+                    else:
+                        speaker_embedding = speaker_mapping[wav_ref_name]["embedding"]
                 elif speaker_id is not None and c.use_speaker_embedding:
                     speaker_id = speaker_mapping[speaker_name]
 
@@ -560,7 +570,7 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping, language_mapping, speaker_list
+    global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping, language_mapping, speaker_list, speaker_encoder
     # Audio processor
     ap = AudioProcessor(**c.audio)
     if "characters" in c.keys():
@@ -672,12 +682,28 @@ def main(args):  # pylint: disable=redefined-outer-name
     keep_all_best = c.get("keep_all_best", False)
     keep_after = c.get("keep_after", 10000)  # void if keep_all_best False
 
+    speaker_encoder = None
+    if c.get("finetuning_speaker_encoder", False):
+        from TTS.utils.io import load_config
+        from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder as SpeakerEncoder
+
+        se_config = load_config(c.speaker_encoder['config_path'])
+        speaker_encoder = SpeakerEncoder(input_dim=se_config.model_params["input_dim"], proj_dim=se_config.model_params["proj_dim"])
+        speaker_encoder.load_state_dict(torch.load(c.speaker_encoder['checkpoint_path'])["model"])
+        speaker_encoder.train()
+        if use_cuda:
+            speaker_encoder = speaker_encoder.cuda()
+
+        print("\n > Speaker Encoder has {} parameters".format(count_parameters(speaker_encoder)), flush=True)
+
+
     # define dataloaders
     train_loader = setup_loader(ap, 1, is_val=False, verbose=True)
     eval_loader = setup_loader(ap, 1, is_val=True, verbose=True)
-
+    
     global_step = args.restore_step
-    model = data_depended_init(train_loader, model)
+    if global_step == 0:
+        model = data_depended_init(train_loader, model)
     for epoch in range(0, c.epochs):
         c_logger.print_epoch_start(epoch, c.epochs)
         train_avg_loss_dict, global_step = train(
@@ -700,6 +726,7 @@ def main(args):  # pylint: disable=redefined-outer-name
             model_characters,
             keep_all_best=keep_all_best,
             keep_after=keep_after,
+            speaker_encoder=speaker_encoder,
         )
 
 
