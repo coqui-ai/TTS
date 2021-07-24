@@ -76,6 +76,7 @@ class FastPitchConfig(BaseTTSConfig):
     spec_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 1.0
     dur_loss_alpha: float = 1.0
+    aligner_loss_alpha: float = 1.0
 
     # overrides
     min_seq_len: int = 13
