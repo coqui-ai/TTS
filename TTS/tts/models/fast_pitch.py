@@ -4,14 +4,84 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from coqpit import Coqpit
+from matplotlib.pyplot import plot
 
-from TTS.tts.layers.glow_tts.monotonic_align import generate_path
+from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
 # pylint: disable=dangerous-default-value
+
+
+class AlignmentEncoder(torch.nn.Module):
+    """Module for alignment text and mel spectrogram."""
+
+    def __init__(
+        self,
+        in_query_channels=80,
+        in_key_channels=512,
+        attn_channels=80,
+        temperature=0.0005,
+    ):
+        super().__init__()
+        self.temperature = temperature
+        self.softmax = torch.nn.Softmax(dim=3)
+        self.log_softmax = torch.nn.LogSoftmax(dim=3)
+
+        self.key_proj = nn.Sequential(
+            ConvNorm(
+                in_key_channels, in_key_channels * 2, kernel_size=3, bias=True, w_init_gain="relu", batch_norm=False
+            ),
+            torch.nn.ReLU(),
+            ConvNorm(in_key_channels * 2, attn_channels, kernel_size=1, bias=True, batch_norm=False),
+        )
+
+        self.query_proj = nn.Sequential(
+            ConvNorm(
+                in_query_channels, in_query_channels * 2, kernel_size=3, bias=True, w_init_gain="relu", batch_norm=False
+            ),
+            torch.nn.ReLU(),
+            ConvNorm(in_query_channels * 2, in_query_channels, kernel_size=1, bias=True, batch_norm=False),
+            torch.nn.ReLU(),
+            ConvNorm(in_query_channels, attn_channels, kernel_size=1, bias=True, batch_norm=False),
+        )
+
+    def forward(
+        self, queries: torch.tensor, keys: torch.tensor, mask: torch.tensor = None, attn_prior: torch.tensor = None
+    ):
+        """Forward pass of the aligner encoder.
+        Args:
+            queries (torch.tensor): query tensor.
+            keys (torch.tensor): key tensor.
+            mask (torch.tensor): uint8 binary mask for variable length entries (should be in the T2 domain).
+            attn_prior (torch.tensor): prior for attention matrix.
+        Shapes:
+            - queries: :math:`(B, C, T_de)`
+            - keys: :math:`(B, C_emb, T_en)`
+            - mask: :math:`(B, T_de)`
+        Output:
+            attn (torch.tensor): B x 1 x T1 x T2 attention mask. Final dim T2 should sum to 1.
+            attn_logprob (torch.tensor): B x 1 x T1 x T2 log-prob attention mask.
+        """
+        keys_enc = self.key_proj(keys)  # B x n_attn_dims x T2
+        queries_enc = self.query_proj(queries)
+
+        # Simplistic Gaussian Isotopic Attention
+        attn = (queries_enc[:, :, :, None] - keys_enc[:, :, None]) ** 2  # B x n_attn_dims x T1 x T2
+        attn = -self.temperature * attn.sum(1, keepdim=True)
+
+        if attn_prior is not None:
+            attn = self.log_softmax(attn) + torch.log(attn_prior[:, None] + 1e-8)
+
+        attn_logprob = attn.clone()
+
+        if mask is not None:
+            attn.data.masked_fill_(~mask.bool().unsqueeze(2), -float("inf"))
+
+        attn = self.softmax(attn)  # softmax along T2
+        return attn, attn_logprob
 
 
 def mask_from_lens(lens, max_len: int = None):
@@ -379,6 +449,7 @@ class FastPitchArgs(Coqpit):
     detach_duration_predictor: bool = False
     max_duration: int = 75
     use_gt_duration: bool = True
+    use_aligner: bool = True
 
 
 class FastPitch(BaseTTS):
@@ -421,6 +492,7 @@ class FastPitch(BaseTTS):
 
         self.max_duration = args.max_duration
         self.use_gt_duration = args.use_gt_duration
+        self.use_aligner = args.use_aligner
 
         self.length_scale = float(args.length_scale) if isinstance(args.length_scale, int) else args.length_scale
 
@@ -463,6 +535,9 @@ class FastPitch(BaseTTS):
 
         self.proj = nn.Linear(args.hidden_channels, args.out_channels, bias=True)
 
+        if args.use_aligner:
+            self.aligner = AlignmentEncoder(args.out_channels, args.hidden_channels)
+
     @staticmethod
     def expand_encoder_outputs(en, dr, x_mask, y_mask):
         """Generate attention alignment map from durations and
@@ -483,10 +558,16 @@ class FastPitch(BaseTTS):
         o_en_ex = torch.matmul(attn.transpose(1, 2), en)
         return o_en_ex, attn.transpose(1, 2)
 
-    def forward(self, x, x_lengths, y_lengths, dr, pitch, aux_input={"d_vectors": 0, "speaker_ids": None}):
+    def forward(
+        self, x, x_lengths, y_lengths, y=None, dr=None, pitch=None, aux_input={"d_vectors": 0, "speaker_ids": None}
+    ):
         speaker_embedding = aux_input["d_vectors"] if "d_vectors" in aux_input else 0
         y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).to(x.dtype)
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).to(x.dtype)
+        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+        o_alignment_dur = None
+        alignment_logprob = None
+        alignment_mas = None
 
         # Calculate speaker embedding
         # if self.speaker_emb is None:
@@ -507,6 +588,16 @@ class FastPitch(BaseTTS):
         # Predict durations
         o_dr_log = self.duration_predictor(o_en_dr, mask_en_dr)
         o_dr = torch.clamp(torch.exp(o_dr_log) - 1, 0, self.max_duration)
+
+        # Aligner
+        if self.use_aligner:
+            alignment_soft, alignment_logprob = self.aligner(y.transpose(1, 2), embedding.transpose(1, 2), x_mask, None)
+            alignment_mas = maximum_path(
+                alignment_soft.squeeze(1).transpose(1, 2).contiguous(), attn_mask.squeeze(1).contiguous()
+            )
+            o_alignment_dur = torch.log(1 + torch.sum(alignment_mas, -1))
+            avg_pitch = average_pitch(pitch, o_alignment_dur)
+            dr = o_alignment_dur
 
         # TODO: move this to the dataset
         avg_pitch = average_pitch(pitch, dr)
@@ -529,6 +620,9 @@ class FastPitch(BaseTTS):
             "pitch": o_pitch,
             "pitch_gt": avg_pitch,
             "alignments": attn,
+            "alignment_mas": alignment_mas,
+            "o_alignment_dur": o_alignment_dur,
+            "alignment_logprob": alignment_logprob,
         }
         return outputs
 
@@ -599,7 +693,12 @@ class FastPitch(BaseTTS):
         durations = batch["durations"]
 
         aux_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids}
-        outputs = self.forward(text_input, text_lengths, mel_lengths, durations, pitch, aux_input)
+        outputs = self.forward(
+            text_input, text_lengths, mel_lengths, y=mel_input, dr=durations, pitch=pitch, aux_input=aux_input
+        )
+
+        if self.use_aligner:
+            durations = outputs["o_alignment_dur"]
 
         # compute loss
         loss_dict = criterion(
@@ -611,6 +710,7 @@ class FastPitch(BaseTTS):
             outputs["pitch"],
             outputs["pitch_gt"],
             text_lengths,
+            outputs["alignment_logprob"],
         )
 
         # compute duration error
@@ -633,6 +733,10 @@ class FastPitch(BaseTTS):
             "ground_truth": plot_spectrogram(gt_spec, ap, output_fig=False),
             "alignment": plot_alignment(align_img, output_fig=False),
         }
+
+        if self.config.model_args.use_aligner and self.training:
+            alignment_mas = outputs["alignment_mas"]
+            figures["alignment_mas"] = plot_alignment(alignment_mas, ap, output_fig=False)
 
         # Sample audio
         train_audio = ap.inv_melspectrogram(pred_spec.T)
