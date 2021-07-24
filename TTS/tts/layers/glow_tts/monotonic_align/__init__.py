@@ -47,8 +47,9 @@ def maximum_path(value, mask):
 
 def maximum_path_cython(value, mask):
     """Cython optimised version.
-    value: [b, t_x, t_y]
-    mask: [b, t_x, t_y]
+    Shapes:
+        - value: :math:`[B, T_en, T_de]`
+        - mask: :math:`[B, T_en, T_de]`
     """
     value = value * mask
     device = value.device
