@@ -119,9 +119,10 @@ class BaseTTS(BaseModel):
                 ), f" [!] total duration {dur.sum()} vs spectrogram length {mel_lengths[idx]}"
                 durations[idx, : text_lengths[idx]] = dur
 
-        # set stop targets view, we predict a single stop token per iteration.
+        # set stop targets wrt reduction factor
         stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // self.config.r, -1)
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze(2)
+        stop_target_lengths = torch.divide(mel_lengths, self.config.r).ceil_()
 
         return {
             "text_input": text_input,
@@ -131,6 +132,7 @@ class BaseTTS(BaseModel):
             "mel_lengths": mel_lengths,
             "linear_input": linear_input,
             "stop_targets": stop_targets,
+            "stop_target_lengths": stop_target_lengths,
             "attn_mask": attn_mask,
             "durations": durations,
             "speaker_ids": speaker_ids,
