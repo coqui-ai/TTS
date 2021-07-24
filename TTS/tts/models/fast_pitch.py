@@ -505,7 +505,7 @@ class FastPitch(BaseTTS):
         o_en_dr, mask_en_dr = o_en, mask_en
 
         # Predict durations
-        o_dr_log = self.duration_predictor(o_en_dr.detach(), mask_en_dr)
+        o_dr_log = self.duration_predictor(o_en_dr, mask_en_dr)
         o_dr = torch.clamp(torch.exp(o_dr_log) - 1, 0, self.max_duration)
 
         # TODO: move this to the dataset
@@ -560,6 +560,7 @@ class FastPitch(BaseTTS):
         # Predict durations
         o_dr_log = self.duration_predictor(o_en, mask_en)
         o_dr = torch.clamp(torch.exp(o_dr_log) - 1, 0, self.max_duration)
+        o_dr = o_dr * self.length_scale
 
         # Pitch over chars
         o_pitch = self.pitch_predictor(o_en, mask_en).unsqueeze(1)
@@ -606,7 +607,7 @@ class FastPitch(BaseTTS):
             mel_input,
             mel_lengths,
             outputs["durations_log"],
-            torch.log(1 + durations),
+            durations,
             outputs["pitch"],
             outputs["pitch_gt"],
             text_lengths,
