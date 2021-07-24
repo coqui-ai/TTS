@@ -219,6 +219,7 @@ class Tacotron(BaseTacotron):
         mel_lengths = batch["mel_lengths"]
         linear_input = batch["linear_input"]
         stop_targets = batch["stop_targets"]
+        stop_target_lengths = batch["stop_target_lengths"]
         speaker_ids = batch["speaker_ids"]
         d_vectors = batch["d_vectors"]
 
@@ -250,6 +251,7 @@ class Tacotron(BaseTacotron):
             linear_input,
             outputs["stop_tokens"],
             stop_targets,
+            stop_target_lengths,
             mel_lengths,
             outputs["decoder_outputs_backward"],
             outputs["alignments"],

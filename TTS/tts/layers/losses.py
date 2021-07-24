@@ -246,9 +246,9 @@ class Huber(nn.Module):
 class TacotronLoss(torch.nn.Module):
     """Collection of Tacotron set-up based on provided config."""
 
-    def __init__(self, c, stopnet_pos_weight=10, ga_sigma=0.4):
+    def __init__(self, c, ga_sigma=0.4):
         super().__init__()
-        self.stopnet_pos_weight = stopnet_pos_weight
+        self.stopnet_pos_weight = c.stopnet_pos_weight
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -274,7 +274,7 @@ class TacotronLoss(torch.nn.Module):
             self.criterion_ssim = SSIMLoss()
         # stopnet loss
         # pylint: disable=not-callable
-        self.criterion_st = BCELossMasked(pos_weight=torch.tensor(stopnet_pos_weight)) if c.stopnet else None
+        self.criterion_st = BCELossMasked(pos_weight=torch.tensor(self.stopnet_pos_weight)) if c.stopnet else None
 
     def forward(
         self,
@@ -284,6 +284,7 @@ class TacotronLoss(torch.nn.Module):
         linear_input,
         stopnet_output,
         stopnet_target,
+        stop_target_length,
         output_lens,
         decoder_b_output,
         alignments,
@@ -315,12 +316,12 @@ class TacotronLoss(torch.nn.Module):
         return_dict["decoder_loss"] = decoder_loss
         return_dict["postnet_loss"] = postnet_loss
 
-        # stopnet loss
         stop_loss = (
-            self.criterion_st(stopnet_output, stopnet_target, output_lens) if self.config.stopnet else torch.zeros(1)
+            self.criterion_st(stopnet_output, stopnet_target, stop_target_length)
+            if self.config.stopnet
+            else torch.zeros(1)
         )
-        if not self.config.separate_stopnet and self.config.stopnet:
-            loss += stop_loss
+        loss += stop_loss
         return_dict["stopnet_loss"] = stop_loss
 
         # backward decoder loss (if enabled)

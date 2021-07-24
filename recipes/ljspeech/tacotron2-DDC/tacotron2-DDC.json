@@ -56,7 +56,7 @@
     "run_eval": true,
     "test_delay_epochs": 10,
     "test_sentences_file": null,
-    "max_decoder_steps": 50,
+    "max_decoder_steps": 1000,
     "noam_schedule": true,
     "grad_clip": 0.05,
     "epochs": 1000,
