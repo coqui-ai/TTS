@@ -146,7 +146,6 @@ class DeterministicDurationPredictor(nn.Module):
         Returns:
             [type]: [description]
         """
-        x = torch.detach(x)
         if g is not None:
             g = torch.detach(g)
             g = g.expand(-1, -1, x.size(-1))

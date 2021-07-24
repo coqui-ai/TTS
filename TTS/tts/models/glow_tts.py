@@ -182,15 +182,23 @@ class GlowTTS(nn.Module):
 
         if self.use_pitch_predictor:
             self.pitch_predictor = DeterministicDurationPredictor(
-                    out_channels, pitch_predictor_hidden_channels, pitch_predictor_kernel_size, pitch_predictor_dropout, 
+                    hidden_channels_enc + language_embedding_dim, pitch_predictor_hidden_channels, pitch_predictor_kernel_size, pitch_predictor_dropout, 
                     language_embedding_dim=language_embedding_dim, use_language_embedding=pitch_predictor_use_language_embedding,
                 )
             # nn.Sequential(
-            self.pitch_emb = nn.Conv1d(
+            self.pitch_emb = nn.Sequential(
+                nn.Conv1d(
                 1,
+                pitch_predictor_hidden_channels,
+                kernel_size=pitch_embedding_kernel_size,
+                padding=int((pitch_embedding_kernel_size- 1) / 2),
+                ),
+                nn.Conv1d(
+                pitch_predictor_hidden_channels,
                 out_channels,
                 kernel_size=pitch_embedding_kernel_size,
                 padding=int((pitch_embedding_kernel_size- 1) / 2),
+                ),
             )
 
 
@@ -287,22 +295,22 @@ class GlowTTS(nn.Module):
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
         attn_dur = torch.sum(attn, -1)
-
+        
         # duration predictor
         if self.use_stochastic_dp:
             logw = self.duration_predictor(x_dp, x_mask, attn_dur, g=g, language_embedding=language_embedding)
             logw = logw / torch.sum(x_mask)
         else:
-            logw = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding)
+            logw = self.duration_predictor(torch.detach(x_dp), x_mask, g=g, language_embedding=language_embedding)
 
+        y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
         if self.use_pitch_predictor:
             # add pitch
-            o_pitch_emb, o_pitch, avg_pitch = self._forward_pitch_predictor(o_mean, x_mask, pitch=pitch, dr=attn_dur.squeeze(), language_embedding=language_embedding)
-            o_mean += o_pitch_emb
+            o_pitch_emb, o_pitch, avg_pitch = self._forward_pitch_predictor(x_dp, x_mask, pitch=pitch, dr=attn_dur.squeeze(), language_embedding=language_embedding)
+            o_pitch_emb = torch.matmul(attn.squeeze(1).transpose(1, 2), o_pitch_emb.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
+            y_mean += o_pitch_emb
         else:
             o_pitch, avg_pitch = None, None
-        y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
-
 
         attn = attn.squeeze(1).permute(0, 2, 1)
         return z, logdet, y_mean, y_log_scale, attn, logw, o_attn_dur, speaker_prediction, o_pitch, avg_pitch
@@ -325,7 +333,7 @@ class GlowTTS(nn.Module):
             # check if exp here is necessary, during the training the duration preditor 
             w = torch.exp(o_dur_log) * x_mask * self.length_scale
         else:
-            o_dur_log = self.duration_predictor(x_dp, x_mask, g=g, language_embedding=language_embedding)
+            o_dur_log = self.duration_predictor(torch.detach(x_dp), x_mask, g=g, language_embedding=language_embedding)
             w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
 
         # compute output durations
@@ -338,12 +346,13 @@ class GlowTTS(nn.Module):
         # compute attention mask
         attn = generate_path(w_ceil.squeeze(1), attn_mask.squeeze(1)).unsqueeze(1)
 
+        y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
+
         if self.use_pitch_predictor:
             # add pitch
-            o_pitch_emb, _, _ = self._forward_pitch_predictor(o_mean, x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze(), language_embedding=language_embedding)
-            o_mean += o_pitch_emb
-
-        y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
+            o_pitch_emb, _, _ = self._forward_pitch_predictor(x_dp, x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze(), language_embedding=language_embedding)
+            o_pitch_emb = torch.matmul(attn.squeeze(1).transpose(1, 2), o_pitch_emb.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
+            y_mean += o_pitch_emb
 
         z = (y_mean + torch.exp(y_log_scale) * torch.randn_like(y_mean) * self.noise_scale) * y_mask
         # decoder pass
