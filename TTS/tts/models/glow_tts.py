@@ -118,7 +118,7 @@ class GlowTTS(nn.Module):
         # model constants.
         self.noise_scale = 0.0  # defines the noise variance applied to the random z vector at inference.
         self.length_scale = 1.0  # scaler for the duration predictor. The larger it is, the slower the speech.
-        self.noise_scale_w = 1.0 # defines the noise variance applied to the duration predictor z vector at inference.
+        self.noise_scale_w = 0.0 # defines the noise variance applied to the duration predictor z vector at inference.
 
         self.pitch_transform = None
         self.pitch_mean = None
@@ -308,9 +308,9 @@ class GlowTTS(nn.Module):
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
         if self.use_pitch_predictor:
             # add pitch
-            o_pitch_emb, o_pitch, avg_pitch = self._forward_pitch_predictor(x_dp, x_mask, pitch=pitch, dr=attn_dur.squeeze(), language_embedding=language_embedding)
+            o_pitch_emb, o_pitch, avg_pitch = self._forward_pitch_predictor(torch.detach(x_dp), x_mask, pitch=pitch, dr=attn_dur.squeeze(), language_embedding=language_embedding)
             o_pitch_emb = torch.matmul(attn.squeeze(1).transpose(1, 2), o_pitch_emb.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
-            y_mean += o_pitch_emb
+            y_mean += (y_log_scale*o_pitch_emb)
         else:
             o_pitch, avg_pitch = None, None
 
@@ -352,9 +352,9 @@ class GlowTTS(nn.Module):
 
         if self.use_pitch_predictor:
             # add pitch
-            o_pitch_emb, _, _ = self._forward_pitch_predictor(x_dp, x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze(), language_embedding=language_embedding)
+            o_pitch_emb, _, _ = self._forward_pitch_predictor(torch.detach(x_dp), x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze(), language_embedding=language_embedding)
             o_pitch_emb = torch.matmul(attn.squeeze(1).transpose(1, 2), o_pitch_emb.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
-            y_mean += o_pitch_emb
+            y_mean += (y_log_scale*o_pitch_emb)
 
         z = (y_mean + torch.exp(y_log_scale) * torch.randn_like(y_mean) * self.noise_scale) * y_mask
         # decoder pass
@@ -402,8 +402,8 @@ class GlowTTS(nn.Module):
 
         if self.use_pitch_predictor:
             # add pitch
-            o_pitch_emb, _, _ = self._forward_pitch_predictor(o_mean, x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze())
-            o_mean += o_pitch_emb
+            o_pitch_emb, _, _ = self._forward_pitch_predictor(torch.detach(x_dp), x_mask, pitch=pitch, dr=torch.sum(attn, -1).squeeze())
+            o_mean += (y_log_scale*o_pitch_emb)
 
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
         attn = attn.squeeze(1).permute(0, 2, 1)
