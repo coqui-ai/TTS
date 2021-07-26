@@ -1,21 +1,20 @@
-
 import argparse
 import os
+from argparse import RawTextHelpFormatter
 
 from tqdm import tqdm
 
-from argparse import RawTextHelpFormatter
 from TTS.config import load_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.utils.speakers import SpeakerManager
 
 parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
-        """
+    """
     Example runs:
     python TTS/bin/compute_embeddings.py speaker_encoder_model.pth.tar speaker_encoder_config.json  dataset_config.json embeddings_output_path/
     """,
-        formatter_class=RawTextHelpFormatter,
+    formatter_class=RawTextHelpFormatter,
 )
 parser.add_argument("model_path", type=str, help="Path to model checkpoint file.")
 parser.add_argument(
@@ -40,7 +39,9 @@ c_dataset = load_config(args.config_dataset_path)
 meta_data_train, meta_data_eval = load_meta_data(c_dataset.datasets, eval_split=args.eval)
 wav_files = meta_data_train + meta_data_eval
 
-speaker_manager = SpeakerManager(encoder_model_path=args.model_path, encoder_config_path=args.config_path, use_cuda=args.use_cuda)
+speaker_manager = SpeakerManager(
+    encoder_model_path=args.model_path, encoder_config_path=args.config_path, use_cuda=args.use_cuda
+)
 
 # compute speaker embeddings
 speaker_mapping = {}
@@ -62,7 +63,7 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
 
 if speaker_mapping:
     # save speaker_mapping if target dataset is defined
-    if '.json' not in args.output_path:
+    if ".json" not in args.output_path:
         mapping_file_path = os.path.join(args.output_path, "speakers.json")
     else:
         mapping_file_path = args.output_path
