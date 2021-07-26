@@ -647,29 +647,29 @@ class AudioProcessor(object):
         #     frame_period=1000 * self.hop_length / self.sample_rate,
         # )
         # f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-        f0, _, _, _ = compute_yin(
-            x,
-            self.sample_rate,
-            self.win_length,
-            self.hop_length,
-            65 if self.mel_fmin == 0 else self.mel_fmin,
-            self.mel_fmax,
-        )
-        # import pyworld as pw
-        # f0, _ = pw.dio(x.astype(np.float64), self.sample_rate,
-        #                   frame_period=self.hop_length / self.sample_rate * 1000)
-        pad = int((self.win_length / self.hop_length) / 2)
-        f0 = [0.0] * pad + f0 + [0.0] * pad
-        f0 = np.array(f0, dtype=np.float32)
-
-        # f01, _, _ = librosa.pyin(
+        # f0, _, _, _ = compute_yin(
         #     x,
-        #     fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
-        #     fmax=self.mel_fmax,
-        #     frame_length=self.win_length,
-        #     sr=self.sample_rate,
-        #     fill_na=0.0,
+        #     self.sample_rate,
+        #     self.win_length,
+        #     self.hop_length,
+        #     65 if self.mel_fmin == 0 else self.mel_fmin,
+        #     self.mel_fmax,
         # )
+        # # import pyworld as pw
+        # # f0, _ = pw.dio(x.astype(np.float64), self.sample_rate,
+        # #                   frame_period=self.hop_length / self.sample_rate * 1000)
+        # pad = int((self.win_length / self.hop_length) / 2)
+        # f0 = [0.0] * pad + f0 + [0.0] * pad
+        # f0 = np.array(f0, dtype=np.float32)
+
+        f0, _, _ = librosa.pyin(
+            x,
+            fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
+            fmax=self.mel_fmax,
+            frame_length=self.win_length,
+            sr=self.sample_rate,
+            fill_na=0.0,
+        )
 
         # f02 = librosa.yin(
         #     x,
