@@ -124,11 +124,16 @@ class Wavegrad(BaseModel):
 
     @torch.no_grad()
     def inference(self, x, y_n=None):
-        """x: B x D X T"""
+        """
+        Shapes:
+            x: :math:`[B, C , T]`
+            y_n: :math:`[B, 1, T]`
+        """
         if y_n is None:
-            y_n = torch.randn(x.shape[0], 1, self.hop_len * x.shape[-1], dtype=torch.float32).to(x)
+            y_n = torch.randn(x.shape[0], 1, self.hop_len * x.shape[-1])
         else:
-            y_n = torch.FloatTensor(y_n).unsqueeze(0).unsqueeze(0).to(x)
+            y_n = torch.FloatTensor(y_n).unsqueeze(0).unsqueeze(0)
+        y_n = y_n.type_as(x)
         sqrt_alpha_hat = self.noise_level.to(x)
         for n in range(len(self.alpha) - 1, -1, -1):
             y_n = self.c1[n] * (y_n - self.c2[n] * self.forward(y_n, x, sqrt_alpha_hat[n].repeat(x.shape[0])))
@@ -267,8 +272,10 @@ class Wavegrad(BaseModel):
         betas = np.linspace(noise_schedule["min_val"], noise_schedule["max_val"], noise_schedule["num_steps"])
         self.compute_noise_level(betas)
         for sample in samples:
-            x = sample["input"]
-            y = sample["waveform"]
+            x = sample[0]
+            x = x[None, :, :].to(next(self.parameters()).device)
+            y = sample[1]
+            y = y[None, :]
             # compute voice
             y_pred = self.inference(x)
             # compute spectrograms
