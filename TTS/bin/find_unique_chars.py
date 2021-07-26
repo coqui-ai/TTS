@@ -1,8 +1,9 @@
 """Find all the unique characters in a dataset"""
 import argparse
 from argparse import RawTextHelpFormatter
-from TTS.tts.datasets import load_meta_data
+
 from TTS.config import load_config
+from TTS.tts.datasets import load_meta_data
 
 
 def main():
@@ -16,9 +17,7 @@ def main():
     """,
         formatter_class=RawTextHelpFormatter,
     )
-    parser.add_argument(
-        "--config_path", type=str, help="Path to dataset config file.", required=True
-    )
+    parser.add_argument("--config_path", type=str, help="Path to dataset config file.", required=True)
     args = parser.parse_args()
 
     c = load_config(args.config_path)
@@ -37,6 +36,7 @@ def main():
     print(f" > Unique characters: {''.join(sorted(chars))}")
     print(f" > Unique lower characters: {''.join(sorted(lower_chars))}")
     print(f" > Unique all forced to lower characters: {''.join(sorted(chars_force_lower))}")
+
 
 if __name__ == "__main__":
     main()

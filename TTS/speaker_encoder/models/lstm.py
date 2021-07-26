@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 from torch import nn
 
 
@@ -81,12 +81,12 @@ class LSTMSpeakerEncoder(nn.Module):
         if max_len < num_frames:
             num_frames = max_len
 
-        offsets = np.linspace(0, max_len-num_frames, num=num_eval)
+        offsets = np.linspace(0, max_len - num_frames, num=num_eval)
 
         frames_batch = []
         for offset in offsets:
             offset = int(offset)
-            end_offset = int(offset+num_frames)
+            end_offset = int(offset + num_frames)
             frames = x[:, offset:end_offset]
             frames_batch.append(frames)
 
