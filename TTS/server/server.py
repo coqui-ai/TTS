@@ -103,7 +103,8 @@ synthesizer = Synthesizer(
     model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, use_cuda=args.use_cuda
 )
 
-use_multi_speaker = synthesizer.speaker_manager is not None
+use_multi_speaker = synthesizer.tts_model.speaker_manager is not None and synthesizer.tts_model.num_speakers > 1
+speaker_manager = synthesizer.tts_model.speaker_manager if hasattr(synthesizer.tts_model, "speaker_manager") else None
 # TODO: set this from SpeakerManager
 use_gst = synthesizer.tts_config.get("use_gst", False)
 app = Flask(__name__)
@@ -134,7 +135,7 @@ def index():
         "index.html",
         show_details=args.show_details,
         use_multi_speaker=use_multi_speaker,
-        speaker_ids=synthesizer.speaker_manager.speaker_ids if synthesizer.speaker_manager else None,
+        speaker_ids=speaker_manager.speaker_ids if speaker_manager is not None else None,
         use_gst=use_gst,
     )
 
