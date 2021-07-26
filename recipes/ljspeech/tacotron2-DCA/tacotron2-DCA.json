@@ -50,7 +50,7 @@
     "stopnet_pos_weight": 15.0,
     "run_eval": true,
     "test_delay_epochs": 10,
-    "max_decoder_steps": 50,
+    "max_decoder_steps": 1000,
     "noam_schedule": true,
     "grad_clip": 0.05,
     "epochs": 1000,

@@ -132,7 +132,7 @@
             "thorsten":{
                 "tacotron2-DCA":{
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.11/tts_models--de--thorsten--tacotron2-DCA.zip",
-                    "default_vocoder": "vocoder_models/de/thorsten/wavegrad",
+                    "default_vocoder": "vocoder_models/de/thorsten/fullband-melgan",
                     "author": "@thorstenMueller",
                     "commit": "unknown"
                 }
@@ -228,6 +228,11 @@
             "thorsten":{
                 "wavegrad":{
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.11/vocoder_models--de--thorsten--wavegrad.zip",
+                    "author": "@thorstenMueller",
+                    "commit": "unknown"
+                },
+                "fullband-melgan":{
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.3/vocoder_models--de--thorsten--fullband-melgan.zip",
                     "author": "@thorstenMueller",
                     "commit": "unknown"
                 }
