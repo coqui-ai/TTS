@@ -225,27 +225,14 @@ class BaseTTS(BaseModel):
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
             )
 
-            # pre-compute phonemes
-            if config.use_phonemes and config.compute_input_seq_cache and rank in [None, 0]:
-                if hasattr(self, "eval_data_items") and is_eval:
-                    dataset.items = self.eval_data_items
-                elif hasattr(self, "train_data_items") and not is_eval:
-                    dataset.items = self.train_data_items
-                else:
-                    # precompute phonemes for precise estimate of sequence lengths.
-                    # otherwise `dataset.sort_items()` uses raw text lengths
-                    dataset.compute_input_seq(config.num_loader_workers)
-
-                    # TODO: find a more efficient solution
-                    # cheap hack - store items in the model state to avoid recomputing when reinit the dataset
-                    if is_eval:
-                        self.eval_data_items = dataset.items
-                    else:
-                        self.train_data_items = dataset.items
-
-            # halt DDP processes for the main process to finish computing the phoneme cache
-            if num_gpus > 1:
-                dist.barrier()
+            if (
+                config.use_phonemes
+                and config.compute_input_seq_cache
+                and not os.path.exists(dataset.phoneme_cache_path)
+            ):
+                # precompute phonemes to have a better estimate of sequence lengths.
+                dataset.compute_input_seq(config.num_loader_workers)
+            dataset.sort_items()
 
             # sort input sequences from short to long
             dataset.sort_and_filter_items(config.get("sort_by_audio_len", default=False))
