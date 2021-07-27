@@ -4,6 +4,7 @@ import os
 import pickle as pickle_tts
 from shutil import copyfile
 
+import fsspec
 import torch
 from coqpit import Coqpit
 
@@ -48,18 +49,40 @@ def copy_model_files(config, out_path, new_fields):
             )
 
 
+def load(path, **kwargs):
+    """Like torch.load but can load from other locations (e.g. s3:// , gs://).
+
+    Args:
+        path: Any path or url supported by fsspec.
+        **kwargs: Keyword arguments forwarded to torch.load.
+    """
+    with fsspec.open(path, "rb") as f:
+        return torch.load(f, **kwargs)
+
+
 def load_checkpoint(model, checkpoint_path, use_cuda=False, eval=False):  # pylint: disable=redefined-builtin
     try:
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load(checkpoint_path, map_location=torch.device("cpu"))
     except ModuleNotFoundError:
         pickle_tts.Unpickler = RenamingUnpickler
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"), pickle_module=pickle_tts)
+        state = load(checkpoint_path, map_location=torch.device("cpu"), pickle_module=pickle_tts)
     model.load_state_dict(state["model"])
     if use_cuda:
         model.cuda()
     if eval:
         model.eval()
     return model, state
+
+
+def save(state, path, **kwargs):
+    """Like torch.save but can save to other locations (e.g. s3:// , gs://).
+
+    Args:
+        path: Any path or url supported by fsspec.
+        **kwargs: Keyword arguments forwarded to torch.save.
+    """
+    with fsspec.open(path, "wb") as f:
+        torch.save(state, f, **kwargs)
 
 
 def save_model(config, model, optimizer, scaler, current_step, epoch, output_path, **kwargs):
@@ -90,7 +113,7 @@ def save_model(config, model, optimizer, scaler, current_step, epoch, output_pat
         "date": datetime.date.today().strftime("%B %d, %Y"),
     }
     state.update(kwargs)
-    torch.save(state, output_path)
+    save(state, output_path)
 
 
 def save_checkpoint(

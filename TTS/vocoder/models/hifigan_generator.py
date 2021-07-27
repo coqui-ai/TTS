@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn.utils import remove_weight_norm, weight_norm
 
+from TTS.utils.io import load
+
 LRELU_SLOPE = 0.1
 
 
@@ -275,7 +277,7 @@ class HifiganGenerator(torch.nn.Module):
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
     ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
             self.eval()
