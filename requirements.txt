@@ -24,4 +24,4 @@ mecab-python3==1.0.3
 unidic-lite==1.0.8
 # gruut+supported langs
 gruut[cs,de,es,fr,it,nl,pt,ru,sv]~=1.2.0
-fsspec
+fsspec>=2021.04.0
