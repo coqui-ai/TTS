@@ -16,7 +16,7 @@ from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.trainer import init_training
 from TTS.tts.datasets import load_meta_data
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
+from TTS.utils.generic_utils import count_parameters, set_init_dict
 from TTS.utils.io import load_fsspec
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, check_update
@@ -213,12 +213,10 @@ if __name__ == "__main__":
     try:
         main(args)
     except KeyboardInterrupt:
-        remove_experiment_folder(OUT_PATH)
         try:
             sys.exit(0)
         except SystemExit:
             os._exit(0)  # pylint: disable=protected-access
     except Exception:  # pylint: disable=broad-except
-        remove_experiment_folder(OUT_PATH)
         traceback.print_exc()
         sys.exit(1)

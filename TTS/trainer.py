@@ -12,7 +12,9 @@ import traceback
 from argparse import Namespace
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Union
+from urllib.parse import urlparse
 
+import fsspec
 import torch
 from coqpit import Coqpit
 from torch import nn
@@ -29,9 +31,8 @@ from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (
     KeepAverage,
     count_parameters,
-    create_experiment_folder,
+    get_experiment_folder_path,
     get_git_branch,
-    remove_experiment_folder,
     set_init_dict,
     to_cuda,
 )
@@ -173,7 +174,6 @@ class Trainer:
         self.best_loss = float("inf")
         self.train_loader = None
         self.eval_loader = None
-        self.output_audio_path = os.path.join(output_path, "test_audios")
 
         self.keep_avg_train = None
         self.keep_avg_eval = None
@@ -804,15 +804,12 @@ class Trainer:
             self._fit()
         except KeyboardInterrupt:
             self.callbacks.on_keyboard_interrupt()
-            # if the output folder is empty remove the run.
-            remove_experiment_folder(self.output_path)
             # stop without error signal
             try:
                 sys.exit(0)
             except SystemExit:
                 os._exit(0)  # pylint: disable=protected-access
         except BaseException:  # pylint: disable=broad-except
-            remove_experiment_folder(self.output_path)
             traceback.print_exc()
             sys.exit(1)
 
@@ -926,14 +923,14 @@ def init_arguments():
     return parser
 
 
-def get_last_checkpoint(path):
+def get_last_checkpoint(path: str):
     """Get latest checkpoint or/and best model in path.
 
     It is based on globbing for `*.pth.tar` and the RegEx
     `(checkpoint|best_model)_([0-9]+)`.
 
     Args:
-        path (list): Path to files to be compared.
+        path: Path to files to be compared.
 
     Raises:
         ValueError: If no checkpoint or best_model files are found.
@@ -941,7 +938,11 @@ def get_last_checkpoint(path):
     Returns:
         last_checkpoint (str): Last checkpoint filename.
     """
-    file_names = glob.glob(os.path.join(path, "*.pth.tar"))
+    fs = fsspec.get_mapper(path).fs
+    file_names = fs.glob(os.path.join(path, "*.pth.tar"))
+    scheme = urlparse(path).scheme
+    if scheme:  # scheme is not preserved in fs.glob, add it back
+        file_names = [scheme + "://" + file_name for file_name in file_names]
     last_models = {}
     last_model_nums = {}
     for key in ["checkpoint", "best_model"]:
@@ -1030,12 +1031,11 @@ def process_args(args, config=None):
         print("   >  Mixed precision mode is ON")
     experiment_path = args.continue_path
     if not experiment_path:
-        experiment_path = create_experiment_folder(config.output_path, config.run_name)
+        experiment_path = get_experiment_folder_path(config.output_path, config.run_name)
     audio_path = os.path.join(experiment_path, "test_audios")
     # setup rank 0 process in distributed training
     tb_logger = None
     if args.rank == 0:
-        os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
@@ -1047,8 +1047,6 @@ def process_args(args, config=None):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(config, experiment_path, new_fields)
-        os.chmod(audio_path, 0o775)
-        os.chmod(experiment_path, 0o775)
         tb_logger = TensorboardLogger(experiment_path, model_name=config.model)
         # write model desc to tensorboard
         tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)

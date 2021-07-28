@@ -1,8 +1,10 @@
+import dataclasses
 import datetime
+import json
 import glob
 import os
 import pickle as pickle_tts
-from shutil import copyfile
+import shutil
 
 import fsspec
 import torch
@@ -25,7 +27,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def copy_model_files(config, out_path, new_fields):
+def copy_model_files(config: Coqpit, out_path, new_fields):
     """Copy config.json and other model files to training folder and add
     new fields.
 
@@ -38,15 +40,18 @@ def copy_model_files(config, out_path, new_fields):
     copy_config_path = os.path.join(out_path, "config.json")
     # add extra information fields
     config.update(new_fields, allow_new=True)
-    config.save_json(copy_config_path)
+    # TODO: Revert to config.save_json() once Coqpit supports arbitrary paths.
+    with fsspec.open(copy_config_path, "w", encoding="utf8") as f:
+        json.dump(dataclasses.asdict(config), f, indent=4)
+
     # copy model stats file if available
     if config.audio.stats_path is not None:
         copy_stats_path = os.path.join(out_path, "scale_stats.npy")
-        if not os.path.exists(copy_stats_path):
-            copyfile(
-                config.audio.stats_path,
-                copy_stats_path,
-            )
+        filesystem = fsspec.get_mapper(copy_stats_path).fs
+        if not filesystem.exists(copy_stats_path):
+            with fsspec.open(config.audio.stats_path, "rb") as source_file:
+                with fsspec.open(copy_stats_path, "wb") as target_file:
+                    shutil.copyfileobj(source_file, target_file)
 
 
 def load_fsspec(path, **kwargs):
@@ -172,16 +177,14 @@ def save_best_model(
         )
         # only delete previous if current is saved successfully
         if not keep_all_best or (current_step < keep_after):
-            model_names = glob.glob(os.path.join(out_path, "best_model*.pth.tar"))
+            fs = fsspec.get_mapper(out_path).fs
+            model_names = fs.glob(os.path.join(out_path, "best_model*.pth.tar"))
             for model_name in model_names:
-                if os.path.basename(model_name) == best_model_name:
-                    continue
-                os.remove(model_name)
-        # create symlink to best model for convinience
-        link_name = "best_model.pth.tar"
-        link_path = os.path.join(out_path, link_name)
-        if os.path.islink(link_path) or os.path.isfile(link_path):
-            os.remove(link_path)
-        os.symlink(best_model_name, os.path.join(out_path, link_name))
+                if os.path.basename(model_name) != best_model_name:
+                    fs.rm(model_name)
+        # create a shortcut which always points to the currently best model
+        shortcut_name = "best_model.pth.tar"
+        shortcut_path = os.path.join(out_path, shortcut_name)
+        fs.copy(checkpoint_path, shortcut_path)
         best_loss = current_loss
     return best_loss
