@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load
+from TTS.utils.io import load_fsspec
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
@@ -223,7 +223,7 @@ class GAN(BaseVocoder):
             checkpoint_path (str): Checkpoint file path.
             eval (bool, optional): If true, load the model for inference. If falseDefaults to False.
         """
-        state = load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         # band-aid for older than v0.0.15 GAN models
         if "model_disc" in state:
             self.model_g.load_checkpoint(config, checkpoint_path, eval)
