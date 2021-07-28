@@ -49,7 +49,7 @@ def copy_model_files(config, out_path, new_fields):
             )
 
 
-def load(path, **kwargs):
+def load_fsspec(path, **kwargs):
     """Like torch.load but can load from other locations (e.g. s3:// , gs://).
 
     Args:
@@ -62,10 +62,10 @@ def load(path, **kwargs):
 
 def load_checkpoint(model, checkpoint_path, use_cuda=False, eval=False):  # pylint: disable=redefined-builtin
     try:
-        state = load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
     except ModuleNotFoundError:
         pickle_tts.Unpickler = RenamingUnpickler
-        state = load(checkpoint_path, map_location=torch.device("cpu"), pickle_module=pickle_tts)
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"), pickle_module=pickle_tts)
     model.load_state_dict(state["model"])
     if use_cuda:
         model.cuda()
@@ -74,7 +74,7 @@ def load_checkpoint(model, checkpoint_path, use_cuda=False, eval=False):  # pyli
     return model, state
 
 
-def save(state, path, **kwargs):
+def save_fsspec(state, path, **kwargs):
     """Like torch.save but can save to other locations (e.g. s3:// , gs://).
 
     Args:
@@ -113,7 +113,7 @@ def save_model(config, model, optimizer, scaler, current_step, epoch, output_pat
         "date": datetime.date.today().strftime("%B %d, %Y"),
     }
     state.update(kwargs)
-    save(state, output_path)
+    save_fsspec(state, output_path)
 
 
 def save_checkpoint(

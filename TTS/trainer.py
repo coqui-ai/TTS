@@ -35,7 +35,7 @@ from TTS.utils.generic_utils import (
     set_init_dict,
     to_cuda,
 )
-from TTS.utils.io import copy_model_files, load, save_best_model, save_checkpoint
+from TTS.utils.io import copy_model_files, load_fsspec, save_best_model, save_checkpoint
 from TTS.utils.logging import ConsoleLogger, TensorboardLogger
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_available, setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
@@ -309,7 +309,7 @@ class Trainer:
             return obj
 
         print(" > Restoring from %s ..." % os.path.basename(restore_path))
-        checkpoint = load(restore_path)
+        checkpoint = load_fsspec(restore_path)
         try:
             print(" > Restoring Model...")
             model.load_state_dict(checkpoint["model"])
@@ -776,7 +776,7 @@ class Trainer:
         """🏃 train -> evaluate -> test for the number of epochs."""
         if self.restore_step != 0 or self.args.best_path:
             print(" > Restoring best loss from " f"{os.path.basename(self.args.best_path)} ...")
-            self.best_loss = load(self.args.best_path, map_location="cpu")["model_loss"]
+            self.best_loss = load_fsspec(self.args.best_path, map_location="cpu")["model_loss"]
             print(f" > Starting with loaded last best loss {self.best_loss}.")
 
         self.total_steps_done = self.restore_step
@@ -963,7 +963,7 @@ def get_last_checkpoint(path):
         key_file_names = [fn for fn in file_names if key in fn]
         if last_model is None and len(key_file_names) > 0:
             last_model = max(key_file_names, key=os.path.getctime)
-            last_model_num = load(last_model)["step"]
+            last_model_num = load_fsspec(last_model)["step"]
 
         if last_model is not None:
             last_models[key] = last_model

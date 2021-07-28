@@ -13,7 +13,7 @@ from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
 from TTS.tts.utils.text import make_symbols
 from TTS.utils.generic_utils import format_aux_input
-from TTS.utils.io import load
+from TTS.utils.io import load_fsspec
 from TTS.utils.training import gradual_training_scheduler
 
 
@@ -114,7 +114,7 @@ class BaseTacotron(BaseTTS):
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
     ):  # pylint: disable=unused-argument, redefined-builtin
-        state = load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if "r" in state:
             self.decoder.set_r(state["r"])

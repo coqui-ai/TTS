@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from TTS.utils.io import load
+from TTS.utils.io import load_fsspec
 
 
 class LSTMWithProjection(nn.Module):
@@ -122,7 +122,7 @@ class LSTMSpeakerEncoder(nn.Module):
 
     # pylint: disable=unused-argument, redefined-builtin
     def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False, use_cuda: bool = False):
-        state = load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if use_cuda:
             self.cuda()

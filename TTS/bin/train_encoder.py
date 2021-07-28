@@ -17,7 +17,7 @@ from TTS.trainer import init_training
 from TTS.tts.datasets import load_meta_data
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
-from TTS.utils.io import load
+from TTS.utils.io import load_fsspec
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, check_update
 
@@ -170,7 +170,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         raise Exception("The %s  not is a loss supported" % c.loss)
 
     if args.restore_path:
-        checkpoint = load(args.restore_path)
+        checkpoint = load_fsspec(args.restore_path)
         try:
             model.load_state_dict(checkpoint["model"])
 
