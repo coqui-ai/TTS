@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from TTS.utils.io import load_fsspec, load_config
+from TTS.utils.io import load_config, load_fsspec
 from TTS.vocoder.tf.utils.convert_torch_to_tf_utils import (
     compare_torch_tf,
     convert_tf_name,
