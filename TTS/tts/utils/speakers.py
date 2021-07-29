@@ -59,6 +59,7 @@ class SpeakerManager:
         speaker_id_file_path: str = "",
         encoder_model_path: str = "",
         encoder_config_path: str = "",
+        use_cuda: bool = False,
     ):
 
         self.data_items = []
@@ -67,6 +68,7 @@ class SpeakerManager:
         self.clip_ids = []
         self.speaker_encoder = None
         self.speaker_encoder_ap = None
+        self.use_cuda = use_cuda
 
         if data_items:
             self.speaker_ids, self.speaker_names, _ = self.parse_speakers_from_data(self.data_items)
@@ -222,11 +224,11 @@ class SpeakerManager:
         """
         self.speaker_encoder_config = load_config(config_path)
         self.speaker_encoder = setup_model(self.speaker_encoder_config)
-        self.speaker_encoder.load_checkpoint(config_path, model_path, True)
+        self.speaker_encoder.load_checkpoint(config_path, model_path, eval=True, use_cuda=self.use_cuda)
         self.speaker_encoder_ap = AudioProcessor(**self.speaker_encoder_config.audio)
         # normalize the input audio level and trim silences
-        self.speaker_encoder_ap.do_sound_norm = True
-        self.speaker_encoder_ap.do_trim_silence = True
+        # self.speaker_encoder_ap.do_sound_norm = True
+        # self.speaker_encoder_ap.do_trim_silence = True
 
     def compute_d_vector_from_clip(self, wav_file: Union[str, list]) -> list:
         """Compute a d_vector from a given audio file.
@@ -242,6 +244,8 @@ class SpeakerManager:
             waveform = self.speaker_encoder_ap.load_wav(wav_file, sr=self.speaker_encoder_ap.sample_rate)
             spec = self.speaker_encoder_ap.melspectrogram(waveform)
             spec = torch.from_numpy(spec.T)
+            if self.use_cuda:
+                spec = spec.cuda()
             spec = spec.unsqueeze(0)
             d_vector = self.speaker_encoder.compute_embedding(spec)
             return d_vector
@@ -272,6 +276,8 @@ class SpeakerManager:
             feats = torch.from_numpy(feats)
         if feats.ndim == 2:
             feats = feats.unsqueeze(0)
+        if self.use_cuda:
+            feats = feats.cuda()
         return self.speaker_encoder.compute_embedding(feats)
 
     def run_umap(self):

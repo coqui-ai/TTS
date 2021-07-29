@@ -1,6 +1,6 @@
+import os
 from typing import Dict, List, Tuple
 
-import numpy as np
 import torch
 from coqpit import Coqpit
 from torch import nn
@@ -119,9 +119,10 @@ class BaseTTS(BaseModel):
                 ), f" [!] total duration {dur.sum()} vs spectrogram length {mel_lengths[idx]}"
                 durations[idx, : text_lengths[idx]] = dur
 
-        # set stop targets view, we predict a single stop token per iteration.
+        # set stop targets wrt reduction factor
         stop_targets = stop_targets.view(text_input.shape[0], stop_targets.size(1) // self.config.r, -1)
         stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze(2)
+        stop_target_lengths = torch.divide(mel_lengths, self.config.r).ceil_()
 
         return {
             "text_input": text_input,
@@ -131,6 +132,7 @@ class BaseTTS(BaseModel):
             "mel_lengths": mel_lengths,
             "linear_input": linear_input,
             "stop_targets": stop_targets,
+            "stop_target_lengths": stop_target_lengths,
             "attn_mask": attn_mask,
             "durations": durations,
             "speaker_ids": speaker_ids,
@@ -182,7 +184,11 @@ class BaseTTS(BaseModel):
                 else None,
             )
 
-            if config.use_phonemes and config.compute_input_seq_cache:
+            if (
+                config.use_phonemes
+                and config.compute_input_seq_cache
+                and not os.path.exists(dataset.phoneme_cache_path)
+            ):
                 # precompute phonemes to have a better estimate of sequence lengths.
                 dataset.compute_input_seq(config.num_loader_workers)
             dataset.sort_items()
