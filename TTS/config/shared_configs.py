@@ -241,7 +241,7 @@ class BaseTrainingConfig(Coqpit):
         wandb_entity (str):
             Name of W&B entity/team. Enables collaboration across a team or org.
 
-        wandb_log_model_step (int):
+        log_model_step (int):
             Number of steps required to log a checkpoint as W&B artifact
 
         save_step (int):ipt
