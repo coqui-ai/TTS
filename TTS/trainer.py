@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import glob
 import importlib
 import logging
 import os
@@ -831,9 +830,16 @@ class Trainer:
 
     @staticmethod
     def _setup_logger_config(log_file: str) -> None:
-        logging.basicConfig(
-            level=logging.INFO, format="", handlers=[logging.FileHandler(log_file), logging.StreamHandler()]
-        )
+        handlers = [logging.StreamHandler()]
+
+        # Only add a log file if the output location is local due to poor
+        # support for writing logs to file-like objects.
+        parsed_url = urlparse(log_file)
+        if not parsed_url.scheme or parsed_url.scheme == "file":
+            schemeless_path = os.path.join(parsed_url.netloc, parsed_url.path)
+            handlers.append(logging.FileHandler(schemeless_path))
+
+        logging.basicConfig(level=logging.INFO, format="", handlers=handlers)
 
     @staticmethod
     def _is_apex_available() -> bool:
