@@ -40,6 +40,7 @@ def main():
     for i in range(num_gpus):
         my_env = os.environ.copy()
         my_env["PYTHON_EGG_CACHE"] = "/tmp/tmp{}".format(i)
+        my_env["CUDA_VISIBLE_DEVICES"]="{}".format(i)
         command[-1] = "--rank={}".format(i)
         # prevent stdout for processes with rank != 0
         stdout = None if i == 0 else open(os.devnull, "w")
