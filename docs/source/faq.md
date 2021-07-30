@@ -16,6 +16,7 @@ We tried to collect common issues and questions we receive about 🐸TTS. It is 
 - If you need faster models, consider SpeedySpeech, GlowTTS or AlignTTS. Keep in mind that SpeedySpeech requires a pre-trained Tacotron or Tacotron2 model to compute text-to-speech alignments.
 
 ## How can I train my own `tts` model?
+> Please prepare a config.json as some of the further analysis steps require a basic config.json file as input.
 0. Check your dataset with notebooks in [dataset_analysis](https://github.com/coqui-ai/TTS/tree/master/notebooks/dataset_analysis) folder. Use [this notebook](https://github.com/coqui-ai/TTS/blob/master/notebooks/dataset_analysis/CheckSpectrograms.ipynb) to find the right audio processing parameters. A better set of parameters results in a better audio synthesis.
 
 1. Write your own dataset `formatter` in `datasets/formatters.py` or format your dataset as one of the supported datasets, like LJSpeech.
