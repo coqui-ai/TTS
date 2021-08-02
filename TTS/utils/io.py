@@ -1,4 +1,3 @@
-import dataclasses
 import datetime
 import json
 import os
@@ -42,7 +41,7 @@ def copy_model_files(config: Coqpit, out_path, new_fields):
     config.update(new_fields, allow_new=True)
     # TODO: Revert to config.save_json() once Coqpit supports arbitrary paths.
     with fsspec.open(copy_config_path, "w", encoding="utf8") as f:
-        json.dump(dataclasses.asdict(config), f, indent=4)
+        json.dump(config.to_dict(), f, indent=4)
 
     # copy model stats file if available
     if config.audio.stats_path is not None:
