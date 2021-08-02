@@ -929,7 +929,7 @@ def init_arguments():
     return parser
 
 
-def get_last_checkpoint(path: str):
+def get_last_checkpoint(path: str) -> Tuple[str, str]:
     """Get latest checkpoint or/and best model in path.
 
     It is based on globbing for `*.pth.tar` and the RegEx
@@ -942,7 +942,8 @@ def get_last_checkpoint(path: str):
         ValueError: If no checkpoint or best_model files are found.
 
     Returns:
-        last_checkpoint (str): Last checkpoint filename.
+        Path to the last checkpoint
+        Path to best checkpoint
     """
     fs = fsspec.get_mapper(path).fs
     file_names = fs.glob(os.path.join(path, "*.pth.tar"))
