@@ -86,6 +86,7 @@ class GlowTTS(nn.Module):
         reversal_classifier_dim=256,
         reversal_gradient_clipping=0.25,
         use_pitch_predictor=False,
+        dp_n_flows=4,
         pitch_predictor_use_language_embedding=False,
         pitch_predictor_hidden_channels=256,
         pitch_predictor_dropout=0.1,
@@ -153,7 +154,6 @@ class GlowTTS(nn.Module):
             encoder_params=encoder_params,
             mean_only=mean_only,
             use_prenet=use_encoder_prenet,
-            dropout_p_dp=dropout_p_dp,
             num_langs=num_langs,
             language_embedding_dim=language_embedding_dim
         )
@@ -173,7 +173,7 @@ class GlowTTS(nn.Module):
         )
         if self.use_stochastic_dp:
             self.duration_predictor = StochasticDurationPredictor(
-                hidden_channels_enc + language_embedding_dim, hidden_channels_dp, 3, g_channels=self.c_in_channels, 
+                hidden_channels_enc + language_embedding_dim, hidden_channels_dp, 3, p_dropout=dropout_p_dp, n_flows=dp_n_flows, g_channels=self.c_in_channels, 
                 language_embedding_dim=language_embedding_dim, use_language_embedding=dp_use_language_embedding,
             )
         else:

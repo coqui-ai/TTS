@@ -77,7 +77,6 @@ class Encoder(nn.Module):
         hidden_channels_dp,
         encoder_type,
         encoder_params,
-        dropout_p_dp=0.1,
         mean_only=False,
         use_prenet=True,
         num_langs=1,
@@ -89,7 +88,6 @@ class Encoder(nn.Module):
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
         self.hidden_channels_dp = hidden_channels_dp
-        self.dropout_p_dp = dropout_p_dp
         self.mean_only = mean_only
         self.use_prenet = use_prenet
         self.encoder_type = encoder_type
