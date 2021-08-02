@@ -53,12 +53,15 @@ def copy_model_files(config: Coqpit, out_path, new_fields):
                     shutil.copyfileobj(source_file, target_file)
 
 
-def load_fsspec(path: str, **kwargs):
+def load_fsspec(path: str, **kwargs) -> Any:
     """Like torch.load but can load from other locations (e.g. s3:// , gs://).
 
     Args:
         path: Any path or url supported by fsspec.
         **kwargs: Keyword arguments forwarded to torch.load.
+
+    Returns:
+        Object stored in path.
     """
     with fsspec.open(path, "rb") as f:
         return torch.load(f, **kwargs)
