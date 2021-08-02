@@ -4,6 +4,7 @@ import json
 import os
 import pickle as pickle_tts
 import shutil
+from typing import Any
 
 import fsspec
 import torch
@@ -53,7 +54,7 @@ def copy_model_files(config: Coqpit, out_path, new_fields):
                     shutil.copyfileobj(source_file, target_file)
 
 
-def load_fsspec(path, **kwargs):
+def load_fsspec(path: str, **kwargs):
     """Like torch.load but can load from other locations (e.g. s3:// , gs://).
 
     Args:
@@ -78,10 +79,11 @@ def load_checkpoint(model, checkpoint_path, use_cuda=False, eval=False):  # pyli
     return model, state
 
 
-def save_fsspec(state, path, **kwargs):
+def save_fsspec(state: Any, path: str, **kwargs):
     """Like torch.save but can save to other locations (e.g. s3:// , gs://).
 
     Args:
+        state: State object to save
         path: Any path or url supported by fsspec.
         **kwargs: Keyword arguments forwarded to torch.save.
     """
