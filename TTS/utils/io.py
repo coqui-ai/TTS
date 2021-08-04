@@ -178,9 +178,9 @@ def save_best_model(
             model_loss=current_loss,
             **kwargs,
         )
+        fs = fsspec.get_mapper(out_path).fs
         # only delete previous if current is saved successfully
         if not keep_all_best or (current_step < keep_after):
-            fs = fsspec.get_mapper(out_path).fs
             model_names = fs.glob(os.path.join(out_path, "best_model*.pth.tar"))
             for model_name in model_names:
                 if os.path.basename(model_name) != best_model_name:
