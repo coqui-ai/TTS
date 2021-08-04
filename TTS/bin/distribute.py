@@ -23,7 +23,7 @@ def main():
     group_id = time.strftime("%Y_%m_%d-%H%M%S")
 
     assert num_gpus > 1, 'distributed.py requires multiple available GPUs'
-    visible_gpus = os.environ['CUDA_VISIBLE_DEVICES'] if 'CUDA_VISIBLE_DEVICES' in os.environ else list(range(0, num_gpus))
+    visible_gpus = os.getenv("CUDA_VISIBLE_DEVICES")
 
     # set arguments for train.py
     folder_path = pathlib.Path(__file__).parent.absolute()
@@ -40,7 +40,9 @@ def main():
 
     # run processes
     processes = []
-    gpus = visible_gpus.split(',')
+    gpus = list(range(0, num_gpus))
+    if visible_gpus is not None:
+        gpus = visible_gpus.split(',')
     for i, value in enumerate(gpus):
         my_env = os.environ.copy()
         my_env["PYTHON_EGG_CACHE"] = "/tmp/tmp{}".format(i)
