@@ -85,6 +85,7 @@ We still support running training from CLI like in the old days. The same traini
 
     ```json
     {
+        "run_name": "my_run",
         "model": "glow_tts",
         "batch_size": 32,
         "eval_batch_size": 16,
