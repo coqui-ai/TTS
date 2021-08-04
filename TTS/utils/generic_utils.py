@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Dict
 
+import fsspec
 import torch
 
 
@@ -63,6 +64,18 @@ def get_experiment_folder_path(root_path, model_name):
     output_folder = os.path.join(root_path, model_name + "-" + date_str + "-" + commit_hash)
     print(" > Experiment folder: {}".format(output_folder))
     return output_folder
+
+
+def remove_experiment_folder(experiment_path):
+    """Check folder if there is a checkpoint, otherwise remove the folder"""
+    fs = fsspec.get_mapper(experiment_path).fs
+    checkpoint_files = fs.glob(experiment_path + "/*.pth.tar")
+    if not checkpoint_files:
+        if fs.exists(experiment_path):
+            fs.rm(experiment_path, recursive=True)
+            print(" ! Run is removed from {}".format(experiment_path))
+    else:
+        print(" ! Run is kept in {}".format(experiment_path))
 
 
 def count_parameters(model):

@@ -32,6 +32,7 @@ from TTS.utils.generic_utils import (
     count_parameters,
     get_experiment_folder_path,
     get_git_branch,
+    remove_experiment_folder,
     set_init_dict,
     to_cuda,
 )
@@ -803,12 +804,15 @@ class Trainer:
             self._fit()
         except KeyboardInterrupt:
             self.callbacks.on_keyboard_interrupt()
+            # if the output folder is empty remove the run.
+            remove_experiment_folder(self.output_path)
             # stop without error signal
             try:
                 sys.exit(0)
             except SystemExit:
                 os._exit(0)  # pylint: disable=protected-access
         except BaseException:  # pylint: disable=broad-except
+            remove_experiment_folder(self.output_path)
             traceback.print_exc()
             sys.exit(1)
 
