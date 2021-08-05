@@ -65,7 +65,7 @@ def to_camel(text):
     return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
 
 
-def setup_generator(c, speaker_embedding_dim=None):
+def setup_generator(c, speaker_embedding_dim=0):
     print(" > Generator Model: {}".format(c.generator_model))
     MyModel = importlib.import_module("TTS.vocoder.models." + c.generator_model.lower())
     # this is to preserve the WaveRNN class name (instead of Wavernn)
