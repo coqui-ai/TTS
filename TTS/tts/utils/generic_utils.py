@@ -46,7 +46,7 @@ def to_camel(text):
     return text
 
 
-def setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim=None, language_embedding_dim=None):
+def setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim=None, language_embedding_dim=None, vocoder=None):
     print(" > Using model: {}".format(c.model))
     MyModel = importlib.import_module("TTS.tts.models." + c.model.lower())
     MyModel = getattr(MyModel, to_camel(c.model))
@@ -151,6 +151,43 @@ def setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim=Non
             reversal_gradient_clipping=getattr(c, "reversal_gradient_clipping", 0.25),
             use_pitch_predictor=getattr(c, "use_pitch_predictor", False),
             pitch_predictor_use_language_embedding=getattr(c, "pitch_predictor_use_language_embedding", False),
+        )
+    elif c.model.lower() == "vits":
+        model = MyModel(
+            num_chars=num_chars + getattr(c, "add_blank", False),
+            hidden_channels_enc=c["hidden_channels_encoder"],
+            hidden_channels_dec=c["hidden_channels_decoder"],
+            hidden_channels_dp=c["hidden_channels_duration_predictor"],
+            out_channels=c.audio["num_mels"],
+            encoder_type=c.encoder_type,
+            encoder_params=c.encoder_params,
+            use_encoder_prenet=c["use_encoder_prenet"],
+            num_langs=num_langs,
+            language_embedding_dim=language_embedding_dim,
+            num_flow_blocks_dec=getattr(c, "num_flow_blocks_dec", 12),
+            kernel_size_dec=5,
+            dilation_rate=1,
+            num_block_layers=4,
+            dropout_p_dec=0.05,
+            num_speakers=num_speakers,
+            c_in_channels=0,
+            num_splits=4,
+            num_squeeze=2,
+            sigmoid_scale=False,
+            mean_only=True,
+            external_speaker_embedding_dim=speaker_embedding_dim,
+            use_stochastic_dp=getattr(c, "use_stochastic_duration_predictor", False),
+            dropout_p_dp=getattr(c, "duration_predictor_dropout", 0.1),
+            dp_n_flows=getattr(c, "duration_predictor_n_flows", 4),
+            dp_use_language_embedding=getattr(c, "dp_use_language_embedding", False),
+            reversal_classifier=getattr(c, "reversal_classifier", False), 
+            reversal_classifier_dim=getattr(c, "reversal_classifier_dim", 256),
+            reversal_gradient_clipping=getattr(c, "reversal_gradient_clipping", 0.25),
+            use_pitch_predictor=getattr(c, "use_pitch_predictor", False),
+            pitch_predictor_use_language_embedding=getattr(c, "pitch_predictor_use_language_embedding", False),
+            vocoder=vocoder,
+            spec_channels=int(c.audio["fft_size"] / 2 + 1),
+            segment_size=c.HiFiGAN_config['seq_len'] // c.audio["hop_length"],
         )
     elif c.model.lower() == "speedy_speech":
         model = MyModel(

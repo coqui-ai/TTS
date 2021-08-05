@@ -100,6 +100,23 @@ def run_model_torch(
         # these only belong to tacotron models.
         decoder_output = None
         stop_tokens = None
+
+    elif "vits" in CONFIG.model.lower():
+        inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
+        if hasattr(model, "module"):
+            # distributed model
+            postnet_output, _, _, _, alignments, _, _ = model.module.inference(
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings, language_ids=language_id
+            )
+        else:
+            postnet_output, _, _, _, alignments, _, _ = model.inference(
+                inputs, inputs_lengths, g=speaker_id if speaker_id is not None else speaker_embeddings, language_ids=language_id
+            )
+
+        # these only belong to tacotron models.
+        decoder_output = None
+        stop_tokens = None
+
     elif CONFIG.model.lower() in ["speedy_speech", "align_tts"]:
         inputs_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)  # pylint: disable=not-callable
         if hasattr(model, "module"):

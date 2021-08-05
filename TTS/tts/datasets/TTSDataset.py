@@ -21,6 +21,7 @@ class MyDataset(Dataset):
         ap,
         meta_data,
         tp=None,
+        return_wav=False,
         add_blank=False,
         batch_group_size=0,
         min_seq_len=0,
@@ -65,6 +66,7 @@ class MyDataset(Dataset):
         self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner
         self.compute_linear_spec = compute_linear_spec
+        self.return_wav = return_wav
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
@@ -475,6 +477,14 @@ class MyDataset(Dataset):
                 attns = torch.FloatTensor(attns).unsqueeze(1)
             else:
                 attns = None
+            # padding wav files
+
+            if self.return_wav:
+                wav_max_len = max((len(x) for x in wav))
+                wav = [_pad_tensor(np.expand_dims(w, axis=0), wav_max_len) for w in wav]
+            else:
+                wav = None
+
             return (
                 text,
                 text_lenghts,
@@ -488,6 +498,7 @@ class MyDataset(Dataset):
                 speaker_embedding,
                 attns,
                 pitch,
+                wav,
             )
 
         raise TypeError(

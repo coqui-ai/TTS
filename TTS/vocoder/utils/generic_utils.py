@@ -65,7 +65,7 @@ def to_camel(text):
     return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
 
 
-def setup_generator(c):
+def setup_generator(c, speaker_embedding_dim=None):
     print(" > Generator Model: {}".format(c.generator_model))
     MyModel = importlib.import_module("TTS.vocoder.models." + c.generator_model.lower())
     # this is to preserve the WaveRNN class name (instead of Wavernn)
@@ -91,7 +91,7 @@ def setup_generator(c):
             sample_rate=c.audio["sample_rate"],
         )
     elif c.generator_model.lower() in "hifigan_generator":
-        model = MyModel(in_channels=c.audio["num_mels"], out_channels=1, **c.generator_model_params)
+        model = MyModel(in_channels=c.audio["num_mels"], out_channels=1, c_in_channels=speaker_embedding_dim, **c.generator_model_params)
     elif c.generator_model.lower() in "melgan_generator":
         model = MyModel(
             in_channels=c.audio["num_mels"],

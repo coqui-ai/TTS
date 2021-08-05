@@ -1,0 +1,934 @@
+#!/usr/bin/env python3
+"""Train Glow TTS model."""
+
+import os
+import sys
+import time
+import itertools
+import traceback
+import numpy as np
+from random import randrange
+from TTS.utils.io import AttrDict
+
+import torch
+
+# DISTRIBUTED
+from torch.nn.parallel import DistributedDataParallel as DDP_th
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
+from TTS.tts.datasets.preprocess import load_meta_data
+from TTS.tts.datasets.TTSDataset import MyDataset
+from TTS.tts.layers.losses import GlowTTSLoss
+from TTS.tts.utils.generic_utils import setup_model
+from TTS.tts.utils.io import save_best_model, save_checkpoint
+from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.speakers import parse_speakers, parse_languages
+from TTS.tts.utils.synthesis import synthesis
+from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.arguments import parse_arguments, process_args
+from TTS.utils.audio import AudioProcessor
+from TTS.utils.distribute import init_distributed, reduce_tensor
+from TTS.utils.generic_utils import KeepAverage, count_parameters, remove_experiment_folder, set_init_dict
+from TTS.utils.radam import RAdam
+from TTS.utils.training import NoamLR, setup_torch_training_env
+from TTS.utils.samplers import get_weighted_sampler, get_perfect_language_sampler
+
+from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
+from TTS.vocoder.utils.generic_utils import setup_discriminator, setup_generator
+from TTS.vocoder.utils.io import save_best_model as save_best_model_vocoder
+from TTS.vocoder.utils.io import save_checkpoint as save_checkpoint_vocoder
+from TTS.tts.models.vits import slice_segments
+
+use_cuda, num_gpus = setup_torch_training_env(True, False)
+
+
+def setup_loader(ap, r, is_val=False, verbose=False):
+    if is_val and not c.run_eval:
+        loader = None
+    else:
+        dataset = MyDataset(
+            r,
+            c.text_cleaner,
+            compute_linear_spec=True,
+            meta_data=meta_data_eval if is_val else meta_data_train,
+            ap=ap,
+            tp=c.characters if "characters" in c.keys() else None,
+            add_blank=c["add_blank"] if "add_blank" in c.keys() else False,
+            batch_group_size=0 if is_val else c.batch_group_size * c.batch_size,
+            min_seq_len=c.min_seq_len,
+            max_seq_len=c.max_seq_len,
+            phoneme_cache_path=c.phoneme_cache_path,
+            use_phonemes=c.use_phonemes,
+            phoneme_language=c.phoneme_language,
+            enable_eos_bos=c.enable_eos_bos_chars,
+            use_noise_augment=c["use_noise_augment"] and not is_val,
+            compute_f0=getattr(c, "use_pitch_predictor", False),
+            f0_cache_path=getattr(c, "f0_cache_path", None),
+            verbose=verbose,
+            return_wav=True,
+            speaker_mapping=speaker_mapping
+            if c.use_speaker_embedding and c.use_external_speaker_embedding_file
+            else None,
+        )
+
+        if c.use_phonemes and c.compute_input_seq_cache:
+            # precompute phonemes to have a better estimate of sequence lengths.
+            dataset.compute_input_seq(c.num_loader_workers)
+        dataset.sort_items()
+
+        # compute pitch frames and write to files
+        if getattr(c, "use_pitch_predictor", False):
+            if not os.path.exists(c.f0_cache_path):
+                dataset.compute_pitch(c.f0_cache_path, c.num_loader_workers, eval_data=is_val)
+            dataset.load_pitch_stats(c.f0_cache_path)
+
+        sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+
+        language_weighted_sampler = getattr(c, "language_weighted_sampler", False)
+        speaker_weighted_sampler = getattr(c, "speaker_weighted_sampler", False)
+        if (language_weighted_sampler or speaker_weighted_sampler) and sampler is None and not is_val:
+            print("Using weighted sampler")
+            sampler = get_weighted_sampler(dataset, speaker_weighted_sampler, language_weighted_sampler)
+
+        loader = DataLoader(
+            dataset,
+            batch_size=c.eval_batch_size if is_val else c.batch_size,
+            shuffle=False,
+            collate_fn=dataset.collate_fn,
+            drop_last=False,
+            sampler=sampler,
+            num_workers=c.num_val_loader_workers if is_val else c.num_loader_workers,
+            pin_memory=False,
+        )
+    return loader
+
+
+def format_data(data):
+    # setup input data
+    text_input = data[0]
+    text_lengths = data[1]
+    speaker_names = data[2]
+    spec_input = data[3].permute(0, 2, 1)  # B x D x T
+    # spec_input = data[4]
+    spec_lengths = data[5]
+    language_names = data[7]
+    item_idx = data[8]
+    attn_mask = data[10]
+    avg_text_length = torch.mean(text_lengths.float())
+    avg_spec_length = torch.mean(spec_lengths.float())
+    wavs = torch.from_numpy(np.array(data[12]))
+
+    speaker_ids = None
+    if c.use_speaker_embedding:
+        speaker_ids = [speaker_list.index(speaker_name) for speaker_name in speaker_names]
+        speaker_ids = torch.LongTensor(speaker_ids)
+        if c.use_external_speaker_embedding_file:
+            # return precomputed embedding vector
+            speaker_c = data[9]
+        else:
+            # return speaker_id to be used by an embedding layer
+            speaker_c = [speaker_mapping[speaker_name] for speaker_name in speaker_names]
+            speaker_c = torch.LongTensor(speaker_c)
+    else:
+        speaker_c = None
+
+    if c.use_language_embedding:
+        language_ids = [language_mapping[language_name] for language_name in language_names]
+        language_ids = torch.LongTensor(language_ids)
+    else:
+        language_ids = None
+    pitch = None
+    if getattr(c, "use_pitch_predictor", False):
+        pitch = data[11]
+
+    # dispatch data to GPU
+    if use_cuda:
+        text_input = text_input.cuda(non_blocking=True)
+        text_lengths = text_lengths.cuda(non_blocking=True)
+        spec_input = spec_input.cuda(non_blocking=True)
+        spec_lengths = spec_lengths.cuda(non_blocking=True)
+        if speaker_c is not None:
+            speaker_c = speaker_c.cuda(non_blocking=True)
+        if speaker_ids is not None:
+            speaker_ids = speaker_ids.cuda(non_blocking=True)
+        if attn_mask is not None:
+            attn_mask = attn_mask.cuda(non_blocking=True)
+        if language_ids is not None:
+            language_ids = language_ids.cuda(non_blocking=True)
+        if pitch is not None:
+            pitch = pitch.cuda(non_blocking=True)
+        if wavs is not None:
+            wavs = wavs.cuda(non_blocking=True)
+    return (
+        text_input,
+        text_lengths,
+        spec_input,
+        spec_lengths,
+        speaker_c,
+        speaker_ids,
+        language_ids,
+        avg_text_length,
+        avg_spec_length,
+        attn_mask,
+        item_idx,
+        pitch,
+        wavs,
+    )
+
+def extract_parameters(test_sentence):
+    splited = test_sentence.split('|')
+    if len(splited) == 1: # No language or speaker info
+        return (splited[0], None, None, None)
+    if len(splited) == 2: # No language info
+        sentence, speaker = splited
+        return (sentence, speaker, None, None)
+    if len(splited) == 3:
+        sentence, speaker, language = splited
+        return (sentence, speaker, language_mapping[language], None)
+    if len(splited) == 4:
+        sentence, speaker, language, wav_ref_name = splited
+        return (sentence, speaker, language_mapping[language], wav_ref_name)
+
+    raise RuntimeError("Invalid line was given in the test sentence file.")
+
+def data_depended_init(data_loader, model):
+    """Data depended initialization for activation normalization."""
+    if hasattr(model, "module"):
+        for f in model.module.decoder.flows:
+            if getattr(f, "set_ddi", False):
+                f.set_ddi(True)
+    else:
+        for f in model.decoder.flows:
+            if getattr(f, "set_ddi", False):
+                f.set_ddi(True)
+
+    model.train()
+    print(" > Data depended initialization ... ")
+    num_iter = 0
+    with torch.no_grad():
+        for _, data in enumerate(data_loader):
+
+            # format data
+            text_input, text_lengths, spec_input, spec_lengths, spekaer_embed, _, language_ids, _, _, attn_mask, _, pitch, _ = format_data(data)
+
+            # forward pass model
+            _ = model.forward(text_input, text_lengths, spec_input, spec_lengths, attn_mask, g=spekaer_embed, language_ids=language_ids, pitch=pitch)
+            if num_iter == c.data_dep_init_iter:
+                break
+            num_iter += 1
+
+    if hasattr(model, "module"):
+        for f in model.module.decoder.flows:
+            if getattr(f, "set_ddi", False):
+                f.set_ddi(False)
+    else:
+        for f in model.decoder.flows:
+            if getattr(f, "set_ddi", False):
+                f.set_ddi(False)
+    return model
+
+
+def train(data_loader, model, criterion, optimizer, scheduler, ap, global_step, epoch, vocoder_disc, optimizer_disc, scheduler_disc, criterion_vocoder_gen, criterion_disc):
+
+    model.train()
+    epoch_time = 0
+    keep_avg = KeepAverage()
+    if use_cuda:
+        batch_n_iter = int(len(data_loader.dataset) / (c.batch_size * num_gpus))
+    else:
+        batch_n_iter = int(len(data_loader.dataset) / c.batch_size)
+    end_time = time.time()
+    c_logger.print_train_start()
+    scaler = torch.cuda.amp.GradScaler() if c.mixed_precision else None
+    for num_iter, data in enumerate(data_loader):
+        start_time = time.time()
+
+        # format data
+        (
+            text_input,
+            text_lengths,
+            spec_input,
+            spec_lengths,
+            speaker_c,
+            speaker_ids,
+            language_ids,
+            avg_text_length,
+            avg_spec_length,
+            attn_mask,
+            _,
+            pitch,
+            y_G,
+        ) = format_data(data)
+
+        loader_time = time.time() - end_time
+
+        global_step += 1
+        optimizer.zero_grad()
+
+        if c.get("finetuning_speaker_encoder", False):
+            speaker_c = speaker_encoder(spec_input.transpose(1, 2), l2_norm=True)
+
+        # forward pass model
+        with torch.cuda.amp.autocast(enabled=c.mixed_precision):
+            ##############################
+            # GENERATOR
+            ##############################
+            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction, o_pitch, avg_pitch, (y_hat, ids_slice) = model.forward(
+                text_input, text_lengths, spec_input, spec_lengths, attn_mask, g=speaker_c, language_ids=language_ids, pitch=pitch
+            )
+            
+            y_G = slice_segments(y_G, ids_slice*c.audio["hop_length"], c.HiFiGAN_config['seq_len'])
+
+            if y_hat.size(2) < y_G.size(2):
+                y_G = y_G[:, :, :y_hat.size(2)]
+            else:
+                y_hat = y_hat[:, :, :y_G.size(2)]
+
+            D_out_fake = vocoder_disc(y_hat)
+            
+            with torch.no_grad():
+                D_out_real = vocoder_disc(y_G)
+
+            # format D outputs
+            if isinstance(D_out_fake, tuple):
+                scores_fake, feats_fake = D_out_fake
+                if D_out_real is None:
+                    feats_real = None
+                else:
+                    # we don't need scores for real samples for training G since they are always 1
+                    _, feats_real = D_out_real
+            else:
+                scores_fake = D_out_fake
+            
+            # compute losses
+            loss_G = criterion_vocoder_gen(
+                y_hat=y_hat,
+                y=y_G,
+                scores_fake=scores_fake,
+                feats_fake=feats_fake,
+                feats_real=feats_real,
+                y_hat_sub=None,
+                y_sub=None,
+            )["G_loss"]
+
+            # compute loss
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, spec_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids, o_pitch, avg_pitch)
+            loss_dict["loss"] += loss_G
+            loss_dict["vocoder_G_loss"] = loss_G
+
+
+        # backward pass with loss scaling
+        if c.mixed_precision:
+            scaler.scale(loss_dict["loss"]).backward()
+            scaler.unscale_(optimizer)
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), c.grad_clip)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss_dict["loss"].backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), c.grad_clip)
+            optimizer.step()
+
+        # setup lr
+        if c.noam_schedule:
+            scheduler.step()
+
+        ##############################
+        # DISCRIMINATOR
+        ##############################
+        with torch.cuda.amp.autocast(enabled=c.mixed_precision):
+            D_out_fake = vocoder_disc(y_hat.detach())
+            D_out_real = vocoder_disc(y_G)
+
+            # format D outputs
+            if isinstance(D_out_fake, tuple):
+                # vocoder_disc returns scores and features
+                scores_fake, feats_fake = D_out_fake
+                if D_out_real is None:
+                    scores_real, feats_real = None, None
+                else:
+                    scores_real, feats_real = D_out_real
+            else:
+                # model D returns only scores
+                scores_fake = D_out_fake
+                scores_real = D_out_real
+
+            # compute losses
+            loss_D = criterion_disc(scores_fake, scores_real)["D_loss"]
+            loss_dict["vocoder_D_loss"] = loss_D
+
+        # backward pass with loss scaling
+        if c.mixed_precision:
+            scaler.scale(loss_D).backward()
+            scaler.unscale_(optimizer_disc)
+            grad_norm = torch.nn.utils.clip_grad_norm_(vocoder_disc.parameters(), c.grad_clip)
+            scaler.step(optimizer_disc)
+            scaler.update()
+        else:
+            loss_D.backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(vocoder_disc.parameters(), c.grad_clip)
+            optimizer_disc.step()
+
+        # setup lr
+        if c.noam_schedule:
+            scheduler.step()
+
+        # setup lr
+        # current_lr
+        current_lr = optimizer.param_groups[0]["lr"]
+
+        # compute alignment error (the lower the better )
+        align_error = 1 - alignment_diagonal_score(alignments, binary=True)
+        loss_dict["align_error"] = align_error
+
+        step_time = time.time() - start_time
+        epoch_time += step_time
+    
+        # aggregate losses from processes
+        if num_gpus > 1:
+            loss_dict["log_mle"] = reduce_tensor(loss_dict["log_mle"].data, num_gpus)
+            loss_dict["loss_dur"] = reduce_tensor(loss_dict["loss_dur"].data, num_gpus)
+            loss_dict["vocoder_G_loss"] = reduce_tensor(loss_dict["vocoder_G_loss"].data, num_gpus)
+            loss_dict["vocoder_D_loss"] = reduce_tensor(loss_dict["vocoder_D_loss"].data, num_gpus)
+            loss_dict["loss"] = reduce_tensor(loss_dict["loss"].data, num_gpus)
+
+        # detach loss values
+        loss_dict_new = dict()
+        for key, value in loss_dict.items():
+            if isinstance(value, (int, float)):
+                loss_dict_new[key] = value
+            else:
+                loss_dict_new[key] = value.item()
+        loss_dict = loss_dict_new
+
+        # update avg stats
+        update_train_values = dict()
+        for key, value in loss_dict.items():
+            update_train_values["avg_" + key] = value
+        update_train_values["avg_loader_time"] = loader_time
+        update_train_values["avg_step_time"] = step_time
+        keep_avg.update_values(update_train_values)
+
+        # print training progress
+        if global_step % c.print_step == 0:
+            log_dict = {
+                "avg_spec_length": [avg_spec_length, 1],  # value, precision
+                "avg_text_length": [avg_text_length, 1],
+                "step_time": [step_time, 4],
+                "loader_time": [loader_time, 2],
+                "current_lr": current_lr,
+            }
+            c_logger.print_train_step(batch_n_iter, num_iter, global_step, log_dict, loss_dict, keep_avg.avg_values)
+
+        if args.rank == 0:
+            # Plot Training Iter Stats
+            # reduce TB load
+            if global_step % c.tb_plot_step == 0:
+                iter_stats = {"lr": current_lr, "grad_norm": grad_norm, "step_time": step_time}
+                iter_stats.update(loss_dict)
+                tb_logger.tb_train_iter_stats(global_step, iter_stats)
+
+            if global_step % c.save_step == 0:
+                if c.checkpoint:
+                    # save model
+                    save_checkpoint(
+                        model,
+                        optimizer,
+                        global_step,
+                        epoch,
+                        1,
+                        OUT_PATH,
+                        model_characters,
+                        model_loss=loss_dict["loss"],
+                    )
+
+                # wait all kernels to be completed
+                torch.cuda.synchronize()
+
+                # Diagnostic visualizations
+                # direct pass on model for spec predictions
+                target_speaker = None if speaker_c is None else speaker_c[:1]
+                target_language = None if language_ids is None else language_ids[:1]
+
+                if hasattr(model, "module"):
+                    train_audio, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language)
+                else:
+                    train_audio, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language)
+
+                align_img = alignments[0].data.cpu().numpy()
+
+                figures = {
+                    "alignment": plot_alignment(align_img),
+                }
+
+                tb_logger.tb_train_figures(global_step, figures)
+                train_audio = train_audio.squeeze().cpu().numpy()
+                # Sample audio
+                tb_logger.tb_train_audios(global_step, {"TrainAudio": train_audio}, c.audio["sample_rate"])
+        end_time = time.time()
+
+    # print epoch stats
+    c_logger.print_train_epoch_end(global_step, epoch, epoch_time, keep_avg)
+
+    # Plot Epoch Stats
+    if args.rank == 0:
+        epoch_stats = {"epoch_time": epoch_time}
+        epoch_stats.update(keep_avg.avg_values)
+        tb_logger.tb_train_epoch_stats(global_step, epoch_stats)
+        if c.tb_model_param_stats:
+            tb_logger.tb_model_weights(model, global_step)
+    return keep_avg.avg_values, global_step
+
+
+@torch.no_grad()
+def evaluate(data_loader, model, criterion, ap, global_step, epoch, vocoder_disc, criterion_vocoder_gen):
+    model.eval()
+    epoch_time = 0
+    keep_avg = KeepAverage()
+    c_logger.print_eval_start()
+    if data_loader is not None:
+        for num_iter, data in enumerate(data_loader):
+            start_time = time.time()
+
+            # format data
+            text_input, text_lengths, spec_input, spec_lengths, speaker_c, speaker_ids, language_ids, _, _, attn_mask, _, pitch, y_G = format_data(data)
+
+            if c.get("finetuning_speaker_encoder", False):
+                speaker_c = speaker_encoder(spec_input.transpose(1, 2), l2_norm=True)
+
+            # forward pass model
+            z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur, speaker_prediction, o_pitch, avg_pitch, (y_hat, ids_slice) = model.forward(
+                text_input, text_lengths, spec_input, spec_lengths, attn_mask, g=speaker_c, language_ids=language_ids, pitch=pitch
+            )
+
+            # compute loss
+            y_G = slice_segments(y_G, ids_slice*c.audio["hop_length"], c.HiFiGAN_config['seq_len'])
+
+            if y_hat.size(2) < y_G.size(2):
+                y_G = y_G[:, :, :y_hat.size(2)]
+            else:
+                y_hat = y_hat[:, :, :y_G.size(2)]
+
+            D_out_fake = vocoder_disc(y_hat)
+            
+            with torch.no_grad():
+                D_out_real = vocoder_disc(y_G)
+
+            # format D outputs
+            if isinstance(D_out_fake, tuple):
+                scores_fake, feats_fake = D_out_fake
+                if D_out_real is None:
+                    feats_real = None
+                else:
+                    # we don't need scores for real samples for training G since they are always 1
+                    _, feats_real = D_out_real
+            else:
+                scores_fake = D_out_fake
+            
+            # compute losses
+            loss_G = criterion_vocoder_gen(
+                y_hat=y_hat,
+                y=y_G,
+                scores_fake=scores_fake,
+                feats_fake=feats_fake,
+                feats_real=feats_real,
+                y_hat_sub=None,
+                y_sub=None,
+            )["G_loss"]
+
+            # compute loss
+            loss_dict = criterion(z, y_mean, y_log_scale, logdet, spec_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids, o_pitch, avg_pitch)
+            loss_dict["loss"] += loss_G
+            loss_dict["vocoder_G_loss"] = loss_G
+
+            # loss_dict = criterion(z, y_mean, y_log_scale, logdet, spec_lengths, o_dur_log, o_total_dur, text_lengths, speaker_prediction, speaker_ids, o_pitch, avg_pitch)
+
+            # step time
+            step_time = time.time() - start_time
+            epoch_time += step_time
+
+            # compute alignment score
+            align_error = 1 - alignment_diagonal_score(alignments)
+            loss_dict["align_error"] = align_error
+
+            # aggregate losses from processes
+            if num_gpus > 1:
+                loss_dict["log_mle"] = reduce_tensor(loss_dict["log_mle"].data, num_gpus)
+                loss_dict["loss_dur"] = reduce_tensor(loss_dict["loss_dur"].data, num_gpus)
+                loss_dict["vocoder_G_loss"] = reduce_tensor(loss_dict["vocoder_G_loss"].data, num_gpus)
+                loss_dict["loss"] = reduce_tensor(loss_dict["loss"].data, num_gpus)
+
+            # detach loss values
+            loss_dict_new = dict()
+            for key, value in loss_dict.items():
+                if isinstance(value, (int, float)):
+                    loss_dict_new[key] = value
+                else:
+                    loss_dict_new[key] = value.item()
+            loss_dict = loss_dict_new
+
+            # update avg stats
+            update_train_values = dict()
+            for key, value in loss_dict.items():
+                update_train_values["avg_" + key] = value
+            keep_avg.update_values(update_train_values)
+
+            if c.print_eval:
+                c_logger.print_eval_step(num_iter, loss_dict, keep_avg.avg_values)
+
+        if args.rank == 0 or True:
+            # Diagnostic visualizations
+            # direct pass on model for spec predictions
+            target_speaker = None if speaker_c is None else speaker_c[:1]
+            target_language = None if language_ids is None else language_ids[:1]
+
+            if hasattr(model, "module"):
+                eval_audio, *_ = model.module.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language, max_len=c.audio["sample_rate"]//2)
+            else:
+                eval_audio, *_ = model.inference(text_input[:1], text_lengths[:1], g=target_speaker, language_ids=target_language, max_len=c.audio["sample_rate"]//2)
+
+            align_img = alignments[0].data.cpu().numpy()
+
+            eval_figures = {
+                "alignment": plot_alignment(align_img),
+            }
+
+            # Sample audio
+            eval_audio = eval_audio.squeeze().cpu().numpy()
+            tb_logger.tb_eval_audios(global_step, {"ValAudio": eval_audio}, c.audio["sample_rate"])
+
+            # Plot Validation Stats
+            tb_logger.tb_eval_stats(global_step, keep_avg.avg_values)
+            tb_logger.tb_eval_figures(global_step, eval_figures)
+
+    if (args.rank == 0 and epoch >= c.test_delay_epochs) or True:
+        if c.test_sentences_file is None:
+            test_sentences = [
+                "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                "Be a voice, not an echo.",
+                "I'm sorry Dave. I'm afraid I can't do that.",
+                "This cake is great. It's so delicious and moist.",
+                "Prior to November 22, 1963.",
+            ]
+        else:
+            with open(c.test_sentences_file, "r") as f:
+                test_sentences = [s.strip() for s in f.readlines()]
+
+        # test sentences
+        test_audios = {}
+        test_figures = {}
+        print(" | > Synthesizing test sentences")
+        if c.use_speaker_embedding:
+            if c.use_external_speaker_embedding_file:
+                speaker_embedding = speaker_mapping[list(speaker_mapping.keys())[randrange(len(speaker_mapping) - 1)]][
+                    "embedding"
+                ]
+                speaker_id = None
+            else:
+                speaker_id = 0
+                speaker_embedding = None
+        else:
+            speaker_id = None
+            speaker_embedding = None
+
+        style_wav = c.get("style_wav_for_test")
+        for idx, test_sentence in enumerate(test_sentences):
+            try:
+                test_sentence, speaker_name, language_id, wav_ref_name = extract_parameters(test_sentence)
+                if wav_ref_name is not None and c.use_speaker_embedding and c.use_external_speaker_embedding_file:
+                    if c.get("finetuning_speaker_encoder", False):
+                        # just select tree speaker for test
+                        speaker_embedding = speaker_c[randrange(0, min(2, speaker_c.size(0)))]
+                    else:
+                        speaker_embedding = speaker_mapping[wav_ref_name]["embedding"]
+                elif speaker_id is not None and c.use_speaker_embedding:
+                    speaker_id = speaker_mapping[speaker_name]
+
+                _ , alignment, _, wav, _, _ = synthesis(
+                    model,
+                    test_sentence,
+                    c,
+                    use_cuda,
+                    ap,
+                    speaker_id=speaker_id,
+                    language_id=language_id,
+                    language_mapping=language_mapping,
+                    speaker_embedding=speaker_embedding,
+                    style_wav=style_wav,
+                    truncated=False,
+                    enable_eos_bos_chars=c.enable_eos_bos_chars,  # pylint: disable=unused-argument
+                    use_griffin_lim=False,
+                    do_trim_silence=False,
+                )
+
+                file_path = os.path.join(AUDIO_PATH, str(global_step))
+                os.makedirs(file_path, exist_ok=True)
+
+                wav = wav.squeeze()
+
+                file_path = os.path.join(file_path, "TestSentence_{}.wav".format(idx))
+                ap.save_wav(wav, file_path)
+                
+                test_audios["{}-audio".format(idx)] = wav
+                test_figures["{}-alignment".format(idx)] = plot_alignment(alignment)
+            except:  # pylint: disable=bare-except
+                print(" !! Error creating Test Sentence -", idx)
+                traceback.print_exc()
+        tb_logger.tb_test_audios(global_step, test_audios, c.audio["sample_rate"])
+        tb_logger.tb_test_figures(global_step, test_figures)
+    return keep_avg.avg_values
+
+
+def main(args):  # pylint: disable=redefined-outer-name
+    # pylint: disable=global-variable-undefined
+    global meta_data_train, meta_data_eval, symbols, phonemes, model_characters, speaker_mapping, language_mapping, speaker_list, speaker_encoder
+    # Audio processor
+    ap = AudioProcessor(**c.audio)
+    if "characters" in c.keys():
+        symbols, phonemes = make_symbols(**c.characters)
+
+    # DISTRUBUTED
+    if num_gpus > 1:
+        init_distributed(args.rank, num_gpus, args.group_id, c.distributed["backend"], c.distributed["url"])
+
+    # set model characters
+    model_characters = phonemes if c.use_phonemes else symbols
+    num_chars = len(model_characters)
+
+    # load data instances
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
+
+    # set the portion of the data used for training
+    if "train_portion" in c.keys():
+        meta_data_train = meta_data_train[: int(len(meta_data_train) * c.train_portion)]
+    if "eval_portion" in c.keys():
+        meta_data_eval = meta_data_eval[: int(len(meta_data_eval) * c.eval_portion)]
+
+    # parse speakers
+    num_speakers, speaker_list, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, OUT_PATH, meta_data_eval)
+    num_langs, language_embedding_dim, language_mapping = parse_languages(c, args, meta_data_train, OUT_PATH)
+
+    # vocoder init
+    vocoder_config = AttrDict()
+    vocoder_config.update({"audio": c.audio})
+    vocoder_config.update(c.HiFiGAN_config)
+
+    # setup models
+    if speaker_embedding_dim:
+        spk_embedding_dim = speaker_embedding_dim
+    elif not speaker_embedding_dim and num_speakers > 1:
+        spk_embedding_dim = 512
+    else:
+        spk_embedding_dim = None
+
+    vocoder_gen = setup_generator(vocoder_config, speaker_embedding_dim=spk_embedding_dim)
+    vocoder_disc = setup_discriminator(vocoder_config)
+    
+    # setup criterion
+    criterion_vocoder_gen = GeneratorLoss(vocoder_config)
+    criterion_disc = DiscriminatorLoss(vocoder_config)
+
+    if use_cuda:
+        vocoder_gen.cuda()
+        criterion_vocoder_gen.cuda()
+        vocoder_disc.cuda()
+        criterion_disc.cuda()
+    
+    if c.HiFiGAN_config['restore_checkpoint_path']:
+        checkpoint = torch.load(c.HiFiGAN_config['restore_checkpoint_path'], map_location="cpu")
+        print(" > Restoring Vocoder Generator Model...")
+        try:
+            vocoder_gen.load_state_dict(checkpoint["model"])
+        except:
+            model_dict = vocoder_gen.state_dict()
+            model_dict = set_init_dict(model_dict, checkpoint["model"], c)
+            vocoder_gen.load_state_dict(model_dict)
+            del model_dict
+        try:
+            print(" > Restoring Vocoder Discriminator Model...")
+            vocoder_disc.load_state_dict(checkpoint["model_disc"])
+        except:
+            model_dict = vocoder_disc.state_dict()
+            model_dict = set_init_dict(model_dict, checkpoint["model_disc"], c)
+            vocoder_disc.load_state_dict(model_dict)
+            del model_dict
+
+    # setup model
+    model = setup_model(num_chars, num_speakers, num_langs, c, speaker_embedding_dim, language_embedding_dim, vocoder=vocoder_gen)
+
+    if c.get("freeze_encoder", False):
+        print(" > Freezing the encoder !")
+        for param in model.encoder.parameters():
+                param.requires_grad = False
+
+    if c.get("freeze_decoder", False):
+        print(" > Freezing the decoder !")
+        for param in model.decoder.parameters():
+                param.requires_grad = False
+
+    if c.get("freeze_duration_predictor", False):
+        print(" > Freezing the Duration Predictor !")
+        for param in model.duration_predictor.parameters():
+                param.requires_grad = False
+    
+    if c.get("freeze_pitch_predictor", False):
+        print(" > Freezing the Pitch Predictor !")
+        for param in model.pitch_predictor.parameters():
+                param.requires_grad = False
+        for param in model.pitch_emb.parameters():
+                param.requires_grad = False
+
+    optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
+   
+    optimizer_disc = RAdam(itertools.chain(vocoder_disc.msd.parameters(), vocoder_disc.mpd.parameters()), lr=c.lr, weight_decay=0, betas=(0.9, 0.98), eps=1e-9)
+
+    criterion = GlowTTSLoss(c)
+
+    print("Trainable params: ")
+    print("#"*20)
+    for name, param in  model.named_parameters():
+        if param.requires_grad:
+            print(name)
+    print("#"*20)
+
+    if args.restore_path:
+        print(f" > Restoring from {os.path.basename(args.restore_path)} ...")
+        checkpoint = torch.load(args.restore_path, map_location="cpu")
+        try:
+            # TODO: fix optimizer init, model.cuda() needs to be called before
+            # optimizer restore
+            optimizer.load_state_dict(checkpoint["optimizer"])
+            if c.reinit_layers:
+                raise RuntimeError
+            model.load_state_dict(checkpoint["model"])
+        except:  # pylint: disable=bare-except
+            print(" > Partial model initialization.")
+            model_dict = model.state_dict()
+            model_dict = set_init_dict(model_dict, checkpoint["model"], c)
+            model.load_state_dict(model_dict)
+            del model_dict
+
+        for group in optimizer.param_groups:
+            group["initial_lr"] = c.lr
+        print(f" > Model restored from step {checkpoint['step']:d}", flush=True)
+        args.restore_step = checkpoint["step"]
+    else:
+        args.restore_step = 0
+
+    if use_cuda:
+        model.cuda()
+        criterion.cuda()
+
+    # DISTRUBUTED
+    if num_gpus > 1:
+        model = DDP_th(model, device_ids=[args.rank])
+
+    if c.noam_schedule:
+        scheduler = NoamLR(optimizer, warmup_steps=c.warmup_steps, last_epoch=args.restore_step - 1)
+        scheduler_disc = NoamLR(optimizer_disc, warmup_steps=c.warmup_steps, last_epoch=-1)
+    else:
+        scheduler = None
+        scheduler_disc = None
+
+    num_params = count_parameters(model)
+    print("\n > Model has {} parameters".format(num_params), flush=True)
+
+    if args.restore_step == 0 or not args.best_path:
+        best_loss = float("inf")
+        print(" > Starting with inf best loss.")
+    else:
+        print(" > Restoring best loss from " f"{os.path.basename(args.best_path)} ...")
+        best_loss = torch.load(args.best_path, map_location="cpu")["model_loss"]
+        print(f" > Starting with loaded last best loss {best_loss}.")
+    keep_all_best = c.get("keep_all_best", False)
+    keep_after = c.get("keep_after", 10000)  # void if keep_all_best False
+
+    speaker_encoder = None
+    if c.get("finetuning_speaker_encoder", False):
+        from TTS.utils.io import load_config
+        from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder as SpeakerEncoder
+
+        se_config = load_config(c.speaker_encoder['config_path'])
+        speaker_encoder = SpeakerEncoder(input_dim=se_config.model_params["input_dim"], proj_dim=se_config.model_params["proj_dim"])
+        speaker_encoder.load_state_dict(torch.load(c.speaker_encoder['checkpoint_path'])["model"])
+        speaker_encoder.train()
+        if use_cuda:
+            speaker_encoder = speaker_encoder.cuda()
+
+        print("\n > Speaker Encoder has {} parameters".format(count_parameters(speaker_encoder)), flush=True)
+
+    # Vocoder output path
+    OUT_PATH_VOCODER = os.path.join(OUT_PATH, "Vocoder")
+    os.makedirs(OUT_PATH_VOCODER, exist_ok=True)
+
+    # define dataloaders
+    train_loader = setup_loader(ap, 1, is_val=False, verbose=True)
+    eval_loader = setup_loader(ap, 1, is_val=True, verbose=True)
+    
+    global_step = args.restore_step
+    if global_step == 0:
+        model = data_depended_init(train_loader, model)
+    for epoch in range(0, c.epochs):
+        c_logger.print_epoch_start(epoch, c.epochs)
+        train_avg_loss_dict, global_step = train(
+            train_loader, model, criterion, optimizer, scheduler, ap, global_step, epoch, vocoder_disc, optimizer_disc, scheduler_disc, criterion_vocoder_gen, criterion_disc
+        )
+        eval_avg_loss_dict = evaluate(eval_loader, model, criterion, ap, global_step, epoch, vocoder_disc, criterion_vocoder_gen)
+        c_logger.print_epoch_end(epoch, eval_avg_loss_dict)
+        target_loss = train_avg_loss_dict["avg_loss"]
+        if c.run_eval:
+            target_loss = eval_avg_loss_dict["avg_loss"]
+
+        _ = save_best_model_vocoder(
+            target_loss,
+            best_loss,
+            model.vocoder,
+            None,
+            None,
+            vocoder_disc,
+            optimizer_disc,
+            None,
+            global_step,
+            epoch,
+            OUT_PATH_VOCODER,
+            keep_all_best=False,
+            model_losses=eval_avg_loss_dict,
+        )
+
+        best_loss = save_best_model(
+            target_loss,
+            best_loss,
+            model,
+            optimizer,
+            global_step,
+            epoch,
+            c.r,
+            OUT_PATH,
+            model_characters,
+            keep_all_best=keep_all_best,
+            keep_after=keep_after,
+            speaker_encoder=speaker_encoder,
+        )
+        
+        save_best_model_vocoder
+
+
+
+if __name__ == "__main__":
+    args = parse_arguments(sys.argv)
+    c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = process_args(args, model_class="tts")
+
+    try:
+        main(args)
+    except KeyboardInterrupt:
+        remove_experiment_folder(OUT_PATH)
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)  # pylint: disable=protected-access
+    except Exception:  # pylint: disable=broad-except
+        remove_experiment_folder(OUT_PATH)
+        traceback.print_exc()
+        sys.exit(1)
