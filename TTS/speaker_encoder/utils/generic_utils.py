@@ -6,11 +6,11 @@ import re
 from multiprocessing import Manager
 
 import numpy as np
-import torch
 from scipy import signal
 
 from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
 from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
+from TTS.utils.io import save_fsspec
 
 
 class Storage(object):
@@ -198,7 +198,7 @@ def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_s
         "loss": model_loss,
         "date": datetime.date.today().strftime("%B %d, %Y"),
     }
-    torch.save(state, checkpoint_path)
+    save_fsspec(state, checkpoint_path)
 
 
 def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path, current_step):
@@ -216,5 +216,5 @@ def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path
         bestmodel_path = "best_model.pth.tar"
         bestmodel_path = os.path.join(out_path, bestmodel_path)
         print("\n > BEST MODEL ({0:.5f}) : {1:}".format(model_loss, bestmodel_path))
-        torch.save(state, bestmodel_path)
+        save_fsspec(state, bestmodel_path)
     return best_loss
