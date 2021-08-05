@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import glob
 import importlib
 import logging
 import os
@@ -12,7 +11,9 @@ import traceback
 from argparse import Namespace
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Union
+from urllib.parse import urlparse
 
+import fsspec
 import torch
 from coqpit import Coqpit
 from torch import nn
@@ -29,13 +30,13 @@ from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (
     KeepAverage,
     count_parameters,
-    create_experiment_folder,
+    get_experiment_folder_path,
     get_git_branch,
     remove_experiment_folder,
     set_init_dict,
     to_cuda,
 )
-from TTS.utils.io import copy_model_files, save_best_model, save_checkpoint
+from TTS.utils.io import copy_model_files, load_fsspec, save_best_model, save_checkpoint
 from TTS.utils.logging import ConsoleLogger, TensorboardLogger
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_available, setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
@@ -173,7 +174,6 @@ class Trainer:
         self.best_loss = float("inf")
         self.train_loader = None
         self.eval_loader = None
-        self.output_audio_path = os.path.join(output_path, "test_audios")
 
         self.keep_avg_train = None
         self.keep_avg_eval = None
@@ -309,7 +309,7 @@ class Trainer:
             return obj
 
         print(" > Restoring from %s ..." % os.path.basename(restore_path))
-        checkpoint = torch.load(restore_path)
+        checkpoint = load_fsspec(restore_path)
         try:
             print(" > Restoring Model...")
             model.load_state_dict(checkpoint["model"])
@@ -776,7 +776,7 @@ class Trainer:
         """🏃 train -> evaluate -> test for the number of epochs."""
         if self.restore_step != 0 or self.args.best_path:
             print(" > Restoring best loss from " f"{os.path.basename(self.args.best_path)} ...")
-            self.best_loss = torch.load(self.args.best_path, map_location="cpu")["model_loss"]
+            self.best_loss = load_fsspec(self.args.best_path, map_location="cpu")["model_loss"]
             print(f" > Starting with loaded last best loss {self.best_loss}.")
 
         self.total_steps_done = self.restore_step
@@ -834,9 +834,16 @@ class Trainer:
 
     @staticmethod
     def _setup_logger_config(log_file: str) -> None:
-        logging.basicConfig(
-            level=logging.INFO, format="", handlers=[logging.FileHandler(log_file), logging.StreamHandler()]
-        )
+        handlers = [logging.StreamHandler()]
+
+        # Only add a log file if the output location is local due to poor
+        # support for writing logs to file-like objects.
+        parsed_url = urlparse(log_file)
+        if not parsed_url.scheme or parsed_url.scheme == "file":
+            schemeless_path = os.path.join(parsed_url.netloc, parsed_url.path)
+            handlers.append(logging.FileHandler(schemeless_path))
+
+        logging.basicConfig(level=logging.INFO, format="", handlers=handlers)
 
     @staticmethod
     def _is_apex_available() -> bool:
@@ -926,22 +933,27 @@ def init_arguments():
     return parser
 
 
-def get_last_checkpoint(path):
+def get_last_checkpoint(path: str) -> Tuple[str, str]:
     """Get latest checkpoint or/and best model in path.
 
     It is based on globbing for `*.pth.tar` and the RegEx
     `(checkpoint|best_model)_([0-9]+)`.
 
     Args:
-        path (list): Path to files to be compared.
+        path: Path to files to be compared.
 
     Raises:
         ValueError: If no checkpoint or best_model files are found.
 
     Returns:
-        last_checkpoint (str): Last checkpoint filename.
+        Path to the last checkpoint
+        Path to best checkpoint
     """
-    file_names = glob.glob(os.path.join(path, "*.pth.tar"))
+    fs = fsspec.get_mapper(path).fs
+    file_names = fs.glob(os.path.join(path, "*.pth.tar"))
+    scheme = urlparse(path).scheme
+    if scheme:  # scheme is not preserved in fs.glob, add it back
+        file_names = [scheme + "://" + file_name for file_name in file_names]
     last_models = {}
     last_model_nums = {}
     for key in ["checkpoint", "best_model"]:
@@ -963,7 +975,7 @@ def get_last_checkpoint(path):
         key_file_names = [fn for fn in file_names if key in fn]
         if last_model is None and len(key_file_names) > 0:
             last_model = max(key_file_names, key=os.path.getctime)
-            last_model_num = torch.load(last_model)["step"]
+            last_model_num = load_fsspec(last_model)["step"]
 
         if last_model is not None:
             last_models[key] = last_model
@@ -1030,12 +1042,11 @@ def process_args(args, config=None):
         print("   >  Mixed precision mode is ON")
     experiment_path = args.continue_path
     if not experiment_path:
-        experiment_path = create_experiment_folder(config.output_path, config.run_name)
+        experiment_path = get_experiment_folder_path(config.output_path, config.run_name)
     audio_path = os.path.join(experiment_path, "test_audios")
     # setup rank 0 process in distributed training
     tb_logger = None
     if args.rank == 0:
-        os.makedirs(audio_path, exist_ok=True)
         new_fields = {}
         if args.restore_path:
             new_fields["restore_path"] = args.restore_path
@@ -1047,8 +1058,6 @@ def process_args(args, config=None):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(config, experiment_path, new_fields)
-        os.chmod(audio_path, 0o775)
-        os.chmod(experiment_path, 0o775)
         tb_logger = TensorboardLogger(experiment_path, model_name=config.model)
         # write model desc to tensorboard
         tb_logger.tb_add_text("model-config", f"<pre>{config.to_json()}</pre>", 0)

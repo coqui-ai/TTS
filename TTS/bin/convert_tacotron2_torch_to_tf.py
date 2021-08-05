@@ -13,7 +13,7 @@ from TTS.tts.tf.models.tacotron2 import Tacotron2
 from TTS.tts.tf.utils.convert_torch_to_tf_utils import compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf
 from TTS.tts.tf.utils.generic_utils import save_checkpoint
 from TTS.tts.utils.text.symbols import phonemes, symbols
-from TTS.utils.io import load_config
+from TTS.utils.io import load_config, load_fsspec
 
 sys.path.append("/home/erogol/Projects")
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
@@ -32,7 +32,7 @@ num_speakers = 0
 
 # init torch model
 model = setup_model(c)
-checkpoint = torch.load(args.torch_model_path, map_location=torch.device("cpu"))
+checkpoint = load_fsspec(args.torch_model_path, map_location=torch.device("cpu"))
 state_dict = checkpoint["model"]
 model.load_state_dict(state_dict)
 
