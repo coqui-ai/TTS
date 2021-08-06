@@ -3,7 +3,7 @@ from TTS.auto_tts.utils import data_loader
 from TTS.trainer import Trainer, TrainingArgs, init_training
 
 
-class TtsExamples:
+class AutoTrainer:
     """This is trainer for calling complete recipes based off public datasets.
     all configs are based off pretrained model configs or the model papers.
 

@@ -21,7 +21,9 @@ class TtsModels:
             def model_name:
                 config = model_config(...)
                 return config
+
     """
+
 
     def __init__(
         self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
