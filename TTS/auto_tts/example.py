@@ -1,6 +1,6 @@
-from TTS.recipe_api.complete_recipes import TtsTrainer
+from TTS.auto_tts.complete_recipes import Examples
 
-trainer = TtsTrainer(
+trainer = Examples(
     data_path="DEFINE THIS",
     batch_size=32,
     learning_rate=0.001,

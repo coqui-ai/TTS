@@ -16,6 +16,7 @@ class Models:
                 config = model_config(...)
                 return config
     """
+
     def __init__(
         self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
     ):
@@ -28,10 +29,11 @@ class Models:
 
     def single_speaker_tacotron2_base(self, audio, dataset):
         config = Tacotron2Config(
+            run_name="single_speaker_taoctron2",
             audio=audio,
             batch_size=self.batch_size,
             eval_batch_size=int(self.batch_size / 2),
-            r=7,
+            r=2,
             grad_clip=1,
             lr=self.learning_rate,
             memory_size=-1,

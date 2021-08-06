@@ -1,15 +1,15 @@
-from TTS.recipe_api.model_hub import Models
-from TTS.recipe_api.utils import data_loader
+from TTS.auto_tts.model_hub import Models
+from TTS.auto_tts.utils import data_loader
 from TTS.trainer import Trainer, TrainingArgs, init_training
 
 
-class TtsTrainer:
+class Examples:
     """This is trainer for calling complete recipes based off public datasets.
     all configs are based off pretrained model configs or the model papers.
 
     usage:
-            From TTS.recipe_api.complete_recipes import TtsTrainer
-            trainer = TtsTrainer(data_path='DEFINE THIS', batch_size=32, learning_rate=0.001,
+            From TTS.auto_tts.complete_recipes import TtsTrainer
+            trainer = Examples(data_path='DEFINE THIS', batch_size=32, learning_rate=0.001,
                       mixed_precision=False, output_path='DEFINE THIS', epochs=1000)
             model = trainer.ljspeech_tacotron2("double decoder consistency")
             model.fit()
