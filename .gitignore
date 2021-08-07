@@ -136,6 +136,7 @@ TTS/tts/layers/glow_tts/monotonic_align/core.c
 temp_build/*
 recipes/WIP/*
 recipes/ljspeech/LJSpeech-1.1/*
+recipes/ljspeech/tacotron2-DDC/LJSpeech-1.1/*
 events.out*
 old_configs/*
 model_importers/*
@@ -153,3 +154,5 @@ tts_output.wav
 deps.json
 speakers.json
 internal/*
+*_pitch.npy
+*_phoneme.npy
