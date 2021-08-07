@@ -1,8 +1,7 @@
 import os
 
-from TTS.trainer import Trainer, init_training, TrainingArgs
+from TTS.trainer import Trainer, TrainingArgs, init_training
 from TTS.vocoder.configs import WavernnConfig
-
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 config = WavernnConfig(

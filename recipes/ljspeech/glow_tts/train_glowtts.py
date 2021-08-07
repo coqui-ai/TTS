@@ -1,12 +1,12 @@
 import os
 
-from TTS.tts.configs import GlowTTSConfig
-from TTS.tts.configs import BaseDatasetConfig
-from TTS.trainer import init_training, Trainer, TrainingArgs
-
+from TTS.trainer import Trainer, TrainingArgs, init_training
+from TTS.tts.configs import BaseDatasetConfig, GlowTTSConfig
 
 output_path = os.path.dirname(os.path.abspath(__file__))
-dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/"))
+dataset_config = BaseDatasetConfig(
+    name="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/")
+)
 config = GlowTTSConfig(
     batch_size=32,
     eval_batch_size=16,
@@ -23,7 +23,7 @@ config = GlowTTSConfig(
     print_eval=True,
     mixed_precision=False,
     output_path=output_path,
-    datasets=[dataset_config]
+    datasets=[dataset_config],
 )
 args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
 trainer = Trainer(args, config, output_path, c_logger, tb_logger)
