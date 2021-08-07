@@ -79,7 +79,7 @@ class BaseAudioConfig(Coqpit):
     preemphasis: float = 0.0
     ref_level_db: int = 20
     do_sound_norm: bool = False
-    log_func = "np.log10"
+    log_func: str = "np.log10"
     # silence trimming
     do_trim_silence: bool = True
     trim_db: int = 45
@@ -182,48 +182,70 @@ class BaseTrainingConfig(Coqpit):
     Args:
         model (str):
             Name of the model that is used in the training.
+
         run_name (str):
             Name of the experiment. This prefixes the output folder name.
+
         run_description (str):
             Short description of the experiment.
+
         epochs (int):
             Number training epochs. Defaults to 10000.
+
         batch_size (int):
             Training batch size.
+
         eval_batch_size (int):
             Validation batch size.
+
         mixed_precision (bool):
             Enable / Disable mixed precision training. It reduces the VRAM use and allows larger batch sizes, however
             it may also cause numerical unstability in some cases.
+
+        scheduler_after_epoch (bool):
+            If true, run the scheduler step after each epoch else run it after each model step.
+
         run_eval (bool):
             Enable / Disable evaluation (validation) run. Defaults to True.
+
         test_delay_epochs (int):
             Number of epochs before starting to use evaluation runs. Initially, models do not generate meaningful
             results, hence waiting for a couple of epochs might save some time.
+
         print_eval (bool):
             Enable / Disable console logging for evalutaion steps. If disabled then it only shows the final values at
             the end of the evaluation. Default to ```False```.
+
         print_step (int):
             Number of steps required to print the next training log.
+
         tb_plot_step (int):
             Number of steps required to log training on Tensorboard.
+
         tb_model_param_stats (bool):
             Enable / Disable logging internal model stats for model diagnostic. It might be useful for model debugging.
             Defaults to ```False```.
+
         save_step (int):ipt
             Number of steps required to save the next checkpoint.
+
         checkpoint (bool):
             Enable / Disable checkpointing.
+
         keep_all_best (bool):
             Enable / Disable keeping all the saved best models instead of overwriting the previous one. Defaults
             to ```False```.
+
         keep_after (int):
             Number of steps to wait before saving all the best models. In use if ```keep_all_best == True```. Defaults
             to 10000.
+
         num_loader_workers (int):
             Number of workers for training time dataloader.
+
         num_eval_loader_workers (int):
             Number of workers for evaluation time dataloader.
+
         output_path (str):
             Path for training output folder, either a local file path or other
             URLs supported by both fsspec and tensorboardX, e.g. GCS (gs://) or
@@ -239,6 +261,7 @@ class BaseTrainingConfig(Coqpit):
     batch_size: int = None
     eval_batch_size: int = None
     mixed_precision: bool = False
+    scheduler_after_epoch: bool = False
     # eval params
     run_eval: bool = True
     test_delay_epochs: int = 0
