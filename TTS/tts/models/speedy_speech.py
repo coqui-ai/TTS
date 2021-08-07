@@ -106,7 +106,7 @@ class SpeedySpeech(BaseTTS):
             if isinstance(config.model_args.length_scale, int)
             else config.model_args.length_scale
         )
-        self.emb = nn.Embedding(config.model_args.num_chars, config.model_args.hidden_channels)
+        self.emb = nn.Embedding(self.num_chars, config.model_args.hidden_channels)
         self.encoder = Encoder(
             config.model_args.hidden_channels,
             config.model_args.hidden_channels,
@@ -228,6 +228,7 @@ class SpeedySpeech(BaseTTS):
         outputs = {"model_outputs": o_de.transpose(1, 2), "durations_log": o_dr_log.squeeze(1), "alignments": attn}
         return outputs
 
+    @torch.no_grad()
     def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None}):  # pylint: disable=unused-argument
         """
         Shapes:

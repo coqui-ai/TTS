@@ -360,10 +360,13 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
         elif c.use_d_vector_file and c.d_vector_file:
             # new speaker manager with external speaker embeddings.
             speaker_manager.set_d_vectors_from_file(c.d_vector_file)
-        elif c.use_d_vector_file and not c.d_vector_file:  # new speaker manager with speaker IDs file.
-            raise "use_d_vector_file is True, so you need pass a external speaker embedding file, run GE2E-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb or AngularPrototypical-Speaker_Encoder-ExtractSpeakerEmbeddings-by-sample.ipynb notebook in notebooks/ folder"
+        elif c.use_d_vector_file and not c.d_vector_file:
+            raise "use_d_vector_file is True, so you need pass a external speaker embedding file."
+        elif c.use_speaker_embedding and "speakers_file" in c and c.speakers_file:
+            # new speaker manager with speaker IDs file.
+            speaker_manager.set_speaker_ids_from_file(c.speakers_file)
         print(
-            " > Training with {} speakers: {}".format(
+            " > Speaker manager is loaded with {} speakers: {}".format(
                 speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
             )
         )
