@@ -76,9 +76,6 @@ class BaseTacotron(BaseTTS):
         self.decoder_backward = None
         self.coarse_decoder = None
 
-        # init multi-speaker layers
-        self.init_multispeaker(config)
-
     @staticmethod
     def _format_aux_input(aux_input: Dict) -> Dict:
         return format_aux_input({"d_vectors": None, "speaker_ids": None}, aux_input)
@@ -237,6 +234,7 @@ class BaseTacotron(BaseTTS):
     def compute_gst(self, inputs, style_input, speaker_embedding=None):
         """Compute global style token"""
         if isinstance(style_input, dict):
+            # multiply each style token with a weight
             query = torch.zeros(1, 1, self.gst.gst_embedding_dim // 2).type_as(inputs)
             if speaker_embedding is not None:
                 query = torch.cat([query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
@@ -248,8 +246,10 @@ class BaseTacotron(BaseTTS):
                 gst_outputs_att = self.gst_layer.style_token_layer.attention(query, key)
                 gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
         elif style_input is None:
+            # ignore style token and return zero tensor
             gst_outputs = torch.zeros(1, 1, self.gst.gst_embedding_dim).type_as(inputs)
         else:
+            # compute style tokens
             gst_outputs = self.gst_layer(style_input, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
