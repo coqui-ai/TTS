@@ -3,13 +3,15 @@ import os
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.speedy_speech_config import SpeedySpeechArgs, SpeedySpeechConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
+from TTS.vocoder.configs.hifigan_config import HifiganConfig
 
 
-class Models:
+class TtsModels:
     """
     This is a class that holds all the model configs.
     If you want to add a new recipe this is where you would add your model config
-    made this so the complete recipes file doesnt look so cluttered.
+    made this so the complete recipes file doesnt look so cluttered. If you would like
+    to contribute a model for a recipe look at the usage on how you should format the function.
 
     usage:
             def model_name:
@@ -27,7 +29,9 @@ class Models:
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-    def single_speaker_tacotron2_base(self, audio, dataset):
+    def single_speaker_tacotron2_base(
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
+    ):
         config = Tacotron2Config(
             run_name="single_speaker_taoctron2",
             audio=audio,
@@ -36,6 +40,14 @@ class Models:
             r=2,
             grad_clip=1,
             lr=self.learning_rate,
+            decoder_loss_alpha=dla,
+            postnet_loss_alpha=pla,
+            postnet_diff_spec_alpha=0.25,
+            decoder_diff_spec_alpha=0.25,
+            decoder_ssim_alpha=0.25,
+            postnet_ssim_alpha=0.25,
+            ga_alpha=ga,
+            stopnet_pos_weight=15.0,
             memory_size=-1,
             prenet_type="original",
             prenet_dropout=True,
@@ -43,10 +55,10 @@ class Models:
             attention_heads=5,
             attention_norm="sigmoid",
             windowing=False,
-            use_forward_attn=True,
+            use_forward_attn=forward_attn,
             forward_attn_mask=False,
             transition_agent=False,
-            location_attn=True,
+            location_attn=location_attn,
             stopnet=True,
             separate_stopnet=True,
             print_step=25,
@@ -62,7 +74,9 @@ class Models:
         )
         return config
 
-    def single_speaker_tacotron2_DDC(self, audio, dataset):
+    def single_speaker_tacotron2_DDC(
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+    ):
         config = Tacotron2Config(
             audio=audio,
             run_name="ljspeech-ddc",
@@ -71,13 +85,13 @@ class Models:
             eval_batch_size=self.batch_size // 2,
             mixed_precision=False,
             loss_masking=True,
-            decoder_loss_alpha=0.25,
-            postnet_loss_alpha=0.25,
+            decoder_loss_alpha=dla,
+            postnet_loss_alpha=pla,
             postnet_diff_spec_alpha=0.25,
             decoder_diff_spec_alpha=0.25,
             decoder_ssim_alpha=0.25,
             postnet_ssim_alpha=0.25,
-            ga_alpha=5.0,
+            ga_alpha=ga,
             stopnet_pos_weight=15.0,
             run_eval=True,
             test_delay_epochs=10,
@@ -87,9 +101,10 @@ class Models:
             lr=self.learning_rate,
             memory_size=-1,
             prenet_type="original",
+            use_forward_attn=forward_attn,
             prenet_dropout=True,
             attention_type="original",
-            location_attn=True,
+            location_attn=location_attn,
             double_decoder_consistency=True,
             ddc_r=6,
             attention_norm="sigmoid",
@@ -122,7 +137,9 @@ class Models:
         )
         return config
 
-    def single_speaker_tacotron2_DCA(self, audio, dataset):
+    def single_speaker_tacotron2_DCA(
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+    ):
         """This is a tacotron2 dca config for the ljspeech dataset,
         based off the already existing recipe config."""
         config = Tacotron2Config(
@@ -133,13 +150,13 @@ class Models:
             eval_batch_size=self.batch_size // 2,
             mixed_precision=True,
             loss_masking=True,
-            decoder_loss_alpha=0.25,
-            postnet_loss_alpha=0.25,
+            decoder_loss_alpha=dla,
+            postnet_loss_alpha=pla,
             postnet_diff_spec_alpha=0.25,
             decoder_diff_spec_alpha=0.25,
             decoder_ssim_alpha=0.25,
             postnet_ssim_alpha=0.25,
-            ga_alpha=5.0,
+            ga_alpha=ga,
             stopnet_pos_weight=15.0,
             run_eval=True,
             test_delay_epochs=10,
@@ -149,9 +166,10 @@ class Models:
             lr=self.learning_rate,
             memory_size=-1,
             prenet_type="original",
+            use_forward_attn=forward_attn,
             prenet_dropout=True,
             attention_type="dynamic_convolution",
-            location_attn=True,
+            location_attn=location_attn,
             attention_norm="sigmoid",
             r=2,
             stopnet=True,
@@ -263,38 +281,15 @@ class Models:
         )
         return config
 
-    def ScGlowTts(self, audio, dataset, encoder, speaker_file):
+    def ScGlowTts(self, audio, dataset, speaker_file, encoder):
         if encoder == "transformer":
             encoder_type = "rel_pos_transformer"
-            encoder_params = {
-                "kernel_size": 3,
-                "dropout_p": 0.1,
-                "num_layers": 6,
-                "num_heads": 2,
-                "hidden_channels_ffn": 768,
-                "input_length": None,
-            }
         elif encoder == "gated":
             encoder_type = "gated_conv"
-            encoder_params = {
-                "kernel_size": 5,
-                "dropout_p": 0.1,
-                "num_layers": 9,
-            }
         elif encoder == "residual_bn":
             encoder_type = "residual_conv_bn"
-            encoder_params = {
-                "kernel_size": 4,
-                "dilations": [1, 2, 4, 1, 2, 4, 1, 2, 4, 1, 2, 4, 1],
-                "num_conv_blocks": 2,
-                "num_res_blocks": 13,
-            }
         elif encoder == "time_depth":
             encoder_type = "time_depth_separable"
-            encoder_params = {
-                "kernel_size": 5,
-                "num_layers": 9,
-            }
         config = GlowTTSConfig(
             audio=audio,
             run_name="multispeaker glow tts",
@@ -318,7 +313,7 @@ class Models:
             phoneme_language="en",
             compute_input_seq_cache=False,
             test_sentences_file=None,
-            phoneme_cache_path=self.phoneme_path,
+            phoneme_cache_path=os.path.join(self.output_path, "phoneme_cache"),
             batch_group_size=0,
             loss_masking=True,
             min_seq_len=2,
@@ -329,7 +324,6 @@ class Models:
             use_d_vector_file=True,
             d_vector_dim=256,
             encoder_type=encoder_type,
-            encoder_params=encoder_params,
             use_encoder_prenet=True,
             hidden_channels_dp=256,
             hidden_channels_dec=192,
@@ -356,4 +350,22 @@ class Models:
             r=1,
             datasets=[dataset],
         )
+        return config
+
+
+class VocoderModels:
+    def __init__(
+        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
+    ):
+
+        self.batch_size = batch_size
+        self.output_path = output_path
+        self.mixed_precision = mixed_precision
+        self.learning_rate = learning_rate
+        self.epochs = epochs
+
+    # ToDo: make this and one with wavegrad
+    def ljspeech_hifigan(self, audio, dataset):
+        config = HifiganConfig(audio=audio,
+                               datasets=[dataset])
         return config
