@@ -5,11 +5,16 @@ import subprocess
 import sys
 from distutils.version import LooseVersion
 
-import numpy
 import setuptools.command.build_py
 import setuptools.command.develop
-from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
+
+# Are not installed yet when obtaining version info for dependency resolution
+try:
+    import numpy
+    from Cython.Build import cythonize
+except ImportError:
+    pass
 
 if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.10"):
     raise RuntimeError("TTS requires python >= 3.6 and <=3.10 " "but your Python version is {}".format(sys.version))
@@ -56,6 +61,7 @@ exts = [
     Extension(
         name="TTS.tts.layers.glow_tts.monotonic_align.core",
         sources=["TTS/tts/layers/glow_tts/monotonic_align/core.pyx"],
+        include_dirs=[numpy.get_include()] if "numpy" in globals() else None,
     )
 ]
 setup(
@@ -69,8 +75,7 @@ setup(
     long_description_content_type="text/markdown",
     license="MPL-2.0",
     # cython
-    include_dirs=numpy.get_include(),
-    ext_modules=cythonize(exts, language_level=3),
+    ext_modules=cythonize(exts, language_level=3) if "cythonize" in globals() else None,
     # ext_modules=find_cython_extensions(),
     # package
     include_package_data=True,
