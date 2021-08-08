@@ -58,7 +58,9 @@ def data_loader(name, path, stats_path=None):
             trim_db=25,
         )
     elif name == "sam" or "sam_accenture":
-        dataset = BaseDatasetConfig(name=name, meta_file_train="recording_script.xml", meta_file_val=None, path=path)
+        dataset = BaseDatasetConfig(
+            name="sam_accenture", meta_file_train="recording_script.xml", meta_file_val=None, path=path
+        )
         audio = BaseAudioConfig(
             sample_rate=16000,
             preemphasis=0.0,
