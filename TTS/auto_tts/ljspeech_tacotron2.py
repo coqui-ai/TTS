@@ -1,6 +1,6 @@
 import argparse
 
-from TTS.auto_tts.complete_recipes import Examples
+from TTS.auto_tts.complete_recipes import TtsExamples
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
 
     args = parser.parse_args()
     args = vars(args)
-    trainer = Examples(
+    trainer = TtsExamples(
         args["data_path"],
         args["batch_size"],
         args["output_path"],
