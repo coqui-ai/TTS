@@ -1130,8 +1130,6 @@ def process_args(args, config=None):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(config, experiment_path, new_fields)
-        os.chmod(audio_path, 0o775)
-        os.chmod(experiment_path, 0o775)
 
     dashboard_logger = init_logger(config)
     c_logger = ConsoleLogger()
