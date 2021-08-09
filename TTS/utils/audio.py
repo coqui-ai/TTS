@@ -96,10 +96,12 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         )
         self.mel_basis = torch.from_numpy(mel_basis).float()
 
-    def _amp_to_db(self, x, spec_gain=1.0):
+    @staticmethod
+    def _amp_to_db(x, spec_gain=1.0):
         return torch.log(torch.clamp(x, min=1e-5) * spec_gain)
 
-    def _db_to_amp(self, x, spec_gain=1.0):
+    @staticmethod
+    def _db_to_amp(x, spec_gain=1.0):
         return torch.exp(x) / spec_gain
 
 

@@ -16,7 +16,7 @@ class ResidualConv1dLayerNormBlock(nn.Module):
     ::
 
         x |-> conv1d -> layer_norm -> relu -> dropout -> + -> o
-          |---------------> conv1d_1x1 -----------------------|
+          |---------------> conv1d_1x1 ------------------|
 
     Args:
         in_channels (int): number of input tensor channels.

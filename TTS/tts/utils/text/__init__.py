@@ -81,7 +81,6 @@ def text2phone(text, language, use_espeak_phonemes=False):
         # Fix a few phonemes
         ph = ph.translate(GRUUT_TRANS_TABLE)
 
-        # print(" > Phonemes: {}".format(ph))
         return ph
 
     raise ValueError(f" [!] Language {language} is not supported for phonemization.")
@@ -116,6 +115,7 @@ def phoneme_to_sequence(
     use_espeak_phonemes: bool = False,
 ) -> List[int]:
     """Converts a string of phonemes to a sequence of IDs.
+    If `custom_symbols` is provided, it will override the default symbols.
 
     Args:
       text (str): string to convert to a sequence
@@ -132,12 +132,11 @@ def phoneme_to_sequence(
     # pylint: disable=global-statement
     global _phonemes_to_id, _phonemes
 
-    if tp:
-        _, _phonemes = make_symbols(**tp)
-        _phonemes_to_id = {s: i for i, s in enumerate(_phonemes)}
-    elif custom_symbols is not None:
+    if custom_symbols is not None:
         _phonemes = custom_symbols
-        _phonemes_to_id = {s: i for i, s in enumerate(custom_symbols)}
+    elif tp:
+        _, _phonemes = make_symbols(**tp)
+    _phonemes_to_id = {s: i for i, s in enumerate(_phonemes)}
 
     sequence = []
     clean_text = _clean_text(text, cleaner_names)
@@ -155,16 +154,19 @@ def phoneme_to_sequence(
     return sequence
 
 
-def sequence_to_phoneme(sequence, tp=None, add_blank=False):
+def sequence_to_phoneme(sequence: List, tp: Dict = None, add_blank=False, custom_symbols: List["str"] = None):
     # pylint: disable=global-statement
     """Converts a sequence of IDs back to a string"""
     global _id_to_phonemes, _phonemes
     if add_blank:
         sequence = list(filter(lambda x: x != len(_phonemes), sequence))
     result = ""
-    if tp:
+
+    if custom_symbols is not None:
+        _phonemes = custom_symbols
+    elif tp:
         _, _phonemes = make_symbols(**tp)
-        _id_to_phonemes = {i: s for i, s in enumerate(_phonemes)}
+    _id_to_phonemes = {i: s for i, s in enumerate(_phonemes)}
 
     for symbol_id in sequence:
         if symbol_id in _id_to_phonemes:
@@ -177,6 +179,7 @@ def text_to_sequence(
     text: str, cleaner_names: List[str], custom_symbols: List[str] = None, tp: Dict = None, add_blank: bool = False
 ) -> List[int]:
     """Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
+    If `custom_symbols` is provided, it will override the default symbols.
 
     Args:
       text (str): string to convert to a sequence
@@ -189,12 +192,12 @@ def text_to_sequence(
     """
     # pylint: disable=global-statement
     global _symbol_to_id, _symbols
-    if tp:
-        _symbols, _ = make_symbols(**tp)
-        _symbol_to_id = {s: i for i, s in enumerate(_symbols)}
-    elif custom_symbols is not None:
+
+    if custom_symbols is not None:
         _symbols = custom_symbols
-        _symbol_to_id = {s: i for i, s in enumerate(custom_symbols)}
+    elif tp:
+        _symbols, _ = make_symbols(**tp)
+    _symbol_to_id = {s: i for i, s in enumerate(_symbols)}
 
     sequence = []
 
@@ -213,16 +216,18 @@ def text_to_sequence(
     return sequence
 
 
-def sequence_to_text(sequence, tp=None, add_blank=False):
+def sequence_to_text(sequence: List, tp: Dict = None, add_blank=False, custom_symbols: List[str] = None):
     """Converts a sequence of IDs back to a string"""
     # pylint: disable=global-statement
     global _id_to_symbol, _symbols
     if add_blank:
         sequence = list(filter(lambda x: x != len(_symbols), sequence))
 
-    if tp:
+    if custom_symbols is not None:
+        _symbols = custom_symbols
+    elif tp:
         _symbols, _ = make_symbols(**tp)
-        _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
+    _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
 
     result = ""
     for symbol_id in sequence:

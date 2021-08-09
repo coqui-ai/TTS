@@ -33,10 +33,10 @@ class DiscriminatorP(torch.nn.Module):
         norm_f = nn.utils.spectral_norm if use_spectral_norm else nn.utils.weight_norm
         self.convs = nn.ModuleList(
             [
-                norm_f(nn.Conv2d(1, 32, (kernel_size, 1), (stride, 1), padding=(get_padding(5, 1), 0))),
-                norm_f(nn.Conv2d(32, 128, (kernel_size, 1), (stride, 1), padding=(get_padding(5, 1), 0))),
-                norm_f(nn.Conv2d(128, 512, (kernel_size, 1), (stride, 1), padding=(get_padding(5, 1), 0))),
-                norm_f(nn.Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(get_padding(5, 1), 0))),
+                norm_f(nn.Conv2d(1, 32, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
+                norm_f(nn.Conv2d(32, 128, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
+                norm_f(nn.Conv2d(128, 512, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
+                norm_f(nn.Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
                 norm_f(nn.Conv2d(1024, 1024, (kernel_size, 1), 1, padding=(2, 0))),
             ]
         )
@@ -81,15 +81,15 @@ class MultiPeriodDiscriminator(torch.nn.Module):
     Periods are suggested to be prime numbers to reduce the overlap between each discriminator.
     """
 
-    def __init__(self):
+    def __init__(self, use_spectral_norm=False):
         super().__init__()
         self.discriminators = nn.ModuleList(
             [
-                DiscriminatorP(2),
-                DiscriminatorP(3),
-                DiscriminatorP(5),
-                DiscriminatorP(7),
-                DiscriminatorP(11),
+                DiscriminatorP(2, use_spectral_norm=use_spectral_norm),
+                DiscriminatorP(3, use_spectral_norm=use_spectral_norm),
+                DiscriminatorP(5, use_spectral_norm=use_spectral_norm),
+                DiscriminatorP(7, use_spectral_norm=use_spectral_norm),
+                DiscriminatorP(11, use_spectral_norm=use_spectral_norm),
             ]
         )
 
@@ -99,7 +99,7 @@ class MultiPeriodDiscriminator(torch.nn.Module):
             x (Tensor): input waveform.
 
         Returns:
-            [List[Tensor]]: list of scores from each discriminator.
+        [List[Tensor]]: list of scores from each discriminator.
             [List[List[Tensor]]]: list of list of features from each discriminator's each convolutional layer.
 
         Shapes:
