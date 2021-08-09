@@ -304,7 +304,12 @@ class Vits(BaseTTS):
 
         if args.use_sdp:
             self.duration_predictor = StochasticDurationPredictor(
-                args.hidden_channels, 192, 3, args.dropout_p_duration_predictor, 4, cond_channels=self.embedded_speaker_dim
+                args.hidden_channels,
+                192,
+                3,
+                args.dropout_p_duration_predictor,
+                4,
+                cond_channels=self.embedded_speaker_dim,
             )
         else:
             self.duration_predictor = DurationPredictor(
