@@ -102,7 +102,8 @@
                 "tacotron2-DDC-GST":{
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.10/tts_models--zh-CN--baker--tacotron2-DDC-GST.zip",
                     "commit": "unknown",
-                    "author": "@kirianguiller"
+                    "author": "@kirianguiller",
+                    "default_vocoder": null
                 }
             }
         },
