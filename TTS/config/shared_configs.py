@@ -36,6 +36,10 @@ class BaseAudioConfig(Coqpit):
             Enable / Disable sound normalization to reconcile the volume differences among samples. Defaults to False.
         do_trim_silence (bool):
             Enable / Disable trimming silences at the beginning and the end of the audio clip. Defaults to ```True```.
+        do_amp_to_db_linear (bool, optional):
+            enable/disable amplitude to dB conversion of linear spectrograms. Defaults to True.
+        do_amp_to_db_mel (bool, optional):
+            enable/disable amplitude to dB conversion of mel spectrograms. Defaults to True.
         trim_db (int):
             Silence threshold used for silence trimming. Defaults to 45.
         power (float):
@@ -91,6 +95,8 @@ class BaseAudioConfig(Coqpit):
     mel_fmin: float = 0.0
     mel_fmax: float = None
     spec_gain: int = 20
+    do_amp_to_db_linear: bool = True
+    do_amp_to_db_mel: bool = True
     # normalization params
     signal_norm: bool = True
     min_level_db: int = -100
