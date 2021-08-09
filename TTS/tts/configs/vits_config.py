@@ -9,6 +9,82 @@ from TTS.tts.models.vits import VitsArgs
 class VitsConfig(BaseTTSConfig):
     """Defines parameters for VITS End2End TTS model.
 
+    Args:
+        model (str):
+            Model name. Do not change unless you know what you are doing.
+
+        model_args (VitsArgs):
+            Model architecture arguments. Defaults to `VitsArgs()`.
+
+        grad_clip (List):
+            Gradient clipping thresholds for each optimizer. Defaults to `[5.0, 5.0]`.
+
+        lr_gen (float):
+            Initial learning rate for the generator. Defaults to 0.0002.
+
+        lr_disc (float):
+            Initial learning rate for the discriminator. Defaults to 0.0002.
+
+        lr_scheduler_gen (str):
+            Name of the learning rate scheduler for the generator. One of the `torch.optim.lr_scheduler.*`. Defaults to
+            `ExponentialLR`.
+
+        lr_scheduler_gen_params (dict):
+            Parameters for the learning rate scheduler of the generator. Defaults to `{'gamma': 0.999875, "last_epoch":-1}`.
+
+        lr_scheduler_disc (str):
+            Name of the learning rate scheduler for the discriminator. One of the `torch.optim.lr_scheduler.*`. Defaults to
+            `ExponentialLR`.
+
+        lr_scheduler_disc_params (dict):
+            Parameters for the learning rate scheduler of the discriminator. Defaults to `{'gamma': 0.999875, "last_epoch":-1}`.
+
+        scheduler_after_epoch (bool):
+            If true, step the schedulers after each epoch else after each step. Defaults to `False`.
+
+        optimizer (str):
+            Name of the optimizer to use with both the generator and the discriminator networks. One of the
+            `torch.optim.*`. Defaults to `AdamW`.
+
+        kl_loss_alpha (float):
+            Loss weight for KL loss. Defaults to 1.0.
+
+        disc_loss_alpha (float):
+            Loss weight for the discriminator loss. Defaults to 1.0.
+
+        gen_loss_alpha (float):
+            Loss weight for the generator loss. Defaults to 1.0.
+
+        feat_loss_alpha (float):
+            Loss weight for the feature matching loss. Defaults to 1.0.
+
+        mel_loss_alpha (float):
+            Loss weight for the mel loss. Defaults to 45.0.
+
+        return_wav (bool):
+            If true, data loader returns the waveform as well as the other outputs. Do not change. Defaults to `True`.
+
+        compute_linear_spec (bool):
+            If true, the linear spectrogram is computed and returned alongside the mel output. Do not change. Defaults to `True`.
+
+        min_seq_len (int):
+            Minimum text length to be considered for training. Defaults to `13`.
+
+        max_seq_len (int):
+            Maximum text length to be considered for training. Defaults to `500`.
+
+        r (int):
+            Number of spectrogram frames to be generated at a time. Do not change. Defaults to `1`.
+
+        add_blank (bool):
+            If true, a blank token is added in between every character. Defaults to `True`.
+
+        test_sentences (List[str]):
+            List of sentences to be used for testing.
+
+    Note:
+        Check :class:`TTS.tts.configs.shared_configs.BaseTTSConfig` for the inherited parameters.
+
     Example:
 
         >>> from TTS.tts.configs import VitsConfig
@@ -20,7 +96,7 @@ class VitsConfig(BaseTTSConfig):
     model_args: VitsArgs = field(default_factory=VitsArgs)
 
     # optimizer
-    grad_clip: float = field(default_factory=lambda: [5, 5])
+    grad_clip: List[float] = field(default_factory=lambda: [5, 5])
     lr_gen: float = 0.0002
     lr_disc: float = 0.0002
     lr_scheduler_gen: str = "ExponentialLR"
@@ -44,7 +120,7 @@ class VitsConfig(BaseTTSConfig):
 
     # overrides
     min_seq_len: int = 13
-    max_seq_len: int = 200
+    max_seq_len: int = 500
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 
