@@ -116,12 +116,12 @@ def train(model, optimizer, scheduler, criterion, data_loader, global_step):
                 "step_time": step_time,
                 "avg_loader_time": avg_loader_time,
             }
-            tb_logger.tb_train_epoch_stats(global_step, train_stats)
+            dashboard_logger.train_epoch_stats(global_step, train_stats)
             figures = {
                 # FIXME: not constant
                 "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), 10),
             }
-            tb_logger.tb_train_figures(global_step, figures)
+            dashboard_logger.train_figures(global_step, figures)
 
         if global_step % c.print_step == 0:
             print(
@@ -208,7 +208,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == "__main__":
-    args, c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = init_training(sys.argv)
+    args, c, OUT_PATH, AUDIO_PATH, c_logger, dashboard_logger = init_training(sys.argv)
 
     try:
         main(args)
