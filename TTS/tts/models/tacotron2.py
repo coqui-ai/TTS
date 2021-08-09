@@ -23,7 +23,7 @@ class Tacotron2(BaseTacotron):
         super().__init__(config)
 
         chars, self.config = self.get_characters(config)
-        self.num_chars = len(chars)
+        config.num_chars = len(chars)
         self.decoder_output_dim = config.out_channels
 
         # pass all config fields to `self`

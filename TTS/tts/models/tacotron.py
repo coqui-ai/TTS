@@ -24,6 +24,7 @@ class Tacotron(BaseTacotron):
         super().__init__(config)
 
         self.num_chars, self.config = self.get_characters(config)
+        config.num_chars = self.num_chars
 
         # pass all config fields to `self`
         # for fewer code change

@@ -208,7 +208,7 @@ def main():
     if args.vocoder_name is not None and not args.vocoder_path:
         vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
-    # CASE3: set custome model paths
+    # CASE3: set custom model paths
     if args.model_path is not None:
         model_path = args.model_path
         config_path = args.config_path
