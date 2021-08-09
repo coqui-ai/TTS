@@ -19,8 +19,13 @@ def setup_model(config):
             symbols = phonemes
         # use default characters and assign them to config
         config.characters = parse_symbols()
+
+    num_chars = len(phonemes) if config.use_phonemes else len(symbols)
+
     # consider special `blank` character if `add_blank` is set True
-    num_chars = len(symbols) + getattr(config, "add_blank", False)
+    if getattr(config, "add_blank", False):
+        num_chars += 1
+
     config.num_chars = num_chars
     # compatibility fix
     if "model_params" in config:
