@@ -191,6 +191,7 @@ class TTSDataset(Dataset):
         else:
             text, wav_file, speaker_name = item
             attn = None
+        raw_text = text
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
@@ -236,6 +237,7 @@ class TTSDataset(Dataset):
             return self.load_data(self.rescue_item_idx)
 
         sample = {
+            "raw_text": raw_text,
             "text": text,
             "wav": wav,
             "attn": attn,
@@ -360,6 +362,7 @@ class TTSDataset(Dataset):
             wav = [batch[idx]["wav"] for idx in ids_sorted_decreasing]
             item_idxs = [batch[idx]["item_idx"] for idx in ids_sorted_decreasing]
             text = [batch[idx]["text"] for idx in ids_sorted_decreasing]
+            raw_text = [batch[idx]["raw_text"] for idx in ids_sorted_decreasing]
 
             speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
             # get pre-computed d-vectors
@@ -450,6 +453,7 @@ class TTSDataset(Dataset):
                 attns = torch.FloatTensor(attns).unsqueeze(1)
             else:
                 attns = None
+            # TODO: return dictionary
             return (
                 text,
                 text_lenghts,
@@ -463,6 +467,7 @@ class TTSDataset(Dataset):
                 speaker_ids,
                 attns,
                 wav_padded,
+                raw_text,
             )
 
         raise TypeError(

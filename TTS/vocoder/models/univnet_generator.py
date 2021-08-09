@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -10,18 +12,35 @@ LRELU_SLOPE = 0.1
 class UnivnetGenerator(torch.nn.Module):
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        hidden_channels,
-        cond_channels,
-        upsample_factors,
-        lvc_layers_each_block,
-        lvc_kernel_size,
-        kpnet_hidden_channels,
-        kpnet_conv_size,
-        dropout,
+        in_channels: int,
+        out_channels: int,
+        hidden_channels: int,
+        cond_channels: int,
+        upsample_factors: List[int],
+        lvc_layers_each_block: int,
+        lvc_kernel_size: int,
+        kpnet_hidden_channels: int,
+        kpnet_conv_size: int,
+        dropout: float,
         use_weight_norm=True,
     ):
+        """Univnet Generator network.
+
+        Paper: https://arxiv.org/pdf/2106.07889.pdf
+
+        Args:
+            in_channels (int): Number of input tensor channels.
+            out_channels (int): Number of channels of the output tensor.
+            hidden_channels (int): Number of hidden network channels.
+            cond_channels (int): Number of channels of the conditioning tensors.
+            upsample_factors (List[int]): List of uplsample factors for the upsampling layers.
+            lvc_layers_each_block (int): Number of LVC layers in each block.
+            lvc_kernel_size (int): Kernel size of the LVC layers.
+            kpnet_hidden_channels (int): Number of hidden channels in the key-point network.
+            kpnet_conv_size (int): Number of convolution channels in the key-point network.
+            dropout (float): Dropout rate.
+            use_weight_norm (bool, optional): Enable/disable weight norm. Defaults to True.
+        """
 
         super().__init__()
         self.in_channels = in_channels

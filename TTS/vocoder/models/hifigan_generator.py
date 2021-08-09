@@ -170,6 +170,10 @@ class HifiganGenerator(torch.nn.Module):
         upsample_initial_channel,
         upsample_factors,
         inference_padding=5,
+        cond_channels=0,
+        conv_pre_weight_norm=True,
+        conv_post_weight_norm=True,
+        conv_post_bias=True,
     ):
         r"""HiFiGAN Generator with Multi-Receptive Field Fusion (MRF)
 
@@ -218,12 +222,21 @@ class HifiganGenerator(torch.nn.Module):
             for _, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer
-        self.conv_post = weight_norm(Conv1d(ch, out_channels, 7, 1, padding=3))
+        self.conv_post = weight_norm(Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias))
+        if cond_channels > 0:
+            self.cond_layer = nn.Conv1d(cond_channels, upsample_initial_channel, 1)
 
-    def forward(self, x):
+        if not conv_pre_weight_norm:
+            remove_weight_norm(self.conv_pre)
+
+        if not conv_post_weight_norm:
+            remove_weight_norm(self.conv_post)
+
+    def forward(self, x, g=None):
         """
         Args:
-            x (Tensor): conditioning input tensor.
+            x (Tensor): feature input tensor.
+            g (Tensor): global conditioning input tensor.
 
         Returns:
             Tensor: output waveform.
@@ -233,6 +246,8 @@ class HifiganGenerator(torch.nn.Module):
             Tensor: [B, 1, T]
         """
         o = self.conv_pre(x)
+        if hasattr(self, "cond_layer"):
+            o = o + self.cond_layer(g)
         for i in range(self.num_upsamples):
             o = F.leaky_relu(o, LRELU_SLOPE)
             o = self.ups[i](o)
