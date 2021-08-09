@@ -3,6 +3,7 @@ import os
 import random
 from typing import Any, Dict, List, Tuple, Union
 
+import fsspec
 import numpy as np
 import torch
 from coqpit import Coqpit
@@ -84,12 +85,12 @@ class SpeakerManager:
 
     @staticmethod
     def _load_json(json_file_path: str) -> Dict:
-        with open(json_file_path) as f:
+        with fsspec.open(json_file_path, "r") as f:
             return json.load(f)
 
     @staticmethod
     def _save_json(json_file_path: str, data: dict) -> None:
-        with open(json_file_path, "w") as f:
+        with fsspec.open(json_file_path, "w") as f:
             json.dump(data, f, indent=4)
 
     @property
@@ -294,9 +295,10 @@ def _set_file_path(path):
     Intended to band aid the different paths returned in restored and continued training."""
     path_restore = os.path.join(os.path.dirname(path), "speakers.json")
     path_continue = os.path.join(path, "speakers.json")
-    if os.path.exists(path_restore):
+    fs = fsspec.get_mapper(path).fs
+    if fs.exists(path_restore):
         return path_restore
-    if os.path.exists(path_continue):
+    if fs.exists(path_continue):
         return path_continue
     raise FileNotFoundError(f" [!] `speakers.json` not found in {path}")
 
@@ -307,7 +309,7 @@ def load_speaker_mapping(out_path):
         json_file = out_path
     else:
         json_file = _set_file_path(out_path)
-    with open(json_file) as f:
+    with fsspec.open(json_file, "r") as f:
         return json.load(f)
 
 
@@ -315,7 +317,7 @@ def save_speaker_mapping(out_path, speaker_mapping):
     """Saves speaker mapping if not yet present."""
     if out_path is not None:
         speakers_json_path = _set_file_path(out_path)
-        with open(speakers_json_path, "w") as f:
+        with fsspec.open(speakers_json_path, "w") as f:
             json.dump(speaker_mapping, f, indent=4)
 
 

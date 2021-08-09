@@ -233,8 +233,10 @@ class BaseTrainingConfig(Coqpit):
         num_eval_loader_workers (int):
             Number of workers for evaluation time dataloader.
         output_path (str):
-            Path for training output folder. The nonexist part of the given path is created automatically.
-            All training outputs are saved there.
+            Path for training output folder, either a local file path or other
+            URLs supported by both fsspec and tensorboardX, e.g. GCS (gs://) or
+            S3 (s3://) paths. The nonexist part of the given path is created
+            automatically. All training artefacts are saved there.
     """
 
     model: str = None
