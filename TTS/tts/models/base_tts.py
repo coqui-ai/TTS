@@ -212,13 +212,22 @@ class BaseTTS(BaseModel):
                 else None,
             )
 
-            if (
-                config.use_phonemes
-                and config.compute_input_seq_cache
-                and not os.path.exists(dataset.phoneme_cache_path)
-            ):
-                # precompute phonemes to have a better estimate of sequence lengths.
-                dataset.compute_input_seq(config.num_loader_workers)
+            if config.use_phonemes and config.compute_input_seq_cache:
+                if hasattr(self, "eval_data_items") and is_eval:
+                    dataset.items = self.eval_data_items
+                elif hasattr(self, "train_data_items") and not is_eval:
+                    dataset.items = self.train_data_items
+                else:
+                    # precompute phonemes to have a better estimate of sequence lengths.
+                    dataset.compute_input_seq(config.num_loader_workers)
+
+                    # TODO: find a more efficient solution
+                    # cheap hack - store items in the model state to avoid recomputing when reinit the dataset
+                    if is_eval:
+                        self.eval_data_items = dataset.items
+                    else:
+                        self.train_data_items = dataset.items
+
             dataset.sort_items()
 
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None

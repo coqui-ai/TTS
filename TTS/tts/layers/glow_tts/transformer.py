@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from TTS.tts.layers.glow_tts.glow import LayerNorm
+from TTS.tts.layers.generic.normalization import LayerNorm, LayerNorm2
 
 
 class RelativePositionMultiHeadAttention(nn.Module):
@@ -271,7 +271,7 @@ class FeedForwardNetwork(nn.Module):
         dropout_p (float, optional): dropout rate. Defaults to 0.
     """
 
-    def __init__(self, in_channels, out_channels, hidden_channels, kernel_size, dropout_p=0.0):
+    def __init__(self, in_channels, out_channels, hidden_channels, kernel_size, dropout_p=0.0, causal=False):
 
         super().__init__()
         self.in_channels = in_channels
@@ -280,16 +280,45 @@ class FeedForwardNetwork(nn.Module):
         self.kernel_size = kernel_size
         self.dropout_p = dropout_p
 
-        self.conv_1 = nn.Conv1d(in_channels, hidden_channels, kernel_size, padding=kernel_size // 2)
-        self.conv_2 = nn.Conv1d(hidden_channels, out_channels, kernel_size, padding=kernel_size // 2)
+        if causal:
+            self.padding = self._causal_padding
+        else:
+            self.padding = self._same_padding
+
+        self.conv_1 = nn.Conv1d(in_channels, hidden_channels, kernel_size)
+        self.conv_2 = nn.Conv1d(hidden_channels, out_channels, kernel_size)
         self.dropout = nn.Dropout(dropout_p)
 
     def forward(self, x, x_mask):
-        x = self.conv_1(x * x_mask)
+        x = self.conv_1(self.padding(x * x_mask))
         x = torch.relu(x)
         x = self.dropout(x)
-        x = self.conv_2(x * x_mask)
+        x = self.conv_2(self.padding(x * x_mask))
         return x * x_mask
+
+    def _causal_padding(self, x):
+        if self.kernel_size == 1:
+            return x
+        pad_l = self.kernel_size - 1
+        pad_r = 0
+        padding = [[0, 0], [0, 0], [pad_l, pad_r]]
+        x = F.pad(x, self._pad_shape(padding))
+        return x
+
+    def _same_padding(self, x):
+        if self.kernel_size == 1:
+            return x
+        pad_l = (self.kernel_size - 1) // 2
+        pad_r = self.kernel_size // 2
+        padding = [[0, 0], [0, 0], [pad_l, pad_r]]
+        x = F.pad(x, self._pad_shape(padding))
+        return x
+
+    @staticmethod
+    def _pad_shape(padding):
+        l = padding[::-1]
+        pad_shape = [item for sublist in l for item in sublist]
+        return pad_shape
 
 
 class RelativePositionTransformer(nn.Module):
@@ -310,20 +339,23 @@ class RelativePositionTransformer(nn.Module):
             If default, relative encoding is disabled and it is a regular transformer.
             Defaults to None.
         input_length (int, optional): input lenght to limit position encoding. Defaults to None.
+        layer_norm_type (str, optional): type "1" uses torch tensor operations and type "2" uses torch layer_norm
+            primitive. Use type "2", type "1: is for backward compat. Defaults to "1".
     """
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        hidden_channels,
-        hidden_channels_ffn,
-        num_heads,
-        num_layers,
+        in_channels: int,
+        out_channels: int,
+        hidden_channels: int,
+        hidden_channels_ffn: int,
+        num_heads: int,
+        num_layers: int,
         kernel_size=1,
         dropout_p=0.0,
-        rel_attn_window_size=None,
-        input_length=None,
+        rel_attn_window_size: int = None,
+        input_length: int = None,
+        layer_norm_type: str = "1",
     ):
         super().__init__()
         self.hidden_channels = hidden_channels
@@ -351,7 +383,12 @@ class RelativePositionTransformer(nn.Module):
                     input_length=input_length,
                 )
             )
-            self.norm_layers_1.append(LayerNorm(hidden_channels))
+            if layer_norm_type == "1":
+                self.norm_layers_1.append(LayerNorm(hidden_channels))
+            elif layer_norm_type == "2":
+                self.norm_layers_1.append(LayerNorm2(hidden_channels))
+            else:
+                raise ValueError(" [!] Unknown layer norm type")
 
             if hidden_channels != out_channels and (idx + 1) == self.num_layers:
                 self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
@@ -366,7 +403,12 @@ class RelativePositionTransformer(nn.Module):
                 )
             )
 
-            self.norm_layers_2.append(LayerNorm(hidden_channels if (idx + 1) != self.num_layers else out_channels))
+            if layer_norm_type == "1":
+                self.norm_layers_2.append(LayerNorm(hidden_channels if (idx + 1) != self.num_layers else out_channels))
+            elif layer_norm_type == "2":
+                self.norm_layers_2.append(LayerNorm2(hidden_channels if (idx + 1) != self.num_layers else out_channels))
+            else:
+                raise ValueError(" [!] Unknown layer norm type")
 
     def forward(self, x, x_mask):
         """
