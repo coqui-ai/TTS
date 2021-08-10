@@ -23,8 +23,8 @@ class Tacotron(BaseTacotron):
     def __init__(self, config: Coqpit):
         super().__init__(config)
 
-        self.num_chars, self.config = self.get_characters(config)
-        config.num_chars = self.num_chars
+        chars, self.config = self.get_characters(config)
+        config.num_chars = self.num_chars = len(chars)
 
         # pass all config fields to `self`
         # for fewer code change

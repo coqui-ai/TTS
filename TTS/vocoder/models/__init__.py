@@ -24,8 +24,10 @@ def setup_model(config: Coqpit):
         elif config.model.lower() == "wavegrad":
             MyModel = getattr(MyModel, "Wavegrad")
         else:
-            MyModel = getattr(MyModel, to_camel(config.model))
-            raise ValueError(f"Model {config.model} not exist!")
+            try:
+                MyModel = getattr(MyModel, to_camel(config.model))
+            except ModuleNotFoundError as e:
+                raise ValueError(f"Model {config.model} not exist!") from e
     model = MyModel(config)
     return model
 
