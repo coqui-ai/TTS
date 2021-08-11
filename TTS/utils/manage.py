@@ -111,6 +111,8 @@ class ModelManager(object):
             print(f" > Downloading model to {output_path}")
             output_stats_path = os.path.join(output_path, "scale_stats.npy")
             output_speakers_path = os.path.join(output_path, "speakers.json")
+            output_speakers_id_path = os.path.join(output_path, "speaker_ids.json")
+
             # download files to the output path
             if self._check_dict_key(model_item, "github_rls_url"):
                 # download from github release
@@ -131,11 +133,25 @@ class ModelManager(object):
                 config.save_json(config_path)
             # update the speakers.json file path in the model config.json to the current path
             if os.path.exists(output_speakers_path):
-                # set scale stats path in config.json
+                # set d vector file path in config.json
                 config_path = output_config_path
                 config = load_config(config_path)
                 config.d_vector_file = output_speakers_path
                 config.save_json(config_path)
+            # update the speaker_ids.json file path in the model config.json to the current path
+            if os.path.exists(output_speakers_id_path):
+                # set speakers id file path in config.json
+                config_path = output_config_path
+                config = load_config(config_path)
+                # models with model_args
+                if "model_args" in config.keys():
+                    config.model_args["speakers_file"] = output_speakers_id_path
+                else:
+                    # other models
+                    config.speakers_file = output_speakers_id_path
+                config.save_json(config_path)
+
+
         return output_model_path, output_config_path, model_item
 
     def _download_gdrive_file(self, gdrive_idx, output):
