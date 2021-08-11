@@ -7,10 +7,8 @@ class TensorboardLogger(object):
     def __init__(self, log_dir, model_name):
         self.model_name = model_name
         self.writer = SummaryWriter(log_dir)
-        self.train_stats = {}
-        self.eval_stats = {}
 
-    def tb_model_weights(self, model, step):
+    def model_weights(self, model, step):
         layer_num = 1
         for name, param in model.named_parameters():
             if param.numel() == 1:
@@ -41,32 +39,41 @@ class TensorboardLogger(object):
             except RuntimeError:
                 traceback.print_exc()
 
-    def tb_train_step_stats(self, step, stats):
+    def train_step_stats(self, step, stats):
         self.dict_to_tb_scalar(f"{self.model_name}_TrainIterStats", stats, step)
 
-    def tb_train_epoch_stats(self, step, stats):
+    def train_epoch_stats(self, step, stats):
         self.dict_to_tb_scalar(f"{self.model_name}_TrainEpochStats", stats, step)
 
-    def tb_train_figures(self, step, figures):
+    def train_figures(self, step, figures):
         self.dict_to_tb_figure(f"{self.model_name}_TrainFigures", figures, step)
 
-    def tb_train_audios(self, step, audios, sample_rate):
+    def train_audios(self, step, audios, sample_rate):
         self.dict_to_tb_audios(f"{self.model_name}_TrainAudios", audios, step, sample_rate)
 
-    def tb_eval_stats(self, step, stats):
+    def eval_stats(self, step, stats):
         self.dict_to_tb_scalar(f"{self.model_name}_EvalStats", stats, step)
 
-    def tb_eval_figures(self, step, figures):
+    def eval_figures(self, step, figures):
         self.dict_to_tb_figure(f"{self.model_name}_EvalFigures", figures, step)
 
-    def tb_eval_audios(self, step, audios, sample_rate):
+    def eval_audios(self, step, audios, sample_rate):
         self.dict_to_tb_audios(f"{self.model_name}_EvalAudios", audios, step, sample_rate)
 
-    def tb_test_audios(self, step, audios, sample_rate):
+    def test_audios(self, step, audios, sample_rate):
         self.dict_to_tb_audios(f"{self.model_name}_TestAudios", audios, step, sample_rate)
 
-    def tb_test_figures(self, step, figures):
+    def test_figures(self, step, figures):
         self.dict_to_tb_figure(f"{self.model_name}_TestFigures", figures, step)
 
-    def tb_add_text(self, title, text, step):
+    def add_text(self, title, text, step):
         self.writer.add_text(title, text, step)
+
+    def log_artifact(self, file_or_dir, name, artifact_type, aliases=None):  # pylint: disable=W0613, R0201
+        yield
+
+    def flush(self):
+        self.writer.flush()
+
+    def finish(self):
+        self.writer.close()

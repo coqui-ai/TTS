@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from TTS.utils.io import load_config
+from TTS.utils.io import load_config, load_fsspec
 from TTS.vocoder.tf.utils.convert_torch_to_tf_utils import (
     compare_torch_tf,
     convert_tf_name,
@@ -33,7 +33,7 @@ num_speakers = 0
 
 # init torch model
 model = setup_generator(c)
-checkpoint = torch.load(args.torch_model_path, map_location=torch.device("cpu"))
+checkpoint = load_fsspec(args.torch_model_path, map_location=torch.device("cpu"))
 state_dict = checkpoint["model"]
 model.load_state_dict(state_dict)
 model.remove_weight_norm()

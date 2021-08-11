@@ -14,6 +14,7 @@ from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_fsspec
 
 
 @dataclass
@@ -105,7 +106,7 @@ class SpeedySpeech(BaseTTS):
             if isinstance(config.model_args.length_scale, int)
             else config.model_args.length_scale
         )
-        self.emb = nn.Embedding(config.model_args.num_chars, config.model_args.hidden_channels)
+        self.emb = nn.Embedding(self.num_chars, config.model_args.hidden_channels)
         self.encoder = Encoder(
             config.model_args.hidden_channels,
             config.model_args.hidden_channels,
@@ -227,6 +228,7 @@ class SpeedySpeech(BaseTTS):
         outputs = {"model_outputs": o_de.transpose(1, 2), "durations_log": o_dr_log.squeeze(1), "alignments": attn}
         return outputs
 
+    @torch.no_grad()
     def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None}):  # pylint: disable=unused-argument
         """
         Shapes:
@@ -306,7 +308,7 @@ class SpeedySpeech(BaseTTS):
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
     ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
             self.eval()
