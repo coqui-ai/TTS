@@ -4,6 +4,7 @@ from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.speedy_speech_config import SpeedySpeechArgs, SpeedySpeechConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.vocoder.configs.hifigan_config import HifiganConfig
+from TTS.vocoder.configs.wavegrad_config import WavegradArgs, WavegradConfig
 
 
 class TtsModels:
@@ -357,15 +358,61 @@ class VocoderModels:
     def __init__(
         self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
     ):
-
         self.batch_size = batch_size
         self.output_path = output_path
         self.mixed_precision = mixed_precision
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-    # ToDo: make this and one with wavegrad
-    def ljspeech_hifigan(self, audio, dataset):
-        config = HifiganConfig(audio=audio,
-                               datasets=[dataset])
+    # ToDo: test this and see what else needs to be modified
+    def ljspeech_hifigan(self, audio, data_path):
+        config = HifiganConfig(
+            audio=audio,
+            run_name="ljspeech-hifigan",
+            run_description="hifi gan vocoder model trained on the ljspeech dataset.",
+            batch_size=self.batch_size,
+            eval_batch_size=self.batch_size // 2,
+            num_loader_workers=4,
+            num_eval_loader_workers=4,
+            run_eval=True,
+            test_delay_epochs=-1,
+            epochs=self.epochs,
+            seq_len=8192,
+            pad_short=2000,
+            use_noise_augment=True,
+            eval_split_size=10,
+            print_step=25,
+            print_eval=True,
+            mixed_precision=self.mixed_precision,
+            lr_gen=1e-4,
+            lr_disc=1e-4,
+            use_pqmf=False,
+            data_path=data_path,
+            output_path=self.output_path,
+        )
+        return config
+
+    # ToDo: set model args and add args to model, Test This and tune config
+    def ljspeech_wavegrad(self, audio, data_path):
+        args = WavegradArgs()
+        config = WavegradConfig(
+            audio=audio,
+            batch_size=self.batch_size,
+            eval_batch_size=self.batch_size // 2,
+            num_loader_workers=4,
+            num_eval_loader_workers=4,
+            run_eval=True,
+            test_delay_epochs=-1,
+            epochs=self.epochs,
+            seq_len=6144,
+            pad_short=2000,
+            use_noise_augment=True,
+            eval_split_size=50,
+            print_step=50,
+            lr=self.learning_rate,
+            print_eval=True,
+            mixed_precision=self.mixed_precision,
+            data_path=data_path,
+            output_path=self.output_path,
+        )
         return config
