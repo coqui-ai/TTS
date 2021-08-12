@@ -123,3 +123,13 @@ class VocoderExamples:
             learning_rate=self.learning_rate,
             epochs=self.epochs,
         )
+
+    def ljspeech_vocoder(self, name=None):
+        dataset, audio = data_loader(name="ljspeech", path=self.data_path, stats_path="")
+        if name == "hifigan":
+            model_config = self.model.ljspeech_hifigan(audio, self.data_path)
+        elif name == "wavegrad":
+            model_config = self.model.ljspeech_hifigan(audio, self.data_path)
+        args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
+        trainer = Trainer(args, config, output_path, c_logger, tb_logger)
+        return trainer
