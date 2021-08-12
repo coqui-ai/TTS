@@ -210,10 +210,15 @@ class Trainer:
             self.model = model
         else:
             self.model = self.get_model(self.config)
-
         # init multispeaker settings of the model
         if hasattr(self.model, "init_multispeaker"):
             self.model.init_multispeaker(self.config, self.data_train + self.data_eval)
+            config = config.model_args if hasattr(self.config, "model_args") else self.config
+            # save speakers json
+            if config.use_speaker_embedding and not config.use_d_vector_file:
+                self.model.speaker_manager.save_speaker_ids_to_file(os.path.join(self.output_path, "speaker_ids.json"))
+            elif config.use_speaker_embedding and config.use_d_vector_file:
+                self.model.speaker_manager.save_d_vectors_to_file(os.path.join(self.output_path, "speakers.json"))
 
         # setup criterion
         self.criterion = self.get_criterion(self.model)
@@ -484,14 +489,14 @@ class Trainer:
                 with amp.scale_loss(loss_dict["loss"], optimizer) as scaled_loss:
                     scaled_loss.backward()
                 grad_norm = torch.nn.utils.clip_grad_norm_(
-                    amp.master_params(optimizer), grad_clip, error_if_nonfinite=False
+                    amp.master_params(optimizer), grad_clip
                 )
             else:
                 # model optimizer step in mixed precision mode
                 scaler.scale(loss_dict["loss"]).backward()
                 if grad_clip > 0:
                     scaler.unscale_(optimizer)
-                    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip, error_if_nonfinite=False)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
                     # pytorch skips the step when the norm is 0. So ignore the norm value when it is NaN
                     if torch.isnan(grad_norm) or torch.isinf(grad_norm):
                         grad_norm = 0
@@ -503,7 +508,7 @@ class Trainer:
             # main model optimizer step
             loss_dict["loss"].backward()
             if grad_clip > 0:
-                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip, error_if_nonfinite=False)
+                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
 
         step_time = time.time() - step_start_time

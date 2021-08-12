@@ -353,6 +353,7 @@ class Vits(BaseTTS):
         if config.num_speakers > 0 and self.speaker_manager.num_speakers == 0:
             self.speaker_manager.num_speakers = config.num_speakers
         self.num_speakers = self.speaker_manager.num_speakers
+
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
             self.embedded_speaker_dim = config.speaker_embedding_channels
@@ -408,7 +409,6 @@ class Vits(BaseTTS):
         # speaker embedding
         if self.num_speakers > 1 and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
-
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
 
