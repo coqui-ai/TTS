@@ -164,7 +164,7 @@ class BaseTTS(BaseModel):
         }
 
     def get_data_loader(
-        self, config: Coqpit, ap: AudioProcessor, is_eval: bool, data_items: List, verbose: bool, num_gpus: int
+        self, config: Coqpit, ap: AudioProcessor, is_eval: bool, data_items: List, verbose: bool, num_gpus: int, rank: int=None
     ) -> "DataLoader":
         if is_eval and not config.run_eval:
             loader = None
@@ -212,7 +212,7 @@ class BaseTTS(BaseModel):
                 else None,
             )
 
-            if config.use_phonemes and config.compute_input_seq_cache:
+            if config.use_phonemes and config.compute_input_seq_cache and rank in [None, 0]:
                 if hasattr(self, "eval_data_items") and is_eval:
                     dataset.items = self.eval_data_items
                 elif hasattr(self, "train_data_items") and not is_eval:
