@@ -9,10 +9,20 @@ from TTS.utils.training import NoamLR
 def is_apex_available():
     return importlib.util.find_spec("apex") is not None
 
+def setup_torch_training_env(cudnn_enable:bool, cudnn_benchmark:bool, use_ddp:bool=False) -> Tuple[bool, int]:
+    """Setup PyTorch environment for training.
 
-def setup_torch_training_env(cudnn_enable, cudnn_benchmark):
+    Args:
+        cudnn_enable (bool): Enable/disable CUDNN.
+        cudnn_benchmark (bool): Enable/disable CUDNN benchmarking. Better to set to False if input sequence length is
+            variable between batches.
+        use_ddp (bool): DDP flag. True if DDP is enabled, False otherwise.
+
+    Returns:
+        Tuple[bool, int]: is cuda on or off and number of GPUs in the environment.
+    """
     num_gpus = torch.cuda.device_count()
-    if num_gpus > 1:
+    if num_gpus > 1 and not use_ddp:
         raise RuntimeError(
             f" [!] {num_gpus} active GPUs. Define the target GPU by `CUDA_VISIBLE_DEVICES`. For multi-gpu training use `TTS/bin/distribute.py`."
         )

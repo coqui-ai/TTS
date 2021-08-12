@@ -32,6 +32,7 @@ def main():
     command.append("--restore_path={}".format(args.restore_path))
     command.append("--config_path={}".format(args.config_path))
     command.append("--group_id=group_{}".format(group_id))
+    command.append("--use_ddp=true")
     command += unargs
     command.append("")
 
