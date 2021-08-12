@@ -402,7 +402,6 @@ class Vits(BaseTTS):
         # speaker embedding
         if self.num_speakers > 1 and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
-
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
 
