@@ -655,7 +655,7 @@ class Vits(BaseTTS):
         return self.train_log(ap, batch, outputs, "eval")
 
     @torch.no_grad()
-    def test_run(self, ap, eval_loader=None) -> Tuple[Dict, Dict]:
+    def test_run(self, ap) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.

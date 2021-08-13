@@ -12,7 +12,7 @@ from tqdm import tqdm
 ########################
 
 
-def tweb(root_path, meta_file, **kwargs):
+def tweb(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalize TWEB dataset.
     https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset
     """
@@ -28,7 +28,7 @@ def tweb(root_path, meta_file, **kwargs):
     return items
 
 
-def mozilla(root_path, meta_file, **kwargs):
+def mozilla(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes Mozilla meta data files to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -43,7 +43,7 @@ def mozilla(root_path, meta_file, **kwargs):
     return items
 
 
-def mozilla_de(root_path, meta_file, **kwargs):
+def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes Mozilla meta data files to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -96,7 +96,7 @@ def mailabs(root_path, meta_files=None, ununsed_speakers=None):
     return items
 
 
-def ljspeech(root_path, meta_file, **kwargs):
+def ljspeech(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the LJSpeech meta data file to TTS format
     https://keithito.com/LJ-Speech-Dataset/"""
     txt_file = os.path.join(root_path, meta_file)
@@ -111,7 +111,7 @@ def ljspeech(root_path, meta_file, **kwargs):
     return items
 
 
-def ljspeech_test(root_path, meta_file, **kwargs):
+def ljspeech_test(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the LJSpeech meta data file for TTS testing
     https://keithito.com/LJ-Speech-Dataset/"""
     txt_file = os.path.join(root_path, meta_file)
@@ -125,7 +125,7 @@ def ljspeech_test(root_path, meta_file, **kwargs):
     return items
 
 
-def sam_accenture(root_path, meta_file, **kwargs):
+def sam_accenture(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the sam-accenture meta data file to TTS format
     https://github.com/Sam-Accenture-Non-Binary-Voice/non-binary-voice-files"""
     xml_file = os.path.join(root_path, "voice_over_recordings", meta_file)
@@ -142,7 +142,7 @@ def sam_accenture(root_path, meta_file, **kwargs):
     return items
 
 
-def ruslan(root_path, meta_file, **kwargs):
+def ruslan(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the RUSLAN meta data file to TTS format
     https://ruslan-corpus.github.io/"""
     txt_file = os.path.join(root_path, meta_file)
@@ -157,7 +157,7 @@ def ruslan(root_path, meta_file, **kwargs):
     return items
 
 
-def css10(root_path, meta_file, **kwargs):
+def css10(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the CSS10 dataset file to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -171,7 +171,7 @@ def css10(root_path, meta_file, **kwargs):
     return items
 
 
-def nancy(root_path, meta_file, **kwargs):
+def nancy(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the Nancy meta data file to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -234,7 +234,7 @@ def libri_tts(root_path, meta_files=None, ununsed_speakers=None):
     return items
 
 
-def custom_turkish(root_path, meta_file, **kwargs):
+def custom_turkish(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "turkish-female"
@@ -292,7 +292,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
     return items
 
 
-def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
+def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):   # pylint: disable=unused-argument
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
     txt_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
@@ -327,14 +327,14 @@ def mls(root_path, meta_files=None, ununsed_speakers=None):
 
 
 # ======================================== VOX CELEB ===========================================
-def voxceleb2(root_path, meta_file=None, **kwargs):
+def voxceleb2(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
     """
     :param meta_file   Used only for consistency with load_meta_data api
     """
     return _voxcel_x(root_path, meta_file, voxcel_idx="2")
 
 
-def voxceleb1(root_path, meta_file=None, **kwargs):
+def voxceleb1(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
     """
     :param meta_file   Used only for consistency with load_meta_data api
     """
@@ -376,7 +376,7 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
         return [x.strip().split("|") for x in f.readlines()]
 
 
-def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:
+def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:  # pylint: disable=unused-argument
     """Normalizes the Baker meta data file to TTS format
 
     Args:
@@ -396,7 +396,7 @@ def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:
     return items
 
 
-def kokoro(root_path, meta_file, **kwargs):
+def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Japanese single-speaker dataset from https://github.com/kaiidams/Kokoro-Speech-Dataset"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
