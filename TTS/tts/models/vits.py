@@ -357,7 +357,8 @@ class Vits(BaseTTS):
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
             self.embedded_speaker_dim = config.speaker_embedding_channels
-            self.emb_g = nn.Embedding(config.num_speakers, config.speaker_embedding_channels)
+            self.emb_g = nn.Embedding(self.num_speakers, config.speaker_embedding_channels)
+
         # init d-vector usage
         if config.use_d_vector_file:
             self.embedded_speaker_dim = config.d_vector_dim
@@ -409,6 +410,7 @@ class Vits(BaseTTS):
         # speaker embedding
         if self.num_speakers > 1 and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
 
@@ -646,7 +648,7 @@ class Vits(BaseTTS):
         return self.train_log(ap, batch, outputs, "eval")
 
     @torch.no_grad()
-    def test_run(self, ap) -> Tuple[Dict, Dict]:
+    def test_run(self, ap, eval_loader=None) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.
@@ -658,8 +660,13 @@ class Vits(BaseTTS):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        aux_inputs = self.get_aux_input()
+        if hasattr(self, "speaker_manager"):
+            aux_inputs = self.speaker_manager.get_random_speaker_aux_input()
+        else:
+            aux_inputs = self.get_aux_input()
+
         for idx, sen in enumerate(test_sentences):
+
             wav, alignment, _, _ = synthesis(
                 self,
                 sen,

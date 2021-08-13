@@ -219,6 +219,12 @@ class Trainer:
                 self.model.speaker_manager.save_speaker_ids_to_file(os.path.join(self.output_path, "speaker_ids.json"))
             elif config.use_speaker_embedding and config.use_d_vector_file:
                 self.model.speaker_manager.save_d_vectors_to_file(os.path.join(self.output_path, "speakers.json"))
+            if hasattr(self.config, "model_args"):
+                self.config.model_args["num_speakers"] = self.model.num_speakers
+            else:
+                self.config.num_speakers = self.model.num_speakers
+            # update config file
+            copy_model_files(self.config, self.output_path, None)
 
         # setup criterion
         self.criterion = self.get_criterion(self.model)
@@ -1138,7 +1144,7 @@ def process_args(args, config=None):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(config, experiment_path, new_fields)
-
+        
     dashboard_logger = init_logger(config)
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, dashboard_logger
