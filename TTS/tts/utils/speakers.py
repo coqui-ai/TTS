@@ -209,6 +209,14 @@ class SpeakerManager:
                 d_vectors = np.stack(d_vectors[:num_samples]).mean(0)
         return d_vectors
 
+    def get_random_speaker_aux_input(self) -> Dict:
+        if self.d_vectors:
+            return {"speaker_id": None, "style_wav": None, "d_vector":  self.d_vectors[random.choices(list(self.d_vectors.keys()))[0]]["embedding"]}
+        elif self.speaker_ids:
+            return {"speaker_id": self.speaker_ids[random.choices(list(self.speaker_ids.keys()))[0]], "style_wav": None, "d_vector": None}
+        else:
+            return {"speaker_id": None, "style_wav": None, "d_vector": None}
+
     def get_speakers(self) -> List:
         return self.speaker_ids
 
