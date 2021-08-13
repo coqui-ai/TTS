@@ -1,5 +1,5 @@
 import importlib
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import torch
 
@@ -9,7 +9,8 @@ from TTS.utils.training import NoamLR
 def is_apex_available():
     return importlib.util.find_spec("apex") is not None
 
-def setup_torch_training_env(cudnn_enable:bool, cudnn_benchmark:bool, use_ddp:bool=False) -> Tuple[bool, int]:
+
+def setup_torch_training_env(cudnn_enable: bool, cudnn_benchmark: bool, use_ddp: bool = False) -> Tuple[bool, int]:
     """Setup PyTorch environment for training.
 
     Args:

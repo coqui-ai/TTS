@@ -2,6 +2,7 @@ import os
 from typing import Dict, List, Tuple
 
 import torch
+import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
@@ -164,7 +165,14 @@ class BaseTTS(BaseModel):
         }
 
     def get_data_loader(
-        self, config: Coqpit, ap: AudioProcessor, is_eval: bool, data_items: List, verbose: bool, num_gpus: int, rank: int=None
+        self,
+        config: Coqpit,
+        ap: AudioProcessor,
+        is_eval: bool,
+        data_items: List,
+        verbose: bool,
+        num_gpus: int,
+        rank: int = None,
     ) -> "DataLoader":
         if is_eval and not config.run_eval:
             loader = None
@@ -227,6 +235,10 @@ class BaseTTS(BaseModel):
                         self.eval_data_items = dataset.items
                     else:
                         self.train_data_items = dataset.items
+
+            # halt DDP processes for the main process to finish computing the phoneme cache
+            if num_gpus > 1:
+                dist.barrier()
 
             dataset.sort_items()
 
