@@ -37,6 +37,7 @@ class TTSDataset(Dataset):
         enable_eos_bos: bool = False,
         speaker_id_mapping: Dict = None,
         d_vector_mapping: Dict = None,
+        language_id_mapping: Dict = None,
         use_noise_augment: bool = False,
         verbose: bool = False,
     ):
@@ -122,6 +123,7 @@ class TTSDataset(Dataset):
         self.enable_eos_bos = enable_eos_bos
         self.speaker_id_mapping = speaker_id_mapping
         self.d_vector_mapping = d_vector_mapping
+        self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
         self.verbose = verbose
         self.input_seq_computed = False
@@ -197,10 +199,10 @@ class TTSDataset(Dataset):
     def load_data(self, idx):
         item = self.items[idx]
 
-        if len(item) == 4:
-            text, wav_file, speaker_name, attn_file = item
+        if len(item) == 5:
+            text, wav_file, speaker_name, language_name, attn_file = item
         else:
-            text, wav_file, speaker_name = item
+            text, wav_file, speaker_name, language_name = item
             attn = None
         raw_text = text
 
@@ -218,7 +220,7 @@ class TTSDataset(Dataset):
                     self.phoneme_cache_path,
                     self.enable_eos_bos,
                     self.cleaners,
-                    self.phoneme_language,
+                    language_name if language_name else self.phoneme_language,
                     self.custom_symbols,
                     self.characters,
                     self.add_blank,
@@ -260,6 +262,7 @@ class TTSDataset(Dataset):
             "attn": attn,
             "item_idx": self.items[idx][1],
             "speaker_name": speaker_name,
+            "language_name": language_name,
             "wav_file_name": os.path.basename(wav_file),
         }
         return sample
@@ -413,6 +416,14 @@ class TTSDataset(Dataset):
             # convert list of dicts to dict of lists
             batch = {k: [dic[k] for dic in batch] for k in batch[0]}
 
+            speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
+
+            # get language ids from language names
+            if self.language_id_mapping is not None:
+                language_names = [batch[idx]["language_name"] for idx in ids_sorted_decreasing]
+                language_ids = [self.language_id_mapping[ln] for ln in language_names]
+            else:
+                language_ids = None
             # get pre-computed d-vectors
             if self.d_vector_mapping is not None:
                 wav_files_names = [batch["wav_file_name"][idx] for idx in ids_sorted_decreasing]
@@ -465,6 +476,9 @@ class TTSDataset(Dataset):
 
             if speaker_ids is not None:
                 speaker_ids = torch.LongTensor(speaker_ids)
+
+            if language_ids is not None:
+                language_ids = torch.LongTensor(language_ids)
 
             # compute linear spectrogram
             if self.compute_linear_spec:
@@ -528,6 +542,7 @@ class TTSDataset(Dataset):
                 "waveform": wav_padded,
                 "raw_text": batch["raw_text"],
                 "pitch": pitch,
+                "language_ids": language_ids
             }
 
         raise TypeError(
