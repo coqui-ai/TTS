@@ -13,6 +13,7 @@ from TTS.model import BaseModel
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
+from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text import make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -73,9 +74,18 @@ class BaseTTS(BaseModel):
     def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:
         return get_speaker_manager(config, restore_path, data, out_path)
 
-    def init_multispeaker(self, config: Coqpit):
-        """Init speaker embedding layer if `use_speaker_embedding` is True and set the expected speaker embedding
-        vector dimension in the network. If model uses d-vectors, then it only sets the expected dimension.
+    def init_multispeaker(self, config: Coqpit, data: List = None):
+        """Initialize a speaker embedding layer if needen and define expected embedding channel size for defining
+        `in_channels` size of the connected layers.
+
+        This implementation yields 3 possible outcomes:
+
+        1. If `config.use_speaker_embedding` and `config.use_d_vector_file are False, do nothing.
+        2. If `config.use_d_vector_file` is True, set expected embedding channel size to `config.d_vector_dim` or 512.
+        3. If `config.use_speaker_embedding`, initialize a speaker embedding layer with channel size of
+        `config.d_vector_dim` or 512.
+
+        You can override this function for new models.
 
         Args:
             config (Coqpit): Model configuration.
@@ -122,6 +132,7 @@ class BaseTTS(BaseModel):
         attn_mask = batch["attns"]
         waveform = batch["waveform"]
         pitch = batch["pitch"]
+        language_ids = batch["language_ids"]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
 
@@ -169,6 +180,7 @@ class BaseTTS(BaseModel):
             "item_idx": item_idx,
             "waveform": waveform,
             "pitch": pitch,
+            "language_ids": language_ids,
         }
 
     def get_data_loader(
@@ -199,7 +211,12 @@ class BaseTTS(BaseModel):
             if hasattr(self, "make_symbols"):
                 custom_symbols = self.make_symbols(self.config)
 
-            # init dataset
+            if hasattr(self, "language_manager"):
+                language_id_mapping = self.language_manager.language_id_mapping if self.args.use_language_embedding else None
+            else:
+                language_id_mapping = None
+
+            # init dataloader
             dataset = TTSDataset(
                 outputs_per_step=config.r if "r" in config else 1,
                 text_cleaner=config.text_cleaner,
@@ -223,6 +240,7 @@ class BaseTTS(BaseModel):
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
+                language_id_mapping=language_id_mapping,
             )
 
             # pre-compute phonemes
@@ -267,8 +285,11 @@ class BaseTTS(BaseModel):
 
             # sampler for DDP
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+            if sampler is None:
+                if getattr(config, "use_language_weighted_sampler", False):
+                    sampler = get_language_weighted_sampler(dataset.items)
+                    print(" > Using Language weighted sampler")
 
-            # init dataloader
             loader = DataLoader(
                 dataset,
                 batch_size=config.eval_batch_size if is_eval else config.batch_size,
