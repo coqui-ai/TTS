@@ -5,6 +5,7 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
+from torch.nn import functional as F
 
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
@@ -161,6 +162,9 @@ class VitsArgs(Coqpit):
         use_d_vector_file (bool):
             Enable/Disable the use of d-vectors for multi-speaker training. Defaults to False.
 
+        d_vector_file (str):
+            Path to the file including pre-computed speaker embeddings. Defaults to None.
+
         d_vector_dim (int):
             Number of d-vector channels. Defaults to 0.
 
@@ -202,6 +206,7 @@ class VitsArgs(Coqpit):
     use_speaker_embedding: bool = False
     num_speakers: int = 0
     speakers_file: str = None
+    d_vector_file: str = None
     speaker_embedding_channels: int = 256
     use_d_vector_file: bool = False
     d_vector_dim: int = 0
@@ -359,6 +364,8 @@ class Vits(BaseTTS):
             self.embedded_speaker_dim = config.speaker_embedding_channels
             self.emb_g = nn.Embedding(self.num_speakers, config.speaker_embedding_channels)
 
+        self.use_d_vector = config.use_d_vector_file
+
         # init d-vector usage
         if config.use_d_vector_file:
             self.embedded_speaker_dim = config.d_vector_dim
@@ -372,7 +379,7 @@ class Vits(BaseTTS):
             if sid.ndim == 0:
                 sid = sid.unsqueeze_(0)
         if "d_vectors" in aux_input and aux_input["d_vectors"] is not None:
-            g = aux_input["d_vectors"]
+            g = F.normalize(aux_input["d_vectors"]).unsqueeze(-1)
         return sid, g
 
     def forward(
@@ -408,7 +415,7 @@ class Vits(BaseTTS):
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths)
 
         # speaker embedding
-        if self.num_speakers > 1 and sid is not None:
+        if self.num_speakers > 1 and sid is not None and not self.use_d_vector:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
 
         # posterior encoder

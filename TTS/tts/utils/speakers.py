@@ -155,15 +155,21 @@ class SpeakerManager:
         """
         self._save_json(file_path, self.d_vectors)
 
-    def set_d_vectors_from_file(self, file_path: str) -> None:
+    def set_d_vectors_from_file(self, file_path: str, data: List = None) -> None:
         """Load d_vectors from a json file.
 
         Args:
             file_path (str): Path to the target json file.
         """
         self.d_vectors = self._load_json(file_path)
-        speakers = sorted({x["name"] for x in self.d_vectors.values()})
-        self.speaker_ids = {name: i for i, name in enumerate(speakers)}
+
+        # load speakers from data, because during the training we can just use some speakers from d_vector_file
+        if data is not None:
+            self.speaker_ids, _ = self.parse_speakers_from_data(data)
+        else:
+            speakers = sorted({x["name"] for x in self.d_vectors.values()})
+            self.speaker_ids = {name: i for i, name in enumerate(speakers)}
+
         self.clip_ids = list(set(sorted(clip_name for clip_name in self.d_vectors.keys())))
 
     def get_d_vector_by_clip(self, clip_idx: str) -> List:
@@ -358,7 +364,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
                             "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.d_vector_file"
                         )
                     speaker_manager.load_d_vectors_file(c.d_vector_file)
-                speaker_manager.set_d_vectors_from_file(speakers_file)
+                speaker_manager.set_d_vectors_from_file(speakers_file, data=data)
             elif not c.use_d_vector_file:  # restor speaker manager with speaker ID file.
                 speaker_ids_from_data = speaker_manager.speaker_ids
                 speaker_manager.set_speaker_ids_from_file(speakers_file)
@@ -367,7 +373,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
                 ), " [!] You cannot introduce new speakers to a pre-trained model."
         elif c.use_d_vector_file and c.d_vector_file:
             # new speaker manager with external speaker embeddings.
-            speaker_manager.set_d_vectors_from_file(c.d_vector_file)
+            speaker_manager.set_d_vectors_from_file(c.d_vector_file, data=data)
         elif c.use_d_vector_file and not c.d_vector_file:
             raise "use_d_vector_file is True, so you need pass a external speaker embedding file."
         elif c.use_speaker_embedding and "speakers_file" in c and c.speakers_file:
