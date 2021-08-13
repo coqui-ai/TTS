@@ -84,7 +84,10 @@ class TrainingArgs(Coqpit):
     config_path: str = field(default="", metadata={"help": "Path to the configuration file."})
     rank: int = field(default=0, metadata={"help": "Process rank in distributed training."})
     group_id: str = field(default="", metadata={"help": "Process group id in distributed training."})
-    use_ddp: bool= field(default=False, metadata={"help": "Use DDP in distributed training. It is to set in `distribute.py`. Do not set manually."})
+    use_ddp: bool = field(
+        default=False,
+        metadata={"help": "Use DDP in distributed training. It is to set in `distribute.py`. Do not set manually."},
+    )
 
 
 class Trainer:
@@ -362,7 +365,9 @@ class Trainer:
     ) -> DataLoader:
         if num_gpus > 1:
             if hasattr(model.module, "get_data_loader"):
-                loader = model.module.get_data_loader(config, ap, is_eval, data_items, verbose, num_gpus, self.args.rank)
+                loader = model.module.get_data_loader(
+                    config, ap, is_eval, data_items, verbose, num_gpus, self.args.rank
+                )
         else:
             if hasattr(model, "get_data_loader"):
                 loader = model.get_data_loader(config, ap, is_eval, data_items, verbose, num_gpus)
@@ -797,6 +802,7 @@ class Trainer:
             loader_time = time.time() - loader_start_time
             self.keep_avg_eval.update_values({"avg_loader_time": loader_time})
             outputs, _ = self.eval_step(batch, cur_step)
+            loader_start_time = time.time()
         # plot epoch stats, artifacts and figures
         if self.args.rank == 0:
             figures, audios = None, None
@@ -839,7 +845,7 @@ class Trainer:
         self.total_steps_done = self.restore_step
 
         for epoch in range(0, self.config.epochs):
-            if self.num_gpus:
+            if self.num_gpus > 1:
                 # let all processes sync up before starting with a new epoch of training
                 dist.barrier()
             self.callbacks.on_epoch_start()
@@ -868,6 +874,9 @@ class Trainer:
             self.callbacks.on_keyboard_interrupt()
             # if the output folder is empty remove the run.
             remove_experiment_folder(self.output_path)
+            # clear the DDP processes
+            if self.num_gpus > 1:
+                dist.destroy_process_group()
             # finish the wandb run and sync data
             self.dashboard_logger.finish()
             # stop without error signal
