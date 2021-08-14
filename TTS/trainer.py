@@ -820,8 +820,12 @@ class Trainer:
         """🏃 train -> evaluate -> test for the number of epochs."""
         if self.restore_step != 0 or self.args.best_path:
             print(" > Restoring best loss from " f"{os.path.basename(self.args.best_path)} ...")
-            self.best_loss = load_fsspec(self.args.restore_path, map_location="cpu")["model_loss"]
-            print(f" > Starting with loaded last best loss {self.best_loss}.")
+            fsspec = load_fsspec(self.args.restore_path, map_location="cpu")
+            if "model_loss" in fsspec:
+                self.best_loss = fsspec["model_loss"]
+                print(f" > Starting with loaded last best loss {self.best_loss}.")
+            else:
+                print(f" > Model has no best loss.")
 
         self.total_steps_done = self.restore_step
 
