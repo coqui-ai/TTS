@@ -380,11 +380,14 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
         elif c.use_speaker_embedding and "speakers_file" in c and c.speakers_file:
             # new speaker manager with speaker IDs file.
             speaker_manager.set_speaker_ids_from_file(c.speakers_file)
-        print(
-            " > Speaker manager is loaded with {} speakers: {}".format(
-                speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
+
+        if speaker_manager.num_speakers > 0:
+            print(
+                " > Speaker manager is loaded with {} speakers: {}".format(
+                    speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
+                )
             )
-        )
+
         # save file if path is defined
         if out_path:
             out_file_path = os.path.join(out_path, "speakers.json")
