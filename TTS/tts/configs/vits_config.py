@@ -130,13 +130,13 @@ class VitsConfig(BaseTTSConfig):
     add_blank: bool = True
 
     # testing
-    test_sentences: List[str] = field(
+    test_sentences: List[List] = field(
         default_factory=lambda: [
-            "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-            "Be a voice, not an echo.",
-            "I'm sorry Dave. I'm afraid I can't do that.",
-            "This cake is great. It's so delicious and moist.",
-            "Prior to November 22, 1963.",
+            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent."],
+            ["Be a voice, not an echo."],
+            ["I'm sorry Dave. I'm afraid I can't do that."],
+            ["This cake is great. It's so delicious and moist."],
+            ["Prior to November 22, 1963."],
         ]
     )
 

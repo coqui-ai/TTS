@@ -193,6 +193,20 @@ class SpeakerManager:
         """
         return [x["embedding"] for x in self.d_vectors.values() if x["name"] == speaker_idx]
 
+    def get_d_vector_by_speaker(self, speaker_idx: str) -> np.ndarray:
+        """Get a d_vector of a speaker.
+
+        Args:
+            speaker_idx (str): Target speaker ID.
+
+        Returns:
+            np.ndarray: d_vector.
+        """
+        for x in self.d_vectors.values():
+            if x["name"] == speaker_idx:
+                return x["embedding"]
+        return None
+
     def get_mean_d_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False) -> np.ndarray:
         """Get mean d_vector of a speaker ID.
 
@@ -215,14 +229,31 @@ class SpeakerManager:
                 d_vectors = np.stack(d_vectors[:num_samples]).mean(0)
         return d_vectors
 
-    def get_random_speaker_aux_input(self) -> Dict:
-        if self.d_vectors:
-            return {"speaker_id": None, "style_wav": None, "d_vector":  self.d_vectors[random.choices(list(self.d_vectors.keys()))[0]]["embedding"]}
+    def get_random_speaker_id(self) -> Any:
+        """Get a random d_vector.
 
+        Args:
+
+        Returns:
+            np.ndarray: d_vector.
+        """
         if self.speaker_ids:
-            return {"speaker_id": self.speaker_ids[random.choices(list(self.speaker_ids.keys()))[0]], "style_wav": None, "d_vector": None}
+            return self.speaker_ids[random.choices(list(self.speaker_ids.keys()))[0]]
 
-        return {"speaker_id": None, "style_wav": None, "d_vector": None}
+        return None
+
+    def get_random_d_vector(self) -> Any:
+        """Get a random D  ID.
+
+        Args:
+
+        Returns:
+            np.ndarray: d_vector.
+        """
+        if self.d_vectors:
+            return self.d_vectors[random.choices(list(self.d_vectors.keys()))[0]]["embedding"]
+
+        return None
 
     def get_speakers(self) -> List:
         return self.speaker_ids
