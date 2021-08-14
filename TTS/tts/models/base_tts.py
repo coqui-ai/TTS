@@ -107,6 +107,51 @@ class BaseTTS(BaseModel):
             self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
 
+    def get_aux_input(self, **kwargs) -> Dict:
+        """Prepare and return `aux_input` used by `forward()`"""
+        return {"speaker_id": None, "style_wav": None, "d_vector": None, "language_id": None}
+
+    def get_aux_input_from_test_setences(self, sentence_info):
+        if hasattr(self.config, "model_args"):
+            config = self.config.model_args
+        else:
+            config = self.config
+
+        # extract speaker and language info
+        text, speaker_name, style_wav, language_name = None, None, None, None
+
+        if isinstance(sentence_info, list):
+            if len(sentence_info) == 1:
+                text = sentence_info[0]
+            elif len(sentence_info) == 2:
+                text, speaker_name = sentence_info
+            elif len(sentence_info) == 3:
+                text, speaker_name, style_wav = sentence_info
+            elif len(sentence_info) == 4:
+                text, speaker_name, style_wav, language_name = sentence_info
+        else:
+            text = sentence_info
+
+        # get speaker  id/d_vector
+        speaker_id, d_vector, language_id = None, None, None
+        if hasattr(self, "speaker_manager") and config.use_speaker_embedding:
+            if config.use_d_vector_file:
+                if speaker_name is None:
+                    d_vector = self.speaker_manager.get_random_d_vector()
+                else:
+                    d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
+            else:
+                if speaker_name is None:
+                    speaker_id = self.speaker_manager.get_random_speaker_id()
+                else:
+                    speaker_id = self.speaker_manager.speaker_ids[speaker_name]
+
+        # get language id
+        if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
+            language_id = self.language_manager.language_id_mapping[language_name]
+
+        return {"text": text, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector, "language_id": language_id}
+
     def format_batch(self, batch: Dict) -> Dict:
         """Generic batch formatting for `TTSDataset`.
 
