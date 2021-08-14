@@ -287,8 +287,9 @@ class BaseTTS(BaseModel):
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
             if sampler is None:
                 if getattr(config, "use_language_weighted_sampler", False):
-                    sampler = get_language_weighted_sampler(dataset.items)
                     print(" > Using Language weighted sampler")
+                    sampler = get_language_weighted_sampler(dataset.items)
+
 
             loader = DataLoader(
                 dataset,
