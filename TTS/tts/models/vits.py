@@ -368,8 +368,9 @@ class Vits(BaseTTS):
         # init speaker manager
         self.speaker_manager = get_speaker_manager(config, data=data)
         if config.num_speakers > 0 and self.speaker_manager.num_speakers == 0:
-            self.speaker_manager.num_speakers = config.num_speakers
-        self.num_speakers = self.speaker_manager.num_speakers
+            self.num_speakers = config.num_speakers
+        else:
+            self.num_speakers = self.speaker_manager.num_speakers
 
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
@@ -413,8 +414,14 @@ class Vits(BaseTTS):
                 sid = sid.unsqueeze_(0)
         if "d_vectors" in aux_input and aux_input["d_vectors"] is not None:
             g = F.normalize(aux_input["d_vectors"]).unsqueeze(-1)
+            if g.ndim == 2:
+                g = g.unsqueeze_(0)
+
         if "language_ids" in aux_input and aux_input["language_ids"] is not None:
             lid = aux_input["language_ids"]
+            if lid.ndim == 0:
+                lid = lid.unsqueeze_(0)
+
         return sid, g, lid
 
     def forward(
@@ -447,9 +454,8 @@ class Vits(BaseTTS):
         """
         outputs = {}
         sid, g, lid = self._set_cond_input(aux_input)
-
         # speaker embedding
-        if self.num_speakers > 1 and sid is not None and not self.use_d_vector:
+        if self.args.use_speaker_embedding and sid is not None and not self.use_d_vector:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
 
         # language embedding
@@ -533,11 +539,11 @@ class Vits(BaseTTS):
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
 
         # speaker embedding
-        if self.num_speakers > 0 and sid:
+        if self.args.use_speaker_embedding and sid is not None and not self.use_d_vector:
             g = self.emb_g(sid).unsqueeze(-1)
 
         # language embedding
-        if self.args.use_language_embedding:
+        if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
@@ -717,29 +723,29 @@ class Vits(BaseTTS):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        if hasattr(self, "speaker_manager"):
-            aux_inputs = self.speaker_manager.get_random_speaker_aux_input()
-        else:
-            aux_inputs = self.get_aux_input()
 
-        for idx, sen in enumerate(test_sentences):
+        for idx, s_info in enumerate(test_sentences):
+            try:
+                aux_inputs = self.get_aux_input_from_test_setences(s_info)
+                wav, alignment, _, _ = synthesis(
+                    self,
+                    aux_inputs["text"],
+                    self.config,
+                    "cuda" in str(next(self.parameters()).device),
+                    ap,
+                    speaker_id=aux_inputs["speaker_id"],
+                    d_vector=aux_inputs["d_vector"],
+                    style_wav=aux_inputs["style_wav"],
+                    language_id=aux_inputs["language_id"],
+                    enable_eos_bos_chars=self.config.enable_eos_bos_chars,
+                    use_griffin_lim=True,
+                    do_trim_silence=False,
+                ).values()
 
-            wav, alignment, _, _ = synthesis(
-                self,
-                sen,
-                self.config,
-                "cuda" in str(next(self.parameters()).device),
-                ap,
-                speaker_id=aux_inputs["speaker_id"],
-                d_vector=aux_inputs["d_vector"],
-                style_wav=aux_inputs["style_wav"],
-                enable_eos_bos_chars=self.config.enable_eos_bos_chars,
-                use_griffin_lim=True,
-                do_trim_silence=False,
-            ).values()
-
-            test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+                test_audios["{}-audio".format(idx)] = wav
+                test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            except:  # pylint: disable=bare-except
+                 print(" !! Error creating Test Sentence -", idx)
         return test_figures, test_audios
 
     def get_optimizer(self) -> List:
@@ -829,3 +835,6 @@ class Vits(BaseTTS):
         if eval:
             self.eval()
             assert not self.training
+
+
+        
