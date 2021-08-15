@@ -740,7 +740,7 @@ class Vits(BaseTTS):
                 test_audios["{}-audio".format(idx)] = wav
                 test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
             except:  # pylint: disable=bare-except
-                 print(" !! Error creating Test Sentence -", idx)
+                print(" !! Error creating Test Sentence -", idx)
         return test_figures, test_audios
 
     def get_optimizer(self) -> List:
@@ -837,5 +837,3 @@ class Vits(BaseTTS):
         if eval:
             self.eval()
             assert not self.training
-
-
