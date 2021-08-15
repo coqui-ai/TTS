@@ -4,7 +4,8 @@ from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.speedy_speech_config import SpeedySpeechArgs, SpeedySpeechConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.vocoder.configs.hifigan_config import HifiganConfig
-from TTS.vocoder.configs.wavegrad_config import WavegradArgs, WavegradConfig
+from TTS.vocoder.configs.wavegrad_config import WavegradConfig
+from TTS.vocoder.configs.multiband_melgan_config import MultibandMelganConfig
 
 
 class TtsModels:
@@ -21,7 +22,8 @@ class TtsModels:
     """
 
     def __init__(
-        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
+            self, batch_size, mixed_precision, learning_rate, epochs,
+            output_path=os.path.dirname(os.path.abspath(__file__))
     ):
 
         self.batch_size = batch_size
@@ -31,7 +33,7 @@ class TtsModels:
         self.epochs = epochs
 
     def single_speaker_tacotron2_base(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
     ):
         config = Tacotron2Config(
             run_name="single_speaker_taoctron2",
@@ -76,7 +78,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DDC(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
             audio=audio,
@@ -139,7 +141,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DCA(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         """This is a tacotron2 dca config for the ljspeech dataset,
         based off the already existing recipe config."""
@@ -195,7 +197,18 @@ class TtsModels:
         )
         return config
 
-    def ljspeech_glow_tts(self, audio, dataset, encoder_type="rel_pos_transformer"):
+    def ljspeech_glow_tts(self, audio, dataset, encoder):
+        if encoder == "transformer":
+            encoder_type = "rel_pos_transformer"
+        elif encoder == "gated":
+            encoder_type = "gated_conv"
+        elif encoder == "residual_bn":
+            encoder_type = "residual_conv_bn"
+        elif encoder == "time_depth":
+            encoder_type = "time_depth_separable"
+        elif encoder is None:
+            encoder_type = "rel_pos_transformer"
+
         config = GlowTTSConfig(
             audio=audio,
             batch_size=self.batch_size,
@@ -353,10 +366,18 @@ class TtsModels:
         )
         return config
 
+    def vctk_tacotron2(self):
+        pass
 
+    def ljspeech_vits_tts(self):
+        pass
+
+
+# ToDo: test these models and tune config if needed
 class VocoderModels:
     def __init__(
-        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
+            self, batch_size, mixed_precision, learning_rate, epochs,
+            output_path=os.path.dirname(os.path.abspath(__file__))
     ):
         self.batch_size = batch_size
         self.output_path = output_path
@@ -364,8 +385,7 @@ class VocoderModels:
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-    # ToDo: test this and see what else needs to be modified
-    def ljspeech_hifigan(self, audio, data_path):
+    def ljspeechHifiGan(self, audio, data_path):
         config = HifiganConfig(
             audio=audio,
             run_name="ljspeech-hifigan",
@@ -404,9 +424,7 @@ class VocoderModels:
         )
         return config
 
-    # ToDo: set model args and add args to model, Test This and tune config
-    def ljspeech_wavegrad(self, audio, data_path):
-        args = WavegradArgs()
+    def ljspeechWaveGrad(self, audio, data_path):
         config = WavegradConfig(
             audio=audio,
             batch_size=self.batch_size,
@@ -424,6 +442,34 @@ class VocoderModels:
             lr=self.learning_rate,
             print_eval=True,
             mixed_precision=self.mixed_precision,
+            data_path=data_path,
+            output_path=self.output_path,
+        )
+        return config
+
+    def ljspeechMultiBandMelGan(self, audio, data_path, gen_lr=1e-4, disc_lr=1e-4):
+        config = MultibandMelganConfig(
+            audio=audio,
+            batch_size=self.batch_size,
+            eval_batch_size=self.batch_size // 2,
+            num_loader_workers=4,
+            num_eval_loader_workers=4,
+            run_eval=True,
+            test_delay_epochs=-1,
+            epochs=self.epochs,
+            seq_len=8192,
+            pad_short=2000,
+            use_noise_augment=False,
+            use_stft_loss=True,
+            use_feat_match_loss=False,
+            feat_match_loss_weight=25,
+            subband_stft_loss_weight=0.5,
+            eval_split_size=20,
+            print_step=25,
+            print_eval=True,
+            mixed_precision=self.mixed_precision,
+            lr_gen=gen_lr,
+            lr_disc=disc_lr,
             data_path=data_path,
             output_path=self.output_path,
         )
