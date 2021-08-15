@@ -1,3 +1,4 @@
+import fsspec
 import tensorflow as tf
 
 
@@ -14,7 +15,7 @@ def convert_melgan_to_tflite(model, output_path=None, experimental_converter=Tru
     print(f"Tflite Model size is {len(tflite_model) / (1024.0 * 1024.0)} MBs.")
     if output_path is not None:
         # same model binary if outputpath is provided
-        with open(output_path, "wb") as f:
+        with fsspec.open(output_path, "wb") as f:
             f.write(tflite_model)
         return None
     return tflite_model

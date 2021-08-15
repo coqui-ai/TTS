@@ -64,6 +64,7 @@ class ModelManager(object):
     def list_models(self):
         print(" Name format: type/language/dataset/model")
         models_name_list = []
+        model_count = 1
         for model_type in self.models_dict:
             for lang in self.models_dict[model_type]:
                 for dataset in self.models_dict[model_type][lang]:
@@ -71,10 +72,11 @@ class ModelManager(object):
                         model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
                         output_path = os.path.join(self.output_prefix, model_full_name)
                         if os.path.exists(output_path):
-                            print(f" >: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
+                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
                         else:
-                            print(f" >: {model_type}/{lang}/{dataset}/{model}")
+                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model}")
                         models_name_list.append(f"{model_type}/{lang}/{dataset}/{model}")
+                        model_count += 1
         return models_name_list
 
     def download_model(self, model_name):

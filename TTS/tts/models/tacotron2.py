@@ -23,7 +23,7 @@ class Tacotron2(BaseTacotron):
         super().__init__(config)
 
         chars, self.config = self.get_characters(config)
-        self.num_chars = len(chars)
+        config.num_chars = len(chars)
         self.decoder_output_dim = config.out_channels
 
         # pass all config fields to `self`
@@ -31,12 +31,11 @@ class Tacotron2(BaseTacotron):
         for key in config:
             setattr(self, key, config[key])
 
-        # speaker embedding layer
-        if self.num_speakers > 1:
+        # set speaker embedding channel size for determining `in_channels` for the connected layers.
+        # `init_multispeaker` needs to be called once more in training to initialize the speaker embedding layer based
+        # on the number of speakers infered from the dataset.
+        if self.use_speaker_embedding or self.use_d_vector_file:
             self.init_multispeaker(config)
-
-        # speaker and gst embeddings is concat in decoder input
-        if self.num_speakers > 1:
             self.decoder_in_features += self.embedded_speaker_dim  # add speaker embedding dim
 
         if self.use_gst:
@@ -47,6 +46,7 @@ class Tacotron2(BaseTacotron):
 
         # base model layers
         self.encoder = Encoder(self.encoder_in_features)
+
         self.decoder = Decoder(
             self.decoder_in_features,
             self.decoder_output_dim,
@@ -73,9 +73,6 @@ class Tacotron2(BaseTacotron):
         if self.gst and self.use_gst:
             self.gst_layer = GST(
                 num_mel=self.decoder_output_dim,
-                d_vector_dim=self.d_vector_dim
-                if self.config.gst.gst_use_speaker_embedding and self.use_speaker_embedding
-                else None,
                 num_heads=self.gst.gst_num_heads,
                 num_style_tokens=self.gst.gst_num_style_tokens,
                 gst_embedding_dim=self.gst.gst_embedding_dim,
@@ -110,7 +107,9 @@ class Tacotron2(BaseTacotron):
         mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
         return mel_outputs, mel_outputs_postnet, alignments
 
-    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, aux_input=None):
+    def forward(  # pylint: disable=dangerous-default-value
+        self, text, text_lengths, mel_specs=None, mel_lengths=None, aux_input={"speaker_ids": None, "d_vectors": None}
+    ):
         """
         Shapes:
             text: [B, T_in]
@@ -130,11 +129,10 @@ class Tacotron2(BaseTacotron):
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(
-                encoder_outputs, mel_specs, aux_input["d_vectors"] if "d_vectors" in aux_input else None
-            )
-        if self.num_speakers > 1:
-            if not self.use_d_vectors:
+            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs)
+
+        if self.use_speaker_embedding or self.use_d_vector_file:
+            if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[:, None]
             else:
@@ -186,8 +184,9 @@ class Tacotron2(BaseTacotron):
         if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
+
         if self.num_speakers > 1:
-            if not self.use_d_vectors:
+            if not self.use_d_vector_file:
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[None]
                 # reshape embedded_speakers
                 if embedded_speakers.ndim == 1:

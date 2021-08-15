@@ -12,14 +12,19 @@ from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import get_speaker_manager
+from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_fsspec
 
 
 class GlowTTS(BaseTTS):
-    """Glow TTS models from https://arxiv.org/abs/2005.11129
+    """GlowTTS model.
 
-    Paper abstract:
+    Paper::
+        https://arxiv.org/abs/2005.11129
+
+    Paper abstract::
         Recently, text-to-speech (TTS) models such as FastSpeech and ParaNet have been proposed to generate
         mel-spectrograms from text in parallel. Despite the advantage, the parallel TTS models cannot be trained
         without guidance from autoregressive TTS models as their external aligners. In this work, we propose Glow-TTS,
@@ -144,7 +149,6 @@ class GlowTTS(BaseTTS):
                 g = F.normalize(g).unsqueeze(-1)
             else:
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
-
         # embedding pass
         o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g)
         # drop redisual frames wrt num_squeeze and set y_lengths.
@@ -361,11 +365,48 @@ class GlowTTS(BaseTTS):
         train_audio = ap.inv_melspectrogram(pred_spec.T)
         return figures, {"audio": train_audio}
 
+    @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
     def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
         return self.train_log(ap, batch, outputs)
+
+    @torch.no_grad()
+    def test_run(self, ap):
+        """Generic test run for `tts` models used by `Trainer`.
+
+        You can override this for a different behaviour.
+
+        Returns:
+            Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
+        """
+        print(" | > Synthesizing test sentences.")
+        test_audios = {}
+        test_figures = {}
+        test_sentences = self.config.test_sentences
+        aux_inputs = self.get_aux_input()
+        for idx, sen in enumerate(test_sentences):
+            outputs = synthesis(
+                self,
+                sen,
+                self.config,
+                "cuda" in str(next(self.parameters()).device),
+                ap,
+                speaker_id=aux_inputs["speaker_id"],
+                d_vector=aux_inputs["d_vector"],
+                style_wav=aux_inputs["style_wav"],
+                enable_eos_bos_chars=self.config.enable_eos_bos_chars,
+                use_griffin_lim=True,
+                do_trim_silence=False,
+            )
+
+            test_audios["{}-audio".format(idx)] = outputs["wav"]
+            test_figures["{}-prediction".format(idx)] = plot_spectrogram(
+                outputs["outputs"]["model_outputs"], ap, output_fig=False
+            )
+            test_figures["{}-alignment".format(idx)] = plot_alignment(outputs["alignments"], output_fig=False)
+        return test_figures, test_audios
 
     def preprocess(self, y, y_lengths, y_max_length, attn=None):
         if y_max_length is not None:
@@ -382,7 +423,7 @@ class GlowTTS(BaseTTS):
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
     ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
             self.eval()

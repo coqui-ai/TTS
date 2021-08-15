@@ -25,8 +25,68 @@ WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
 
 class TacotronTrainTest(unittest.TestCase):
+    """Test vanilla Tacotron2 model."""
+
     def test_train_step(self):  # pylint: disable=no-self-use
         config = config_global.copy()
+        config.use_speaker_embedding = False
+        config.num_speakers = 1
+
+        input_dummy = torch.randint(0, 24, (8, 128)).long().to(device)
+        input_lengths = torch.randint(100, 128, (8,)).long().to(device)
+        input_lengths = torch.sort(input_lengths, descending=True)[0]
+        mel_spec = torch.rand(8, 30, config.audio["num_mels"]).to(device)
+        mel_postnet_spec = torch.rand(8, 30, config.audio["num_mels"]).to(device)
+        mel_lengths = torch.randint(20, 30, (8,)).long().to(device)
+        mel_lengths[0] = 30
+        stop_targets = torch.zeros(8, 30, 1).float().to(device)
+
+        for idx in mel_lengths:
+            stop_targets[:, int(idx.item()) :, 0] = 1.0
+
+        stop_targets = stop_targets.view(input_dummy.shape[0], stop_targets.size(1) // config.r, -1)
+        stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
+
+        criterion = MSELossMasked(seq_len_norm=False).to(device)
+        criterion_st = nn.BCEWithLogitsLoss().to(device)
+        model = Tacotron2(config).to(device)
+        model.train()
+        model_ref = copy.deepcopy(model)
+        count = 0
+        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+            assert (param - param_ref).sum() == 0, param
+            count += 1
+        optimizer = optim.Adam(model.parameters(), lr=config.lr)
+        for i in range(5):
+            outputs = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths)
+            assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
+            assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
+            optimizer.zero_grad()
+            loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
+            stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
+            loss = loss + criterion(outputs["model_outputs"], mel_postnet_spec, mel_lengths) + stop_loss
+            loss.backward()
+            optimizer.step()
+        # check parameter changes
+        count = 0
+        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+            # ignore pre-higway layer since it works conditional
+            # if count not in [145, 59]:
+            assert (param != param_ref).any(), "param {} with shape {} not updated!! \n{}\n{}".format(
+                count, param.shape, param, param_ref
+            )
+            count += 1
+
+
+class MultiSpeakerTacotronTrainTest(unittest.TestCase):
+    """Test multi-speaker Tacotron2 with speaker embedding layer"""
+
+    @staticmethod
+    def test_train_step():
+        config = config_global.copy()
+        config.use_speaker_embedding = True
+        config.num_speakers = 5
+
         input_dummy = torch.randint(0, 24, (8, 128)).long().to(device)
         input_lengths = torch.randint(100, 128, (8,)).long().to(device)
         input_lengths = torch.sort(input_lengths, descending=True)[0]
@@ -45,6 +105,7 @@ class TacotronTrainTest(unittest.TestCase):
 
         criterion = MSELossMasked(seq_len_norm=False).to(device)
         criterion_st = nn.BCEWithLogitsLoss().to(device)
+        config.d_vector_dim = 55
         model = Tacotron2(config).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
@@ -76,65 +137,18 @@ class TacotronTrainTest(unittest.TestCase):
             count += 1
 
 
-class MultiSpeakeTacotronTrainTest(unittest.TestCase):
-    @staticmethod
-    def test_train_step():
-        config = config_global.copy()
-        input_dummy = torch.randint(0, 24, (8, 128)).long().to(device)
-        input_lengths = torch.randint(100, 128, (8,)).long().to(device)
-        input_lengths = torch.sort(input_lengths, descending=True)[0]
-        mel_spec = torch.rand(8, 30, config.audio["num_mels"]).to(device)
-        mel_postnet_spec = torch.rand(8, 30, config.audio["num_mels"]).to(device)
-        mel_lengths = torch.randint(20, 30, (8,)).long().to(device)
-        mel_lengths[0] = 30
-        stop_targets = torch.zeros(8, 30, 1).float().to(device)
-        speaker_ids = torch.rand(8, 55).to(device)
-
-        for idx in mel_lengths:
-            stop_targets[:, int(idx.item()) :, 0] = 1.0
-
-        stop_targets = stop_targets.view(input_dummy.shape[0], stop_targets.size(1) // config.r, -1)
-        stop_targets = (stop_targets.sum(2) > 0.0).unsqueeze(2).float().squeeze()
-
-        criterion = MSELossMasked(seq_len_norm=False).to(device)
-        criterion_st = nn.BCEWithLogitsLoss().to(device)
-        config.d_vector_dim = 55
-        model = Tacotron2(config).to(device)
-        model.train()
-        model_ref = copy.deepcopy(model)
-        count = 0
-        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
-            assert (param - param_ref).sum() == 0, param
-            count += 1
-        optimizer = optim.Adam(model.parameters(), lr=config.lr)
-        for i in range(5):
-            outputs = model.forward(
-                input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"d_vectors": speaker_ids}
-            )
-            assert torch.sigmoid(outputs["stop_tokens"]).data.max() <= 1.0
-            assert torch.sigmoid(outputs["stop_tokens"]).data.min() >= 0.0
-            optimizer.zero_grad()
-            loss = criterion(outputs["decoder_outputs"], mel_spec, mel_lengths)
-            stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
-            loss = loss + criterion(outputs["model_outputs"], mel_postnet_spec, mel_lengths) + stop_loss
-            loss.backward()
-            optimizer.step()
-        # check parameter changes
-        count = 0
-        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
-            # ignore pre-higway layer since it works conditional
-            # if count not in [145, 59]:
-            assert (param != param_ref).any(), "param {} with shape {} not updated!! \n{}\n{}".format(
-                count, param.shape, param, param_ref
-            )
-            count += 1
-
-
 class TacotronGSTTrainTest(unittest.TestCase):
+    """Test multi-speaker Tacotron2 with Global Style Token and Speaker Embedding"""
+
     # pylint: disable=no-self-use
     def test_train_step(self):
         # with random gst mel style
         config = config_global.copy()
+        config.use_speaker_embedding = True
+        config.num_speakers = 10
+        config.use_gst = True
+        config.gst = GSTConfig()
+
         input_dummy = torch.randint(0, 24, (8, 128)).long().to(device)
         input_lengths = torch.randint(100, 128, (8,)).long().to(device)
         input_lengths = torch.sort(input_lengths, descending=True)[0]
@@ -247,9 +261,17 @@ class TacotronGSTTrainTest(unittest.TestCase):
 
 
 class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
+    """Test multi-speaker Tacotron2 with Global Style Tokens and d-vector inputs."""
+
     @staticmethod
     def test_train_step():
+
         config = config_global.copy()
+        config.use_d_vector_file = True
+
+        config.use_gst = True
+        config.gst = GSTConfig()
+
         input_dummy = torch.randint(0, 24, (8, 128)).long().to(device)
         input_lengths = torch.randint(100, 128, (8,)).long().to(device)
         input_lengths = torch.sort(input_lengths, descending=True)[0]

@@ -17,6 +17,7 @@ from TTS.trainer import init_training
 from TTS.tts.datasets import load_meta_data
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
+from TTS.utils.io import load_fsspec
 from TTS.utils.radam import RAdam
 from TTS.utils.training import NoamLR, check_update
 
@@ -115,12 +116,12 @@ def train(model, optimizer, scheduler, criterion, data_loader, global_step):
                 "step_time": step_time,
                 "avg_loader_time": avg_loader_time,
             }
-            tb_logger.tb_train_epoch_stats(global_step, train_stats)
+            dashboard_logger.train_epoch_stats(global_step, train_stats)
             figures = {
                 # FIXME: not constant
                 "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), 10),
             }
-            tb_logger.tb_train_figures(global_step, figures)
+            dashboard_logger.train_figures(global_step, figures)
 
         if global_step % c.print_step == 0:
             print(
@@ -169,7 +170,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         raise Exception("The %s  not is a loss supported" % c.loss)
 
     if args.restore_path:
-        checkpoint = torch.load(args.restore_path)
+        checkpoint = load_fsspec(args.restore_path)
         try:
             model.load_state_dict(checkpoint["model"])
 
@@ -207,7 +208,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
 
 if __name__ == "__main__":
-    args, c, OUT_PATH, AUDIO_PATH, c_logger, tb_logger = init_training(sys.argv)
+    args, c, OUT_PATH, AUDIO_PATH, c_logger, dashboard_logger = init_training(sys.argv)
 
     try:
         main(args)
