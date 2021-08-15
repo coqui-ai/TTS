@@ -30,40 +30,40 @@ class TtsExamples:
             epochs=self.epochs,
         )
 
-    def ljspeech_tacotron2(self, name="tacotron2", forward_attention=False, location_attention=True):
-        if name == "double decoder consistency":
-            dataset, audio = data_loader(
-                name="ljspeech", path=self.data_path, stats_path="stats_path/scale_stats_ddc.npy"
-            )
-            model_config = self.model.single_speaker_tacotron2_DDC(
-                audio, dataset, forward_attn=forward_attention, location_attn=location_attention
-            )
-        elif name == "dynamic convolution attention":
-            dataset, audio = data_loader(
-                name="ljspeech", path=self.data_path, stats_path="stats_path/scale_stats_dca.npy"
-            )
-            model_config = self.model.single_speaker_tacotron2_DCA(
-                audio, dataset, forward_attn=forward_attention, location_attn=location_attention
-            )
-        elif name == "tacotron2":
-            dataset, audio = data_loader(name="ljspeech", path=self.data_path, stats_path=None)
-            model_config = self.model.single_speaker_tacotron2_base(
-                audio, dataset, forward_attn=forward_attention, location_attn=location_attention
-            )
-        args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
-        trainer = Trainer(args, config, output_path, c_logger, tb_logger)
-        return trainer
-
-    def ljspeech_glowtts(self):
-        dataset, audio = data_loader(name="ljspeech", path=self.data_path)
-        model_config = self.model.ljspeech_glow_tts(audio, dataset)
-        args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
-        trainer = Trainer(args, config, output_path, c_logger, tb_logger)
-        return trainer
-
-    def ljspeech_speedy_speech(self):
-        dataset, audio = data_loader(name="ljspeech", path=self.data_path)
-        model_config = self.model.ljspeech_speedy_speech(audio, dataset)
+    def ljspeechAutoTts(
+        self,
+        model,
+        tacotron2_model_type=None,
+        glow_tts_encoder=None,
+        forward_attention=False,
+        location_attention=True,
+    ):
+        if model == "tacotron2":
+            if tacotron2_model_type == "double decoder consistency":
+                dataset, audio = data_loader(
+                    name="ljspeech", path=self.data_path, stats_path="stats_path/scale_stats_ddc.npy"
+                )
+                model_config = self.model.single_speaker_tacotron2_DDC(
+                    audio, dataset, forward_attn=forward_attention, location_attn=location_attention
+                )
+            elif tacotron2_model_type == "dynamic convolution attention":
+                dataset, audio = data_loader(
+                    name="ljspeech", path=self.data_path, stats_path="stats_path/scale_stats_dca.npy"
+                )
+                model_config = self.model.single_speaker_tacotron2_DCA(
+                    audio, dataset, forward_attn=forward_attention, location_attn=location_attention
+                )
+            else:
+                dataset, audio = data_loader(name="ljspeech", path=self.data_path, stats_path=None)
+                model_config = self.model.single_speaker_tacotron2_base(
+                    audio, dataset, forward_attn=forward_attention, location_attn=location_attention
+                )
+        elif model == "glow tts":
+            dataset, audio = data_loader(name="ljspeech", path=self.data_path)
+            model_config = self.model.ljspeech_glow_tts(audio, dataset, encoder=glow_tts_encoder)
+        elif model == "speedy speech":
+            dataset, audio = data_loader(name="ljspeech", path=self.data_path)
+            model_config = self.model.ljspeech_speedy_speech(audio, dataset)
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
