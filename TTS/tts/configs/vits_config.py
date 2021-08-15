@@ -82,8 +82,8 @@ class VitsConfig(BaseTTSConfig):
         add_blank (bool):
             If true, a blank token is added in between every character. Defaults to `True`.
 
-        test_sentences (List[str]):
-            List of sentences to be used for testing.
+        test_sentences (List[List]):
+            List of sentences with speaker and language information to be used for testing.
 
     Note:
         Check :class:`TTS.tts.configs.shared_configs.BaseTTSConfig` for the inherited parameters.
