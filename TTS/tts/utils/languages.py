@@ -20,7 +20,6 @@ class LanguageManager:
         >>> manager = LanguageManager(language_id_file_path=language_id_file_path)
         >>> language_id_mapper = manager.language_ids
     """
-    num_languages: int = 0
     language_id_mapping: Dict = {}
     def __init__(
         self,
@@ -77,7 +76,6 @@ class LanguageManager:
             file_path (str): Path to the target json file.
         """
         self.language_id_mapping = self._load_json(file_path)
-        self.num_languages = len(self.language_id_mapping)
 
     def save_language_ids_to_file(self, file_path: str) -> None:
         """Save language IDs to a json file.
@@ -99,7 +97,7 @@ def _set_file_path(path):
         return path_continue
     return None
 
-def get_language_manager(c: Coqpit, data: List = None, restore_path: str = None, out_path: str = None) -> LanguageManager:
+def get_language_manager(c: Coqpit, data: List = None, restore_path: str = None) -> LanguageManager:
     """Initiate a `LanguageManager` instance by the provided config.
 
     Args:

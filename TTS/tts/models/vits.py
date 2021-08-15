@@ -213,7 +213,7 @@ class VitsArgs(Coqpit):
     d_vector_dim: int = 0
     detach_dp_input: bool = True
     use_language_embedding: bool = False
-    embedded_language_dim: int = 4  
+    embedded_language_dim: int = 4
     num_languages: int = 0
 
 
@@ -325,10 +325,10 @@ class Vits(BaseTTS):
             )
         else:
             self.duration_predictor = DurationPredictor(
-                args.hidden_channels + self.embedded_language_dim, 
-                256, 
-                3, 
-                args.dropout_p_duration_predictor, 
+                args.hidden_channels + self.embedded_language_dim,
+                256,
+                3,
+                args.dropout_p_duration_predictor,
                 cond_channels=self.embedded_speaker_dim,
                 language_emb_dim=self.embedded_language_dim,
             )
@@ -745,7 +745,7 @@ class Vits(BaseTTS):
                 test_audios["{}-audio".format(idx)] = wav
                 test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
             except:  # pylint: disable=bare-except
-                 print(" !! Error creating Test Sentence -", idx)
+                print(" !! Error creating Test Sentence -", idx)
         return test_figures, test_audios
 
     def get_optimizer(self) -> List:
@@ -835,6 +835,3 @@ class Vits(BaseTTS):
         if eval:
             self.eval()
             assert not self.training
-
-
-        
