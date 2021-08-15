@@ -26,7 +26,8 @@ class TtsModels:
 
 
     def __init__(
-        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
+            self, batch_size, mixed_precision, learning_rate, epochs,
+            output_path=os.path.dirname(os.path.abspath(__file__))
     ):
 
         self.batch_size = batch_size
@@ -36,7 +37,7 @@ class TtsModels:
         self.epochs = epochs
 
     def single_speaker_tacotron2_base(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
     ):
         config = Tacotron2Config(
             run_name="single_speaker_taoctron2",
@@ -81,7 +82,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DDC(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
             audio=audio,
@@ -144,7 +145,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DCA(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         """This is a tacotron2 dca config for the ljspeech dataset,
         based off the already existing recipe config."""
