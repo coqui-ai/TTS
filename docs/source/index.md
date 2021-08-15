@@ -44,6 +44,7 @@
     :caption: `tts` Models
 
     models/glow_tts.md
+    models/vits.md
 
 .. toctree::
     :maxdepth: 2

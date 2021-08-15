@@ -8,8 +8,8 @@ from TTS.utils.generic_utils import remove_experiment_folder
 
 def main():
     try:
-        args, config, output_path, _, c_logger, tb_logger = init_training(sys.argv)
-        trainer = Trainer(args, config, output_path, c_logger, tb_logger)
+        args, config, output_path, _, c_logger, dashboard_logger = init_training(sys.argv)
+        trainer = Trainer(args, config, output_path, c_logger, dashboard_logger)
         trainer.fit()
     except KeyboardInterrupt:
         remove_experiment_folder(output_path)

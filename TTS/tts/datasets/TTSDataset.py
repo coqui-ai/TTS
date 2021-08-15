@@ -23,7 +23,9 @@ class TTSDataset(Dataset):
         ap: AudioProcessor,
         meta_data: List[List],
         characters: Dict = None,
+        custom_symbols: List = None,
         add_blank: bool = False,
+        return_wav: bool = False,
         batch_group_size: int = 0,
         min_seq_len: int = 0,
         max_seq_len: int = float("inf"),
@@ -54,8 +56,13 @@ class TTSDataset(Dataset):
 
             characters (dict): `dict` of custom text characters used for converting texts to sequences.
 
+            custom_symbols (list): List of custom symbols used for converting texts to sequences. Models using its own
+                set of symbols need to pass it here. Defaults to `None`.
+
             add_blank (bool): Add a special `blank` character after every other character. It helps some
                 models achieve better results. Defaults to false.
+
+            return_wav (bool): Return the waveform of the sample. Defaults to False.
 
             batch_group_size (int): Range of batch randomization after sorting
                 sequences by length. It shuffles each batch with bucketing to gather similar lenght sequences in a
@@ -95,10 +102,12 @@ class TTSDataset(Dataset):
         self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner
         self.compute_linear_spec = compute_linear_spec
+        self.return_wav = return_wav
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
         self.characters = characters
+        self.custom_symbols = custom_symbols
         self.add_blank = add_blank
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
@@ -109,6 +118,7 @@ class TTSDataset(Dataset):
         self.use_noise_augment = use_noise_augment
         self.verbose = verbose
         self.input_seq_computed = False
+        self.rescue_item_idx = 1
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
@@ -128,13 +138,21 @@ class TTSDataset(Dataset):
         return data
 
     @staticmethod
-    def _generate_and_cache_phoneme_sequence(text, cache_path, cleaners, language, characters, add_blank):
+    def _generate_and_cache_phoneme_sequence(
+        text, cache_path, cleaners, language, custom_symbols, characters, add_blank
+    ):
         """generate a phoneme sequence from text.
         since the usage is for subsequent caching, we never add bos and
         eos chars here. Instead we add those dynamically later; based on the
         config option."""
         phonemes = phoneme_to_sequence(
-            text, [cleaners], language=language, enable_eos_bos=False, tp=characters, add_blank=add_blank
+            text,
+            [cleaners],
+            language=language,
+            enable_eos_bos=False,
+            custom_symbols=custom_symbols,
+            tp=characters,
+            add_blank=add_blank,
         )
         phonemes = np.asarray(phonemes, dtype=np.int32)
         np.save(cache_path, phonemes)
@@ -142,7 +160,7 @@ class TTSDataset(Dataset):
 
     @staticmethod
     def _load_or_generate_phoneme_sequence(
-        wav_file, text, phoneme_cache_path, enable_eos_bos, cleaners, language, characters, add_blank
+        wav_file, text, phoneme_cache_path, enable_eos_bos, cleaners, language, custom_symbols, characters, add_blank
     ):
         file_name = os.path.splitext(os.path.basename(wav_file))[0]
 
@@ -153,12 +171,12 @@ class TTSDataset(Dataset):
             phonemes = np.load(cache_path)
         except FileNotFoundError:
             phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, characters, add_blank
+                text, cache_path, cleaners, language, custom_symbols, characters, add_blank
             )
         except (ValueError, IOError):
             print(" [!] failed loading phonemes for {}. " "Recomputing.".format(wav_file))
             phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, characters, add_blank
+                text, cache_path, cleaners, language, custom_symbols, characters, add_blank
             )
         if enable_eos_bos:
             phonemes = pad_with_eos_bos(phonemes, tp=characters)
@@ -173,6 +191,7 @@ class TTSDataset(Dataset):
         else:
             text, wav_file, speaker_name = item
             attn = None
+        raw_text = text
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
 
@@ -189,13 +208,19 @@ class TTSDataset(Dataset):
                     self.enable_eos_bos,
                     self.cleaners,
                     self.phoneme_language,
+                    self.custom_symbols,
                     self.characters,
                     self.add_blank,
                 )
-
             else:
                 text = np.asarray(
-                    text_to_sequence(text, [self.cleaners], tp=self.characters, add_blank=self.add_blank),
+                    text_to_sequence(
+                        text,
+                        [self.cleaners],
+                        custom_symbols=self.custom_symbols,
+                        tp=self.characters,
+                        add_blank=self.add_blank,
+                    ),
                     dtype=np.int32,
                 )
 
@@ -209,9 +234,10 @@ class TTSDataset(Dataset):
             # return a different sample if the phonemized
             # text is longer than the threshold
             # TODO: find a better fix
-            return self.load_data(100)
+            return self.load_data(self.rescue_item_idx)
 
         sample = {
+            "raw_text": raw_text,
             "text": text,
             "wav": wav,
             "attn": attn,
@@ -238,7 +264,13 @@ class TTSDataset(Dataset):
             for idx, item in enumerate(tqdm.tqdm(self.items)):
                 text, *_ = item
                 sequence = np.asarray(
-                    text_to_sequence(text, [self.cleaners], tp=self.characters, add_blank=self.add_blank),
+                    text_to_sequence(
+                        text,
+                        [self.cleaners],
+                        custom_symbols=self.custom_symbols,
+                        tp=self.characters,
+                        add_blank=self.add_blank,
+                    ),
                     dtype=np.int32,
                 )
                 self.items[idx][0] = sequence
@@ -249,6 +281,7 @@ class TTSDataset(Dataset):
                 self.enable_eos_bos,
                 self.cleaners,
                 self.phoneme_language,
+                self.custom_symbols,
                 self.characters,
                 self.add_blank,
             ]
@@ -329,6 +362,7 @@ class TTSDataset(Dataset):
             wav = [batch[idx]["wav"] for idx in ids_sorted_decreasing]
             item_idxs = [batch[idx]["item_idx"] for idx in ids_sorted_decreasing]
             text = [batch[idx]["text"] for idx in ids_sorted_decreasing]
+            raw_text = [batch[idx]["raw_text"] for idx in ids_sorted_decreasing]
 
             speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
             # get pre-computed d-vectors
@@ -346,6 +380,14 @@ class TTSDataset(Dataset):
             mel = [self.ap.melspectrogram(w).astype("float32") for w in wav]
 
             mel_lengths = [m.shape[1] for m in mel]
+
+            # lengths adjusted by the reduction factor
+            mel_lengths_adjusted = [
+                m.shape[1] + (self.outputs_per_step - (m.shape[1] % self.outputs_per_step))
+                if m.shape[1] % self.outputs_per_step
+                else m.shape[1]
+                for m in mel
+            ]
 
             # compute 'stop token' targets
             stop_targets = [np.array([0.0] * (mel_len - 1) + [1.0]) for mel_len in mel_lengths]
@@ -385,6 +427,20 @@ class TTSDataset(Dataset):
             else:
                 linear = None
 
+            # format waveforms
+            wav_padded = None
+            if self.return_wav:
+                wav_lengths = [w.shape[0] for w in wav]
+                max_wav_len = max(mel_lengths_adjusted) * self.ap.hop_length
+                wav_lengths = torch.LongTensor(wav_lengths)
+                wav_padded = torch.zeros(len(batch), 1, max_wav_len)
+                for i, w in enumerate(wav):
+                    mel_length = mel_lengths_adjusted[i]
+                    w = np.pad(w, (0, self.ap.hop_length * self.outputs_per_step), mode="edge")
+                    w = w[: mel_length * self.ap.hop_length]
+                    wav_padded[i, :, : w.shape[0]] = torch.from_numpy(w)
+                wav_padded.transpose_(1, 2)
+
             # collate attention alignments
             if batch[0]["attn"] is not None:
                 attns = [batch[idx]["attn"].T for idx in ids_sorted_decreasing]
@@ -397,6 +453,7 @@ class TTSDataset(Dataset):
                 attns = torch.FloatTensor(attns).unsqueeze(1)
             else:
                 attns = None
+            # TODO: return dictionary
             return (
                 text,
                 text_lenghts,
@@ -409,6 +466,8 @@ class TTSDataset(Dataset):
                 d_vectors,
                 speaker_ids,
                 attns,
+                wav_padded,
+                raw_text,
             )
 
         raise TypeError(

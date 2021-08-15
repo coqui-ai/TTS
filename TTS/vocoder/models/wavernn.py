@@ -13,6 +13,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from TTS.tts.utils.visual import plot_spectrogram
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_fsspec
 from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 from TTS.vocoder.layers.losses import WaveRNNLoss
 from TTS.vocoder.models.base_vocoder import BaseVocoder
@@ -545,7 +546,7 @@ class Wavernn(BaseVocoder):
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
     ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
             self.eval()
