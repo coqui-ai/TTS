@@ -102,7 +102,7 @@ You can also help us implement more models.
 ## Install TTS
 🐸TTS is tested on Ubuntu 18.04 with **python >= 3.6, < 3.9**.
 
-If you are only interested in [synthesizing speech](https://github.com/coqui-ai/TTS/tree/dev#example-synthesizing-speech-on-terminal-using-the-released-models) with the released 🐸TTS models, installing from PyPI is the easiest option.
+If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
 
 ```bash
 pip install TTS
