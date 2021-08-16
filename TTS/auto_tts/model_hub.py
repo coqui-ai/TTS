@@ -4,8 +4,9 @@ from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.speedy_speech_config import SpeedySpeechArgs, SpeedySpeechConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.vocoder.configs.hifigan_config import HifiganConfig
-from TTS.vocoder.configs.wavegrad_config import WavegradConfig
 from TTS.vocoder.configs.multiband_melgan_config import MultibandMelganConfig
+from TTS.vocoder.configs.univnet_config import UnivnetConfig
+from TTS.vocoder.configs.wavegrad_config import WavegradConfig
 
 
 class TtsModels:
@@ -22,8 +23,7 @@ class TtsModels:
     """
 
     def __init__(
-            self, batch_size, mixed_precision, learning_rate, epochs,
-            output_path=os.path.dirname(os.path.abspath(__file__))
+        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
     ):
 
         self.batch_size = batch_size
@@ -33,7 +33,7 @@ class TtsModels:
         self.epochs = epochs
 
     def single_speaker_tacotron2_base(
-            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
     ):
         config = Tacotron2Config(
             run_name="single_speaker_taoctron2",
@@ -78,7 +78,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DDC(
-            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
             audio=audio,
@@ -141,7 +141,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DCA(
-            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         """This is a tacotron2 dca config for the ljspeech dataset,
         based off the already existing recipe config."""
@@ -376,14 +376,18 @@ class TtsModels:
 # ToDo: test these models and tune config if needed
 class VocoderModels:
     def __init__(
-            self, batch_size, mixed_precision, learning_rate, epochs,
-            output_path=os.path.dirname(os.path.abspath(__file__))
+        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
     ):
         self.batch_size = batch_size
         self.output_path = output_path
         self.mixed_precision = mixed_precision
         self.learning_rate = learning_rate
         self.epochs = epochs
+
+    @staticmethod
+    def loss_func(loss=None):
+        if loss == "mse":
+            pass  # I was about to impliment a way to just pick a loss func but I wanna think of a better way to do it so ima just leave this here for now.
 
     def ljspeechHifiGan(self, audio, data_path):
         config = HifiganConfig(
@@ -470,6 +474,41 @@ class VocoderModels:
             mixed_precision=self.mixed_precision,
             lr_gen=gen_lr,
             lr_disc=disc_lr,
+            data_path=data_path,
+            output_path=self.output_path,
+        )
+        return config
+
+    def ljspeechUnivnet(self, audio, data_path, gen_lr, disc_lr):
+        config = UnivnetConfig(
+            audio=audio,
+            batch_size=self.batch_size,
+            eval_batch_size=self.batch_size // 2,
+            num_loader_workers=4,
+            num_eval_loader_workers=4,
+            run_eval=True,
+            test_delay_epochs=-1,
+            epochs=self.epochs,
+            use_cache=False,
+            wd=0.0,
+            conv_pad=0,
+            use_stft_loss=True,
+            use_l1_spec_loss=False,
+            # ToDo: make function that lets you pick if you want to use the one from the original paper or mse
+            use_mse_gan_loss=True,
+            target_loss="loss_0",
+            grad_clip=[5.0, 5.0],
+            lr_gen=gen_lr,
+            lr_disc=disc_lr,
+            use_pqmf=False,
+            diff_samples_for_G_and_D=False,
+            seq_len=8192,
+            pad_short=2000,
+            use_noise_augment=True,
+            eval_split_size=10,
+            print_step=25,
+            print_eval=False,
+            mixed_precision=False,
             data_path=data_path,
             output_path=self.output_path,
         )
