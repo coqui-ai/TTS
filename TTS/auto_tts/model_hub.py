@@ -26,8 +26,7 @@ class TtsModels:
 
 
     def __init__(
-            self, batch_size, mixed_precision, learning_rate, epochs,
-            output_path=os.path.dirname(os.path.abspath(__file__))
+        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
     ):
 
         self.batch_size = batch_size
@@ -37,7 +36,7 @@ class TtsModels:
         self.epochs = epochs
 
     def single_speaker_tacotron2_base(
-            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
     ):
         config = Tacotron2Config(
             run_name="single_speaker_taoctron2",
@@ -82,7 +81,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DDC(
-            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
             audio=audio,
@@ -145,7 +144,7 @@ class TtsModels:
         return config
 
     def single_speaker_tacotron2_DCA(
-            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         """This is a tacotron2 dca config for the ljspeech dataset,
         based off the already existing recipe config."""
@@ -531,6 +530,41 @@ class VocoderModels:
             grad_clip=[5.0, 5.0],
             lr_gen=self.generator_learning_rate,
             lr_disc=self.discriminator_lr,
+            use_pqmf=False,
+            diff_samples_for_G_and_D=False,
+            seq_len=8192,
+            pad_short=2000,
+            use_noise_augment=True,
+            eval_split_size=10,
+            print_step=25,
+            print_eval=False,
+            mixed_precision=False,
+            data_path=data_path,
+            output_path=self.output_path,
+        )
+        return config
+
+    def ljspeechUnivnet(self, audio, data_path, gen_lr, disc_lr):
+        config = UnivnetConfig(
+            audio=audio,
+            batch_size=self.batch_size,
+            eval_batch_size=self.batch_size // 2,
+            num_loader_workers=4,
+            num_eval_loader_workers=4,
+            run_eval=True,
+            test_delay_epochs=-1,
+            epochs=self.epochs,
+            use_cache=False,
+            wd=0.0,
+            conv_pad=0,
+            use_stft_loss=True,
+            use_l1_spec_loss=False,
+            # ToDo: make function that lets you pick if you want to use the one from the original paper or mse
+            use_mse_gan_loss=True,
+            target_loss="loss_0",
+            grad_clip=[5.0, 5.0],
+            lr_gen=gen_lr,
+            lr_disc=disc_lr,
             use_pqmf=False,
             diff_samples_for_G_and_D=False,
             seq_len=8192,
