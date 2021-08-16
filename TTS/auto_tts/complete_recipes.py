@@ -158,9 +158,10 @@ class VocoderExamples:
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
 
-    def vctk_glow_tts(self, speaker_file, encoder="transformer"):
+    def vctkAutoTts(self, model_name, speaker_file, glowtts_encoder):
         dataset, audio = data_loader(name="vctk", path=self.data_path)
-        model_config = self.model.ScGlowTts(audio, dataset, speaker_file, encoder=encoder)
+        if model_name == "glow tts":
+            model_config = self.model.ScGlowTts(audio, dataset, speaker_file, encoder=glowtts_encoder)
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
@@ -214,12 +215,16 @@ class VocoderExamples:
             epochs=self.epochs,
         )
 
-    def ljspeech_vocoder(self, name=None):
+    def ljpseechAutoTts(self, model_name=None):
         dataset, audio = data_loader(name="ljspeech", path=self.data_path, stats_path="")
-        if name == "hifigan":
-            model_config = self.model.ljspeech_hifigan(audio, self.data_path)
-        elif name == "wavegrad":
-            model_config = self.model.ljspeech_hifigan(audio, self.data_path)
+        if model_name == "hifigan":
+            model_config = self.model.ljspeechHifiGan(audio, self.data_path)
+        elif model_name == "wavegrad":
+            model_config = self.model.ljspeechWaveGrad(audio, self.data_path)
+        elif model_name == "univnet":
+            model_config = self.model.ljspeechUnivnet(audio, self.data_path)  # ToDo: add the stats path to the config
+        elif model_name == "multiband melgan":
+            model_config = self.model.ljspeechMultiBandMelGan(audio, self.data_path)
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
