@@ -235,7 +235,7 @@ class StochasticDurationPredictor(nn.Module):
             h = self.post_pre(dr)
             h = self.post_convs(h, x_mask)
             h = self.post_proj(h) * x_mask
-            noise = torch.rand(dr.size(0), 2, dr.size(2)).to(device=x.device, dtype=x.dtype) * x_mask
+            noise = torch.randn(dr.size(0), 2, dr.size(2)).to(device=x.device, dtype=x.dtype) * x_mask
             z_q = noise
 
             # posterior encoder
@@ -273,7 +273,7 @@ class StochasticDurationPredictor(nn.Module):
 
         flows = list(reversed(self.flows))
         flows = flows[:-2] + [flows[-1]]  # remove a useless vflow
-        z = torch.rand(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype) * noise_scale
+        z = torch.randn(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype) * noise_scale
         for flow in flows:
             z = torch.flip(z, [1])
             z = flow(z, x_mask, g=x, reverse=reverse)
