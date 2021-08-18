@@ -119,8 +119,8 @@ class VitsConfig(BaseTTSConfig):
     compute_linear_spec: bool = True
 
     # overrides
-    min_seq_len: int = 13
-    max_seq_len: int = 500
+    min_seq_len: int = 32
+    max_seq_len: int = 1000
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 
