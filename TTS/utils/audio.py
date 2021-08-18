@@ -241,6 +241,7 @@ class AudioProcessor(object):
         self.sample_rate = sample_rate
         self.resample = resample
         self.num_mels = num_mels
+        self.log_func = log_func
         self.min_level_db = min_level_db or 0
         self.frame_shift_ms = frame_shift_ms
         self.frame_length_ms = frame_length_ms
