@@ -177,7 +177,7 @@ class VitsArgs(Coqpit):
     num_layers_text_encoder: int = 6
     kernel_size_text_encoder: int = 3
     dropout_p_text_encoder: int = 0.1
-    dropout_p_duration_predictor: int = 0.1
+    dropout_p_duration_predictor: int = 0.5
     kernel_size_posterior_encoder: int = 5
     dilation_rate_posterior_encoder: int = 1
     num_layers_posterior_encoder: int = 16
