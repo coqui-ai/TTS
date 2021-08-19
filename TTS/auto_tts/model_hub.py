@@ -544,7 +544,7 @@ class VocoderModels:
         )
         return config
 
-    def ljspeechUnivnet(self, audio, data_path, gen_lr, disc_lr):
+    def ljspeechUnivnet(self, audio, data_path):
         config = UnivnetConfig(
             audio=audio,
             batch_size=self.batch_size,
@@ -563,8 +563,8 @@ class VocoderModels:
             use_mse_gan_loss=True,
             target_loss="loss_0",
             grad_clip=[5.0, 5.0],
-            lr_gen=gen_lr,
-            lr_disc=disc_lr,
+            lr_gen=self.generator_learning_rate,
+            lr_disc=self.discriminator_lr,
             use_pqmf=False,
             diff_samples_for_G_and_D=False,
             seq_len=8192,
