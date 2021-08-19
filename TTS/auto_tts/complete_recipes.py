@@ -159,6 +159,8 @@ class VocoderExamples:
         return trainer
 
     def vctkAutoTts(self, model_name, speaker_file, glowtts_encoder):
+        """Recipe for training multispeaker tts models on the vctk dataset.
+        this recipe currently supports glow tts(tacotron2 model in progress)"""
         dataset, audio = data_loader(name="vctk", path=self.data_path)
         if model_name == "glow tts":
             model_config = self.model.ScGlowTts(audio, dataset, speaker_file, encoder=glowtts_encoder)
@@ -166,57 +168,68 @@ class VocoderExamples:
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
 
-    def sam_accenture_tacotron2(
-        self, name="double decoder consistency", forward_attention=False, location_attention=True
-    ):
+    def SamAccentureAutoTts(self, model_name, tacotron2_model_type, forward_attention=False, location_attention=True):
         """Tacotron2 recipes for the sam dataset, based off the pre trained model."""
-        dataset, audio = data_loader(name="sam", path=self.data_path)
-        if name == "double decoder consistency":
-            model_config = self.model.single_speaker_tacotron2_DDC(
-                audio,
-                dataset,
-                pla=0.5,
-                dla=0.5,
-                ga=0.0,
-                forward_attn=forward_attention,
-                location_attn=location_attention,
-            )
-        elif name == "dynamic convolution attention":
-            model_config = self.model.single_speaker_tacotron2_DCA(
-                audio,
-                dataset,
-                pla=0.5,
-                dla=0.5,
-                ga=0.0,
-                forward_attn=forward_attention,
-                location_attn=location_attention,
-            )
+        if model_name == "tacotrn2":
+            dataset, audio = data_loader(name="sam", path=self.data_path)
+            if tacotron2_model_type == "double decoder consistency":
+                model_config = self.model.single_speaker_tacotron2_DDC(
+                    audio,
+                    dataset,
+                    pla=0.5,
+                    dla=0.5,
+                    ga=0.0,
+                    forward_attn=forward_attention,
+                    location_attn=location_attention,
+                )
+            elif tacotron2_model_type == "dynamic convolution attention":
+                model_config = self.model.single_speaker_tacotron2_DCA(
+                    audio,
+                    dataset,
+                    pla=0.5,
+                    dla=0.5,
+                    ga=0.0,
+                    forward_attn=forward_attention,
+                    location_attn=location_attention,
+                )
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
 
 
 class VocoderExamples:
-    """This is the class that will hold all the vocoder recipes,
-    decided to split the tts recipes and vocoder recipes because it just makes sense to me."""
+    """This is trainer for calling complete recipes based off public datasets.
+    all configs are based off pretrained model configs or the model papers.
 
-    def __init__(self, data_path, batch_size, output_path, mixed_precision, learning_rate, epochs):
+    usage:
+            From TTS.auto_tts.complete_recipes import VocoderExamples
+            trainer = VocoderExamples(data_path='DEFINE THIS', batch_size=32, learning_rate=0.001,
+                      mixed_precision=False, output_path='DEFINE THIS', epochs=1000)
+            model = trainer.ljspeechAutoTts("hifigan")
+            model.fit()
+    """
+
+    def __init__(self, data_path, batch_size, output_path, mixed_precision, gen_lr, disc_lr, epochs):
 
         self.data_path = data_path
         self.batch_size = batch_size
         self.output_path = output_path
         self.mixed_precision = mixed_precision
-        self.learning_rate = learning_rate
+        self.gen_lr = gen_lr
+        self.disc_lr = disc_lr
         self.epochs = epochs
         self.model = VocoderModels(
             batch_size=self.batch_size,
             mixed_precision=self.mixed_precision,
-            learning_rate=self.learning_rate,
+            generator_learning_rate=self.gen_lr,
+            discriminator_learning_rate=self.disc_lr,
             epochs=self.epochs,
         )
 
     def ljpseechAutoTts(self, model_name=None):
-        dataset, audio = data_loader(name="ljspeech", path=self.data_path, stats_path="")
+        """This is the ljpeech vocoder recipe for auto tts. it currently supports
+        hifigan, wavegrad, univnet, and multi melgan models are training."""
+        _, audio = data_loader(name="ljspeech", path=self.data_path, stats_path="")
         if model_name == "hifigan":
             model_config = self.model.ljspeechHifiGan(audio, self.data_path)
         elif model_name == "wavegrad":
