@@ -376,12 +376,19 @@ class TtsModels:
 # ToDo: test these models and tune config if needed
 class VocoderModels:
     def __init__(
-        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
+        self,
+        batch_size,
+        mixed_precision,
+        generator_learning_rate,
+        discriminator_learning_rate,
+        epochs,
+        output_path=os.path.dirname(os.path.abspath(__file__)),
     ):
         self.batch_size = batch_size
         self.output_path = output_path
         self.mixed_precision = mixed_precision
-        self.learning_rate = learning_rate
+        self.generator_learning_rate = generator_learning_rate
+        self.discriminator_lr = discriminator_learning_rate
         self.epochs = epochs
 
     @staticmethod
@@ -408,8 +415,8 @@ class VocoderModels:
             print_step=25,
             print_eval=True,
             mixed_precision=self.mixed_precision,
-            lr_gen=1e-4,
-            lr_disc=1e-4,
+            lr_gen=self.generator_learning_rate,
+            lr_disc=self.discriminator_lr,
             use_pqmf=False,
             use_stft_loss=False,
             use_subband_stft_loss=False,
@@ -451,7 +458,7 @@ class VocoderModels:
         )
         return config
 
-    def ljspeechMultiBandMelGan(self, audio, data_path, gen_lr=1e-4, disc_lr=1e-4):
+    def ljspeechMultiBandMelGan(self, audio, data_path):
         config = MultibandMelganConfig(
             audio=audio,
             batch_size=self.batch_size,
@@ -472,14 +479,14 @@ class VocoderModels:
             print_step=25,
             print_eval=True,
             mixed_precision=self.mixed_precision,
-            lr_gen=gen_lr,
-            lr_disc=disc_lr,
+            lr_gen=self.generator_learning_rate,
+            lr_disc=self.discriminator_lr,
             data_path=data_path,
             output_path=self.output_path,
         )
         return config
 
-    def ljspeechUnivnet(self, audio, data_path, gen_lr, disc_lr):
+    def ljspeechUnivnet(self, audio, data_path):
         config = UnivnetConfig(
             audio=audio,
             batch_size=self.batch_size,
@@ -498,8 +505,8 @@ class VocoderModels:
             use_mse_gan_loss=True,
             target_loss="loss_0",
             grad_clip=[5.0, 5.0],
-            lr_gen=gen_lr,
-            lr_disc=disc_lr,
+            lr_gen=self.generator_learning_rate,
+            lr_disc=self.discriminator_lr,
             use_pqmf=False,
             diff_samples_for_G_and_D=False,
             seq_len=8192,
