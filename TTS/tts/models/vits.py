@@ -564,12 +564,21 @@ class Vits(BaseTTS):
         outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p}
         return outputs
 
-    def voice_conversion(self, y, y_lengths, sid_src, sid_tgt):
+    def voice_conversion(self, y, y_lengths, speaker_cond_src, speaker_cond_tgt):
         """TODO: create an end-point for voice conversion"""
         assert self.num_speakers > 0, "num_speakers have to be larger than 0."
-        g_src = self.emb_g(sid_src).unsqueeze(-1)
-        g_tgt = self.emb_g(sid_tgt).unsqueeze(-1)
-        z, _, _, y_mask = self.enc_q(y, y_lengths, g=g_src)
+
+        # speaker embedding
+        if self.args.use_speaker_embedding and not self.use_d_vector:
+            g_src = self.emb_g(speaker_cond_src).unsqueeze(-1)
+            g_tgt = self.emb_g(speaker_cond_tgt).unsqueeze(-1)
+        elif self.args.use_speaker_embedding and self.use_d_vector:
+            g_src = F.normalize(speaker_cond_src).unsqueeze(-1)
+            g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
+        else:
+            raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
+
+        z, _, _, y_mask = self.posterior_encoder(y, y_lengths, g=g_src)
         z_p = self.flow(z, y_mask, g=g_src)
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
         o_hat = self.waveform_decoder(z_hat * y_mask, g=g_tgt)
