@@ -397,8 +397,13 @@ class Vits(BaseTTS):
 
         # init language embedding layer
         if config.use_language_embedding:
+            if config.num_languages > 0 and self.language_manager.num_languages == 0:
+                self.num_languages = config.num_languages
+            else:
+                self.num_languages = self.language_manager.num_languages
+
             self.embedded_language_dim = config.embedded_language_dim
-            self.emb_l = nn.Embedding(self.language_manager.num_languages, self.embedded_language_dim)
+            self.emb_l = nn.Embedding(self.num_languages, self.embedded_language_dim)
             torch.nn.init.xavier_uniform_(self.emb_l.weight)
         else:
             self.embedded_language_dim = 0
