@@ -442,7 +442,7 @@ _ALPHASYMBOL_YOMI = {
 _NUMBER_WITH_SEPARATOR_RX = re.compile('[0-9]{1,3}(,[0-9]{3})+')
 _CURRENCY_MAP = {'$': 'ドル', '¥': '円', '£': 'ポンド', '€': 'ユーロ'}
 _CURRENCY_RX = re.compile(r'([$¥£€])([0-9.]*[0-9])')
-_NUMBER_RX = re.compile(r'[0-9]+(.[0-9]+)?')
+_NUMBER_RX = re.compile(r'[0-9]+(\.[0-9]+)?')
 
 
 def japanese_convert_numbers_to_words(text: str) -> str:
