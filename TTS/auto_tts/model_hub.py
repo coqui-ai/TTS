@@ -3,6 +3,7 @@ import os
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.speedy_speech_config import SpeedySpeechArgs, SpeedySpeechConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
+from TTS.tts.configs.vits_config import VitsConfig
 from TTS.vocoder.configs.hifigan_config import HifiganConfig
 from TTS.vocoder.configs.multiband_melgan_config import MultibandMelganConfig
 from TTS.vocoder.configs.univnet_config import UnivnetConfig
@@ -121,8 +122,8 @@ class TtsModels:
             stopnet=True,
             separate_stopnet=True,
             print_step=25,
-            tb_plot_step=100,
             print_eval=False,
+            plot_step=100,
             save_step=10000,
             checkpoint=True,
             text_cleaner="phoneme_cleaners",
@@ -178,7 +179,7 @@ class TtsModels:
             stopnet=True,
             separate_stopnet=True,
             print_step=25,
-            tb_plot_step=100,
+            plot_step=100,
             print_eval=False,
             save_step=10000,
             checkpoint=True,
@@ -272,11 +273,11 @@ class TtsModels:
             epochs=self.epochs,
             lr=self.learning_rate,
             print_step=25,
-            tb_plot_step=100,
+            plot_step=100,
             print_eval=False,
             save_step=5000,
             checkpoint=True,
-            tb_model_param_stats=False,
+            model_param_stats=False,
             mixed_precision=self.mixed_precision,
             text_cleaner="phoneme_cleaners",
             enable_eos_bos_chars=False,
@@ -315,8 +316,8 @@ class TtsModels:
             test_delay_epochs=-1,
             print_eval=False,
             print_step=25,
-            tb_plot_step=100,
-            tb_model_param_stats=False,
+            plot_step=100,
+            model_param_stats=False,
             save_step=10000,
             num_loader_workers=8,
             num_eval_loader_workers=8,
@@ -366,11 +367,31 @@ class TtsModels:
         )
         return config
 
-    def vctk_tacotron2(self):
-        pass
-
-    def ljspeech_vits_tts(self):
-        pass
+    def ljspeech_vits_tts(self, audio, dataset):
+        config = VitsConfig(
+            audio=audio,
+            run_name="vits_ljspeech",
+            batch_size=self.batch_size,
+            eval_batch_size=self.batch_size // 2,
+            batch_group_size=0,
+            num_loader_workers=4,
+            num_eval_loader_workers=4,
+            run_eval=True,
+            test_delay_epochs=-1,
+            epochs=self.epochs,
+            text_cleaner="english_cleaners",
+            use_phonemes=True,
+            phoneme_language="en-us",
+            phoneme_cache_path=os.path.join(self.output_path, "phoneme_cache"),
+            compute_input_seq_cache=True,
+            print_step=25,
+            print_eval=True,
+            mixed_precision=self.mixed_precision,
+            max_seq_len=5000,
+            output_path=self.output_path,
+            datasets=[dataset],
+        )
+        return config
 
 
 # ToDo: test these models and tune config if needed
@@ -450,7 +471,7 @@ class VocoderModels:
             use_noise_augment=True,
             eval_split_size=50,
             print_step=50,
-            lr=self.learning_rate,
+            lr=self.generator_learning_rate,
             print_eval=True,
             mixed_precision=self.mixed_precision,
             data_path=data_path,

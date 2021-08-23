@@ -40,7 +40,7 @@ class TtsExamples:
     ):
         """This is the auto tts recipe for the ljspeech dataset,
         current supported models are tacotron2(with ddc and dca),
-        glow tt, and speedy speech, (vits in progress)"""
+        glow tts, vits tts, and speedy speech"""
         if model_name == "tacotron2":
             if tacotron2_model_type == "double decoder consistency":
                 dataset, audio = data_loader(
@@ -67,6 +67,9 @@ class TtsExamples:
         elif model_name == "speedy speech":
             dataset, audio = data_loader(name="ljspeech", path=self.data_path)
             model_config = self.model.ljspeech_speedy_speech(audio, dataset)
+        elif model_name == "vits tts":
+            dataset, audio = data_loader(name="ljspeech", path=self.data_path)
+            model_config = self.model.ljspeech_vits_tts(audio, dataset)
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
