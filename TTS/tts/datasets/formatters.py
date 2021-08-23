@@ -62,14 +62,19 @@ def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argume
 def mailabs(root_path, meta_files=None, ununsed_speakers=None):
     """Normalizes M-AI-Labs meta data files to TTS format"""
     speaker_regex = re.compile("by_book/(male|female)/(?P<speaker_name>[^/]+)/")
-    if meta_files is None:
+    if not meta_files:
         csv_files = glob(root_path + "/**/metadata.csv", recursive=True)
     else:
         csv_files = meta_files
+
     # meta_files = [f.strip() for f in meta_files.split(",")]
     items = []
     for csv_file in csv_files:
-        txt_file = os.path.join(root_path, csv_file)
+        if os.path.isfile(csv_file):
+            txt_file = csv_file
+        else:
+            txt_file = os.path.join(root_path, csv_file)
+
         folder = os.path.dirname(txt_file)
         # determine speaker based on folder structure...
         speaker_name_match = speaker_regex.search(txt_file)
@@ -84,7 +89,7 @@ def mailabs(root_path, meta_files=None, ununsed_speakers=None):
         with open(txt_file, "r") as ttf:
             for line in ttf:
                 cols = line.split("|")
-                if meta_files is None:
+                if not meta_files:
                     wav_file = os.path.join(folder, "wavs", cols[0] + ".wav")
                 else:
                     wav_file = os.path.join(root_path, folder.replace("metadata.csv", ""), "wavs", cols[0] + ".wav")
@@ -92,7 +97,8 @@ def mailabs(root_path, meta_files=None, ununsed_speakers=None):
                     text = cols[1].strip()
                     items.append([text, wav_file, speaker_name])
                 else:
-                    raise RuntimeError("> File %s does not exist!" % (wav_file))
+                    # M-AI-Labs have some missing samples, so just print the warning
+                    print("> File %s does not exist!" % (wav_file))
     return items
 
 
@@ -208,7 +214,7 @@ def common_voice(root_path, meta_file, ununsed_speakers=None):
 def libri_tts(root_path, meta_files=None, ununsed_speakers=None):
     """https://ai.google/tools/datasets/libri-tts/"""
     items = []
-    if meta_files is None:
+    if not meta_files:
         meta_files = glob(f"{root_path}/**/*trans.tsv", recursive=True)
     else:
         if isinstance(meta_files, str):

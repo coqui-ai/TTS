@@ -118,6 +118,7 @@ class TTSDataset(Dataset):
         self.d_vector_mapping = d_vector_mapping
         self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
+
         self.verbose = verbose
         self.input_seq_computed = False
         self.rescue_item_idx = 1
