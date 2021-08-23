@@ -13,7 +13,7 @@ def main():
     parser.add_argument(
         "--mixed_precision", dest="mixed_precision", action="store_true", help="This turns on mixed precision training."
     )
-    parser.add_argument("--model", type=str, help="This is the model you want to train with")
+    parser.add_argument("--model", type=str, help="This is the model you want to train with, c")
     parser.add_argument("--learning_rate", type=float, default=0.001)
     parser.add_argument("--epochs", type=int, default=1000)
     parser.add_argument(
