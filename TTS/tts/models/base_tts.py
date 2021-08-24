@@ -289,7 +289,7 @@ class BaseTTS(BaseModel):
                 if getattr(config, "use_language_weighted_sampler", False):
                     print(" > Using Language weighted sampler")
                     sampler = get_language_weighted_sampler(dataset.items)
-                    
+
 
             loader = DataLoader(
                 dataset,
