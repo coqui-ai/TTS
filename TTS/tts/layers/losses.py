@@ -598,6 +598,7 @@ class VitsGeneratorLoss(nn.Module):
         feats_disc_fake,
         feats_disc_real,
         loss_duration,
+        fine_tuning_mode=False,
     ):
         """
         Shapes:
@@ -619,9 +620,15 @@ class VitsGeneratorLoss(nn.Module):
         mel = self.stft(waveform)
         mel_hat = self.stft(waveform_hat)
         # compute losses
+
+        # ignore tts model loss if fine tunning mode is on
+        if fine_tuning_mode:
+            loss_kl = 0.0
+        else:
+            loss_kl = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask.unsqueeze(1)) * self.kl_loss_alpha
+
         loss_feat = self.feature_loss(feats_disc_fake, feats_disc_real) * self.feat_loss_alpha
         loss_gen = self.generator_loss(scores_disc_fake)[0] * self.gen_loss_alpha
-        loss_kl = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask.unsqueeze(1)) * self.kl_loss_alpha
         loss_mel = torch.nn.functional.l1_loss(mel, mel_hat) * self.mel_loss_alpha
         loss_duration = torch.sum(loss_duration.float()) * self.dur_loss_alpha
         loss = loss_kl + loss_feat + loss_mel + loss_gen + loss_duration
