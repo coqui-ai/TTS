@@ -210,21 +210,23 @@ class Trainer:
             self.model = model
         else:
             self.model = self.get_model(self.config)
+
         # init multispeaker settings of the model
         if hasattr(self.model, "init_multispeaker"):
             self.model.init_multispeaker(self.config, self.data_train + self.data_eval)
             config = self.config.model_args if hasattr(self.config, "model_args") else self.config
-            # save speakers json
-            if config.use_speaker_embedding and not config.use_d_vector_file:
-                self.model.speaker_manager.save_speaker_ids_to_file(os.path.join(self.output_path, "speaker_ids.json"))
-            elif config.use_speaker_embedding and config.use_d_vector_file:
-                self.model.speaker_manager.save_d_vectors_to_file(os.path.join(self.output_path, "speakers.json"))
-            if hasattr(self.config, "model_args"):
-                self.config.model_args["num_speakers"] = self.model.num_speakers
-            else:
-                self.config.num_speakers = self.model.num_speakers
-            # update config file
-            copy_model_files(self.config, self.output_path, None)
+            if getattr(config, "use_speaker_embedding", False):
+                # save speakers json
+                if config.use_speaker_embedding and not config.use_d_vector_file:
+                    self.model.speaker_manager.save_speaker_ids_to_file(os.path.join(self.output_path, "speaker_ids.json"))
+                elif config.use_speaker_embedding and config.use_d_vector_file:
+                    self.model.speaker_manager.save_d_vectors_to_file(os.path.join(self.output_path, "speakers.json"))
+                if hasattr(self.config, "model_args"):
+                    self.config.model_args["num_speakers"] = self.model.num_speakers
+                else:
+                    self.config.num_speakers = self.model.num_speakers
+                # update config file
+                copy_model_files(self.config, self.output_path, None)
 
         if hasattr(self.model, "init_multilingual"):
             self.model.init_multilingual(self.config, self.data_train + self.data_eval)

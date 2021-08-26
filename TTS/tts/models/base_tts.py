@@ -66,28 +66,31 @@ class BaseTTS(BaseModel):
             config (Coqpit): Model configuration.
             data (List, optional): Dataset items to infer number of speakers. Defaults to None.
         """
-        # init speaker manager
-        self.speaker_manager = get_speaker_manager(config, data=data)
+        config = config.model_args if hasattr(config, "model_args") else config
 
-        # set number of speakers - if num_speakers is set in config, use it, otherwise use speaker_manager
-        if data is not None or self.speaker_manager.speaker_ids:
-            self.num_speakers = self.speaker_manager.num_speakers
-        else:
-            self.num_speakers = (
-                config.num_speakers
-                if "num_speakers" in config and config.num_speakers != 0
-                else self.speaker_manager.num_speakers
-            )
+        if getattr(config, "use_speaker_embedding", False):
+            # init speaker manager
+            self.speaker_manager = get_speaker_manager(config, data=data)
 
-        # set ultimate speaker embedding size
-        if config.use_speaker_embedding or config.use_d_vector_file:
-            self.embedded_speaker_dim = (
-                config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
-            )
-        # init speaker embedding layer
-        if config.use_speaker_embedding and not config.use_d_vector_file:
-            self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
-            self.speaker_embedding.weight.data.normal_(0, 0.3)
+            # set number of speakers - if num_speakers is set in config, use it, otherwise use speaker_manager
+            if data is not None or self.speaker_manager.speaker_ids:
+                self.num_speakers = self.speaker_manager.num_speakers
+            else:
+                self.num_speakers = (
+                    config.num_speakers
+                    if "num_speakers" in config and config.num_speakers != 0
+                    else self.speaker_manager.num_speakers
+                )
+
+            # set ultimate speaker embedding size
+            if config.use_speaker_embedding or config.use_d_vector_file:
+                self.embedded_speaker_dim = (
+                    config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
+                )
+            # init speaker embedding layer
+            if config.use_speaker_embedding and not config.use_d_vector_file:
+                self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
+                self.speaker_embedding.weight.data.normal_(0, 0.3)
 
     def get_aux_input(self, **kwargs) -> Dict:
         """Prepare and return `aux_input` used by `forward()`"""
@@ -261,7 +264,7 @@ class BaseTTS(BaseModel):
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping
-                if model_args.use_speaker_embedding and model_args.use_d_vector_file
+                if getattr(model_args, "use_speaker_embedding", False) and getattr(model_args, "use_d_vector_file", False)
                 else None,
                 language_id_mapping=language_id_mapping,
             )
