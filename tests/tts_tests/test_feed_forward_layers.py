@@ -96,12 +96,7 @@ def test_decoder():
         out_channels=11,
         in_hidden_channels=128,
         decoder_type="fftransformer",
-        decoder_params={
-            "hidden_channels_ffn": 31,
-            "num_heads": 2,
-            "dropout_p": 0.1,
-            "num_layers": 2,
-        },
+        decoder_params={"hidden_channels_ffn": 31, "num_heads": 2, "dropout_p": 0.1, "num_layers": 2,},
     ).to(device)
     output = layer(input_dummy, input_mask)
     assert list(output.shape) == [8, 11, 37]

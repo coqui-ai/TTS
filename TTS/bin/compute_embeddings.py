@@ -18,15 +18,11 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("model_path", type=str, help="Path to model checkpoint file.")
 parser.add_argument(
-    "config_path",
-    type=str,
-    help="Path to model config file.",
+    "config_path", type=str, help="Path to model config file.",
 )
 
 parser.add_argument(
-    "config_dataset_path",
-    type=str,
-    help="Path to dataset config file.",
+    "config_dataset_path", type=str, help="Path to dataset config file.",
 )
 parser.add_argument("output_path", type=str, help="path for output speakers.json and/or speakers.npy.")
 parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)

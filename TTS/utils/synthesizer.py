@@ -12,6 +12,9 @@ from TTS.tts.utils.speakers import SpeakerManager
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, trim_silence
+
+from TTS.tts.utils.text.symbols import SymbolEmbedding
+
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.models import setup_model as setup_vocoder_model
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
@@ -28,6 +31,7 @@ class Synthesizer(object):
         encoder_checkpoint: str = "",
         encoder_config: str = "",
         use_cuda: bool = False,
+        lang: str = "en",
     ) -> None:
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
         model and synthesize speech from the provided text.
@@ -64,7 +68,11 @@ class Synthesizer(object):
         self.num_speakers = 0
         self.tts_speakers = {}
         self.d_vector_dim = 0
-        self.seg = self._get_segmenter("en")
+
+        self.seg = None
+        if lang:
+            self.seg = self._get_segmenter(lang)
+
         self.use_cuda = use_cuda
 
         if self.use_cuda:
@@ -143,7 +151,6 @@ class Synthesizer(object):
         self.tts_config = load_config(tts_config_path)
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
-
         self.tts_model = setup_tts_model(config=self.tts_config)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
@@ -174,7 +181,10 @@ class Synthesizer(object):
         Returns:
             List[str]: list of sentences.
         """
-        return self.seg.segment(text)
+        if self.seg:
+            return self.seg.segment(text)
+        
+        return [text]
 
     def save_wav(self, wav: List[int], path: str) -> None:
         """Save the waveform as a file.

@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.models import setup_model as setup_tts_model
-from TTS.tts.utils.text.symbols import parse_symbols
+from TTS.tts.utils.text.symbols import SymbolEmbedding, parse_symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.callbacks import TrainerCallback
 from TTS.utils.distribute import init_distributed
@@ -199,11 +199,10 @@ class Trainer:
         # init audio processor
         self.ap = AudioProcessor(**self.config.audio.to_dict())
 
-        # load data samples
         # TODO: refactor this
         if "datasets" in self.config:
             # load data for `tts` models
-            self.data_train, self.data_eval = load_meta_data(self.config.datasets)
+            self.data_train, self.data_eval = load_meta_data(self.config)
         elif self.config.feature_path is not None:
             # load data for `vocoder`models
             print(f" > Loading features from: {self.config.feature_path}")
@@ -230,11 +229,7 @@ class Trainer:
         # DISTRUBUTED
         if self.num_gpus > 1:
             init_distributed(
-                args.rank,
-                self.num_gpus,
-                args.group_id,
-                self.config.distributed_backend,
-                self.config.distributed_url,
+                args.rank, self.num_gpus, args.group_id, self.config.distributed_backend, self.config.distributed_url,
             )
 
         if self.use_cuda:
@@ -351,9 +346,7 @@ class Trainer:
         else:
             for group in optimizer.param_groups:
                 group["lr"] = self.get_lr(model, config)
-        print(
-            " > Model restored from step %d" % checkpoint["step"],
-        )
+        print(" > Model restored from step %d" % checkpoint["step"],)
         restore_step = checkpoint["step"]
         torch.cuda.empty_cache()
         return model, optimizer, scaler, restore_step
@@ -519,6 +512,7 @@ class Trainer:
                 # https://nvidia.github.io/apex/advanced.html?highlight=accumulate#backward-passes-with-multiple-optimizers
                 with amp.scale_loss(loss_dict["loss"], optimizer) as scaled_loss:
                     scaled_loss.backward()
+
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     amp.master_params(optimizer), grad_clip, error_if_nonfinite=False
                 )
@@ -718,6 +712,7 @@ class Trainer:
             self.model.module.train()
         else:
             self.model.train()
+
         epoch_start_time = time.time()
         if self.use_cuda:
             batch_num_steps = int(len(self.train_loader.dataset) / (self.config.batch_size * self.num_gpus))
@@ -809,13 +804,7 @@ class Trainer:
     def eval_epoch(self) -> None:
         """Main entry point for the evaluation loop. Run evaluation on the all validation samples."""
         self.eval_loader = (
-            self.get_eval_dataloader(
-                self.ap,
-                self.data_eval,
-                verbose=True,
-            )
-            if self.config.run_eval
-            else None
+            self.get_eval_dataloader(self.ap, self.data_eval, verbose=True,) if self.config.run_eval else None
         )
 
         self.model.eval()

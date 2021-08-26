@@ -5,6 +5,7 @@ from glob import glob
 from pathlib import Path
 from typing import List
 
+import numpy as np
 from tqdm import tqdm
 
 ########################
@@ -386,4 +387,26 @@ def kokoro(root_path, meta_file):
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[2].replace(" ", "")
             items.append([text, wav_file, speaker_name])
+    return items
+
+
+# ======================================== CUSTOM SYMBOL EMBEDDING ===========================================
+
+
+def custom_symbol_embedding(root_path, meta_file, symbol_embedding):
+    """Space delimited multi-character symbols """
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = "custom_symbol_embedding"
+    symbol_index_lut = symbol_embedding.symbol_index_lut
+
+    with open(txt_file, "r") as ttf:
+        for line in ttf:
+            cols = line.split("|")
+            wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
+            symbol_string = cols[1]
+            symbol_list = symbol_string.split()
+            text = np.asarray(list(map(symbol_index_lut.__getitem__, symbol_list)), dtype=np.int32)
+            items.append([text, wav_file, speaker_name])
+
     return items

@@ -102,11 +102,7 @@ class Decoder(keras.layers.Layer):
         self.p_decoder_dropout = 0.1
 
         self.prenet = Prenet(prenet_type, prenet_dropout, [self.prenet_dim, self.prenet_dim], bias=False, name="prenet")
-        self.attention_rnn = keras.layers.LSTMCell(
-            self.query_dim,
-            use_bias=True,
-            name="attention_rnn",
-        )
+        self.attention_rnn = keras.layers.LSTMCell(self.query_dim, use_bias=True, name="attention_rnn",)
         self.attention_rnn_dropout = keras.layers.Dropout(0.5)
 
         # TODO: implement other attn options

@@ -186,9 +186,7 @@ class OriginalAttention(nn.Module):
             self.ta = nn.Linear(query_dim + embedding_dim, 1, bias=True)
         if location_attention:
             self.location_layer = LocationLayer(
-                attention_dim,
-                attention_location_n_filters,
-                attention_location_kernel_size,
+                attention_dim, attention_location_n_filters, attention_location_kernel_size,
             )
         self._mask_value = -float("inf")
         self.windowing = windowing
@@ -379,11 +377,7 @@ class MonotonicDynamicConvolutionAttention(nn.Module):
         self.query_layer = nn.Linear(query_dim, attention_dim)
         self.key_layer = nn.Linear(attention_dim, dynamic_filter_dim * dynamic_kernel_size, bias=False)
         self.static_filter_conv = nn.Conv1d(
-            1,
-            static_filter_dim,
-            static_kernel_size,
-            padding=(static_kernel_size - 1) // 2,
-            bias=False,
+            1, static_filter_dim, static_kernel_size, padding=(static_kernel_size - 1) // 2, bias=False,
         )
         self.static_filter_layer = nn.Linear(static_filter_dim, attention_dim, bias=False)
         self.dynamic_filter_layer = nn.Linear(dynamic_filter_dim, attention_dim)

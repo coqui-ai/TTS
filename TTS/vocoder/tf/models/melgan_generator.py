@@ -115,10 +115,7 @@ class MelganGenerator(tf.keras.models.Model):
         self(x, training=False)
 
     @tf.function(
-        experimental_relax_shapes=True,
-        input_signature=[
-            tf.TensorSpec([1, None, None], dtype=tf.float32),
-        ],
+        experimental_relax_shapes=True, input_signature=[tf.TensorSpec([1, None, None], dtype=tf.float32),],
     )
     def inference_tflite(self, c):
         c = tf.transpose(c, perm=[0, 2, 1])
