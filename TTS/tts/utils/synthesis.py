@@ -15,7 +15,7 @@ if "tensorflow" in installed or "tensorflow-gpu" in installed:
     import tensorflow as tf
 
 
-def text_to_seq(text, CONFIG):
+def text_to_seq(text, CONFIG, custom_symbols=None):
     text_cleaner = [CONFIG.text_cleaner]
     # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
@@ -28,6 +28,7 @@ def text_to_seq(text, CONFIG):
                 tp=CONFIG.characters,
                 add_blank=CONFIG.add_blank,
                 use_espeak_phonemes=CONFIG.use_espeak_phonemes,
+                custom_symbols=custom_symbols,
             ),
             dtype=np.int32,
         )
@@ -38,7 +39,10 @@ def text_to_seq(text, CONFIG):
 
     else:
         seq = np.asarray(
-            text_to_sequence(text, text_cleaner, tp=CONFIG.characters, add_blank=CONFIG.add_blank,), dtype=np.int32,
+            text_to_sequence(
+                text, text_cleaner, tp=CONFIG.characters, add_blank=CONFIG.add_blank, custom_symbols=custom_symbols
+            ),
+            dtype=np.int32,
         )
     return seq
 
@@ -228,13 +232,16 @@ def synthesis(
     """
     # GST processing
     style_mel = None
+    custom_symbols = None
     if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
         if isinstance(style_wav, dict):
             style_mel = style_wav
         else:
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
+    if hasattr(model, "make_symbols"):
+        custom_symbols = model.make_symbols(CONFIG)
     # preprocess the given text
-    text_inputs = text_to_seq(text, CONFIG)
+    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols)
     # pass tensors to backend
     if backend == "torch":
         if speaker_id is not None:
@@ -273,15 +280,18 @@ def synthesis(
     # convert outputs to numpy
     # plot results
     wav = None
-    if use_griffin_lim:
-        wav = inv_spectrogram(model_outputs, ap, CONFIG)
-        # trim silence
-        if do_trim_silence:
-            wav = trim_silence(wav, ap)
+    if hasattr(model, "END2END") and model.END2END:
+        wav = model_outputs.squeeze(0)
+    else:
+        if use_griffin_lim:
+            wav = inv_spectrogram(model_outputs, ap, CONFIG)
+            # trim silence
+            if do_trim_silence:
+                wav = trim_silence(wav, ap)
     return_dict = {
         "wav": wav,
         "alignments": alignments,
-        "model_outputs": model_outputs,
         "text_inputs": text_inputs,
+        "outputs": outputs,
     }
     return return_dict

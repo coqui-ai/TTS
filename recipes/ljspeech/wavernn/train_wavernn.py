@@ -1,8 +1,7 @@
 import os
 
-from TTS.trainer import Trainer, init_training, TrainingArgs
+from TTS.trainer import Trainer, TrainingArgs, init_training
 from TTS.vocoder.configs import WavernnConfig
-
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 config = WavernnConfig(
@@ -25,6 +24,6 @@ config = WavernnConfig(
     data_path=os.path.join(output_path, "../LJSpeech-1.1/wavs/"),
     output_path=output_path,
 )
-args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
-trainer = Trainer(args, config, output_path, c_logger, tb_logger, cudnn_benchmark=True)
+args, config, output_path, _, c_logger, dashboard_logger = init_training(TrainingArgs(), config)
+trainer = Trainer(args, config, output_path, c_logger, dashboard_logger, cudnn_benchmark=True)
 trainer.fit()

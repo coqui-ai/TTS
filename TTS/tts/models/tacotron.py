@@ -23,19 +23,19 @@ class Tacotron(BaseTacotron):
     def __init__(self, config: Coqpit):
         super().__init__(config)
 
-        self.num_chars, self.config = self.get_characters(config)
+        chars, self.config = self.get_characters(config)
+        config.num_chars = self.num_chars = len(chars)
 
         # pass all config fields to `self`
         # for fewer code change
         for key in config:
             setattr(self, key, config[key])
 
-        # speaker embedding layer
-        if self.num_speakers > 1:
+        # set speaker embedding channel size for determining `in_channels` for the connected layers.
+        # `init_multispeaker` needs to be called once more in training to initialize the speaker embedding layer based
+        # on the number of speakers infered from the dataset.
+        if self.use_speaker_embedding or self.use_d_vector_file:
             self.init_multispeaker(config)
-
-        # speaker and gst embeddings is concat in decoder input
-        if self.num_speakers > 1:
             self.decoder_in_features += self.embedded_speaker_dim  # add speaker embedding dim
 
         if self.use_gst:
@@ -83,13 +83,11 @@ class Tacotron(BaseTacotron):
         if self.gst and self.use_gst:
             self.gst_layer = GST(
                 num_mel=self.decoder_output_dim,
-                d_vector_dim=self.d_vector_dim
-                if self.config.gst.gst_use_speaker_embedding and self.use_speaker_embedding
-                else None,
                 num_heads=self.gst.gst_num_heads,
                 num_style_tokens=self.gst.gst_num_style_tokens,
                 gst_embedding_dim=self.gst.gst_embedding_dim,
             )
+
         # backward pass decoder
         if self.bidirectional_decoder:
             self._init_backward_decoder()
@@ -114,7 +112,9 @@ class Tacotron(BaseTacotron):
                 self.max_decoder_steps,
             )
 
-    def forward(self, text, text_lengths, mel_specs=None, mel_lengths=None, aux_input=None):
+    def forward(  # pylint: disable=dangerous-default-value
+        self, text, text_lengths, mel_specs=None, mel_lengths=None, aux_input={"speaker_ids": None, "d_vectors": None}
+    ):
         """
         Shapes:
             text: [B, T_in]
@@ -123,6 +123,7 @@ class Tacotron(BaseTacotron):
             mel_lengths: [B]
             aux_input: 'speaker_ids': [B, 1] and  'd_vectors':[B, C]
         """
+        aux_input = self._format_aux_input(aux_input)
         outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
         inputs = self.embedding(text)
         input_mask, output_mask = self.compute_masks(text_lengths, mel_lengths)
@@ -133,12 +134,10 @@ class Tacotron(BaseTacotron):
         # global style token
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(
-                encoder_outputs, mel_specs, aux_input["d_vectors"] if "d_vectors" in aux_input else None
-            )
+            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs)
         # speaker embedding
-        if self.num_speakers > 1:
-            if not self.use_d_vectors:
+        if self.use_speaker_embedding or self.use_d_vector_file:
+            if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[:, None]
             else:
@@ -190,7 +189,7 @@ class Tacotron(BaseTacotron):
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
         if self.num_speakers > 1:
-            if not self.use_d_vectors:
+            if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])
                 # reshape embedded_speakers

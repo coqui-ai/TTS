@@ -16,6 +16,7 @@ from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters
+from TTS.utils.io import load_fsspec
 
 use_cuda = torch.cuda.is_available()
 
@@ -214,7 +215,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     model = setup_model(c)
 
     # restore model
-    checkpoint = torch.load(args.checkpoint_path, map_location="cpu")
+    checkpoint = load_fsspec(args.checkpoint_path, map_location="cpu")
     model.load_state_dict(checkpoint["model"])
 
     if use_cuda:
