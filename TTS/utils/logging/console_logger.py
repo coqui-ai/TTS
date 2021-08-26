@@ -29,11 +29,13 @@ class ConsoleLogger:
         now = datetime.datetime.now()
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
-    def print_epoch_start(self, epoch, max_epoch):
+    def print_epoch_start(self, epoch, max_epoch, output_path = None):
         print(
             "\n{}{} > EPOCH: {}/{}{}".format(tcolors.UNDERLINE, tcolors.BOLD, epoch, max_epoch, tcolors.ENDC),
             flush=True,
         )
+        if output_path is not None:
+            print(f" --> {output_path}")
 
     def print_train_start(self):
         print(f"\n{tcolors.BOLD} > TRAINING ({self.get_time()}) {tcolors.ENDC}")

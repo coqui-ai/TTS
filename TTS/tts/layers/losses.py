@@ -594,7 +594,7 @@ class VitsGeneratorLoss(nn.Module):
     ):
         """
         Shapes:
-            - wavefrom: :math:`[B, 1, T]`
+            - waveform : :math:`[B, 1, T]`
             - waveform_hat: :math:`[B, 1, T]`
             - z_p: :math:`[B, C, T]`
             - logs_q: :math:`[B, C, T]`

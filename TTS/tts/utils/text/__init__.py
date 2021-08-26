@@ -225,9 +225,10 @@ def sequence_to_text(sequence: List, tp: Dict = None, add_blank=False, custom_sy
 
     if custom_symbols is not None:
         _symbols = custom_symbols
+        _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
     elif tp:
         _symbols, _ = make_symbols(**tp)
-    _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
+        _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
 
     result = ""
     for symbol_id in sequence:

@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 import fsspec
 import torch
+import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP_th
@@ -38,7 +39,7 @@ from TTS.utils.generic_utils import (
     to_cuda,
 )
 from TTS.utils.io import copy_model_files, load_fsspec, save_best_model, save_checkpoint
-from TTS.utils.logging import ConsoleLogger, TensorboardLogger, WandbLogger, init_logger
+from TTS.utils.logging import ConsoleLogger, TensorboardLogger, WandbLogger, init_dashboard_logger
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_available, setup_torch_training_env
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model as setup_vocoder_model
@@ -77,12 +78,16 @@ class TrainingArgs(Coqpit):
     best_path: str = field(
         default="",
         metadata={
-            "help": "Best model file to be used for extracting best loss. If not specified, the latest best model in continue path is used"
+            "help": "Best model file to be used for extracting the best loss. If not specified, the latest best model in continue path is used"
         },
     )
     config_path: str = field(default="", metadata={"help": "Path to the configuration file."})
     rank: int = field(default=0, metadata={"help": "Process rank in distributed training."})
     group_id: str = field(default="", metadata={"help": "Process group id in distributed training."})
+    use_ddp: bool = field(
+        default=False,
+        metadata={"help": "Use DDP in distributed training. It is to set in `distribute.py`. Do not set manually."},
+    )
 
 
 class Trainer:
@@ -144,6 +149,7 @@ class Trainer:
             >>> trainer.fit()
 
         TODO:
+            - Wrap model for not calling .module in DDP.
             - Accumulate gradients b/w batches.
             - Deepspeed integration
             - Profiler integration.
@@ -151,28 +157,32 @@ class Trainer:
             - TPU training
         """
 
-        # set and initialize Pytorch runtime
-        self.use_cuda, self.num_gpus = setup_torch_training_env(True, cudnn_benchmark)
         if config is None:
             # parse config from console arguments
             config, output_path, _, c_logger, dashboard_logger = process_args(args)
 
-        self.output_path = output_path
         self.args = args
         self.config = config
+        self.output_path = output_path
         self.config.output_log_path = output_path
+
+        # setup logging
+        log_file = os.path.join(self.output_path, f"trainer_{args.rank}_log.txt")
+        self._setup_logger_config(log_file)
+
+        # set and initialize Pytorch runtime
+        self.use_cuda, self.num_gpus = setup_torch_training_env(True, cudnn_benchmark, args.use_ddp)
+
         # init loggers
         self.c_logger = ConsoleLogger() if c_logger is None else c_logger
         self.dashboard_logger = dashboard_logger
 
-        if self.dashboard_logger is None:
-            self.dashboard_logger = init_logger(config)
+        # only allow dashboard logging for the main process in DDP mode
+        if self.dashboard_logger is None and args.rank == 0:
+            self.dashboard_logger = init_dashboard_logger(config)
 
         if not self.config.log_model_step:
             self.config.log_model_step = self.config.save_step
-
-        log_file = os.path.join(self.output_path, f"trainer_{args.rank}_log.txt")
-        self._setup_logger_config(log_file)
 
         self.total_steps_done = 0
         self.epochs_done = 0
@@ -275,10 +285,10 @@ class Trainer:
             if self.use_apex:
                 self.scaler = None
                 self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level="O1")
-            if isinstance(self.optimizer, list):
-                self.scaler = [torch.cuda.amp.GradScaler()] * len(self.optimizer)
-            else:
-                self.scaler = torch.cuda.amp.GradScaler()
+            # if isinstance(self.optimizer, list):
+            #     self.scaler = [torch.cuda.amp.GradScaler()] * len(self.optimizer)
+            # else:
+            self.scaler = torch.cuda.amp.GradScaler()
         else:
             self.scaler = None
 
@@ -347,14 +357,15 @@ class Trainer:
             return obj
 
         print(" > Restoring from %s ..." % os.path.basename(restore_path))
-        checkpoint = load_fsspec(restore_path)
+        # checkpoint = load_fsspec(restore_path)
+        checkpoint = torch.load(restore_path, map_location="cpu")
         try:
             print(" > Restoring Model...")
             model.load_state_dict(checkpoint["model"])
             print(" > Restoring Optimizer...")
             optimizer = _restore_list_objs(checkpoint["optimizer"], optimizer)
             if "scaler" in checkpoint and self.use_amp_scaler and checkpoint["scaler"]:
-                print(" > Restoring AMP Scaler...")
+                print(" > Restoring Scaler...")
                 scaler = _restore_list_objs(checkpoint["scaler"], scaler)
         except (KeyError, RuntimeError):
             print(" > Partial model initialization...")
@@ -376,8 +387,8 @@ class Trainer:
         restore_step = checkpoint["step"]
         return model, optimizer, scaler, restore_step
 
-    @staticmethod
     def _get_loader(
+        self,
         model: nn.Module,
         config: Coqpit,
         ap: AudioProcessor,
@@ -386,8 +397,14 @@ class Trainer:
         verbose: bool,
         num_gpus: int,
     ) -> DataLoader:
-        if hasattr(model, "get_data_loader"):
-            loader = model.get_data_loader(config, ap, is_eval, data_items, verbose, num_gpus)
+        if num_gpus > 1:
+            if hasattr(model.module, "get_data_loader"):
+                loader = model.module.get_data_loader(
+                    config, ap, is_eval, data_items, verbose, num_gpus, self.args.rank
+                )
+        else:
+            if hasattr(model, "get_data_loader"):
+                loader = model.get_data_loader(config, ap, is_eval, data_items, verbose, num_gpus)
         return loader
 
     def get_train_dataloader(self, ap: AudioProcessor, data_items: List, verbose: bool) -> DataLoader:
@@ -415,11 +432,27 @@ class Trainer:
         Returns:
             Dict: Formatted batch.
         """
-        batch = self.model.format_batch(batch)
+        if self.num_gpus > 1:
+            batch = self.model.module.format_batch(batch)
+        else:
+            batch = self.model.format_batch(batch)
         if self.use_cuda:
             for k, v in batch.items():
                 batch[k] = to_cuda(v)
         return batch
+
+    @staticmethod
+    def master_params(optimizer: torch.optim.Optimizer):
+        """Generator over parameters owned by the optimizer.
+
+        Used to select parameters used by the optimizer for gradient clipping.
+
+        Args:
+            optimizer: Target optimizer.
+        """
+        for group in optimizer.param_groups:
+            for p in group['params']:
+                yield p
 
     @staticmethod
     def _model_train_step(
@@ -478,6 +511,8 @@ class Trainer:
         step_start_time = time.time()
         # zero-out optimizer
         optimizer.zero_grad()
+
+        # forward pass and loss computation
         with torch.cuda.amp.autocast(enabled=config.mixed_precision):
             if optimizer_idx is not None:
                 outputs, loss_dict = self._model_train_step(batch, model, criterion, optimizer_idx=optimizer_idx)
@@ -489,9 +524,9 @@ class Trainer:
             step_time = time.time() - step_start_time
             return None, {}, step_time
 
-        # check nan loss
-        if torch.isnan(loss_dict["loss"]).any():
-            raise RuntimeError(f" > Detected NaN loss - {loss_dict}.")
+        # # check nan loss
+        # if torch.isnan(loss_dict["loss"]).any():
+        #     raise RuntimeError(f" > NaN loss detected  - {loss_dict}")
 
         # set gradient clipping threshold
         if "grad_clip" in config and config.grad_clip is not None:
@@ -509,6 +544,8 @@ class Trainer:
         update_lr_scheduler = True
         if self.use_amp_scaler:
             if self.use_apex:
+                # TODO: verify AMP use for GAN training in TTS
+                # https://nvidia.github.io/apex/advanced.html?highlight=accumulate#backward-passes-with-multiple-optimizers
                 with amp.scale_loss(loss_dict["loss"], optimizer) as scaled_loss:
                     scaled_loss.backward()
                 grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -519,7 +556,7 @@ class Trainer:
                 scaler.scale(loss_dict["loss"]).backward()
                 if grad_clip > 0:
                     scaler.unscale_(optimizer)
-                    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(self.master_params(optimizer), grad_clip, error_if_nonfinite=False)
                     # pytorch skips the step when the norm is 0. So ignore the norm value when it is NaN
                     if torch.isnan(grad_norm) or torch.isinf(grad_norm):
                         grad_norm = 0
@@ -599,7 +636,8 @@ class Trainer:
             total_step_time = 0
             for idx, optimizer in enumerate(self.optimizer):
                 criterion = self.criterion
-                scaler = self.scaler[idx] if self.use_amp_scaler else None
+                # scaler = self.scaler[idx] if self.use_amp_scaler else None
+                scaler = self.scaler
                 scheduler = self.scheduler[idx]
                 outputs, loss_dict_new, step_time = self._optimize(
                     batch, self.model, optimizer, scaler, criterion, scheduler, self.config, idx
@@ -690,9 +728,10 @@ class Trainer:
                 if audios is not None:
                     self.dashboard_logger.train_audios(self.total_steps_done, audios, self.ap.sample_rate)
 
+            self.dashboard_logger.flush()
+
         self.total_steps_done += 1
         self.callbacks.on_train_step_end()
-        self.dashboard_logger.flush()
         return outputs, loss_dict
 
     def train_epoch(self) -> None:
@@ -702,16 +741,20 @@ class Trainer:
             self.data_train,
             verbose=True,
         )
-        self.model.train()
+        if self.num_gpus > 1:
+            self.model.module.train()
+        else:
+            self.model.train()
         epoch_start_time = time.time()
         if self.use_cuda:
             batch_num_steps = int(len(self.train_loader.dataset) / (self.config.batch_size * self.num_gpus))
         else:
             batch_num_steps = int(len(self.train_loader.dataset) / self.config.batch_size)
         self.c_logger.print_train_start()
+        loader_start_time = time.time()
         for cur_step, batch in enumerate(self.train_loader):
-            loader_start_time = time.time()
             _, _ = self.train_step(batch, batch_num_steps, cur_step, loader_start_time)
+            loader_start_time = time.time()
         epoch_time = time.time() - epoch_start_time
         # Plot self.epochs_done Stats
         if self.args.rank == 0:
@@ -812,6 +855,7 @@ class Trainer:
             loader_time = time.time() - loader_start_time
             self.keep_avg_eval.update_values({"avg_loader_time": loader_time})
             outputs, _ = self.eval_step(batch, cur_step)
+            loader_start_time = time.time()
         # plot epoch stats, artifacts and figures
         if self.args.rank == 0:
             figures, audios = None, None
@@ -828,7 +872,7 @@ class Trainer:
     def test_run(self) -> None:
         """Run test and log the results. Test run must be defined by the model.
         Model must return figures and audios to be logged by the Tensorboard."""
-        if hasattr(self.model, "test_run"):
+        if hasattr(self.model, "test_run") or (self.num_gpus > 1 and hasattr(self.model.module, "test_run")):
             if self.eval_loader is None:
                 self.eval_loader = self.get_eval_dataloader(
                     self.ap,
@@ -838,30 +882,43 @@ class Trainer:
 
             if hasattr(self.eval_loader.dataset, "load_test_samples"):
                 samples = self.eval_loader.dataset.load_test_samples(1)
-                figures, audios = self.model.test_run(self.ap, samples, None)
+                if self.num_gpus > 1:
+                    figures, audios = self.model.module.test_run(self.ap, samples, None)
+                else:
+                    figures, audios = self.model.test_run(self.ap, samples, None)
             else:
-                figures, audios = self.model.test_run(self.ap)
+                if self.num_gpus > 1:
+                    figures, audios = self.model.module.test_run(self.ap)
+                else:
+                    figures, audios = self.model.test_run(self.ap)
             self.dashboard_logger.test_audios(self.total_steps_done, audios, self.config.audio["sample_rate"])
             self.dashboard_logger.test_figures(self.total_steps_done, figures)
 
+    def _restore_best_loss(self):
+        """Restore the best loss from the args.best_path if provided else
+        from the model (`args.restore_path` or `args.continue_path`) used for resuming the training"""
+        if self.restore_step != 0 or self.args.best_path:
+            print(" > Restoring best loss from " f"{os.path.basename(self.args.best_path)} ...")
+            ch = load_fsspec(self.args.restore_path, map_location="cpu")
+            if "model_loss" in ch:
+                self.best_loss = ch["model_loss"]
+            print(f" > Starting with loaded last best loss {self.best_loss}.")
+
     def _fit(self) -> None:
         """🏃 train -> evaluate -> test for the number of epochs."""
-        if self.restore_step != 0 or self.args.best_path:
-            model_state = load_fsspec(self.args.restore_path, map_location="cpu")
-            # ignore the restoring of the best loss if do not exist the key "model_loss" in the model state
-            if "model_loss" in model_state.keys():
-                print(" > Restoring best loss from " f"{os.path.basename(self.args.best_path)} ...")
-                self.best_loss = model_state["model_loss"]
-                print(f" > Starting with loaded last best loss {self.best_loss}.")
+        self._restore_best_loss()
 
         self.total_steps_done = self.restore_step
 
         for epoch in range(0, self.config.epochs):
+            if self.num_gpus > 1:
+                # let all processes sync up before starting with a new epoch of training
+                dist.barrier()
             self.callbacks.on_epoch_start()
             self.keep_avg_train = KeepAverage()
             self.keep_avg_eval = KeepAverage() if self.config.run_eval else None
             self.epochs_done = epoch
-            self.c_logger.print_epoch_start(epoch, self.config.epochs)
+            self.c_logger.print_epoch_start(epoch, self.config.epochs, self.output_path)
             self.train_epoch()
             if self.config.run_eval:
                 self.eval_epoch()
@@ -870,20 +927,26 @@ class Trainer:
             self.c_logger.print_epoch_end(
                 epoch, self.keep_avg_eval.avg_values if self.config.run_eval else self.keep_avg_train.avg_values
             )
-            self.save_best_model()
+            if self.args.rank in [None, 0]:
+                self.save_best_model()
             self.callbacks.on_epoch_end()
 
     def fit(self) -> None:
         """Where the ✨️magic✨️ happens..."""
         try:
             self._fit()
-            self.dashboard_logger.finish()
+            if self.args.rank == 0:
+                self.dashboard_logger.finish()
         except KeyboardInterrupt:
             self.callbacks.on_keyboard_interrupt()
             # if the output folder is empty remove the run.
             remove_experiment_folder(self.output_path)
+            # clear the DDP processes
+            if self.num_gpus > 1:
+                dist.destroy_process_group()
             # finish the wandb run and sync data
-            self.dashboard_logger.finish()
+            if self.args.rank == 0:
+                self.dashboard_logger.finish()
             # stop without error signal
             try:
                 sys.exit(0)
@@ -933,18 +996,29 @@ class Trainer:
             keep_after=self.config.keep_after,
         )
 
-    @staticmethod
-    def _setup_logger_config(log_file: str) -> None:
-        handlers = [logging.StreamHandler()]
+    def _setup_logger_config(self, log_file: str) -> None:
+        """Write log strings to a file and print logs to the terminal.
+        TODO: Causes formatting issues in pdb debugging."""
 
-        # Only add a log file if the output location is local due to poor
-        # support for writing logs to file-like objects.
-        parsed_url = urlparse(log_file)
-        if not parsed_url.scheme or parsed_url.scheme == "file":
-            schemeless_path = os.path.join(parsed_url.netloc, parsed_url.path)
-            handlers.append(logging.FileHandler(schemeless_path))
+        class Logger(object):
+            def __init__(self, print_to_terminal=True):
+                self.print_to_terminal = print_to_terminal
+                self.terminal = sys.stdout
+                self.log = open(log_file, "a")
 
-        logging.basicConfig(level=logging.INFO, format="", handlers=handlers)
+            def write(self, message):
+                if self.print_to_terminal:
+                    self.terminal.write(message)
+                self.log.write(message)
+
+            def flush(self):
+                # this flush method is needed for python 3 compatibility.
+                # this handles the flush command by doing nothing.
+                # you might want to specify some extra behavior here.
+                pass
+
+        # don't let processes rank > 0 write to the terminal
+        sys.stdout = Logger(self.args.rank == 0)
 
     @staticmethod
     def _is_apex_available() -> bool:
@@ -1140,8 +1214,6 @@ def process_args(args, config=None):
             config = register_config(config_base.model)()
     # override values from command-line args
     config.parse_known_args(coqpit_overrides, relaxed_parser=True)
-    if config.mixed_precision:
-        print("   >  Mixed precision mode is ON")
     experiment_path = args.continue_path
     if not experiment_path:
         experiment_path = get_experiment_folder_path(config.output_path, config.run_name)
@@ -1161,8 +1233,7 @@ def process_args(args, config=None):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(config, experiment_path, new_fields)
-
-    dashboard_logger = init_logger(config)
+        dashboard_logger = init_dashboard_logger(config)
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, dashboard_logger
 

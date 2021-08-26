@@ -3,7 +3,7 @@ from TTS.utils.logging.tensorboard_logger import TensorboardLogger
 from TTS.utils.logging.wandb_logger import WandbLogger
 
 
-def init_logger(config):
+def init_dashboard_logger(config):
     if config.dashboard_logger == "tensorboard":
         dashboard_logger = TensorboardLogger(config.output_log_path, model_name=config.model)
 

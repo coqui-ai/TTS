@@ -182,7 +182,7 @@ class VitsArgs(Coqpit):
     num_layers_text_encoder: int = 6
     kernel_size_text_encoder: int = 3
     dropout_p_text_encoder: int = 0.1
-    dropout_p_duration_predictor: int = 0.1
+    dropout_p_duration_predictor: int = 0.5
     kernel_size_posterior_encoder: int = 5
     dilation_rate_posterior_encoder: int = 1
     num_layers_posterior_encoder: int = 16
@@ -200,7 +200,7 @@ class VitsArgs(Coqpit):
     inference_noise_scale: float = 0.667
     length_scale: int = 1
     noise_scale_dp: float = 1.0
-    inference_noise_scale_dp: float = 0.8
+    inference_noise_scale_dp: float = 1.
     max_inference_len: int = None
     init_discriminator: bool = True
     use_spectral_norm_disriminator: bool = False
@@ -482,11 +482,11 @@ class Vits(BaseTTS):
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         with torch.no_grad():
             o_scale = torch.exp(-2 * logs_p)
-            # logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
             logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p ** 2)])
             logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
-            # logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp = logp2 + logp3
+            logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp = logp2 + logp3 + logp1 + logp4
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
         # duration predictor
@@ -748,8 +748,9 @@ class Vits(BaseTTS):
             outputs["waveform_seg"] = wav_seg
 
             # compute discriminator scores and features
-            outputs["scores_disc_fake"], outputs["feats_disc_fake"] = self.disc(outputs["model_outputs"])
-            _, outputs["feats_disc_real"] = self.disc(wav_seg)
+            outputs["scores_disc_fake"], outputs["feats_disc_fake"], _, outputs["feats_disc_real"] = self.disc(
+                outputs["model_outputs"], wav_seg
+            )
 
             # compute losses
             with autocast(enabled=False):  # use float32 for the criterion
@@ -781,8 +782,7 @@ class Vits(BaseTTS):
             outputs = {}
 
             # compute scores and features
-            outputs["scores_disc_fake"], outputs["feats_disc_fake"] = self.disc(self.y_disc_cache.detach())
-            outputs["scores_disc_real"], outputs["feats_disc_real"] = self.disc(self.wav_seg_disc_cache)
+            outputs["scores_disc_fake"], _, outputs["scores_disc_real"], _ = self.disc(self.y_disc_cache.detach(), self.wav_seg_disc_cache)
 
             # compute loss
             with autocast(enabled=False):  # use float32 for the criterion
@@ -878,14 +878,12 @@ class Vits(BaseTTS):
         Returns:
             List: optimizers.
         """
-        self.disc.requires_grad_(False)
-        gen_parameters = filter(lambda p: p.requires_grad, self.parameters())
-        self.disc.requires_grad_(True)
-        optimizer1 = get_optimizer(
+        gen_parameters =  [param for name, param in self.named_parameters() if not str.startswith(name, "disc.")]
+        optimizer0 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )
-        optimizer2 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, self.disc)
-        return [optimizer1, optimizer2]
+        optimizer1 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, self.disc)
+        return [optimizer0, optimizer1]
 
     def get_lr(self) -> List:
         """Set the initial learning rates for each optimizer.
