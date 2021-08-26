@@ -706,7 +706,6 @@ class Vits(BaseTTS):
 
             # generator pass
             if self.args.fine_tuning_mode:
-
                 # model forward
                 outputs = self.forward_fine_tuning(
                     text_input,
@@ -961,5 +960,3 @@ class Vits(BaseTTS):
         if eval:
             self.eval()
             assert not self.training
-
-
