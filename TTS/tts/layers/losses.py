@@ -593,7 +593,7 @@ class VitsGeneratorLoss(nn.Module):
     ):
         """
         Shapes:
-            - wavefrom: :math:`[B, 1, T]`
+            - waveform : :math:`[B, 1, T]`
             - waveform_hat: :math:`[B, 1, T]`
             - z_p: :math:`[B, C, T]`
             - logs_q: :math:`[B, C, T]`
@@ -651,7 +651,6 @@ class VitsDiscriminatorLoss(nn.Module):
         return_dict = {}
         loss_disc, _, _ = self.discriminator_loss(scores_disc_real, scores_disc_fake)
         return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
-        loss = loss + loss_disc
-        return_dict["loss_disc"] = loss_disc
+        loss = loss + return_dict["loss_disc"]
         return_dict["loss"] = loss
         return return_dict

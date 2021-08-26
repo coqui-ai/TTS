@@ -1,8 +1,6 @@
 # edited from https://github.com/fastai/imagenet-fast/blob/master/imagenet_nv/distributed.py
 import torch
 import torch.distributed as dist
-from torch._utils import _flatten_dense_tensors, _unflatten_dense_tensors
-from torch.autograd import Variable
 
 
 def reduce_tensor(tensor, num_gpus):
