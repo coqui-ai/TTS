@@ -134,13 +134,13 @@ class BaseTTS(BaseModel):
 
         # get speaker  id/d_vector
         speaker_id, d_vector, language_id = None, None, None
-        if hasattr(self, "speaker_manager") and config.use_speaker_embedding:
+        if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
                     d_vector = self.speaker_manager.get_random_d_vector()
                 else:
                     d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
-            else:
+            elif config.use_speaker_embedding:
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_speaker_id()
                 else:
@@ -284,7 +284,7 @@ class BaseTTS(BaseModel):
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
-                d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
+                d_vector_mapping=d_vector_mapping,
                 language_id_mapping=language_id_mapping,
             )
 
