@@ -68,7 +68,7 @@ class BaseTTS(BaseModel):
         """
         config = config.model_args if hasattr(config, "model_args") else config
 
-        if getattr(config, "use_speaker_embedding", False):
+        if getattr(config, "use_speaker_embedding", False) or getattr(config, "use_d_vector_file", False):
             # init speaker manager
             self.speaker_manager = get_speaker_manager(config, data=data)
 
@@ -119,13 +119,13 @@ class BaseTTS(BaseModel):
 
         # get speaker  id/d_vector 
         speaker_id, d_vector, language_id = None, None, None
-        if hasattr(self, "speaker_manager") and config.use_speaker_embedding:
+        if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
                     d_vector = self.speaker_manager.get_random_d_vector()
                 else:
                     d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
-            else:
+            elif config.use_speaker_embedding:
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_speaker_id()
                 else:
@@ -225,9 +225,10 @@ class BaseTTS(BaseModel):
                 speaker_id_mapping = self.speaker_manager.speaker_ids if model_args.use_speaker_embedding else None
                 d_vector_mapping = (
                     self.speaker_manager.d_vectors
-                    if model_args.use_speaker_embedding and model_args.use_d_vector_file
+                    if model_args.use_d_vector_file
                     else None
                 )
+
             else:
                 speaker_id_mapping = None
                 d_vector_mapping = None
@@ -263,9 +264,7 @@ class BaseTTS(BaseModel):
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
-                d_vector_mapping=d_vector_mapping
-                if getattr(model_args, "use_speaker_embedding", False) and getattr(model_args, "use_d_vector_file", False)
-                else None,
+                d_vector_mapping=d_vector_mapping,
                 language_id_mapping=language_id_mapping,
             )
 

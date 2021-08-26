@@ -215,12 +215,13 @@ class Trainer:
         if hasattr(self.model, "init_multispeaker"):
             self.model.init_multispeaker(self.config, self.data_train + self.data_eval)
             config = self.config.model_args if hasattr(self.config, "model_args") else self.config
-            if getattr(config, "use_speaker_embedding", False):
+            if getattr(config, "use_speaker_embedding", False) or getattr(config, "use_d_vector_file", False):
                 # save speakers json
                 if config.use_speaker_embedding and not config.use_d_vector_file:
                     self.model.speaker_manager.save_speaker_ids_to_file(os.path.join(self.output_path, "speaker_ids.json"))
-                elif config.use_speaker_embedding and config.use_d_vector_file:
+                elif config.use_d_vector_file:
                     self.model.speaker_manager.save_d_vectors_to_file(os.path.join(self.output_path, "speakers.json"))
+
                 if hasattr(self.config, "model_args"):
                     self.config.model_args["num_speakers"] = self.model.num_speakers
                 else:
