@@ -299,9 +299,7 @@ class AudioProcessor(object):
             self.symmetric_norm = None
 
     ### setting up the parameters ###
-    def _build_mel_basis(
-        self,
-    ) -> np.ndarray:
+    def _build_mel_basis(self,) -> np.ndarray:
         """Build melspectrogram basis.
 
         Returns:
@@ -313,9 +311,7 @@ class AudioProcessor(object):
             self.sample_rate, self.fft_size, n_mels=self.num_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
         )
 
-    def _stft_parameters(
-        self,
-    ) -> Tuple[int, int]:
+    def _stft_parameters(self,) -> Tuple[int, int]:
         """Compute the real STFT parameters from the time values.
 
         Returns:
@@ -720,9 +716,7 @@ class AudioProcessor(object):
         signal = np.sign(wav) * np.log(1 + mu * np.abs(wav)) / np.log(1.0 + mu)
         # Quantize signal to the specified number of levels.
         signal = (signal + 1) / 2 * mu + 0.5
-        return np.floor(
-            signal,
-        )
+        return np.floor(signal,)
 
     @staticmethod
     def mulaw_decode(wav, qc):

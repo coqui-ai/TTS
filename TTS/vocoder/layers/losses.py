@@ -123,9 +123,7 @@ class HingeGLoss(nn.Module):
 class MSEDLoss(nn.Module):
     """Mean Squared Discriminator Loss"""
 
-    def __init__(
-        self,
-    ):
+    def __init__(self,):
         super().__init__()
         self.loss_func = nn.MSELoss()
 
@@ -149,9 +147,7 @@ class HingeDLoss(nn.Module):
 
 
 class MelganFeatureLoss(nn.Module):
-    def __init__(
-        self,
-    ):
+    def __init__(self,):
         super().__init__()
         self.loss_func = nn.L1Loss()
 

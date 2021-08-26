@@ -23,9 +23,7 @@ config = AlignTTSConfig(
     epochs=1,
     print_step=1,
     print_eval=True,
-    test_sentences=[
-        "Be a voice, not an echo.",
-    ],
+    test_sentences=["Be a voice, not an echo.",],
 )
 
 config.audio.do_trim_silence = True

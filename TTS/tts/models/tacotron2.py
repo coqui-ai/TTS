@@ -42,7 +42,15 @@ class Tacotron2(BaseTacotron):
             self.decoder_in_features += self.gst.gst_embedding_dim
 
         # embedding layer
-        self.embedding = nn.Embedding(self.num_chars, 512, padding_idx=0)
+        if self.symbol_embedding:
+            self.pre_embedding = nn.Embedding(
+                self.symbol_embedding.num_symbols(), self.symbol_embedding.embedding_size(), padding_idx=0
+            )
+            self.pre_embedding.weight.data.copy_(torch.from_numpy(self.symbol_embedding.weight_matrix))
+            self.pre_embedding.weight.requires_grad = False
+            self.embedding = nn.Sequential(self.pre_embedding, nn.Linear(self.symbol_embedding.embedding_size(), 512))
+        else:
+            self.embedding = nn.Embedding(self.num_chars, 512, padding_idx=0)
 
         # base model layers
         self.encoder = Encoder(self.encoder_in_features)
@@ -297,3 +305,33 @@ class Tacotron2(BaseTacotron):
 
     def eval_log(self, ap, batch, outputs):
         return self.train_log(ap, batch, outputs)
+
+    # MANEESH
+    """
+    def load_checkpoint(
+        self, config, checkpoint_path, eval=False
+    ):  # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_doct(state["model"])
+        state_dict =state['state_dict']
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+
+        for k, v in state_dict.items():
+            if 'module' not in k:
+                k = 'module.'+k
+            else:
+                k = k.replace('features.module.', 'module.features.')
+                new_state_dict[k]=v
+
+        self.load_state_dict(new_state_dict)
+
+        if "r" in state:
+            self.decoder.set_r(state["r"])
+        else:
+            self.decoder.set_r(state["config"]["r"])
+        if eval:
+            self.eval()
+            assert not self.training
+
+    """

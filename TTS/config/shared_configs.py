@@ -105,21 +105,14 @@ class BaseAudioConfig(Coqpit):
     clip_norm: bool = True
     stats_path: str = None
 
-    def check_values(
-        self,
-    ):
+    def check_values(self,):
         """Check config fields"""
         c = asdict(self)
         check_argument("num_mels", c, restricted=True, min_val=10, max_val=2056)
         check_argument("fft_size", c, restricted=True, min_val=128, max_val=4058)
         check_argument("sample_rate", c, restricted=True, min_val=512, max_val=100000)
         check_argument(
-            "frame_length_ms",
-            c,
-            restricted=True,
-            min_val=10,
-            max_val=1000,
-            alternative="win_length",
+            "frame_length_ms", c, restricted=True, min_val=10, max_val=1000, alternative="win_length",
         )
         check_argument("frame_shift_ms", c, restricted=True, min_val=1, max_val=1000, alternative="hop_length")
         check_argument("preemphasis", c, restricted=True, min_val=0, max_val=1)
@@ -168,9 +161,7 @@ class BaseDatasetConfig(Coqpit):
     meta_file_val: str = ""
     meta_file_attn_mask: str = ""
 
-    def check_values(
-        self,
-    ):
+    def check_values(self,):
         """Check config fields"""
         c = asdict(self)
         check_argument("name", c, restricted=True)

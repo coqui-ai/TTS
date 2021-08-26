@@ -38,10 +38,7 @@ def create_argparser():
     # Args for running custom models
     parser.add_argument("--config_path", default=None, type=str, help="Path to model config file.")
     parser.add_argument(
-        "--model_path",
-        type=str,
-        default=None,
-        help="Path to model file.",
+        "--model_path", type=str, default=None, help="Path to model file.",
     )
     parser.add_argument(
         "--vocoder_path",

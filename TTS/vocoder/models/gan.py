@@ -297,13 +297,7 @@ class GAN(BaseVocoder):
         return {"input": x, "waveform": y}
 
     def get_data_loader(  # pylint: disable=no-self-use
-        self,
-        config: Coqpit,
-        ap: AudioProcessor,
-        is_eval: True,
-        data_items: List,
-        verbose: bool,
-        num_gpus: int,
+        self, config: Coqpit, ap: AudioProcessor, is_eval: True, data_items: List, verbose: bool, num_gpus: int,
     ):
         """Initiate and return the GAN dataloader.
 

@@ -37,6 +37,8 @@ class BaseTTS(BaseModel):
         # TODO: implement CharacterProcessor
         if config.characters is not None:
             symbols, phonemes = make_symbols(**config.characters)
+        elif config.symbol_embedding:
+            symbols = config.symbol_embedding.symbols
         else:
             from TTS.tts.utils.text.symbols import parse_symbols, phonemes, symbols
 
@@ -203,6 +205,7 @@ class BaseTTS(BaseModel):
                 ap=ap,
                 characters=config.characters,
                 custom_symbols=custom_symbols,
+                symbol_embedding=config.symbol_embedding,
                 add_blank=config["add_blank"],
                 return_wav=config.return_wav if "return_wav" in config else False,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
