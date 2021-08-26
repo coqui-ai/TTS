@@ -331,7 +331,6 @@ class Vits(BaseTTS):
 
         if args.init_discriminator:
             self.disc = VitsDiscriminator(use_spectral_norm=args.use_spectral_norm_disriminator)
-        print("FINE TUNING:", self.args.fine_tuning_mode)
 
     def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
