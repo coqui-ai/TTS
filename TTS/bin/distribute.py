@@ -43,7 +43,7 @@ def main():
         my_env["PYTHON_EGG_CACHE"] = "/tmp/tmp{}".format(i)
         command[-1] = "--rank={}".format(i)
         # prevent stdout for processes with rank != 0
-        stdout = None if i == 0 else open(os.devnull, "w")
+        stdout = None
         p = subprocess.Popen(["python3"] + command, stdout=stdout, env=my_env)  # pylint: disable=consider-using-with
         processes.append(p)
         print(command)
