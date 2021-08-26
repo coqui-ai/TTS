@@ -42,8 +42,16 @@ class Tacotron(BaseTacotron):
             self.decoder_in_features += self.gst.gst_embedding_dim
 
         # embedding layer
-        self.embedding = nn.Embedding(self.num_chars, 256, padding_idx=0)
-        self.embedding.weight.data.normal_(0, 0.3)
+        if self.symbol_embedding:
+            self.embedding = nn.Embedding(
+                self.symbol_embedding.num_symbols(), self.symbol_embedding.embedding_size(), padding_idx=0
+            )
+            self.embedding.weight.data.copy_(torch.from_numpy(self.symbol_embedding.gen_weight_matrix()))
+            self.embedding.weight.requires_grad = False
+            self.encoder_in_features = self.symbol_embedding.embedding_size()
+        else:
+            self.embedding = nn.Embedding(self.num_chars, 256, padding_idx=0)
+            self.embedding.weight.data.normal_(0, 0.3)
 
         # base model layers
         self.encoder = Encoder(self.encoder_in_features)

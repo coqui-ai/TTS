@@ -131,6 +131,9 @@ class BaseTacotron(BaseTTS):
         # TODO: implement CharacterProcessor
         if config.characters is not None:
             symbols, phonemes = make_symbols(**config.characters)
+        elif config.symbol_embedding:
+            symbols = config.symbol_embedding.symbols()
+            phonemes = None
         else:
             from TTS.tts.utils.text.symbols import (  # pylint: disable=import-outside-toplevel
                 parse_symbols,

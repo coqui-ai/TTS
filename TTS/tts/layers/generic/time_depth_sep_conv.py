@@ -14,14 +14,7 @@ class TimeDepthSeparableConv(nn.Module):
         self.hid_channels = hid_channels
         self.kernel_size = kernel_size
 
-        self.time_conv = nn.Conv1d(
-            in_channels,
-            2 * hid_channels,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=bias,
-        )
+        self.time_conv = nn.Conv1d(in_channels, 2 * hid_channels, kernel_size=1, stride=1, padding=0, bias=bias,)
         self.norm1 = nn.BatchNorm1d(2 * hid_channels)
         self.depth_conv = nn.Conv1d(
             hid_channels,
@@ -33,14 +26,7 @@ class TimeDepthSeparableConv(nn.Module):
             bias=bias,
         )
         self.norm2 = nn.BatchNorm1d(hid_channels)
-        self.time_conv2 = nn.Conv1d(
-            hid_channels,
-            out_channels,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=bias,
-        )
+        self.time_conv2 = nn.Conv1d(hid_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=bias,)
         self.norm3 = nn.BatchNorm1d(out_channels)
 
     def forward(self, x):

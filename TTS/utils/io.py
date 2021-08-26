@@ -43,8 +43,7 @@ def copy_model_files(config, out_path, new_fields):
         copy_stats_path = os.path.join(out_path, "scale_stats.npy")
         if not os.path.exists(copy_stats_path):
             copyfile(
-                config.audio.stats_path,
-                copy_stats_path,
+                config.audio.stats_path, copy_stats_path,
             )
 
 
@@ -94,27 +93,13 @@ def save_model(config, model, optimizer, scaler, current_step, epoch, output_pat
 
 
 def save_checkpoint(
-    config,
-    model,
-    optimizer,
-    scaler,
-    current_step,
-    epoch,
-    output_folder,
-    **kwargs,
+    config, model, optimizer, scaler, current_step, epoch, output_folder, **kwargs,
 ):
     file_name = "checkpoint_{}.pth.tar".format(current_step)
     checkpoint_path = os.path.join(output_folder, file_name)
     print("\n > CHECKPOINT : {}".format(checkpoint_path))
     save_model(
-        config,
-        model,
-        optimizer,
-        scaler,
-        current_step,
-        epoch,
-        checkpoint_path,
-        **kwargs,
+        config, model, optimizer, scaler, current_step, epoch, checkpoint_path, **kwargs,
     )
 
 
@@ -137,15 +122,7 @@ def save_best_model(
         checkpoint_path = os.path.join(out_path, best_model_name)
         print(" > BEST MODEL : {}".format(checkpoint_path))
         save_model(
-            config,
-            model,
-            optimizer,
-            scaler,
-            current_step,
-            epoch,
-            checkpoint_path,
-            model_loss=current_loss,
-            **kwargs,
+            config, model, optimizer, scaler, current_step, epoch, checkpoint_path, model_loss=current_loss, **kwargs,
         )
         # only delete previous if current is saved successfully
         if not keep_all_best or (current_step < keep_after):

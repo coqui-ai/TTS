@@ -30,23 +30,34 @@ def split_dataset(items):
     return items[:eval_split_size], items[eval_split_size:]
 
 
-def load_meta_data(datasets, eval_split=True):
+def load_meta_data(config, eval_split=True):
+    datasets = config.datasets
     meta_data_train_all = []
     meta_data_eval_all = [] if eval_split else None
+
+    preprocessor_args = {}
+
+    if config.symbol_embedding:
+        preprocessor_args["symbol_embedding"] = config.symbol_embedding
+
     for dataset in datasets:
         name = dataset["name"]
         root_path = dataset["path"]
+        preprocessor_args["root_path"] = root_path
+
         meta_file_train = dataset["meta_file_train"]
         meta_file_val = dataset["meta_file_val"]
         # setup the right data processor
         preprocessor = _get_preprocessor_by_name(name)
         # load train set
-        meta_data_train = preprocessor(root_path, meta_file_train)
+        preprocessor_args["meta_file"] = meta_file_train
+        meta_data_train = preprocessor(**preprocessor_args)
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set
         if eval_split:
             if meta_file_val:
-                meta_data_eval = preprocessor(root_path, meta_file_val)
+                preprocessor_args["meta_file"] = meta_file_val
+                meta_data_eval = preprocessor(**preprocessor_args)
             else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train)
             meta_data_eval_all += meta_data_eval
@@ -61,6 +72,7 @@ def load_meta_data(datasets, eval_split=True):
                 for idx, ins in enumerate(meta_data_eval_all):
                     attn_file = meta_data[ins[1]].strip()
                     meta_data_eval_all[idx].append(attn_file)
+
     return meta_data_train_all, meta_data_eval_all
 
 

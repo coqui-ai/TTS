@@ -119,16 +119,10 @@ def main():
     # Args for running custom models
     parser.add_argument("--config_path", default=None, type=str, help="Path to model config file.")
     parser.add_argument(
-        "--model_path",
-        type=str,
-        default=None,
-        help="Path to model file.",
+        "--model_path", type=str, default=None, help="Path to model file.",
     )
     parser.add_argument(
-        "--out_path",
-        type=str,
-        default="tts_output.wav",
-        help="Output wav file path.",
+        "--out_path", type=str, default="tts_output.wav", help="Output wav file path.",
     )
     parser.add_argument("--use_cuda", type=bool, help="Run model on CUDA.", default=False)
     parser.add_argument(
@@ -139,20 +133,14 @@ def main():
     )
     parser.add_argument("--vocoder_config_path", type=str, help="Path to vocoder model config file.", default=None)
     parser.add_argument(
-        "--encoder_path",
-        type=str,
-        help="Path to speaker encoder model file.",
-        default=None,
+        "--encoder_path", type=str, help="Path to speaker encoder model file.", default=None,
     )
     parser.add_argument("--encoder_config_path", type=str, help="Path to speaker encoder config file.", default=None)
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
     parser.add_argument(
-        "--speaker_idx",
-        type=str,
-        help="Target speaker ID for a multi-speaker TTS model.",
-        default=None,
+        "--speaker_idx", type=str, help="Target speaker ID for a multi-speaker TTS model.", default=None,
     )
     parser.add_argument(
         "--speaker_wav",
@@ -171,17 +159,26 @@ def main():
     )
     # aux args
     parser.add_argument(
-        "--save_spectogram",
+        "--save_spectrogram",
         type=bool,
-        help="If true save raw spectogram for further (vocoder) processing in out_path.",
+        help="If true save raw spectrogram for further (vocoder) processing in out_path.",
         default=False,
     )
+
+    parser.add_argument(
+        "--lang", type=str, help="Language for sentence segmentation", default="en",
+    )
+
+    # aux args
 
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
     if args.text is None and not args.list_models and not args.list_speaker_idxs:
         parser.parse_args(["-h"])
+
+    if args.lang == "":
+        args.lang = None
 
     # load model manager
     path = Path(__file__).parent / "../.models.json"
@@ -232,6 +229,7 @@ def main():
         encoder_path,
         encoder_config_path,
         args.use_cuda,
+        args.lang,
     )
 
     # query speaker ids of a multi-speaker model.

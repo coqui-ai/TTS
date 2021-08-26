@@ -115,15 +115,7 @@ def format_data(data):
 
 @torch.no_grad()
 def inference(
-    model_name,
-    model,
-    ap,
-    text_input,
-    text_lengths,
-    mel_input,
-    mel_lengths,
-    speaker_ids=None,
-    d_vectors=None,
+    model_name, model, ap, text_input, text_lengths, mel_input, mel_lengths, speaker_ids=None, d_vectors=None,
 ):
     if model_name == "glow_tts":
         speaker_c = None
@@ -164,29 +156,12 @@ def extract_spectrograms(
     for _, data in tqdm(enumerate(data_loader), total=len(data_loader)):
 
         # format data
-        (
-            text_input,
-            text_lengths,
-            mel_input,
-            mel_lengths,
-            speaker_ids,
-            d_vectors,
-            _,
-            _,
-            _,
-            item_idx,
-        ) = format_data(data)
+        (text_input, text_lengths, mel_input, mel_lengths, speaker_ids, d_vectors, _, _, _, item_idx,) = format_data(
+            data
+        )
 
         model_output = inference(
-            c.model.lower(),
-            model,
-            ap,
-            text_input,
-            text_lengths,
-            mel_input,
-            mel_lengths,
-            speaker_ids,
-            d_vectors,
+            c.model.lower(), model, ap, text_input, text_lengths, mel_input, mel_lengths, speaker_ids, d_vectors,
         )
 
         for idx in range(text_input.shape[0]):

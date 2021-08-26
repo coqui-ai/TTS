@@ -31,15 +31,14 @@ def text_to_seq(text, CONFIG):
             ),
             dtype=np.int32,
         )
+
+    elif CONFIG.symbol_embedding:
+        symbols = text.split(" ")
+        seq = np.asarray(list(map(CONFIG.symbol_embedding.__getitem__, symbols)), dtype=np.int32)
+
     else:
         seq = np.asarray(
-            text_to_sequence(
-                text,
-                text_cleaner,
-                tp=CONFIG.characters,
-                add_blank=CONFIG.add_blank,
-            ),
-            dtype=np.int32,
+            text_to_sequence(text, text_cleaner, tp=CONFIG.characters, add_blank=CONFIG.add_blank,), dtype=np.int32,
         )
     return seq
 

@@ -68,10 +68,7 @@ def text2phone(text, language, use_espeak_phonemes=False):
             phonemizer_args["model_prefix"] = "espeak"
 
         ph_list = gruut.text_to_phonemes(
-            text,
-            lang=language,
-            return_format="word_phonemes",
-            phonemizer_args=phonemizer_args,
+            text, lang=language, return_format="word_phonemes", phonemizer_args=phonemizer_args,
         )
 
         # Join and re-split to break apart dipthongs, suprasegmentals, etc.

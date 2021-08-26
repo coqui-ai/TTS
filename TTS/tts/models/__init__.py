@@ -10,11 +10,15 @@ def setup_model(config):
     if config.characters is not None:
         # set characters from config
         symbols, phonemes = make_symbols(**config.characters.to_dict())  # pylint: disable=redefined-outer-name
+    elif config.symbol_embedding:
+        symbols = config.symbol_embedding.symbols()
+        phonemes = None
     else:
         from TTS.tts.utils.text.symbols import phonemes, symbols  # pylint: disable=import-outside-toplevel
 
         # use default characters and assign them to config
         config.characters = parse_symbols()
+
     num_chars = len(phonemes) if config.use_phonemes else len(symbols)
     # consider special `blank` character if `add_blank` is set True
     num_chars = num_chars + getattr(config, "add_blank", False)

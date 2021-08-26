@@ -13,6 +13,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, trim_silence
 from TTS.tts.utils.text import make_symbols, phonemes, symbols
+from TTS.tts.utils.text.symbols import SymbolEmbedding
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.models import setup_model as setup_vocoder_model
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
@@ -29,6 +30,7 @@ class Synthesizer(object):
         encoder_checkpoint: str = "",
         encoder_config: str = "",
         use_cuda: bool = False,
+        lang: str = "en",
     ) -> None:
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
         model and synthesize speech from the provided text.
@@ -65,7 +67,11 @@ class Synthesizer(object):
         self.num_speakers = 0
         self.tts_speakers = {}
         self.d_vector_dim = 0
-        self.seg = self._get_segmenter("en")
+
+        self.seg = None
+        if lang:
+            self.seg = self._get_segmenter(lang)
+
         self.use_cuda = use_cuda
 
         if self.use_cuda:
@@ -120,6 +126,10 @@ class Synthesizer(object):
 
         if self.tts_config.has("characters") and self.tts_config.characters:
             symbols, phonemes = make_symbols(**self.tts_config.characters)
+        elif self.tts_config.has("symbol_embedding_filename"):
+            symbol_embedding = SymbolEmbedding(self.tts_config.symbol_embedding_filename)
+            self.tts_config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
+            symbols = self.tts_config.symbol_embedding.symbols()
 
         if self.use_phonemes:
             self.input_size = len(phonemes)
@@ -161,7 +171,10 @@ class Synthesizer(object):
         Returns:
             List[str]: list of sentences.
         """
-        return self.seg.segment(text)
+        if self.seg:
+            return self.seg.segment(text)
+        
+        return [text]
 
     def save_wav(self, wav: List[int], path: str) -> None:
         """Save the waveform as a file.
