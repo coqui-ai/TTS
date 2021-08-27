@@ -202,7 +202,8 @@ class Trainer:
         # TODO: refactor this
         if "datasets" in self.config:
             # load data for `tts` models
-            self.data_train, self.data_eval = load_meta_data(self.config)
+            if len(self.config.datasets)>0:
+                self.data_train, self.data_eval = load_meta_data(self.config)
         elif self.config.feature_path is not None:
             # load data for `vocoder`models
             print(f" > Loading features from: {self.config.feature_path}")
