@@ -151,10 +151,12 @@ class Synthesizer(object):
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
         symbol_embedding = None
-        if "symbol_embedding_filename" in self.tts_config:
-            symbol_embedding = SymbolEmbedding(self.tts_config.symbol_embedding_filename)
-        self.tts_config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
+        if "symbol_embedding_filename" in self.config:
+            if config.symbol_embedding_filename:
+                symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
 
+        config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
+        
         self.tts_model = setup_tts_model(config=self.tts_config)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
 

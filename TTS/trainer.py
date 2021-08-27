@@ -191,8 +191,9 @@ class Trainer:
         self.ap = AudioProcessor(**self.config.audio.to_dict())
 
         symbol_embedding = None
-        if config.has("symbol_embedding_filename"):
-            symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
+        if "symbol_embedding_filename" in self.config:
+            if config.symbol_embedding_filename:
+                symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
 
         config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
 
