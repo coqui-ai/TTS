@@ -1,4 +1,6 @@
+import math
 from dataclasses import dataclass, field
+from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
@@ -11,8 +13,6 @@ from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
-
-# from TTS.tts.layers.vits.sdp import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.speakers import get_speaker_manager
@@ -195,7 +195,7 @@ class VitsArgs(Coqpit):
     inference_noise_scale: float = 0.667
     length_scale: int = 1
     noise_scale_dp: float = 1.0
-    inference_noise_scale_dp: float = 1.
+    inference_noise_scale_dp: float = 1.0
     max_inference_len: int = None
     init_discriminator: bool = True
     use_spectral_norm_disriminator: bool = False
@@ -429,14 +429,13 @@ class Vits(BaseTTS):
         # duration predictor
         attn_durations = attn.sum(3)
         if self.args.use_sdp:
-            nll_duration = self.duration_predictor(
+            loss_duration = self.duration_predictor(
                 x.detach() if self.args.detach_dp_input else x,
                 x_mask,
                 attn_durations,
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
             )
-            nll_duration = torch.sum(nll_duration.float() / torch.sum(x_mask))
-            outputs["nll_duration"] = nll_duration
+            loss_duration = loss_duration/ torch.sum(x_mask)
         else:
             attn_log_durations = torch.log(attn_durations + 1e-6) * x_mask
             log_durations = self.duration_predictor(
@@ -445,7 +444,7 @@ class Vits(BaseTTS):
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
             )
             loss_duration = torch.sum((log_durations - attn_log_durations) ** 2, [1, 2]) / torch.sum(x_mask)
-            outputs["loss_duration"] = loss_duration
+        outputs["loss_duration"] = loss_duration
 
         # expand prior
         m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
@@ -580,22 +579,17 @@ class Vits(BaseTTS):
                     scores_disc_fake=outputs["scores_disc_fake"],
                     feats_disc_fake=outputs["feats_disc_fake"],
                     feats_disc_real=outputs["feats_disc_real"],
+                    loss_duration=outputs["loss_duration"]
                 )
-
-            # handle the duration loss
-            if self.args.use_sdp:
-                loss_dict["nll_duration"] = outputs["nll_duration"]
-                loss_dict["loss"] += outputs["nll_duration"]
-            else:
-                loss_dict["loss_duration"] = outputs["loss_duration"]
-                loss_dict["loss"] += outputs["loss_duration"]
 
         elif optimizer_idx == 1:
             # discriminator pass
             outputs = {}
 
             # compute scores and features
-            outputs["scores_disc_fake"], _, outputs["scores_disc_real"], _ = self.disc(self.y_disc_cache.detach(), self.wav_seg_disc_cache)
+            outputs["scores_disc_fake"], _, outputs["scores_disc_real"], _ = self.disc(
+                self.y_disc_cache.detach(), self.wav_seg_disc_cache
+            )
 
             # compute loss
             with autocast(enabled=False):  # use float32 for the criterion
@@ -686,7 +680,16 @@ class Vits(BaseTTS):
         Returns:
             List: optimizers.
         """
-        gen_parameters =  [param for name, param in self.named_parameters() if not str.startswith(name, "disc.")]
+        gen_parameters = chain(
+            self.text_encoder.parameters(),
+            self.posterior_encoder.parameters(),
+            self.flow.parameters(),
+            self.duration_predictor.parameters(),
+            self.waveform_decoder.parameters(),
+        )
+        # add the speaker embedding layer
+        if hasattr(self, "emb_g"):
+            gen_parameters = chain(gen_parameters, self.emb_g)
         optimizer0 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )
@@ -710,9 +713,9 @@ class Vits(BaseTTS):
         Returns:
             List: Schedulers, one for each optimizer.
         """
-        scheduler1 = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
-        scheduler2 = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
-        return [scheduler1, scheduler2]
+        scheduler0 = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
+        scheduler1 = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
+        return [scheduler0, scheduler1]
 
     def get_criterion(self):
         """Get criterions for each optimizer. The index in the output list matches the optimizer idx used in

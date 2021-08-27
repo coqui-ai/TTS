@@ -29,7 +29,7 @@ class ConsoleLogger:
         now = datetime.datetime.now()
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
-    def print_epoch_start(self, epoch, max_epoch, output_path = None):
+    def print_epoch_start(self, epoch, max_epoch, output_path=None):
         print(
             "\n{}{} > EPOCH: {}/{}{}".format(tcolors.UNDERLINE, tcolors.BOLD, epoch, max_epoch, tcolors.ENDC),
             flush=True,
