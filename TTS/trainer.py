@@ -451,7 +451,7 @@ class Trainer:
             optimizer: Target optimizer.
         """
         for group in optimizer.param_groups:
-            for p in group['params']:
+            for p in group["params"]:
                 yield p
 
     @staticmethod
@@ -556,7 +556,9 @@ class Trainer:
                 scaler.scale(loss_dict["loss"]).backward()
                 if grad_clip > 0:
                     scaler.unscale_(optimizer)
-                    grad_norm = torch.nn.utils.clip_grad_norm_(self.master_params(optimizer), grad_clip, error_if_nonfinite=False)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        self.master_params(optimizer), grad_clip, error_if_nonfinite=False
+                    )
                     # pytorch skips the step when the norm is 0. So ignore the norm value when it is NaN
                     if torch.isnan(grad_norm) or torch.isinf(grad_norm):
                         grad_norm = 0

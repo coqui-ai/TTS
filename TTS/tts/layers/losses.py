@@ -524,6 +524,7 @@ class VitsGeneratorLoss(nn.Module):
         self.kl_loss_alpha = c.kl_loss_alpha
         self.gen_loss_alpha = c.gen_loss_alpha
         self.feat_loss_alpha = c.feat_loss_alpha
+        self.dur_loss_alpha = c.dur_loss_alpha
         self.mel_loss_alpha = c.mel_loss_alpha
         self.stft = TorchSTFT(
             c.audio.fft_size,
@@ -590,6 +591,7 @@ class VitsGeneratorLoss(nn.Module):
         scores_disc_fake,
         feats_disc_fake,
         feats_disc_real,
+        loss_duration,
         fine_tuning_mode=False,
     ):
         """
@@ -616,18 +618,21 @@ class VitsGeneratorLoss(nn.Module):
         # ignore tts model loss if fine tunning mode is on
         if fine_tuning_mode:
             loss_kl = 0.0
+            loss_duration = 0.0
         else:
             loss_kl = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask.unsqueeze(1)) * self.kl_loss_alpha
+            loss_duration = torch.sum(loss_duration.float()) * self.dur_loss_alpha
 
         loss_feat = self.feature_loss(feats_disc_fake, feats_disc_real) * self.feat_loss_alpha
         loss_gen = self.generator_loss(scores_disc_fake)[0] * self.gen_loss_alpha
         loss_mel = torch.nn.functional.l1_loss(mel, mel_hat) * self.mel_loss_alpha
-        loss = loss_kl + loss_feat + loss_mel + loss_gen
+        loss = loss_kl + loss_feat + loss_mel + loss_gen + loss_duration
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
         return_dict["loss_feat"] = loss_feat
         return_dict["loss_mel"] = loss_mel
+        return_dict["loss_duration"] = loss_duration
         return_dict["loss"] = loss
         return return_dict
 
