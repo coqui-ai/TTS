@@ -400,7 +400,7 @@ def custom_symbol_embedding(root_path, meta_file, symbol_embedding):
     speaker_name = "custom_symbol_embedding"
     symbol_index_lut = symbol_embedding.symbol_index_lut
 
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="ascii", errors="surrogateescape") as ttf:
         for line in ttf:
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")

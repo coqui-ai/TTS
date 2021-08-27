@@ -13,7 +13,6 @@ from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
-
 class Tacotron2(BaseTacotron):
     """Tacotron2 as in https://arxiv.org/abs/1712.05884
     Check `TacotronConfig` for the arguments.
@@ -305,33 +304,3 @@ class Tacotron2(BaseTacotron):
 
     def eval_log(self, ap, batch, outputs):
         return self.train_log(ap, batch, outputs)
-
-    # MANEESH
-    """
-    def load_checkpoint(
-        self, config, checkpoint_path, eval=False
-    ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
-        self.load_state_doct(state["model"])
-        state_dict =state['state_dict']
-        from collections import OrderedDict
-        new_state_dict = OrderedDict()
-
-        for k, v in state_dict.items():
-            if 'module' not in k:
-                k = 'module.'+k
-            else:
-                k = k.replace('features.module.', 'module.features.')
-                new_state_dict[k]=v
-
-        self.load_state_dict(new_state_dict)
-
-        if "r" in state:
-            self.decoder.set_r(state["r"])
-        else:
-            self.decoder.set_r(state["config"]["r"])
-        if eval:
-            self.eval()
-            assert not self.training
-
-    """

@@ -58,6 +58,7 @@ class BaseTacotron(BaseTTS):
             setattr(self, key, config[key])
 
         # layers
+        self.pre_embedding = None
         self.embedding = None
         self.encoder = None
         self.decoder = None

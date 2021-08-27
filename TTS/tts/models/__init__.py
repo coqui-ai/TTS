@@ -6,17 +6,15 @@ def setup_model(config):
     print(" > Using model: {}".format(config.model))
     MyModel = find_module("TTS.tts.models", config.model.lower())
     # define set of characters used by the model
+
     if config.characters is not None:
-        # set characters from config
-        symbols, phonemes = make_symbols(**config.characters.to_dict())  # pylint: disable=redefined-outer-name
         if hasattr(MyModel, "make_symbols"):
             symbols = MyModel.make_symbols(config)
         else:
             symbols, phonemes = make_symbols(**config.characters)
     elif config.symbol_embedding:
-          symbols = config.symbol_embedding.symbols()
-          phonemes = None
-
+        symbols = config.symbol_embedding.symbols()
+        phonemes = None
     else:
         from TTS.tts.utils.text.symbols import phonemes, symbols  # pylint: disable=import-outside-toplevel
 
