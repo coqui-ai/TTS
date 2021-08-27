@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 
 import numpy as np
-from coqpit import Coqpit, check_argument
+from coqpit import Coqpit
 
 
 def make_symbols(
@@ -88,10 +88,6 @@ class SymbolEmbedding:
 
     def embedding_size(self):
         return self.weight_matrix.shape[1]
-
-    """
-    Fills in symbol embedding object from filepath with to JSON
-    """
 
     def load_symbol_embedding(self, filename):
         symbol_embedding_json = self.SymbolEmbeddingJSON()

@@ -13,12 +13,10 @@ from TTS.tts.utils.speakers import SpeakerManager
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, trim_silence
 
-from TTS.tts.utils.text.symbols import SymbolEmbedding
-
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.models import setup_model as setup_vocoder_model
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
-
+from TTS.tts.utils.text.symbols import SymbolEmbedding
 
 class Synthesizer(object):
     def __init__(
@@ -151,8 +149,15 @@ class Synthesizer(object):
         self.tts_config = load_config(tts_config_path)
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
+
+        symbol_embedding = None
+        if "symbol_embedding_filename" in self.tts_config:
+            symbol_embedding = SymbolEmbedding(self.tts_config.symbol_embedding_filename)
+        self.tts_config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
+
         self.tts_model = setup_tts_model(config=self.tts_config)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
+
         if use_cuda:
             self.tts_model.cuda()
         self._set_tts_speaker_file()
@@ -183,7 +188,6 @@ class Synthesizer(object):
         """
         if self.seg:
             return self.seg.segment(text)
-        
         return [text]
 
     def save_wav(self, wav: List[int], path: str) -> None:

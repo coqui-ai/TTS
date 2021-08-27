@@ -6,6 +6,7 @@ def setup_model(config):
     print(" > Using model: {}".format(config.model))
     MyModel = find_module("TTS.tts.models", config.model.lower())
     # define set of characters used by the model
+
     if config.characters is not None:
         # set characters from config
         if hasattr(MyModel, "make_symbols"):
