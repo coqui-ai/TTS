@@ -227,7 +227,11 @@ class Trainer:
         # DISTRUBUTED
         if self.num_gpus > 1:
             init_distributed(
-                args.rank, self.num_gpus, args.group_id, self.config.distributed_backend, self.config.distributed_url,
+                args.rank,
+                self.num_gpus,
+                args.group_id,
+                self.config.distributed_backend,
+                self.config.distributed_url,
             )
 
         if self.use_cuda:
@@ -344,7 +348,9 @@ class Trainer:
         else:
             for group in optimizer.param_groups:
                 group["lr"] = self.get_lr(model, config)
-        print(" > Model restored from step %d" % checkpoint["step"],)
+        print(
+            " > Model restored from step %d" % checkpoint["step"],
+        )
         restore_step = checkpoint["step"]
         return model, optimizer, scaler, restore_step
 
@@ -670,7 +676,11 @@ class Trainer:
 
     def train_epoch(self) -> None:
         """Main entry point for the training loop. Run training on the all training samples."""
-        self.train_loader = self.get_train_dataloader(self.ap, self.data_train, verbose=True,)
+        self.train_loader = self.get_train_dataloader(
+            self.ap,
+            self.data_train,
+            verbose=True,
+        )
         self.model.train()
         epoch_start_time = time.time()
         if self.use_cuda:
@@ -762,7 +772,13 @@ class Trainer:
     def eval_epoch(self) -> None:
         """Main entry point for the evaluation loop. Run evaluation on the all validation samples."""
         self.eval_loader = (
-            self.get_eval_dataloader(self.ap, self.data_eval, verbose=True,) if self.config.run_eval else None
+            self.get_eval_dataloader(
+                self.ap,
+                self.data_eval,
+                verbose=True,
+            )
+            if self.config.run_eval
+            else None
         )
 
         self.model.eval()

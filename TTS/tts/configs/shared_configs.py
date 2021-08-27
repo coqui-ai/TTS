@@ -34,7 +34,9 @@ class GSTConfig(Coqpit):
     gst_num_heads: int = 4
     gst_num_style_tokens: int = 10
 
-    def check_values(self,):
+    def check_values(
+        self,
+    ):
         """Check config fields"""
         c = asdict(self)
         super().check_values()
@@ -83,7 +85,9 @@ class CharactersConfig(Coqpit):
     phonemes: str = None
     unique: bool = True  # for backwards compatibility of models trained with char sets with duplicates
 
-    def check_values(self,):
+    def check_values(
+        self,
+    ):
         """Check config fields"""
         c = asdict(self)
         check_argument("pad", c, prerequest="characters", restricted=True)

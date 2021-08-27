@@ -80,7 +80,14 @@ class Stretch2d(nn.Module):
 
 class UpsampleNetwork(nn.Module):
     def __init__(
-        self, feat_dims, upsample_scales, compute_dims, num_res_blocks, res_out_dims, pad, use_aux_net,
+        self,
+        feat_dims,
+        upsample_scales,
+        compute_dims,
+        num_res_blocks,
+        res_out_dims,
+        pad,
+        use_aux_net,
     ):
         super().__init__()
         self.total_scale = np.cumproduct(upsample_scales)[-1]
@@ -591,7 +598,13 @@ class Wavernn(BaseVocoder):
         return {"input": mels, "waveform": waveform, "waveform_coarse": waveform_coarse}
 
     def get_data_loader(  # pylint: disable=no-self-use
-        self, config: Coqpit, ap: AudioProcessor, is_eval: True, data_items: List, verbose: bool, num_gpus: int,
+        self,
+        config: Coqpit,
+        ap: AudioProcessor,
+        is_eval: True,
+        data_items: List,
+        verbose: bool,
+        num_gpus: int,
     ):
         dataset = WaveRNNDataset(
             ap=ap,

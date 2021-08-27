@@ -215,7 +215,6 @@ class BaseTTS(BaseModel):
                 else None,
             )
 
-
             if config.use_phonemes and config.compute_input_seq_cache:
                 if hasattr(self, "eval_data_items") and is_eval:
                     dataset.items = self.eval_data_items

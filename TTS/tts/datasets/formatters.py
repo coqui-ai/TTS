@@ -394,7 +394,7 @@ def kokoro(root_path, meta_file):
 
 
 def custom_symbol_embedding(root_path, meta_file, symbol_embedding):
-    """Space delimited multi-character symbols """
+    """Space delimited multi-character symbols"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "custom_symbol_embedding"
