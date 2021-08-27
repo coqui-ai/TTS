@@ -59,7 +59,10 @@ class GE2ELoss(nn.Module):
                 # vector based cosine similarity for speed
                 cs_row.append(
                     torch.clamp(
-                        torch.mm(utterance.unsqueeze(1).transpose(0, 1), new_centroids.transpose(0, 1),)
+                        torch.mm(
+                            utterance.unsqueeze(1).transpose(0, 1),
+                            new_centroids.transpose(0, 1),
+                        )
                         / (torch.norm(utterance) * torch.norm(new_centroids, dim=1)),
                         1e-6,
                     )

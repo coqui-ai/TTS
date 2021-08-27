@@ -25,7 +25,9 @@ config = Tacotron2Config(
     print_eval=True,
     use_speaker_embedding=True,
     use_d_vector_file=True,
-    test_sentences=["Be a voice, not an echo.",],
+    test_sentences=[
+        "Be a voice, not an echo.",
+    ],
     d_vector_file="tests/data/ljspeech/speakers.json",
     d_vector_dim=256,
     max_decoder_steps=50,

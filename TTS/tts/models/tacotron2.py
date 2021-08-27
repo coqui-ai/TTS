@@ -13,6 +13,7 @@ from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
 
+
 class Tacotron2(BaseTacotron):
     """Tacotron2 as in https://arxiv.org/abs/1712.05884
     Check `TacotronConfig` for the arguments.

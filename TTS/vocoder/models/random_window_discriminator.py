@@ -48,7 +48,9 @@ class DBlock(nn.Module):
             nn.ReLU(),
             nn.Conv1d(out_channels, out_channels, kernel_size=3, dilation=2, padding=2),
         )
-        self.residual = nn.Sequential(nn.Conv1d(in_channels, out_channels, kernel_size=1),)
+        self.residual = nn.Sequential(
+            nn.Conv1d(in_channels, out_channels, kernel_size=1),
+        )
 
     def forward(self, inputs):
         if self.downsample_factor > 1:

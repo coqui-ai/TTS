@@ -13,7 +13,13 @@ from coqpit import Coqpit
 
 
 def make_symbols(
-    characters, phonemes=None, punctuations="!'(),-.:;? ", pad="_", eos="~", bos="^", unique=True,
+    characters,
+    phonemes=None,
+    punctuations="!'(),-.:;? ",
+    pad="_",
+    eos="~",
+    bos="^",
+    unique=True,
 ):  # pylint: disable=redefined-outer-name
     """Function to create symbols and phonemes
     TODO: create phonemes_to_id and symbols_to_id dicts here."""

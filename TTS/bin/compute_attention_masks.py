@@ -37,7 +37,10 @@ Example run:
     )
     parser.add_argument("--model_path", type=str, required=True, help="Path to Tacotron/Tacotron2 model file ")
     parser.add_argument(
-        "--config_path", type=str, required=True, help="Path to Tacotron/Tacotron2 config file.",
+        "--config_path",
+        type=str,
+        required=True,
+        help="Path to Tacotron/Tacotron2 config file.",
     )
     parser.add_argument(
         "--dataset",

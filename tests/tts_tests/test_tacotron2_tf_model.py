@@ -70,7 +70,9 @@ class TacotronTFTrainTest(unittest.TestCase):
         # inference pass
         output = model(chars_seq, training=False)
 
-    def test_forward_attention(self,):
+    def test_forward_attention(
+        self,
+    ):
         (
             chars_seq,
             chars_seq_lengths,
@@ -101,7 +103,9 @@ class TacotronTFTrainTest(unittest.TestCase):
         # inference pass
         output = model(chars_seq, training=False)
 
-    def test_tflite_conversion(self,):  # pylint:disable=no-self-use
+    def test_tflite_conversion(
+        self,
+    ):  # pylint:disable=no-self-use
         model = Tacotron2(
             num_chars=24,
             num_speakers=0,

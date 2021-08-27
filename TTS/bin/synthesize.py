@@ -119,10 +119,16 @@ def main():
     # Args for running custom models
     parser.add_argument("--config_path", default=None, type=str, help="Path to model config file.")
     parser.add_argument(
-        "--model_path", type=str, default=None, help="Path to model file.",
+        "--model_path",
+        type=str,
+        default=None,
+        help="Path to model file.",
     )
     parser.add_argument(
-        "--out_path", type=str, default="tts_output.wav", help="Output wav file path.",
+        "--out_path",
+        type=str,
+        default="tts_output.wav",
+        help="Output wav file path.",
     )
     parser.add_argument("--use_cuda", type=bool, help="Run model on CUDA.", default=False)
     parser.add_argument(
@@ -133,14 +139,20 @@ def main():
     )
     parser.add_argument("--vocoder_config_path", type=str, help="Path to vocoder model config file.", default=None)
     parser.add_argument(
-        "--encoder_path", type=str, help="Path to speaker encoder model file.", default=None,
+        "--encoder_path",
+        type=str,
+        help="Path to speaker encoder model file.",
+        default=None,
     )
     parser.add_argument("--encoder_config_path", type=str, help="Path to speaker encoder config file.", default=None)
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
     parser.add_argument(
-        "--speaker_idx", type=str, help="Target speaker ID for a multi-speaker TTS model.", default=None,
+        "--speaker_idx",
+        type=str,
+        help="Target speaker ID for a multi-speaker TTS model.",
+        default=None,
     )
     parser.add_argument(
         "--speaker_wav",
@@ -166,7 +178,10 @@ def main():
     )
 
     parser.add_argument(
-        "--lang", type=str, help="Language for sentence segmentation", default="en",
+        "--lang",
+        type=str,
+        help="Language for sentence segmentation",
+        default="en",
     )
 
     # aux args
