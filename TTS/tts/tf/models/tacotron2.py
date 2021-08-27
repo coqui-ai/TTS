@@ -92,7 +92,10 @@ class Tacotron2(keras.models.Model):
         return decoder_frames, output_frames, attentions, stop_tokens
 
     @tf.function(
-        experimental_relax_shapes=True, input_signature=[tf.TensorSpec([1, None], dtype=tf.int32),],
+        experimental_relax_shapes=True,
+        input_signature=[
+            tf.TensorSpec([1, None], dtype=tf.int32),
+        ],
     )
     def inference_tflite(self, characters):
         B, T = shape_list(characters)
@@ -105,7 +108,9 @@ class Tacotron2(keras.models.Model):
         print(output_frames.shape)
         return decoder_frames, output_frames, attentions, stop_tokens
 
-    def build_inference(self,):
+    def build_inference(
+        self,
+    ):
         # TODO: issue https://github.com/PyCQA/pylint/issues/3613
         input_ids = tf.random.uniform(shape=[1, 4], maxval=10, dtype=tf.int32)  # pylint: disable=unexpected-keyword-arg
         self(input_ids)

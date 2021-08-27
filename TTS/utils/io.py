@@ -72,7 +72,6 @@ def load_fsspec(
     with fsspec.open(path, "rb") as f:
         return torch.load(f, map_location=map_location, **kwargs)
 
-
 def load_checkpoint(model, checkpoint_path, use_cuda=False, eval=False):  # pylint: disable=redefined-builtin
     try:
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
@@ -131,13 +130,27 @@ def save_model(config, model, optimizer, scaler, current_step, epoch, output_pat
 
 
 def save_checkpoint(
-    config, model, optimizer, scaler, current_step, epoch, output_folder, **kwargs,
+    config,
+    model,
+    optimizer,
+    scaler,
+    current_step,
+    epoch,
+    output_folder,
+    **kwargs,
 ):
     file_name = "checkpoint_{}.pth.tar".format(current_step)
     checkpoint_path = os.path.join(output_folder, file_name)
     print("\n > CHECKPOINT : {}".format(checkpoint_path))
     save_model(
-        config, model, optimizer, scaler, current_step, epoch, checkpoint_path, **kwargs,
+        config,
+        model,
+        optimizer,
+        scaler,
+        current_step,
+        epoch,
+        checkpoint_path,
+        **kwargs,
     )
 
 
@@ -160,7 +173,15 @@ def save_best_model(
         checkpoint_path = os.path.join(out_path, best_model_name)
         print(" > BEST MODEL : {}".format(checkpoint_path))
         save_model(
-            config, model, optimizer, scaler, current_step, epoch, checkpoint_path, model_loss=current_loss, **kwargs,
+            config,
+            model,
+            optimizer,
+            scaler,
+            current_step,
+            epoch,
+            checkpoint_path,
+            model_loss=current_loss,
+            **kwargs,
         )
         fs = fsspec.get_mapper(out_path).fs
         # only delete previous if current is saved successfully

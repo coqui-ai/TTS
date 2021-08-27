@@ -64,5 +64,10 @@ abbreviations_fr = [
     ]
 ] + [
     (re.compile("\\b%s" % x[0]), x[1])
-    for x in [("Mlle", "mademoiselle"), ("Mlles", "mesdemoiselles"), ("Mme", "Madame"), ("Mmes", "Mesdames"),]
+    for x in [
+        ("Mlle", "mademoiselle"),
+        ("Mlles", "mesdemoiselles"),
+        ("Mme", "Madame"),
+        ("Mmes", "Mesdames"),
+    ]
 ]

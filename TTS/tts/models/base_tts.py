@@ -223,8 +223,12 @@ class BaseTTS(BaseModel):
                 else None,
             )
 
+<<<<<<< HEAD
             # pre-compute phonemes
             if config.use_phonemes and config.compute_input_seq_cache and rank in [None, 0]:
+=======
+            if config.use_phonemes and config.compute_input_seq_cache:
+>>>>>>> Was using wrong style, this should revert earlier formatting changes
                 if hasattr(self, "eval_data_items") and is_eval:
                     dataset.items = self.eval_data_items
                 elif hasattr(self, "train_data_items") and not is_eval:
