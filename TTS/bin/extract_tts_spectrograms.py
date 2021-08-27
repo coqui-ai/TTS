@@ -228,7 +228,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
 
     # load data instances
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=args.eval)
+    meta_data_train, meta_data_eval = load_meta_data(c, eval_split=args.eval)
 
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval
