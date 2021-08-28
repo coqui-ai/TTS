@@ -878,8 +878,12 @@ class Vits(BaseTTS):
             self.waveform_decoder.parameters(),
         )
         # add the speaker embedding layer
-        if hasattr(self, "emb_g"):
-            gen_parameters = chain(gen_parameters, self.emb_g)
+        if hasattr(self, "emb_g") and self.args.use_speaker_embedding and not self.args.use_d_vector_file:
+            gen_parameters = chain(gen_parameters, self.emb_g.parameters())
+        # add the language embedding layer
+        if hasattr(self, "emb_l") and self.args.use_language_embedding:
+            gen_parameters = chain(gen_parameters, self.emb_l.parameters())
+
         optimizer0 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )
