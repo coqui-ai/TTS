@@ -7,6 +7,7 @@ import numpy as np
 from TTS.tts.datasets.formatters import *
 from TTS.tts.datasets.TTSDataset import TTSDataset
 
+from TTS.tts.utils.text.symbols import SymbolEmbedding
 
 def split_dataset(items):
     speakers = [item[-1] for item in items]
@@ -34,7 +35,7 @@ def load_meta_data(config, eval_split=True):
 
     if "datasets" not in config:
         return None, None
-    
+
     datasets = config.datasets
     meta_data_train_all = []
     meta_data_eval_all = [] if eval_split else None
@@ -44,7 +45,7 @@ def load_meta_data(config, eval_split=True):
     symbol_embedding = None
     if "symbol_embedding_filename" in config:
         if config.symbol_embedding_filename:
-            symbol_embedding = SymbolEmbedding(c.symbol_embedding_filename)
+            symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
 
     config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
 

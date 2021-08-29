@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_meta_data
 from TTS.tts.models import setup_model as setup_tts_model
-from TTS.tts.utils.text.symbols import SymbolEmbedding, parse_symbols
+from TTS.tts.utils.text.symbols import parse_symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.callbacks import TrainerCallback
 from TTS.utils.distribute import init_distributed
@@ -199,10 +199,11 @@ class Trainer:
         # init audio processor
         self.ap = AudioProcessor(**self.config.audio.to_dict())
 
+
         # TODO: refactor this
         if "datasets" in self.config:
             self.data_train, self.data_eval = load_meta_data(self.config)
-        
+
         elif self.config.feature_path is not None:
             # load data for `vocoder`models
             print(f" > Loading features from: {self.config.feature_path}")
