@@ -190,18 +190,10 @@ class Trainer:
         # init audio processor
         self.ap = AudioProcessor(**self.config.audio.to_dict())
 
-        symbol_embedding = None
-        if "symbol_embedding_filename" in self.config:
-            if config.symbol_embedding_filename:
-                symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
-
-        config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
-
         # TODO: refactor this
         if "datasets" in self.config:
-            # load data for `tts` models
-            if len(self.config.datasets)>0:
-                self.data_train, self.data_eval = load_meta_data(self.config)
+            self.data_train, self.data_eval = load_meta_data(self.config)
+        
         elif self.config.feature_path is not None:
             # load data for `vocoder`models
             print(f" > Loading features from: {self.config.feature_path}")

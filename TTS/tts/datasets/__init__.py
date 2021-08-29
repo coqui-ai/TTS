@@ -31,11 +31,22 @@ def split_dataset(items):
 
 
 def load_meta_data(config, eval_split=True):
+
+    if "datasets" not in config:
+        return None, None
+    
     datasets = config.datasets
     meta_data_train_all = []
     meta_data_eval_all = [] if eval_split else None
 
     preprocessor_args = {}
+
+    symbol_embedding = None
+    if "symbol_embedding_filename" in config:
+        if config.symbol_embedding_filename:
+            symbol_embedding = SymbolEmbedding(c.symbol_embedding_filename)
+
+    config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
 
     if config.symbol_embedding:
         preprocessor_args["symbol_embedding"] = config.symbol_embedding
