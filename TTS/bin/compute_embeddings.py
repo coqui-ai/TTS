@@ -36,7 +36,7 @@ args = parser.parse_args()
 
 c_dataset = load_config(args.config_dataset_path)
 
-meta_data_train, meta_data_eval = load_meta_data(c_dataset.datasets, eval_split=args.eval)
+meta_data_train, meta_data_eval = load_meta_data(c, eval_split=args.eval)
 wav_files = meta_data_train + meta_data_eval
 
 speaker_manager = SpeakerManager(
