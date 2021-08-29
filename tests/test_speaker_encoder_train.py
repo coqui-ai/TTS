@@ -37,6 +37,7 @@ config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 config.save_json(config_path)
 
+print(config)
 # train the model for one epoch
 run_test_train()
 
