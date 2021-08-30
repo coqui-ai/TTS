@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Dict
 
 from TTS.vocoder.configs.shared_configs import BaseGANVocoderConfig
 
@@ -95,7 +96,7 @@ class UnivnetConfig(BaseGANVocoderConfig):
     # model specific params
     discriminator_model: str = "univnet_discriminator"
     generator_model: str = "univnet_generator"
-    generator_model_params: dict = field(
+    generator_model_params: Dict = field(
         default_factory=lambda: {
             "in_channels": 64,
             "out_channels": 1,
@@ -120,7 +121,7 @@ class UnivnetConfig(BaseGANVocoderConfig):
 
     # loss weights - overrides
     stft_loss_weight: float = 2.5
-    stft_loss_params: dict = field(
+    stft_loss_params: Dict = field(
         default_factory=lambda: {
             "n_ffts": [1024, 2048, 512],
             "hop_lengths": [120, 240, 50],
@@ -132,7 +133,7 @@ class UnivnetConfig(BaseGANVocoderConfig):
     hinge_G_loss_weight: float = 0
     feat_match_loss_weight: float = 0
     l1_spec_loss_weight: float = 0
-    l1_spec_loss_params: dict = field(
+    l1_spec_loss_params: Dict = field(
         default_factory=lambda: {
             "use_mel": True,
             "sample_rate": 22050,
@@ -152,7 +153,7 @@ class UnivnetConfig(BaseGANVocoderConfig):
     # lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
     lr_scheduler_disc: str = None  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
     # lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
-    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.5, 0.9], "weight_decay": 0.0})
+    optimizer_params: Dict = field(default_factory=lambda: {"betas": [0.5, 0.9], "weight_decay": 0.0})
     steps_to_start_discriminator: int = 200000
 
     def __post_init__(self):

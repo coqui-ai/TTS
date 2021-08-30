@@ -1,8 +1,8 @@
 # adopted from https://github.com/jik876/hifi-gan/blob/master/models.py
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from torch import nn
 from torch.nn import Conv1d, ConvTranspose1d
+from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, weight_norm
 
 from TTS.utils.io import load_fsspec

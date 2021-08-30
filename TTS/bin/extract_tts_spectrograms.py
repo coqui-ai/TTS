@@ -46,7 +46,7 @@ def setup_loader(ap, r, verbose=False):
     if c.use_phonemes and c.compute_input_seq_cache:
         # precompute phonemes to have a better estimate of sequence lengths.
         dataset.compute_input_seq(c.num_loader_workers)
-    dataset.sort_items()
+    dataset.sort_and_filter_items(c.get("sort_by_audio_len", default=False))
 
     loader = DataLoader(
         dataset,
@@ -215,7 +215,7 @@ def extract_spectrograms(
                 wav = ap.inv_melspectrogram(mel)
                 ap.save_wav(wav, wav_gl_path)
 
-    with open(os.path.join(output_path, metada_name), "w") as f:
+    with open(os.path.join(output_path, metada_name), "w", encoding="utf-8") as f:
         for data in export_metadata:
             f.write(f"{data[0]}|{data[1]+'.npy'}\n")
 

@@ -156,3 +156,4 @@ speakers.json
 internal/*
 *_pitch.npy
 *_phoneme.npy
+wandb

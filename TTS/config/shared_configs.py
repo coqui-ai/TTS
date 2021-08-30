@@ -190,7 +190,7 @@ class BaseTrainingConfig(Coqpit):
             Name of the model that is used in the training.
 
         run_name (str):
-            Name of the experiment. This prefixes the output folder name.
+            Name of the experiment. This prefixes the output folder name. Defaults to `coqui_tts`.
 
         run_description (str):
             Short description of the experiment.
@@ -272,7 +272,7 @@ class BaseTrainingConfig(Coqpit):
     """
 
     model: str = None
-    run_name: str = ""
+    run_name: str = "coqui_tts"
     run_description: str = ""
     # training params
     epochs: int = 10000
