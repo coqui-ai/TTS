@@ -69,7 +69,7 @@ class TTSDataset(Dataset):
                 batch. Set 0 to disable. Defaults to 0.
 
             min_seq_len (int): Minimum input sequence length to be processed
-                by the loader. Filter out input sequences that are shorter than this. Some models have a
+                by sort_inputs`. Filter out input sequences that are shorter than this. Some models have a
                 minimum input length due to its architecture. Defaults to 0.
 
             max_seq_len (int): Maximum input sequence length. Filter out input sequences that are longer than this.
@@ -302,10 +302,23 @@ class TTSDataset(Dataset):
                     for idx, p in enumerate(phonemes):
                         self.items[idx][0] = p
 
-    def sort_items(self):
-        r"""Sort instances based on text length in ascending order"""
-        lengths = np.array([len(ins[0]) for ins in self.items])
+    def sort_and_filter_items(self, by_audio_len=False):
+        r"""Sort `items` based on text length or audio length in ascending order. Filter out samples out or the length
+        range.
 
+        Args:
+            by_audio_len (bool): if True, sort by audio length else by text length.
+        """
+        # compute the target sequence length
+        if by_audio_len:
+            lengths = []
+            for item in self.items:
+                lengths.append(os.path.getsize(item[1]))
+            lengths = np.array(lengths)
+        else:
+            lengths = np.array([len(ins[0]) for ins in self.items])
+
+        # sort items based on the sequence length in ascending order
         idxs = np.argsort(lengths)
         new_items = []
         ignored = []
@@ -315,7 +328,10 @@ class TTSDataset(Dataset):
                 ignored.append(idx)
             else:
                 new_items.append(self.items[idx])
+
         # shuffle batch groups
+        # create batches with similar length items
+        # the larger the `batch_group_size`, the higher the length variety in a batch.
         if self.batch_group_size > 0:
             for i in range(len(new_items) // self.batch_group_size):
                 offset = i * self.batch_group_size
@@ -325,6 +341,7 @@ class TTSDataset(Dataset):
                 new_items[offset:end_offset] = temp_items
         self.items = new_items
 
+        # logging
         if self.verbose:
             print(" | > Max length sequence: {}".format(np.max(lengths)))
             print(" | > Min length sequence: {}".format(np.min(lengths)))

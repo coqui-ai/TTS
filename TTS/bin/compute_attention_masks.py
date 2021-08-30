@@ -97,7 +97,7 @@ Example run:
         enable_eos_bos=C.enable_eos_bos_chars,
     )
 
-    dataset.sort_items()
+    dataset.sort_and_filter_items(C.get("sort_by_audio_len", default=False))
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,
