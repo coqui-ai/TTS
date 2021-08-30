@@ -119,7 +119,7 @@ class VitsArgs(Coqpit):
         upsample_kernel_sizes_decoder (List[int]):
             Kernel sizes for each upsampling layer of the decoder network. Defaults to `[16, 16, 4, 4]`.
 
-        use_sdp (int):
+        use_sdp (bool):
             Use Stochastic Duration Predictor. Defaults to True.
 
         noise_scale (float):
@@ -128,7 +128,7 @@ class VitsArgs(Coqpit):
         inference_noise_scale (float):
             Noise scale used for the sample noise tensor in inference. Defaults to 0.667.
 
-        length_scale (int):
+        length_scale (float):
             Scale factor for the predicted duration values. Smaller values result faster speech. Defaults to 1.
 
         noise_scale_dp (float):
@@ -176,24 +176,24 @@ class VitsArgs(Coqpit):
     num_heads_text_encoder: int = 2
     num_layers_text_encoder: int = 6
     kernel_size_text_encoder: int = 3
-    dropout_p_text_encoder: int = 0.1
-    dropout_p_duration_predictor: int = 0.5
+    dropout_p_text_encoder: float = 0.1
+    dropout_p_duration_predictor: float = 0.5
     kernel_size_posterior_encoder: int = 5
     dilation_rate_posterior_encoder: int = 1
     num_layers_posterior_encoder: int = 16
     kernel_size_flow: int = 5
     dilation_rate_flow: int = 1
     num_layers_flow: int = 4
-    resblock_type_decoder: int = "1"
+    resblock_type_decoder: str = "1"
     resblock_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [3, 7, 11])
     resblock_dilation_sizes_decoder: List[List[int]] = field(default_factory=lambda: [[1, 3, 5], [1, 3, 5], [1, 3, 5]])
     upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
     upsample_initial_channel_decoder: int = 512
     upsample_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
-    use_sdp: int = True
+    use_sdp: bool = True
     noise_scale: float = 1.0
     inference_noise_scale: float = 0.667
-    length_scale: int = 1
+    length_scale: float = 1
     noise_scale_dp: float = 1.0
     inference_noise_scale_dp: float = 1.0
     max_inference_len: int = None
