@@ -181,8 +181,8 @@ class VitsArgs(Coqpit):
     num_heads_text_encoder: int = 2
     num_layers_text_encoder: int = 6
     kernel_size_text_encoder: int = 3
-    dropout_p_text_encoder: int = 0.1
-    dropout_p_duration_predictor: int = 0.5
+    dropout_p_text_encoder: float = 0.1
+    dropout_p_duration_predictor: float = 0.5
     kernel_size_posterior_encoder: int = 5
     dilation_rate_posterior_encoder: int = 1
     num_layers_posterior_encoder: int = 16
@@ -195,7 +195,7 @@ class VitsArgs(Coqpit):
     upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
     upsample_initial_channel_decoder: int = 512
     upsample_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
-    use_sdp: int = True
+    use_sdp: bool = True
     noise_scale: float = 1.0
     inference_noise_scale: float = 0.667
     length_scale: int = 1
