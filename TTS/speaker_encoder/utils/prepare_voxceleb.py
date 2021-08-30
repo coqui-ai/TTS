@@ -94,7 +94,8 @@ def download_and_extract(directory, subset, urls):
         extract_path = zip_filepath.strip(".zip")
 
         # check zip file md5sum
-        md5 = hashlib.md5(open(zip_filepath, "rb").read()).hexdigest()
+        with open(zip_filepath, "rb") as f_zip:
+            md5 = hashlib.md5(f_zip.read()).hexdigest()
         if md5 != MD5SUM[subset]:
             raise ValueError("md5sum of %s mismatch" % zip_filepath)
 

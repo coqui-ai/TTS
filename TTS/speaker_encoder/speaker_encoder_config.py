@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import List
+from typing import Dict, List
 
 from coqpit import MISSING
 
@@ -14,7 +14,7 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # model params
-    model_params: dict = field(
+    model_params: Dict = field(
         default_factory=lambda: {
             "model_name": "lstm",
             "input_dim": 80,
@@ -25,9 +25,9 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
         }
     )
 
-    audio_augmentation: dict = field(default_factory=lambda: {})
+    audio_augmentation: Dict = field(default_factory=lambda: {})
 
-    storage: dict = field(
+    storage: Dict = field(
         default_factory=lambda: {
             "sample_from_storage_p": 0.66,  # the probability with which we'll sample from the DataSet in-memory storage
             "storage_size": 15,  # the size of the in-memory storage with respect to a single batch

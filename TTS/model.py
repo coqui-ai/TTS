@@ -23,35 +23,31 @@ class BaseModel(nn.Module, ABC):
     """
 
     @abstractmethod
-    def forward(self, text: torch.Tensor, aux_input={}, **kwargs) -> Dict:
+    def forward(self, input: torch.Tensor, *args, aux_input={}, **kwargs) -> Dict:
         """Forward pass for the model mainly used in training.
 
-        You can be flexible here and use different number of arguments and argument names since it is mostly used by
-        `train_step()` in training whitout exposing it to the out of the class.
+        You can be flexible here and use different number of arguments and argument names since it is intended to be
+        used by `train_step()` without exposing it out of the model.
 
         Args:
-            text (torch.Tensor): Input text character sequence ids.
+            input (torch.Tensor): Input tensor.
             aux_input (Dict): Auxiliary model inputs like embeddings, durations or any other sorts of inputs.
-                for the model.
 
         Returns:
-            Dict: model outputs. This must include an item keyed `model_outputs` as the final artifact of the model.
+            Dict: Model outputs. Main model output must be named as "model_outputs".
         """
         outputs_dict = {"model_outputs": None}
         ...
         return outputs_dict
 
     @abstractmethod
-    def inference(self, text: torch.Tensor, aux_input={}) -> Dict:
+    def inference(self, input: torch.Tensor, aux_input={}) -> Dict:
         """Forward pass for inference.
 
-        After the model is trained this is the only function that connects the model the out world.
-
-        This function must only take a `text` input and a dictionary that has all the other model specific inputs.
         We don't use `*kwargs` since it is problematic with the TorchScript API.
 
         Args:
-            text (torch.Tensor): [description]
+            input (torch.Tensor): [description]
             aux_input (Dict): Auxiliary inputs like speaker embeddings, durations etc.
 
         Returns:

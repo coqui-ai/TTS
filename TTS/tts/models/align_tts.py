@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
 import torch
-import torch.nn as nn
 from coqpit import Coqpit
+from torch import nn
 
 from TTS.tts.layers.align_tts.mdn import MDNBlock
 from TTS.tts.layers.feed_forward.decoder import Decoder
