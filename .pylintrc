@@ -64,6 +64,11 @@ disable=missing-docstring,
         too-many-public-methods,
         too-many-lines,
         bare-except,
+        ## for avoiding weird p3.6 CI linter error
+        ## TODO: see later if we can remove this
+        assigning-non-slot,
+        unsupported-assignment-operation,
+        ## end
         line-too-long,
         fixme,
         wrong-import-order,
