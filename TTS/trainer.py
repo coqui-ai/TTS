@@ -328,7 +328,7 @@ class Trainer:
             return obj
 
         print(" > Restoring from %s ..." % os.path.basename(restore_path))
-        checkpoint = load_fsspec(restore_path, map_location='cpu')
+        checkpoint = load_fsspec(restore_path, map_location="cpu")
         try:
             print(" > Restoring Model...")
             model.load_state_dict(checkpoint["model"])
