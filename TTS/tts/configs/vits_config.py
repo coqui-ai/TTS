@@ -79,8 +79,8 @@ class VitsConfig(BaseTTSConfig):
         add_blank (bool):
             If true, a blank token is added in between every character. Defaults to `True`.
 
-        test_sentences (List[str]):
-            List of sentences to be used for testing.
+        test_sentences (List[List]):
+            List of sentences with speaker and language information to be used for testing.
 
     Note:
         Check :class:`TTS.tts.configs.shared_configs.BaseTTSConfig` for the inherited parameters.
@@ -96,7 +96,7 @@ class VitsConfig(BaseTTSConfig):
     model_args: VitsArgs = field(default_factory=VitsArgs)
 
     # optimizer
-    grad_clip: List[float] = field(default_factory=lambda: [5, 5])
+    grad_clip: List[float] = field(default_factory=lambda: [1000, 1000])
     lr_gen: float = 0.0002
     lr_disc: float = 0.0002
     lr_scheduler_gen: str = "ExponentialLR"
@@ -113,24 +113,25 @@ class VitsConfig(BaseTTSConfig):
     gen_loss_alpha: float = 1.0
     feat_loss_alpha: float = 1.0
     mel_loss_alpha: float = 45.0
+    dur_loss_alpha: float = 1.0
 
     # data loader params
     return_wav: bool = True
     compute_linear_spec: bool = True
 
     # overrides
-    min_seq_len: int = 13
-    max_seq_len: int = 500
+    min_seq_len: int = 32
+    max_seq_len: int = 1000
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 
     # testing
-    test_sentences: List[str] = field(
+    test_sentences: List[List] = field(
         default_factory=lambda: [
-            "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-            "Be a voice, not an echo.",
-            "I'm sorry Dave. I'm afraid I can't do that.",
-            "This cake is great. It's so delicious and moist.",
-            "Prior to November 22, 1963.",
+            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent."],
+            ["Be a voice, not an echo."],
+            ["I'm sorry Dave. I'm afraid I can't do that."],
+            ["This cake is great. It's so delicious and moist."],
+            ["Prior to November 22, 1963."],
         ]
     )

@@ -1,21 +1,23 @@
+import math
 from dataclasses import dataclass, field
+from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
 from coqpit import Coqpit
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
+from torch.nn import functional as F
 
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
-
-# from TTS.tts.layers.vits.sdp import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.speakers import get_speaker_manager
+from TTS.tts.utils.languages import get_language_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
 from TTS.utils.audio import AudioProcessor
@@ -161,6 +163,9 @@ class VitsArgs(Coqpit):
         use_d_vector_file (bool):
             Enable/Disable the use of d-vectors for multi-speaker training. Defaults to False.
 
+        d_vector_file (str):
+            Path to the file including pre-computed speaker embeddings. Defaults to None.
+
         d_vector_dim (int):
             Number of d-vector channels. Defaults to 0.
 
@@ -176,8 +181,8 @@ class VitsArgs(Coqpit):
     num_heads_text_encoder: int = 2
     num_layers_text_encoder: int = 6
     kernel_size_text_encoder: int = 3
-    dropout_p_text_encoder: int = 0.1
-    dropout_p_duration_predictor: int = 0.1
+    dropout_p_text_encoder: float = 0.1
+    dropout_p_duration_predictor: float = 0.5
     kernel_size_posterior_encoder: int = 5
     dilation_rate_posterior_encoder: int = 1
     num_layers_posterior_encoder: int = 16
@@ -190,22 +195,27 @@ class VitsArgs(Coqpit):
     upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
     upsample_initial_channel_decoder: int = 512
     upsample_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
-    use_sdp: int = True
+    use_sdp: bool = True
     noise_scale: float = 1.0
     inference_noise_scale: float = 0.667
     length_scale: int = 1
     noise_scale_dp: float = 1.0
-    inference_noise_scale_dp: float = 0.8
+    inference_noise_scale_dp: float = 1.0
     max_inference_len: int = None
     init_discriminator: bool = True
     use_spectral_norm_disriminator: bool = False
     use_speaker_embedding: bool = False
     num_speakers: int = 0
     speakers_file: str = None
+    d_vector_file: str = None
     speaker_embedding_channels: int = 256
     use_d_vector_file: bool = False
     d_vector_dim: int = 0
     detach_dp_input: bool = True
+    use_language_embedding: bool = False
+    embedded_language_dim: int = 4
+    num_languages: int = 0
+    fine_tuning_mode: bool = False
 
 
 class Vits(BaseTTS):
@@ -263,6 +273,7 @@ class Vits(BaseTTS):
         self.args = args
 
         self.init_multispeaker(config)
+        self.init_multilingual(config)
 
         self.length_scale = args.length_scale
         self.noise_scale = args.noise_scale
@@ -281,6 +292,7 @@ class Vits(BaseTTS):
             args.num_layers_text_encoder,
             args.kernel_size_text_encoder,
             args.dropout_p_text_encoder,
+            language_emb_dim=self.embedded_language_dim
         )
 
         self.posterior_encoder = PosteriorEncoder(
@@ -304,16 +316,22 @@ class Vits(BaseTTS):
 
         if args.use_sdp:
             self.duration_predictor = StochasticDurationPredictor(
-                args.hidden_channels,
+                args.hidden_channels + self.embedded_language_dim,
                 192,
                 3,
                 args.dropout_p_duration_predictor,
                 4,
                 cond_channels=self.embedded_speaker_dim,
+                language_emb_dim=self.embedded_language_dim,
             )
         else:
             self.duration_predictor = DurationPredictor(
-                args.hidden_channels, 256, 3, args.dropout_p_duration_predictor, cond_channels=self.embedded_speaker_dim
+                args.hidden_channels + self.embedded_language_dim,
+                256,
+                3,
+                args.dropout_p_duration_predictor,
+                cond_channels=self.embedded_speaker_dim,
+                language_emb_dim=self.embedded_language_dim,
             )
 
         self.waveform_decoder = HifiganGenerator(
@@ -351,27 +369,66 @@ class Vits(BaseTTS):
         # init speaker manager
         self.speaker_manager = get_speaker_manager(config, data=data)
         if config.num_speakers > 0 and self.speaker_manager.num_speakers == 0:
-            self.speaker_manager.num_speakers = config.num_speakers
-        self.num_speakers = self.speaker_manager.num_speakers
+            self.num_speakers = config.num_speakers
+        else:
+            self.num_speakers = self.speaker_manager.num_speakers
+
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
             self.embedded_speaker_dim = config.speaker_embedding_channels
-            self.emb_g = nn.Embedding(config.num_speakers, config.speaker_embedding_channels)
+            self.emb_g = nn.Embedding(self.num_speakers, config.speaker_embedding_channels)
+
+        self.use_d_vector = config.use_d_vector_file
+
         # init d-vector usage
         if config.use_d_vector_file:
             self.embedded_speaker_dim = config.d_vector_dim
 
+    def init_multilingual(self, config: Coqpit, data: List = None):
+        """Initialize multilingual modules of a model.
+
+        Args:
+            config (Coqpit): Model configuration.
+            data (List, optional): Dataset items to infer number of speakers. Defaults to None.
+        """
+        if hasattr(config, "model_args"):
+            config = config.model_args
+        # init language manager
+        self.language_manager = get_language_manager(config, data=data)
+
+        # init language embedding layer
+        if config.use_language_embedding:
+            if config.num_languages > 0 and self.language_manager.num_languages == 0:
+                self.num_languages = config.num_languages
+            else:
+                self.num_languages = self.language_manager.num_languages
+
+            self.embedded_language_dim = config.embedded_language_dim
+            self.emb_l = nn.Embedding(self.num_languages, self.embedded_language_dim)
+            torch.nn.init.xavier_uniform_(self.emb_l.weight)
+        else:
+            self.embedded_language_dim = 0
+            self.emb_l = None
+
     @staticmethod
     def _set_cond_input(aux_input: Dict):
         """Set the speaker conditioning input based on the multi-speaker mode."""
-        sid, g = None, None
+        sid, g, lid = None, None, None
         if "speaker_ids" in aux_input and aux_input["speaker_ids"] is not None:
             sid = aux_input["speaker_ids"]
             if sid.ndim == 0:
                 sid = sid.unsqueeze_(0)
         if "d_vectors" in aux_input and aux_input["d_vectors"] is not None:
-            g = aux_input["d_vectors"]
-        return sid, g
+            g = F.normalize(aux_input["d_vectors"]).unsqueeze(-1)
+            if g.ndim == 2:
+                g = g.unsqueeze_(0)
+
+        if "language_ids" in aux_input and aux_input["language_ids"] is not None:
+            lid = aux_input["language_ids"]
+            if lid.ndim == 0:
+                lid = lid.unsqueeze_(0)
+
+        return sid, g, lid
 
     def forward(
         self,
@@ -379,7 +436,7 @@ class Vits(BaseTTS):
         x_lengths: torch.tensor,
         y: torch.tensor,
         y_lengths: torch.tensor,
-        aux_input={"d_vectors": None, "speaker_ids": None},
+        aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
     ) -> Dict:
         """Forward pass of the model.
 
@@ -402,12 +459,18 @@ class Vits(BaseTTS):
             - speaker_ids: :math:`[B]`
         """
         outputs = {}
-        sid, g = self._set_cond_input(aux_input)
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths)
-
+        sid, g, lid = self._set_cond_input(aux_input)
         # speaker embedding
-        if self.num_speakers > 1 and sid is not None:
+        if self.args.use_speaker_embedding and sid is not None and not self.use_d_vector:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+
+        # language embedding
+        lang_emb=None
+        if self.args.use_language_embedding and lid is not None:
+            lang_emb = self.emb_l(lid).unsqueeze(-1)
+
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+
 
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
@@ -419,33 +482,34 @@ class Vits(BaseTTS):
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         with torch.no_grad():
             o_scale = torch.exp(-2 * logs_p)
-            # logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
             logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p ** 2)])
             logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
-            # logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp = logp2 + logp3
+            logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp = logp2 + logp3 + logp1 + logp4
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
         # duration predictor
         attn_durations = attn.sum(3)
         if self.args.use_sdp:
-            nll_duration = self.duration_predictor(
+            loss_duration = self.duration_predictor(
                 x.detach() if self.args.detach_dp_input else x,
                 x_mask,
                 attn_durations,
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
+                lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
             )
-            nll_duration = torch.sum(nll_duration.float() / torch.sum(x_mask))
-            outputs["nll_duration"] = nll_duration
+            loss_duration = loss_duration/ torch.sum(x_mask)
         else:
             attn_log_durations = torch.log(attn_durations + 1e-6) * x_mask
             log_durations = self.duration_predictor(
                 x.detach() if self.args.detach_dp_input else x,
                 x_mask,
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
+                lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
             )
             loss_duration = torch.sum((log_durations - attn_log_durations) ** 2, [1, 2]) / torch.sum(x_mask)
-            outputs["loss_duration"] = loss_duration
+        outputs["loss_duration"] = loss_duration
 
         # expand prior
         m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
@@ -469,25 +533,115 @@ class Vits(BaseTTS):
         )
         return outputs
 
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None}):
+    def forward_fine_tuning(
+        self,
+        x: torch.tensor,
+        x_lengths: torch.tensor,
+        y: torch.tensor,
+        y_lengths: torch.tensor,
+        aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
+    ) -> Dict:
+        """Forward pass of the model.
+
+        Args:
+            x (torch.tensor): Batch of input character sequence IDs.
+            x_lengths (torch.tensor): Batch of input character sequence lengths.
+            y (torch.tensor): Batch of input spectrograms.
+            y_lengths (torch.tensor): Batch of input spectrogram lengths.
+            aux_input (dict, optional): Auxiliary inputs for multi-speaker training. Defaults to {"d_vectors": None, "speaker_ids": None}.
+
+        Returns:
+            Dict: model outputs keyed by the output name.
+
+        Shapes:
+            - x: :math:`[B, T_seq]`
+            - x_lengths: :math:`[B]`
+            - y: :math:`[B, C, T_spec]`
+            - y_lengths: :math:`[B]`
+            - d_vectors: :math:`[B, C, 1]`
+            - speaker_ids: :math:`[B]`
+        """
+        with torch.no_grad():
+            outputs = {}
+            sid, g, lid = self._set_cond_input(aux_input)
+            # speaker embedding
+            if self.args.use_speaker_embedding and sid is not None and not self.use_d_vector:
+                g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+
+            # language embedding
+            lang_emb=None
+            if self.args.use_language_embedding and lid is not None:
+                lang_emb = self.emb_l(lid).unsqueeze(-1)
+
+            x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+
+            # posterior encoder
+            z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
+
+            # flow layers
+            z_p = self.flow(z, y_mask, g=g)
+
+            # find the alignment path
+            attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+            with torch.no_grad():
+                o_scale = torch.exp(-2 * logs_p)
+                logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
+                logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p ** 2)])
+                logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
+                logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+                logp = logp2 + logp3 + logp1 + logp4
+                attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
+
+            # expand prior
+            m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
+            logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
+
+            # get the z after inverse decoder
+            # ToDo: test if using m_p the result is better (In the SC-GlowTTS paper we used mp instead z_p)
+            z_f_pred = self.flow(z_p, y_mask, g=g, reverse=True)
+            z_slice, slice_ids = rand_segment(z_f_pred, y_lengths, self.spec_segment_size)
+
+        o = self.waveform_decoder(z_slice, g=g)
+        outputs.update(
+            {
+                "model_outputs": o,
+                "alignments": attn.squeeze(1),
+                "slice_ids": slice_ids,
+                "z": z,
+                "z_p": z_p,
+                "m_p": m_p,
+                "logs_p": logs_p,
+                "m_q": m_q,
+                "logs_q": logs_q,
+            }
+        )
+        return outputs
+
+    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None}):
         """
         Shapes:
             - x: :math:`[B, T_seq]`
             - d_vectors: :math:`[B, C, 1]`
             - speaker_ids: :math:`[B]`
         """
-        sid, g = self._set_cond_input(aux_input)
+        sid, g, lid = self._set_cond_input(aux_input)
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths)
-
-        if self.num_speakers > 0 and sid:
+        # speaker embedding
+        if self.args.use_speaker_embedding and sid is not None and not self.use_d_vector:
             g = self.emb_g(sid).unsqueeze(-1)
 
+        # language embedding
+        lang_emb=None
+        if self.args.use_language_embedding and lid is not None:
+            lang_emb = self.emb_l(lid).unsqueeze(-1)
+
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+
         if self.args.use_sdp:
-            logw = self.duration_predictor(x, x_mask, g=g, reverse=True, noise_scale=self.inference_noise_scale_dp)
+            logw = self.duration_predictor(x, x_mask, g=g, reverse=True, noise_scale=self.inference_noise_scale_dp, lang_emb=lang_emb)
         else:
-            logw = self.duration_predictor(x, x_mask, g=g)
+            logw = self.duration_predictor(x, x_mask, g=g, lang_emb=lang_emb)
 
         w = torch.exp(logw) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)
@@ -506,12 +660,21 @@ class Vits(BaseTTS):
         outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p}
         return outputs
 
-    def voice_conversion(self, y, y_lengths, sid_src, sid_tgt):
+    def voice_conversion(self, y, y_lengths, speaker_cond_src, speaker_cond_tgt):
         """TODO: create an end-point for voice conversion"""
         assert self.num_speakers > 0, "num_speakers have to be larger than 0."
-        g_src = self.emb_g(sid_src).unsqueeze(-1)
-        g_tgt = self.emb_g(sid_tgt).unsqueeze(-1)
-        z, _, _, y_mask = self.enc_q(y, y_lengths, g=g_src)
+
+        # speaker embedding
+        if self.args.use_speaker_embedding and not self.use_d_vector:
+            g_src = self.emb_g(speaker_cond_src).unsqueeze(-1)
+            g_tgt = self.emb_g(speaker_cond_tgt).unsqueeze(-1)
+        elif self.args.use_speaker_embedding and self.use_d_vector:
+            g_src = F.normalize(speaker_cond_src).unsqueeze(-1)
+            g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
+        else:
+            raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
+
+        z, _, _, y_mask = self.posterior_encoder(y, y_lengths, g=g_src)
         z_p = self.flow(z, y_mask, g=g_src)
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
         o_hat = self.waveform_decoder(z_hat * y_mask, g=g_tgt)
@@ -532,6 +695,15 @@ class Vits(BaseTTS):
         if optimizer_idx not in [0, 1]:
             raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
+        # generator pass
+        if self.args.fine_tuning_mode:
+            # ToDo: find better place fot it
+            # force eval mode
+            self.eval()
+            # restore train mode for the vocoder part
+            self.waveform_decoder.train()
+            self.disc.train()
+
         if optimizer_idx == 0:
             text_input = batch["text_input"]
             text_lengths = batch["text_lengths"]
@@ -539,16 +711,27 @@ class Vits(BaseTTS):
             linear_input = batch["linear_input"]
             d_vectors = batch["d_vectors"]
             speaker_ids = batch["speaker_ids"]
+            language_ids = batch["language_ids"]
             waveform = batch["waveform"]
 
             # generator pass
-            outputs = self.forward(
-                text_input,
-                text_lengths,
-                linear_input.transpose(1, 2),
-                mel_lengths,
-                aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids},
-            )
+            if self.args.fine_tuning_mode:
+                # model forward
+                outputs = self.forward_fine_tuning(
+                    text_input,
+                    text_lengths,
+                    linear_input.transpose(1, 2),
+                    mel_lengths,
+                    aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
+                )
+            else:
+                outputs = self.forward(
+                    text_input,
+                    text_lengths,
+                    linear_input.transpose(1, 2),
+                    mel_lengths,
+                    aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
+                )
 
             # cache tensors for the discriminator
             self.y_disc_cache = None
@@ -563,8 +746,9 @@ class Vits(BaseTTS):
             outputs["waveform_seg"] = wav_seg
 
             # compute discriminator scores and features
-            outputs["scores_disc_fake"], outputs["feats_disc_fake"] = self.disc(outputs["model_outputs"])
-            _, outputs["feats_disc_real"] = self.disc(wav_seg)
+            outputs["scores_disc_fake"], outputs["feats_disc_fake"], _, outputs["feats_disc_real"] = self.disc(
+                outputs["model_outputs"], wav_seg
+            )
 
             # compute losses
             with autocast(enabled=False):  # use float32 for the criterion
@@ -579,23 +763,18 @@ class Vits(BaseTTS):
                     scores_disc_fake=outputs["scores_disc_fake"],
                     feats_disc_fake=outputs["feats_disc_fake"],
                     feats_disc_real=outputs["feats_disc_real"],
+                    loss_duration=outputs["loss_duration"],
+                    fine_tuning_mode=self.args.fine_tuning_mode
                 )
-
-            # handle the duration loss
-            if self.args.use_sdp:
-                loss_dict["nll_duration"] = outputs["nll_duration"]
-                loss_dict["loss"] += outputs["nll_duration"]
-            else:
-                loss_dict["loss_duration"] = outputs["loss_duration"]
-                loss_dict["loss"] += outputs["nll_duration"]
 
         elif optimizer_idx == 1:
             # discriminator pass
             outputs = {}
 
             # compute scores and features
-            outputs["scores_disc_fake"], outputs["feats_disc_fake"] = self.disc(self.y_disc_cache.detach())
-            outputs["scores_disc_real"], outputs["feats_disc_real"] = self.disc(self.wav_seg_disc_cache)
+            outputs["scores_disc_fake"], _, outputs["scores_disc_real"], _ = self.disc(
+                self.y_disc_cache.detach(), self.wav_seg_disc_cache
+            )
 
             # compute loss
             with autocast(enabled=False):  # use float32 for the criterion
@@ -658,24 +837,29 @@ class Vits(BaseTTS):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        aux_inputs = self.get_aux_input()
-        for idx, sen in enumerate(test_sentences):
-            wav, alignment, _, _ = synthesis(
-                self,
-                sen,
-                self.config,
-                "cuda" in str(next(self.parameters()).device),
-                ap,
-                speaker_id=aux_inputs["speaker_id"],
-                d_vector=aux_inputs["d_vector"],
-                style_wav=aux_inputs["style_wav"],
-                enable_eos_bos_chars=self.config.enable_eos_bos_chars,
-                use_griffin_lim=True,
-                do_trim_silence=False,
-            ).values()
 
-            test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+        for idx, s_info in enumerate(test_sentences):
+            try:
+                aux_inputs = self.get_aux_input_from_test_setences(s_info)
+                wav, alignment, _, _ = synthesis(
+                    self,
+                    aux_inputs["text"],
+                    self.config,
+                    "cuda" in str(next(self.parameters()).device),
+                    ap,
+                    speaker_id=aux_inputs["speaker_id"],
+                    d_vector=aux_inputs["d_vector"],
+                    style_wav=aux_inputs["style_wav"],
+                    language_id=aux_inputs["language_id"],
+                    enable_eos_bos_chars=self.config.enable_eos_bos_chars,
+                    use_griffin_lim=True,
+                    do_trim_silence=False,
+                ).values()
+
+                test_audios["{}-audio".format(idx)] = wav
+                test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            except:  # pylint: disable=bare-except
+                print(" !! Error creating Test Sentence -", idx)
         return test_figures, test_audios
 
     def get_optimizer(self) -> List:
@@ -686,14 +870,25 @@ class Vits(BaseTTS):
         Returns:
             List: optimizers.
         """
-        self.disc.requires_grad_(False)
-        gen_parameters = filter(lambda p: p.requires_grad, self.parameters())
-        self.disc.requires_grad_(True)
-        optimizer1 = get_optimizer(
+        gen_parameters = chain(
+            self.text_encoder.parameters(),
+            self.posterior_encoder.parameters(),
+            self.flow.parameters(),
+            self.duration_predictor.parameters(),
+            self.waveform_decoder.parameters(),
+        )
+        # add the speaker embedding layer
+        if hasattr(self, "emb_g") and self.args.use_speaker_embedding and not self.args.use_d_vector_file:
+            gen_parameters = chain(gen_parameters, self.emb_g.parameters())
+        # add the language embedding layer
+        if hasattr(self, "emb_l") and self.args.use_language_embedding:
+            gen_parameters = chain(gen_parameters, self.emb_l.parameters())
+
+        optimizer0 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )
-        optimizer2 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, self.disc)
-        return [optimizer1, optimizer2]
+        optimizer1 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, self.disc)
+        return [optimizer0, optimizer1]
 
     def get_lr(self) -> List:
         """Set the initial learning rates for each optimizer.
@@ -712,9 +907,9 @@ class Vits(BaseTTS):
         Returns:
             List: Schedulers, one for each optimizer.
         """
-        scheduler1 = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
-        scheduler2 = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
-        return [scheduler1, scheduler2]
+        scheduler0 = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
+        scheduler1 = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
+        return [scheduler0, scheduler1]
 
     def get_criterion(self):
         """Get criterions for each optimizer. The index in the output list matches the optimizer idx used in

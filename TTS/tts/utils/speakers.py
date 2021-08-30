@@ -155,15 +155,21 @@ class SpeakerManager:
         """
         self._save_json(file_path, self.d_vectors)
 
-    def set_d_vectors_from_file(self, file_path: str) -> None:
+    def set_d_vectors_from_file(self, file_path: str, data: List = None) -> None:
         """Load d_vectors from a json file.
 
         Args:
             file_path (str): Path to the target json file.
         """
         self.d_vectors = self._load_json(file_path)
-        speakers = sorted({x["name"] for x in self.d_vectors.values()})
-        self.speaker_ids = {name: i for i, name in enumerate(speakers)}
+
+        # load speakers from data, because during the training we can just use some speakers from d_vector_file
+        if data is not None:
+            self.speaker_ids, _ = self.parse_speakers_from_data(data)
+        else:
+            speakers = sorted({x["name"] for x in self.d_vectors.values()})
+            self.speaker_ids = {name: i for i, name in enumerate(speakers)}
+
         self.clip_ids = list(set(sorted(clip_name for clip_name in self.d_vectors.keys())))
 
     def get_d_vector_by_clip(self, clip_idx: str) -> List:
@@ -188,6 +194,20 @@ class SpeakerManager:
         """
         return [x["embedding"] for x in self.d_vectors.values() if x["name"] == speaker_idx]
 
+    def get_d_vector_by_speaker(self, speaker_idx: str) -> np.ndarray:
+        """Get a d_vector of a speaker.
+
+        Args:
+            speaker_idx (str): Target speaker ID.
+
+        Returns:
+            np.ndarray: d_vector.
+        """
+        for x in self.d_vectors.values():
+            if x["name"] == speaker_idx:
+                return x["embedding"]
+        return None
+
     def get_mean_d_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False) -> np.ndarray:
         """Get mean d_vector of a speaker ID.
 
@@ -209,6 +229,32 @@ class SpeakerManager:
             else:
                 d_vectors = np.stack(d_vectors[:num_samples]).mean(0)
         return d_vectors
+
+    def get_random_speaker_id(self) -> Any:
+        """Get a random d_vector.
+
+        Args:
+
+        Returns:
+            np.ndarray: d_vector.
+        """
+        if self.speaker_ids:
+            return self.speaker_ids[random.choices(list(self.speaker_ids.keys()))[0]]
+
+        return None
+
+    def get_random_d_vector(self) -> Any:
+        """Get a random D  ID.
+
+        Args:
+
+        Returns:
+            np.ndarray: d_vector.
+        """
+        if self.d_vectors:
+            return self.d_vectors[random.choices(list(self.d_vectors.keys()))[0]]["embedding"]
+
+        return None
 
     def get_speakers(self) -> List:
         return self.speaker_ids
@@ -350,7 +396,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
                             "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.d_vector_file"
                         )
                     speaker_manager.load_d_vectors_file(c.d_vector_file)
-                speaker_manager.set_d_vectors_from_file(speakers_file)
+                speaker_manager.set_d_vectors_from_file(speakers_file, data=data)
             elif not c.use_d_vector_file:  # restor speaker manager with speaker ID file.
                 speaker_ids_from_data = speaker_manager.speaker_ids
                 speaker_manager.set_speaker_ids_from_file(speakers_file)
@@ -359,17 +405,20 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
                 ), " [!] You cannot introduce new speakers to a pre-trained model."
         elif c.use_d_vector_file and c.d_vector_file:
             # new speaker manager with external speaker embeddings.
-            speaker_manager.set_d_vectors_from_file(c.d_vector_file)
+            speaker_manager.set_d_vectors_from_file(c.d_vector_file, data=data)
         elif c.use_d_vector_file and not c.d_vector_file:
             raise "use_d_vector_file is True, so you need pass a external speaker embedding file."
         elif c.use_speaker_embedding and "speakers_file" in c and c.speakers_file:
             # new speaker manager with speaker IDs file.
             speaker_manager.set_speaker_ids_from_file(c.speakers_file)
-        print(
-            " > Speaker manager is loaded with {} speakers: {}".format(
-                speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
+
+        if speaker_manager.num_speakers > 0:
+            print(
+                " > Speaker manager is loaded with {} speakers: {}".format(
+                    speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
+                )
             )
-        )
+
         # save file if path is defined
         if out_path:
             out_file_path = os.path.join(out_path, "speakers.json")

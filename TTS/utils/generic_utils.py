@@ -53,7 +53,6 @@ def get_commit_hash():
     # Not copying .git folder into docker container
     except (subprocess.CalledProcessError, FileNotFoundError):
         commit = "0000000"
-    print(" > Git Hash: {}".format(commit))
     return commit
 
 
@@ -62,7 +61,6 @@ def get_experiment_folder_path(root_path, model_name):
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
     commit_hash = get_commit_hash()
     output_folder = os.path.join(root_path, model_name + "-" + date_str + "-" + commit_hash)
-    print(" > Experiment folder: {}".format(output_folder))
     return output_folder
 
 

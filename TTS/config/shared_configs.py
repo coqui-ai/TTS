@@ -165,6 +165,7 @@ class BaseDatasetConfig(Coqpit):
     path: str = ""
     meta_file_train: str = ""
     ununsed_speakers: List[str] = None
+    language: str = ""
     meta_file_val: str = ""
     meta_file_attn_mask: str = ""
 
@@ -301,6 +302,8 @@ class BaseTrainingConfig(Coqpit):
     num_loader_workers: int = None
     num_eval_loader_workers: int = 0
     use_noise_augment: bool = False
+    use_language_weighted_sampler: bool = False
+
     # paths
     output_path: str = None
     # distributed

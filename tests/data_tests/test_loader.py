@@ -38,6 +38,11 @@ class TestTTSDataset(unittest.TestCase):
 
     def _create_dataloader(self, batch_size, r, bgs):
         items = ljspeech(c.data_path, "metadata.csv")
+
+        # add a default language because now the TTSDataset expect a language
+        language = ""
+        items = [[*item, language] for item in items]
+
         dataset = TTSDataset(
             r,
             c.text_cleaner,
