@@ -46,7 +46,7 @@ def setup_loader(ap, r, verbose=False):
     if c.use_phonemes and c.compute_input_seq_cache:
         # precompute phonemes to have a better estimate of sequence lengths.
         dataset.compute_input_seq(c.num_loader_workers)
-    dataset.sort_items()
+    dataset.sort_and_filter_items(c.get("sort_by_audio_len", default=False))
 
     loader = DataLoader(
         dataset,

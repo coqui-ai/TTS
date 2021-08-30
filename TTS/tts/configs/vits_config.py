@@ -120,8 +120,9 @@ class VitsConfig(BaseTTSConfig):
     compute_linear_spec: bool = True
 
     # overrides
-    min_seq_len: int = 32
-    max_seq_len: int = 1000
+    sort_by_audio_len: bool = True
+    min_seq_len: int = 0
+    max_seq_len: int = 500000
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 

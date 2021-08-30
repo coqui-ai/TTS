@@ -43,7 +43,7 @@ config = VitsConfig(
     print_step=25,
     print_eval=True,
     mixed_precision=True,
-    max_seq_len=5000,
+    max_seq_len=500000,
     output_path=output_path,
     datasets=[dataset_config],
 )

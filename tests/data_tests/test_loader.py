@@ -124,7 +124,7 @@ class TestTTSDataset(unittest.TestCase):
 
                 avg_length = mel_lengths.numpy().mean()
                 assert avg_length >= last_length
-            dataloader.dataset.sort_items()
+            dataloader.dataset.sort_and_filter_items()
             is_items_reordered = False
             for idx, item in enumerate(dataloader.dataset.items):
                 if item != frames[idx]:
