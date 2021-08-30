@@ -158,7 +158,7 @@ Example run:
         # ourput metafile
         metafile = os.path.join(args.data_path, "metadata_attn_mask.txt")
 
-        with open(metafile, "w") as f:
+        with open(metafile, "w", encoding="utf-8") as f:
             for p in file_paths:
                 f.write(f"{p[0]}|{p[1]}\n")
         print(f" >> Metafile created: {metafile}")

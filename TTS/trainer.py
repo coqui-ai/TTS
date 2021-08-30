@@ -631,13 +631,13 @@ class Trainer:
             outputs = outputs_per_optimizer
 
         # update avg runtime stats
-        keep_avg_update = dict()
+        keep_avg_update = {}
         keep_avg_update["avg_loader_time"] = loader_time
         keep_avg_update["avg_step_time"] = step_time
         self.keep_avg_train.update_values(keep_avg_update)
 
         # update avg loss stats
-        update_eval_values = dict()
+        update_eval_values = {}
         for key, value in loss_dict.items():
             update_eval_values["avg_" + key] = value
         self.keep_avg_train.update_values(update_eval_values)
@@ -797,7 +797,7 @@ class Trainer:
                     loss_dict = self._detach_loss_dict(loss_dict)
 
             # update avg stats
-            update_eval_values = dict()
+            update_eval_values = {}
             for key, value in loss_dict.items():
                 update_eval_values["avg_" + key] = value
             self.keep_avg_eval.update_values(update_eval_values)
@@ -977,12 +977,13 @@ class Trainer:
             def __init__(self, print_to_terminal=True):
                 self.print_to_terminal = print_to_terminal
                 self.terminal = sys.stdout
-                self.log = open(log_file, "a")
+                self.log_file = log_file
 
             def write(self, message):
                 if self.print_to_terminal:
                     self.terminal.write(message)
-                self.log.write(message)
+                with open(self.log_file, "a", encoding="utf-8") as f:
+                    f.write(message)
 
             def flush(self):
                 # this flush method is needed for python 3 compatibility.

@@ -435,7 +435,7 @@ class Vits(BaseTTS):
                 attn_durations,
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
             )
-            loss_duration = loss_duration/ torch.sum(x_mask)
+            loss_duration = loss_duration / torch.sum(x_mask)
         else:
             attn_log_durations = torch.log(attn_durations + 1e-6) * x_mask
             log_durations = self.duration_predictor(
@@ -579,7 +579,7 @@ class Vits(BaseTTS):
                     scores_disc_fake=outputs["scores_disc_fake"],
                     feats_disc_fake=outputs["feats_disc_fake"],
                     feats_disc_real=outputs["feats_disc_real"],
-                    loss_duration=outputs["loss_duration"]
+                    loss_duration=outputs["loss_duration"],
                 )
 
         elif optimizer_idx == 1:
