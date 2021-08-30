@@ -328,8 +328,7 @@ class Trainer:
             return obj
 
         print(" > Restoring from %s ..." % os.path.basename(restore_path))
-        # checkpoint = load_fsspec(restore_path)
-        checkpoint = torch.load(restore_path, map_location="cpu")
+        checkpoint = load_fsspec(restore_path, map_location='cpu')
         try:
             print(" > Restoring Model...")
             model.load_state_dict(checkpoint["model"])
@@ -356,6 +355,7 @@ class Trainer:
             " > Model restored from step %d" % checkpoint["step"],
         )
         restore_step = checkpoint["step"]
+        torch.cuda.empty_cache()
         return model, optimizer, scaler, restore_step
 
     def _get_loader(
