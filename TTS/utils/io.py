@@ -3,7 +3,7 @@ import json
 import os
 import pickle as pickle_tts
 import shutil
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Union
 
 import fsspec
 import torch
