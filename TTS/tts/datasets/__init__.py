@@ -66,7 +66,7 @@ def load_meta_data(datasets, eval_split=True):
 
 def load_attention_mask_meta_data(metafile_path):
     """Load meta data file created by compute_attention_masks.py"""
-    with open(metafile_path, "r") as f:
+    with open(metafile_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
     meta_data = []

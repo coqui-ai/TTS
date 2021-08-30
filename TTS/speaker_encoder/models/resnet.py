@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
 from TTS.utils.io import load_fsspec
 
