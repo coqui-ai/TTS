@@ -388,8 +388,8 @@ class Decoder(nn.Module):
         decoder_input = self.project_to_decoder_in(torch.cat((self.attention_rnn_hidden, self.context_vec), -1))
 
         # Pass through the decoder RNNs
-        for idx in range(len(self.decoder_rnns)):
-            self.decoder_rnn_hiddens[idx] = self.decoder_rnns[idx](decoder_input, self.decoder_rnn_hiddens[idx])
+        for idx, decoder_rnn in enumerate(self.decoder_rnns):
+            self.decoder_rnn_hiddens[idx] = decoder_rnn(decoder_input, self.decoder_rnn_hiddens[idx])
             # Residual connection
             decoder_input = self.decoder_rnn_hiddens[idx] + decoder_input
         decoder_output = decoder_input

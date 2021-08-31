@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn.modules.conv import Conv1d
 
-from TTS.vocoder.models.hifigan_discriminator import MultiPeriodDiscriminator
+from TTS.vocoder.models.hifigan_discriminator import DiscriminatorP, MultiPeriodDiscriminator
 
 
 class DiscriminatorS(torch.nn.Module):
@@ -60,18 +60,32 @@ class VitsDiscriminator(nn.Module):
 
     def __init__(self, use_spectral_norm=False):
         super().__init__()
-        self.sd = DiscriminatorS(use_spectral_norm=use_spectral_norm)
-        self.mpd = MultiPeriodDiscriminator(use_spectral_norm=use_spectral_norm)
+        periods = [2, 3, 5, 7, 11]
 
-    def forward(self, x):
+        self.nets = nn.ModuleList()
+        self.nets.append(DiscriminatorS(use_spectral_norm=use_spectral_norm))
+        self.nets.extend([DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods])
+
+    def forward(self, x, x_hat=None):
         """
         Args:
-            x (Tensor): input waveform.
+            x (Tensor): ground truth waveform.
+            x_hat (Tensor): predicted waveform.
 
         Returns:
             List[Tensor]: discriminator scores.
             List[List[Tensor]]: list of list of features from each layers of each discriminator.
         """
-        scores, feats = self.mpd(x)
-        score_sd, feats_sd = self.sd(x)
-        return scores + [score_sd], feats + [feats_sd]
+        x_scores = []
+        x_hat_scores = [] if x_hat is not None else None
+        x_feats = []
+        x_hat_feats = [] if x_hat is not None else None
+        for net in self.nets:
+            x_score, x_feat = net(x)
+            x_scores.append(x_score)
+            x_feats.append(x_feat)
+            if x_hat is not None:
+                x_hat_score, x_hat_feat = net(x_hat)
+                x_hat_scores.append(x_hat_score)
+                x_hat_feats.append(x_hat_feat)
+        return x_scores, x_feats, x_hat_scores, x_hat_feats

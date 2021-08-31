@@ -524,6 +524,7 @@ class VitsGeneratorLoss(nn.Module):
         self.kl_loss_alpha = c.kl_loss_alpha
         self.gen_loss_alpha = c.gen_loss_alpha
         self.feat_loss_alpha = c.feat_loss_alpha
+        self.dur_loss_alpha = c.dur_loss_alpha
         self.mel_loss_alpha = c.mel_loss_alpha
         self.stft = TorchSTFT(
             c.audio.fft_size,
@@ -590,10 +591,11 @@ class VitsGeneratorLoss(nn.Module):
         scores_disc_fake,
         feats_disc_fake,
         feats_disc_real,
+        loss_duration,
     ):
         """
         Shapes:
-            - wavefrom: :math:`[B, 1, T]`
+            - waveform : :math:`[B, 1, T]`
             - waveform_hat: :math:`[B, 1, T]`
             - z_p: :math:`[B, C, T]`
             - logs_q: :math:`[B, C, T]`
@@ -615,12 +617,14 @@ class VitsGeneratorLoss(nn.Module):
         loss_gen = self.generator_loss(scores_disc_fake)[0] * self.gen_loss_alpha
         loss_kl = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask.unsqueeze(1)) * self.kl_loss_alpha
         loss_mel = torch.nn.functional.l1_loss(mel, mel_hat) * self.mel_loss_alpha
-        loss = loss_kl + loss_feat + loss_mel + loss_gen
+        loss_duration = torch.sum(loss_duration.float()) * self.dur_loss_alpha
+        loss = loss_kl + loss_feat + loss_mel + loss_gen + loss_duration
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
         return_dict["loss_feat"] = loss_feat
         return_dict["loss_mel"] = loss_mel
+        return_dict["loss_duration"] = loss_duration
         return_dict["loss"] = loss
         return return_dict
 
@@ -651,7 +655,6 @@ class VitsDiscriminatorLoss(nn.Module):
         return_dict = {}
         loss_disc, _, _ = self.discriminator_loss(scores_disc_real, scores_disc_fake)
         return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
-        loss = loss + loss_disc
-        return_dict["loss_disc"] = loss_disc
+        loss = loss + return_dict["loss_disc"]
         return_dict["loss"] = loss
         return return_dict

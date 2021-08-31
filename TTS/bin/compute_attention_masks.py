@@ -97,7 +97,7 @@ Example run:
         enable_eos_bos=C.enable_eos_bos_chars,
     )
 
-    dataset.sort_items()
+    dataset.sort_and_filter_items(C.get("sort_by_audio_len", default=False))
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -158,7 +158,7 @@ Example run:
         # ourput metafile
         metafile = os.path.join(args.data_path, "metadata_attn_mask.txt")
 
-        with open(metafile, "w") as f:
+        with open(metafile, "w", encoding="utf-8") as f:
             for p in file_paths:
                 f.write(f"{p[0]}|{p[1]}\n")
         print(f" >> Metafile created: {metafile}")
