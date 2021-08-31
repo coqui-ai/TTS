@@ -7,11 +7,13 @@ assignees: ''
 
 ---
 
+<!--
 Welcome to the 🐸TTS project! We are excited to see your interest, and appreciate your support!
 
 This repository is governed by the Contributor Covenant Code of Conduct. For more details, see the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file.
 
 If you've found a bug, please provide the following information:
+-->
 
 **Describe the bug**
 A clear and concise description of what the bug is.
@@ -35,4 +37,3 @@ A clear and concise description of what you expected to happen.
 
 **Additional context**
 Add any other context about the problem here.
-
