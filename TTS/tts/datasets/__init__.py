@@ -42,14 +42,11 @@ def load_meta_data(config, eval_split=True):
 
     preprocessor_args = {}
 
-    symbol_embedding = None
-    if "symbol_embedding_filename" in config:
-        if config.symbol_embedding_filename:
-            symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
+    if "symbol_embedding_filename" in config and config.symbol_embedding_filename is not None:
+        symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
+        config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
 
-    config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
-
-    if config.symbol_embedding:
+    if "symbol_embedding" in config and config.symbol_embedding is not None:
         preprocessor_args["symbol_embedding"] = config.symbol_embedding
 
     for dataset in datasets:
