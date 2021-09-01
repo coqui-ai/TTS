@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 import datetime
-import glob
 import importlib
 import os
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Dict
 
+import fsspec
 import torch
 
 
@@ -54,27 +53,24 @@ def get_commit_hash():
     # Not copying .git folder into docker container
     except (subprocess.CalledProcessError, FileNotFoundError):
         commit = "0000000"
-    print(" > Git Hash: {}".format(commit))
     return commit
 
 
-def create_experiment_folder(root_path, model_name):
-    """Create a folder with the current date and time"""
+def get_experiment_folder_path(root_path, model_name):
+    """Get an experiment folder path with the current date and time"""
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
     commit_hash = get_commit_hash()
     output_folder = os.path.join(root_path, model_name + "-" + date_str + "-" + commit_hash)
-    os.makedirs(output_folder, exist_ok=True)
-    print(" > Experiment folder: {}".format(output_folder))
     return output_folder
 
 
 def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
-
-    checkpoint_files = glob.glob(experiment_path + "/*.pth.tar")
+    fs = fsspec.get_mapper(experiment_path).fs
+    checkpoint_files = fs.glob(experiment_path + "/*.pth.tar")
     if not checkpoint_files:
-        if os.path.exists(experiment_path):
-            shutil.rmtree(experiment_path, ignore_errors=True)
+        if fs.exists(experiment_path):
+            fs.rm(experiment_path, recursive=True)
             print(" ! Run is removed from {}".format(experiment_path))
     else:
         print(" ! Run is kept in {}".format(experiment_path))

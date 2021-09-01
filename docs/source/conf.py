@@ -68,6 +68,8 @@ extensions = [
     "sphinx_inline_tabs",
 ]
 
+myst_enable_extensions = ['linkify',]
+
 # 'sphinxcontrib.katex',
 # 'sphinx.ext.autosectionlabel',
 

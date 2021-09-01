@@ -1,8 +1,11 @@
+from typing import Dict
+
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
 from TTS.tts.utils.visual import plot_spectrogram
+from TTS.utils.audio import AudioProcessor
 
 
 def interpolate_vocoder_input(scale_factor, spec):
@@ -26,12 +29,24 @@ def interpolate_vocoder_input(scale_factor, spec):
     return spec
 
 
-def plot_results(y_hat, y, ap, name_prefix):
-    """Plot vocoder model results"""
+def plot_results(y_hat: torch.tensor, y: torch.tensor, ap: AudioProcessor, name_prefix: str = None) -> Dict:
+    """Plot the predicted and the real waveform and their spectrograms.
+
+    Args:
+        y_hat (torch.tensor): Predicted waveform.
+        y (torch.tensor): Real waveform.
+        ap (AudioProcessor): Audio processor used to process the waveform.
+        name_prefix (str, optional): Name prefix used to name the figures. Defaults to None.
+
+    Returns:
+        Dict: output figures keyed by the name of the figures.
+    """ """Plot vocoder model results"""
+    if name_prefix is None:
+        name_prefix = ""
 
     # select an instance from batch
-    y_hat = y_hat[0].squeeze(0).detach().cpu().numpy()
-    y = y[0].squeeze(0).detach().cpu().numpy()
+    y_hat = y_hat[0].squeeze().detach().cpu().numpy()
+    y = y[0].squeeze().detach().cpu().numpy()
 
     spec_fake = ap.melspectrogram(y_hat).T
     spec_real = ap.melspectrogram(y).T

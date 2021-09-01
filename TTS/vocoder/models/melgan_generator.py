@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn.utils import weight_norm
 
+from TTS.utils.io import load_fsspec
 from TTS.vocoder.layers.melgan import ResidualStack
 
 
@@ -86,7 +87,7 @@ class MelganGenerator(nn.Module):
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
     ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
             self.eval()

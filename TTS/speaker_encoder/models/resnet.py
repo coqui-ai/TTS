@@ -1,6 +1,8 @@
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
+
+from TTS.utils.io import load_fsspec
 
 
 class SELayer(nn.Module):
@@ -201,7 +203,7 @@ class ResNetSpeakerEncoder(nn.Module):
         return embeddings
 
     def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False, use_cuda: bool = False):
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if use_cuda:
             self.cuda()

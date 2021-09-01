@@ -22,8 +22,10 @@ def main():
     num_gpus = torch.cuda.device_count()
     group_id = time.strftime("%Y_%m_%d-%H%M%S")
 
-    assert num_gpus > 1, 'distributed.py requires multiple available GPUs'
-    visible_gpus = os.environ['CUDA_VISIBLE_DEVICES'] if 'CUDA_VISIBLE_DEVICES' in os.environ else list(range(0, num_gpus))
+    assert num_gpus > 1, "distributed.py requires multiple available GPUs"
+    visible_gpus = (
+        os.environ["CUDA_VISIBLE_DEVICES"] if "CUDA_VISIBLE_DEVICES" in os.environ else list(range(0, num_gpus))
+    )
 
     # set arguments for train.py
     folder_path = pathlib.Path(__file__).parent.absolute()
@@ -35,19 +37,20 @@ def main():
     command.append("--restore_path={}".format(args.restore_path))
     command.append("--config_path={}".format(args.config_path))
     command.append("--group_id=group_{}".format(group_id))
+    command.append("--use_ddp=true")
     command += unargs
     command.append("")
 
     # run processes
     processes = []
-    gpus = visible_gpus.split(',')
+    gpus = visible_gpus.split(",")
     for i, value in enumerate(gpus):
         my_env = os.environ.copy()
         my_env["PYTHON_EGG_CACHE"] = "/tmp/tmp{}".format(i)
         my_env["CUDA_VISIBLE_DEVICES"] = "{}".format(value)
         command[-1] = "--rank={}".format(i)
         # prevent stdout for processes with rank != 0
-        stdout = None if i == 0 else open(os.devnull, "w")
+        stdout = None
         p = subprocess.Popen(["python3"] + command, stdout=stdout, env=my_env)  # pylint: disable=consider-using-with
         processes.append(p)
         print(command)

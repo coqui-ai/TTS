@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
 import torch
-import torch.nn as nn
 from coqpit import Coqpit
+from torch import nn
 
 from TTS.tts.layers.align_tts.mdn import MDNBlock
 from TTS.tts.layers.feed_forward.decoder import Decoder
@@ -16,6 +16,7 @@ from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.io import load_fsspec
 
 
 @dataclass
@@ -389,7 +390,7 @@ class AlignTTS(BaseTTS):
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
     ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
             self.eval()

@@ -27,6 +27,7 @@ config = AlignTTSConfig(
         "Be a voice, not an echo.",
     ],
 )
+
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 config.save_json(config_path)

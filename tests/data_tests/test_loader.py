@@ -42,6 +42,7 @@ class TestTTSDataset(unittest.TestCase):
             r,
             c.text_cleaner,
             compute_linear_spec=True,
+            return_wav=True,
             ap=self.ap,
             meta_data=items,
             characters=c.characters,
@@ -75,16 +76,26 @@ class TestTTSDataset(unittest.TestCase):
                 mel_lengths = data[5]
                 stop_target = data[6]
                 item_idx = data[7]
+                wavs = data[11]
 
                 neg_values = text_input[text_input < 0]
                 check_count = len(neg_values)
                 assert check_count == 0, " !! Negative values in text_input: {}".format(check_count)
-                # TODO: more assertion here
                 assert isinstance(speaker_name[0], str)
                 assert linear_input.shape[0] == c.batch_size
                 assert linear_input.shape[2] == self.ap.fft_size // 2 + 1
                 assert mel_input.shape[0] == c.batch_size
                 assert mel_input.shape[2] == c.audio["num_mels"]
+                assert (
+                    wavs.shape[1] == mel_input.shape[1] * c.audio.hop_length
+                ), f"wavs.shape: {wavs.shape[1]}, mel_input.shape: {mel_input.shape[1] * c.audio.hop_length}"
+
+                # make sure that the computed mels and the waveform match and correctly computed
+                mel_new = self.ap.melspectrogram(wavs[0].squeeze().numpy())
+                ignore_seg = -(1 + c.audio.win_length // c.audio.hop_length)
+                mel_diff = (mel_new[:, : mel_input.shape[1]] - mel_input[0].T.numpy())[:, 0:ignore_seg]
+                assert abs(mel_diff.sum()) < 1e-5
+
                 # check normalization ranges
                 if self.ap.symmetric_norm:
                     assert mel_input.max() <= self.ap.max_norm
@@ -113,7 +124,7 @@ class TestTTSDataset(unittest.TestCase):
 
                 avg_length = mel_lengths.numpy().mean()
                 assert avg_length >= last_length
-            dataloader.dataset.sort_items()
+            dataloader.dataset.sort_and_filter_items()
             is_items_reordered = False
             for idx, item in enumerate(dataloader.dataset.items):
                 if item != frames[idx]:

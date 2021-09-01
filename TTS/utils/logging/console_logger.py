@@ -29,16 +29,18 @@ class ConsoleLogger:
         now = datetime.datetime.now()
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
-    def print_epoch_start(self, epoch, max_epoch):
+    def print_epoch_start(self, epoch, max_epoch, output_path=None):
         print(
             "\n{}{} > EPOCH: {}/{}{}".format(tcolors.UNDERLINE, tcolors.BOLD, epoch, max_epoch, tcolors.ENDC),
             flush=True,
         )
+        if output_path is not None:
+            print(f" --> {output_path}")
 
     def print_train_start(self):
         print(f"\n{tcolors.BOLD} > TRAINING ({self.get_time()}) {tcolors.ENDC}")
 
-    def print_train_step(self, batch_steps, step, global_step, log_dict, loss_dict, avg_loss_dict):
+    def print_train_step(self, batch_steps, step, global_step, loss_dict, avg_loss_dict):
         indent = "     | > "
         print()
         log_text = "{}   --> STEP: {}/{} -- GLOBAL_STEP: {}{}\n".format(
@@ -50,13 +52,6 @@ class ConsoleLogger:
                 log_text += "{}{}: {:.5f}  ({:.5f})\n".format(indent, key, value, avg_loss_dict[f"avg_{key}"])
             else:
                 log_text += "{}{}: {:.5f} \n".format(indent, key, value)
-        for idx, (key, value) in enumerate(log_dict.items()):
-            if isinstance(value, list):
-                log_text += f"{indent}{key}: {value[0]:.{value[1]}f}"
-            else:
-                log_text += f"{indent}{key}: {value}"
-            if idx < len(log_dict) - 1:
-                log_text += "\n"
         print(log_text, flush=True)
 
     # pylint: disable=unused-argument
