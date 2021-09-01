@@ -288,12 +288,16 @@ class SpeakerManager:
 
         def _compute(wav_file: str):
             waveform = self.speaker_encoder_ap.load_wav(wav_file, sr=self.speaker_encoder_ap.sample_rate)
-            spec = self.speaker_encoder_ap.melspectrogram(waveform)
-            spec = torch.from_numpy(spec.T)
+            if not self.speaker_encoder_config.model_params.get("use_torch_spec", False):
+                m_input = self.speaker_encoder_ap.melspectrogram(waveform)
+                m_input = torch.from_numpy(m_input.T)
+            else:
+                m_input = torch.from_numpy(waveform)
+
             if self.use_cuda:
-                spec = spec.cuda()
-            spec = spec.unsqueeze(0)
-            d_vector = self.speaker_encoder.compute_embedding(spec)
+                m_input = m_input.cuda()
+            m_input = m_input.unsqueeze(0)
+            d_vector = self.speaker_encoder.compute_embedding(m_input)
             return d_vector
 
         if isinstance(wav_file, list):
