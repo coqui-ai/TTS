@@ -251,7 +251,7 @@ class Synthesizer(object):
                 d_vector=speaker_embedding,
             )
             waveform = outputs["wav"]
-            mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().numpy()
+            mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
             if not use_gl:
                 # denormalize tts output based on tts audio config
                 mel_postnet_spec = self.ap.denormalize(mel_postnet_spec.T).T

@@ -96,7 +96,7 @@ class VitsConfig(BaseTTSConfig):
     model_args: VitsArgs = field(default_factory=VitsArgs)
 
     # optimizer
-    grad_clip: List[float] = field(default_factory=lambda: [5, 5])
+    grad_clip: List[float] = field(default_factory=lambda: [1000, 1000])
     lr_gen: float = 0.0002
     lr_disc: float = 0.0002
     lr_scheduler_gen: str = "ExponentialLR"
@@ -113,14 +113,16 @@ class VitsConfig(BaseTTSConfig):
     gen_loss_alpha: float = 1.0
     feat_loss_alpha: float = 1.0
     mel_loss_alpha: float = 45.0
+    dur_loss_alpha: float = 1.0
 
     # data loader params
     return_wav: bool = True
     compute_linear_spec: bool = True
 
     # overrides
-    min_seq_len: int = 13
-    max_seq_len: int = 500
+    sort_by_audio_len: bool = True
+    min_seq_len: int = 0
+    max_seq_len: int = 500000
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 

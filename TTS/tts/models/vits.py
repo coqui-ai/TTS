@@ -1,4 +1,6 @@
+import math
 from dataclasses import dataclass, field
+from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
@@ -11,8 +13,6 @@ from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
-
-# from TTS.tts.layers.vits.sdp import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.data import sequence_mask
 from TTS.tts.utils.speakers import get_speaker_manager
@@ -119,7 +119,7 @@ class VitsArgs(Coqpit):
         upsample_kernel_sizes_decoder (List[int]):
             Kernel sizes for each upsampling layer of the decoder network. Defaults to `[16, 16, 4, 4]`.
 
-        use_sdp (int):
+        use_sdp (bool):
             Use Stochastic Duration Predictor. Defaults to True.
 
         noise_scale (float):
@@ -128,7 +128,7 @@ class VitsArgs(Coqpit):
         inference_noise_scale (float):
             Noise scale used for the sample noise tensor in inference. Defaults to 0.667.
 
-        length_scale (int):
+        length_scale (float):
             Scale factor for the predicted duration values. Smaller values result faster speech. Defaults to 1.
 
         noise_scale_dp (float):
@@ -176,26 +176,26 @@ class VitsArgs(Coqpit):
     num_heads_text_encoder: int = 2
     num_layers_text_encoder: int = 6
     kernel_size_text_encoder: int = 3
-    dropout_p_text_encoder: int = 0.1
-    dropout_p_duration_predictor: int = 0.1
+    dropout_p_text_encoder: float = 0.1
+    dropout_p_duration_predictor: float = 0.5
     kernel_size_posterior_encoder: int = 5
     dilation_rate_posterior_encoder: int = 1
     num_layers_posterior_encoder: int = 16
     kernel_size_flow: int = 5
     dilation_rate_flow: int = 1
     num_layers_flow: int = 4
-    resblock_type_decoder: int = "1"
+    resblock_type_decoder: str = "1"
     resblock_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [3, 7, 11])
     resblock_dilation_sizes_decoder: List[List[int]] = field(default_factory=lambda: [[1, 3, 5], [1, 3, 5], [1, 3, 5]])
     upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
     upsample_initial_channel_decoder: int = 512
     upsample_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
-    use_sdp: int = True
+    use_sdp: bool = True
     noise_scale: float = 1.0
     inference_noise_scale: float = 0.667
-    length_scale: int = 1
+    length_scale: float = 1
     noise_scale_dp: float = 1.0
-    inference_noise_scale_dp: float = 0.8
+    inference_noise_scale_dp: float = 1.0
     max_inference_len: int = None
     init_discriminator: bool = True
     use_spectral_norm_disriminator: bool = False
@@ -419,24 +419,23 @@ class Vits(BaseTTS):
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         with torch.no_grad():
             o_scale = torch.exp(-2 * logs_p)
-            # logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
             logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p ** 2)])
             logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
-            # logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp = logp2 + logp3
+            logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp = logp2 + logp3 + logp1 + logp4
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
         # duration predictor
         attn_durations = attn.sum(3)
         if self.args.use_sdp:
-            nll_duration = self.duration_predictor(
+            loss_duration = self.duration_predictor(
                 x.detach() if self.args.detach_dp_input else x,
                 x_mask,
                 attn_durations,
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
             )
-            nll_duration = torch.sum(nll_duration.float() / torch.sum(x_mask))
-            outputs["nll_duration"] = nll_duration
+            loss_duration = loss_duration / torch.sum(x_mask)
         else:
             attn_log_durations = torch.log(attn_durations + 1e-6) * x_mask
             log_durations = self.duration_predictor(
@@ -445,7 +444,7 @@ class Vits(BaseTTS):
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
             )
             loss_duration = torch.sum((log_durations - attn_log_durations) ** 2, [1, 2]) / torch.sum(x_mask)
-            outputs["loss_duration"] = loss_duration
+        outputs["loss_duration"] = loss_duration
 
         # expand prior
         m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
@@ -563,8 +562,9 @@ class Vits(BaseTTS):
             outputs["waveform_seg"] = wav_seg
 
             # compute discriminator scores and features
-            outputs["scores_disc_fake"], outputs["feats_disc_fake"] = self.disc(outputs["model_outputs"])
-            _, outputs["feats_disc_real"] = self.disc(wav_seg)
+            outputs["scores_disc_fake"], outputs["feats_disc_fake"], _, outputs["feats_disc_real"] = self.disc(
+                outputs["model_outputs"], wav_seg
+            )
 
             # compute losses
             with autocast(enabled=False):  # use float32 for the criterion
@@ -579,23 +579,17 @@ class Vits(BaseTTS):
                     scores_disc_fake=outputs["scores_disc_fake"],
                     feats_disc_fake=outputs["feats_disc_fake"],
                     feats_disc_real=outputs["feats_disc_real"],
+                    loss_duration=outputs["loss_duration"],
                 )
-
-            # handle the duration loss
-            if self.args.use_sdp:
-                loss_dict["nll_duration"] = outputs["nll_duration"]
-                loss_dict["loss"] += outputs["nll_duration"]
-            else:
-                loss_dict["loss_duration"] = outputs["loss_duration"]
-                loss_dict["loss"] += outputs["nll_duration"]
 
         elif optimizer_idx == 1:
             # discriminator pass
             outputs = {}
 
             # compute scores and features
-            outputs["scores_disc_fake"], outputs["feats_disc_fake"] = self.disc(self.y_disc_cache.detach())
-            outputs["scores_disc_real"], outputs["feats_disc_real"] = self.disc(self.wav_seg_disc_cache)
+            outputs["scores_disc_fake"], _, outputs["scores_disc_real"], _ = self.disc(
+                self.y_disc_cache.detach(), self.wav_seg_disc_cache
+            )
 
             # compute loss
             with autocast(enabled=False):  # use float32 for the criterion
@@ -686,14 +680,21 @@ class Vits(BaseTTS):
         Returns:
             List: optimizers.
         """
-        self.disc.requires_grad_(False)
-        gen_parameters = filter(lambda p: p.requires_grad, self.parameters())
-        self.disc.requires_grad_(True)
-        optimizer1 = get_optimizer(
+        gen_parameters = chain(
+            self.text_encoder.parameters(),
+            self.posterior_encoder.parameters(),
+            self.flow.parameters(),
+            self.duration_predictor.parameters(),
+            self.waveform_decoder.parameters(),
+        )
+        # add the speaker embedding layer
+        if hasattr(self, "emb_g"):
+            gen_parameters = chain(gen_parameters, self.emb_g)
+        optimizer0 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )
-        optimizer2 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, self.disc)
-        return [optimizer1, optimizer2]
+        optimizer1 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, self.disc)
+        return [optimizer0, optimizer1]
 
     def get_lr(self) -> List:
         """Set the initial learning rates for each optimizer.
@@ -712,9 +713,9 @@ class Vits(BaseTTS):
         Returns:
             List: Schedulers, one for each optimizer.
         """
-        scheduler1 = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
-        scheduler2 = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
-        return [scheduler1, scheduler2]
+        scheduler0 = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
+        scheduler1 = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
+        return [scheduler0, scheduler1]
 
     def get_criterion(self):
         """Get criterions for each optimizer. The index in the output list matches the optimizer idx used in

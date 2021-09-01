@@ -29,7 +29,7 @@ config = VitsConfig(
     run_name="vits_ljspeech",
     batch_size=48,
     eval_batch_size=16,
-    batch_group_size=0,
+    batch_group_size=5,
     num_loader_workers=4,
     num_eval_loader_workers=4,
     run_eval=True,
@@ -43,7 +43,7 @@ config = VitsConfig(
     print_step=25,
     print_eval=True,
     mixed_precision=True,
-    max_seq_len=5000,
+    max_seq_len=500000,
     output_path=output_path,
     datasets=[dataset_config],
 )
