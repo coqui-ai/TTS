@@ -2,8 +2,10 @@
 # compatible with Julius https://github.com/julius-speech/segmentation-kit
 
 import re
+import unicodedata
 
 import MeCab
+from num2words import num2words
 
 _CONVRULES = [
     # Conversion of 2 letters
@@ -373,8 +375,93 @@ def text2kata(text: str) -> str:
     return hira2kata("".join(res))
 
 
+_ALPHASYMBOL_YOMI = {
+    "#": "シャープ",
+    "%": "パーセント",
+    "&": "アンド",
+    "+": "プラス",
+    "-": "マイナス",
+    ":": "コロン",
+    ";": "セミコロン",
+    "<": "小なり",
+    "=": "イコール",
+    ">": "大なり",
+    "@": "アット",
+    "a": "エー",
+    "b": "ビー",
+    "c": "シー",
+    "d": "ディー",
+    "e": "イー",
+    "f": "エフ",
+    "g": "ジー",
+    "h": "エイチ",
+    "i": "アイ",
+    "j": "ジェー",
+    "k": "ケー",
+    "l": "エル",
+    "m": "エム",
+    "n": "エヌ",
+    "o": "オー",
+    "p": "ピー",
+    "q": "キュー",
+    "r": "アール",
+    "s": "エス",
+    "t": "ティー",
+    "u": "ユー",
+    "v": "ブイ",
+    "w": "ダブリュー",
+    "x": "エックス",
+    "y": "ワイ",
+    "z": "ゼット",
+    "α": "アルファ",
+    "β": "ベータ",
+    "γ": "ガンマ",
+    "δ": "デルタ",
+    "ε": "イプシロン",
+    "ζ": "ゼータ",
+    "η": "イータ",
+    "θ": "シータ",
+    "ι": "イオタ",
+    "κ": "カッパ",
+    "λ": "ラムダ",
+    "μ": "ミュー",
+    "ν": "ニュー",
+    "ξ": "クサイ",
+    "ο": "オミクロン",
+    "π": "パイ",
+    "ρ": "ロー",
+    "σ": "シグマ",
+    "τ": "タウ",
+    "υ": "ウプシロン",
+    "φ": "ファイ",
+    "χ": "カイ",
+    "ψ": "プサイ",
+    "ω": "オメガ",
+}
+
+
+_NUMBER_WITH_SEPARATOR_RX = re.compile("[0-9]{1,3}(,[0-9]{3})+")
+_CURRENCY_MAP = {"$": "ドル", "¥": "円", "£": "ポンド", "€": "ユーロ"}
+_CURRENCY_RX = re.compile(r"([$¥£€])([0-9.]*[0-9])")
+_NUMBER_RX = re.compile(r"[0-9]+(\.[0-9]+)?")
+
+
+def japanese_convert_numbers_to_words(text: str) -> str:
+    res = _NUMBER_WITH_SEPARATOR_RX.sub(lambda m: m[0].replace(",", ""), text)
+    res = _CURRENCY_RX.sub(lambda m: m[2] + _CURRENCY_MAP.get(m[1], m[1]), res)
+    res = _NUMBER_RX.sub(lambda m: num2words(m[0], lang="ja"), res)
+    return res
+
+
+def japanese_convert_alpha_symbols_to_words(text: str) -> str:
+    return "".join([_ALPHASYMBOL_YOMI.get(ch, ch) for ch in text.lower()])
+
+
 def japanese_text_to_phonemes(text: str) -> str:
     """Convert Japanese text to phonemes."""
-    res = text2kata(text)
+    res = unicodedata.normalize("NFKC", text)
+    res = japanese_convert_numbers_to_words(res)
+    res = japanese_convert_alpha_symbols_to_words(res)
+    res = text2kata(res)
     res = kata2phoneme(res)
     return res.replace(" ", "")
