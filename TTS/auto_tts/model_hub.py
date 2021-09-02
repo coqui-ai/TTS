@@ -298,7 +298,7 @@ class TtsModels:
         )
         return config
 
-    def ScGlowTts(self, audio, dataset, speaker_file, encoder):
+    def sc_glow_tts(self, audio, dataset, speaker_file, encoder):
         if encoder == "transformer":
             encoder_type = "rel_pos_transformer"
         elif encoder == "gated":
@@ -419,7 +419,7 @@ class VocoderModels:
         if loss == "mse":
             pass  # I was about to impliment a way to just pick a loss func but I wanna think of a better way to do it so ima just leave this here for now.
 
-    def ljspeechHifiGan(self, audio, data_path):
+    def ljspeech_hifi_gan(self, audio, data_path):
         config = HifiganConfig(
             audio=audio,
             run_name="ljspeech-hifigan",
@@ -458,7 +458,7 @@ class VocoderModels:
         )
         return config
 
-    def ljspeechWaveGrad(self, audio, data_path):
+    def ljspeech_wave_grad(self, audio, data_path):
         config = WavegradConfig(
             audio=audio,
             batch_size=self.batch_size,
@@ -481,7 +481,7 @@ class VocoderModels:
         )
         return config
 
-    def ljspeechMultiBandMelGan(self, audio, data_path):
+    def ljspeech_multiband_mel_gan(self, audio, data_path):
         config = MultibandMelganConfig(
             audio=audio,
             batch_size=self.batch_size,
@@ -509,7 +509,7 @@ class VocoderModels:
         )
         return config
 
-    def ljspeechUnivnet(self, audio, data_path):
+    def ljspeech_univnet(self, audio, data_path):
         config = UnivnetConfig(
             audio=audio,
             batch_size=self.batch_size,
