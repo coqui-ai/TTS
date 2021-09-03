@@ -134,9 +134,9 @@ class GlowTTS(BaseTTS):
         """
         Shapes:
             - x: :math:`[B, T]`
-            - x_lenghts::math:` B`
+            - x_lenghts::math:`B`
             - y: :math:`[B, T, C]`
-            - y_lengths::math:` B`
+            - y_lengths::math:`B`
             - g: :math:`[B, C] or B`
         """
         y = y.transpose(1, 2)
