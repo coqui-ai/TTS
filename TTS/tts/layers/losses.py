@@ -756,7 +756,7 @@ class FastPitchLoss(nn.Module):
             loss = loss + self.aligner_loss_alpha * aligner_loss
             return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
 
-        if self.binary_alignment_loss_alpha > 0:
+        if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
             binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
             loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
             return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
