@@ -705,6 +705,14 @@ class FastPitchLoss(nn.Module):
         self.dur_loss_alpha = c.dur_loss_alpha
         self.pitch_loss_alpha = c.pitch_loss_alpha
         self.aligner_loss_alpha = c.aligner_loss_alpha
+        self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
+
+    def _binary_alignment_loss(self, alignment_hard, alignment_soft):
+        """Binary loss that forces soft alignments to match the hard alignments as
+        explained in `https://arxiv.org/pdf/2108.10447.pdf`.
+        """
+        log_sum = torch.log(torch.clamp(alignment_soft[alignment_hard == 1], min=1e-12)).sum()
+        return -log_sum / alignment_hard.sum()
 
     def forward(
         self,
@@ -717,6 +725,8 @@ class FastPitchLoss(nn.Module):
         pitch_target,
         input_lens,
         alignment_logprob=None,
+        alignment_hard=None,
+        alignment_soft=None,
     ):
         loss = 0
         return_dict = {}
@@ -743,8 +753,13 @@ class FastPitchLoss(nn.Module):
 
         if self.aligner_loss_alpha > 0:
             aligner_loss = self.aligner_loss(alignment_logprob, input_lens, decoder_output_lens)
-            loss += self.aligner_loss_alpha * aligner_loss
+            loss = loss + self.aligner_loss_alpha * aligner_loss
             return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
+
+        if self.binary_alignment_loss_alpha > 0:
+            binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
+            loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
+            return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
 
         return_dict["loss"] = loss
         return return_dict
