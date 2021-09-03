@@ -104,19 +104,19 @@ class BaseTTS(BaseModel):
             Dict: [description]
         """
         # setup input batch
-        text_input = batch[0]
-        text_lengths = batch[1]
-        speaker_names = batch[2]
-        linear_input = batch[3]
-        mel_input = batch[4]
-        mel_lengths = batch[5]
-        stop_targets = batch[6]
-        item_idx = batch[7]
-        d_vectors = batch[8]
-        speaker_ids = batch[9]
-        attn_mask = batch[10]
-        waveform = batch[11]
-        pitch = batch[13]
+        text_input = batch["text"]
+        text_lengths = batch["text_lengths"]
+        speaker_names = batch["speaker_names"]
+        linear_input = batch["linear"]
+        mel_input = batch["mel"]
+        mel_lengths = batch["mel_lengths"]
+        stop_targets = batch["stop_targets"]
+        item_idx = batch["item_idxs"]
+        d_vectors = batch["d_vectors"]
+        speaker_ids = batch["speaker_ids"]
+        attn_mask = batch["attns"]
+        waveform = batch["waveform"]
+        pitch = batch["pitch"]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
 
@@ -201,7 +201,7 @@ class BaseTTS(BaseModel):
                 outputs_per_step=config.r if "r" in config else 1,
                 text_cleaner=config.text_cleaner,
                 compute_linear_spec=config.model.lower() == "tacotron" or config.compute_linear_spec,
-                comnpute_f0=config.get("compute_f0", False),
+                compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
                 meta_data=data_items,
                 ap=ap,
@@ -252,8 +252,8 @@ class BaseTTS(BaseModel):
             # compute pitch frames and write to files.
             if config.compute_f0 and rank in [None, 0]:
                 if not os.path.exists(config.f0_cache_path):
-                    dataset.compute_pitch(config.get("f0_cache_path", None), config.num_loader_workers)
-                dataset.load_pitch_stats(config.get("f0_cache_path", None))
+                    dataset.pitch_extractor.compute_pitch(config.get("f0_cache_path", None), config.num_loader_workers)
+                dataset.pitch_extractor.load_pitch_stats(config.get("f0_cache_path", None))
 
             # halt DDP processes for the main process to finish computing the F0 cache
             if num_gpus > 1:
