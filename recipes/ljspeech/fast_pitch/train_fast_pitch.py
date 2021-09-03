@@ -14,10 +14,11 @@ dataset_config = BaseDatasetConfig(
     # meta_file_attn_mask=os.path.join(output_path, "../LJSpeech-1.1/metadata_attn_mask.txt"),
     path=os.path.join(output_path, "../LJSpeech-1.1/"),
 )
+
 audio_config = BaseAudioConfig(
     sample_rate=22050,
-    do_trim_silence=False,
-    trim_db=0.0,
+    do_trim_silence=True,
+    trim_db=60.0,
     signal_norm=False,
     mel_fmin=0.0,
     mel_fmax=8000,
@@ -26,6 +27,7 @@ audio_config = BaseAudioConfig(
     ref_level_db=20,
     preemphasis=0.0,
 )
+
 config = FastPitchConfig(
     run_name="fast_pitch_ljspeech",
     audio=audio_config,
@@ -33,6 +35,7 @@ config = FastPitchConfig(
     eval_batch_size=16,
     num_loader_workers=8,
     num_eval_loader_workers=4,
+    compute_input_seq_cache=True,
     compute_f0=True,
     f0_cache_path=os.path.join(output_path, "f0_cache"),
     run_eval=True,
@@ -45,6 +48,8 @@ config = FastPitchConfig(
     print_step=50,
     print_eval=False,
     mixed_precision=False,
+    sort_by_audio_len=True,
+    max_seq_len=500000,
     output_path=output_path,
     datasets=[dataset_config],
 )
