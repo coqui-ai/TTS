@@ -151,3 +151,5 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
     |- vocoder/         (Vocoder models.)
         |- (same)
 ```
+
+<img src="https://static.scarf.sh/a.png?x-pxid=503c242f-a253-4fb8-8071-ce1dc1e89999" />
