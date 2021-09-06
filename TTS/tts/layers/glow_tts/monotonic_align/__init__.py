@@ -21,8 +21,10 @@ def convert_pad_shape(pad_shape):
 
 def generate_path(duration, mask):
     """
-    duration: [b, t_x]
-    mask: [b, t_x, t_y]
+    Shapes:
+        - duration: :math:`[B, T_en]`
+        - mask: :math:'[B, T_en, T_de]`
+        - path: :math:`[B, T_en, T_de]`
     """
     device = duration.device
     b, t_x, t_y = mask.shape
@@ -45,8 +47,9 @@ def maximum_path(value, mask):
 
 def maximum_path_cython(value, mask):
     """Cython optimised version.
-    value: [b, t_x, t_y]
-    mask: [b, t_x, t_y]
+    Shapes:
+        - value: :math:`[B, T_en, T_de]`
+        - mask: :math:`[B, T_en, T_de]`
     """
     value = value * mask
     device = value.device

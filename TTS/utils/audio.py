@@ -2,6 +2,7 @@ from typing import Dict, Tuple
 
 import librosa
 import numpy as np
+import pyworld as pw
 import scipy.io.wavfile
 import scipy.signal
 import soundfile as sf
@@ -9,8 +10,6 @@ import torch
 from torch import nn
 
 from TTS.tts.utils.data import StandardScaler
-
-# import pyworld as pw
 
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
@@ -623,17 +622,47 @@ class AudioProcessor(object):
             return 0, pad
         return pad // 2, pad // 2 + pad % 2
 
-    ### Compute F0 ###
-    # TODO: pw causes some dep issues
-    # def compute_f0(self, x):
-    #     f0, t = pw.dio(
-    #         x.astype(np.double),
-    #         fs=self.sample_rate,
-    #         f0_ceil=self.mel_fmax,
-    #         frame_period=1000 * self.hop_length / self.sample_rate,
-    #     )
-    #     f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-    #     return f0
+    def compute_f0(self, x: np.ndarray) -> np.ndarray:
+        """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
+
+        Args:
+            x (np.ndarray): Waveform.
+
+        Returns:
+            np.ndarray: Pitch.
+
+        Examples:
+            >>> WAV_FILE = filename = librosa.util.example_audio_file()
+            >>> from TTS.config import BaseAudioConfig
+            >>> from TTS.utils.audio import AudioProcessor
+            >>> conf = BaseAudioConfig(mel_fmax=8000)
+            >>> ap = AudioProcessor(**conf)
+            >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
+            >>> pitch = ap.compute_f0(wav)
+        """
+        f0, t = pw.dio(
+            x.astype(np.double),
+            fs=self.sample_rate,
+            f0_ceil=self.mel_fmax,
+            frame_period=1000 * self.hop_length / self.sample_rate,
+        )
+        f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
+        # pad = int((self.win_length / self.hop_length) / 2)
+        # f0 = [0.0] * pad + f0 + [0.0] * pad
+        # f0 = np.pad(f0, (pad, pad), mode="constant", constant_values=0)
+        # f0 = np.array(f0, dtype=np.float32)
+
+        # f01, _, _ = librosa.pyin(
+        #     x,
+        #     fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
+        #     fmax=self.mel_fmax,
+        #     frame_length=self.win_length,
+        #     sr=self.sample_rate,
+        #     fill_na=0.0,
+        # )
+
+        # spec = self.melspectrogram(x)
+        return f0
 
     ### Audio Processing ###
     def find_endpoint(self, wav: np.ndarray, threshold_db=-40, min_silence_sec=0.8) -> int:
