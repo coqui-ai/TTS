@@ -70,15 +70,17 @@ class FFTransformerBlock(nn.Module):
 
 
 class FFTDurationPredictor:
-    def __init__(self, in_channels, hidden_channels, num_heads, num_layers, dropout_p=0.1, cond_channels=None):
+    def __init__(self, in_channels, hidden_channels, num_heads, num_layers, dropout_p=0.1, cond_channels=None):  # pylint: disable=unused-argument
         self.fft = FFTransformerBlock(in_channels, num_heads, hidden_channels, num_layers, dropout_p)
         self.proj = nn.Linear(in_channels, 1)
 
-    def forward(self, x, mask=None, g=None):
+    def forward(self, x, mask=None, g=None):  # pylint: disable=unused-argument
         """
         Shapes:
             - x: :math:`[B, C, T]`
             - mask:  :math:`[B, 1, T]`
+
+        TODO: Handle the cond input
         """
         x = self.fft(x, mask=mask)
         x = self.proj(x)
