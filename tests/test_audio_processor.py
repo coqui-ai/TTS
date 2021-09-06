@@ -182,7 +182,7 @@ class TestAudio(unittest.TestCase):
         mel_denorm = ap.denormalize(mel_norm)
         assert abs(mel_reference - mel_denorm).max() < 1e-4
 
-    def test_compute_f0(self):
+    def test_compute_f0(self):  # pylint: disable=no-self-use
         ap = AudioProcessor(**conf)
         wav = ap.load_wav(WAV_FILE)
         pitch = ap.compute_f0(wav)

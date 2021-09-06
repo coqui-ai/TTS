@@ -2,11 +2,7 @@ import unittest
 
 import torch as T
 
-from TTS.tts.layers.losses import L1LossMasked, SSIMLoss
-from TTS.tts.layers.tacotron.tacotron import CBHG, Decoder, Encoder, Prenet
 from TTS.tts.models.fast_pitch import FastPitch, FastPitchArgs, average_pitch
-from TTS.tts.utils.data import sequence_mask
-
 # pylint: disable=unused-variable
 
 
@@ -38,7 +34,7 @@ def expand_encoder_outputs_test():
     x_mask = T.ones(2, 1, 57)
     y_mask = T.ones(2, 1, durations.sum(1).max())
 
-    expanded, attn = model.expand_encoder_outputs(inputs, durations, x_mask, y_mask)
+    expanded, _ = model.expand_encoder_outputs(inputs, durations, x_mask, y_mask)
 
     for b in range(durations.shape[0]):
         index = 0
