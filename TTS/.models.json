@@ -62,7 +62,16 @@
                     "default_vocoder": null,
                     "commit": "3900448",
                     "author": "Eren Gölge @erogol",
-                    "license": "",
+                    "license": "TBD",
+                    "contact": "egolge@coqui.com"
+                },
+                "fast_pitch": {
+                    "description": "FastPitch model trained on LJSpeech using the Aligner Network",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.2.2/tts_models--en--ljspeech--fast_pitch.zip",
+                    "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
+                    "commit": "b27b3ba",
+                    "author": "Eren Gölge @erogol",
+                    "license": "TBD",
                     "contact": "egolge@coqui.com"
                 }
             },
