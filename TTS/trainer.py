@@ -271,8 +271,13 @@ class Trainer:
         # setup scheduler
         self.scheduler = self.get_scheduler(self.model, self.config, self.optimizer)
 
-        if self.args.continue_path:
-            self.scheduler.last_epoch = self.restore_step
+        if self.scheduler is not None:
+            if self.args.continue_path:
+                if isinstance(self.scheduler, list):
+                    for scheduler in self.scheduler:
+                        scheduler.last_epoch = self.restore_step
+                else:
+                    self.scheduler.last_epoch = self.restore_step
 
         # DISTRUBUTED
         if self.num_gpus > 1:
