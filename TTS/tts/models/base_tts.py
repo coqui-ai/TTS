@@ -252,12 +252,17 @@ class BaseTTS(BaseModel):
             # compute pitch frames and write to files.
             if config.compute_f0 and rank in [None, 0]:
                 if not os.path.exists(config.f0_cache_path):
-                    dataset.pitch_extractor.compute_pitch(config.get("f0_cache_path", None), config.num_loader_workers)
-                dataset.pitch_extractor.load_pitch_stats(config.get("f0_cache_path", None))
+                    dataset.pitch_extractor.compute_pitch(
+                        ap, config.get("f0_cache_path", None), config.num_loader_workers
+                    )
 
             # halt DDP processes for the main process to finish computing the F0 cache
             if num_gpus > 1:
                 dist.barrier()
+
+            # load pitch stats computed above by all the workers
+            if config.compute_f0:
+                dataset.pitch_extractor.load_pitch_stats(config.get("f0_cache_path", None))
 
             # sampler for DDP
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
