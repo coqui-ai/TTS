@@ -69,9 +69,9 @@ class MSELossMasked(nn.Module):
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
         Shapes:
-            x: B x T X D
-            target: B x T x D
-            length: B
+            - x: :math:`[B, T, D]`
+            - target: :math:`[B, T, D]`
+            - length: :math:`B`
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
@@ -656,5 +656,111 @@ class VitsDiscriminatorLoss(nn.Module):
         loss_disc, _, _ = self.discriminator_loss(scores_disc_real, scores_disc_fake)
         return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
         loss = loss + return_dict["loss_disc"]
+        return_dict["loss"] = loss
+        return return_dict
+
+
+class ForwardSumLoss(nn.Module):
+    def __init__(self, blank_logprob=-1):
+        super().__init__()
+        self.log_softmax = torch.nn.LogSoftmax(dim=3)
+        self.ctc_loss = torch.nn.CTCLoss(zero_infinity=True)
+        self.blank_logprob = blank_logprob
+
+    def forward(self, attn_logprob, in_lens, out_lens):
+        key_lens = in_lens
+        query_lens = out_lens
+        attn_logprob_padded = torch.nn.functional.pad(input=attn_logprob, pad=(1, 0), value=self.blank_logprob)
+
+        total_loss = 0.0
+        for bid in range(attn_logprob.shape[0]):
+            target_seq = torch.arange(1, key_lens[bid] + 1).unsqueeze(0)
+            curr_logprob = attn_logprob_padded[bid].permute(1, 0, 2)[: query_lens[bid], :, : key_lens[bid] + 1]
+
+            curr_logprob = self.log_softmax(curr_logprob[None])[0]
+            loss = self.ctc_loss(
+                curr_logprob,
+                target_seq,
+                input_lengths=query_lens[bid : bid + 1],
+                target_lengths=key_lens[bid : bid + 1],
+            )
+            total_loss = total_loss + loss
+
+        total_loss = total_loss / attn_logprob.shape[0]
+        return total_loss
+
+
+class FastPitchLoss(nn.Module):
+    def __init__(self, c):
+        super().__init__()
+        self.spec_loss = MSELossMasked(False)
+        self.ssim = SSIMLoss()
+        self.dur_loss = MSELossMasked(False)
+        self.pitch_loss = MSELossMasked(False)
+        if c.model_args.use_aligner:
+            self.aligner_loss = ForwardSumLoss()
+
+        self.spec_loss_alpha = c.spec_loss_alpha
+        self.ssim_loss_alpha = c.ssim_loss_alpha
+        self.dur_loss_alpha = c.dur_loss_alpha
+        self.pitch_loss_alpha = c.pitch_loss_alpha
+        self.aligner_loss_alpha = c.aligner_loss_alpha
+        self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
+
+    @staticmethod
+    def _binary_alignment_loss(alignment_hard, alignment_soft):
+        """Binary loss that forces soft alignments to match the hard alignments as
+        explained in `https://arxiv.org/pdf/2108.10447.pdf`.
+        """
+        log_sum = torch.log(torch.clamp(alignment_soft[alignment_hard == 1], min=1e-12)).sum()
+        return -log_sum / alignment_hard.sum()
+
+    def forward(
+        self,
+        decoder_output,
+        decoder_target,
+        decoder_output_lens,
+        dur_output,
+        dur_target,
+        pitch_output,
+        pitch_target,
+        input_lens,
+        alignment_logprob=None,
+        alignment_hard=None,
+        alignment_soft=None,
+    ):
+        loss = 0
+        return_dict = {}
+        if self.ssim_loss_alpha > 0:
+            ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
+            loss = loss + self.ssim_loss_alpha * ssim_loss
+            return_dict["loss_ssim"] = self.ssim_loss_alpha * ssim_loss
+
+        if self.spec_loss_alpha > 0:
+            spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
+            loss = loss + self.spec_loss_alpha * spec_loss
+            return_dict["loss_spec"] = self.spec_loss_alpha * spec_loss
+
+        if self.dur_loss_alpha > 0:
+            log_dur_tgt = torch.log(dur_target.float() + 1)
+            dur_loss = self.dur_loss(dur_output[:, :, None], log_dur_tgt[:, :, None], input_lens)
+            loss = loss + self.dur_loss_alpha * dur_loss
+            return_dict["loss_dur"] = self.dur_loss_alpha * dur_loss
+
+        if self.pitch_loss_alpha > 0:
+            pitch_loss = self.pitch_loss(pitch_output.transpose(1, 2), pitch_target.transpose(1, 2), input_lens)
+            loss = loss + self.pitch_loss_alpha * pitch_loss
+            return_dict["loss_pitch"] = self.pitch_loss_alpha * pitch_loss
+
+        if self.aligner_loss_alpha > 0:
+            aligner_loss = self.aligner_loss(alignment_logprob, input_lens, decoder_output_lens)
+            loss = loss + self.aligner_loss_alpha * aligner_loss
+            return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
+
+        if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
+            binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
+            loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
+            return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
+
         return_dict["loss"] = loss
         return return_dict
