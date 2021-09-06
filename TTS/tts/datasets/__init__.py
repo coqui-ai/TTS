@@ -66,11 +66,11 @@ def load_meta_data(datasets: List[Dict], eval_split=True) -> Tuple[List[List], L
         if dataset.meta_file_attn_mask:
             meta_data = dict(load_attention_mask_meta_data(dataset["meta_file_attn_mask"]))
             for idx, ins in enumerate(meta_data_train_all):
-                attn_file = meta_data[os.path.abspath(ins[1])].strip()
+                attn_file = meta_data[ins[1]].strip()
                 meta_data_train_all[idx].append(attn_file)
             if meta_data_eval_all:
                 for idx, ins in enumerate(meta_data_eval_all):
-                    attn_file = meta_data[os.path.abspath(ins[1])].strip()
+                    attn_file = meta_data[ins[1]].strip()
                     meta_data_eval_all[idx].append(attn_file)
     return meta_data_train_all, meta_data_eval_all
 
