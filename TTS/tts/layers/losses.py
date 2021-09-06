@@ -707,7 +707,8 @@ class FastPitchLoss(nn.Module):
         self.aligner_loss_alpha = c.aligner_loss_alpha
         self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
 
-    def _binary_alignment_loss(self, alignment_hard, alignment_soft):
+    @staticmethod
+    def _binary_alignment_loss(alignment_hard, alignment_soft):
         """Binary loss that forces soft alignments to match the hard alignments as
         explained in `https://arxiv.org/pdf/2108.10447.pdf`.
         """
