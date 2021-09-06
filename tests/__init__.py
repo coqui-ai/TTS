@@ -7,7 +7,10 @@ from TTS.utils.generic_utils import get_cuda
 def get_device_id():
     use_cuda, _ = get_cuda()
     if use_cuda:
-        GPU_ID = "0"
+        if 'CUDA_VISIBLE_DEVICES' in os.environ and os.environ['CUDA_VISIBLE_DEVICES'] != "":
+            GPU_ID = os.environ['CUDA_VISIBLE_DEVICES'].split(',')[0]
+        else:
+            GPU_ID = "0"
     else:
         GPU_ID = ""
     return GPU_ID

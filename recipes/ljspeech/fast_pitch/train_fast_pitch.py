@@ -43,6 +43,7 @@ config = FastPitchConfig(
     epochs=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
+    use_espeak_phonemes=False,
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     print_step=50,
