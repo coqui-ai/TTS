@@ -205,7 +205,7 @@ class Trainer:
             self.data_train, self.data_eval = load_meta_data(self.config)
 
         elif self.config.feature_path is not None:
-            # load data for `vocoder`models
+            # load pre-comnputed features for `vocoder`models
             print(f" > Loading features from: {self.config.feature_path}")
             self.data_eval, self.data_train = load_wav_feat_data(
                 self.config.data_path, self.config.feature_path, self.config.eval_split_size
@@ -271,6 +271,14 @@ class Trainer:
         # setup scheduler
         self.scheduler = self.get_scheduler(self.model, self.config, self.optimizer)
 
+        if self.scheduler is not None:
+            if self.args.continue_path:
+                if isinstance(self.scheduler, list):
+                    for scheduler in self.scheduler:
+                        scheduler.last_epoch = self.restore_step
+                else:
+                    self.scheduler.last_epoch = self.restore_step
+
         # DISTRUBUTED
         if self.num_gpus > 1:
             self.model = DDP_th(self.model, device_ids=[args.rank], output_device=args.rank)
@@ -291,7 +299,6 @@ class Trainer:
         Returns:
             nn.Module: initialized model.
         """
-        # TODO: better model setup
         try:
             model = setup_vocoder_model(config)
         except ModuleNotFoundError:

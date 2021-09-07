@@ -59,7 +59,7 @@ def load_wav_feat_data(data_path, feat_path, eval_split_size):
     wav_paths.sort(key=lambda x: Path(x).stem)
     feat_paths.sort(key=lambda x: Path(x).stem)
 
-    assert len(wav_paths) == len(feat_paths)
+    assert len(wav_paths) == len(feat_paths), f" [!] {len(wav_paths)} vs {feat_paths}"
     for wav, feat in zip(wav_paths, feat_paths):
         wav_name = Path(wav).stem
         feat_name = Path(feat).stem
