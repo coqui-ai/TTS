@@ -72,6 +72,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
 - Speedy-Speech: [paper](https://arxiv.org/abs/2008.03802)
 - Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
+- FastPitch: [paper](https://arxiv.org/pdf/2006.06873.pdf)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
@@ -82,6 +83,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Graves Attention: [paper](https://arxiv.org/abs/1910.10288)
 - Double Decoder Consistency: [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
 - Dynamic Convolutional Attention: [paper](https://arxiv.org/pdf/1910.10288.pdf)
+- Alignment Network: [paper](https://arxiv.org/abs/2108.10447)
 
 ### Speaker Encoder
 - GE2E: [paper](https://arxiv.org/abs/1710.10467)
