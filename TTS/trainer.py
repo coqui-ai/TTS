@@ -205,7 +205,7 @@ class Trainer:
             # load data for `tts` models
             self.data_train, self.data_eval = load_meta_data(self.config.datasets)
         elif self.config.feature_path is not None:
-            # load data for `vocoder`models
+            # load pre-comnputed features for `vocoder`models
             print(f" > Loading features from: {self.config.feature_path}")
             self.data_eval, self.data_train = load_wav_feat_data(
                 self.config.data_path, self.config.feature_path, self.config.eval_split_size
