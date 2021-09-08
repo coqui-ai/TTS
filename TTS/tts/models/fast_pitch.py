@@ -13,9 +13,10 @@ from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.models.base_tts import BaseTTS
-from TTS.tts.utils.data import sequence_mask
+from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.visual import plot_alignment, plot_pitch, plot_spectrogram
 from TTS.utils.audio import AudioProcessor
+from TTS.tts.utils.helpers import average_over_durations
 
 
 @dataclass
@@ -416,7 +417,7 @@ class FastPitch(BaseTTS):
         """
         o_pitch = self.pitch_predictor(o_en, x_mask)
         if pitch is not None:
-            avg_pitch = average_pitch(pitch, dr)
+            avg_pitch = average_over_durations(pitch, dr)
             o_pitch_emb = self.pitch_emb(avg_pitch)
             return o_pitch_emb, o_pitch, avg_pitch
         o_pitch_emb = self.pitch_emb(o_pitch)
@@ -670,28 +671,3 @@ class FastPitch(BaseTTS):
         """Enable binary alignment loss when needed"""
         if trainer.total_steps_done > self.config.binary_align_loss_start_step:
             self.use_binary_alignment_loss = True
-
-
-def average_pitch(pitch, durs):
-    """Compute the average pitch value for each input character based on the durations.
-
-    Shapes:
-        - pitch: :math:`[B, 1, T_de]`
-        - durs: :math:`[B, T_en]`
-    """
-
-    durs_cums_ends = torch.cumsum(durs, dim=1).long()
-    durs_cums_starts = torch.nn.functional.pad(durs_cums_ends[:, :-1], (1, 0))
-    pitch_nonzero_cums = torch.nn.functional.pad(torch.cumsum(pitch != 0.0, dim=2), (1, 0))
-    pitch_cums = torch.nn.functional.pad(torch.cumsum(pitch, dim=2), (1, 0))
-
-    bs, l = durs_cums_ends.size()
-    n_formants = pitch.size(1)
-    dcs = durs_cums_starts[:, None, :].expand(bs, n_formants, l)
-    dce = durs_cums_ends[:, None, :].expand(bs, n_formants, l)
-
-    pitch_sums = (torch.gather(pitch_cums, 2, dce) - torch.gather(pitch_cums, 2, dcs)).float()
-    pitch_nelems = (torch.gather(pitch_nonzero_cums, 2, dce) - torch.gather(pitch_nonzero_cums, 2, dcs)).float()
-
-    pitch_avg = torch.where(pitch_nelems == 0.0, pitch_nelems, pitch_sums / pitch_nelems)
-    return pitch_avg

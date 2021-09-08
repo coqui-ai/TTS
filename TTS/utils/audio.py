@@ -9,7 +9,7 @@ import soundfile as sf
 import torch
 from torch import nn
 
-from TTS.tts.utils.data import StandardScaler
+from TTS.tts.utils.helpers import StandardScaler
 
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method

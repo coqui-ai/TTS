@@ -6,7 +6,7 @@ from coqpit import Coqpit
 from torch import nn
 from torch.nn import functional
 
-from TTS.tts.utils.data import sequence_mask
+from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.ssim import ssim
 from TTS.utils.audio import TorchSTFT
 
