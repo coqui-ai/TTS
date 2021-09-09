@@ -275,7 +275,8 @@ class Trainer:
             if self.args.continue_path:
                 if isinstance(self.scheduler, list):
                     for scheduler in self.scheduler:
-                        scheduler.last_epoch = self.restore_step
+                        if scheduler is not None:
+                            scheduler.last_epoch = self.restore_step
                 else:
                     self.scheduler.last_epoch = self.restore_step
 
