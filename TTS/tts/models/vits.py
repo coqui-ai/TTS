@@ -9,7 +9,7 @@ from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
+from TTS.tts.utils.helpers import generate_path, maximum_path
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor

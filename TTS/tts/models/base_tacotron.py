@@ -118,9 +118,11 @@ class BaseTacotron(BaseTTS):
         if "r" in state:
             self.decoder.set_r(state["r"])
         else:
+            # set the reduction rate from the config values embedded in the checkpoint
             self.decoder.set_r(state["config"]["r"])
         if eval:
             self.eval()
+            print(f" > Model's reduction rate `r` is set to: {self.decoder.r}")
             assert not self.training
 
     def get_criterion(self) -> nn.Module:

@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from TTS.tts.configs import GlowTTSConfig
 from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.layers.glow_tts.encoder import Encoder
-from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
+from TTS.tts.utils.helpers import generate_path, maximum_path
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.speakers import get_speaker_manager

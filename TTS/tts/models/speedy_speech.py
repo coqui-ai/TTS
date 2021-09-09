@@ -8,7 +8,7 @@ from TTS.tts.layers.feed_forward.decoder import Decoder
 from TTS.tts.layers.feed_forward.duration_predictor import DurationPredictor
 from TTS.tts.layers.feed_forward.encoder import Encoder
 from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
-from TTS.tts.layers.glow_tts.monotonic_align import generate_path
+from TTS.tts.utils.helpers import generate_path
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.measures import alignment_diagonal_score
