@@ -1146,7 +1146,7 @@ def get_last_checkpoint(path: str) -> Tuple[str, str]:
         last_models["checkpoint"] = last_models["best_model"]
     elif "best_model" not in last_models:  # no best model
         # this shouldn't happen, but let's handle it just in case
-        last_models["best_model"] = None
+        last_models["best_model"] = last_models["checkpoint"]
     # finally check if last best model is more recent than checkpoint
     elif last_model_nums["best_model"] > last_model_nums["checkpoint"]:
         last_models["checkpoint"] = last_models["best_model"]
