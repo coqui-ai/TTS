@@ -663,6 +663,7 @@ class Trainer:
                 lrs = {"current_lr": current_lr}
 
             # log run-time stats
+            loss_dict.update(lrs)
             loss_dict.update(
                 {
                     "step_time": round(step_time, 4),
@@ -1126,7 +1127,7 @@ def get_last_checkpoint(path: str) -> Tuple[str, str]:
                     last_model_num = model_num
                     last_model = file_name
 
-        # if there is not checkpoint found above
+        # if there is no checkpoint found above
         # find the checkpoint with the latest
         # modification date.
         key_file_names = [fn for fn in file_names if key in fn]
