@@ -4,14 +4,12 @@ import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.tts.configs import SpeedySpeechConfig
-from TTS.tts.models.speedy_speech import SpeedySpeechArgs
 
 config_path = os.path.join(get_tests_output_path(), "test_speedy_speech_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
 config = SpeedySpeechConfig(
-    model_args=SpeedySpeechArgs(num_chars=50, out_channels=80, hidden_channels=128, num_speakers=0),
     batch_size=8,
     eval_batch_size=8,
     num_loader_workers=0,
