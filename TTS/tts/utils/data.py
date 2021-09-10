@@ -52,5 +52,3 @@ def prepare_stop_target(inputs, out_steps):
 
 def pad_per_step(inputs, pad_len):
     return np.pad(inputs, [[0, 0], [0, 0], [0, pad_len]], mode="constant", constant_values=0.0)
-
-
