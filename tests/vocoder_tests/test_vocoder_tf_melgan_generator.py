@@ -1,9 +1,15 @@
+import unittest
+
 import numpy as np
 import tensorflow as tf
+import torch
 
 from TTS.vocoder.tf.models.melgan_generator import MelganGenerator
 
+use_cuda = torch.cuda.is_available()
 
+
+@unittest.skipIf(use_cuda, " [!] Skip Test: Loosy TF support.")
 def test_melgan_generator():
     hop_length = 256
     model = MelganGenerator()
