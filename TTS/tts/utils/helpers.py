@@ -1,6 +1,3 @@
-import torch
-import numpy as np
-
 import numpy as np
 import torch
 from torch.nn import functional as F
@@ -14,9 +11,9 @@ except ModuleNotFoundError:
 
 
 class StandardScaler:
-    """StandardScaler for mean-std normalization with the given mean and std values.
-    """
-    def __init__(self, mean:np.ndarray=None, std:np.ndarray=None) -> None:
+    """StandardScaler for mean-std normalization with the given mean and std values."""
+
+    def __init__(self, mean: np.ndarray = None, std: np.ndarray = None) -> None:
         self.mean_ = mean
         self.std_ = std
 
@@ -96,6 +93,7 @@ def rand_segments(x: torch.tensor, x_lengths: torch.tensor = None, segment_size=
     segment_indices = (torch.rand([B]).type_as(x) * max_idxs).long()
     ret = segment(x, segment_indices, segment_size)
     return ret, segment_indices
+
 
 def average_over_durations(values, durs):
     """Average values over durations.
