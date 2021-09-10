@@ -9,12 +9,11 @@ from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.utils.helpers import generate_path, maximum_path
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
-from TTS.tts.utils.helpers import sequence_mask
+from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
 from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
@@ -22,7 +21,6 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-from TTS.tts.utils.helpers import rand_segments, segment
 
 
 @dataclass
