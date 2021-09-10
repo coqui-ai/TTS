@@ -11,11 +11,11 @@ except ModuleNotFoundError:
 
 
 class StandardScaler:
-    """StandardScaler for mean-std normalization with the given mean and std values."""
+    """StandardScaler for mean-scale normalization with the given mean and scale values."""
 
-    def __init__(self, mean: np.ndarray = None, std: np.ndarray = None) -> None:
+    def __init__(self, mean: np.ndarray = None, scale: np.ndarray = None) -> None:
         self.mean_ = mean
-        self.std_ = std
+        self.scale_ = scale
 
     def set_stats(self, mean, scale):
         self.mean_ = mean

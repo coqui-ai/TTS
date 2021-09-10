@@ -1,6 +1,6 @@
 import torch as T
 
-from TTS.tts.utils.helpers import *
+from TTS.tts.utils.helpers import average_over_durations, generate_path, segment, sequence_mask
 
 
 def average_over_durations_test():  # pylint: disable=no-self-use
@@ -47,7 +47,7 @@ def generate_path_test():
     durations = durations * x_mask.squeeze(1)
     y_length = durations.sum(1)
     y_mask = sequence_mask(y_length).unsqueeze(1).long()
-    attn_mask = (torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)).squeeze(1).long()
+    attn_mask = (T.unsqueeze(x_mask, -1) * T.unsqueeze(y_mask, 2)).squeeze(1).long()
     print(attn_mask.shape)
     path = generate_path(durations, attn_mask)
     assert path.shape == (10, 21, durations.sum(1).max().item())

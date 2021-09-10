@@ -1,5 +1,3 @@
-import unittest
-
 import torch as T
 
 from TTS.tts.models.forward_tts import ForwardTTS, ForwardTTSArgs
@@ -54,12 +52,12 @@ def model_input_output_test():
     assert (outputs["x_mask"] - x_mask).sum() == 0.0
     assert (outputs["y_mask"] - y_mask).sum() == 0.0
 
-    assert outputs["alignment_soft"] == None
-    assert outputs["alignment_mas"] == None
-    assert outputs["alignment_logprob"] == None
-    assert outputs["o_alignment_dur"] == None
-    assert outputs["pitch_avg"] == None
-    assert outputs["pitch_avg_gt"] == None
+    assert outputs["alignment_soft"] is None
+    assert outputs["alignment_mas"] is None
+    assert outputs["alignment_logprob"] is None
+    assert outputs["o_alignment_dur"] is None
+    assert outputs["pitch_avg"] is None
+    assert outputs["pitch_avg_gt"] is None
 
     # USE PITCH
     model = ForwardTTS(ForwardTTSArgs(num_chars=10, use_pitch=True, use_aligner=False))
@@ -85,10 +83,10 @@ def model_input_output_test():
     assert outputs["pitch_avg"].shape == (2, 1, 21)
     assert outputs["pitch_avg_gt"].shape == (2, 1, 21)
 
-    assert outputs["alignment_soft"] == None
-    assert outputs["alignment_mas"] == None
-    assert outputs["alignment_logprob"] == None
-    assert outputs["o_alignment_dur"] == None
+    assert outputs["alignment_soft"] is None
+    assert outputs["alignment_mas"] is None
+    assert outputs["alignment_logprob"] is None
+    assert outputs["o_alignment_dur"] is None
 
     # USE ALIGNER NETWORK
     model = ForwardTTS(ForwardTTSArgs(num_chars=10, use_pitch=False, use_aligner=True))
@@ -116,8 +114,8 @@ def model_input_output_test():
     assert outputs["alignment_logprob"].shape == (2, 1, durations.sum(1).max(), 21)
     assert outputs["o_alignment_dur"].shape == (2, 21)
 
-    assert outputs["pitch_avg"] == None
-    assert outputs["pitch_avg_gt"] == None
+    assert outputs["pitch_avg"] is None
+    assert outputs["pitch_avg_gt"] is None
 
     # USE ALIGNER NETWORK AND PITCH
     model = ForwardTTS(ForwardTTSArgs(num_chars=10, use_pitch=True, use_aligner=True))
