@@ -1182,7 +1182,6 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-
     # init config if not already defined
     if config is None:
         if args.config_path:

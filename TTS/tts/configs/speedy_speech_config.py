@@ -16,7 +16,11 @@ class SpeedySpeechConfig(BaseTTSConfig):
 
      Args:
         model (str):
-            Model name used for selecting the right model at initialization. Defaults to `fast_pitch`.
+            Model name used for selecting the right model at initialization. Defaults to `speedy_speech`.
+
+        base_model (str):
+            Name of the base model being configured as this model so that 🐸 TTS knows it needs to initiate
+            the base model rather than searching for the `model` implementation. Defaults to `forward_tts`.
 
         model_args (Coqpit):
             Model class arguments. Check `FastPitchArgs` for more details. Defaults to `FastPitchArgs()`.
@@ -91,7 +95,8 @@ class SpeedySpeechConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-    model: str = "forward_tts"
+    model: str = "speedy_speech"
+    base_model: str = "forward_tts"
 
     # set model args as SpeedySpeech
     model_args: ForwardTTSArgs = ForwardTTSArgs(

@@ -18,6 +18,10 @@ class FastPitchConfig(BaseTTSConfig):
         model (str):
             Model name used for selecting the right model at initialization. Defaults to `fast_pitch`.
 
+        base_model (str):
+            Name of the base model being configured as this model so that 🐸 TTS knows it needs to initiate
+            the base model rather than searching for the `model` implementation. Defaults to `forward_tts`.
+
         model_args (Coqpit):
             Model class arguments. Check `FastPitchArgs` for more details. Defaults to `FastPitchArgs()`.
 
@@ -94,9 +98,11 @@ class FastPitchConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-    model: str = "forward_tts"
+    model: str = "fast_pitch"
+    base_model: str = "forward_tts"
+
     # model specific params
-    model_args: ForwardTTSArgs = field(default_factory=ForwardTTSArgs)
+    model_args: ForwardTTSArgs = ForwardTTSArgs()
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
