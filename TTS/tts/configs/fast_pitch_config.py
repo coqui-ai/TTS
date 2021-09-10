@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
-from TTS.tts.models.fast_pitch import FastPitchArgs
+from TTS.tts.models.forward_tts import ForwardTTSArgs
 
 
 @dataclass
 class FastPitchConfig(BaseTTSConfig):
-    """Defines parameters for Speedy Speech (feed-forward encoder-decoder) based models.
+    """Configure `ForwardTTS` as FastPitch model.
 
     Example:
 
@@ -36,14 +36,35 @@ class FastPitchConfig(BaseTTSConfig):
         d_vector_file (str):
             Path to the file including pre-computed speaker embeddings. Defaults to None.
 
-        noam_schedule (bool):
-            enable / disable the use of Noam LR scheduler. Defaults to False.
+        d_vector_dim (int):
+            Dimension of the external speaker embeddings. Defaults to 0.
 
-        warmup_steps (int):
-            Number of warm-up steps for the Noam scheduler. Defaults 4000.
+        optimizer (str):
+            Name of the model optimizer. Defaults to `Adam`.
+
+        optimizer_params (dict):
+            Arguments of the model optimizer. Defaults to `{"betas": [0.9, 0.998], "weight_decay": 1e-6}`.
+
+        lr_scheduler (str):
+            Name of the learning rate scheduler. Defaults to `Noam`.
+
+        lr_scheduler_params (dict):
+            Arguments of the learning rate scheduler. Defaults to `{"warmup_steps": 4000}`.
 
         lr (float):
             Initial learning rate. Defaults to `1e-3`.
+
+        grad_clip (float):
+            Gradient norm clipping value. Defaults to `5.0`.
+
+        spec_loss_type (str):
+            Type of the spectrogram loss. Check `ForwardTTSLoss` for possible values. Defaults to `mse`.
+
+        duration_loss_type (str):
+            Type of the duration loss. Check `ForwardTTSLoss` for possible values. Defaults to `mse`.
+
+        use_ssim_loss (bool):
+            Enable/disable the use of SSIM (Structural Similarity) loss. Defaults to True.
 
         wd (float):
             Weight decay coefficient. Defaults to `1e-7`.
@@ -51,7 +72,7 @@ class FastPitchConfig(BaseTTSConfig):
         ssim_loss_alpha (float):
             Weight for the SSIM loss. If set 0, disables the SSIM loss. Defaults to 1.0.
 
-        huber_loss_alpha (float):
+        dur_loss_alpha (float):
             Weight for the duration predictor's loss. If set 0, disables the huber loss. Defaults to 1.0.
 
         spec_loss_alpha (float):
@@ -73,9 +94,9 @@ class FastPitchConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-    model: str = "fast_pitch"
+    model: str = "forward_tts"
     # model specific params
-    model_args: FastPitchArgs = field(default_factory=FastPitchArgs)
+    model_args: ForwardTTSArgs = field(default_factory=ForwardTTSArgs)
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
@@ -92,11 +113,13 @@ class FastPitchConfig(BaseTTSConfig):
     grad_clip: float = 5.0
 
     # loss params
+    spec_loss_type: str = "mse"
+    duration_loss_type: str = "mse"
+    use_ssim_loss: bool = True
     ssim_loss_alpha: float = 1.0
     dur_loss_alpha: float = 1.0
     spec_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 1.0
-    dur_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
     binary_align_loss_alpha: float = 1.0
     binary_align_loss_start_step: int = 20000
