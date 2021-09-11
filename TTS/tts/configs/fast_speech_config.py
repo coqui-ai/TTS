@@ -6,24 +6,24 @@ from TTS.tts.models.forward_tts import ForwardTTSArgs
 
 
 @dataclass
-class SpeedySpeechConfig(BaseTTSConfig):
-    """Configure `ForwardTTS` as SpeedySpeech model.
+class FastSpeechConfig(BaseTTSConfig):
+    """Configure `ForwardTTS` as FastSpeech model.
 
     Example:
 
-        >>> from TTS.tts.configs import SpeedySpeechConfig
-        >>> config = SpeedySpeechConfig()
+        >>> from TTS.tts.configs import FastSpeechConfig
+        >>> config = FastSpeechConfig()
 
-     Args:
+    Args:
         model (str):
-            Model name used for selecting the right model at initialization. Defaults to `speedy_speech`.
+            Model name used for selecting the right model at initialization. Defaults to `fast_pitch`.
 
         base_model (str):
             Name of the base model being configured as this model so that 🐸 TTS knows it needs to initiate
             the base model rather than searching for the `model` implementation. Defaults to `forward_tts`.
 
         model_args (Coqpit):
-            Model class arguments. Check `FastPitchArgs` for more details. Defaults to `FastPitchArgs()`.
+            Model class arguments. Check `FastSpeechArgs` for more details. Defaults to `FastSpeechArgs()`.
 
         data_dep_init_steps (int):
             Number of steps used for computing normalization parameters at the beginning of the training. GlowTTS uses
@@ -44,7 +44,7 @@ class SpeedySpeechConfig(BaseTTSConfig):
             Dimension of the external speaker embeddings. Defaults to 0.
 
         optimizer (str):
-            Name of the model optimizer. Defaults to `RAdam`.
+            Name of the model optimizer. Defaults to `Adam`.
 
         optimizer_params (dict):
             Arguments of the model optimizer. Defaults to `{"betas": [0.9, 0.998], "weight_decay": 1e-6}`.
@@ -62,10 +62,10 @@ class SpeedySpeechConfig(BaseTTSConfig):
             Gradient norm clipping value. Defaults to `5.0`.
 
         spec_loss_type (str):
-            Type of the spectrogram loss. Check `ForwardTTSLoss` for possible values. Defaults to `l1`.
+            Type of the spectrogram loss. Check `ForwardTTSLoss` for possible values. Defaults to `mse`.
 
         duration_loss_type (str):
-            Type of the duration loss. Check `ForwardTTSLoss` for possible values. Defaults to `huber`.
+            Type of the duration loss. Check `ForwardTTSLoss` for possible values. Defaults to `mse`.
 
         use_ssim_loss (bool):
             Enable/disable the use of SSIM (Structural Similarity) loss. Defaults to True.
@@ -82,6 +82,9 @@ class SpeedySpeechConfig(BaseTTSConfig):
         spec_loss_alpha (float):
             Weight for the L1 spectrogram loss. If set 0, disables the L1 loss. Defaults to 1.0.
 
+        pitch_loss_alpha (float):
+            Weight for the pitch predictor's loss. If set 0, disables the pitch predictor. Defaults to 1.0.
+
         binary_loss_alpha (float):
             Weight for the binary loss. If set 0, disables the binary loss. Defaults to 1.0.
 
@@ -95,32 +98,11 @@ class SpeedySpeechConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-    model: str = "speedy_speech"
+    model: str = "fast_speech"
     base_model: str = "forward_tts"
 
-    # set model args as SpeedySpeech
-    model_args: ForwardTTSArgs = ForwardTTSArgs(
-        use_pitch=False,
-        encoder_type="residual_conv_bn",
-        encoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 13,
-        },
-        decoder_type="residual_conv_bn",
-        decoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4, 8] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 17,
-        },
-        out_channels=80,
-        hidden_channels=128,
-        num_speakers=0,
-        positional_encoding=True,
-        detach_duration_predictor=True
-    )
+    # model specific params
+    model_args: ForwardTTSArgs = ForwardTTSArgs(use_pitch=False)
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
@@ -137,12 +119,13 @@ class SpeedySpeechConfig(BaseTTSConfig):
     grad_clip: float = 5.0
 
     # loss params
-    spec_loss_type: str = "l1"
-    duration_loss_type: str = "huber"
-    use_ssim_loss: bool = False
+    spec_loss_type: str = "mse"
+    duration_loss_type: str = "mse"
+    use_ssim_loss: bool = True
     ssim_loss_alpha: float = 1.0
     dur_loss_alpha: float = 1.0
     spec_loss_alpha: float = 1.0
+    pitch_loss_alpha: float = 0.0
     aligner_loss_alpha: float = 1.0
     binary_align_loss_alpha: float = 1.0
     binary_align_loss_start_step: int = 20000
@@ -153,7 +136,7 @@ class SpeedySpeechConfig(BaseTTSConfig):
     r: int = 1  # DO NOT CHANGE
 
     # dataset configs
-    compute_f0: bool = False
+    compute_f0: bool = True
     f0_cache_path: str = None
 
     # testing

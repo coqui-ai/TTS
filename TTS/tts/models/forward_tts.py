@@ -99,6 +99,7 @@ class ForwardTTSArgs(Coqpit):
 
         max_duration (int):
             Maximum duration accepted by the model. Defaults to 75.
+
     """
 
     num_chars: int = None
@@ -264,18 +265,22 @@ class ForwardTTS(BaseTTS):
         """Generate attention alignment map from durations and
         expand encoder outputs
 
-        Shapes
+        Shapes:
             - en: :math:`(B, D_{en}, T_{en})`
             - dr: :math:`(B, T_{en})`
             - x_mask: :math:`(B, T_{en})`
             - y_mask: :math:`(B, T_{de})`
 
-        Examples:
-            - encoder output: :math:`[a,b,c,d]`
-            - durations: :math:`[1, 3, 2, 1]`
+        Examples::
 
-            - expanded: :math:`[a, b, b, b, c, c, d]`
-            - attention map: :math:`[[0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 1, 1, 0], [0, 1, 1, 1, 0, 0, 0], [1, 0, 0, 0, 0, 0, 0]]`
+            encoder output: [a,b,c,d]
+            durations: [1, 3, 2, 1]
+
+            expanded: [a, b, b, b, c, c, d]
+            attention map: [[0, 0, 0, 0, 0, 0, 1],
+                            [0, 0, 0, 0, 1, 1, 0],
+                            [0, 1, 1, 1, 0, 0, 0],
+                            [1, 0, 0, 0, 0, 0, 0]]
         """
         attn = self.generate_attn(dr, x_mask, y_mask)
         o_en_ex = torch.matmul(attn.squeeze(1).transpose(1, 2).to(en.dtype), en.transpose(1, 2)).transpose(1, 2)
