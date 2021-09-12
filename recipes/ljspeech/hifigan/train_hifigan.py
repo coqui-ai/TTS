@@ -1,7 +1,7 @@
 import os
 
 from TTS.trainer import Trainer, TrainingArgs, init_training
-from TTS.vocoder.configs import HifiganConfi
+from TTS.vocoder.configs import HifiganConfig
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 config = HifiganConfig(

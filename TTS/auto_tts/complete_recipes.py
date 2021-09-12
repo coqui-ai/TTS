@@ -34,7 +34,7 @@ class TtsAutoTrainer(TtsModels):
     ):
 
         dataset, audio = data_loader(name=self.dataset_name, path=self.data_path, stats_path=stats_path)
-        if self.dataset_name == "ljpseech":
+        if self.dataset_name == "ljspeech":
             if model_name == "tacotron2":
                 if tacotron2_model_type == "double decoder consistency":
                     model_config = self.single_speaker_tacotron2_DDC(
@@ -49,9 +49,9 @@ class TtsAutoTrainer(TtsModels):
                         audio, dataset, forward_attn=forward_attention, location_attn=location_attention
                     )
             elif model_name == "glow tts":
-                model_config = self.ljspeech_glow_tts(audio, dataset, encoder=glow_tts_encoder)
+                model_config = self.single_speaker_glow_tts(audio, dataset, encoder=glow_tts_encoder)
             elif model_name == "vits tts":
-                model_config = self.ljspeech_vits_tts(audio, dataset)
+                model_config = self.single_speaker_vits_tts(audio, dataset)
         elif self.dataset_name == "sam" or "sam_accenture":
             if model_name == "tacotron2":
                 if tacotron2_model_type == "double decoder consistency":
@@ -78,11 +78,12 @@ class TtsAutoTrainer(TtsModels):
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
 
-    def multi_speaker_autotts(self, audio, dataset, model_name, speaker_file, glowtts_encoder):
+    def multi_speaker_autotts(self, model_name, speaker_file, glowtts_encoder):
         """
         This is the auto tts trainer for multispeaker training, currently only suppports
         glow tts and vits tts training on vctk dataset.
         """
+        audio, dataset = data_loader(name=self.dataset_name, path=self.data_path, stats_path=None)
         if self.dataset_name == "vctk":
             if model_name == "glow tts":
                 model_config = self.sc_glow_tts(audio, dataset, speaker_file, encoder=glowtts_encoder)
