@@ -144,8 +144,8 @@ class SpeedySpeechConfig(BaseTTSConfig):
     dur_loss_alpha: float = 1.0
     spec_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
-    binary_align_loss_alpha: float = 1.0
-    binary_align_loss_start_step: int = 20000
+    binary_align_loss_alpha: float = 0.3
+    binary_align_loss_start_step: int = 50000
 
     # overrides
     min_seq_len: int = 13
