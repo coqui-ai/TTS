@@ -291,7 +291,8 @@ class TtsModels:
         vits_config.speaker_embedding_channels = 256
         vits_config.speakers_file = speaker_file
         vits_config.num_chars = 179
-
+        config = vits_config
+        return config
 
 
 class VocoderModels:
