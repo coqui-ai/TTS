@@ -90,4 +90,6 @@ def pick_glowtts_encoder(encoder_name: str):
         encoder_type = "residual_conv_bn"
     elif encoder_name == "time_depth":
         encoder_type = "time_depth_separable"
+    else:
+        encoder_type = "rel_pos_transformer"
     return encoder_type
