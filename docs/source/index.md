@@ -22,6 +22,7 @@
     inference
     implementing_a_new_model
     training_a_model
+    finetuning
     configuration
     formatting_your_dataset
     what_makes_a_good_dataset
