@@ -1,15 +1,4 @@
-import os
-
 from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig
-from TTS.tts.configs.shared_configs import BaseTTSConfig, CharactersConfig, GSTConfig
-
-
-def gst_config(size="small"):
-    if size == "small":
-        gst = GSTConfig(gst_num_heads=4, gst_num_style_tokens=5, gst_embedding_dim=128)
-    elif size == "large":
-        gst = GSTConfig(gst_num_heads=5, gst_num_style_tokens=10, gst_embedding_dim=512)
-    return gst
 
 
 def data_loader(name, path, stats_path=None):
@@ -89,4 +78,16 @@ def data_loader(name, path, stats_path=None):
             clip_norm=True,
             stats_path=stats_path,
         )
-    return dataset, audio
+    return audio, dataset
+
+
+def pick_glowtts_encoder(encoder_name: str):
+    if encoder_name == "transformer":
+        encoder_type = "rel_pos_transformer"
+    elif encoder_name == "gated":
+        encoder_type = "gated_conv"
+    elif encoder_name == "residual_bn":
+        encoder_type = "residual_conv_bn"
+    elif encoder_name == "time_depth":
+        encoder_type = "time_depth_separable"
+    return encoder_type

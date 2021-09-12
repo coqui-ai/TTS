@@ -1,32 +1,20 @@
 import os
 
+from recipes.ljspeech.glow_tts.train_glowtts import config as glowtts_config
+from recipes.ljspeech.hifigan.train_hifigan import config as hifigan_config
+from recipes.ljspeech.multiband_melgan.train_multiband_melgan import config as multiband_melgan_config
+from recipes.ljspeech.univnet.train import config as univnet_config
+from recipes.ljspeech.vits_tts.train_vits import config as vits_config
+from recipes.ljspeech.wavegrad.train_wavegrad import config as wavegrad_config
+from recipes.ljspeech.wavernn.train_wavernn import config as waverrn_config
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
-from TTS.tts.configs.speedy_speech_config import SpeedySpeechArgs, SpeedySpeechConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
-from TTS.tts.configs.vits_config import VitsConfig
-from TTS.vocoder.configs.hifigan_config import HifiganConfig
-from TTS.vocoder.configs.multiband_melgan_config import MultibandMelganConfig
-from TTS.vocoder.configs.univnet_config import UnivnetConfig
-from TTS.vocoder.configs.wavegrad_config import WavegradConfig
-
+from TTS.auto_tts.utils import pick_glowtts_encoder
 
 class TtsModels:
-    """
-    This is a class that holds all the model configs.
-    If you want to add a new recipe this is where you would add your model config
-    made this so the complete recipes file doesnt look so cluttered. If you would like
-    to contribute a model for a recipe look at the usage on how you should format the function.
-
-    usage:
-            def model_name:
-                config = model_config(...)
-                return config
-
-    """
-
-
     def __init__(
-        self, batch_size, mixed_precision, learning_rate, epochs, output_path=os.path.dirname(os.path.abspath(__file__))
+        self, batch_size: int, mixed_precision: bool, learning_rate: float, epochs: int,
+            output_path=os.path.dirname(os.path.abspath(__file__))
     ):
 
         self.batch_size = batch_size
@@ -39,7 +27,7 @@ class TtsModels:
         self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
     ):
         config = Tacotron2Config(
-            run_name="single_speaker_taoctron2",
+            run_name="single_speaker_tacotron2",
             audio=audio,
             batch_size=self.batch_size,
             eval_batch_size=int(self.batch_size / 2),
@@ -55,6 +43,7 @@ class TtsModels:
             ga_alpha=ga,
             stopnet_pos_weight=15.0,
             memory_size=-1,
+            phoneme_cache_path=os.path.join(self.output_path, "phoneme_cache"),
             prenet_type="original",
             prenet_dropout=True,
             attention_type="original",
@@ -146,8 +135,6 @@ class TtsModels:
     def single_speaker_tacotron2_DCA(
         self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
-        """This is a tacotron2 dca config for the ljspeech dataset,
-        based off the already existing recipe config."""
         config = Tacotron2Config(
             audio=audio,
             run_name="ljspeech-dca",
@@ -200,113 +187,22 @@ class TtsModels:
         )
         return config
 
-    def ljspeech_glow_tts(self, audio, dataset, encoder):
-        if encoder == "transformer":
-            encoder_type = "rel_pos_transformer"
-        elif encoder == "gated":
-            encoder_type = "gated_conv"
-        elif encoder == "residual_bn":
-            encoder_type = "residual_conv_bn"
-        elif encoder == "time_depth":
-            encoder_type = "time_depth_separable"
-        elif encoder is None:
-            encoder_type = "rel_pos_transformer"
-
-        config = GlowTTSConfig(
-            audio=audio,
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            num_loader_workers=4,
-            num_eval_loader_workers=4,
-            run_eval=True,
-            test_delay_epochs=-1,
-            epochs=self.epochs,
-            text_cleaner="english_cleaners",
-            use_phonemes=False,
-            phoneme_language="en-us",
-            phoneme_cache_path=os.path.join(self.output_path, "phoneme_cache"),
-            print_step=25,
-            print_eval=True,
-            mixed_precision=False,
-            add_blank=False,
-            hidden_channels_enc=192,
-            hidden_channels_dec=192,
-            hidden_channels_dp=256,
-            use_encoder_prenet=True,
-            encoder_type=encoder_type,
-            r=1,
-            loss_masking=True,
-            grad_clip=5.0,
-            save_step=5000,
-            batch_group_size=0,
-            min_seq_len=3,
-            max_seq_len=500,
-            compute_f0=False,
-            use_noise_augment=True,
-            compute_input_seq_cache=True,
-            output_path=self.output_path,
-            datasets=[dataset],
-        )
-        return config
-
-    def ljspeech_speedy_speech(self, audio, dataset):
-        """Base speedy speech model for ljpseech dataset."""
-        model_args = SpeedySpeechArgs(
-            positional_encoding=True,
-            hidden_channels=128,
-            encoder_type="residual_conv_bn",
-            decoder_type="residual_conv_bn",
-        )
-        config = SpeedySpeechConfig(
-            audio=audio,
-            run_name="ljpseech-speedy-speech",
-            run_description="speedy-speech model for LJSpeech dataset",
-            model_args=model_args,
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            r=1,
-            loss_masking=True,
-            ssim_alpha=1,
-            l1_alpha=1,
-            huber_alpha=1,
-            run_eval=True,
-            test_delay_epochs=-1,
-            grad_clip=1.0,
-            epochs=self.epochs,
-            lr=self.learning_rate,
-            print_step=25,
-            plot_step=100,
-            print_eval=False,
-            save_step=5000,
-            checkpoint=True,
-            model_param_stats=False,
-            mixed_precision=self.mixed_precision,
-            text_cleaner="phoneme_cleaners",
-            enable_eos_bos_chars=False,
-            num_loader_workers=8,
-            batch_group_size=4,
-            min_seq_len=2,
-            max_seq_len=300,
-            compute_f0=False,
-            compute_input_seq_cache=True,
-            output_path=self.output_path,
-            phoneme_cache_path=os.path.join(self.output_path, "phoneme_cache"),
-            use_phonemes=True,
-            phoneme_language="en-us",
-            use_speaker_embedding=False,
-            datasets=[dataset],
-        )
+    def single_speaker_glow_tts(self, audio, dataset, encoder):
+        encoder_type = pick_glowtts_encoder(encoder)
+        glowtts_config.audio = audio
+        glowtts_config.batch_size = self.batch_size
+        glowtts_config.eval_batch_size = self.batch_size // 2
+        glowtts_config.epochs = self.epochs
+        glowtts_config.output_path = self.output_path
+        glowtts_config.lr = self.learning_rate
+        glowtts_config.mixed_precision = self.mixed_precision
+        glowtts_config.encoder_type = encoder_type
+        glowtts_config.datasets = [dataset]
+        config = glowtts_config
         return config
 
     def sc_glow_tts(self, audio, dataset, speaker_file, encoder):
-        if encoder == "transformer":
-            encoder_type = "rel_pos_transformer"
-        elif encoder == "gated":
-            encoder_type = "gated_conv"
-        elif encoder == "residual_bn":
-            encoder_type = "residual_conv_bn"
-        elif encoder == "time_depth":
-            encoder_type = "time_depth_separable"
+        encoder_type = pick_glowtts_encoder(encoder)
         config = GlowTTSConfig(
             audio=audio,
             run_name="multispeaker glow tts",
@@ -369,34 +265,35 @@ class TtsModels:
         )
         return config
 
-    def ljspeech_vits_tts(self, audio, dataset):
-        config = VitsConfig(
-            audio=audio,
-            run_name="vits_ljspeech",
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            batch_group_size=0,
-            num_loader_workers=4,
-            num_eval_loader_workers=4,
-            run_eval=True,
-            test_delay_epochs=-1,
-            epochs=self.epochs,
-            text_cleaner="english_cleaners",
-            use_phonemes=True,
-            phoneme_language="en-us",
-            phoneme_cache_path=os.path.join(self.output_path, "phoneme_cache"),
-            compute_input_seq_cache=True,
-            print_step=25,
-            print_eval=True,
-            mixed_precision=self.mixed_precision,
-            max_seq_len=5000,
-            output_path=self.output_path,
-            datasets=[dataset],
-        )
+    def single_speaker_vits_tts(self, audio, dataset):
+        vits_config.audio = audio
+        vits_config.datasets = [dataset]
+        vits_config.lr_gen = self.learning_rate
+        vits_config.lr_disc = self.learning_rate
+        vits_config.batch_size = self.batch_size
+        vits_config.eval_batch_size = self.batch_size // 2
+        vits_config.mixed_precision = self.mixed_precision
+        vits_config.output_path = self.output_path
+        config = vits_config
         return config
 
+    def vctk_vits_tts(self, audio, dataset, speaker_file):
+        vits_config.audio = audio
+        vits_config.datasets = [dataset]
+        vits_config.lr_gen = self.learning_rate
+        vits_config.lr_disc = self.learning_rate
+        vits_config.batch_size = self.batch_size
+        vits_config.eval_batch_size = self.batch_size // 2
+        vits_config.mixed_precision = self.mixed_precision
+        vits_config.output_path = self.output_path
+        vits_config.use_speaker_embedding = True
+        vits_config.num_speakers = 109
+        vits_config.speaker_embedding_channels = 256
+        vits_config.speakers_file = speaker_file
+        vits_config.num_chars = 179
 
-# ToDo: test these models and tune config if needed
+
+
 class VocoderModels:
     def __init__(
         self,
@@ -410,171 +307,71 @@ class VocoderModels:
         self.batch_size = batch_size
         self.output_path = output_path
         self.mixed_precision = mixed_precision
-        self.generator_learning_rate = generator_learning_rate
+        self.generator_lr = generator_learning_rate
         self.discriminator_lr = discriminator_learning_rate
         self.epochs = epochs
 
-    @staticmethod
-    def loss_func(loss=None):
-        if loss == "mse":
-            pass  # I was about to impliment a way to just pick a loss func but I wanna think of a better way to do it so ima just leave this here for now.
-
-    def ljspeech_hifi_gan(self, audio, data_path):
-        config = HifiganConfig(
-            audio=audio,
-            run_name="ljspeech-hifigan",
-            run_description="hifi gan vocoder model trained on the ljspeech dataset.",
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            num_loader_workers=4,
-            num_eval_loader_workers=4,
-            run_eval=True,
-            test_delay_epochs=-1,
-            epochs=self.epochs,
-            seq_len=8192,
-            pad_short=2000,
-            use_noise_augment=True,
-            eval_split_size=10,
-            print_step=25,
-            print_eval=True,
-            mixed_precision=self.mixed_precision,
-            lr_gen=self.generator_learning_rate,
-            lr_disc=self.discriminator_lr,
-            use_pqmf=False,
-            use_stft_loss=False,
-            use_subband_stft_loss=False,
-            use_mse_gan_loss=True,
-            use_hinge_gan_loss=False,
-            use_l1_spec_loss=True,
-            stft_loss_weight=0,
-            subband_stft_loss_weight=0,
-            mse_G_loss_weight=1,
-            hinge_G_loss_weight=0,
-            feat_match_loss_weight=10,
-            l1_spec_loss_weight=45,
-            target_loss="avg_G_loss",
-            data_path=data_path,
-            output_path=self.output_path,
-        )
+    def hifi_gan(self, audio, data_path):
+        hifigan_config.data_path = data_path
+        hifigan_config.audio = audio
+        hifigan_config.batch_size = self.batch_size
+        hifigan_config.eval_batch_size = self.batch_size // 2
+        hifigan_config.output_path = self.output_path
+        hifigan_config.mixed_precision = self.mixed_precision
+        hifigan_config.epochs = self.epochs
+        hifigan_config.lr_gen = self.generator_lr
+        hifigan_config.lr_disc = self.discriminator_lr
+        config = hifigan_config
         return config
 
-    def ljspeech_wave_grad(self, audio, data_path):
-        config = WavegradConfig(
-            audio=audio,
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            num_loader_workers=4,
-            num_eval_loader_workers=4,
-            run_eval=True,
-            test_delay_epochs=-1,
-            epochs=self.epochs,
-            seq_len=6144,
-            pad_short=2000,
-            use_noise_augment=True,
-            eval_split_size=50,
-            print_step=50,
-            lr=self.generator_learning_rate,
-            print_eval=True,
-            mixed_precision=self.mixed_precision,
-            data_path=data_path,
-            output_path=self.output_path,
-        )
+    def wavegrad(self, audio, datapath):
+        wavegrad_config.audio = audio
+        wavegrad_config.data_path = datapath
+        wavegrad_config.batch_size = self.batch_size
+        wavegrad_config.eval_batch_size = self.batch_size // 2
+        wavegrad_config.output_path = self.output_path
+        wavegrad_config.mixed_precision = self.mixed_precision
+        wavegrad_config.epochs = self.epochs
+        wavegrad_config.lr_gen = self.generator_lr
+        wavegrad_config.lr_disc = self.discriminator_lr
+        config = wavegrad_config
         return config
 
-    def ljspeech_multiband_mel_gan(self, audio, data_path):
-        config = MultibandMelganConfig(
-            audio=audio,
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            num_loader_workers=4,
-            num_eval_loader_workers=4,
-            run_eval=True,
-            test_delay_epochs=-1,
-            epochs=self.epochs,
-            seq_len=8192,
-            pad_short=2000,
-            use_noise_augment=False,
-            use_stft_loss=True,
-            use_feat_match_loss=False,
-            feat_match_loss_weight=25,
-            subband_stft_loss_weight=0.5,
-            eval_split_size=20,
-            print_step=25,
-            print_eval=True,
-            mixed_precision=self.mixed_precision,
-            lr_gen=self.generator_learning_rate,
-            lr_disc=self.discriminator_lr,
-            data_path=data_path,
-            output_path=self.output_path,
-        )
+    def multiband_melgan(self, audio, data_path):
+        multiband_melgan_config.audio = audio
+        multiband_melgan_config.data_path = data_path
+        multiband_melgan_config.batch_size = self.batch_size
+        multiband_melgan_config.eval_batch_size = self.batch_size // 2
+        multiband_melgan_config.output_path = self.output_path
+        multiband_melgan_config.mixed_precision = self.mixed_precision
+        multiband_melgan_config.epochs = self.epochs
+        multiband_melgan_config.lr_gen = self.generator_lr
+        multiband_melgan_config.lr_disc = self.discriminator_lr
+        config = multiband_melgan_config
         return config
 
-    def ljspeech_univnet(self, audio, data_path):
-        config = UnivnetConfig(
-            audio=audio,
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            num_loader_workers=4,
-            num_eval_loader_workers=4,
-            run_eval=True,
-            test_delay_epochs=-1,
-            epochs=self.epochs,
-            use_cache=False,
-            wd=0.0,
-            conv_pad=0,
-            use_stft_loss=True,
-            use_l1_spec_loss=False,
-            # ToDo: make function that lets you pick if you want to use the one from the original paper or mse
-            use_mse_gan_loss=True,
-            target_loss="loss_0",
-            grad_clip=[5.0, 5.0],
-            lr_gen=self.generator_learning_rate,
-            lr_disc=self.discriminator_lr,
-            use_pqmf=False,
-            diff_samples_for_G_and_D=False,
-            seq_len=8192,
-            pad_short=2000,
-            use_noise_augment=True,
-            eval_split_size=10,
-            print_step=25,
-            print_eval=False,
-            mixed_precision=False,
-            data_path=data_path,
-            output_path=self.output_path,
-        )
+    def univnet(self, audio, data_path):
+        univnet_config.audio = audio
+        univnet_config.data_path = data_path
+        univnet_config.batch_size = self.batch_size
+        univnet_config.eval_batch_size = self.batch_size // 2
+        univnet_config.output_path = self.output_path
+        univnet_config.mixed_precision = self.mixed_precision
+        univnet_config.epochs = self.epochs
+        univnet_config.lr_gen = self.generator_lr
+        univnet_config.lr_disc = self.discriminator_lr
+        config = univnet_config
         return config
 
-    def ljspeechUnivnet(self, audio, data_path):
-        config = UnivnetConfig(
-            audio=audio,
-            batch_size=self.batch_size,
-            eval_batch_size=self.batch_size // 2,
-            num_loader_workers=4,
-            num_eval_loader_workers=4,
-            run_eval=True,
-            test_delay_epochs=-1,
-            epochs=self.epochs,
-            use_cache=False,
-            wd=0.0,
-            conv_pad=0,
-            use_stft_loss=True,
-            use_l1_spec_loss=False,
-            # ToDo: make function that lets you pick if you want to use the one from the original paper or mse
-            use_mse_gan_loss=True,
-            target_loss="loss_0",
-            grad_clip=[5.0, 5.0],
-            lr_gen=self.generator_learning_rate,
-            lr_disc=self.discriminator_lr,
-            use_pqmf=False,
-            diff_samples_for_G_and_D=False,
-            seq_len=8192,
-            pad_short=2000,
-            use_noise_augment=True,
-            eval_split_size=10,
-            print_step=25,
-            print_eval=False,
-            mixed_precision=False,
-            data_path=data_path,
-            output_path=self.output_path,
-        )
+    def wavernn(self, audio, data_path):
+        waverrn_config.audio = audio
+        waverrn_config.data_path = data_path
+        waverrn_config.batch_size = self.batch_size
+        waverrn_config.eval_batch_size = self.batch_size // 2
+        waverrn_config.output_path = self.output_path
+        waverrn_config.mixed_precision = self.mixed_precision
+        waverrn_config.epochs = self.epochs
+        waverrn_config.lr_gen = self.generator_lr
+        waverrn_config.lr_disc = self.discriminator_lr
+        config = waverrn_config
         return config
