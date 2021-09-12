@@ -1,5 +1,3 @@
-from recipes.ljspeech.glow_tts.train_glowtts import config as glowtts_config
-from recipes.ljspeech.vits_tts.train_vits import config
 from TTS.auto_tts.model_hub import TtsModels, VocoderModels
 from TTS.auto_tts.utils import data_loader
 from TTS.trainer import Trainer, TrainingArgs, init_training
@@ -119,15 +117,17 @@ class VocoderAutoTrainer(VocoderModels):
         one of the public datasets. it currently only supports ljspeech!!!
         """
         if self.dataset_name == "ljspeech":
-            _, audio = data_loader(name="ljspeech", path=self.data_path, stats_path=None)
+            audio, _ = data_loader(name="ljspeech", path=self.data_path, stats_path=None)
             if model_name == "hifigan":
-                model_config = self.ljspeechHifiGan(audio, self.data_path)
+                model_config = self.hifi_gan(audio, self.data_path)
             elif model_name == "wavegrad":
-                model_config = self.ljspeechWaveGrad(audio, self.data_path)
+                model_config = self.wavegrad(audio, self.data_path)
             elif model_name == "univnet":
-                model_config = self.ljspeechUnivnet(audio, self.data_path)  # ToDo: add the stats path to the config
+                model_config = self.univnet(audio, self.data_path)  # ToDo: add the stats path to the config
             elif model_name == "multiband melgan":
-                model_config = self.ljspeechMultiBandMelGan(audio, self.data_path)
+                model_config = self.multiband_melgan(audio, self.data_path)
+            elif model_name == "wavernn":
+                model_config = self.wavernn(audio, self.data_path)
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer

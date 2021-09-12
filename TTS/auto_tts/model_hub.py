@@ -10,6 +10,8 @@ from recipes.ljspeech.wavernn.train_wavernn import config as waverrn_config
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.auto_tts.utils import pick_glowtts_encoder
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
 
 class TtsModels:
     def __init__(
