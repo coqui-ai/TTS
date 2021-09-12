@@ -45,7 +45,7 @@
 
     models/glow_tts.md
     models/vits.md
-    models/fast_pitch.md
+    models/forward_tts.md
 
 .. toctree::
     :maxdepth: 2
