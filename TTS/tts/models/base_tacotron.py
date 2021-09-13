@@ -9,7 +9,7 @@ from torch import nn
 
 from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.models.base_tts import BaseTTS
-from TTS.tts.utils.data import sequence_mask
+from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
 from TTS.tts.utils.text import make_symbols
 from TTS.utils.generic_utils import format_aux_input
@@ -115,12 +115,19 @@ class BaseTacotron(BaseTTS):
     ):  # pylint: disable=unused-argument, redefined-builtin
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
+        # TODO: set r in run-time by taking it from the new config
         if "r" in state:
+            # set r from the state (for compatibility with older checkpoints)
             self.decoder.set_r(state["r"])
-        else:
+        elif "config" in state:
+            # set r from config used at training time (for inference)
             self.decoder.set_r(state["config"]["r"])
+        else:
+            # set r from the new config (for new-models)
+            self.decoder.set_r(config.r)
         if eval:
             self.eval()
+            print(f" > Model's reduction rate `r` is set to: {self.decoder.r}")
             assert not self.training
 
     def get_criterion(self) -> nn.Module:

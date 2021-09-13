@@ -5,7 +5,7 @@ from torch import nn
 
 from TTS.tts.layers.glow_tts.glow import WN
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
-from TTS.tts.utils.data import sequence_mask
+from TTS.tts.utils.helpers import sequence_mask
 
 LRELU_SLOPE = 0.1
 
