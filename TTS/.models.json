@@ -38,20 +38,21 @@
                     "license": "MPL",
                     "contact": "egolge@coqui.com"
                 },
+                "speedy-speech": {
+                    "description": "Speedy Speech model trained on LJSpeech dataset using the Alignment Network for learning the durations.",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.3.0/tts_models--en--ljspeech--speedy_speech.zip",
+                    "stats_file": null,
+                    "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
+                    "commit": "4581e3d",
+                    "author": "Eren Gölge @erogol",
+                    "license": "TBD",
+                    "contact": "egolge@coqui.com"
+                },
                 "tacotron2-DCA": {
                     "description": "",
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.0.9/tts_models--en--ljspeech--tacotron2-DCA.zip",
                     "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
                     "commit": "",
-                    "author": "Eren Gölge @erogol",
-                    "license": "MPL",
-                    "contact": "egolge@coqui.com"
-                },
-                "speedy-speech-wn": {
-                    "description": "Speedy Speech model with wavenet decoder.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--ljspeech--speedy-speech-wn.zip",
-                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
-                    "commit": "77b6145",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
                     "contact": "egolge@coqui.com"
@@ -218,11 +219,11 @@
                     "contact": "egolge@coqui.ai"
                 },
                 "univnet": {
-                    "description": "UnivNet model trained on LJSpeech to complement the TacotronDDC_ph model.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.2.0/vocoder_models--en--ljspeech--univnet.zip",
-                    "commit": "3900448",
+                    "description": "UnivNet model finetuned on TacotronDDC_ph spectrograms for better compatibility.",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.3.0/vocoder_models--en--ljspeech--univnet_v2.zip",
+                    "commit": "4581e3d",
                     "author": "Eren @erogol",
-                    "license": "",
+                    "license": "TBD",
                     "contact": "egolge@coqui.ai"
                 }
             },

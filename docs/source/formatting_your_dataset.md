@@ -1,3 +1,4 @@
+(formatting_your_dataset)=
 # Formatting Your Dataset
 
 For training a TTS model, you need a dataset with speech recordings and transcriptions. The speech must be divided into audio clips and each clip needs transcription.
@@ -18,15 +19,15 @@ Let's assume you created the audio clips and their transcription. You can collec
 
 You can either create separate transcription files for each clip or create a text file that maps each audio clip to its transcription. In this file, each line must be delimitered by a special character separating the audio file name from the transcription. And make sure that the delimiter is not used in the transcription text.
 
-We recommend the following format delimited by `|`.
+We recommend the following format delimited by `||`.
 
 ```
 # metadata.txt
 
-audio1.wav | This is my sentence.
-audio2.wav | This is maybe my sentence.
-audio3.wav | This is certainly my sentence.
-audio4.wav | Let this be your sentence.
+audio1.wav || This is my sentence.
+audio2.wav || This is maybe my sentence.
+audio3.wav || This is certainly my sentence.
+audio4.wav || Let this be your sentence.
 ...
 ```
 
