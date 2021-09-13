@@ -9,12 +9,11 @@ from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
-from TTS.tts.utils.data import sequence_mask
+from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
 from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
@@ -22,28 +21,6 @@ from TTS.utils.audio import AudioProcessor
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-
-
-def segment(x: torch.tensor, segment_indices: torch.tensor, segment_size=4):
-    """Segment each sample in a batch based on the provided segment indices"""
-    segments = torch.zeros_like(x[:, :, :segment_size])
-    for i in range(x.size(0)):
-        index_start = segment_indices[i]
-        index_end = index_start + segment_size
-        segments[i] = x[i, :, index_start:index_end]
-    return segments
-
-
-def rand_segment(x: torch.tensor, x_lengths: torch.tensor = None, segment_size=4):
-    """Create random segments based on the input lengths."""
-    B, _, T = x.size()
-    if x_lengths is None:
-        x_lengths = T
-    max_idxs = x_lengths - segment_size + 1
-    assert all(max_idxs > 0), " [!] At least one sample is shorter than the segment size."
-    segment_indices = (torch.rand([B]).type_as(x) * max_idxs).long()
-    ret = segment(x, segment_indices, segment_size)
-    return ret, segment_indices
 
 
 @dataclass
@@ -451,7 +428,7 @@ class Vits(BaseTTS):
         logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
 
         # select a random feature segment for the waveform decoder
-        z_slice, slice_ids = rand_segment(z, y_lengths, self.spec_segment_size)
+        z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size)
         o = self.waveform_decoder(z_slice, g=g)
         outputs.update(
             {

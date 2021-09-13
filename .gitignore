@@ -142,7 +142,6 @@ old_configs/*
 model_importers/*
 model_profiling/*
 docs/source/TODO/*
-docs/source/models/*
 .noseids
 .dccache
 log.txt

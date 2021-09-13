@@ -3,13 +3,27 @@ import os
 import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
-from TTS.tts.configs import SpeedySpeechConfig
+from TTS.config.shared_configs import BaseAudioConfig
+from TTS.tts.configs import FastPitchConfig
 
-config_path = os.path.join(get_tests_output_path(), "test_speedy_speech_config.json")
+config_path = os.path.join(get_tests_output_path(), "test_fast_pitch_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
+audio_config = BaseAudioConfig(
+    sample_rate=22050,
+    do_trim_silence=True,
+    trim_db=60.0,
+    signal_norm=False,
+    mel_fmin=0.0,
+    mel_fmax=8000,
+    spec_gain=1.0,
+    log_func="np.log",
+    ref_level_db=20,
+    preemphasis=0.0,
+)
 
-config = SpeedySpeechConfig(
+config = FastPitchConfig(
+    audio=audio_config,
     batch_size=8,
     eval_batch_size=8,
     num_loader_workers=0,
@@ -18,6 +32,7 @@ config = SpeedySpeechConfig(
     use_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path="tests/data/ljspeech/phoneme_cache/",
+    f0_cache_path="tests/data/ljspeech/f0_cache/",
     run_eval=True,
     test_delay_epochs=-1,
     epochs=1,
