@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import csv
+import os
 import sys
 from argparse import RawTextHelpFormatter
 
@@ -42,13 +44,19 @@ def main():
     - run tts with default models.
 
     ```
-    $ ./TTS/bin synthesize.py --text "Text for TTS"
+    $ ./TTS/bin/synthesize.py --text "Text for TTS"
+    ```
+
+    - run tts with input from stdin.
+
+    ```
+    $ echo "Text for TTS" | ./TTS/bin/synthesize.py
     ```
 
     - run a tts model with its default vocoder model.
 
     ```
-    $ ./TTS/bin synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
+    $ ./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
     ```
 
     - run with specific tts and vocoder models from the list
@@ -86,8 +94,40 @@ def main():
     - run your own multi-speaker TTS model.
 
     ```
+    $ ./TTS/bin/synthesize.py --list_models
     $ ./TTS/bin/synthesize.py --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth.tar --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
     ```
+
+    ## CSV INPUT
+
+    - create a WAV file for each line of a CSV file (id|text format)
+
+    ```
+    $ cat << EOF |
+    s01|The birch canoe slid on the smooth planks.
+    s02|Glue the sheet to the dark blue background.
+    s03|It's easy to tell the depth of a well.
+    s04|These days a chicken leg is a rare dish.
+    s05|Rice is often served in round bowls.
+    s06|The juice of lemons makes fine punch.
+    s07|The box was thrown beside the parked truck.
+    s08|The hogs were fed chopped corn and garbage.
+    s09|Four hours of steady work faced us.
+    s10|Large size in stockings is hard to sell.
+    EOF
+        ./TTS/bin/synthesize.py --csv --out_path wavs
+    ```
+
+    - use different speakers for a multi-speaker model (id|speaker_idx|text)
+
+    $ cat << EOF |
+    s01|speaker1|This is spoken with speaker 1.
+    s02|speaker2|This is spoken with speaker 2.
+    s03|This is spoken with the default speaker.
+    EOF
+        ./TTS/bin/synthesize.py --csv --out_path wavs --model_name "<language>/<dataset>/<model_name>" --speaker_idx <default_speaker>
+    ```
+
     """,
         formatter_class=RawTextHelpFormatter,
     )
@@ -100,7 +140,7 @@ def main():
         default=False,
         help="list available pre-trained tts and vocoder models.",
     )
-    parser.add_argument("--text", type=str, default=None, help="Text to generate speech.")
+    parser.add_argument("--text", type=str, default=None, help="Text to generate speech (use stdin if not provided).")
 
     # Args for running pre-trained TTS models.
     parser.add_argument(
@@ -118,18 +158,8 @@ def main():
 
     # Args for running custom models
     parser.add_argument("--config_path", default=None, type=str, help="Path to model config file.")
-    parser.add_argument(
-        "--model_path",
-        type=str,
-        default=None,
-        help="Path to model file.",
-    )
-    parser.add_argument(
-        "--out_path",
-        type=str,
-        default="tts_output.wav",
-        help="Output wav file path.",
-    )
+    parser.add_argument("--model_path", type=str, default=None, help="Path to model file.")
+    parser.add_argument("--out_path", type=str, default="tts_output.wav", help="Output wav file path.")
     parser.add_argument("--use_cuda", type=bool, help="Run model on CUDA.", default=False)
     parser.add_argument(
         "--vocoder_path",
@@ -138,21 +168,13 @@ def main():
         default=None,
     )
     parser.add_argument("--vocoder_config_path", type=str, help="Path to vocoder model config file.", default=None)
-    parser.add_argument(
-        "--encoder_path",
-        type=str,
-        help="Path to speaker encoder model file.",
-        default=None,
-    )
+    parser.add_argument("--encoder_path", type=str, help="Path to speaker encoder model file.", default=None)
     parser.add_argument("--encoder_config_path", type=str, help="Path to speaker encoder config file.", default=None)
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
     parser.add_argument(
-        "--speaker_idx",
-        type=str,
-        help="Target speaker ID for a multi-speaker TTS model.",
-        default=None,
+        "--speaker_idx", type=str, help="Target speaker ID for a multi-speaker TTS model.", default=None
     )
     parser.add_argument(
         "--speaker_wav",
@@ -176,12 +198,22 @@ def main():
         help="If true save raw spectogram for further (vocoder) processing in out_path.",
         default=False,
     )
+    # csv args
+    parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="Input text is lines with the format id|text or id|speaker|text and out_path is a directory",
+    )
+    parser.add_argument(
+        "--csv_delimiter", default="|", help="Delimiter used to separate id and text with --csv (default: |)"
+    )
 
     args = parser.parse_args()
 
-    # print the description if either text or list_models is not set
+    # Read text from stdin if --text is not set
     if args.text is None and not args.list_models and not args.list_speaker_idxs:
-        parser.parse_args(["-h"])
+        if os.isatty(sys.stdin.fileno()):
+            print("Reading input from stdin. Hit CTRL+D to end.", file=sys.stderr)
 
     # load model manager
     path = Path(__file__).parent / "../.models.json"
@@ -251,14 +283,66 @@ def main():
         return
 
     # RUN THE SYNTHESIS
-    print(" > Text: {}".format(args.text))
+    if args.csv:
+        # Input text is CSV with an id and text on each line.
+        # out_path should be a directory instead of a name.
+        # Each input line produces a WAV file at {out_path}/{id}.wav
+        #
+        # For multi-speaker models, an input line may contain id, speaker_idx, and text.
+        # If no speaker_idx is given, --speaker_idx is used as a default.
+        if os.path.splitext(args.out_path)[1] == ".wav":
+            print(" [!] out_path looks like a file name, but it should be a directory for CSV input.")
+            return
 
-    # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav)
+        os.makedirs(args.out_path, exist_ok=True)
 
-    # save the results
-    print(" > Saving output to {}".format(args.out_path))
-    synthesizer.save_wav(wav, args.out_path)
+        if args.text is not None:
+            # Use --text input
+            csv_input = io.StringIO(args.text)
+        else:
+            # Use stdin input
+            csv_input = sys.stdin
+
+        reader = csv.reader(csv_input, delimiter=args.csv_delimiter)
+        for row_index, row in enumerate(reader):
+            if len(row) < 2:
+                # Malformed row
+                print("Row %s has less than 2 columns (%s)", row_index + 1, row)
+                continue
+
+            if len(row) == 2:
+                # id|text
+                text_id, text = row[0], row[1]
+                speaker_idx = args.speaker_idx
+            elif len(row) > 2:
+                # id|speaker_idx|text
+                text_id, speaker_idx, text = row[0], row[1], row[2]
+
+            print(" > Text: {}".format(text))
+
+            # kick it
+            wav = synthesizer.tts(text, speaker_idx, args.speaker_wav)
+
+            # save the results to a {out_path}/{id}.wav
+            out_path = os.path.join(args.out_path, text_id) + ".wav"
+            print(" > Saving output to {}".format(out_path))
+            synthesizer.save_wav(wav, out_path)
+    else:
+        if args.text is not None:
+            # Use --text input
+            text = args.text
+        else:
+            # Use stdin input
+            text = sys.stdin.read()
+
+        print(" > Text: {}".format(text))
+
+        # kick it
+        wav = synthesizer.tts(text, args.speaker_idx, args.speaker_wav)
+
+        # save the results
+        print(" > Saving output to {}".format(args.out_path))
+        synthesizer.save_wav(wav, args.out_path)
 
 
 if __name__ == "__main__":
