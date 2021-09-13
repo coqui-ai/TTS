@@ -6,13 +6,13 @@ from TTS.tts.models.forward_tts import ForwardTTSArgs
 
 
 @dataclass
-class FastPitchConfig(BaseTTSConfig):
-    """Configure `ForwardTTS` as FastPitch model.
+class FastSpeechConfig(BaseTTSConfig):
+    """Configure `ForwardTTS` as FastSpeech model.
 
     Example:
 
-        >>> from TTS.tts.configs import FastPitchConfig
-        >>> config = FastPitchConfig()
+        >>> from TTS.tts.configs import FastSpeechConfig
+        >>> config = FastSpeechConfig()
 
     Args:
         model (str):
@@ -23,7 +23,7 @@ class FastPitchConfig(BaseTTSConfig):
             the base model rather than searching for the `model` implementation. Defaults to `forward_tts`.
 
         model_args (Coqpit):
-            Model class arguments. Check `FastPitchArgs` for more details. Defaults to `FastPitchArgs()`.
+            Model class arguments. Check `FastSpeechArgs` for more details. Defaults to `FastSpeechArgs()`.
 
         data_dep_init_steps (int):
             Number of steps used for computing normalization parameters at the beginning of the training. GlowTTS uses
@@ -98,11 +98,11 @@ class FastPitchConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-    model: str = "fast_pitch"
+    model: str = "fast_speech"
     base_model: str = "forward_tts"
 
     # model specific params
-    model_args: ForwardTTSArgs = ForwardTTSArgs()
+    model_args: ForwardTTSArgs = ForwardTTSArgs(use_pitch=False)
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
@@ -125,7 +125,7 @@ class FastPitchConfig(BaseTTSConfig):
     ssim_loss_alpha: float = 1.0
     dur_loss_alpha: float = 1.0
     spec_loss_alpha: float = 1.0
-    pitch_loss_alpha: float = 1.0
+    pitch_loss_alpha: float = 0.0
     aligner_loss_alpha: float = 1.0
     binary_align_loss_alpha: float = 1.0
     binary_align_loss_start_step: int = 20000

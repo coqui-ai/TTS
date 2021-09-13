@@ -9,7 +9,7 @@ import soundfile as sf
 import torch
 from torch import nn
 
-from TTS.tts.utils.data import StandardScaler
+from TTS.tts.utils.helpers import StandardScaler
 
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
@@ -608,6 +608,9 @@ class AudioProcessor(object):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
         S_complex = np.abs(S).astype(np.complex)
         y = self._istft(S_complex * angles)
+        if not np.isfinite(y).all():
+            print(" [!] Waveform is not finite everywhere. Skipping the GL.")
+            return np.array([0.0])
         for _ in range(self.griffin_lim_iters):
             angles = np.exp(1j * np.angle(self._stft(y)))
             y = self._istft(S_complex * angles)

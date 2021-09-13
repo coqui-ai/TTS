@@ -70,7 +70,9 @@ class FFTransformerBlock(nn.Module):
 
 
 class FFTDurationPredictor:
-    def __init__(self, in_channels, hidden_channels, num_heads, num_layers, dropout_p=0.1, cond_channels=None):  # pylint: disable=unused-argument
+    def __init__(
+        self, in_channels, hidden_channels, num_heads, num_layers, dropout_p=0.1, cond_channels=None
+    ):  # pylint: disable=unused-argument
         self.fft = FFTransformerBlock(in_channels, num_heads, hidden_channels, num_layers, dropout_p)
         self.proj = nn.Linear(in_channels, 1)
 

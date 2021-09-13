@@ -7,7 +7,7 @@ We tried to collect common issues and questions we receive about 🐸TTS. It is 
 - If you feel like it's a bug to be fixed, then prefer Github issues with the same level of scrutiny.
 
 ## What are the requirements of a good 🐸TTS dataset?
-* https://github.com/coqui-ai/TTS/wiki/What-makes-a-good-TTS-dataset
+* {ref}`See this page <what_makes_a_good_dataset>`
 
 ## How should I choose the right model?
 - First, train Tacotron. It is smaller and faster to experiment with. If it performs poorly, try Tacotron2.

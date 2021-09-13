@@ -101,6 +101,7 @@ def visualize(
     figsize=(8, 24),
     output_fig=False,
 ):
+    """Intended to be used in Notebooks."""
 
     if decoder_output is not None:
         num_plot = 4

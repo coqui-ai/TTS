@@ -47,15 +47,6 @@
                     "license": "MPL",
                     "contact": "egolge@coqui.com"
                 },
-                "speedy-speech-wn": {
-                    "description": "Speedy Speech model with wavenet decoder.",
-                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--ljspeech--speedy-speech-wn.zip",
-                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
-                    "commit": "77b6145",
-                    "author": "Eren Gölge @erogol",
-                    "license": "MPL",
-                    "contact": "egolge@coqui.com"
-                },
                 "vits": {
                     "description": "VITS is an End2End TTS model trained on LJSpeech dataset with phonemes.",
                     "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.2.0/tts_models--en--ljspeech--vits.zip",

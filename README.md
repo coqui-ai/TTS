@@ -73,6 +73,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Speedy-Speech: [paper](https://arxiv.org/abs/2008.03802)
 - Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 - FastPitch: [paper](https://arxiv.org/pdf/2006.06873.pdf)
+- FastSpeech: [paper](https://arxiv.org/abs/1905.09263)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)

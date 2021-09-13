@@ -54,7 +54,7 @@
 
  4. Run the training.
 
-    You need to call the python training script.
+    You need to run the training script.
 
     ```bash
     $ CUDA_VISIBLE_DEVICES="0" python train_glowtts.py
@@ -63,7 +63,7 @@
     Notice that you set the GPU you want to use on your system by setting `CUDA_VISIBLE_DEVICES` environment variable.
     To see available GPUs on your system, you can use `nvidia-smi` command on the terminal.
 
-    If you like to run a multi-gpu training
+    If you like to run a multi-gpu training using DDP back-end,
 
     ```bash
     $ CUDA_VISIBLE_DEVICES="0, 1, 2" python TTS/bin/distribute.py --script <path_to_your_script>/train_glowtts.py

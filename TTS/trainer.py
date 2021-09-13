@@ -275,7 +275,8 @@ class Trainer:
             if self.args.continue_path:
                 if isinstance(self.scheduler, list):
                     for scheduler in self.scheduler:
-                        scheduler.last_epoch = self.restore_step
+                        if scheduler is not None:
+                            scheduler.last_epoch = self.restore_step
                 else:
                     self.scheduler.last_epoch = self.restore_step
 
@@ -662,6 +663,7 @@ class Trainer:
                 lrs = {"current_lr": current_lr}
 
             # log run-time stats
+            loss_dict.update(lrs)
             loss_dict.update(
                 {
                     "step_time": round(step_time, 4),
@@ -1125,7 +1127,7 @@ def get_last_checkpoint(path: str) -> Tuple[str, str]:
                     last_model_num = model_num
                     last_model = file_name
 
-        # if there is not checkpoint found above
+        # if there is no checkpoint found above
         # find the checkpoint with the latest
         # modification date.
         key_file_names = [fn for fn in file_names if key in fn]
@@ -1144,7 +1146,7 @@ def get_last_checkpoint(path: str) -> Tuple[str, str]:
         last_models["checkpoint"] = last_models["best_model"]
     elif "best_model" not in last_models:  # no best model
         # this shouldn't happen, but let's handle it just in case
-        last_models["best_model"] = None
+        last_models["best_model"] = last_models["checkpoint"]
     # finally check if last best model is more recent than checkpoint
     elif last_model_nums["best_model"] > last_model_nums["checkpoint"]:
         last_models["checkpoint"] = last_models["best_model"]
@@ -1180,7 +1182,6 @@ def process_args(args, config=None):
         args.restore_path, best_model = get_last_checkpoint(args.continue_path)
         if not args.best_path:
             args.best_path = best_model
-
     # init config if not already defined
     if config is None:
         if args.config_path:
