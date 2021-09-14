@@ -593,7 +593,7 @@ class VitsGeneratorLoss(nn.Module):
         feats_disc_fake,
         feats_disc_real,
         loss_duration,
-        fine_tuning_mode=False,
+        fine_tuning_mode=0,
         use_speaker_encoder_as_loss=False,
         gt_spk_emb=None,
         syn_spk_emb=None

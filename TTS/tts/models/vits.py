@@ -171,6 +171,28 @@ class VitsArgs(Coqpit):
 
         detach_dp_input (bool):
             Detach duration predictor's input from the network for stopping the gradients. Defaults to True.
+
+        use_language_embedding (bool):
+            Enable/Disable language embedding for multilingual models. Defaults to False.
+
+        embedded_language_dim (int):
+            Number of language embedding channels. Defaults to 4.
+
+        num_languages (int):
+            Number of languages for the language embedding layer. Defaults to 0.
+
+        use_speaker_encoder_as_loss (bool):
+            
+
+    use_speaker_encoder_as_loss: bool = False
+    speaker_encoder_config_path: str = ""
+    speaker_encoder_model_path: str = ""
+
+        fine_tuning_mode (int):
+            Fine tuning only the vocoder part of the model, while the rest will be frozen. Defaults to 0.
+                Mode 0: disabled;
+                Mode 1: uses the distribution predicted by the encoder and It's recommended for TTS;
+                Mode 2: uses the distribution predicted by the encoder and It's recommended for voice conversion.
     """
 
     num_chars: int = 100
@@ -215,10 +237,10 @@ class VitsArgs(Coqpit):
     use_language_embedding: bool = False
     embedded_language_dim: int = 4
     num_languages: int = 0
-    fine_tuning_mode: bool = False
     use_speaker_encoder_as_loss: bool = False
     speaker_encoder_config_path: str = ""
     speaker_encoder_model_path: str = ""
+    fine_tuning_mode: int = 0
 
 
 
@@ -515,7 +537,7 @@ class Vits(BaseTTS):
                 g=g.detach() if self.args.detach_dp_input and g is not None else g,
                 lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
             )
-            loss_duration = loss_duration/ torch.sum(x_mask)
+            loss_duration = loss_duration / torch.sum(x_mask)
         else:
             attn_log_durations = torch.log(attn_durations + 1e-6) * x_mask
             log_durations = self.duration_predictor(
@@ -575,6 +597,7 @@ class Vits(BaseTTS):
         y: torch.tensor,
         y_lengths: torch.tensor,
         aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
+        waveform=None,
     ) -> Dict:
         """Forward pass of the model.
 
@@ -631,22 +654,50 @@ class Vits(BaseTTS):
             m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
             logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
 
-            # get the z after inverse decoder
-            # ToDo: test if using m_p the result is better (In the SC-GlowTTS paper we used mp instead z_p)
-            z_f_pred = self.flow(z_p, y_mask, g=g, reverse=True)
+            # mode 1: like SC-GlowTTS paper; mode 2: recommended for voice conversion
+            if self.args.fine_tuning_mode == 1:
+                z_ft = m_p
+            elif self.args.fine_tuning_mode == 2:
+                z_ft = z_p
+            else:
+                raise RuntimeError(" [!] Invalid Fine Tunning Mode !")
+
+            # inverse decoder and get the output
+            z_f_pred = self.flow(z_ft, y_mask, g=g, reverse=True)
             z_slice, slice_ids = rand_segment(z_f_pred, y_lengths, self.spec_segment_size)
 
         o = self.waveform_decoder(z_slice, g=g)
+
+        wav_seg = segment(
+                waveform.transpose(1, 2),
+                slice_ids * self.config.audio.hop_length,
+                self.args.spec_segment_size * self.config.audio.hop_length,
+        )
+
+        if self.args.use_speaker_encoder_as_loss:
+            # concate generated and GT waveforms
+            wavs_batch = torch.cat((wav_seg, o), dim=0).squeeze(1)
+            pred_embs = self.speaker_encoder.forward(wavs_batch, l2_norm=True)
+
+            # split generated and GT speaker embeddings
+            gt_spk_emb, syn_spk_emb = torch.chunk(pred_embs, 2, dim=0)
+        else:
+            gt_spk_emb, syn_spk_emb = None, None
+
         outputs.update(
             {
                 "model_outputs": o,
                 "alignments": attn.squeeze(1),
+                "loss_duration": 0.0,
                 "z": z,
                 "z_p": z_p,
                 "m_p": m_p,
                 "logs_p": logs_p,
                 "m_q": m_q,
                 "logs_q": logs_q,
+                "waveform_seg": wav_seg,
+                "gt_spk_emb": gt_spk_emb,
+                "syn_spk_emb": syn_spk_emb
             }
         )
         return outputs
