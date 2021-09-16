@@ -20,8 +20,8 @@ config = GlowTTSConfig(
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     print_step=25,
-    print_eval=True,
-    mixed_precision=False,
+    print_eval=False,
+    mixed_precision=True,
     output_path=output_path,
     datasets=[dataset_config],
 )
