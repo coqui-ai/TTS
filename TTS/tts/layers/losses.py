@@ -429,7 +429,7 @@ class GlowTTSLoss(torch.nn.Module):
         pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means) ** 2)
         log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (torch.sum(y_lengths) * z.shape[2])
         # duration loss - MSE
-        loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+        loss_dur = torch.sum((o_dur_log - o_attn_dur) ** 2) / torch.sum(x_lengths)
         # duration loss - huber loss
         # loss_dur = torch.nn.functional.smooth_l1_loss(o_dur_log, o_attn_dur, reduction="sum") / torch.sum(x_lengths)
         return_dict["loss"] = log_mle + loss_dur
