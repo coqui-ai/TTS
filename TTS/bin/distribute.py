@@ -38,6 +38,7 @@ def main():
 
     # run processes
     processes = []
+
     for i in range(num_gpus):
         my_env = os.environ.copy()
         my_env["PYTHON_EGG_CACHE"] = "/tmp/tmp{}".format(i)

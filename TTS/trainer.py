@@ -199,11 +199,11 @@ class Trainer:
         # init audio processor
         self.ap = AudioProcessor(**self.config.audio.to_dict())
 
-        # load data samples
+
         # TODO: refactor this
         if "datasets" in self.config:
-            # load data for `tts` models
-            self.data_train, self.data_eval = load_meta_data(self.config.datasets)
+            self.data_train, self.data_eval = load_meta_data(self.config)
+
         elif self.config.feature_path is not None:
             # load pre-comnputed features for `vocoder`models
             print(f" > Loading features from: {self.config.feature_path}")
@@ -527,6 +527,7 @@ class Trainer:
                 # https://nvidia.github.io/apex/advanced.html?highlight=accumulate#backward-passes-with-multiple-optimizers
                 with amp.scale_loss(loss_dict["loss"], optimizer) as scaled_loss:
                     scaled_loss.backward()
+
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     amp.master_params(optimizer), grad_clip, error_if_nonfinite=False
                 )
@@ -723,10 +724,12 @@ class Trainer:
             self.data_train,
             verbose=True,
         )
+
         if self.num_gpus > 1:
             self.model.module.train()
         else:
             self.model.train()
+
         epoch_start_time = time.time()
         if self.use_cuda:
             batch_num_steps = int(len(self.train_loader.dataset) / (self.config.batch_size * self.num_gpus))

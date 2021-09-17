@@ -1,4 +1,4 @@
-from TTS.tts.utils.text.symbols import make_symbols, parse_symbols
+from TTS.tts.utils.text.symbols import SymbolEmbedding, make_symbols, parse_symbols
 from TTS.utils.generic_utils import find_module
 
 
@@ -16,6 +16,12 @@ def setup_model(config):
             symbols = MyModel.make_symbols(config)
         else:
             symbols, phonemes = make_symbols(**config.characters)
+
+    elif "symbol_embedding_filename" in config and config.symbol_embedding_filename is not None:
+        symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
+        config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
+        symbols = config.symbol_embedding.symbols()
+
     else:
         from TTS.tts.utils.text.symbols import phonemes, symbols  # pylint: disable=import-outside-toplevel
 
@@ -23,6 +29,7 @@ def setup_model(config):
             symbols = phonemes
         # use default characters and assign them to config
         config.characters = parse_symbols()
+
     # consider special `blank` character if `add_blank` is set True
     num_chars = len(symbols) + getattr(config, "add_blank", False)
     config.num_chars = num_chars

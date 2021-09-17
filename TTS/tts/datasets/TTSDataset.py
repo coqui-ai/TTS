@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.tts.utils.text import pad_with_eos_bos, phoneme_to_sequence, text_to_sequence
+from TTS.tts.utils.text.symbols import SymbolEmbedding
 from TTS.utils.audio import AudioProcessor
 
 
@@ -26,6 +27,7 @@ class TTSDataset(Dataset):
         f0_cache_path: str = None,
         characters: Dict = None,
         custom_symbols: List = None,
+        symbol_embedding: SymbolEmbedding = None,
         add_blank: bool = False,
         return_wav: bool = False,
         batch_group_size: int = 0,
@@ -115,6 +117,7 @@ class TTSDataset(Dataset):
         self.ap = ap
         self.characters = characters
         self.custom_symbols = custom_symbols
+        self.symbol_embedding = symbol_embedding
         self.add_blank = add_blank
         self.use_phonemes = use_phonemes
         self.phoneme_cache_path = phoneme_cache_path
@@ -210,6 +213,9 @@ class TTSDataset(Dataset):
         if self.use_noise_augment:
             wav = wav + (1.0 / 32768.0) * np.random.rand(*wav.shape)
 
+        if self.symbol_embedding:
+            self.input_seq_computed = True
+
         if not self.input_seq_computed:
             if self.use_phonemes:
                 text = self._load_or_generate_phoneme_sequence(
@@ -234,7 +240,6 @@ class TTSDataset(Dataset):
                     ),
                     dtype=np.int32,
                 )
-
         assert text.size > 0, self.items[idx][1]
         assert wav.size > 0, self.items[idx][1]
 

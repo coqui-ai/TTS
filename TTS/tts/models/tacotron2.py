@@ -42,7 +42,15 @@ class Tacotron2(BaseTacotron):
             self.decoder_in_features += self.gst.gst_embedding_dim
 
         # embedding layer
-        self.embedding = nn.Embedding(self.num_chars, 512, padding_idx=0)
+        if self.symbol_embedding:
+            self.pre_embedding = nn.Embedding(
+                self.symbol_embedding.num_symbols(), self.symbol_embedding.embedding_size(), padding_idx=0
+            )
+            self.pre_embedding.weight.data.copy_(torch.from_numpy(self.symbol_embedding.weight_matrix))
+            self.pre_embedding.weight.requires_grad = False
+            self.embedding = nn.Sequential(self.pre_embedding, nn.Linear(self.symbol_embedding.embedding_size(), 512))
+        else:
+            self.embedding = nn.Embedding(self.num_chars, 512, padding_idx=0)
 
         # base model layers
         self.encoder = Encoder(self.encoder_in_features)

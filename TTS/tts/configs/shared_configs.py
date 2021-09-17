@@ -222,3 +222,5 @@ class BaseTTSConfig(BaseTrainingConfig):
     use_speaker_embedding: bool = False
     use_d_vector_file: bool = False
     d_vector_dim: int = 0
+    symbol_embedding_filename: str = None
+    symbol_embedding: str = None

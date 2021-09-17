@@ -8,6 +8,7 @@ import numpy as np
 from TTS.tts.datasets.formatters import *
 from TTS.tts.datasets.TTSDataset import TTSDataset
 
+from TTS.tts.utils.text.symbols import SymbolEmbedding
 
 def split_dataset(items):
     speakers = [item[-1] for item in items]
@@ -31,33 +32,53 @@ def split_dataset(items):
     return items[:eval_split_size], items[eval_split_size:]
 
 
-def load_meta_data(datasets: List[Dict], eval_split=True) -> Tuple[List[List], List[List]]:
+
+def load_meta_data(config, eval_split=True) -> Tuple[List[List], List[List]]:
     """Parse the dataset, load the samples as a list and load the attention alignments if provided.
 
     Args:
-        datasets (List[Dict]): A list of dataset dictionaries or dataset configs.
+        config: Coqpit config that has datasets
         eval_split (bool, optional): If true, create a evaluation split. If an eval split provided explicitly, generate
             an eval split automatically. Defaults to True.
 
     Returns:
         Tuple[List[List], List[List]: training and evaluation splits of the dataset.
     """
+    if "datasets" not in config:
+        return None, None
+
+    datasets = config.datasets
+
     meta_data_train_all = []
     meta_data_eval_all = [] if eval_split else None
+
+    preprocessor_args = {}
+
+    if "symbol_embedding_filename" in config and config.symbol_embedding_filename is not None:
+        symbol_embedding = SymbolEmbedding(config.symbol_embedding_filename)
+        config.update({"symbol_embedding": symbol_embedding}, allow_new=True)
+
+    if "symbol_embedding" in config and config.symbol_embedding is not None:
+        preprocessor_args["symbol_embedding"] = config.symbol_embedding
+
     for dataset in datasets:
         name = dataset["name"]
         root_path = dataset["path"]
+        preprocessor_args["root_path"] = root_path
+
         meta_file_train = dataset["meta_file_train"]
         meta_file_val = dataset["meta_file_val"]
         # setup the right data processor
         preprocessor = _get_preprocessor_by_name(name)
         # load train set
-        meta_data_train = preprocessor(root_path, meta_file_train)
+        preprocessor_args["meta_file"] = meta_file_train
+        meta_data_train = preprocessor(**preprocessor_args)
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set
         if eval_split:
             if meta_file_val:
-                meta_data_eval = preprocessor(root_path, meta_file_val)
+                preprocessor_args["meta_file"] = meta_file_val
+                meta_data_eval = preprocessor(**preprocessor_args)
             else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train)
             meta_data_eval_all += meta_data_eval
@@ -72,6 +93,7 @@ def load_meta_data(datasets: List[Dict], eval_split=True) -> Tuple[List[List], L
                 for idx, ins in enumerate(meta_data_eval_all):
                     attn_file = meta_data[ins[1]].strip()
                     meta_data_eval_all[idx].append(attn_file)
+
     return meta_data_train_all, meta_data_eval_all
 
 

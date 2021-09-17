@@ -46,6 +46,7 @@ def copy_model_files(config: Coqpit, out_path, new_fields):
     # copy model stats file if available
     if config.audio.stats_path is not None:
         copy_stats_path = os.path.join(out_path, "scale_stats.npy")
+
         filesystem = fsspec.get_mapper(copy_stats_path).fs
         if not filesystem.exists(copy_stats_path):
             with fsspec.open(config.audio.stats_path, "rb") as source_file:
@@ -70,7 +71,6 @@ def load_fsspec(
     """
     with fsspec.open(path, "rb") as f:
         return torch.load(f, map_location=map_location, **kwargs)
-
 
 def load_checkpoint(model, checkpoint_path, use_cuda=False, eval=False):  # pylint: disable=redefined-builtin
     try:

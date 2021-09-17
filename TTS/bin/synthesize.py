@@ -171,17 +171,29 @@ def main():
     )
     # aux args
     parser.add_argument(
-        "--save_spectogram",
+        "--save_spectrogram",
         type=bool,
-        help="If true save raw spectogram for further (vocoder) processing in out_path.",
+        help="If true save raw spectrogram for further (vocoder) processing in out_path.",
         default=False,
     )
+
+    parser.add_argument(
+        "--lang",
+        type=str,
+        help="Language for sentence segmentation",
+        default="en",
+    )
+
+    # aux args
 
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
     if args.text is None and not args.list_models and not args.list_speaker_idxs:
         parser.parse_args(["-h"])
+
+    if args.lang == "":
+        args.lang = None
 
     # load model manager
     path = Path(__file__).parent / "../.models.json"
@@ -232,6 +244,7 @@ def main():
         encoder_path,
         encoder_config_path,
         args.use_cuda,
+        args.lang,
     )
 
     # query speaker ids of a multi-speaker model.

@@ -156,7 +156,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer = RAdam(model.parameters(), lr=c.lr)
 
     # pylint: disable=redefined-outer-name
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=False)
+    meta_data_train, meta_data_eval = load_meta_data(c, eval_split=False)
 
     data_loader, num_speakers = setup_loader(ap, is_val=False, verbose=True)
 
