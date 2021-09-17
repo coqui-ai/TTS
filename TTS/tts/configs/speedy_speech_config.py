@@ -119,7 +119,7 @@ class SpeedySpeechConfig(BaseTTSConfig):
         hidden_channels=128,
         num_speakers=0,
         positional_encoding=True,
-        detach_duration_predictor=True
+        detach_duration_predictor=True,
     )
 
     # multi-speaker settings
