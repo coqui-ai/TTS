@@ -63,7 +63,7 @@ class GlowTTSTrainTest(unittest.TestCase):
             optimizer.zero_grad()
             outputs = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths, None)
             loss_dict = criterion(
-                outputs["model_outputs"],
+                outputs["z"],
                 outputs["y_mean"],
                 outputs["y_log_scale"],
                 outputs["logdet"],
