@@ -165,9 +165,9 @@ class Encoder(nn.Module):
         # set duration predictor input
         if g is not None:
             g_exp = g.expand(-1, -1, x.size(-1))
-            x_dp = torch.cat([torch.detach(x), g_exp], 1)
+            x_dp = torch.cat([x.detach(), g_exp], 1)
         else:
-            x_dp = torch.detach(x)
+            x_dp = x.detach()
         # final projection layer
         x_m = self.proj_m(x) * x_mask
         if not self.mean_only:
