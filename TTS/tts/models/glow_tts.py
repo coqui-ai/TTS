@@ -350,7 +350,7 @@ class GlowTTS(BaseTTS):
         d_vectors = batch["d_vectors"]
         speaker_ids = batch["speaker_ids"]
 
-        if self.run_data_dep_init:
+        if self.run_data_dep_init and self.training:
             # compute data-dependent initialization of activation norm layers
             self.unlock_act_norm_layers()
             with torch.no_grad():
