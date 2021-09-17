@@ -43,7 +43,8 @@ from TTS.utils.trainer_utils import get_optimizer, get_scheduler, is_apex_availa
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model as setup_vocoder_model
 
-multiprocessing.set_start_method("fork")
+if __name__ == '__main__':
+    multiprocessing.set_start_method("fork")
 
 if platform.system() != "Windows":
     # https://github.com/pytorch/pytorch/issues/973
