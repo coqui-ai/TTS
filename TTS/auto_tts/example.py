@@ -1,15 +1,15 @@
-from TTS.auto_tts.complete_recipes import TtsAutoTrainer
+from TTS.auto_tts.complete_recipes import VocoderAutoTrainer
 
-trainer = TtsAutoTrainer(
-    data_path="/media/logan/STARKTECH/VCTK-Corpus-removed-silence",\
-    dataset="vctk",
+trainer = VocoderAutoTrainer(
+    data_path="../LJSpeech-1.1",
+    dataset="ljspeech",
     batch_size=32,
-    learning_rate=0.001,
+    learning_rate=[0.001, 0.001],
     mixed_precision=False,
-    output_path="/home/logan/TTS/recipes/ljspeech/vits_tts",
+    output_path="../TTS/recipes/ljspeech/vits_tts",
     epochs=1000,
 )
 
-model = trainer.multi_speaker_autotts("vits tts", speaker_file="/home/logan/Downloads/tts_models--en--vctk--vits/speaker_ids.json", glowtts_encoder=None)
+model = trainer.single_speaker_autotts("hifigan")
 
 model.fit()

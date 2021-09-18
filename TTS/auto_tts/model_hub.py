@@ -7,16 +7,21 @@ from recipes.ljspeech.univnet.train import config as univnet_config
 from recipes.ljspeech.vits_tts.train_vits import config as vits_config
 from recipes.ljspeech.wavegrad.train_wavegrad import config as wavegrad_config
 from recipes.ljspeech.wavernn.train_wavernn import config as waverrn_config
+from TTS.auto_tts.utils import pick_glowtts_encoder
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
-from TTS.auto_tts.utils import pick_glowtts_encoder
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 class TtsModels:
     def __init__(
-        self, batch_size: int, mixed_precision: bool, learning_rate: float, epochs: int,
-            output_path=os.path.dirname(os.path.abspath(__file__))
+        self,
+        batch_size: int,
+        mixed_precision: bool,
+        learning_rate: float,
+        epochs: int,
+        output_path: str = os.path.dirname(os.path.abspath(__file__)),
     ):
 
         self.batch_size = batch_size
@@ -25,7 +30,7 @@ class TtsModels:
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-    def single_speaker_tacotron2_base(
+    def _single_speaker_tacotron2_base(
         self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
     ):
         config = Tacotron2Config(
@@ -71,7 +76,7 @@ class TtsModels:
         )
         return config
 
-    def single_speaker_tacotron2_DDC(
+    def _single_speaker_tacotron2_DDC(
         self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
@@ -134,7 +139,7 @@ class TtsModels:
         )
         return config
 
-    def single_speaker_tacotron2_DCA(
+    def _single_speaker_tacotron2_DCA(
         self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
@@ -189,7 +194,7 @@ class TtsModels:
         )
         return config
 
-    def single_speaker_glow_tts(self, audio, dataset, encoder):
+    def _single_speaker_glow_tts(self, audio, dataset, encoder):
         encoder_type = pick_glowtts_encoder(encoder)
         glowtts_config.audio = audio
         glowtts_config.batch_size = self.batch_size
@@ -203,7 +208,7 @@ class TtsModels:
         config = glowtts_config
         return config
 
-    def sc_glow_tts(self, audio, dataset, speaker_file, encoder):
+    def _sc_glow_tts(self, audio, dataset, speaker_file, encoder):
         encoder_type = pick_glowtts_encoder(encoder)
         config = GlowTTSConfig(
             audio=audio,
@@ -267,7 +272,7 @@ class TtsModels:
         )
         return config
 
-    def single_speaker_vits_tts(self, audio, dataset):
+    def _single_speaker_vits_tts(self, audio, dataset):
         vits_config.audio = audio
         vits_config.datasets = [dataset]
         vits_config.lr_gen = self.learning_rate
@@ -279,7 +284,7 @@ class TtsModels:
         config = vits_config
         return config
 
-    def vctk_vits_tts(self, audio, dataset, speaker_file):
+    def _vctk_vits_tts(self, audio, dataset, speaker_file):
         vits_config.audio = audio
         vits_config.datasets = [dataset]
         vits_config.lr_gen = self.learning_rate
@@ -314,7 +319,7 @@ class VocoderModels:
         self.discriminator_lr = discriminator_learning_rate
         self.epochs = epochs
 
-    def hifi_gan(self, audio, data_path):
+    def _hifi_gan(self, audio, data_path):
         hifigan_config.data_path = data_path
         hifigan_config.audio = audio
         hifigan_config.batch_size = self.batch_size
@@ -327,7 +332,7 @@ class VocoderModels:
         config = hifigan_config
         return config
 
-    def wavegrad(self, audio, datapath):
+    def _wavegrad(self, audio, datapath):
         wavegrad_config.audio = audio
         wavegrad_config.data_path = datapath
         wavegrad_config.batch_size = self.batch_size
@@ -340,7 +345,7 @@ class VocoderModels:
         config = wavegrad_config
         return config
 
-    def multiband_melgan(self, audio, data_path):
+    def _multiband_melgan(self, audio, data_path):
         multiband_melgan_config.audio = audio
         multiband_melgan_config.data_path = data_path
         multiband_melgan_config.batch_size = self.batch_size
@@ -353,7 +358,7 @@ class VocoderModels:
         config = multiband_melgan_config
         return config
 
-    def univnet(self, audio, data_path):
+    def _univnet(self, audio, data_path):
         univnet_config.audio = audio
         univnet_config.data_path = data_path
         univnet_config.batch_size = self.batch_size
@@ -366,7 +371,7 @@ class VocoderModels:
         config = univnet_config
         return config
 
-    def wavernn(self, audio, data_path):
+    def _wavernn(self, audio, data_path):
         waverrn_config.audio = audio
         waverrn_config.data_path = data_path
         waverrn_config.batch_size = self.batch_size
