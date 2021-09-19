@@ -12,7 +12,7 @@ from torch.utils.data.distributed import DistributedSampler
 from TTS.model import BaseModel
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
 from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text import make_symbols
@@ -334,6 +334,9 @@ class BaseTTS(BaseModel):
                 if getattr(config, "use_language_weighted_sampler", False):
                     print(" > Using Language weighted sampler")
                     sampler = get_language_weighted_sampler(dataset.items)
+                elif getattr(config, "use_speaker_weighted_sampler", False):
+                    print(" > Using Language weighted sampler")
+                    sampler = get_speaker_weighted_sampler(dataset.items)
 
 
             loader = DataLoader(
