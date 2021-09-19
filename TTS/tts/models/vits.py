@@ -181,16 +181,18 @@ class VitsArgs(Coqpit):
         num_languages (int):
             Number of languages for the language embedding layer. Defaults to 0.
 
-        use_speaker_encoder_as_loss (bool):
-            
+        use_speaker_encoder_as_loss (bool): 
+            Enable/Disable Speaker Consistency Loss (SCL). Defaults to False.
 
-    use_speaker_encoder_as_loss: bool = False
-    speaker_encoder_config_path: str = ""
-    speaker_encoder_model_path: str = ""
+        speaker_encoder_config_path (str):
+            Path to the file speaker encoder config file, to use for SCL. Defaults to "".
+        
+        speaker_encoder_model_path (str):
+            Path to the file speaker encoder checkpoint file, to use for SCL. Defaults to "".
 
         fine_tuning_mode (int):
             Fine tuning only the vocoder part of the model, while the rest will be frozen. Defaults to 0.
-                Mode 0: disabled;
+                Mode 0: Disabled;
                 Mode 1: uses the distribution predicted by the encoder and It's recommended for TTS;
                 Mode 2: uses the distribution predicted by the encoder and It's recommended for voice conversion.
     """
