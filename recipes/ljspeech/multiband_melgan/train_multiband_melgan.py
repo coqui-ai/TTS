@@ -24,6 +24,7 @@ config = MultibandMelganConfig(
     data_path=os.path.join(output_path, "../LJSpeech-1.1/wavs/"),
     output_path=output_path,
 )
-args, config, output_path, _, c_logger, dashboard_logger = init_training(TrainingArgs(), config)
-trainer = Trainer(args, config, output_path, c_logger, dashboard_logger)
-trainer.fit()
+if __name__ == "__main__":
+    args, config, output_path, _, c_logger, dashboard_logger = init_training(TrainingArgs(), config)
+    trainer = Trainer(args, config, output_path, c_logger, dashboard_logger)
+    trainer.fit()

@@ -224,6 +224,14 @@ class BaseTTS(BaseModel):
                 else None,
             )
 
+            if (
+                config.use_phonemes
+                and config.compute_input_seq_cache
+                and not os.path.exists(dataset.phoneme_cache_path)
+            ):
+                # precompute phonemes to have a better estimate of sequence lengths.
+                dataset.compute_input_seq(config.num_loader_workers)
+
             # pre-compute phonemes
             if config.use_phonemes and config.compute_input_seq_cache and rank in [None, 0]:
                 if hasattr(self, "eval_data_items") and is_eval:

@@ -47,6 +47,7 @@ config = VitsConfig(
     output_path=output_path,
     datasets=[dataset_config],
 )
-args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
-trainer = Trainer(args, config, output_path, c_logger, tb_logger, cudnn_benchmark=True)
-trainer.fit()
+if __name__ == "__main__":
+    args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
+    trainer = Trainer(args, config, output_path, c_logger, tb_logger, cudnn_benchmark=True)
+    trainer.fit()

@@ -110,8 +110,36 @@ We still support running training from CLI like in the old days. The same traini
     ```bash
     $ CUDA_VISIBLE_DEVICES="0" python TTS/bin/train_tts.py --config_path config.json
     ```
+### AUTO TTS Way
 
+This is a higher level way to quickly train models in both pure python and cli way.
+This is a breakdown of how you would use auto tts to train a model from scratch on ljspeech using
+a glow tts model.
 
+1. pure python
+```python
+from TTS.auto_tts.complete_recipes import TtsAutoTrainer
+
+trainer = TtsAutoTrainer(
+    data_path='Path to dataset/LJSpeech-1.1/', 
+    dataset = "ljspeech",
+    epochs=1000,
+    batch_size=32,
+    learning_rate=0.001,
+    mixed_precision=True, 
+    output_path='path to store config and model.', 
+    stats_path=None
+)
+
+model = trainer.single_speaker_autotts("glow tts")
+
+model.fit()
+```
+2. CLI
+ ```bash
+CUDA_VISIBLE_DEVICES="0" python single_speaker_autotts.py --data_path ../LJSpeech-1.1 --dataset ljspeech 
+--batch_size 32 --mixed_precision --model glow tts
+```
 
 ## Training a `vocoder` Model
 
