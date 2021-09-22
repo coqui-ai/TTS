@@ -10,13 +10,14 @@ class GST(nn.Module):
 
     def __init__(self, num_mel, num_heads, num_style_tokens, gst_embedding_dim, speaker_embedding_dim=None):
         super().__init__()
+        self.speaker_embedding_dim = speaker_embedding_dim
         self.encoder = ReferenceEncoder(num_mel, gst_embedding_dim)
         self.style_token_layer = StyleTokenLayer(num_heads, num_style_tokens, gst_embedding_dim, speaker_embedding_dim)
 
     def forward(self, inputs, speaker_embedding=None):
         enc_out = self.encoder(inputs)
         # concat speaker_embedding
-        if speaker_embedding is not None:
+        if self.speaker_embedding_dim is not None:
             enc_out = torch.cat([enc_out, speaker_embedding], dim=-1)
         style_embed = self.style_token_layer(enc_out)
 

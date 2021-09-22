@@ -2,13 +2,16 @@ from TTS.vocoder.utils.generic_utils import setup_generator
 import os
 import torch
 import time
+import IPython
 import pandas as pd
 from pathlib import Path
 from os.path import join
+import numpy as np
 import datetime
 
 from TTS.tts.utils.generic_utils import setup_model
 from TTS.utils.io import load_config
+from TTS.vocoder.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import symbols, phonemes
 from TTS.utils.audio import AudioProcessor
 from TTS.tts.utils.synthesis import synthesis
@@ -33,11 +36,13 @@ def tts(model, text, CONFIG, use_cuda, ap, use_gl, figures=True, reference_info=
     )
     mel_postnet_spec = ap.denormalize(mel_postnet_spec.T)
     if not use_gl:
-        waveform = vocoder_model.inference(torch.FloatTensor(mel_spec.T).unsqueeze(0))
+        mel_spec_tensor = torch.FloatTensor(mel_spec.T).unsqueeze(0).to(device=torch.device('cpu'))
+        waveform = vocoder_model.inference(mel_spec_tensor)
         waveform = waveform.flatten()
     if use_cuda:
         waveform = waveform
-    # waveform = waveform.numpy()
+    waveform = waveform.cpu()
+    waveform = waveform.numpy()
     rtf = (time.time() - t_1) / (len(waveform) / ap.sample_rate)
     tps = (time.time() - t_1) / len(waveform)
     print(waveform.shape)
@@ -54,22 +59,22 @@ use_cuda = False
 
 now = datetime.datetime.now()
 
-RUN_NAME = '300_128'
-TEST_PATH = Path(join(r'/Users/adamfroghyar/Models/Blizzard/', RUN_NAME, 'TESTING'))
+RUN_NAME = 'capacitron-noPreemphasis-256-LRCompressed-May-17-2021_03+27PM-fca955c'
+TEST_PATH = Path(join(r'/home/big-boy/Models/Blizzard/', RUN_NAME, 'TESTING'))
 CURRENT_TEST_PATH = Path(join(TEST_PATH, now.strftime("%Y-%m-%d %H:%M:%S")))
 TEST_PATH.mkdir(parents=True, exist_ok=True)
 
 CURRENT_TEST_PATH.mkdir(parents=True, exist_ok=True)
 
 # model paths
-TTS_MODEL = join(r'/Users/adamfroghyar/Models/Blizzard', RUN_NAME, 'best_model.pth.tar')
-TTS_CONFIG = join(r'/Users/adamfroghyar/Models/Blizzard', RUN_NAME, 'config.json')
-VOCODER_MODEL = "/Users/adamfroghyar/Models/BlizzardVocoder/WaveGrad/best_model.pth.tar"
-VOCODER_CONFIG = "/Users/adamfroghyar/Models/BlizzardVocoder/WaveGrad/config.json"
+TTS_MODEL = join(r'/home/big-boy/Models/Blizzard', RUN_NAME, 'best_model.pth.tar')
+TTS_CONFIG = join(r'/home/big-boy/Models/Blizzard', RUN_NAME, 'config.json')
+VOCODER_MODEL = "/home/big-boy/Models/BlizzardVocoder/hifigan-blizzard-fine-tuning-with-optimizer-and-scheduler-May-25-2021_02+29PM-dacd6c5/best_model.pth.tar"
+VOCODER_CONFIG = "/home/big-boy/Models/BlizzardVocoder/hifigan-blizzard-fine-tuning-with-optimizer-and-scheduler-May-25-2021_02+29PM-dacd6c5/config.json"
 
 # load configs
 TTS_CONFIG = load_config(TTS_CONFIG)
-# VOCODER_CONFIG = load_config(VOCODER_CONFIG)
+VOCODER_CONFIG = load_config(VOCODER_CONFIG)
 
 # load the audio processor
 # TTS_CONFIG.audio['stats_path'] = join(r'/home/big-boy/Models/Blizzard', 'blizzard-gts-March-17-2021_03+34PM-b4248b0', 'scale_stats.npy')
@@ -100,16 +105,32 @@ if 'r' in cp:
     model.decoder.set_r(cp['r'])
 
 ''' VOCODER '''
-# LOAD VOCODER MODEL
-# vocoder_model = setup_generator(VOCODER_CONFIG)
-# vocoder_model.load_state_dict(torch.load(VOCODER_MODEL, map_location="cpu")["model"])
-# vocoder_model.remove_weight_norm()
-# vocoder_model.inference_padding = 0
 
+# LOAD VOCODER MODEL
+# vocoder_model, state = load_checkpoint(vocoder_model, VOCODER_MODEL)
+vocoder_model = setup_generator(VOCODER_CONFIG)
+vocoder_model.load_state_dict(torch.load(VOCODER_MODEL, map_location="cpu")["model"])
+vocoder_model.remove_weight_norm()
+vocoder_model.inference_padding = 0
+
+ap_vocoder = AudioProcessor(**VOCODER_CONFIG['audio'])
+if use_cuda:
+    vocoder_model.cuda()
+vocoder_model.eval()
+
+# WAVEGRAD LOADING
+
+# vocoder_model = setup_generator(VOCODER_CONFIG)
+# cp = torch.load(VOCODER_MODEL, map_location="cpu")["model"]
+# vocoder_model.load_state_dict(cp)
+# scale_factor = [1, VOCODER_CONFIG['audio']['sample_rate'] / ap.sample_rate]
+# print(f"scale_factor: {scale_factor}")
 # ap_vocoder = AudioProcessor(**VOCODER_CONFIG['audio'])
 # if use_cuda:
 #     vocoder_model.cuda()
 # vocoder_model.eval()
+# vocoder_model.compute_noise_level(np.linspace(1e-6, 1e-2, 50)) #compute_noise_level(50, 1e-6, 1e-2)
+
 
 sentences = [
     "Sixty-Four comes asking for bread.",
@@ -126,15 +147,15 @@ sentences = [
     "She had a habit of taking showers in lemonade."
 ]
 
-single_sentence = "Reality is the sum or aggregate of all that is real or existent within a system, as opposed to that which is only imaginary."
+single_sentence = "That should actually be a quick fix to fix."
 
-SAMPLE_FROM = 'posterior' # 'prior' or 'posterior'
+SAMPLE_FROM = 'prior' # 'prior' or 'posterior'
 TEXT = 'single_sentence' # 'same_text' or 'sentences' or 'single_sentence'
 TXT_DEPENDENCY = True
 
 ''' Run Inference '''
-reference_df = pd.read_csv(Path('/Users/adamfroghyar/Data/refs_metadata.csv'), header=None, names=['ID', 'Text'], sep='|', delimiter=None)
-# # reference_df = pd.read_csv(Path('/home/big-boy/Data/LJSpeech-1.1/refs_metadata.csv'), header=None, names=['ID', 'Text'], sep='|', delimiter=None)
+reference_df = pd.read_csv(Path('/home/big-boy/Data/blizzard2013/segmented/refs_metadata.csv'), header=None, names=['ID', 'Text'], sep='|', delimiter=None)
+# reference_df = pd.read_csv(Path('/home/big-boy/Data/LJSpeech-1.1/refs_metadata.csv'), header=None, names=['ID', 'Text'], sep='|', delimiter=None)
 
 for row in reference_df.iterrows():
     i = row[0]
@@ -146,7 +167,7 @@ for row in reference_df.iterrows():
     if TEXT == 'single_sentence':
         sentence = single_sentence
 
-    reference_path = '/Users/adamfroghyar/Data/refs/seen/{}.wav'.format(_id)
+    reference_path = '/home/big-boy/Data/blizzard2013/segmented/refs/seen/{}.wav'.format(_id)
     reference_txt = reference_txt if TXT_DEPENDENCY else None
 
     refs = [reference_path, reference_txt] if SAMPLE_FROM == 'posterior' else None
@@ -157,7 +178,7 @@ for row in reference_df.iterrows():
         TTS_CONFIG,
         use_cuda,
         ap,
-        use_gl=True,
+        use_gl=False,
         figures=True,
         reference_info=refs,
         style_wav=reference_path
@@ -167,4 +188,3 @@ for row in reference_df.iterrows():
     file_id = _id if TEXT == 'single_sentence' or TEXT == 'same_text' and SAMPLE_FROM != 'prior' else i
 
     ap.save_wav(wav, join(CURRENT_TEST_PATH, 'GMM_{}_{}.wav'.format(file_handle, file_id)))
-
