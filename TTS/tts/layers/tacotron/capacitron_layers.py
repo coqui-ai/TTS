@@ -10,10 +10,10 @@ class CapacitronVAE(nn.Module):
 
     def __init__(self, num_mel, capacitron_embedding_dim, text_encoder_output_dim=256, reference_encoder_out_dim=128, speaker_embedding_dim=None, text_summary_embedding_dim=None):
         super().__init__()
-        # Init distributions
         self.prior_distribution = MVN(torch.zeros(capacitron_embedding_dim), torch.eye(capacitron_embedding_dim))
         self.approximate_posterior_distribution = None
-        # define output ReferenceEncoder dim to the capacitron_embedding_dim
+        
+        # Reference_encoder_out_dim also referred to as structural capacity or embedding dimensionality in literature
         self.encoder = ReferenceEncoder(num_mel, out_dim=reference_encoder_out_dim)
 
         # Init beta, the lagrange-like term for the KL distribution
@@ -24,7 +24,6 @@ class CapacitronVAE(nn.Module):
             self.text_summary_net = TextSummary(text_summary_embedding_dim, text_encoder_output_dim=text_encoder_output_dim)
             mlp_input_dimension += text_summary_embedding_dim
         if speaker_embedding_dim is not None:
-            # TODO: Figure out what to do with speaker_embedding_dim
             mlp_input_dimension += speaker_embedding_dim
         self.post_encoder_mlp = PostEncoderMLP(mlp_input_dimension, capacitron_embedding_dim)
 
@@ -165,7 +164,6 @@ class TextSummary(nn.Module):
                             bidirectional=False)
 
     def forward(self, inputs, input_lengths):
-        # TODO deal with inference - input lengths is not a tensor but just a single number
         # Routine for fetching the last valid output of a dynamic LSTM with varying input lengths and padding
         packed_seqs = nn.utils.rnn.pack_padded_sequence(inputs, input_lengths.tolist(), batch_first=True, enforce_sorted=False) # dynamic rnn sequence padding
         self.lstm.flatten_parameters()
@@ -186,8 +184,6 @@ class PostEncoderMLP(nn.Module):
 
     def forward(self, _input):
         mlp_output = self.net(_input)
-        # The mean parameter is unconstrained
-        mu = mlp_output[:, :self.hidden_size]
-        # The standard deviation must be positive. Parameterise with a softplus
-        sigma = self.softplus(mlp_output[:, self.hidden_size:])
+        mu = mlp_output[:, :self.hidden_size] # The mean parameter is unconstrained
+        sigma = self.softplus(mlp_output[:, self.hidden_size:]) # The standard deviation must be positive. Parameterise with a softplus
         return mu, sigma

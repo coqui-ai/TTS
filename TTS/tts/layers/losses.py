@@ -400,10 +400,8 @@ class TacotronLoss(torch.nn.Module):
             # KL divergence term between the posterior and the prior
             kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
 
-            # In the Capacitron the authors do not use the the negative KL_term, instead they uses a capacity factor
+            # Regulate the KL-term with the variational capacity setting
             kl_capacity = (kl_term - self.capacitron_capacity)
-
-            # pass beta through softplus
             beta = torch.nn.functional.softplus(beta)[0]
 
             # This is the term going to the main ADAM optimiser, we detach beta because
@@ -425,7 +423,6 @@ class TacotronLoss(torch.nn.Module):
 
             capacitron_vae_loss = capacitron_vae_loss / (T * D)
             capacitron_vae_loss = capacitron_vae_loss * self.capacitron_vae_loss_alpha
-
 
             # This is the term to purely optimise beta and to pass into the SGD
             beta_loss = torch.negative(beta) * kl_capacity.detach()
