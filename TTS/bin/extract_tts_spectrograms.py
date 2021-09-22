@@ -10,11 +10,10 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from TTS.config import load_config
-from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.tts.datasets.TTSDataset import MyDataset
-from TTS.tts.utils.generic_utils import setup_model
-from TTS.tts.utils.speakers import parse_speakers
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.tts.datasets import load_meta_data
+from TTS.tts.datasets.TTSDataset import TTSDataset
+from TTS.tts.models import setup_model
+from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters
 
@@ -22,13 +21,13 @@ use_cuda = torch.cuda.is_available()
 
 
 def setup_loader(ap, r, verbose=False):
-    dataset = MyDataset(
+    dataset = TTSDataset(
         r,
         c.text_cleaner,
         compute_linear_spec=False,
         meta_data=meta_data,
         ap=ap,
-        tp=c.characters if "characters" in c.keys() else None,
+        characters=c.characters if "characters" in c.keys() else None,
         add_blank=c["add_blank"] if "add_blank" in c.keys() else False,
         batch_group_size=0,
         min_seq_len=c.min_seq_len,
@@ -39,13 +38,14 @@ def setup_loader(ap, r, verbose=False):
         enable_eos_bos=c.enable_eos_bos_chars,
         use_noise_augment=False,
         verbose=verbose,
-        speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None,
+        speaker_id_mapping=speaker_manager.speaker_ids,
+        d_vector_mapping=speaker_manager.d_vectors if c.use_speaker_embedding and c.use_d_vector_file else None,
     )
 
     if c.use_phonemes and c.compute_input_seq_cache:
         # precompute phonemes to have a better estimate of sequence lengths.
         dataset.compute_input_seq(c.num_loader_workers)
-    dataset.sort_items()
+    dataset.sort_and_filter_items(c.get("sort_by_audio_len", default=False))
 
     loader = DataLoader(
         dataset,
@@ -76,27 +76,16 @@ def set_filename(wav_path, out_path):
 
 def format_data(data):
     # setup input data
-    text_input = data[0]
-    text_lengths = data[1]
-    speaker_names = data[2]
-    mel_input = data[4]
-    mel_lengths = data[5]
-    item_idx = data[7]
-    attn_mask = data[9]
+    text_input = data["text"]
+    text_lengths = data["text_lengths"]
+    mel_input = data["mel"]
+    mel_lengths = data["mel_lengths"]
+    item_idx = data["item_idxs"]
+    d_vectors = data["d_vectors"]
+    speaker_ids = data["speaker_ids"]
+    attn_mask = data["attns"]
     avg_text_length = torch.mean(text_lengths.float())
     avg_spec_length = torch.mean(mel_lengths.float())
-
-    if c.use_speaker_embedding:
-        if c.use_external_speaker_embedding_file:
-            speaker_embeddings = data[8]
-            speaker_ids = None
-        else:
-            speaker_ids = [speaker_mapping[speaker_name] for speaker_name in speaker_names]
-            speaker_ids = torch.LongTensor(speaker_ids)
-            speaker_embeddings = None
-    else:
-        speaker_embeddings = None
-        speaker_ids = None
 
     # dispatch data to GPU
     if use_cuda:
@@ -106,9 +95,8 @@ def format_data(data):
         mel_lengths = mel_lengths.cuda(non_blocking=True)
         if speaker_ids is not None:
             speaker_ids = speaker_ids.cuda(non_blocking=True)
-        if speaker_embeddings is not None:
-            speaker_embeddings = speaker_embeddings.cuda(non_blocking=True)
-
+        if d_vectors is not None:
+            d_vectors = d_vectors.cuda(non_blocking=True)
         if attn_mask is not None:
             attn_mask = attn_mask.cuda(non_blocking=True)
     return (
@@ -117,7 +105,7 @@ def format_data(data):
         mel_input,
         mel_lengths,
         speaker_ids,
-        speaker_embeddings,
+        d_vectors,
         avg_text_length,
         avg_spec_length,
         attn_mask,
@@ -134,32 +122,29 @@ def inference(
     text_lengths,
     mel_input,
     mel_lengths,
-    attn_mask=None,
     speaker_ids=None,
-    speaker_embeddings=None,
+    d_vectors=None,
 ):
     if model_name == "glow_tts":
-        mel_input = mel_input.permute(0, 2, 1)  # B x D x T
         speaker_c = None
         if speaker_ids is not None:
             speaker_c = speaker_ids
-        elif speaker_embeddings is not None:
-            speaker_c = speaker_embeddings
-
-        model_output, *_ = model.inference_with_MAS(
-            text_input, text_lengths, mel_input, mel_lengths, attn_mask, g=speaker_c
-        )
-        model_output = model_output.transpose(1, 2).detach().cpu().numpy()
-
-    elif "tacotron" in model_name:
-        _, postnet_outputs, *_ = model(
+        elif d_vectors is not None:
+            speaker_c = d_vectors
+        outputs = model.inference_with_MAS(
             text_input,
             text_lengths,
             mel_input,
             mel_lengths,
-            speaker_ids=speaker_ids,
-            speaker_embeddings=speaker_embeddings,
+            aux_input={"d_vectors": speaker_c, "speaker_ids": speaker_ids},
         )
+        model_output = outputs["model_outputs"]
+        model_output = model_output.transpose(1, 2).detach().cpu().numpy()
+
+    elif "tacotron" in model_name:
+        aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
+        outputs = model(text_input, text_lengths, mel_input, mel_lengths, aux_input)
+        postnet_outputs = outputs["model_outputs"]
         # normalize tacotron output
         if model_name == "tacotron":
             mel_specs = []
@@ -188,10 +173,10 @@ def extract_spectrograms(
             mel_input,
             mel_lengths,
             speaker_ids,
-            speaker_embeddings,
+            d_vectors,
             _,
             _,
-            attn_mask,
+            _,
             item_idx,
         ) = format_data(data)
 
@@ -203,9 +188,8 @@ def extract_spectrograms(
             text_lengths,
             mel_input,
             mel_lengths,
-            attn_mask,
             speaker_ids,
-            speaker_embeddings,
+            d_vectors,
         )
 
         for idx in range(text_input.shape[0]):
@@ -233,39 +217,32 @@ def extract_spectrograms(
                 wav = ap.inv_melspectrogram(mel)
                 ap.save_wav(wav, wav_gl_path)
 
-    with open(os.path.join(output_path, metada_name), "w") as f:
+    with open(os.path.join(output_path, metada_name), "w", encoding="utf-8") as f:
         for data in export_metadata:
             f.write(f"{data[0]}|{data[1]+'.npy'}\n")
 
 
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
-    global meta_data, symbols, phonemes, model_characters, speaker_mapping
+    global meta_data, speaker_manager
 
     # Audio processor
     ap = AudioProcessor(**c.audio)
-    if "characters" in c.keys() and c["characters"]:
-        symbols, phonemes = make_symbols(**c.characters)
-
-    # set model characters
-    model_characters = phonemes if c.use_phonemes else symbols
-    num_chars = len(model_characters)
 
     # load data instances
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets)
+    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=args.eval)
 
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval
 
     # parse speakers
-    num_speakers, speaker_embedding_dim, speaker_mapping = parse_speakers(c, args, meta_data_train, None)
+    speaker_manager = get_speaker_manager(c, args, meta_data_train)
 
     # setup model
-    model = setup_model(num_chars, num_speakers, c, speaker_embedding_dim=speaker_embedding_dim)
+    model = setup_model(c)
 
     # restore model
-    checkpoint = torch.load(args.checkpoint_path, map_location="cpu")
-    model.load_state_dict(checkpoint["model"])
+    model.load_checkpoint(c, args.checkpoint_path, eval=True)
 
     if use_cuda:
         model.cuda()
@@ -296,7 +273,9 @@ if __name__ == "__main__":
     parser.add_argument("--debug", default=False, action="store_true", help="Save audio files for debug")
     parser.add_argument("--save_audio", default=False, action="store_true", help="Save audio files")
     parser.add_argument("--quantized", action="store_true", help="Save quantized audio files")
+    parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
     args = parser.parse_args()
 
     c = load_config(args.config_path)
+    c.audio.trim_silence = False
     main(args)

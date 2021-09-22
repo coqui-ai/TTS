@@ -1,12 +1,13 @@
-import queue
 import random
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from TTS.speaker_encoder.utils.generic_utils import AugmentWAV, Storage
 
-class MyDataset(Dataset):
+
+class SpeakerEncoderDataset(Dataset):
     def __init__(
         self,
         ap,
@@ -15,10 +16,10 @@ class MyDataset(Dataset):
         num_speakers_in_batch=64,
         storage_size=1,
         sample_from_storage_p=0.5,
-        additive_noise=0,
         num_utter_per_speaker=10,
         skip_speakers=False,
         verbose=False,
+        augmentation_config=None,
     ):
         """
         Args:
@@ -30,7 +31,6 @@ class MyDataset(Dataset):
         super().__init__()
         self.items = meta_data
         self.sample_rate = ap.sample_rate
-        self.voice_len = voice_len
         self.seq_len = int(voice_len * self.sample_rate)
         self.num_speakers_in_batch = num_speakers_in_batch
         self.num_utter_per_speaker = num_utter_per_speaker
@@ -38,15 +38,32 @@ class MyDataset(Dataset):
         self.ap = ap
         self.verbose = verbose
         self.__parse_items()
-        self.storage = queue.Queue(maxsize=storage_size * num_speakers_in_batch)
+        storage_max_size = storage_size * num_speakers_in_batch
+        self.storage = Storage(
+            maxsize=storage_max_size, storage_batchs=storage_size, num_speakers_in_batch=num_speakers_in_batch
+        )
         self.sample_from_storage_p = float(sample_from_storage_p)
-        self.additive_noise = float(additive_noise)
+
+        speakers_aux = list(self.speakers)
+        speakers_aux.sort()
+        self.speakerid_to_classid = {key: i for i, key in enumerate(speakers_aux)}
+
+        # Augmentation
+        self.augmentator = None
+        self.gaussian_augmentation_config = None
+        if augmentation_config:
+            self.data_augmentation_p = augmentation_config["p"]
+            if self.data_augmentation_p and ("additive" in augmentation_config or "rir" in augmentation_config):
+                self.augmentator = AugmentWAV(ap, augmentation_config)
+
+            if "gaussian" in augmentation_config.keys():
+                self.gaussian_augmentation_config = augmentation_config["gaussian"]
+
         if self.verbose:
             print("\n > DataLoader initialization")
             print(f" | > Speakers per Batch: {num_speakers_in_batch}")
-            print(f" | > Storage Size: {self.storage.maxsize} speakers, each with {num_utter_per_speaker} utters")
+            print(f" | > Storage Size: {storage_max_size} instances, each with {num_utter_per_speaker} utters")
             print(f" | > Sample_from_storage_p : {self.sample_from_storage_p}")
-            print(f" | > Noise added : {self.additive_noise}")
             print(f" | > Number of instances : {len(self.items)}")
             print(f" | > Sequence length: {self.seq_len}")
             print(f" | > Num speakers: {len(self.speakers)}")
@@ -90,28 +107,21 @@ class MyDataset(Dataset):
 
         self.speakers = [k for (k, v) in self.speaker_to_utters.items()]
 
-    # def __parse_items(self):
-    #     """
-    #     Find unique speaker ids and create a dict mapping utterances from speaker id
-    #     """
-    #     speakers = list({item[-1] for item in self.items})
-    #     self.speaker_to_utters = {}
-    #     self.speakers = []
-    #     for speaker in speakers:
-    #         speaker_utters = [item[1] for item in self.items if item[2] == speaker]
-    #         if len(speaker_utters) < self.num_utter_per_speaker and self.skip_speakers:
-    #             print(
-    #                 f" [!] Skipped speaker {speaker}. Not enough utterances {self.num_utter_per_speaker} vs {len(speaker_utters)}."
-    #             )
-    #         else:
-    #             self.speakers.append(speaker)
-    #             self.speaker_to_utters[speaker] = speaker_utters
-
     def __len__(self):
         return int(1e10)
 
-    def __sample_speaker(self):
+    def get_num_speakers(self):
+        return len(self.speakers)
+
+    def __sample_speaker(self, ignore_speakers=None):
         speaker = random.sample(self.speakers, 1)[0]
+        # if list of speakers_id is provide make sure that it's will be ignored
+        if ignore_speakers and self.speakerid_to_classid[speaker] in ignore_speakers:
+            while True:
+                speaker = random.sample(self.speakers, 1)[0]
+                if self.speakerid_to_classid[speaker] not in ignore_speakers:
+                    break
+
         if self.num_utter_per_speaker > len(self.speaker_to_utters[speaker]):
             utters = random.choices(self.speaker_to_utters[speaker], k=self.num_utter_per_speaker)
         else:
@@ -127,54 +137,117 @@ class MyDataset(Dataset):
         for _ in range(self.num_utter_per_speaker):
             # TODO:dummy but works
             while True:
-                if len(self.speaker_to_utters[speaker]) > 0:
+                # remove speakers that have num_utter less than 2
+                if len(self.speaker_to_utters[speaker]) > 1:
                     utter = random.sample(self.speaker_to_utters[speaker], 1)[0]
                 else:
-                    self.speakers.remove(speaker)
+                    if speaker in self.speakers:
+                        self.speakers.remove(speaker)
+
                     speaker, _ = self.__sample_speaker()
                     continue
+
                 wav = self.load_wav(utter)
                 if wav.shape[0] - self.seq_len > 0:
                     break
-                self.speaker_to_utters[speaker].remove(utter)
+
+                if utter in self.speaker_to_utters[speaker]:
+                    self.speaker_to_utters[speaker].remove(utter)
+
+            if self.augmentator is not None and self.data_augmentation_p:
+                if random.random() < self.data_augmentation_p:
+                    wav = self.augmentator.apply_one(wav)
 
             wavs.append(wav)
-            labels.append(speaker)
+            labels.append(self.speakerid_to_classid[speaker])
         return wavs, labels
 
     def __getitem__(self, idx):
         speaker, _ = self.__sample_speaker()
-        return speaker
+        speaker_id = self.speakerid_to_classid[speaker]
+        return speaker, speaker_id
+
+    def __load_from_disk_and_storage(self, speaker):
+        # don't sample from storage, but from HDD
+        wavs_, labels_ = self.__sample_speaker_utterances(speaker)
+        # put the newly loaded item into storage
+        self.storage.append((wavs_, labels_))
+        return wavs_, labels_
 
     def collate_fn(self, batch):
+        # get the batch speaker_ids
+        batch = np.array(batch)
+        speakers_id_in_batch = set(batch[:, 1].astype(np.int32))
+
         labels = []
         feats = []
-        for speaker in batch:
+        speakers = set()
+
+        for speaker, speaker_id in batch:
+            speaker_id = int(speaker_id)
+
+            # ensure that an speaker appears only once in the batch
+            if speaker_id in speakers:
+
+                # remove current speaker
+                if speaker_id in speakers_id_in_batch:
+                    speakers_id_in_batch.remove(speaker_id)
+
+                speaker, _ = self.__sample_speaker(ignore_speakers=speakers_id_in_batch)
+                speaker_id = self.speakerid_to_classid[speaker]
+                speakers_id_in_batch.add(speaker_id)
+
             if random.random() < self.sample_from_storage_p and self.storage.full():
-                # sample from storage (if full), ignoring the speaker
-                wavs_, labels_ = random.choice(self.storage.queue)
+                # sample from storage (if full)
+                wavs_, labels_ = self.storage.get_random_sample_fast()
+
+                # force choose the current speaker or other not in batch
+                # It's necessary for ideal training with AngleProto and GE2E losses
+                if labels_[0] in speakers_id_in_batch and labels_[0] != speaker_id:
+                    attempts = 0
+                    while True:
+                        wavs_, labels_ = self.storage.get_random_sample_fast()
+                        if labels_[0] == speaker_id or labels_[0] not in speakers_id_in_batch:
+                            break
+
+                        attempts += 1
+                        # Try 5 times after that load from disk
+                        if attempts >= 5:
+                            wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
+                            break
             else:
                 # don't sample from storage, but from HDD
-                wavs_, labels_ = self.__sample_speaker_utterances(speaker)
-                # if storage is full, remove an item
-                if self.storage.full():
-                    _ = self.storage.get_nowait()
-                # put the newly loaded item into storage
-                self.storage.put_nowait((wavs_, labels_))
+                wavs_, labels_ = self.__load_from_disk_and_storage(speaker)
 
-            # add random gaussian noise
-            if self.additive_noise > 0:
-                noises_ = [np.random.normal(0, self.additive_noise, size=len(w)) for w in wavs_]
-                wavs_ = [wavs_[i] + noises_[i] for i in range(len(wavs_))]
+            # append speaker for control
+            speakers.add(labels_[0])
 
-            # get a random subset of each of the wavs and convert to MFCC.
-            offsets_ = [random.randint(0, wav.shape[0] - self.seq_len) for wav in wavs_]
-            mels_ = [
-                self.ap.melspectrogram(wavs_[i][offsets_[i] : offsets_[i] + self.seq_len]) for i in range(len(wavs_))
-            ]
-            feats_ = [torch.FloatTensor(mel) for mel in mels_]
+            # remove current speaker and append other
+            if speaker_id in speakers_id_in_batch:
+                speakers_id_in_batch.remove(speaker_id)
 
-            labels.append(labels_)
+            speakers_id_in_batch.add(labels_[0])
+
+            # get a random subset of each of the wavs and extract mel spectrograms.
+            feats_ = []
+            for wav in wavs_:
+                offset = random.randint(0, wav.shape[0] - self.seq_len)
+                wav = wav[offset : offset + self.seq_len]
+                # add random gaussian noise
+                if self.gaussian_augmentation_config and self.gaussian_augmentation_config["p"]:
+                    if random.random() < self.gaussian_augmentation_config["p"]:
+                        wav += np.random.normal(
+                            self.gaussian_augmentation_config["min_amplitude"],
+                            self.gaussian_augmentation_config["max_amplitude"],
+                            size=len(wav),
+                        )
+                mel = self.ap.melspectrogram(wav)
+                feats_.append(torch.FloatTensor(mel))
+
+            labels.append(torch.LongTensor(labels_))
             feats.extend(feats_)
+
         feats = torch.stack(feats)
+        labels = torch.stack(labels)
+
         return feats.transpose(1, 2), labels

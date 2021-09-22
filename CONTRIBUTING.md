@@ -2,10 +2,11 @@
 
 Welcome to the 🐸TTS!
 
-This repository is governed by the Contributor Covenant Code of Conduct - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+This repository is governed by [the Contributor Covenant Code of Conduct](https://github.com/coqui-ai/TTS/blob/main/CODE_OF_CONDUCT.md).
 
 ## Where to start.
 We welcome everyone who likes to contribute to 🐸TTS.
+
 You can contribute not only with code but with bug reports, comments, questions, answers, or just a simple tweet to spread the word.
 
 If you like to contribute code, squash a bug but if you don't know where to start, here are some pointers.
@@ -25,6 +26,16 @@ If you like to contribute code, squash a bug but if you don't know where to star
     We list all the target improvements for the next version. You can pick one of them and start contributing.
 
 - Also feel free to suggest new features, ideas and models. We're always open for new things.
+#####Call for sharing language models
+If possible, please consider sharing your pre-trained models in any language (if the licences allow for you to do so). We will include them in our model catalogue for public use and give the proper attribution, whether it be your name, company, website or any other source specified.
+
+This model can be shared in two ways:
+1. Share the model files with us and we serve them with the next 🐸 TTS release.
+2. Upload your models on GDrive and share the link.
+
+Models are served under `.models.json` file and any model is available under TTS CLI or Server end points.
+
+Either way you choose, please make sure you send the models [here](https://github.com/coqui-ai/TTS/issues/380). 
 ## Sending a ✨**PR**✨
 
 If you have a new feature, a model to implement, or a bug to squash, go ahead and send a ✨**PR**✨.

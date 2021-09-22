@@ -1,18 +1,6 @@
-"""
-Cleaners are transformations that run over the input text at both training and eval time.
-
-Cleaners can be selected by passing a comma-delimited list of cleaner names as the "cleaners"
-hyperparameter. Some cleaners are English-specific. You'll typically want to use:
-  1. "english_cleaners" for English text
-  2. "transliteration_cleaners" for non-English text that can be transliterated to ASCII using
-     the Unidecode library (https://pypi.python.org/pypi/Unidecode)
-  3. "basic_cleaners" if you do not want to transliterate (in this case, you should also update
-     the symbols in symbols.py to match your data).
-"""
-
 import re
 
-from unidecode import unidecode
+from anyascii import anyascii
 
 from TTS.tts.utils.text.chinese_mandarin.numbers import replace_numbers_to_characters_in_text
 
@@ -47,7 +35,7 @@ def collapse_whitespace(text):
 
 
 def convert_to_ascii(text):
-    return unidecode(text)
+    return anyascii(text)
 
 
 def remove_aux_symbols(text):
@@ -77,7 +65,7 @@ def basic_cleaners(text):
 
 def transliteration_cleaners(text):
     """Pipeline for non-English text that transliterates to ASCII."""
-    text = convert_to_ascii(text)
+    # text = convert_to_ascii(text)
     text = lowercase(text)
     text = collapse_whitespace(text)
     return text
@@ -101,7 +89,7 @@ def basic_turkish_cleaners(text):
 
 def english_cleaners(text):
     """Pipeline for English text, including number and abbreviation expansion."""
-    text = convert_to_ascii(text)
+    # text = convert_to_ascii(text)
     text = lowercase(text)
     text = expand_time_english(text)
     text = expand_numbers(text)
@@ -141,7 +129,7 @@ def chinese_mandarin_cleaners(text: str) -> str:
 def phoneme_cleaners(text):
     """Pipeline for phonemes mode, including number and abbreviation expansion."""
     text = expand_numbers(text)
-    text = convert_to_ascii(text)
+    # text = convert_to_ascii(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
     text = remove_aux_symbols(text)

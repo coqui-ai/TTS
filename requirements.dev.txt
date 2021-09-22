@@ -2,4 +2,4 @@ black
 coverage
 isort
 nose
-pylint==2.7.4
+pylint==2.10.2

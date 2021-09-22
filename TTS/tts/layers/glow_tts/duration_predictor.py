@@ -6,16 +6,19 @@ from ..generic.normalization import LayerNorm
 
 class DurationPredictor(nn.Module):
     """Glow-TTS duration prediction model.
-    [2 x (conv1d_kxk -> relu -> layer_norm -> dropout)] -> conv1d_1x1 -> durs
 
-        Args:
-            in_channels ([type]): [description]
-            hidden_channels ([type]): [description]
-            kernel_size ([type]): [description]
-            dropout_p ([type]): [description]
+    ::
+
+        [2 x (conv1d_kxk -> relu -> layer_norm -> dropout)] -> conv1d_1x1 -> durs
+
+    Args:
+        in_channels (int): Number of channels of the input tensor.
+        hidden_channels (int): Number of hidden channels of the network.
+        kernel_size (int): Kernel size for the conv layers.
+        dropout_p (float): Dropout rate used after each conv layer.
     """
 
-    def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p):
+    def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p, cond_channels=None):
         super().__init__()
         # class arguments
         self.in_channels = in_channels
@@ -30,16 +33,18 @@ class DurationPredictor(nn.Module):
         self.norm_2 = LayerNorm(hidden_channels)
         # output layer
         self.proj = nn.Conv1d(hidden_channels, 1, 1)
+        if cond_channels is not None and cond_channels != 0:
+            self.cond = nn.Conv1d(cond_channels, in_channels, 1)
 
-    def forward(self, x, x_mask):
+    def forward(self, x, x_mask, g=None):
         """
         Shapes:
-            x: [B, C, T]
-            x_mask: [B, 1, T]
-
-        Returns:
-            [type]: [description]
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
+            - g: :math:`[B, C, 1]`
         """
+        if g is not None:
+            x = x + self.cond(g)
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
         x = self.norm_1(x)

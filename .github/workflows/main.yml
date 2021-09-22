@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8]
-
+        python-version: [3.6, 3.7, 3.8, 3.9]
+        experimental: [false]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v1

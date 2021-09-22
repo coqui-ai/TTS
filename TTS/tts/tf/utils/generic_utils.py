@@ -2,6 +2,7 @@ import datetime
 import importlib
 import pickle
 
+import fsspec
 import numpy as np
 import tensorflow as tf
 
@@ -16,11 +17,13 @@ def save_checkpoint(model, optimizer, current_step, epoch, r, output_path, **kwa
         "r": r,
     }
     state.update(kwargs)
-    pickle.dump(state, open(output_path, "wb"))
+    with fsspec.open(output_path, "wb") as f:
+        pickle.dump(state, f)
 
 
 def load_checkpoint(model, checkpoint_path):
-    checkpoint = pickle.load(open(checkpoint_path, "rb"))
+    with fsspec.open(checkpoint_path, "rb") as f:
+        checkpoint = pickle.load(f)
     chkp_var_dict = {var.name: var.numpy() for var in checkpoint["model"]}
     tf_vars = model.weights
     for tf_var in tf_vars:
@@ -44,8 +47,7 @@ def sequence_mask(sequence_length, max_len=None):
     batch_size = sequence_length.size(0)
     seq_range = np.empty([0, max_len], dtype=np.int8)
     seq_range_expand = seq_range.unsqueeze(0).expand(batch_size, max_len)
-    if sequence_length.is_cuda:
-        seq_range_expand = seq_range_expand.cuda()
+    seq_range_expand = seq_range_expand.type_as(sequence_length)
     seq_length_expand = sequence_length.unsqueeze(1).expand_as(seq_range_expand)
     # B x T_max
     return seq_range_expand < seq_length_expand
@@ -84,7 +86,7 @@ def setup_model(num_chars, num_speakers, c, enable_tflite=False):
         num_chars=num_chars,
         num_speakers=num_speakers,
         r=c.r,
-        postnet_output_dim=c.audio["num_mels"],
+        out_channels=c.audio["num_mels"],
         decoder_output_dim=c.audio["num_mels"],
         attn_type=c.attention_type,
         attn_win=c.windowing,

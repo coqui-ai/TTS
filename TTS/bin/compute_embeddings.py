@@ -1,87 +1,47 @@
 import argparse
-import glob
 import os
+from argparse import RawTextHelpFormatter
 
-import numpy as np
-import torch
 from tqdm import tqdm
 
-from TTS.speaker_encoder.model import SpeakerEncoder
-from TTS.tts.datasets.preprocess import load_meta_data
-from TTS.tts.utils.speakers import save_speaker_mapping
-from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from TTS.config import load_config
+from TTS.tts.datasets import load_meta_data
+from TTS.tts.utils.speakers import SpeakerManager
 
 parser = argparse.ArgumentParser(
-    description='Compute embedding vectors for each wav file in a dataset. If "target_dataset" is defined, it generates "speakers.json" necessary for training a multi-speaker model.'
+    description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
+    """
+    Example runs:
+    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth.tar speaker_encoder_config.json  dataset_config.json embeddings_output_path/
+    """,
+    formatter_class=RawTextHelpFormatter,
 )
-parser.add_argument("model_path", type=str, help="Path to model outputs (checkpoint, tensorboard etc.).")
+parser.add_argument("model_path", type=str, help="Path to model checkpoint file.")
 parser.add_argument(
     "config_path",
     type=str,
-    help="Path to config file for training.",
+    help="Path to model config file.",
 )
-parser.add_argument("data_path", type=str, help="Data path for wav files - directory or CSV file")
-parser.add_argument("output_path", type=str, help="path for training outputs.")
+
 parser.add_argument(
-    "--target_dataset",
+    "config_dataset_path",
     type=str,
-    default="",
-    help="Target dataset to pick a processor from TTS.tts.dataset.preprocess. Necessary to create a speakers.json file.",
+    help="Path to dataset config file.",
 )
-parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=False)
-parser.add_argument("--separator", type=str, help="Separator used in file if CSV is passed for data_path", default="|")
+parser.add_argument("output_path", type=str, help="path for output speakers.json and/or speakers.npy.")
+parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
+parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
+
 args = parser.parse_args()
 
+c_dataset = load_config(args.config_dataset_path)
 
-c = load_config(args.config_path)
-ap = AudioProcessor(**c["audio"])
+meta_data_train, meta_data_eval = load_meta_data(c_dataset.datasets, eval_split=args.eval)
+wav_files = meta_data_train + meta_data_eval
 
-data_path = args.data_path
-split_ext = os.path.splitext(data_path)
-sep = args.separator
-
-if args.target_dataset != "":
-    # if target dataset is defined
-    dataset_config = [
-        {"name": args.target_dataset, "path": args.data_path, "meta_file_train": None, "meta_file_val": None},
-    ]
-    wav_files, _ = load_meta_data(dataset_config, eval_split=False)
-    output_files = [wav_file[1].replace(data_path, args.output_path).replace(".wav", ".npy") for wav_file in wav_files]
-else:
-    # if target dataset is not defined
-    if len(split_ext) > 0 and split_ext[1].lower() == ".csv":
-        # Parse CSV
-        print(f"CSV file: {data_path}")
-        with open(data_path) as f:
-            wav_path = os.path.join(os.path.dirname(data_path), "wavs")
-            wav_files = []
-            print(f"Separator is: {sep}")
-            for line in f:
-                components = line.split(sep)
-                if len(components) != 2:
-                    print("Invalid line")
-                    continue
-                wav_file = os.path.join(wav_path, components[0] + ".wav")
-                # print(f'wav_file: {wav_file}')
-                if os.path.exists(wav_file):
-                    wav_files.append(wav_file)
-        print(f"Count of wavs imported: {len(wav_files)}")
-    else:
-        # Parse all wav files in data_path
-        wav_files = glob.glob(data_path + "/**/*.wav", recursive=True)
-
-        output_files = [wav_file.replace(data_path, args.output_path).replace(".wav", ".npy") for wav_file in wav_files]
-
-for output_file in output_files:
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-
-# define Encoder model
-model = SpeakerEncoder(**c.model)
-model.load_state_dict(torch.load(args.model_path)["model"])
-model.eval()
-if args.use_cuda:
-    model.cuda()
+speaker_manager = SpeakerManager(
+    encoder_model_path=args.model_path, encoder_config_path=args.config_path, use_cuda=args.use_cuda
+)
 
 # compute speaker embeddings
 speaker_mapping = {}
@@ -89,23 +49,27 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     if isinstance(wav_file, list):
         speaker_name = wav_file[2]
         wav_file = wav_file[1]
+    else:
+        speaker_name = None
 
-    mel_spec = ap.melspectrogram(ap.load_wav(wav_file, sr=ap.sample_rate)).T
-    mel_spec = torch.FloatTensor(mel_spec[None, :, :])
-    if args.use_cuda:
-        mel_spec = mel_spec.cuda()
-    embedd = model.compute_embedding(mel_spec)
-    embedd = embedd.detach().cpu().numpy()
-    np.save(output_files[idx], embedd)
+    # extract the embedding
+    embedd = speaker_manager.compute_d_vector_from_clip(wav_file)
 
-    if args.target_dataset != "":
-        # create speaker_mapping if target dataset is defined
-        wav_file_name = os.path.basename(wav_file)
-        speaker_mapping[wav_file_name] = {}
-        speaker_mapping[wav_file_name]["name"] = speaker_name
-        speaker_mapping[wav_file_name]["embedding"] = embedd.flatten().tolist()
+    # create speaker_mapping if target dataset is defined
+    wav_file_name = os.path.basename(wav_file)
+    speaker_mapping[wav_file_name] = {}
+    speaker_mapping[wav_file_name]["name"] = speaker_name
+    speaker_mapping[wav_file_name]["embedding"] = embedd
 
-if args.target_dataset != "":
+if speaker_mapping:
     # save speaker_mapping if target dataset is defined
-    mapping_file_path = os.path.join(args.output_path, "speakers.json")
-    save_speaker_mapping(args.output_path, speaker_mapping)
+    if ".json" not in args.output_path:
+        mapping_file_path = os.path.join(args.output_path, "speakers.json")
+    else:
+        mapping_file_path = args.output_path
+
+    os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
+
+    # pylint: disable=W0212
+    speaker_manager._save_json(mapping_file_path, speaker_mapping)
+    print("Speaker embeddings saved at:", mapping_file_path)

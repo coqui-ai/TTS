@@ -8,12 +8,12 @@ import numpy as np
 import tensorflow as tf
 import torch
 
+from TTS.tts.models import setup_model
 from TTS.tts.tf.models.tacotron2 import Tacotron2
 from TTS.tts.tf.utils.convert_torch_to_tf_utils import compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf
 from TTS.tts.tf.utils.generic_utils import save_checkpoint
-from TTS.tts.utils.generic_utils import setup_model
 from TTS.tts.utils.text.symbols import phonemes, symbols
-from TTS.utils.io import load_config
+from TTS.utils.io import load_config, load_fsspec
 
 sys.path.append("/home/erogol/Projects")
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
@@ -31,18 +31,18 @@ c = load_config(config_path)
 num_speakers = 0
 
 # init torch model
-num_chars = len(phonemes) if c.use_phonemes else len(symbols)
-model = setup_model(num_chars, num_speakers, c)
-checkpoint = torch.load(args.torch_model_path, map_location=torch.device("cpu"))
+model = setup_model(c)
+checkpoint = load_fsspec(args.torch_model_path, map_location=torch.device("cpu"))
 state_dict = checkpoint["model"]
 model.load_state_dict(state_dict)
 
 # init tf model
+num_chars = len(phonemes) if c.use_phonemes else len(symbols)
 model_tf = Tacotron2(
     num_chars=num_chars,
     num_speakers=num_speakers,
     r=model.decoder.r,
-    postnet_output_dim=c.audio["num_mels"],
+    out_channels=c.audio["num_mels"],
     decoder_output_dim=c.audio["num_mels"],
     attn_type=c.attention_type,
     attn_win=c.windowing,

@@ -2,11 +2,13 @@ import math
 
 import numpy as np
 import torch
+from coqpit import Coqpit
 from torch import nn
 from torch.nn import functional
 
-from TTS.tts.utils.generic_utils import sequence_mask
+from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.ssim import ssim
+from TTS.utils.audio import TorchSTFT
 
 
 # pylint: disable=abstract-method
@@ -67,9 +69,9 @@ class MSELossMasked(nn.Module):
             length: A Variable containing a LongTensor of size (batch,)
                 which contains the length of each data in a batch.
         Shapes:
-            x: B x T X D
-            target: B x T x D
-            length: B
+            - x: :math:`[B, T, D]`
+            - target: :math:`[B, T, D]`
+            - length: :math:`B`
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
@@ -234,8 +236,38 @@ class Huber(nn.Module):
             y: B x T
             length: B
         """
-        mask = sequence_mask(sequence_length=length, max_len=y.size(1)).float()
+        mask = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2).float()
         return torch.nn.functional.smooth_l1_loss(x * mask, y * mask, reduction="sum") / mask.sum()
+
+
+class ForwardSumLoss(nn.Module):
+    def __init__(self, blank_logprob=-1):
+        super().__init__()
+        self.log_softmax = torch.nn.LogSoftmax(dim=3)
+        self.ctc_loss = torch.nn.CTCLoss(zero_infinity=True)
+        self.blank_logprob = blank_logprob
+
+    def forward(self, attn_logprob, in_lens, out_lens):
+        key_lens = in_lens
+        query_lens = out_lens
+        attn_logprob_padded = torch.nn.functional.pad(input=attn_logprob, pad=(1, 0), value=self.blank_logprob)
+
+        total_loss = 0.0
+        for bid in range(attn_logprob.shape[0]):
+            target_seq = torch.arange(1, key_lens[bid] + 1).unsqueeze(0)
+            curr_logprob = attn_logprob_padded[bid].permute(1, 0, 2)[: query_lens[bid], :, : key_lens[bid] + 1]
+
+            curr_logprob = self.log_softmax(curr_logprob[None])[0]
+            loss = self.ctc_loss(
+                curr_logprob,
+                target_seq,
+                input_lengths=query_lens[bid : bid + 1],
+                target_lengths=key_lens[bid : bid + 1],
+            )
+            total_loss = total_loss + loss
+
+        total_loss = total_loss / attn_logprob.shape[0]
+        return total_loss
 
 
 ########################
@@ -246,9 +278,9 @@ class Huber(nn.Module):
 class TacotronLoss(torch.nn.Module):
     """Collection of Tacotron set-up based on provided config."""
 
-    def __init__(self, c, stopnet_pos_weight=10, ga_sigma=0.4):
+    def __init__(self, c, ga_sigma=0.4):
         super().__init__()
-        self.stopnet_pos_weight = stopnet_pos_weight
+        self.stopnet_pos_weight = c.stopnet_pos_weight
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -274,7 +306,7 @@ class TacotronLoss(torch.nn.Module):
             self.criterion_ssim = SSIMLoss()
         # stopnet loss
         # pylint: disable=not-callable
-        self.criterion_st = BCELossMasked(pos_weight=torch.tensor(stopnet_pos_weight)) if c.stopnet else None
+        self.criterion_st = BCELossMasked(pos_weight=torch.tensor(self.stopnet_pos_weight)) if c.stopnet else None
 
     def forward(
         self,
@@ -284,6 +316,7 @@ class TacotronLoss(torch.nn.Module):
         linear_input,
         stopnet_output,
         stopnet_target,
+        stop_target_length,
         output_lens,
         decoder_b_output,
         alignments,
@@ -315,12 +348,12 @@ class TacotronLoss(torch.nn.Module):
         return_dict["decoder_loss"] = decoder_loss
         return_dict["postnet_loss"] = postnet_loss
 
-        # stopnet loss
         stop_loss = (
-            self.criterion_st(stopnet_output, stopnet_target, output_lens) if self.config.stopnet else torch.zeros(1)
+            self.criterion_st(stopnet_output, stopnet_target, stop_target_length)
+            if self.config.stopnet
+            else torch.zeros(1)
         )
-        if not self.config.separate_stopnet and self.config.stopnet:
-            loss += stop_loss
+        loss += stop_loss
         return_dict["stopnet_loss"] = stop_loss
 
         # backward decoder loss (if enabled)
@@ -394,11 +427,11 @@ class GlowTTSLoss(torch.nn.Module):
         return_dict = {}
         # flow loss - neg log likelihood
         pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means) ** 2)
-        log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (torch.sum(y_lengths) * z.shape[1])
+        log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (torch.sum(y_lengths) * z.shape[2])
         # duration loss - MSE
-        # loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+        loss_dur = torch.sum((o_dur_log - o_attn_dur) ** 2) / torch.sum(x_lengths)
         # duration loss - huber loss
-        loss_dur = torch.nn.functional.smooth_l1_loss(o_dur_log, o_attn_dur, reduction="sum") / torch.sum(x_lengths)
+        # loss_dur = torch.nn.functional.smooth_l1_loss(o_dur_log, o_attn_dur, reduction="sum") / torch.sum(x_lengths)
         return_dict["loss"] = log_mle + loss_dur
         return_dict["log_mle"] = log_mle
         return_dict["loss_dur"] = loss_dur
@@ -408,25 +441,6 @@ class GlowTTSLoss(torch.nn.Module):
             if torch.isnan(loss):
                 raise RuntimeError(f" [!] NaN loss with {key}.")
         return return_dict
-
-
-class SpeedySpeechLoss(nn.Module):
-    def __init__(self, c):
-        super().__init__()
-        self.l1 = L1LossMasked(False)
-        self.ssim = SSIMLoss()
-        self.huber = Huber()
-
-        self.ssim_alpha = c.ssim_alpha
-        self.huber_alpha = c.huber_alpha
-        self.l1_alpha = c.l1_alpha
-
-    def forward(self, decoder_output, decoder_target, decoder_output_lens, dur_output, dur_target, input_lens):
-        l1_loss = self.l1(decoder_output, decoder_target, decoder_output_lens)
-        ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
-        huber_loss = self.huber(dur_output, dur_target, input_lens)
-        loss = self.l1_alpha * l1_loss + self.ssim_alpha * ssim_loss + self.huber_alpha * huber_loss
-        return {"loss": loss, "loss_l1": l1_loss, "loss_ssim": ssim_loss, "loss_dur": huber_loss}
 
 
 def mse_loss_custom(x, y):
@@ -462,13 +476,12 @@ class MDNLoss(nn.Module):
 
 class AlignTTSLoss(nn.Module):
     """Modified AlignTTS Loss.
-    Computes following losses
+    Computes
         - L1 and SSIM losses from output spectrograms.
         - Huber loss for duration predictor.
         - MDNLoss for Mixture of Density Network.
 
-    All the losses are aggregated by a weighted sum with the loss alphas.
-    Alphas can be scheduled based on number of steps.
+    All loss values are aggregated by a weighted sum of the alpha values.
 
     Args:
         c (dict): TTS model configuration.
@@ -487,9 +500,9 @@ class AlignTTSLoss(nn.Module):
         self.mdn_alpha = c.mdn_alpha
 
     def forward(
-        self, logp, decoder_output, decoder_target, decoder_output_lens, dur_output, dur_target, input_lens, step, phase
+        self, logp, decoder_output, decoder_target, decoder_output_lens, dur_output, dur_target, input_lens, phase
     ):
-        ssim_alpha, dur_loss_alpha, spec_loss_alpha, mdn_alpha = self.set_alphas(step)
+        # ssim_alpha, dur_loss_alpha, spec_loss_alpha, mdn_alpha = self.set_alphas(step)
         spec_loss, ssim_loss, dur_loss, mdn_loss = 0, 0, 0, 0
         if phase == 0:
             mdn_loss = self.mdn_loss(logp, input_lens, decoder_output_lens)
@@ -507,36 +520,248 @@ class AlignTTSLoss(nn.Module):
             spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
             ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
             dur_loss = self.dur_loss(dur_output.unsqueeze(2), dur_target.unsqueeze(2), input_lens)
-        loss = spec_loss_alpha * spec_loss + ssim_alpha * ssim_loss + dur_loss_alpha * dur_loss + mdn_alpha * mdn_loss
+        loss = (
+            self.spec_loss_alpha * spec_loss
+            + self.ssim_alpha * ssim_loss
+            + self.dur_loss_alpha * dur_loss
+            + self.mdn_alpha * mdn_loss
+        )
         return {"loss": loss, "loss_l1": spec_loss, "loss_ssim": ssim_loss, "loss_dur": dur_loss, "mdn_loss": mdn_loss}
 
+
+class VitsGeneratorLoss(nn.Module):
+    def __init__(self, c: Coqpit):
+        super().__init__()
+        self.kl_loss_alpha = c.kl_loss_alpha
+        self.gen_loss_alpha = c.gen_loss_alpha
+        self.feat_loss_alpha = c.feat_loss_alpha
+        self.dur_loss_alpha = c.dur_loss_alpha
+        self.mel_loss_alpha = c.mel_loss_alpha
+        self.stft = TorchSTFT(
+            c.audio.fft_size,
+            c.audio.hop_length,
+            c.audio.win_length,
+            sample_rate=c.audio.sample_rate,
+            mel_fmin=c.audio.mel_fmin,
+            mel_fmax=c.audio.mel_fmax,
+            n_mels=c.audio.num_mels,
+            use_mel=True,
+            do_amp_to_db=True,
+        )
+
     @staticmethod
-    def _set_alpha(step, alpha_settings):
-        """Set the loss alpha wrt number of steps.
-        Return the corresponding value if no schedule is set.
+    def feature_loss(feats_real, feats_generated):
+        loss = 0
+        for dr, dg in zip(feats_real, feats_generated):
+            for rl, gl in zip(dr, dg):
+                rl = rl.float().detach()
+                gl = gl.float()
+                loss += torch.mean(torch.abs(rl - gl))
 
-        Example:
-            Setting a alpha schedule.
-            if ```alpha_settings``` is ```[[0, 1], [10000, 0.1]]```  then ```return_alpha == 1``` until 10k steps, then set to 0.1.
-            if ```alpha_settings``` is a constant value then ```return_alpha``` is set to that constant.
+        return loss * 2
 
-        Args:
-            step (int): number of training steps.
-            alpha_settings (int or list): constant alpha value or a list defining the schedule as explained above.
+    @staticmethod
+    def generator_loss(scores_fake):
+        loss = 0
+        gen_losses = []
+        for dg in scores_fake:
+            dg = dg.float()
+            l = torch.mean((1 - dg) ** 2)
+            gen_losses.append(l)
+            loss += l
+
+        return loss, gen_losses
+
+    @staticmethod
+    def kl_loss(z_p, logs_q, m_p, logs_p, z_mask):
         """
-        return_alpha = None
-        if isinstance(alpha_settings, list):
-            for key, alpha in alpha_settings:
-                if key < step:
-                    return_alpha = alpha
-        elif isinstance(alpha_settings, (float, int)):
-            return_alpha = alpha_settings
-        return return_alpha
+        z_p, logs_q: [b, h, t_t]
+        m_p, logs_p: [b, h, t_t]
+        """
+        z_p = z_p.float()
+        logs_q = logs_q.float()
+        m_p = m_p.float()
+        logs_p = logs_p.float()
+        z_mask = z_mask.float()
 
-    def set_alphas(self, step):
-        """Set the alpha values for all the loss functions"""
-        ssim_alpha = self._set_alpha(step, self.ssim_alpha)
-        dur_loss_alpha = self._set_alpha(step, self.dur_loss_alpha)
-        spec_loss_alpha = self._set_alpha(step, self.spec_loss_alpha)
-        mdn_alpha = self._set_alpha(step, self.mdn_alpha)
-        return ssim_alpha, dur_loss_alpha, spec_loss_alpha, mdn_alpha
+        kl = logs_p - logs_q - 0.5
+        kl += 0.5 * ((z_p - m_p) ** 2) * torch.exp(-2.0 * logs_p)
+        kl = torch.sum(kl * z_mask)
+        l = kl / torch.sum(z_mask)
+        return l
+
+    def forward(
+        self,
+        waveform,
+        waveform_hat,
+        z_p,
+        logs_q,
+        m_p,
+        logs_p,
+        z_len,
+        scores_disc_fake,
+        feats_disc_fake,
+        feats_disc_real,
+        loss_duration,
+    ):
+        """
+        Shapes:
+            - waveform : :math:`[B, 1, T]`
+            - waveform_hat: :math:`[B, 1, T]`
+            - z_p: :math:`[B, C, T]`
+            - logs_q: :math:`[B, C, T]`
+            - m_p: :math:`[B, C, T]`
+            - logs_p: :math:`[B, C, T]`
+            - z_len: :math:`[B]`
+            - scores_disc_fake[i]: :math:`[B, C]`
+            - feats_disc_fake[i][j]: :math:`[B, C, T', P]`
+            - feats_disc_real[i][j]: :math:`[B, C, T', P]`
+        """
+        loss = 0.0
+        return_dict = {}
+        z_mask = sequence_mask(z_len).float()
+        # compute mel spectrograms from the waveforms
+        mel = self.stft(waveform)
+        mel_hat = self.stft(waveform_hat)
+        # compute losses
+        loss_feat = self.feature_loss(feats_disc_fake, feats_disc_real) * self.feat_loss_alpha
+        loss_gen = self.generator_loss(scores_disc_fake)[0] * self.gen_loss_alpha
+        loss_kl = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask.unsqueeze(1)) * self.kl_loss_alpha
+        loss_mel = torch.nn.functional.l1_loss(mel, mel_hat) * self.mel_loss_alpha
+        loss_duration = torch.sum(loss_duration.float()) * self.dur_loss_alpha
+        loss = loss_kl + loss_feat + loss_mel + loss_gen + loss_duration
+        # pass losses to the dict
+        return_dict["loss_gen"] = loss_gen
+        return_dict["loss_kl"] = loss_kl
+        return_dict["loss_feat"] = loss_feat
+        return_dict["loss_mel"] = loss_mel
+        return_dict["loss_duration"] = loss_duration
+        return_dict["loss"] = loss
+        return return_dict
+
+
+class VitsDiscriminatorLoss(nn.Module):
+    def __init__(self, c: Coqpit):
+        super().__init__()
+        self.disc_loss_alpha = c.disc_loss_alpha
+
+    @staticmethod
+    def discriminator_loss(scores_real, scores_fake):
+        loss = 0
+        real_losses = []
+        fake_losses = []
+        for dr, dg in zip(scores_real, scores_fake):
+            dr = dr.float()
+            dg = dg.float()
+            real_loss = torch.mean((1 - dr) ** 2)
+            fake_loss = torch.mean(dg ** 2)
+            loss += real_loss + fake_loss
+            real_losses.append(real_loss.item())
+            fake_losses.append(fake_loss.item())
+
+        return loss, real_losses, fake_losses
+
+    def forward(self, scores_disc_real, scores_disc_fake):
+        loss = 0.0
+        return_dict = {}
+        loss_disc, _, _ = self.discriminator_loss(scores_disc_real, scores_disc_fake)
+        return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
+        loss = loss + return_dict["loss_disc"]
+        return_dict["loss"] = loss
+        return return_dict
+
+
+class ForwardTTSLoss(nn.Module):
+    """Generic configurable ForwardTTS loss."""
+
+    def __init__(self, c):
+        super().__init__()
+        if c.spec_loss_type == "mse":
+            self.spec_loss = MSELossMasked(False)
+        elif c.spec_loss_type == "l1":
+            self.spec_loss = L1LossMasked(False)
+        else:
+            raise ValueError(" [!] Unknown spec_loss_type {}".format(c.spec_loss_type))
+
+        if c.duration_loss_type == "mse":
+            self.dur_loss = MSELossMasked(False)
+        elif c.duration_loss_type == "l1":
+            self.dur_loss = L1LossMasked(False)
+        elif c.duration_loss_type == "huber":
+            self.dur_loss = Huber()
+        else:
+            raise ValueError(" [!] Unknown duration_loss_type {}".format(c.duration_loss_type))
+
+        if c.model_args.use_aligner:
+            self.aligner_loss = ForwardSumLoss()
+            self.aligner_loss_alpha = c.aligner_loss_alpha
+
+        if c.model_args.use_pitch:
+            self.pitch_loss = MSELossMasked(False)
+            self.pitch_loss_alpha = c.pitch_loss_alpha
+
+        if c.use_ssim_loss:
+            self.ssim = SSIMLoss() if c.use_ssim_loss else None
+            self.ssim_loss_alpha = c.ssim_loss_alpha
+
+        self.spec_loss_alpha = c.spec_loss_alpha
+        self.dur_loss_alpha = c.dur_loss_alpha
+        self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
+
+    @staticmethod
+    def _binary_alignment_loss(alignment_hard, alignment_soft):
+        """Binary loss that forces soft alignments to match the hard alignments as
+        explained in `https://arxiv.org/pdf/2108.10447.pdf`.
+        """
+        log_sum = torch.log(torch.clamp(alignment_soft[alignment_hard == 1], min=1e-12)).sum()
+        return -log_sum / alignment_hard.sum()
+
+    def forward(
+        self,
+        decoder_output,
+        decoder_target,
+        decoder_output_lens,
+        dur_output,
+        dur_target,
+        pitch_output,
+        pitch_target,
+        input_lens,
+        alignment_logprob=None,
+        alignment_hard=None,
+        alignment_soft=None,
+    ):
+        loss = 0
+        return_dict = {}
+        if hasattr(self, "ssim_loss") and self.ssim_loss_alpha > 0:
+            ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
+            loss = loss + self.ssim_loss_alpha * ssim_loss
+            return_dict["loss_ssim"] = self.ssim_loss_alpha * ssim_loss
+
+        if self.spec_loss_alpha > 0:
+            spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
+            loss = loss + self.spec_loss_alpha * spec_loss
+            return_dict["loss_spec"] = self.spec_loss_alpha * spec_loss
+
+        if self.dur_loss_alpha > 0:
+            log_dur_tgt = torch.log(dur_target.float() + 1)
+            dur_loss = self.dur_loss(dur_output[:, :, None], log_dur_tgt[:, :, None], input_lens)
+            loss = loss + self.dur_loss_alpha * dur_loss
+            return_dict["loss_dur"] = self.dur_loss_alpha * dur_loss
+
+        if hasattr(self, "pitch_loss") and self.pitch_loss_alpha > 0:
+            pitch_loss = self.pitch_loss(pitch_output.transpose(1, 2), pitch_target.transpose(1, 2), input_lens)
+            loss = loss + self.pitch_loss_alpha * pitch_loss
+            return_dict["loss_pitch"] = self.pitch_loss_alpha * pitch_loss
+
+        if hasattr(self, "aligner_loss") and self.aligner_loss_alpha > 0:
+            aligner_loss = self.aligner_loss(alignment_logprob, input_lens, decoder_output_lens)
+            loss = loss + self.aligner_loss_alpha * aligner_loss
+            return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
+
+        if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
+            binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
+            loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
+            return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
+
+        return_dict["loss"] = loss
+        return return_dict

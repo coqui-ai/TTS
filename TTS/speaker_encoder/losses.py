@@ -1,6 +1,6 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 # adapted from https://github.com/cvqluu/GE2E-Loss
@@ -103,15 +103,18 @@ class GE2ELoss(nn.Module):
             L.append(L_row)
         return torch.stack(L)
 
-    def forward(self, dvecs):
+    def forward(self, x, _label=None):
         """
         Calculates the GE2E loss for an input of dimensions (num_speakers, num_utts_per_speaker, dvec_feats)
         """
-        centroids = torch.mean(dvecs, 1)
-        cos_sim_matrix = self.calc_cosine_sim(dvecs, centroids)
+
+        assert x.size()[1] >= 2
+
+        centroids = torch.mean(x, 1)
+        cos_sim_matrix = self.calc_cosine_sim(x, centroids)
         torch.clamp(self.w, 1e-6)
         cos_sim_matrix = self.w * cos_sim_matrix + self.b
-        L = self.embed_loss(dvecs, cos_sim_matrix)
+        L = self.embed_loss(x, cos_sim_matrix)
         return L.mean()
 
 
@@ -138,10 +141,13 @@ class AngleProtoLoss(nn.Module):
 
         print(" > Initialized Angular Prototypical loss")
 
-    def forward(self, x):
+    def forward(self, x, _label=None):
         """
         Calculates the AngleProto loss for an input of dimensions (num_speakers, num_utts_per_speaker, dvec_feats)
         """
+
+        assert x.size()[1] >= 2
+
         out_anchor = torch.mean(x[:, 1:, :], 1)
         out_positive = x[:, 0, :]
         num_speakers = out_anchor.size()[0]
@@ -155,3 +161,60 @@ class AngleProtoLoss(nn.Module):
         label = torch.arange(num_speakers).to(cos_sim_matrix.device)
         L = self.criterion(cos_sim_matrix, label)
         return L
+
+
+class SoftmaxLoss(nn.Module):
+    """
+    Implementation of the Softmax loss as defined in https://arxiv.org/abs/2003.11982
+        Args:
+            - embedding_dim (float): speaker embedding dim
+            - n_speakers (float): number of speakers
+    """
+
+    def __init__(self, embedding_dim, n_speakers):
+        super().__init__()
+
+        self.criterion = torch.nn.CrossEntropyLoss()
+        self.fc = nn.Linear(embedding_dim, n_speakers)
+
+        print("Initialised Softmax Loss")
+
+    def forward(self, x, label=None):
+        # reshape for compatibility
+        x = x.reshape(-1, x.size()[-1])
+        label = label.reshape(-1)
+
+        x = self.fc(x)
+        L = self.criterion(x, label)
+
+        return L
+
+
+class SoftmaxAngleProtoLoss(nn.Module):
+    """
+    Implementation of the Softmax AnglePrototypical loss as defined in https://arxiv.org/abs/2009.14153
+        Args:
+            - embedding_dim (float): speaker embedding dim
+            - n_speakers (float): number of speakers
+            - init_w (float): defines the initial value of w
+            - init_b (float): definies the initial value of b
+    """
+
+    def __init__(self, embedding_dim, n_speakers, init_w=10.0, init_b=-5.0):
+        super().__init__()
+
+        self.softmax = SoftmaxLoss(embedding_dim, n_speakers)
+        self.angleproto = AngleProtoLoss(init_w, init_b)
+
+        print("Initialised SoftmaxAnglePrototypical Loss")
+
+    def forward(self, x, label=None):
+        """
+        Calculates the SoftmaxAnglePrototypical loss for an input of dimensions (num_speakers, num_utts_per_speaker, dvec_feats)
+        """
+
+        Lp = self.angleproto(x)
+
+        Ls = self.softmax(x, label)
+
+        return Ls + Lp

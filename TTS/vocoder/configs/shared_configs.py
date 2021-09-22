@@ -34,6 +34,10 @@ class BaseVocoderConfig(BaseTrainingConfig):
             Number of training epochs to. Defaults to 10000.
         wd (float):
             Weight decay.
+         optimizer (torch.optim.Optimizer):
+            Optimizer used for the training. Defaults to `AdamW`.
+        optimizer_params (dict):
+            Optimizer kwargs. Defaults to `{"betas": [0.8, 0.99], "weight_decay": 0.0}`
     """
 
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
@@ -50,6 +54,8 @@ class BaseVocoderConfig(BaseTrainingConfig):
     # OPTIMIZER
     epochs: int = 10000  # total number of epochs to train.
     wd: float = 0.0  # Weight decay weight.
+    optimizer: str = "AdamW"
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "weight_decay": 0.0})
 
 
 @dataclass
@@ -96,20 +102,13 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
             }`
         target_loss (str):
             Target loss name that defines the quality of the model. Defaults to `avg_G_loss`.
-        gen_clip_grad (float):
-            Gradient clipping threshold for the generator model. Any value less than 0 disables clipping.
-            Defaults to -1.
-        disc_clip_grad (float):
-            Gradient clipping threshold for the discriminator model. Any value less than 0 disables clipping.
-            Defaults to -1.
+        grad_clip (list):
+            A list of gradient clipping theresholds for each optimizer. Any value less than 0 disables clipping.
+            Defaults to [5, 5].
         lr_gen (float):
             Generator model initial learning rate. Defaults to 0.0002.
         lr_disc (float):
             Discriminator model initial learning rate. Defaults to 0.0002.
-        optimizer (torch.optim.Optimizer):
-            Optimizer used for the training. Defaults to `AdamW`.
-        optimizer_params (dict):
-            Optimizer kwargs. Defaults to `{"betas": [0.8, 0.99], "weight_decay": 0.0}`
         lr_scheduler_gen (torch.optim.Scheduler):
             Learning rate scheduler for the generator. Defaults to `ExponentialLR`.
         lr_scheduler_gen_params (dict):
@@ -126,6 +125,8 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
             enable / disable use of different training samples for the generator and the discriminator iterations.
             Enabling it results in slower iterations but faster convergance in some cases. Defaults to False.
     """
+
+    model: str = "gan"
 
     # LOSS PARAMETERS
     use_stft_loss: bool = True
@@ -164,15 +165,12 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
         }
     )
 
-    target_loss: str = "avg_G_loss"  # loss value to pick the best model to save after each epoch
+    target_loss: str = "loss_0"  # loss value to pick the best model to save after each epoch
 
     # optimizer
-    gen_clip_grad: float = -1  # Generator gradient clipping threshold. Apply gradient clipping if > 0
-    disc_clip_grad: float = -1  # Discriminator gradient clipping threshold.
+    grad_clip: float = field(default_factory=lambda: [5, 5])
     lr_gen: float = 0.0002  # Initial learning rate.
     lr_disc: float = 0.0002  # Initial learning rate.
-    optimizer: str = "AdamW"
-    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "weight_decay": 0.0})
     lr_scheduler_gen: str = "ExponentialLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
     lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
     lr_scheduler_disc: str = "ExponentialLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html

@@ -16,7 +16,7 @@ rm LJSpeech-1.1.tar.bz2
 python TTS/bin/compute_statistics.py $RUN_DIR/tacotron2-DDC.json $RUN_DIR/scale_stats.npy --data_path $RUN_DIR/LJSpeech-1.1/wavs/
 # training ....
 # change the GPU id if needed
-CUDA_VISIBLE_DEVICES="0" python TTS/bin/train_tacotron.py --config_path $RUN_DIR/tacotron2-DDC.json \
-                                                          --coqpit.output_path $RUN_DIR  \
-                                                          --coqpit.datasets.0.path $RUN_DIR/LJSpeech-1.1/    \
-                                                          --coqpit.audio.stats_path $RUN_DIR/scale_stats.npy \
+CUDA_VISIBLE_DEVICES="0" python TTS/bin/train_tts.py --config_path $RUN_DIR/tacotron2-DDC.json \
+                                                     --coqpit.output_path $RUN_DIR  \
+                                                     --coqpit.datasets.0.path $RUN_DIR/LJSpeech-1.1/    \
+                                                     --coqpit.audio.stats_path $RUN_DIR/scale_stats.npy \

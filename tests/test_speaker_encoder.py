@@ -3,18 +3,19 @@ import unittest
 import torch as T
 
 from tests import get_tests_input_path
-from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss
-from TTS.speaker_encoder.model import SpeakerEncoder
+from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
+from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
+from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
 
 file_path = get_tests_input_path()
 
 
-class SpeakerEncoderTests(unittest.TestCase):
+class LSTMSpeakerEncoderTests(unittest.TestCase):
     # pylint: disable=R0201
     def test_in_out(self):
         dummy_input = T.rand(4, 20, 80)  # B x T x D
         dummy_hidden = [T.rand(2, 4, 128), T.rand(2, 4, 128)]
-        model = SpeakerEncoder(input_dim=80, proj_dim=256, lstm_dim=768, num_lstm_layers=3)
+        model = LSTMSpeakerEncoder(input_dim=80, proj_dim=256, lstm_dim=768, num_lstm_layers=3)
         # computing d vectors
         output = model.forward(dummy_input)
         assert output.shape[0] == 4
@@ -34,7 +35,34 @@ class SpeakerEncoderTests(unittest.TestCase):
         assert abs(assert_diff) < 1e-4, f" [!] output_norm has wrong values - {assert_diff}"
         # compute d for a given batch
         dummy_input = T.rand(1, 240, 80)  # B x T x D
-        output = model.compute_embedding(dummy_input, num_frames=160, overlap=0.5)
+        output = model.compute_embedding(dummy_input, num_frames=160, num_eval=5)
+        assert output.shape[0] == 1
+        assert output.shape[1] == 256
+        assert len(output.shape) == 2
+
+
+class ResNetSpeakerEncoderTests(unittest.TestCase):
+    # pylint: disable=R0201
+    def test_in_out(self):
+        dummy_input = T.rand(4, 20, 80)  # B x T x D
+        dummy_hidden = [T.rand(2, 4, 128), T.rand(2, 4, 128)]
+        model = ResNetSpeakerEncoder(input_dim=80, proj_dim=256)
+        # computing d vectors
+        output = model.forward(dummy_input)
+        assert output.shape[0] == 4
+        assert output.shape[1] == 256
+        output = model.forward(dummy_input, l2_norm=True)
+        assert output.shape[0] == 4
+        assert output.shape[1] == 256
+
+        # check normalization
+        output_norm = T.nn.functional.normalize(output, dim=1, p=2)
+        assert_diff = (output_norm - output).sum().item()
+        assert output.type() == "torch.FloatTensor"
+        assert abs(assert_diff) < 1e-4, f" [!] output_norm has wrong values - {assert_diff}"
+        # compute d for a given batch
+        dummy_input = T.rand(1, 240, 80)  # B x T x D
+        output = model.compute_embedding(dummy_input, num_frames=160, num_eval=10)
         assert output.shape[0] == 1
         assert output.shape[1] == 256
         assert len(output.shape) == 2
@@ -98,15 +126,23 @@ class AngleProtoLossTests(unittest.TestCase):
         assert output.item() < 0.005
 
 
-# class LoaderTest(unittest.TestCase):
-#     def test_output(self):
-#         items = libri_tts("/home/erogol/Data/Libri-TTS/train-clean-360/")
-#         ap = AudioProcessor(**c['audio'])
-#         dataset = MyDataset(ap, items, 1.6, 64, 10)
-#         loader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=0, collate_fn=dataset.collate_fn)
-#         count = 0
-#         for mel, spk in loader:
-#             print(mel.shape)
-#             if count == 4:
-#                 break
-#             count += 1
+class SoftmaxAngleProtoLossTests(unittest.TestCase):
+    # pylint: disable=R0201
+    def test_in_out(self):
+
+        embedding_dim = 64
+        num_speakers = 5
+        batch_size = 4
+
+        dummy_label = T.randint(low=0, high=num_speakers, size=(batch_size, num_speakers))
+        # check random input
+        dummy_input = T.rand(batch_size, num_speakers, embedding_dim)  # num_speaker x num_utterance x dim
+        loss = SoftmaxAngleProtoLoss(embedding_dim=embedding_dim, n_speakers=num_speakers)
+        output = loss.forward(dummy_input, dummy_label)
+        assert output.item() >= 0.0
+
+        # check all zeros
+        dummy_input = T.ones(batch_size, num_speakers, embedding_dim)  # num_speaker x num_utterance x dim
+        loss = SoftmaxAngleProtoLoss(embedding_dim=embedding_dim, n_speakers=num_speakers)
+        output = loss.forward(dummy_input, dummy_label)
+        assert output.item() >= 0.0

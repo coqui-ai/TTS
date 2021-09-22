@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import List
+from typing import Dict, List
 
 from coqpit import MISSING
 
@@ -13,11 +13,11 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
     model: str = "speaker_encoder"
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
-
     # model params
-    model_params: dict = field(
+    model_params: Dict = field(
         default_factory=lambda: {
-            "input_dim": 40,
+            "model_name": "lstm",
+            "input_dim": 80,
             "proj_dim": 256,
             "lstm_dim": 768,
             "num_lstm_layers": 3,
@@ -25,16 +25,17 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
         }
     )
 
-    storage: dict = field(
+    audio_augmentation: Dict = field(default_factory=lambda: {})
+
+    storage: Dict = field(
         default_factory=lambda: {
             "sample_from_storage_p": 0.66,  # the probability with which we'll sample from the DataSet in-memory storage
             "storage_size": 15,  # the size of the in-memory storage with respect to a single batch
-            "additive_noise": 1e-5,  # add very small gaussian noise to the data in order to increase robustness
         }
     )
 
     # training params
-    max_train_step: int = 1000  # end training when number of training steps reaches this value.
+    max_train_step: int = 1000000  # end training when number of training steps reaches this value.
     loss: str = "angleproto"
     grad_clip: float = 3.0
     lr: float = 0.0001
@@ -53,6 +54,8 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
     num_speakers_in_batch: int = MISSING
     num_utters_per_speaker: int = MISSING
     num_loader_workers: int = MISSING
+    skip_speakers: bool = False
+    voice_len: float = 1.6
 
     def check_values(self):
         super().check_values()

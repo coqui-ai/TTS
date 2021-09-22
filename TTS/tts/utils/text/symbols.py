@@ -28,10 +28,10 @@ def make_symbols(
             sorted(list(set(phonemes))) if unique else sorted(list(phonemes))
         )  # this is to keep previous models compatible.
         # Prepend "@" to ARPAbet symbols to ensure uniqueness (some are the same as uppercase letters):
-        _arpabet = ["@" + s for s in _phonemes_sorted]
+        # _arpabet = ["@" + s for s in _phonemes_sorted]
         # Export all symbols:
         _phonemes = [pad, eos, bos] + list(_phonemes_sorted) + list(punctuations)
-        _symbols += _arpabet
+        # _symbols += _arpabet
     return _symbols, _phonemes
 
 

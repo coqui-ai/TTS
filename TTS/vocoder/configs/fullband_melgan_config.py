@@ -14,7 +14,7 @@ class FullbandMelganConfig(BaseGANVocoderConfig):
 
     Args:
         model (str):
-            Model name used for selecting the right model at initialization. Defaults to `melgan`.
+            Model name used for selecting the right model at initialization. Defaults to `fullband_melgan`.
         discriminator_model (str): One of the discriminators from `TTS.vocoder.models.*_discriminator`. Defaults to
             'melgan_multiscale_discriminator`.
         discriminator_model_params (dict): The discriminator model parameters. Defaults to
@@ -62,7 +62,7 @@ class FullbandMelganConfig(BaseGANVocoderConfig):
             L1 spectrogram loss weight that multiplies the computed loss before summing up the total loss. Defaults to 0.
     """
 
-    model: str = "melgan"
+    model: str = "fullband_melgan"
 
     # Model specific params
     discriminator_model: str = "melgan_multiscale_discriminator"

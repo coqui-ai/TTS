@@ -1,7 +1,9 @@
 import os
+import unittest
 
 import soundfile as sf
 import tensorflow as tf
+import torch
 from librosa.core import load
 
 from tests import get_tests_input_path, get_tests_output_path, get_tests_path
@@ -9,8 +11,10 @@ from TTS.vocoder.tf.layers.pqmf import PQMF
 
 TESTS_PATH = get_tests_path()
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
+use_cuda = torch.cuda.is_available()
 
 
+@unittest.skipIf(use_cuda, " [!] Skip Test: Loosy TF support.")
 def test_pqmf():
     w, sr = load(WAV_FILE)
 

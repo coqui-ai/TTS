@@ -1,4 +1,6 @@
 # coding: utf-8
+# adapted from https://github.com/r9y9/tacotron_pytorch
+
 import torch
 from torch import nn
 
@@ -266,7 +268,8 @@ class Decoder(nn.Module):
         location_attn (bool): if true, use location sensitive attention.
         attn_K (int): number of attention heads for GravesAttention.
         separate_stopnet (bool): if true, detach stopnet input to prevent gradient flow.
-        speaker_embedding_dim (int): size of speaker embedding vector, for multi-speaker training.
+        d_vector_dim (int): size of speaker embedding vector, for multi-speaker training.
+        max_decoder_steps (int): Maximum number of steps allowed for the decoder. Defaults to 500.
     """
 
     # Pylint gets confused by PyTorch conventions here
@@ -289,12 +292,13 @@ class Decoder(nn.Module):
         location_attn,
         attn_K,
         separate_stopnet,
+        max_decoder_steps,
     ):
         super().__init__()
         self.r_init = r
         self.r = r
         self.in_channels = in_channels
-        self.max_decoder_steps = 500
+        self.max_decoder_steps = max_decoder_steps
         self.use_memory_queue = memory_size > 0
         self.memory_size = memory_size if memory_size > 0 else r
         self.frame_channels = frame_channels
@@ -384,8 +388,8 @@ class Decoder(nn.Module):
         decoder_input = self.project_to_decoder_in(torch.cat((self.attention_rnn_hidden, self.context_vec), -1))
 
         # Pass through the decoder RNNs
-        for idx in range(len(self.decoder_rnns)):
-            self.decoder_rnn_hiddens[idx] = self.decoder_rnns[idx](decoder_input, self.decoder_rnn_hiddens[idx])
+        for idx, decoder_rnn in enumerate(self.decoder_rnns):
+            self.decoder_rnn_hiddens[idx] = decoder_rnn(decoder_input, self.decoder_rnn_hiddens[idx])
             # Residual connection
             decoder_input = self.decoder_rnn_hiddens[idx] + decoder_input
         decoder_output = decoder_input

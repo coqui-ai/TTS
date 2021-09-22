@@ -61,6 +61,14 @@ confidence=
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
 disable=missing-docstring,
+        too-many-public-methods,
+        too-many-lines,
+        bare-except,
+        ## for avoiding weird p3.6 CI linter error
+        ## TODO: see later if we can remove this
+        assigning-non-slot,
+        unsupported-assignment-operation,
+        ## end
         line-too-long,
         fixme,
         wrong-import-order,
@@ -70,6 +78,7 @@ disable=missing-docstring,
         invalid-name,
         too-many-instance-attributes,
         arguments-differ,
+        arguments-renamed,
         no-name-in-module,
         no-member,
         unsubscriptable-object,
@@ -158,7 +167,8 @@ disable=missing-docstring,
         deprecated-sys-function,
         exception-escape,
         comprehension-escape,
-        duplicate-code
+        duplicate-code,
+        not-callable
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -253,7 +263,7 @@ contextmanager-decorators=contextlib.contextmanager
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=
+generated-members=numpy.*,torch.*
 
 # Tells whether missing members accessed in mixin class should be ignored. A
 # mixin class is detected if its name ends with "mixin" (case insensitive).

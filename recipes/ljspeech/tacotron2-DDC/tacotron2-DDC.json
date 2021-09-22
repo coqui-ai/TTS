@@ -1,4 +1,5 @@
 {
+    "model": "Tacotron2",
     "datasets": [
         {
             "name": "ljspeech",
@@ -36,12 +37,13 @@
         "gst_num_heads": 4,
         "gst_num_style_tokens": 10
     },
-    "model": "Tacotron2",
+    "distributed_backend": "gloo",
+    "distributed_url": "tcp:\/\/localhost:54321",
     "run_name": "ljspeech-ddc",
     "run_description": "tacotron2 with double decoder consistency.",
     "batch_size": 64,
     "eval_batch_size": 16,
-    "mixed_precision": true,
+    "mixed_precision": false,
     "loss_masking": true,
     "decoder_loss_alpha": 0.25,
     "postnet_loss_alpha": 0.25,
@@ -54,6 +56,7 @@
     "run_eval": true,
     "test_delay_epochs": 10,
     "test_sentences_file": null,
+    "max_decoder_steps": 1000,
     "noam_schedule": true,
     "grad_clip": 0.05,
     "epochs": 1000,
