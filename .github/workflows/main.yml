@@ -15,6 +15,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    env:
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
     strategy:
       fail-fast: false
       matrix:
