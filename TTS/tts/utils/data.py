@@ -1,15 +1,14 @@
 import numpy as np
 
 
-def _pad_data(x, length):
-    _pad = 0
+def _pad_data(x, length, pad_val=0):
     assert x.ndim == 1
-    return np.pad(x, (0, length - x.shape[0]), mode="constant", constant_values=_pad)
+    return np.pad(x, (0, length - x.shape[0]), mode="constant", constant_values=pad_val)
 
 
-def prepare_data(inputs):
+def prepare_data(inputs, pad_val=0):
     max_len = max((len(x) for x in inputs))
-    return np.stack([_pad_data(x, max_len) for x in inputs])
+    return np.stack([_pad_data(x, max_len, pad_val) for x in inputs])
 
 
 def _pad_tensor(x, length):
