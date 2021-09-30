@@ -103,7 +103,7 @@ class AlignTTS(BaseTTS):
 
     def __init__(self, config: Coqpit):
 
-        super().__init__()
+        super().__init__(config)
         self.config = config
         self.phase = -1
         self.length_scale = (
@@ -360,9 +360,7 @@ class AlignTTS(BaseTTS):
 
         return outputs, loss_dict
 
-    def train_log(
-        self, ap: AudioProcessor, batch: dict, outputs: dict
-    ) -> Tuple[Dict, Dict]:  # pylint: disable=no-self-use
+    def _create_logs(self, batch, outputs, ap):
         model_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         mel_input = batch["mel_input"]
@@ -381,11 +379,22 @@ class AlignTTS(BaseTTS):
         train_audio = ap.inv_melspectrogram(pred_spec.T)
         return figures, {"audio": train_audio}
 
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ) -> None:  # pylint: disable=no-self-use
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, ap.sample_rate)
+
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
-        return self.train_log(ap, batch, outputs)
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
