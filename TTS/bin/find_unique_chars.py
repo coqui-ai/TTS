@@ -3,7 +3,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 from TTS.config import load_config
-from TTS.tts.datasets import load_meta_data
+from TTS.tts.datasets import load_tts_samples
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     c = load_config(args.config_path)
 
     # load all datasets
-    train_items, eval_items = load_meta_data(c.datasets, eval_split=True)
+    train_items, eval_items = load_tts_samples(c.datasets, eval_split=True)
     items = train_items + eval_items
 
     texts = "".join(item[0] for item in items)
