@@ -217,7 +217,7 @@ class Vits(BaseTTS):
 
     def __init__(self, config: Coqpit):
 
-        super().__init__()
+        super().__init__(config)
 
         self.END2END = True
 
@@ -576,22 +576,7 @@ class Vits(BaseTTS):
                 )
         return outputs, loss_dict
 
-    def train_log(
-        self, ap: AudioProcessor, batch: Dict, outputs: List, name_prefix="train"
-    ):  # pylint: disable=no-self-use
-        """Create visualizations and waveform examples.
-
-        For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
-        be projected onto Tensorboard.
-
-        Args:
-            ap (AudioProcessor): audio processor used at training.
-            batch (Dict): Model inputs used at the previous training step.
-            outputs (Dict): Model outputs generated at the previoud training step.
-
-        Returns:
-            Tuple[Dict, np.ndarray]: training plots and output waveform.
-        """
+    def _log(self, ap, batch, outputs, name_prefix="train"):
         y_hat = outputs[0]["model_outputs"]
         y = outputs[0]["waveform_seg"]
         figures = plot_results(y_hat, y, ap, name_prefix)
@@ -609,12 +594,32 @@ class Vits(BaseTTS):
 
         return figures, audios
 
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ):  # pylint: disable=no-self-use
+        """Create visualizations and waveform examples.
+
+        For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
+        be projected onto Tensorboard.
+
+        Args:
+            ap (AudioProcessor): audio processor used at training.
+            batch (Dict): Model inputs used at the previous training step.
+            outputs (Dict): Model outputs generated at the previoud training step.
+
+        Returns:
+            Tuple[Dict, np.ndarray]: training plots and output waveform.
+        """
+        ap = assets["audio_processor"]
+        self._log(ap, batch, outputs, "train")
+
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         return self.train_step(batch, criterion, optimizer_idx)
 
-    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
-        return self.train_log(ap, batch, outputs, "eval")
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        return self._log(ap, batch, outputs, "eval")
 
     @torch.no_grad()
     def test_run(self, ap) -> Tuple[Dict, Dict]:
