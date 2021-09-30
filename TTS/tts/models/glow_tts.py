@@ -1,4 +1,5 @@
 import math
+from typing import Dict, Tuple
 
 import torch
 from torch import nn
@@ -47,7 +48,7 @@ class GlowTTS(BaseTTS):
 
     def __init__(self, config: GlowTTSConfig):
 
-        super().__init__()
+        super().__init__(config)
 
         # pass all config fields to `self`
         # for fewer code change
@@ -387,7 +388,7 @@ class GlowTTS(BaseTTS):
                 )
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):  # pylint: disable=no-self-use
+    def _create_logs(self, batch, outputs, ap):
         alignments = outputs["alignments"]
         text_input = batch["text_input"]
         text_lengths = batch["text_lengths"]
@@ -416,15 +417,26 @@ class GlowTTS(BaseTTS):
         train_audio = ap.inv_melspectrogram(pred_spec.T)
         return figures, {"audio": train_audio}
 
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ) -> None:  # pylint: disable=no-self-use
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, ap.sample_rate)
+
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
-        return self.train_log(ap, batch, outputs)
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)
 
     @torch.no_grad()
-    def test_run(self, ap):
+    def test_run(self, assets: Dict) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.
@@ -432,6 +444,7 @@ class GlowTTS(BaseTTS):
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
+        ap = assets["audio_processor"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
