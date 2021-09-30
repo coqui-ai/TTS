@@ -70,6 +70,9 @@ class BaseAudioConfig(Coqpit):
         num_mels (int):
             Number of mel-basis frames that defines the frame lengths of each mel-spectrogram frame. Defaults to 80.
 
+        num_mfcc (int):
+            Number of MFCC values. Defaults to 80.
+
         mel_fmin (float): Min frequency level used for the mel-basis filters. ~50 for male and ~95 for female voices.
             It needs to be adjusted for a dataset. Defaults to 0.
 
@@ -126,6 +129,7 @@ class BaseAudioConfig(Coqpit):
     spec_gain: int = 20
     do_amp_to_db_linear: bool = True
     do_amp_to_db_mel: bool = True
+    num_mfcc: int = 80
     # normalization params
     signal_norm: bool = True
     min_level_db: int = -100
@@ -259,7 +263,7 @@ class BaseTrainingConfig(Coqpit):
         print_step (int):
             Number of steps required to print the next training log.
 
-        log_dashboard (str): "tensorboard" or "wandb"
+        dashboard_logger (str): "tensorboard" or "wandb"
             Set the experiment tracking tool
 
         plot_step (int):
