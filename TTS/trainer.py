@@ -19,7 +19,6 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP_th
 from torch.utils.data import DataLoader
 
-from TTS.stt.datasets.tokenizer import Tokenizer
 from TTS.utils.callbacks import TrainerCallback
 from TTS.utils.distribute import init_distributed
 from TTS.utils.generic_utils import (
@@ -103,7 +102,6 @@ class Trainer:
         get_data_samples: Callable = None,
         train_samples: List = None,
         eval_samples: List = None,
-        tokenizer: Tokenizer = None,
         cudnn_benchmark: bool = False,
         training_assets: Dict = {},
         parse_command_line_args: bool = True,
@@ -236,9 +234,6 @@ class Trainer:
 
         self.use_apex = self._is_apex_available()
         self.use_amp_scaler = self.config.mixed_precision and self.use_cuda
-
-        # init tokenizer
-        self.tokenizer = tokenizer
 
         # load data samples
         if train_samples is None and get_data_samples is None:
