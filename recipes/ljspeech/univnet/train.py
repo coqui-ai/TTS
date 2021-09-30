@@ -32,7 +32,7 @@ config = UnivnetConfig(
 ap = AudioProcessor(**config.audio.to_dict())
 
 # load training samples
-eval_samples, train_samples  = load_wav_data(config.data_path, config.eval_split_size)
+eval_samples, train_samples = load_wav_data(config.data_path, config.eval_split_size)
 
 # init model
 model = GAN(config)

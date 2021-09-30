@@ -3,9 +3,8 @@ import os
 from TTS.trainer import Trainer, TrainingArgs
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.configs import WavegradConfig
-from TTS.vocoder.models.wavegrad import Wavegrad
 from TTS.vocoder.datasets.preprocess import load_wav_data
-
+from TTS.vocoder.models.wavegrad import Wavegrad
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 config = WavegradConfig(
