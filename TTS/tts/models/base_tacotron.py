@@ -17,43 +17,12 @@ from TTS.utils.io import load_fsspec
 from TTS.utils.training import gradual_training_scheduler
 
 
-@dataclass
-class BaseTacotronArgs(Coqpit):
-    """TODO: update Tacotron configs using it"""
-
-    num_chars: int = MISSING
-    num_speakers: int = MISSING
-    r: int = MISSING
-    out_channels: int = 80
-    decoder_output_dim: int = 80
-    attn_type: str = "original"
-    attn_win: bool = False
-    attn_norm: str = "softmax"
-    prenet_type: str = "original"
-    prenet_dropout: bool = True
-    prenet_dropout_at_inference: bool = False
-    forward_attn: bool = False
-    trans_agent: bool = False
-    forward_attn_mask: bool = False
-    location_attn: bool = True
-    attn_K: int = 5
-    separate_stopnet: bool = True
-    bidirectional_decoder: bool = False
-    double_decoder_consistency: bool = False
-    ddc_r: int = None
-    encoder_in_features: int = 512
-    decoder_in_features: int = 512
-    d_vector_dim: int = None
-    use_gst: bool = False
-    gst: bool = None
-    gradual_training: bool = None
-
-
 class BaseTacotron(BaseTTS):
     def __init__(self, config: Coqpit):
         """Abstract Tacotron class"""
-        super().__init__()
+        super().__init__(config)
 
+        # pass all config fields as class attributes
         for key in config:
             setattr(self, key, config[key])
 
@@ -132,22 +101,6 @@ class BaseTacotron(BaseTTS):
 
     def get_criterion(self) -> nn.Module:
         return TacotronLoss(self.config)
-
-    @staticmethod
-    def get_characters(config: Coqpit) -> str:
-        # TODO: implement CharacterProcessor
-        if config.characters is not None:
-            symbols, phonemes = make_symbols(**config.characters)
-        else:
-            from TTS.tts.utils.text.symbols import (  # pylint: disable=import-outside-toplevel
-                parse_symbols,
-                phonemes,
-                symbols,
-            )
-
-            config.characters = parse_symbols()
-        model_characters = phonemes if config.use_phonemes else symbols
-        return model_characters, config
 
     @staticmethod
     def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:

@@ -23,7 +23,7 @@ class Tacotron(BaseTacotron):
     def __init__(self, config: Coqpit):
         super().__init__(config)
 
-        chars, self.config = self.get_characters(config)
+        chars, self.config, _ = self.get_characters(config)
         config.num_chars = self.num_chars = len(chars)
 
         # pass all config fields to `self`
@@ -264,7 +264,7 @@ class Tacotron(BaseTacotron):
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict) -> Tuple[Dict, Dict]:
+    def _create_logs(self, batch, outputs, ap):
         postnet_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         alignments_backward = outputs["alignments_backward"]
@@ -284,11 +284,22 @@ class Tacotron(BaseTacotron):
             figures["alignment_backward"] = plot_alignment(alignments_backward[0].data.cpu().numpy(), output_fig=False)
 
         # Sample audio
-        train_audio = ap.inv_spectrogram(pred_spec.T)
-        return figures, {"audio": train_audio}
+        audio = ap.inv_spectrogram(pred_spec.T)
+        return figures, {"audio": audio}
 
-    def eval_step(self, batch, criterion):
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ) -> None:  # pylint: disable=no-self-use
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, ap.sample_rate)
+
+    def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap, batch, outputs):
-        return self.train_log(ap, batch, outputs)
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)
