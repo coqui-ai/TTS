@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from TTS.model import BaseModel
-from TTS.tts.datasets import TTSDataset
+from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text import make_symbols
@@ -31,6 +31,30 @@ class BaseTTS(BaseModel):
         - 2D tensors `batch x channels`
         - 1D tensors `batch x 1`
     """
+
+    def _set_model_args(self, config: Coqpit):
+        """Setup model args based on the config type.
+
+        If the config is for training with a name like "*Config", then the model args are embeded in the
+        config.model_args
+
+        If the config is for the model with a name like "*Args", then we assign the directly.
+        """
+        # don't use isintance not to import recursively
+        if "Config" in config.__class__.__name__:
+            if "characters" in config:
+                _, self.config, num_chars = self.get_characters(config)
+                self.config.num_chars = num_chars
+                if hasattr(self.config, "model_args"):
+                    config.model_args.num_chars = num_chars
+                    self.args = self.config.model_args
+            else:
+                self.config = config
+                self.args = config.model_args
+        elif "Args" in config.__class__.__name__:
+            self.args = config
+        else:
+            raise ValueError("config must be either a *Config or *Args")
 
     @staticmethod
     def get_characters(config: Coqpit) -> str:
@@ -169,7 +193,7 @@ class BaseTTS(BaseModel):
     def get_data_loader(
         self,
         config: Coqpit,
-        ap: AudioProcessor,
+        assets: Dict,
         is_eval: bool,
         data_items: List,
         verbose: bool,
@@ -179,6 +203,8 @@ class BaseTTS(BaseModel):
         if is_eval and not config.run_eval:
             loader = None
         else:
+            ap = assets["audio_processor"]
+
             # setup multi-speaker attributes
             if hasattr(self, "speaker_manager"):
                 speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
@@ -280,14 +306,18 @@ class BaseTTS(BaseModel):
             )
         return loader
 
-    def test_run(self, ap) -> Tuple[Dict, Dict]:
+    def test_run(self, assets: Dict) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.
 
+        Args:
+            assets (dict): A dict of training assets. For `tts` models, it must include `{'audio_processor': ap}`.
+
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
+        ap = assets["audio_processor"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
