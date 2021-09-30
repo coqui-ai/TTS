@@ -110,10 +110,10 @@ class SpeakerManager:
 
     @staticmethod
     def parse_speakers_from_data(items: list) -> Tuple[Dict, int]:
-        """Parse speaker IDs from data samples retured by `load_meta_data()`.
+        """Parse speaker IDs from data samples retured by `load_tts_samples()`.
 
         Args:
-            items (list): Data sampled returned by `load_meta_data()`.
+            items (list): Data sampled returned by `load_tts_samples()`.
 
         Returns:
             Tuple[Dict, int]: speaker IDs and number of speakers.
@@ -127,7 +127,7 @@ class SpeakerManager:
         """Set speaker IDs from data samples.
 
         Args:
-            items (List): Data sampled returned by `load_meta_data()`.
+            items (List): Data sampled returned by `load_tts_samples()`.
         """
         self.speaker_ids, _ = self.parse_speakers_from_data(items)
 
