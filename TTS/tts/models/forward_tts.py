@@ -14,7 +14,6 @@ from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import average_over_durations, generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.visual import plot_alignment, plot_pitch, plot_spectrogram
-from TTS.utils.audio import AudioProcessor
 
 
 @dataclass

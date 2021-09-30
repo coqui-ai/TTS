@@ -17,7 +17,6 @@ from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, se
 from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
-from TTS.utils.audio import AudioProcessor
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
@@ -576,7 +575,7 @@ class Vits(BaseTTS):
                 )
         return outputs, loss_dict
 
-    def _log(self, ap, batch, outputs, name_prefix="train"):
+    def _log(self, ap, batch, outputs, name_prefix="train"):  # pylint: disable=unused-argument,no-self-use
         y_hat = outputs[0]["model_outputs"]
         y = outputs[0]["waveform_seg"]
         figures = plot_results(y_hat, y, ap, name_prefix)

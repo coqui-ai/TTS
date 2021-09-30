@@ -9,7 +9,6 @@ from torch.nn.utils import weight_norm
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.datasets import WaveGradDataset

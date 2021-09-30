@@ -1,5 +1,4 @@
 import os
-from typing import List, Union
 
 from coqpit import Coqpit
 

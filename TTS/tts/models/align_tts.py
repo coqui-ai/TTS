@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
 
 import torch
 from coqpit import Coqpit
@@ -13,7 +12,6 @@ from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
 
 
@@ -360,7 +358,7 @@ class AlignTTS(BaseTTS):
 
         return outputs, loss_dict
 
-    def _create_logs(self, batch, outputs, ap):
+    def _create_logs(self, batch, outputs, ap):  # pylint: disable=no-self-use
         model_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         mel_input = batch["mel_input"]

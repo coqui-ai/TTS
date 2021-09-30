@@ -90,7 +90,7 @@ class TrainingArgs(Coqpit):
 
 
 class Trainer:
-    def __init__(
+    def __init__(  # pylint: disable=dangerous-default-value
         self,
         args: Union[Coqpit, Namespace],
         config: Coqpit,
@@ -335,7 +335,9 @@ class Trainer:
         args.parse_args(training_args)
         return args, coqpit_overrides
 
-    def init_training(self, args: TrainingArgs, coqpit_overrides: Dict, config: Coqpit = None):
+    def init_training(
+        self, args: TrainingArgs, coqpit_overrides: Dict, config: Coqpit = None
+    ):  # pylint: disable=no-self-use
         """Initialize training and update model configs from command line arguments.
 
         Args:
@@ -387,14 +389,13 @@ class Trainer:
 
     @staticmethod
     def run_get_data_samples(config: Coqpit, get_data_samples: Callable) -> nn.Module:
-        if isinstance(get_data_samples, Callable):
+        if callable(get_data_samples):
             if len(signature(get_data_samples).sig.parameters) == 1:
                 train_samples, eval_samples = get_data_samples(config)
             else:
                 train_samples, eval_samples = get_data_samples()
             return train_samples, eval_samples
-        else:
-            return None, None
+        return None, None
 
     def restore_model(
         self,

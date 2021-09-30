@@ -1,17 +1,15 @@
 import copy
 from abc import abstractmethod
-from dataclasses import dataclass
 from typing import Dict, List
 
 import torch
-from coqpit import MISSING, Coqpit
+from coqpit import Coqpit
 from torch import nn
 
 from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
-from TTS.tts.utils.text import make_symbols
 from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.io import load_fsspec
 from TTS.utils.training import gradual_training_scheduler

@@ -1,7 +1,5 @@
 # coding: utf-8
 
-from typing import Dict, Tuple
-
 import torch
 from coqpit import Coqpit
 from torch import nn
@@ -11,7 +9,6 @@ from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
 from TTS.tts.models.base_tacotron import BaseTacotron
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from TTS.utils.audio import AudioProcessor
 
 
 class Tacotron2(BaseTacotron):
