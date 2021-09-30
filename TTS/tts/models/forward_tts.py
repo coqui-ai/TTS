@@ -161,24 +161,7 @@ class ForwardTTS(BaseTTS):
     # pylint: disable=dangerous-default-value
     def __init__(self, config: Coqpit):
 
-        super().__init__()
-
-        # don't use isintance not to import recursively
-        if "Config" in config.__class__.__name__:
-            if "characters" in config:
-                # loading from FasrPitchConfig
-                _, self.config, num_chars = self.get_characters(config)
-                config.model_args.num_chars = num_chars
-                self.args = self.config.model_args
-            else:
-                # loading from ForwardTTSArgs
-                self.config = config
-                self.args = config.model_args
-        elif isinstance(config, ForwardTTSArgs):
-            self.args = config
-            self.config = config
-        else:
-            raise ValueError("config must be either a *Config or ForwardTTSArgs")
+        super().__init__(config)
 
         self.max_duration = self.args.max_duration
         self.use_aligner = self.args.use_aligner
@@ -634,7 +617,8 @@ class ForwardTTS(BaseTTS):
 
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict):  # pylint: disable=no-self-use
+    def _create_logs(self, batch, outputs, ap):
+        """Create common logger outputs."""
         model_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         mel_input = batch["mel_input"]
@@ -674,11 +658,22 @@ class ForwardTTS(BaseTTS):
         train_audio = ap.inv_melspectrogram(pred_spec.T)
         return figures, {"audio": train_audio}
 
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ) -> None:  # pylint: disable=no-self-use
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, ap.sample_rate)
+
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
-        return self.train_log(ap, batch, outputs)
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False
