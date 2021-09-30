@@ -122,6 +122,9 @@ class AudioProcessor(object):
         num_mels (int, optional):
             number of melspectrogram dimensions. Defaults to None.
 
+        num_mfcc (int):
+            Number of MFCC values to compute. Defaults to None.
+
         log_func (int, optional):
             log exponent used for converting spectrogram aplitude to DB.
 
@@ -207,6 +210,7 @@ class AudioProcessor(object):
         sample_rate=None,
         resample=False,
         num_mels=None,
+        num_mfcc=None,
         log_func="np.log10",
         min_level_db=None,
         frame_shift_ms=None,
@@ -240,6 +244,7 @@ class AudioProcessor(object):
         self.sample_rate = sample_rate
         self.resample = resample
         self.num_mels = num_mels
+        self.num_mfcc = num_mfcc
         self.log_func = log_func
         self.min_level_db = min_level_db or 0
         self.frame_shift_ms = frame_shift_ms
@@ -545,6 +550,22 @@ class AudioProcessor(object):
         else:
             S = self._linear_to_mel(np.abs(D))
         return self.normalize(S).astype(np.float32)
+
+    def mfcc(self, y: np.ndarray) -> np.ndarray:
+        """Compute MFCC values from a waveform."""
+        mel_args = {
+            "n_fft": self.fft_size,
+            "n_mels": self.num_mels,
+            "hop_length": self.hop_length,
+            "win_length": self.win_length,
+            "window": "hann",
+            "center": True,
+            "pad_mode": self.stft_pad_mode,
+            "fmin": self.mel_fmin,
+            "fmax": self.mel_fmax,
+        }
+        mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=self.num_mfcc, **mel_args)
+        return mfcc
 
     def inv_spectrogram(self, spectrogram: np.ndarray) -> np.ndarray:
         """Convert a spectrogram to a waveform using Griffi-Lim vocoder."""
