@@ -6,7 +6,6 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 
-
 # pylint: skip-file
 
 
@@ -80,7 +79,7 @@ class BaseModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    def train_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets:Dict, steps:int) -> None:
+    def train_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int) -> None:
         """Create visualizations and waveform examples for training.
 
         For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
@@ -113,7 +112,7 @@ class BaseModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    def eval_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets:Dict, steps:int) -> None:
+    def eval_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int) -> None:
         """The same as `train_log()`"""
         pass
 
