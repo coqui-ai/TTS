@@ -1,12 +1,12 @@
+from tqdm import tqdm
 import glob
 import os
 from multiprocessing import Pool
 
+from TTS.stt.utils.download import download_url, extract_archive
+from TTS.stt.datasets.formatters import *
 import librosa
 import soundfile as sf
-from tqdm import tqdm
-
-from TTS.stt.utils.download import download_url, extract_archive
 
 
 def _resample_file(func_args):
@@ -15,10 +15,10 @@ def _resample_file(func_args):
     sf.write(filename, y, sr)
 
 
-def download_ljspeech(path: str, split_name: str = None, n_jobs: int = 1):
+def download_ljspeech(path:str, split_name:str=None, n_jobs:int=1):
     """Download and extract LJSpeech dataset and resample it to 16khz."""
 
-    SAMPLE_RATE = 16000
+    SAMPLE_RATE=16000
     os.makedirs(path, exist_ok=True)
 
     # download and extract
@@ -68,4 +68,4 @@ def download_librispeech(path: str, split_name: str):
 
 if __name__ == "__main__":
     # download_librispeech("/home/ubuntu/librispeech/", "train-clean-100")
-    download_ljspeech("/home/ubuntu/ljspeech/", n_jobs=8)
+    # download_ljspeech("/home/ubuntu/ljspeech/", n_jobs=8)

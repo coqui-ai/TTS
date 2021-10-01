@@ -32,7 +32,7 @@ def librispeech(root_path, meta_files=None):
     _delimiter = " "
     _audio_ext = ".flac"
     items = []
-    if meta_files is None:
+    if meta_files is None or meta_files == "":
         meta_files = glob(f"{root_path}/**/*trans.txt", recursive=True)
     else:
         if isinstance(meta_files, str):
