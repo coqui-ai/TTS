@@ -310,7 +310,7 @@ class GlowTTS(BaseTTS):
         o_mean, o_log_scale, o_dur_log, x_mask = self.encoder(x, x_lengths, g=g)
         # compute output durations
         w = (torch.exp(o_dur_log) - 1) * x_mask * self.length_scale
-        w_ceil = torch.ceil(w)
+        w_ceil = torch.clamp_min(torch.ceil(w), 1)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
         y_max_length = None
         # compute masks
