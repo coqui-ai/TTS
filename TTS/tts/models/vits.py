@@ -456,7 +456,7 @@ class Vits(BaseTTS):
 
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths)
 
-        if self.num_speakers > 0 and sid:
+        if self.num_speakers > 0 and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)
 
         if self.args.use_sdp:
