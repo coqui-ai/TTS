@@ -626,17 +626,13 @@ class Trainer:
                 # https://nvidia.github.io/apex/advanced.html?highlight=accumulate#backward-passes-with-multiple-optimizers
                 with amp.scale_loss(loss_dict["loss"], optimizer) as scaled_loss:
                     scaled_loss.backward()
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    amp.master_params(optimizer), grad_clip, error_if_nonfinite=False
-                )
+                grad_norm = torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), grad_clip)
             else:
                 # model optimizer step in mixed precision mode
                 scaler.scale(loss_dict["loss"]).backward()
                 if grad_clip > 0:
                     scaler.unscale_(optimizer)
-                    grad_norm = torch.nn.utils.clip_grad_norm_(
-                        self.master_params(optimizer), grad_clip, error_if_nonfinite=False
-                    )
+                    grad_norm = torch.nn.utils.clip_grad_norm_(self.master_params(optimizer), grad_clip)
                     # pytorch skips the step when the norm is 0. So ignore the norm value when it is NaN
                     if torch.isnan(grad_norm) or torch.isinf(grad_norm):
                         grad_norm = 0
@@ -648,7 +644,7 @@ class Trainer:
             # main model optimizer step
             loss_dict["loss"].backward()
             if grad_clip > 0:
-                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip, error_if_nonfinite=False)
+                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
 
         step_time = time.time() - step_start_time
