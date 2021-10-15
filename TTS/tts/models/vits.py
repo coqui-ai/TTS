@@ -16,7 +16,7 @@ from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlock
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
@@ -361,7 +361,7 @@ class Vits(BaseTTS):
             trainer.config.model_args.speakers_file = output_path
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
             print(f" > `speakers.json` is saved to {output_path}.")
-            print(f" > `speakers_file` is updated in the config.json.")
+            print(" > `speakers_file` is updated in the config.json.")
 
     @staticmethod
     def _set_cond_input(aux_input: Dict):
