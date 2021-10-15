@@ -252,11 +252,6 @@ class Trainer:
         else:
             self.run_get_model(self.config, get_model)
 
-        # TODO: out!
-        # init multispeaker settings of the model
-        if hasattr(self.model, "init_multispeaker"):
-            self.model.init_multispeaker(self.config, self.train_samples + self.eval_samples)
-
         # setup criterion
         self.criterion = self.get_criterion(self.model)
 
