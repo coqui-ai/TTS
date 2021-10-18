@@ -11,7 +11,7 @@ from TTS.auto_tts.utils import pick_glowtts_encoder
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 class TtsModels:
@@ -73,6 +73,60 @@ class TtsModels:
             max_seq_len=150,
             output_path=self.output_path,
             datasets=[dataset],
+        )
+        return config
+
+    def _multi_speaker_vctk_tacotron2(
+            self, audio, dataset, speaker_file, ga=10.0, r=7, forward_attn=True, location_attn=True
+    ):
+        config = Tacotron2Config(
+            audio=audio,
+            run_name="mulit_speaker_tacotron2_vctk",
+            run_description="multi speaker tacotron2 trained on vctk dataset.",
+            batch_size=self.batch_size,
+            eval_batch_size=int(self.batch_size/2),
+            mixed_precision=self.mixed_precision,
+            # gradual_training="",
+            r=r,
+            loss_masking=True,
+            ga_alpha=ga,
+            run_eval=True,
+            test_delay_epochs=-1,
+            grad_clip=1.0,
+            epochs=self.epochs,
+            lr=self.learning_rate,
+            seq_len_norm=True,
+            memory_size=-1,
+            attention_type="original",
+            attention_heads=4,
+            attention_norm="softmax",
+            windowing=False,
+            use_forward_attn=forward_attn,
+            location_attn=location_attn,
+            forward_attn_mask=False,
+            transition_agent=False,
+            ddc_r=r,
+            stopnet=True,
+            separate_stopnet=True,
+            print_step=25,
+            plot_step=100,
+            print_eval=False,
+            save_step=200,
+            checkpoint=True,
+            text_cleaner="english_cleaners",
+            phoneme_cache_path=os.path.join(self.output_path, "phoneme_cache"),
+            num_loader_workers=6,
+            num_eval_loader_workers=6,
+            max_decoder_steps=1000,
+            use_speaker_embedding=True,
+            use_d_vector_file=True,
+            d_vector_dim=512,
+            d_vector_file=speaker_file,
+            min_seq_len=6,
+            max_seq_len=190,
+            use_phonemes=True,
+            use_espeak_phonemes=True,
+            datasets=[dataset]
         )
         return config
 

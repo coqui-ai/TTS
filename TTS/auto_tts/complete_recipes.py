@@ -1,3 +1,7 @@
+import requests
+import tqdm
+import zipfile
+
 from TTS.auto_tts.model_hub import TtsModels, VocoderModels
 from TTS.auto_tts.utils import data_loader
 from TTS.trainer import Trainer, TrainingArgs, init_training
@@ -122,7 +126,7 @@ class TtsAutoTrainer(TtsModels):
                 model_config = self._single_speaker_glow_tts(audio, dataset, encoder=glow_tts_encoder)
             elif model_name == "vits tts":
                 model_config = self._single_speaker_vits_tts(audio, dataset)
-        elif self.dataset_name == "sam" or "sam_accenture":
+        elif self.dataset_name == "baker":
             if model_name == "tacotron2":
                 if tacotron2_model_type == "double decoder consistency":
                     model_config = self._single_speaker_tacotron2_DDC(
@@ -148,10 +152,23 @@ class TtsAutoTrainer(TtsModels):
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
 
-    def multi_speaker_autotts(self, model_name, speaker_file, glowtts_encoder):
+    def multi_speaker_autotts(self, model_name, speaker_file, glowtts_encoder=None, r=2, forward_attn=True,
+                              location_attn=False):
         """
 
         Args:
+            location_attn (bool):
+                enable location attention for tacotron2 model. Defaults to True.
+
+
+            r (int):
+                set the r for tacotron2 model. Defaults to 2.
+
+
+            forward_attn (bool):
+                set forward attention for tacotron2 model. Defaults to True.
+
+
             model_name (str):
                 name of the model you want to train. Defaults to None.
 
@@ -171,9 +188,33 @@ class TtsAutoTrainer(TtsModels):
                 model_config = self._sc_glow_tts(audio, dataset, speaker_file, encoder=glowtts_encoder)
             elif model_name == "vits tts":
                 model_config = self._vctk_vits_tts(audio, dataset, speaker_file)
+            elif model_name == "tacotron2":
+                model_config = self._multi_speaker_vctk_tacotron2(audio, dataset, speaker_file, r=r, forward_attn=forward_attn,
+                                                                  location_attn=location_attn)
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
+
+   #  def from_pretrained(self, model_name):
+    #     if model_name == "sc-glow-tts":
+    #         file_path = "/home/logan/TTS/TTS/auto_tts/models/"
+    #         zip_path = "sc-glow-tts.zip"
+    #         url = "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--vctk--sc-glow-tts.zip"
+    #         r = requests.get(url, stream=True)
+    #         total_size = int(r.headers['Content-Length'], 0)
+    #         pb = tqdm.tqdm(total=total_size, unit='iB', unit_scale=True)
+    #
+    #         print("Downloading Model folder.")
+    #         with open(os.path.join(file_path, zip_path), "wb") as fb:
+    #             for chunk in r.iter_content(chunk_size=1024):
+    #                 fb.write(chunk)
+    #                 pb.update(len(chunk))
+    #
+    #         print("extracting model folder")
+    #         zip_file = zipfile.ZipFile(os.path.join(file_path, zip_path))
+    #         zip_file.extractall()
+    #         print("Model Downloaded!")
+    # please ignore this was just me testing code for downloading the pretrained models, it's not done yet
 
 
 class VocoderAutoTrainer(VocoderModels):
@@ -271,3 +312,6 @@ class VocoderAutoTrainer(VocoderModels):
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
+
+    def from_pretrained(model_name):
+        pass

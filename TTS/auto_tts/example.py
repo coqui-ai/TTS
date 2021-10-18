@@ -1,6 +1,6 @@
-from TTS.auto_tts.complete_recipes import VocoderAutoTrainer
+from TTS.auto_tts.complete_recipes import VocoderAutoTrainer, TtsAutoTrainer
 
-trainer = VocoderAutoTrainer(
+trainer = TtsAutoTrainer(
     data_path="../LJSpeech-1.1",
     dataset="ljspeech",
     batch_size=32,
@@ -10,6 +10,6 @@ trainer = VocoderAutoTrainer(
     epochs=1000,
 )
 
-model = trainer.single_speaker_autotts("hifigan")
+model = trainer.from_pretrained("sc-glow-tts")
 
-model.fit()
+# model.fit()
