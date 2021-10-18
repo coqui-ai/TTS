@@ -182,16 +182,24 @@ class Trainer:
             - TPU training
             - NOTE: Consider moving `training_assets` to the model implementation.
         """
+
         if parse_command_line_args:
-            # parse command-line arguments for TrainingArgs()
+            # parse command-line arguments for TrainerArgs()
             args, coqpit_overrides = self.parse_argv(args)
 
             # get ready for training and parse command-line arguments for the model config
             config = self.init_training(args, coqpit_overrides, config)
 
-        # define the experiment path and create the folder
-        output_path = get_experiment_folder_path(config.output_path, config.run_name)
-        os.makedirs(output_path, exist_ok=True)
+        # set the output path
+        if args.continue_path:
+            # use the same path as the continuing run
+            output_path = args.continue_path
+        else:
+            # override the output path if it is provided
+            output_path = config.output_path if output_path is None else output_path
+            # create a new output folder name
+            output_path = get_experiment_folder_path(config.output_path, config.run_name)
+            os.makedirs(output_path, exist_ok=True)
 
         # copy training assets to the output folder
         copy_model_files(config, output_path, new_fields=None)
