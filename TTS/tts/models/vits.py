@@ -217,12 +217,13 @@ class Vits(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager=None):
 
         super().__init__(config)
 
         self.END2END = True
 
+        self.speaker_manager = speaker_manager
         if config.__class__.__name__ == "VitsConfig":
             # loading from VitsConfig
             if "num_chars" not in config:
@@ -314,7 +315,7 @@ class Vits(BaseTTS):
         if args.init_discriminator:
             self.disc = VitsDiscriminator(use_spectral_norm=args.use_spectral_norm_disriminator)
 
-    def init_multispeaker(self, config: Coqpit, data: List = None):
+    def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
         or with external `d_vectors` computed from a speaker encoder model.
 
@@ -350,18 +351,6 @@ class Vits(BaseTTS):
             raise ValueError("[!] Speaker embedding layer already initialized before d_vector settings.")
         self.speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
         self.embedded_speaker_dim = config.d_vector_dim
-
-    def on_init_start(self, trainer):
-        """Save the speaker.json at the beginning of the training. And update the config.json with the
-        speakers.json file path."""
-        if self.speaker_manager is not None:
-            output_path = os.path.join(trainer.output_path, "speakers.json")
-            self.speaker_manager.save_speaker_ids_to_file(output_path)
-            trainer.config.speakers_file = output_path
-            trainer.config.model_args.speakers_file = output_path
-            trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
-            print(f" > `speakers.json` is saved to {output_path}.")
-            print(" > `speakers_file` is updated in the config.json.")
 
     @staticmethod
     def _set_cond_input(aux_input: Dict):

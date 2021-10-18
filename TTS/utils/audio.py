@@ -108,6 +108,8 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
 class AudioProcessor(object):
     """Audio Processor for TTS used by all the data pipelines.
 
+    TODO: Make this a dataclass to replace `BaseAudioConfig`.
+
     Note:
         All the class arguments are set to default values to enable a flexible initialization
         of the class with the model config. They are not meaningful for all the arguments.
