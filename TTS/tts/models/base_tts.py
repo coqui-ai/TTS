@@ -20,9 +20,9 @@ from TTS.utils.audio import AudioProcessor
 
 
 class BaseTTS(BaseModel):
-    """Abstract `tts` class. Every new `tts` model must inherit this.
+    """Base `tts` class. Every new `tts` model must inherit this.
 
-    It defines `tts` specific functions on top of `Model`.
+    It defines common `tts` specific functions on top of `Model` implementation.
 
     Notes on input/output tensor shapes:
         Any input or output tensor of the model must be shaped as

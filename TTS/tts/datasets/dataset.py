@@ -330,7 +330,7 @@ class TTSDataset(Dataset):
         if by_audio_len:
             lengths = []
             for item in self.items:
-                lengths.append(os.path.getsize(item[1]))
+                lengths.append(os.path.getsize(item[1]) / 16 * 8)  # assuming 16bit audio
             lengths = np.array(lengths)
         else:
             lengths = np.array([len(ins[0]) for ins in self.items])
