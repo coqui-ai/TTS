@@ -645,6 +645,10 @@ class AudioProcessor(object):
             >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
             >>> pitch = ap.compute_f0(wav)
         """
+        # align F0 length to the spectrogram length
+        if len(x) % self.hop_length == 0:
+            x = np.pad(x, (0, self.hop_length // 2), mode="reflect")
+
         f0, t = pw.dio(
             x.astype(np.double),
             fs=self.sample_rate,
@@ -746,6 +750,14 @@ class AudioProcessor(object):
         """
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
         scipy.io.wavfile.write(path, sr if sr else self.sample_rate, wav_norm.astype(np.int16))
+
+    def get_duration(self, filename: str) -> float:
+        """Get the duration of a wav file using Librosa.
+
+        Args:
+            filename (str): Path to the wav file.
+        """
+        return librosa.get_duration(filename)
 
     @staticmethod
     def mulaw_encode(wav: np.ndarray, qc: int) -> np.ndarray:
