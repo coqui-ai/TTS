@@ -107,12 +107,12 @@ class Synthesizer(object):
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
-        self.tts_model = setup_tts_model(config=self.tts_config)
+        speaker_manager = self._init_speaker_manager()
+
+        self.tts_model = setup_tts_model(config=self.tts_config, speaker_manager=speaker_manager)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
-        speaker_manager = self._init_speaker_manager()
-        self.tts_model.speaker_manager = speaker_manager
 
     def _init_speaker_manager(self):
         """Initialize the SpeakerManager"""
