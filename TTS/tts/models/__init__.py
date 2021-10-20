@@ -2,7 +2,7 @@ from TTS.tts.utils.text.symbols import make_symbols, parse_symbols
 from TTS.utils.generic_utils import find_module
 
 
-def setup_model(config):
+def setup_model(config, speaker_manager: "SpeakerManager" = None):
     print(" > Using model: {}".format(config.model))
     # fetch the right model implementation.
     if "base_model" in config and config["base_model"] is not None:
@@ -31,7 +31,7 @@ def setup_model(config):
         config.model_params.num_chars = num_chars
     if "model_args" in config:
         config.model_args.num_chars = num_chars
-    model = MyModel(config)
+    model = MyModel(config, speaker_manager=speaker_manager)
     return model
 
 
