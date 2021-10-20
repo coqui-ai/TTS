@@ -1,5 +1,4 @@
 import math
-import os
 import random
 from dataclasses import dataclass, field
 from itertools import chain
