@@ -647,7 +647,7 @@ class Trainer:
             optimizer.step()
 
         # pytorch skips the step when the norm is 0. So ignore the norm value when it is NaN
-        if isinstance(grad_norm ,torch.Tensor) and (torch.isnan(grad_norm) or torch.isinf(grad_norm)):
+        if isinstance(grad_norm, torch.Tensor) and (torch.isnan(grad_norm) or torch.isinf(grad_norm)):
             grad_norm = 0
 
         step_time = time.time() - step_start_time
