@@ -1,18 +1,19 @@
 # Training a Model
 
-1. Decide what model you want to use.
+1. Decide the model you want to use.
 
     Each model has a different set of pros and cons that define the run-time efficiency and the voice quality. It is up to you to decide what model servers your needs. Other than referring to the papers, one easy way is to test the 🐸TTS
     community models and see how fast and good each of the models. Or you can start a discussion on our communication channels.
 
-2. Understand the configuration, its fields and values of your model.
+2. Understand the configuration, its fields and values.
 
     For instance, if you want to train a `Tacotron` model then see the `TacotronConfig` class and make sure you understand it.
 
-3. Go to the recipes and check the recipe of your target model.
+3. Check the recipes.
 
-    Recipes do not promise perfect models but they provide a good start point for `Nervous Beginners`. A recipe script for
-    `GlowTTS` using `LJSpeech` dataset looks like below. Let's be creative and call this `train_glowtts.py`.
+    Recipes are located under `TTS/recipes/`. They do not promise perfect models but they provide a good start point for
+    `Nervous Beginners`.
+    A recipe for `GlowTTS` using `LJSpeech` dataset looks like below. Let's be creative and call this `train_glowtts.py`.
 
     ```python
     # train_glowtts.py
@@ -20,7 +21,8 @@
    import os
 
     from TTS.trainer import Trainer, TrainingArgs
-    from TTS.tts.configs import BaseDatasetConfig, GlowTTSConfig
+    from TTS.tts.configs.shared_config import BaseDatasetConfig
+    from TTS.tts.configs.glow_tts_config import GlowTTSConfig
     from TTS.tts.datasets import load_tts_samples
     from TTS.tts.models.glow_tts import GlowTTS
     from TTS.utils.audio import AudioProcessor
@@ -183,3 +185,80 @@
 8. Return to the step 1 and reiterate for training a `vocoder` model.
 
     In the example above, we trained a `GlowTTS` model, but the same workflow applies to all the other 🐸TTS models.
+
+
+# Multi-speaker Training
+
+Training a multi-speaker model is mostly the same as training a single-speaker model.
+You need to specify a couple of configuration parameters, initiate a `SpeakerManager` instance and pass it to the model.
+
+The configuration parameters define whether you want to train the model with a speaker-embedding layer or pre-computed
+d-vectors. For using d-vectors, you first need to compute the d-vectors using the `SpeakerEncoder`.
+
+The same Glow-TTS model above can be trained on a multi-speaker VCTK dataset with the script below.
+
+```python
+import os
+
+from TTS.config.shared_configs import BaseAudioConfig
+from TTS.trainer import Trainer, TrainingArgs
+from TTS.tts import BaseDatasetConfig, GlowTTSConfig
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.glow_tts import GlowTTS
+from TTS.tts.utils.speakers import SpeakerManager
+from TTS.utils.audio import AudioProcessor
+
+# define dataset config for VCTK
+output_path = os.path.dirname(os.path.abspath(__file__))
+dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=os.path.join(output_path, "../VCTK/"))
+
+# init audio processing config
+audio_config = BaseAudioConfig(sample_rate=22050, do_trim_silence=True, trim_db=23.0)
+
+# init training config
+config = GlowTTSConfig(
+    batch_size=64,
+    eval_batch_size=16,
+    num_loader_workers=4,
+    num_eval_loader_workers=4,
+    run_eval=True,
+    test_delay_epochs=-1,
+    epochs=1000,
+    text_cleaner="phoneme_cleaners",
+    use_phonemes=True,
+    phoneme_language="en-us",
+    phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
+    print_step=25,
+    print_eval=False,
+    mixed_precision=True,
+    output_path=output_path,
+    datasets=[dataset_config],
+    use_speaker_embedding=True,
+)
+
+# init audio processor
+ap = AudioProcessor(**config.audio.to_dict())
+
+# load training samples
+train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+
+# ONLY FOR MULTI-SPEAKER: init speaker manager for multi-speaker training
+speaker_manager = SpeakerManager()
+speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
+config.num_speakers = speaker_manager.num_speakers
+
+# init model
+model = GlowTTS(config, speaker_manager)
+
+# init the trainer and 🚀
+trainer = Trainer(
+    TrainingArgs(),
+    config,
+    output_path,
+    model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples,
+    training_assets={"audio_processor": ap},
+)
+trainer.fit()
+```
