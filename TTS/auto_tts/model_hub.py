@@ -1,27 +1,32 @@
 import os
 
 from recipes.ljspeech.glow_tts.train_glowtts import config as glowtts_config
+from recipes.ljspeech.fast_pitch.train_fast_pitch import config as fastpitch_config
 from recipes.ljspeech.hifigan.train_hifigan import config as hifigan_config
 from recipes.ljspeech.multiband_melgan.train_multiband_melgan import config as multiband_melgan_config
 from recipes.ljspeech.univnet.train import config as univnet_config
 from recipes.ljspeech.vits_tts.train_vits import config as vits_config
 from recipes.ljspeech.wavegrad.train_wavegrad import config as wavegrad_config
 from recipes.ljspeech.wavernn.train_wavernn import config as waverrn_config
-from TTS.auto_tts.utils import pick_glowtts_encoder
+from TTS.auto_tts.utils import pick_glowtts_encoder, pick_forwardtts_encoder, pick_forwardtts_decoder
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
+from TTS.tts.models.forward_tts import ForwardTTSArgs
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
+from TTS.trainer import TrainingArgs
+from TTS.utils.manage import ModelManager
+
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 class TtsModels:
     def __init__(
-        self,
-        batch_size: int,
-        mixed_precision: bool,
-        learning_rate: float,
-        epochs: int,
-        output_path: str = os.path.dirname(os.path.abspath(__file__)),
+            self,
+            batch_size: int,
+            mixed_precision: bool,
+            learning_rate: float,
+            epochs: int,
+            output_path: str = os.path.dirname(os.path.abspath(__file__)),
     ):
 
         self.batch_size = batch_size
@@ -29,9 +34,47 @@ class TtsModels:
         self.mixed_precision = mixed_precision
         self.learning_rate = learning_rate
         self.epochs = epochs
+        self.manager = ModelManager()
+
+    def _single_speaker_from_pretrained(self, model_name):
+        if model_name == "english glow-tts":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/ljspeech/glow-tts")
+        elif model_name == "english tacotron2-DDC":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/ljspeech/tacotron2-DDC")
+        elif model_name == ' english tacotron2':
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/ek1/tacotron2")
+        elif model_name == "english tacotron2-DCA":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/ljspeech/tacotron2-DCA")
+        elif model_name == "english speedy speech":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/ljspeech/speedy-speech")
+        elif model_name == "english vits":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/ljspeech/vits")
+        elif model_name == "english fast speech":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/ljspeech/fast_pitch")
+        elif model_name == "spanish tacotron2-DDC":
+            model_path, config_path, _ = self.manager.download_model("tts_models/es/mai/tacotron2-DDC")
+        elif model_name == 'french tacotron2-DDC':
+            model_path, config_path, _ = self.manager.download_model("tts_models/fr/mai/tacotron2-DDC")
+        elif model_name == "chinese tacotron2-DDC":
+            model_path, config_path, _ = self.manager.download_model("tts_models/zh-CN/baker/tacotron2-DDC-GST")
+        elif model_name == "german tacotron2-DCA":
+            model_path, config_path, _ = self.manager.download_model("tts_models/de/thorsten/tacotron2-DCA")
+        elif model_name == "japanese tacotron2-DDC":
+            model_path, config_path, _ = self.manager.download_model("tts_models/ja/kokoro/tacotron2-DDC")
+
+        training_args = TrainingArgs(restore_path=model_path)
+        return model_path, config_path, training_args
+
+    def _multi_speaker_from_pretrained(self, model_name):
+        if model_name == " english sc-glow-tts":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/vctk/sc-glow-tts")
+        elif model_name == "english vits":
+            model_path, config_path, _ = self.manager.download_model("tts_models/en/vctk/vits")
+        training_args = TrainingArgs(restore_path=model_path)
+        return model_path, config_path, training_args
 
     def _single_speaker_tacotron2_base(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=True, location_attn=True
     ):
         config = Tacotron2Config(
             run_name="single_speaker_tacotron2",
@@ -84,7 +127,7 @@ class TtsModels:
             run_name="mulit_speaker_tacotron2_vctk",
             run_description="multi speaker tacotron2 trained on vctk dataset.",
             batch_size=self.batch_size,
-            eval_batch_size=int(self.batch_size/2),
+            eval_batch_size=int(self.batch_size / 2),
             mixed_precision=self.mixed_precision,
             # gradual_training="",
             r=r,
@@ -131,7 +174,7 @@ class TtsModels:
         return config
 
     def _single_speaker_tacotron2_DDC(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
             audio=audio,
@@ -194,7 +237,7 @@ class TtsModels:
         return config
 
     def _single_speaker_tacotron2_DCA(
-        self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
+            self, audio, dataset, dla=0.25, pla=0.25, ga=5.0, forward_attn=False, location_attn=True
     ):
         config = Tacotron2Config(
             audio=audio,
@@ -355,16 +398,34 @@ class TtsModels:
         config = vits_config
         return config
 
+    def _ljspeech_fast_fastpitch(self, audio, dataset):
+        fastpitch_config.audio = audio
+        fastpitch_config.datasets = [dataset]
+        fastpitch_config.lr_gen = self.learning_rate
+        fastpitch_config.lr_disc = self.learning_rate
+        fastpitch_config.batch_size = self.batch_size
+        fastpitch_config.eval_batch_size = self.batch_size // 2
+        fastpitch_config.mixed_precision = self.mixed_precision
+        fastpitch_config.output_path = self.output_path
+        config = fastpitch_config
+        return config
+
+    def _forward_tts(self, audio, dataset, encoder, decoder):
+        encoder_type = pick_forwardtts_encoder(encoder)
+        decoder_type = pick_forwardtts_decoder(decoder)
+        model_args = ForwardTTSArgs(encoder_type=encoder_type, decoder_type=decoder_type)
+        pass
+
 
 class VocoderModels:
     def __init__(
-        self,
-        batch_size,
-        mixed_precision,
-        generator_learning_rate,
-        discriminator_learning_rate,
-        epochs,
-        output_path=os.path.dirname(os.path.abspath(__file__)),
+            self,
+            batch_size,
+            mixed_precision,
+            generator_learning_rate,
+            discriminator_learning_rate,
+            epochs,
+            output_path=os.path.dirname(os.path.abspath(__file__)),
     ):
         self.batch_size = batch_size
         self.output_path = output_path
@@ -372,6 +433,35 @@ class VocoderModels:
         self.generator_lr = generator_learning_rate
         self.discriminator_lr = discriminator_learning_rate
         self.epochs = epochs
+        self.manager = ModelManager()
+
+    def _single_speaker_from_pretrained(self, model_name: str):
+        if model_name == "universal-wavegrad":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/universal/libri-tts/wavegrad")
+        elif model_name == "universal-fullband-melgan":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/universal/libri-tts/fullband-melgan")
+        elif model_name == "english-wavegrad":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/en/ek1/wavegrad")
+        elif model_name == "english-multiband-melgan":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/en/ljspeech/multiband-melgan")
+        elif model_name == "english-hifigan-v2":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/en/ljspeech/hifigan_v2")
+        elif model_name == "english-univnet":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/en/ljspeech/univnet")
+        elif model_name == "german-wavegrad":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/de/thorsten/wavegrad")
+        elif model_name == "german-fullband-melgan":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/de/thorsten/fullband-melgan")
+        elif model_name == "japanese-hifigan-v1":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/ja/kokoro/hifigan_v1")
+        training_args = TrainingArgs(restore_path=model_path)
+        return model_path, config_path, training_args
+
+    def _multi_speaker_from_pretrained(self, model_name):
+        if model_name == "english-hifigan-v2":
+            model_path, config_path, _ = self.manager.download_model("vocoder_models/en/vctk/hifigan_v2")
+        training_args = TrainingArgs(restore_path=model_path)
+        return model_path, config_path, training_args
 
     def _hifi_gan(self, audio, data_path):
         hifigan_config.data_path = data_path

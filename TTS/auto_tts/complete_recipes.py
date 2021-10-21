@@ -67,7 +67,9 @@ class TtsAutoTrainer(TtsModels):
         self.data_path = data_path
         self.dataset_name = dataset
 
-    def single_speaker_autotts(
+    def single_speaker_autotts(     # im actually going to change this to autotts_recipes and i'm making a more generic
+                                    # single_speaker_autotts cause it's gonna get too clunky when implenting fine tuning
+                                    # all in the same function. it'll be finished in the next commit
         self,
         model_name,
         stats_path=None,
@@ -75,6 +77,7 @@ class TtsAutoTrainer(TtsModels):
         glow_tts_encoder=None,
         forward_attention=False,
         location_attention=True,
+        pretrained=False,
     ):
         """
 
@@ -105,6 +108,11 @@ class TtsAutoTrainer(TtsModels):
             location_attention:
                 Optional, Whether to use location attention or not on Tacotron2 models. Defaults to True.
 
+
+            pretrained (str):
+                whether to use a pre trained model or not, This is recommended if you are training on
+                custom data. Defaults to False
+
         """
 
         audio, dataset = data_loader(name=self.dataset_name, path=self.data_path, stats_path=stats_path)
@@ -126,6 +134,8 @@ class TtsAutoTrainer(TtsModels):
                 model_config = self._single_speaker_glow_tts(audio, dataset, encoder=glow_tts_encoder)
             elif model_name == "vits tts":
                 model_config = self._single_speaker_vits_tts(audio, dataset)
+            elif model_name == "fast pitch":
+                model_config = self._ljspeech_fast_fastpitch(audio, dataset)
         elif self.dataset_name == "baker":
             if model_name == "tacotron2":
                 if tacotron2_model_type == "double decoder consistency":
@@ -194,27 +204,6 @@ class TtsAutoTrainer(TtsModels):
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
-
-   #  def from_pretrained(self, model_name):
-    #     if model_name == "sc-glow-tts":
-    #         file_path = "/home/logan/TTS/TTS/auto_tts/models/"
-    #         zip_path = "sc-glow-tts.zip"
-    #         url = "https://github.com/coqui-ai/TTS/releases/download/v0.1.0/tts_models--en--vctk--sc-glow-tts.zip"
-    #         r = requests.get(url, stream=True)
-    #         total_size = int(r.headers['Content-Length'], 0)
-    #         pb = tqdm.tqdm(total=total_size, unit='iB', unit_scale=True)
-    #
-    #         print("Downloading Model folder.")
-    #         with open(os.path.join(file_path, zip_path), "wb") as fb:
-    #             for chunk in r.iter_content(chunk_size=1024):
-    #                 fb.write(chunk)
-    #                 pb.update(len(chunk))
-    #
-    #         print("extracting model folder")
-    #         zip_file = zipfile.ZipFile(os.path.join(file_path, zip_path))
-    #         zip_file.extractall()
-    #         print("Model Downloaded!")
-    # please ignore this was just me testing code for downloading the pretrained models, it's not done yet
 
 
 class VocoderAutoTrainer(VocoderModels):

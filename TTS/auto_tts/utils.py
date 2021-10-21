@@ -7,6 +7,7 @@ def data_loader(name, path, stats_path=None):
         audio = BaseAudioConfig(
             ref_level_db=0, trim_db=60, mel_fmin=50.0, mel_fmax=7600.0, spec_gain=1, stats_path=stats_path
         )
+
     elif name == "vctk":
         dataset = BaseDatasetConfig(
             name="vctk",
@@ -46,22 +47,6 @@ def data_loader(name, path, stats_path=None):
             do_trim_silence=False,
             trim_db=25,
         )
-    elif name == "sam" or "sam_accenture":
-        dataset = BaseDatasetConfig(
-            name="sam_accenture", meta_file_train="recording_script.xml", meta_file_val=None, path=path
-        )
-        audio = BaseAudioConfig(
-            sample_rate=16000,
-            preemphasis=0.0,
-            signal_norm=False,
-            clip_norm=True,
-            mel_fmax=8000.0,
-            spec_gain=1,
-            do_trim_silence=True,
-            trim_db=60,
-            symmetric_norm=True,
-            num_mels=80,
-        )
     elif name == "baker":
         dataset = BaseDatasetConfig(name=name, meta_file_train="metadata.csv", meta_file_val=None, path=path)
         audio = BaseAudioConfig(
@@ -81,6 +66,13 @@ def data_loader(name, path, stats_path=None):
     return audio, dataset
 
 
+def custom_data_loader(sr, audio_path):
+    dataset = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv", path=audio_path)
+    pass
+    # this is for loading custom dataloader, it still takes the ljspeech format but the audio configs will differ
+    # with each users data so im thinking of a way to have users define their own audio params with this
+
+
 def pick_glowtts_encoder(encoder_name: str):
     if encoder_name == "transformer":
         encoder_type = "rel_pos_transformer"
@@ -93,3 +85,29 @@ def pick_glowtts_encoder(encoder_name: str):
     else:
         encoder_type = "rel_pos_transformer"
     return encoder_type
+
+
+def pick_forwardtts_encoder(encoder_name: str):
+    if encoder_name == "residual_bn":
+        encoder = "residual_conv_bn"
+    elif encoder_name == "fftransformer":
+        encoder = encoder_name
+    elif encoder_name == "position transformer":
+        encoder = "relative_position_transformer"
+    else:
+        print("please select an actual encoder. either residual_bn, fftransformer, or position transformer")
+    return encoder
+
+
+def pick_forwardtts_decoder(decoder_name: str):
+    if decoder_name  == "position transformer":
+        decoder = "relative_position_transformer"
+    elif decoder_name == " residual_bn":
+        decoder = "residual_conv_bn"
+    elif decoder_name == "wavenet":
+        decoder = decoder_name
+    elif decoder_name == "fftransformer":
+        decoder = decoder_name
+    else:
+        print("please select either position transformer, residual_bn, wavenet, or fftransformer")
+    return decoder

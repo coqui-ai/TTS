@@ -1,15 +1,13 @@
-from TTS.auto_tts.complete_recipes import VocoderAutoTrainer, TtsAutoTrainer
+from TTS.utils.manage import ModelManager
 
-trainer = TtsAutoTrainer(
-    data_path="../LJSpeech-1.1",
-    dataset="ljspeech",
-    batch_size=32,
-    learning_rate=[0.001, 0.001],
-    mixed_precision=False,
-    output_path="../TTS/recipes/ljspeech/vits_tts",
-    epochs=1000,
-)
 
-model = trainer.from_pretrained("sc-glow-tts")
+manager = ModelManager()
+model_path, config_path, x = manager.download_model("tts_models/en/ljspeech/tacotron2-DCA")
 
-# model.fit()
+print(model_path)
+
+print(config_path)
+
+print(x)
+
+manager.list_models()
