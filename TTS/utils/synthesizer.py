@@ -198,6 +198,7 @@ class Synthesizer(object):
                 if self.tts_config.use_d_vector_file:
                     # get the speaker embedding from the saved d_vectors.
                     speaker_embedding = self.tts_model.speaker_manager.get_d_vectors_by_speaker(speaker_idx)[0]
+                    speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
                     speaker_id = self.tts_model.speaker_manager.speaker_ids[speaker_idx]
