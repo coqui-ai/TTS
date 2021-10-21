@@ -1,6 +1,6 @@
 import copy
 from abc import abstractmethod
-from typing import Dict, List
+from typing import Dict
 
 import torch
 from coqpit import Coqpit

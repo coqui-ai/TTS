@@ -1,6 +1,7 @@
 # coding: utf-8
 
 from typing import Dict
+
 import torch
 from coqpit import Coqpit
 from torch import nn
@@ -237,7 +238,7 @@ class Tacotron2(BaseTacotron):
         }
         return outputs
 
-    def train_step(self, batch:Dict, criterion:torch.nn.Module):
+    def train_step(self, batch: Dict, criterion: torch.nn.Module):
         """A single training step. Forward pass and loss computation.
 
         Args:

@@ -216,7 +216,7 @@ class Vits(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager=None):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
 
         super().__init__(config)
 

@@ -258,10 +258,10 @@ class Tacotron(BaseTacotron):
                 stop_targets.float(),
                 stop_target_lengths,
                 mel_lengths,
-                outputs["decoder_outputs_backward"].float(),
+                None if outputs["decoder_outputs_backward"] is None else outputs["decoder_outputs_backward"].float(),
                 outputs["alignments"].float(),
                 alignment_lengths,
-                outputs["alignments_backward"].float(),
+                None if outputs["alignments_backward"] is None else outputs["alignments_backward"].float(),
                 text_lengths,
             )
 

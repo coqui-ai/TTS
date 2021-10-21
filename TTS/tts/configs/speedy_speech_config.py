@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from TTS.tts.models.forward_tts import ForwardTTSArgs
 from TTS.tts.configs.shared_configs import BaseTTSConfig
+from TTS.tts.models.forward_tts import ForwardTTSArgs
 
 
 @dataclass

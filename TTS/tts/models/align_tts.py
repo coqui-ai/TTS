@@ -100,7 +100,7 @@ class AlignTTS(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager=None):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
 
         super().__init__(config)
         self.speaker_manager = speaker_manager
