@@ -2,7 +2,7 @@ import os
 
 from TTS.config import BaseAudioConfig, BaseDatasetConfig
 from TTS.trainer import Trainer, TrainingArgs
-from TTS.tts.configs import FastSpeechConfig
+from TTS.tts.configs.fast_speech_config import FastSpeechConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS
 from TTS.utils.audio import AudioProcessor

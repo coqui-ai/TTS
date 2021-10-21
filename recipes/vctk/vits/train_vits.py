@@ -1,63 +1,62 @@
 import os
 
-from TTS.config import BaseAudioConfig, BaseDatasetConfig
+from TTS.config.shared_configs import BaseAudioConfig
 from TTS.trainer import Trainer, TrainingArgs
-from TTS.tts.configs.speedy_speech_config import SpeedySpeechConfig
+from TTS.tts.configs.shared_configs import BaseDatasetConfig
+from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.forward_tts import ForwardTTS
+from TTS.tts.models.vits import Vits
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
-dataset_config = BaseDatasetConfig(
-    name="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/")
-)
+dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=os.path.join(output_path, "../VCTK/"))
+
 
 audio_config = BaseAudioConfig(
     sample_rate=22050,
-    do_trim_silence=True,
-    trim_db=60.0,
-    signal_norm=False,
-    mel_fmin=0.0,
-    mel_fmax=8000,
-    spec_gain=1.0,
-    log_func="np.log",
-    ref_level_db=20,
+    win_length=1024,
+    hop_length=256,
+    num_mels=80,
     preemphasis=0.0,
+    ref_level_db=20,
+    log_func="np.log",
+    do_trim_silence=True,
+    trim_db=23.0,
+    mel_fmin=0,
+    mel_fmax=None,
+    spec_gain=1.0,
+    signal_norm=False,
+    do_amp_to_db_linear=False,
+    resample=True,
 )
 
-config = SpeedySpeechConfig(
-    run_name="speedy_speech_ljspeech",
+config = VitsConfig(
     audio=audio_config,
+    run_name="vits_vctk",
+    use_speaker_embedding=True,
     batch_size=32,
     eval_batch_size=16,
+    batch_group_size=5,
     num_loader_workers=4,
     num_eval_loader_workers=4,
-    compute_input_seq_cache=True,
     run_eval=True,
     test_delay_epochs=-1,
     epochs=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    use_espeak_phonemes=False,
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
-    print_step=50,
+    compute_input_seq_cache=True,
+    print_step=25,
     print_eval=False,
-    mixed_precision=False,
+    mixed_precision=True,
     sort_by_audio_len=True,
-    max_seq_len=500000,
+    min_seq_len=32 * 256 * 4,
+    max_seq_len=1500000,
     output_path=output_path,
     datasets=[dataset_config],
 )
-
-# # compute alignments
-# if not config.model_args.use_aligner:
-#     manager = ModelManager()
-#     model_path, config_path, _ = manager.download_model("tts_models/en/ljspeech/tacotron2-DCA")
-#     # TODO: make compute_attention python callable
-#     os.system(
-#         f"python TTS/bin/compute_attention_masks.py --model_path {model_path} --config_path {config_path} --dataset ljspeech --dataset_metafile metadata.csv --data_path ./recipes/ljspeech/LJSpeech-1.1/  --use_cuda true"
-#     )
 
 # init audio processor
 ap = AudioProcessor(**config.audio.to_dict())
@@ -65,8 +64,14 @@ ap = AudioProcessor(**config.audio.to_dict())
 # load training samples
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
+# init speaker manager for multi-speaker training
+# it maps speaker-id to speaker-name in the model and data-loader
+speaker_manager = SpeakerManager()
+speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
+config.model_args.num_speakers = speaker_manager.num_speakers
+
 # init model
-model = ForwardTTS(config)
+model = Vits(config, speaker_manager)
 
 # init the trainer and 🚀
 trainer = Trainer(
