@@ -3,7 +3,7 @@ import os
 import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
-from TTS.tts.configs import Tacotron2Config
+from TTS.tts.configs.tacotron2_config import Tacotron2Config
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -23,7 +23,7 @@ config = Tacotron2Config(
     epochs=1,
     print_step=1,
     print_eval=True,
-    use_speaker_embedding=True,
+    use_speaker_embedding=False,
     use_d_vector_file=True,
     test_sentences=[
         "Be a voice, not an echo.",

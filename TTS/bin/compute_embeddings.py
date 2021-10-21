@@ -5,7 +5,7 @@ from argparse import RawTextHelpFormatter
 from tqdm import tqdm
 
 from TTS.config import load_config
-from TTS.tts.datasets import load_meta_data
+from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.speakers import SpeakerManager
 
 parser = argparse.ArgumentParser(
@@ -36,7 +36,7 @@ args = parser.parse_args()
 
 c_dataset = load_config(args.config_dataset_path)
 
-meta_data_train, meta_data_eval = load_meta_data(c_dataset.datasets, eval_split=args.eval)
+meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_split=args.eval)
 wav_files = meta_data_train + meta_data_eval
 
 speaker_manager = SpeakerManager(

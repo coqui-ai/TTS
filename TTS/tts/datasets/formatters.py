@@ -308,14 +308,14 @@ def mls(root_path, meta_files=None):
 # ======================================== VOX CELEB ===========================================
 def voxceleb2(root_path, meta_file=None):
     """
-    :param meta_file   Used only for consistency with load_meta_data api
+    :param meta_file   Used only for consistency with load_tts_samples api
     """
     return _voxcel_x(root_path, meta_file, voxcel_idx="2")
 
 
 def voxceleb1(root_path, meta_file=None):
     """
-    :param meta_file   Used only for consistency with load_meta_data api
+    :param meta_file   Used only for consistency with load_tts_samples api
     """
     return _voxcel_x(root_path, meta_file, voxcel_idx="1")
 

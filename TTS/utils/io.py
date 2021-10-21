@@ -38,7 +38,8 @@ def copy_model_files(config: Coqpit, out_path, new_fields):
     """
     copy_config_path = os.path.join(out_path, "config.json")
     # add extra information fields
-    config.update(new_fields, allow_new=True)
+    if new_fields:
+        config.update(new_fields, allow_new=True)
     # TODO: Revert to config.save_json() once Coqpit supports arbitrary paths.
     with fsspec.open(copy_config_path, "w", encoding="utf8") as f:
         json.dump(config.to_dict(), f, indent=4)

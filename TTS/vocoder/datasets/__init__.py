@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.datasets.gan_dataset import GANDataset
+from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset
 from TTS.vocoder.datasets.wavernn_dataset import WaveRNNDataset
 

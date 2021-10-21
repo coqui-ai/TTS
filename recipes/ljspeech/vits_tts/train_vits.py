@@ -1,8 +1,11 @@
 import os
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs, init_training
+from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs import BaseDatasetConfig, VitsConfig
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.models.vits import Vits
+from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 dataset_config = BaseDatasetConfig(
@@ -24,6 +27,7 @@ audio_config = BaseAudioConfig(
     signal_norm=False,
     do_amp_to_db_linear=False,
 )
+
 config = VitsConfig(
     audio=audio_config,
     run_name="vits_ljspeech",
@@ -47,6 +51,24 @@ config = VitsConfig(
     output_path=output_path,
     datasets=[dataset_config],
 )
-args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
-trainer = Trainer(args, config, output_path, c_logger, tb_logger, cudnn_benchmark=True)
+
+# init audio processor
+ap = AudioProcessor(**config.audio.to_dict())
+
+# load training samples
+train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+
+# init model
+model = Vits(config)
+
+# init the trainer and 🚀
+trainer = Trainer(
+    TrainingArgs(),
+    config,
+    output_path,
+    model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples,
+    training_assets={"audio_processor": ap},
+)
 trainer.fit()
