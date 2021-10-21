@@ -1,7 +1,7 @@
 import os
 
 from TTS.trainer import Trainer, TrainingArgs
-from TTS.tts.configs import AlignTTSConfig, BaseDatasetConfig
+from TTS.tts.configs.align_tts_config import AlignTTSConfig, BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.align_tts import AlignTTS
 from TTS.utils.audio import AudioProcessor

@@ -29,10 +29,10 @@ each line.
     import os
 
     # GlowTTSConfig: all model related values for training, validating and testing.
-    from TTS.tts.configs import GlowTTSConfig
+    from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 
     # BaseDatasetConfig: defines name, formatter and path of the dataset.
-    from TTS.tts.configs import BaseDatasetConfig
+    from TTS.tts.configs.shared_config import BaseDatasetConfig
 
     # init_training: Initialize and setup the training environment.
     # Trainer: Where the ✨️ happens.
@@ -79,7 +79,7 @@ each line.
 
     # Initiate the Trainer.
     # Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
-    # distributed training etc.
+    # distributed training, etc.
     trainer = Trainer(
         TrainingArgs(),
         config,

@@ -182,16 +182,24 @@ class Trainer:
             - TPU training
             - NOTE: Consider moving `training_assets` to the model implementation.
         """
+
         if parse_command_line_args:
-            # parse command-line arguments for TrainingArgs()
+            # parse command-line arguments for TrainerArgs()
             args, coqpit_overrides = self.parse_argv(args)
 
             # get ready for training and parse command-line arguments for the model config
             config = self.init_training(args, coqpit_overrides, config)
 
-        # define the experiment path and create the folder
-        output_path = get_experiment_folder_path(config.output_path, config.run_name)
-        os.makedirs(output_path, exist_ok=True)
+        # set the output path
+        if args.continue_path:
+            # use the same path as the continuing run
+            output_path = args.continue_path
+        else:
+            # override the output path if it is provided
+            output_path = config.output_path if output_path is None else output_path
+            # create a new output folder name
+            output_path = get_experiment_folder_path(config.output_path, config.run_name)
+            os.makedirs(output_path, exist_ok=True)
 
         # copy training assets to the output folder
         copy_model_files(config, output_path, new_fields=None)
@@ -251,11 +259,6 @@ class Trainer:
             self.model = model
         else:
             self.run_get_model(self.config, get_model)
-
-        # TODO: out!
-        # init multispeaker settings of the model
-        if hasattr(self.model, "init_multispeaker"):
-            self.model.init_multispeaker(self.config, self.train_samples + self.eval_samples)
 
         # setup criterion
         self.criterion = self.get_criterion(self.model)
@@ -359,7 +362,7 @@ class Trainer:
         # override config values from command-line args
         # TODO: Maybe it is better to do it outside
         if len(coqpit_overrides) > 0:
-            config.parse_known_args(coqpit_overrides, relaxed_parser=True)
+            config.parse_known_args(coqpit_overrides, arg_prefix="coqpit", relaxed_parser=True)
         experiment_path = args.continue_path
 
         # update the config.json fields and copy it to the output folder
@@ -615,10 +618,8 @@ class Trainer:
         else:
             grad_clip = 0.0  # meaning no gradient clipping
 
-        if grad_clip <= 0:
-            grad_norm = 0
-
         # optimizer step
+        grad_norm = 0
         update_lr_scheduler = True
         if self.use_amp_scaler:
             if self.use_apex:
@@ -633,19 +634,21 @@ class Trainer:
                 if grad_clip > 0:
                     scaler.unscale_(optimizer)
                     grad_norm = torch.nn.utils.clip_grad_norm_(self.master_params(optimizer), grad_clip)
-                    # pytorch skips the step when the norm is 0. So ignore the norm value when it is NaN
-                    if torch.isnan(grad_norm) or torch.isinf(grad_norm):
-                        grad_norm = 0
                 scale_prev = scaler.get_scale()
                 scaler.step(optimizer)
                 scaler.update()
                 update_lr_scheduler = scale_prev <= scaler.get_scale()
+                loss_dict["amp_scaler"] = scaler.get_scale()  # for logging
         else:
             # main model optimizer step
             loss_dict["loss"].backward()
             if grad_clip > 0:
                 grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
+
+        # pytorch skips the step when the norm is 0. So ignore the norm value when it is NaN
+        if isinstance(grad_norm, torch.Tensor) and (torch.isnan(grad_norm) or torch.isinf(grad_norm)):
+            grad_norm = 0
 
         step_time = time.time() - step_start_time
 
@@ -1144,7 +1147,7 @@ class Trainer:
             if isinstance(value, (int, float)):
                 loss_dict_detached[key] = value
             else:
-                loss_dict_detached[key] = value.detach()
+                loss_dict_detached[key] = value.detach().item()
         return loss_dict_detached
 
     def _pick_target_avg_loss(self, keep_avg_target: KeepAverage) -> Dict:
