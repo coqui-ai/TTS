@@ -6,8 +6,8 @@ import torch
 from torch import nn, optim
 
 from tests import get_tests_input_path
-from TTS.tts.configs import Tacotron2Config
 from TTS.tts.configs.shared_configs import GSTConfig
+from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.layers.losses import MSELossMasked
 from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.utils.audio import AudioProcessor
@@ -114,7 +114,7 @@ class MultiSpeakerTacotronTrainTest(unittest.TestCase):
             assert (param - param_ref).sum() == 0, param
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=config.lr)
-        for i in range(5):
+        for _ in range(5):
             outputs = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, aux_input={"speaker_ids": speaker_ids}
             )

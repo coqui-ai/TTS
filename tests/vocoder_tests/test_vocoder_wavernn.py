@@ -12,7 +12,7 @@ def test_wavernn():
     config.model_args = WavernnArgs(
         rnn_dims=512,
         fc_dims=512,
-        mode=10,
+        mode="mold",
         mulaw=False,
         pad=2,
         use_aux_net=True,
@@ -37,13 +37,13 @@ def test_wavernn():
     assert np.all(output.shape == (2, 1280, 30)), output.shape
 
     # mode: gauss
-    config.model_params.mode = "gauss"
+    config.model_args.mode = "gauss"
     model = Wavernn(config)
     output = model(dummy_x, dummy_m)
     assert np.all(output.shape == (2, 1280, 2)), output.shape
 
     # mode: quantized
-    config.model_params.mode = 4
+    config.model_args.mode = 4
     model = Wavernn(config)
     output = model(dummy_x, dummy_m)
     assert np.all(output.shape == (2, 1280, 2 ** 4)), output.shape

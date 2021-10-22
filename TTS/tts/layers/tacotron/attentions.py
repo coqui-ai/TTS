@@ -126,27 +126,24 @@ class GravesAttention(nn.Module):
 
 
 class OriginalAttention(nn.Module):
-    """Bahdanau Attention with various optional modifications. Proposed below.
+    """Bahdanau Attention with various optional modifications.
     - Location sensitive attnetion: https://arxiv.org/abs/1712.05884
     - Forward Attention: https://arxiv.org/abs/1807.06736 + state masking at inference
     - Using sigmoid instead of softmax normalization
     - Attention windowing at inference time
 
     Note:
-        Location Sensitive Attention is an attention mechanism that extends the additive attention mechanism
-    to use cumulative attention weights from previous decoder time steps as an additional feature.
+        Location Sensitive Attention extends the additive attention mechanism
+    to use cumulative attention weights from previous decoder time steps with the current time step features.
 
-        Forward attention considers only the alignment paths that satisfy the monotonic condition at each
-    decoder timestep. The modified attention probabilities at each timestep are computed recursively
-    using a forward algorithm.
+        Forward attention computes most probable monotonic alignment. The modified attention probabilities at each
+    timestep are computed recursively by the forward algorithm.
 
-        Transition agent for forward attention is further proposed, which helps the attention mechanism
-    to make decisions whether to move forward or stay at each decoder timestep.
+        Transition agent in the forward attention explicitly gates the attention mechanism whether to move forward or
+    stay at each decoder timestep.
 
-        Attention windowing applies a sliding windows to time steps of the input tensor centering at the last
-    time step with the largest attention weight. It is especially useful at inference to keep the attention
-    alignment diagonal.
-
+        Attention windowing is a inductive prior that prevents the model from attending to previous and future timesteps
+    beyond a certain window.
 
     Args:
         query_dim (int): number of channels in the query tensor.

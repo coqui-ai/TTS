@@ -75,7 +75,7 @@ class WavernnConfig(BaseVocoderConfig):
     model: str = "wavernn"
 
     # Model specific params
-    model_params: WavernnArgs = field(default_factory=WavernnArgs)
+    model_args: WavernnArgs = field(default_factory=WavernnArgs)
     target_loss: str = "loss"
 
     # Inference

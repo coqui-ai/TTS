@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
 
-from coqpit import MISSING
-
 from TTS.config import BaseAudioConfig, BaseTrainingConfig
 
 
@@ -17,11 +15,11 @@ class BaseVocoderConfig(BaseTrainingConfig):
             Number of instances used for evaluation. Defaults to 10.
         data_path (str):
             Root path of the training data. All the audio files found recursively from this root path are used for
-            training. Defaults to MISSING.
+            training. Defaults to `""`.
         feature_path (str):
             Root path to the precomputed feature files. Defaults to None.
         seq_len (int):
-            Length of the waveform segments used for training. Defaults to MISSING.
+            Length of the waveform segments used for training. Defaults to 1000.
         pad_short (int):
             Extra padding for the waveforms shorter than `seq_len`. Defaults to 0.
         conv_path (int):
@@ -45,9 +43,9 @@ class BaseVocoderConfig(BaseTrainingConfig):
     use_noise_augment: bool = False  # enable/disable random noise augmentation in spectrograms.
     eval_split_size: int = 10  # number of samples used for evaluation.
     # dataset
-    data_path: str = MISSING  # root data path. It finds all wav files recursively from there.
+    data_path: str = ""  # root data path. It finds all wav files recursively from there.
     feature_path: str = None  # if you use precomputed features
-    seq_len: int = MISSING  # signal length used in training.
+    seq_len: int = 1000  # signal length used in training.
     pad_short: int = 0  # additional padding for short wavs
     conv_pad: int = 0  # additional padding against convolutions applied to spectrograms
     use_cache: bool = False  # use in memory cache to keep the computed features. This might cause OOM.
