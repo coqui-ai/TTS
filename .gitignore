@@ -140,7 +140,7 @@ TODO.txt
 .vscode/*
 data/*
 notebooks/data/*
-TTS/tts/layers/glow_tts/monotonic_align/core.c
+TTS/tts/utils/monotonic_align/core.c
 .vscode-upload.json
 temp_build/*
 events.out*
