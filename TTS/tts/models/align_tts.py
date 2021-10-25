@@ -92,7 +92,7 @@ class AlignTTS(BaseTTS):
         differently based on your requirements using ```encoder_type``` and ```decoder_type``` parameters.
 
     Examples:
-        >>> from TTS.tts.configs import AlignTTSConfig
+        >>> from TTS.tts.configs.align_tts_config import AlignTTSConfig
         >>> config = AlignTTSConfig()
         >>> model = AlignTTS(config)
 

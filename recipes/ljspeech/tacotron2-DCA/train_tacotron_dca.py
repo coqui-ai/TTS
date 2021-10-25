@@ -2,7 +2,8 @@ import os
 
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.trainer import Trainer, TrainingArgs
-from TTS.tts.configs import BaseDatasetConfig, Tacotron2Config
+from TTS.tts.configs.shared_configs import BaseDatasetConfig
+from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.utils.audio import AudioProcessor

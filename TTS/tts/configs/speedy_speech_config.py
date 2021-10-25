@@ -11,7 +11,7 @@ class SpeedySpeechConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import SpeedySpeechConfig
+        >>> from TTS.tts.configs.speedy_speech_config import SpeedySpeechConfig
         >>> config = SpeedySpeechConfig()
 
      Args:
