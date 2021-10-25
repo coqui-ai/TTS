@@ -94,6 +94,15 @@
                     "author": "Eren @erogol",
                     "license": "",
                     "contact": "egolge@coqui.ai"
+                },
+                "fast_pitch":{
+                    "description": "FastPitch model trained on VCTK dataseset.",
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.4.0/tts_models--en--vctk--fast_pitch.zip",
+                    "default_vocoder": "vocoder_models/en/vctk/hifigan_v2",
+                    "commit": "bdab788d",
+                    "author": "Eren @erogol",
+                    "license": "CC BY-NC-ND 4.0",
+                    "contact": "egolge@coqui.ai"
                 }
             },
             "sam": {
@@ -129,6 +138,17 @@
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
                     "contact": "egolge@coqui.com"
+                }
+            }
+        },
+        "uk":{
+            "mai": {
+                "glow-tts": {
+                    "github_rls_url": "https://github.com/coqui-ai/TTS/releases/download/v0.4.0/tts_models--uk--mailabs--glow-tts.zip",
+                    "author":"@robinhad",
+                    "commit": "bdab788d",
+                    "license": "MIT",
+                    "contact": ""
                 }
             }
         },
