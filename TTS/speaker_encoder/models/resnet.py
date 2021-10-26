@@ -1,9 +1,23 @@
 import numpy as np
 import torch
+import torchaudio
 import torch.nn as nn
 
 from TTS.utils.io import load_fsspec
 
+class PreEmphasis(torch.nn.Module):
+    def __init__(self, coefficient=0.97):
+        super().__init__()
+        self.coefficient = coefficient
+        self.register_buffer(
+            'filter', torch.FloatTensor([-self.coefficient, 1.]).unsqueeze(0).unsqueeze(0)
+        )
+
+    def forward(self, x):
+        assert len(x.size()) == 2
+
+        x = torch.nn.functional.pad(x.unsqueeze(1), (1, 0), 'reflect')
+        return torch.nn.functional.conv1d(x, self.filter).squeeze(1)
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=8):
@@ -70,12 +84,17 @@ class ResNetSpeakerEncoder(nn.Module):
         num_filters=[32, 64, 128, 256],
         encoder_type="ASP",
         log_input=False,
+        use_torch_spec=False,
+        audio_config=None,
     ):
         super(ResNetSpeakerEncoder, self).__init__()
 
         self.encoder_type = encoder_type
         self.input_dim = input_dim
         self.log_input = log_input
+        self.use_torch_spec = use_torch_spec
+        self.audio_config = audio_config
+
         self.conv1 = nn.Conv2d(1, num_filters[0], kernel_size=3, stride=1, padding=1)
         self.relu = nn.ReLU(inplace=True)
         self.bn1 = nn.BatchNorm2d(num_filters[0])
@@ -87,6 +106,14 @@ class ResNetSpeakerEncoder(nn.Module):
         self.layer4 = self.create_layer(SEBasicBlock, num_filters[3], layers[3], stride=(2, 2))
 
         self.instancenorm = nn.InstanceNorm1d(input_dim)
+
+        if self.use_torch_spec:
+            self.torch_spec = torch.nn.Sequential(
+                PreEmphasis(audio_config["preemphasis"]),
+                torchaudio.transforms.MelSpectrogram(sample_rate=audio_config["sample_rate"], n_fft=audio_config["fft_size"], win_length=audio_config["win_length"], hop_length=audio_config["hop_length"], window_fn=torch.hamming_window, n_mels=audio_config["num_mels"])
+                )
+        else:
+            self.torch_spec = None
 
         outmap_size = int(self.input_dim / 8)
 
@@ -140,9 +167,13 @@ class ResNetSpeakerEncoder(nn.Module):
         return out
 
     def forward(self, x, l2_norm=False):
-        x = x.transpose(1, 2)
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
+                if self.use_torch_spec:
+                    x = self.torch_spec(x)
+                else:
+                    x = x.transpose(1, 2)
+
                 if self.log_input:
                     x = (x + 1e-6).log()
                 x = self.instancenorm(x).unsqueeze(1)
@@ -180,6 +211,10 @@ class ResNetSpeakerEncoder(nn.Module):
         Generate embeddings for a batch of utterances
         x: 1xTxD
         """
+        # map to the waveform size
+        if self.use_torch_spec:
+            num_frames = num_frames * self.audio_config['hop_length']
+
         max_len = x.shape[1]
 
         if max_len < num_frames:

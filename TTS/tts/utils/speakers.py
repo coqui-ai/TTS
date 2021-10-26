@@ -289,12 +289,16 @@ class SpeakerManager:
 
         def _compute(wav_file: str):
             waveform = self.speaker_encoder_ap.load_wav(wav_file, sr=self.speaker_encoder_ap.sample_rate)
-            spec = self.speaker_encoder_ap.melspectrogram(waveform)
-            spec = torch.from_numpy(spec.T)
+            if not self.speaker_encoder_config.model_params.get("use_torch_spec", False):
+                m_input = self.speaker_encoder_ap.melspectrogram(waveform)
+                m_input = torch.from_numpy(m_input.T)
+            else:
+                m_input = torch.from_numpy(waveform)
+
             if self.use_cuda:
-                spec = spec.cuda()
-            spec = spec.unsqueeze(0)
-            d_vector = self.speaker_encoder.compute_embedding(spec)
+                m_input = m_input.cuda()
+            m_input = m_input.unsqueeze(0)
+            d_vector = self.speaker_encoder.compute_embedding(m_input)
             return d_vector
 
         if isinstance(wav_file, list):
@@ -428,3 +432,12 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
             else:
                 speaker_manager.save_speaker_ids_to_file(out_file_path)
     return speaker_manager
+
+def get_speaker_weighted_sampler(items: list):
+    speaker_names = np.array([item[2] for item in items])
+    unique_speaker_names = np.unique(speaker_names).tolist()
+    speaker_ids = [unique_speaker_names.index(l) for l in speaker_names]
+    speaker_count = np.array([len(np.where(speaker_names == l)[0]) for l in unique_speaker_names])
+    weight_speaker = 1. / speaker_count
+    dataset_samples_weight = torch.from_numpy(np.array([weight_speaker[l] for l in speaker_ids])).double()
+    return WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
