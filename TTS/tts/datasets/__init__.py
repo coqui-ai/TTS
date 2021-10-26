@@ -36,7 +36,9 @@ def split_dataset(items):
     return items[:eval_split_size], items[eval_split_size:]
 
 
-def load_tts_samples(datasets: Union[List[Dict], Dict], eval_split=True, formatter: Callable=None) -> Tuple[List[List], List[List]]:
+def load_tts_samples(
+    datasets: Union[List[Dict], Dict], eval_split=True, formatter: Callable = None
+) -> Tuple[List[List], List[List]]:
     """Parse the dataset from the datasets config, load the samples as a List and load the attention alignments if provided.
     If `formatter` is not None, apply the formatter to the samples else pick the formatter from the available ones based
     on the dataset name.
