@@ -15,62 +15,7 @@
     `Nervous Beginners`.
     A recipe for `GlowTTS` using `LJSpeech` dataset looks like below. Let's be creative and call this `train_glowtts.py`.
 
-    ```python
-    # train_glowtts.py
-
-   import os
-
-    from TTS.trainer import Trainer, TrainingArgs
-    from TTS.tts.configs.shared_config import BaseDatasetConfig
-    from TTS.tts.configs.glow_tts_config import GlowTTSConfig
-    from TTS.tts.datasets import load_tts_samples
-    from TTS.tts.models.glow_tts import GlowTTS
-    from TTS.utils.audio import AudioProcessor
-
-    output_path = os.path.dirname(os.path.abspath(__file__))
-    dataset_config = BaseDatasetConfig(
-        name="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/")
-    )
-    config = GlowTTSConfig(
-        batch_size=32,
-        eval_batch_size=16,
-        num_loader_workers=4,
-        num_eval_loader_workers=4,
-        run_eval=True,
-        test_delay_epochs=-1,
-        epochs=1000,
-        text_cleaner="phoneme_cleaners",
-        use_phonemes=True,
-        phoneme_language="en-us",
-        phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
-        print_step=25,
-        print_eval=False,
-        mixed_precision=True,
-        output_path=output_path,
-        datasets=[dataset_config],
-    )
-
-    # init audio processor
-    ap = AudioProcessor(**config.audio.to_dict())
-
-    # load training samples
-    train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
-
-    # init model
-    model = GlowTTS(config)
-
-    # init the trainer and 🚀
-    trainer = Trainer(
-        TrainingArgs(),
-        config,
-        output_path,
-        model=model,
-        train_samples=train_samples,
-        eval_samples=eval_samples,
-        training_assets={"audio_processor": ap},
-    )
-    trainer.fit()
-
+    ```{literalinclude} ../../recipes/ljspeech/glow_tts/train_glowtts.py
     ```
 
     You need to change fields of the `BaseDatasetConfig` to match your dataset and then update `GlowTTSConfig`
@@ -162,7 +107,7 @@
     $ tensorboard --logdir=<path to your training directory>
     ```
 
-6. Monitor the training process.
+6. Monitor the training progress.
 
     On the terminal and Tensorboard, you can monitor the progress of your model. Also Tensorboard provides certain figures and sample outputs.
 
@@ -197,68 +142,5 @@ d-vectors. For using d-vectors, you first need to compute the d-vectors using th
 
 The same Glow-TTS model above can be trained on a multi-speaker VCTK dataset with the script below.
 
-```python
-import os
-
-from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
-from TTS.tts import BaseDatasetConfig, GlowTTSConfig
-from TTS.tts.datasets import load_tts_samples
-from TTS.tts.glow_tts import GlowTTS
-from TTS.tts.utils.speakers import SpeakerManager
-from TTS.utils.audio import AudioProcessor
-
-# define dataset config for VCTK
-output_path = os.path.dirname(os.path.abspath(__file__))
-dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=os.path.join(output_path, "../VCTK/"))
-
-# init audio processing config
-audio_config = BaseAudioConfig(sample_rate=22050, do_trim_silence=True, trim_db=23.0)
-
-# init training config
-config = GlowTTSConfig(
-    batch_size=64,
-    eval_batch_size=16,
-    num_loader_workers=4,
-    num_eval_loader_workers=4,
-    run_eval=True,
-    test_delay_epochs=-1,
-    epochs=1000,
-    text_cleaner="phoneme_cleaners",
-    use_phonemes=True,
-    phoneme_language="en-us",
-    phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
-    print_step=25,
-    print_eval=False,
-    mixed_precision=True,
-    output_path=output_path,
-    datasets=[dataset_config],
-    use_speaker_embedding=True,
-)
-
-# init audio processor
-ap = AudioProcessor(**config.audio.to_dict())
-
-# load training samples
-train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
-
-# ONLY FOR MULTI-SPEAKER: init speaker manager for multi-speaker training
-speaker_manager = SpeakerManager()
-speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
-config.num_speakers = speaker_manager.num_speakers
-
-# init model
-model = GlowTTS(config, speaker_manager)
-
-# init the trainer and 🚀
-trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
-)
-trainer.fit()
+```{literalinclude} ../../recipes/vctk/glow_tts/train_glow_tts.py
 ```
