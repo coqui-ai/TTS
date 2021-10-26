@@ -16,6 +16,7 @@ dataset_path = os.path.join(output_path, "../VCTK/")
 # download the dataset if not downloaded
 if not os.path.exists(dataset_path):
     from TTS.utils.downloaders import download_vctk
+
     download_vctk(dataset_path)
 
 # define dataset config

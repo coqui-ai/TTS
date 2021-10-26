@@ -1,18 +1,17 @@
 import os
 
-from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.glow_tts import GlowTTS
-from TTS.utils.audio import AudioProcessor
+# Trainer: Where the ✨️ happens.
+# TrainingArgs: Defines the set of arguments of the Trainer.
+from TTS.trainer import Trainer, TrainingArgs
 
 # GlowTTSConfig: all model related values for training, validating and testing.
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 
 # BaseDatasetConfig: defines name, formatter and path of the dataset.
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
-
-# Trainer: Where the ✨️ happens.
-# TrainingArgs: Defines the set of arguments of the Trainer.
-from TTS.trainer import Trainer, TrainingArgs
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.models.glow_tts import GlowTTS
+from TTS.utils.audio import AudioProcessor
 
 # we use the same path as this script as our training folder.
 output_path = os.path.dirname(os.path.abspath(__file__))
