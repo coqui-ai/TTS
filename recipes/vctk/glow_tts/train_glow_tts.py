@@ -9,11 +9,24 @@ from TTS.tts.models.glow_tts import GlowTTS
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
+# set experiment paths
 output_path = os.path.dirname(os.path.abspath(__file__))
-dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=os.path.join(output_path, "../VCTK/"))
+dataset_path = os.path.join(output_path, "../VCTK/")
 
-audio_config = BaseAudioConfig(sample_rate=22050, do_trim_silence=True, trim_db=23.0)
+# download the dataset if not downloaded
+if not os.path.exists(dataset_path):
+    from TTS.utils.downloaders import download_vctk
 
+    download_vctk(dataset_path)
+
+# define dataset config
+dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=dataset_path)
+
+# define audio config
+# ❗ resample the dataset externally using `TTS/bin/resample.py` and set `resample=False` for faster training
+audio_config = BaseAudioConfig(sample_rate=22050, resample=True, do_trim_silence=True, trim_db=23.0)
+
+# define model config
 config = GlowTTSConfig(
     batch_size=64,
     eval_batch_size=16,
