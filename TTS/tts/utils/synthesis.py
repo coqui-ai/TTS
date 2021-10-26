@@ -172,7 +172,7 @@ def speaker_id_to_torch(speaker_id, cuda=False):
 def embedding_to_torch(d_vector, cuda=False):
     if d_vector is not None:
         d_vector = np.asarray(d_vector)
-        d_vector = torch.from_numpy(d_vector).unsqueeze(0).type(torch.FloatTensor)
+        d_vector = torch.from_numpy(d_vector).type(torch.FloatTensor)
     if cuda:
         return d_vector.cuda()
     return d_vector
@@ -210,20 +210,42 @@ def synthesis(
     d_vector=None,
     backend="torch",
 ):
-    """Synthesize voice for the given text.
+    """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
+    the vocoder model.
 
     Args:
-        model (TTS.tts.models): model to synthesize.
-        text (str): target text
-        CONFIG (dict): config dictionary to be loaded from config.json.
-        use_cuda (bool): enable cuda.
-        ap (TTS.tts.utils.audio.AudioProcessor): audio processor to process
-            model outputs.
-        speaker_id (int): id of speaker
-        style_wav (str | Dict[str, float]): Uses for style embedding of GST.
-        enable_eos_bos_chars (bool): enable special chars for end of sentence and start of sentence.
-        do_trim_silence (bool): trim silence after synthesis.
-        backend (str): tf or torch
+        model (TTS.tts.models):
+            The TTS model to synthesize audio with.
+
+        text (str):
+            The input text to convert to speech.
+
+        CONFIG (Coqpit):
+            Model configuration.
+
+        use_cuda (bool):
+            Enable/disable CUDA.
+
+        ap (TTS.tts.utils.audio.AudioProcessor):
+            The audio processor for extracting features and pre/post-processing audio.
+
+        speaker_id (int):
+            Speaker ID passed to the speaker embedding layer in multi-speaker model. Defaults to None.
+
+        style_wav (str | Dict[str, float]):
+            Path or tensor to/of a waveform used for computing the style embedding. Defaults to None.
+
+        enable_eos_bos_chars (bool):
+            enable special chars for end of sentence and start of sentence. Defaults to False.
+
+        do_trim_silence (bool):
+            trim silence after synthesis. Defaults to False.
+
+        d_vector (torch.Tensor):
+            d-vector for multi-speaker models in share :math:`[1, D]`. Defaults to None.
+
+        backend (str):
+            tf or torch. Defaults to "torch".
     """
     # GST processing
     style_mel = None

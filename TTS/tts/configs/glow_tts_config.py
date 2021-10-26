@@ -10,7 +10,7 @@ class GlowTTSConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import GlowTTSConfig
+        >>> from TTS.tts.configs.glow_tts_config import GlowTTSConfig
         >>> config = GlowTTSConfig()
 
     Args:

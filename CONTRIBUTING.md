@@ -76,7 +76,8 @@ The following steps are tested on an Ubuntu system.
 8. Run the tests to see how your updates work with the rest of the project. You can repeat this step multiple times as you implement your changes to make sure you are on the right direction.
 
     ```bash
-    $ make tests
+    $ make test  # stop at the first error
+    $ make test_all  # run all the tests, report all the errors
     ```
 
 9. Format your code. We use ```black``` for code and ```isort``` for ```import``` formatting.

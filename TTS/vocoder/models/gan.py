@@ -35,7 +35,7 @@ class GAN(BaseVocoder):
             >>> config = HifiganConfig()
             >>> model = GAN(config)
         """
-        super().__init__()
+        super().__init__(config)
         self.config = config
         self.model_g = setup_generator(config)
         self.model_d = setup_discriminator(config)
@@ -197,18 +197,24 @@ class GAN(BaseVocoder):
         audios = {f"{name}/audio": sample_voice}
         return figures, audios
 
-    def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    def train_log(
+        self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
+    ) -> Tuple[Dict, np.ndarray]:
         """Call `_log()` for training."""
-        return self._log("train", ap, batch, outputs)
+        ap = assets["audio_processor"]
+        self._log("train", ap, batch, outputs)
 
     @torch.no_grad()
     def eval_step(self, batch: Dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
         """Call `train_step()` with `no_grad()`"""
         return self.train_step(batch, criterion, optimizer_idx)
 
-    def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    def eval_log(
+        self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
+    ) -> Tuple[Dict, np.ndarray]:
         """Call `_log()` for evaluation."""
-        return self._log("eval", ap, batch, outputs)
+        ap = assets["audio_processor"]
+        self._log("eval", ap, batch, outputs)
 
     def load_checkpoint(
         self,
@@ -299,7 +305,7 @@ class GAN(BaseVocoder):
     def get_data_loader(  # pylint: disable=no-self-use
         self,
         config: Coqpit,
-        ap: AudioProcessor,
+        assets: Dict,
         is_eval: True,
         data_items: List,
         verbose: bool,
@@ -318,6 +324,7 @@ class GAN(BaseVocoder):
         Returns:
             DataLoader: Torch dataloader.
         """
+        ap = assets["audio_processor"]
         dataset = GANDataset(
             ap=ap,
             items=data_items,

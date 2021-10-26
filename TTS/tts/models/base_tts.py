@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Dict, List, Tuple
 
 import torch
@@ -9,20 +10,20 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from TTS.model import BaseModel
-from TTS.tts.datasets import TTSDataset
+from TTS.tts.configs.shared_configs import CharactersConfig
+from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text import make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from TTS.utils.audio import AudioProcessor
 
 # pylint: skip-file
 
 
 class BaseTTS(BaseModel):
-    """Abstract `tts` class. Every new `tts` model must inherit this.
+    """Base `tts` class. Every new `tts` model must inherit this.
 
-    It defines `tts` specific functions on top of `Model`.
+    It defines common `tts` specific functions on top of `Model` implementation.
 
     Notes on input/output tensor shapes:
         Any input or output tensor of the model must be shaped as
@@ -32,6 +33,30 @@ class BaseTTS(BaseModel):
         - 1D tensors `batch x 1`
     """
 
+    def _set_model_args(self, config: Coqpit):
+        """Setup model args based on the config type.
+
+        If the config is for training with a name like "*Config", then the model args are embeded in the
+        config.model_args
+
+        If the config is for the model with a name like "*Args", then we assign the directly.
+        """
+        # don't use isintance not to import recursively
+        if "Config" in config.__class__.__name__:
+            if "characters" in config:
+                _, self.config, num_chars = self.get_characters(config)
+                self.config.num_chars = num_chars
+                if hasattr(self.config, "model_args"):
+                    config.model_args.num_chars = num_chars
+                    self.args = self.config.model_args
+            else:
+                self.config = config
+                self.args = config.model_args
+        elif "Args" in config.__class__.__name__:
+            self.args = config
+        else:
+            raise ValueError("config must be either a *Config or *Args")
+
     @staticmethod
     def get_characters(config: Coqpit) -> str:
         # TODO: implement CharacterProcessor
@@ -40,7 +65,7 @@ class BaseTTS(BaseModel):
         else:
             from TTS.tts.utils.text.symbols import parse_symbols, phonemes, symbols
 
-            config.characters = parse_symbols()
+            config.characters = CharactersConfig(**parse_symbols())
         model_characters = phonemes if config.use_phonemes else symbols
         num_chars = len(model_characters) + getattr(config, "add_blank", False)
         return model_characters, config, num_chars
@@ -48,35 +73,18 @@ class BaseTTS(BaseModel):
     def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:
         return get_speaker_manager(config, restore_path, data, out_path)
 
-    def init_multispeaker(self, config: Coqpit, data: List = None):
-        """Initialize a speaker embedding layer if needen and define expected embedding channel size for defining
-        `in_channels` size of the connected layers.
-
-        This implementation yields 3 possible outcomes:
-
-        1. If `config.use_speaker_embedding` and `config.use_d_vector_file are False, do nothing.
-        2. If `config.use_d_vector_file` is True, set expected embedding channel size to `config.d_vector_dim` or 512.
-        3. If `config.use_speaker_embedding`, initialize a speaker embedding layer with channel size of
-        `config.d_vector_dim` or 512.
-
-        You can override this function for new models.0
+    def init_multispeaker(self, config: Coqpit):
+        """Init speaker embedding layer if `use_speaker_embedding` is True and set the expected speaker embedding
+        vector dimension in the network. If model uses d-vectors, then it only sets the expected dimension.
 
         Args:
             config (Coqpit): Model configuration.
-            data (List, optional): Dataset items to infer number of speakers. Defaults to None.
         """
-        # init speaker manager
-        self.speaker_manager = get_speaker_manager(config, data=data)
-
-        # set number of speakers - if num_speakers is set in config, use it, otherwise use speaker_manager
-        if data is not None or self.speaker_manager.speaker_ids:
+        # set number of speakers
+        if self.speaker_manager is not None:
             self.num_speakers = self.speaker_manager.num_speakers
-        else:
-            self.num_speakers = (
-                config.num_speakers
-                if "num_speakers" in config and config.num_speakers != 0
-                else self.speaker_manager.num_speakers
-            )
+        elif hasattr(config, "num_speakers"):
+            self.num_speakers = config.num_speakers
 
         # set ultimate speaker embedding size
         if config.use_speaker_embedding or config.use_d_vector_file:
@@ -85,12 +93,9 @@ class BaseTTS(BaseModel):
             )
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
+            print(" > Init speaker_embedding layer.")
             self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
-
-    def get_aux_input(self, **kwargs) -> Dict:
-        """Prepare and return `aux_input` used by `forward()`"""
-        return {"speaker_id": None, "style_wav": None, "d_vector": None}
 
     def format_batch(self, batch: Dict) -> Dict:
         """Generic batch formatting for `TTSDataset`.
@@ -169,7 +174,7 @@ class BaseTTS(BaseModel):
     def get_data_loader(
         self,
         config: Coqpit,
-        ap: AudioProcessor,
+        assets: Dict,
         is_eval: bool,
         data_items: List,
         verbose: bool,
@@ -179,14 +184,12 @@ class BaseTTS(BaseModel):
         if is_eval and not config.run_eval:
             loader = None
         else:
+            ap = assets["audio_processor"]
+
             # setup multi-speaker attributes
-            if hasattr(self, "speaker_manager"):
+            if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
                 speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
-                d_vector_mapping = (
-                    self.speaker_manager.d_vectors
-                    if config.use_speaker_embedding and config.use_d_vector_file
-                    else None
-                )
+                d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
             else:
                 speaker_id_mapping = None
                 d_vector_mapping = None
@@ -219,9 +222,7 @@ class BaseTTS(BaseModel):
                 use_noise_augment=not is_eval,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
-                d_vector_mapping=d_vector_mapping
-                if config.use_speaker_embedding and config.use_d_vector_file
-                else None,
+                d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
             )
 
             # pre-compute phonemes
@@ -280,19 +281,41 @@ class BaseTTS(BaseModel):
             )
         return loader
 
-    def test_run(self, ap) -> Tuple[Dict, Dict]:
+    def _get_test_aux_input(
+        self,
+    ) -> Dict:
+
+        d_vector = None
+        if self.config.use_d_vector_file:
+            d_vector = [self.speaker_manager.d_vectors[name]["embedding"] for name in self.speaker_manager.d_vectors]
+            d_vector = (random.sample(sorted(d_vector), 1),)
+
+        aux_inputs = {
+            "speaker_id": None
+            if not self.config.use_speaker_embedding
+            else random.sample(sorted(self.speaker_manager.speaker_ids.values()), 1),
+            "d_vector": d_vector,
+            "style_wav": None,  # TODO: handle GST style input
+        }
+        return aux_inputs
+
+    def test_run(self, assets: Dict) -> Tuple[Dict, Dict]:
         """Generic test run for `tts` models used by `Trainer`.
 
         You can override this for a different behaviour.
 
+        Args:
+            assets (dict): A dict of training assets. For `tts` models, it must include `{'audio_processor': ap}`.
+
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
+        ap = assets["audio_processor"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        aux_inputs = self.get_aux_input()
+        aux_inputs = self._get_test_aux_input()
         for idx, sen in enumerate(test_sentences):
             outputs_dict = synthesis(
                 self,
@@ -315,3 +338,17 @@ class BaseTTS(BaseModel):
                 outputs_dict["outputs"]["alignments"], output_fig=False
             )
         return test_figures, test_audios
+
+    def on_init_start(self, trainer):
+        """Save the speaker.json at the beginning of the training. And update the config.json with the
+        speakers.json file path."""
+        if self.speaker_manager is not None:
+            output_path = os.path.join(trainer.output_path, "speakers.json")
+            self.speaker_manager.save_speaker_ids_to_file(output_path)
+            trainer.config.speakers_file = output_path
+            # some models don't have `model_args` set
+            if hasattr(trainer.config, "model_args"):
+                trainer.config.model_args.speakers_file = output_path
+            trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
+            print(f" > `speakers.json` is saved to {output_path}.")
+            print(" > `speakers_file` is updated in the config.json.")

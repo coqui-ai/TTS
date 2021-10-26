@@ -47,6 +47,7 @@
     models/glow_tts.md
     models/vits.md
     models/forward_tts.md
+    models/tacotron1-2.md
 
 .. toctree::
     :maxdepth: 2

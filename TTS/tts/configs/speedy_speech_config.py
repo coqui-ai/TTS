@@ -11,7 +11,7 @@ class SpeedySpeechConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import SpeedySpeechConfig
+        >>> from TTS.tts.configs.speedy_speech_config import SpeedySpeechConfig
         >>> config = SpeedySpeechConfig()
 
      Args:
@@ -29,6 +29,10 @@ class SpeedySpeechConfig(BaseTTSConfig):
             Number of steps used for computing normalization parameters at the beginning of the training. GlowTTS uses
             Activation Normalization that pre-computes normalization stats at the beginning and use the same values
             for the rest. Defaults to 10.
+
+        speakers_file (str):
+            Path to the file containing the list of speakers. Needed at inference for loading matching speaker ids to
+            speaker names. Defaults to `None`.
 
         use_speaker_embedding (bool):
             enable / disable using speaker embeddings for multi-speaker models. If set True, the model is
@@ -117,12 +121,13 @@ class SpeedySpeechConfig(BaseTTSConfig):
         },
         out_channels=80,
         hidden_channels=128,
-        num_speakers=0,
         positional_encoding=True,
         detach_duration_predictor=True,
     )
 
     # multi-speaker settings
+    num_speakers: int = 0
+    speakers_file: str = None
     use_speaker_embedding: bool = False
     use_d_vector_file: bool = False
     d_vector_file: str = False
@@ -166,3 +171,22 @@ class SpeedySpeechConfig(BaseTTSConfig):
             "Prior to November 22, 1963.",
         ]
     )
+
+    def __post_init__(self):
+        # Pass multi-speaker parameters to the model args as `model.init_multispeaker()` looks for it there.
+        if self.num_speakers > 0:
+            self.model_args.num_speakers = self.num_speakers
+
+        # speaker embedding settings
+        if self.use_speaker_embedding:
+            self.model_args.use_speaker_embedding = True
+        if self.speakers_file:
+            self.model_args.speakers_file = self.speakers_file
+
+        # d-vector settings
+        if self.use_d_vector_file:
+            self.model_args.use_d_vector_file = True
+        if self.d_vector_dim is not None and self.d_vector_dim > 0:
+            self.model_args.d_vector_dim = self.d_vector_dim
+        if self.d_vector_file:
+            self.model_args.d_vector_file = self.d_vector_file

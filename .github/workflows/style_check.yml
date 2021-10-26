@@ -1,4 +1,4 @@
-name: CI
+name: style-check
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.9]
         experimental: [false]
     steps:
       - uses: actions/checkout@v2
@@ -48,5 +48,3 @@ jobs:
       - name: Lint check
         run: |
           make lint
-      - name: Unit tests
-        run: make test

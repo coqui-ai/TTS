@@ -222,10 +222,7 @@ class Wavernn(BaseVocoder):
             samples at once. The Subscale WaveRNN produces 16 samples per step without loss of quality and offers an
             orthogonal method for increasing sampling efficiency.
         """
-        super().__init__()
-
-        self.args = config.model_params
-        self.config = config
+        super().__init__(config)
 
         if isinstance(self.args.mode, int):
             self.n_classes = 2 ** self.args.mode
@@ -572,8 +569,9 @@ class Wavernn(BaseVocoder):
 
     @torch.no_grad()
     def test_run(
-        self, ap: AudioProcessor, samples: List[Dict], output: Dict  # pylint: disable=unused-argument
+        self, assets: Dict, samples: List[Dict], output: Dict  # pylint: disable=unused-argument
     ) -> Tuple[Dict, Dict]:
+        ap = assets["audio_processor"]
         figures = {}
         audios = {}
         for idx, sample in enumerate(samples):
@@ -600,20 +598,21 @@ class Wavernn(BaseVocoder):
     def get_data_loader(  # pylint: disable=no-self-use
         self,
         config: Coqpit,
-        ap: AudioProcessor,
+        assets: Dict,
         is_eval: True,
         data_items: List,
         verbose: bool,
         num_gpus: int,
     ):
+        ap = assets["audio_processor"]
         dataset = WaveRNNDataset(
             ap=ap,
             items=data_items,
             seq_len=config.seq_len,
             hop_len=ap.hop_length,
-            pad=config.model_params.pad,
-            mode=config.model_params.mode,
-            mulaw=config.model_params.mulaw,
+            pad=config.model_args.pad,
+            mode=config.model_args.mode,
+            mulaw=config.model_args.mulaw,
             is_training=not is_eval,
             verbose=verbose,
         )

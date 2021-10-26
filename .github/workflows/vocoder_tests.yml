@@ -1,0 +1,49 @@
+name: vocoder-tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  check_skip:
+    runs-on: ubuntu-latest
+    if: "! contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+      - run: echo "${{ github.event.head_commit.message }}"
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+        experimental: [false]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: check OS
+        run: cat /etc/os-release
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git make
+          sudo apt install -y python3-wheel gcc
+          make system-deps
+      - name: Upgrade pip
+        run: python3 -m pip install --upgrade pip
+      - name: Install TTS
+        run: |
+          python3 -m pip install .[all]
+          python3 setup.py egg_info
+      - name: Unit tests
+        run: make test_vocoder
