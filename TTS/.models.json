@@ -148,7 +148,8 @@
                     "author":"@robinhad",
                     "commit": "bdab788d",
                     "license": "MIT",
-                    "contact": ""
+                    "contact": "",
+                    "default_vocoder": null
                 }
             }
         },
