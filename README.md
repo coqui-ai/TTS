@@ -19,6 +19,8 @@
 
 📄 [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
 
+<img src="https://static.scarf.sh/a.png?x-pxid=cf317fe7-2188-4721-bc01-124bb5d5dbb2" />
+
 ## 💬 Where to ask questions
 Please use our dedicated channels for questions and discussion. Help is much more valuable if it's shared publicly so that more people can benefit from it.
 
@@ -154,5 +156,3 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
     |- vocoder/         (Vocoder models.)
         |- (same)
 ```
-
-<img src="https://static.scarf.sh/a.png?x-pxid=503c242f-a253-4fb8-8071-ce1dc1e89999" />

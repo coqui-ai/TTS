@@ -2,7 +2,8 @@ import os
 
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.trainer import Trainer, TrainingArgs
-from TTS.tts.configs import BaseDatasetConfig, VitsConfig
+from TTS.tts.configs.shared_configs import BaseDatasetConfig
+from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits
 from TTS.utils.audio import AudioProcessor

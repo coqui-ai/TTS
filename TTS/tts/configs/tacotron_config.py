@@ -10,7 +10,7 @@ class TacotronConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import TacotronConfig
+        >>> from TTS.tts.configs.tacotron_config import TacotronConfig
         >>> config = TacotronConfig()
 
     Args:

@@ -90,7 +90,7 @@ class VitsConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import VitsConfig
+        >>> from TTS.tts.configs.vits_config import VitsConfig
         >>> config = VitsConfig()
     """
 

@@ -11,7 +11,7 @@ class FastSpeechConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import FastSpeechConfig
+        >>> from TTS.tts.configs.fast_speech_config import FastSpeechConfig
         >>> config = FastSpeechConfig()
 
     Args:
