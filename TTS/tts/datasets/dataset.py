@@ -402,8 +402,6 @@ class TTSDataset(Dataset):
             # convert list of dicts to dict of lists
             batch = {k: [dic[k] for dic in batch] for k in batch[0]}
 
-            speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
-
             # get language ids from language names
             if self.language_id_mapping is not None:
                 language_names = [batch[idx]["language_name"] for idx in ids_sorted_decreasing]
