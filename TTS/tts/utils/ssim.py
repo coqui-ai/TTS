@@ -23,8 +23,10 @@ def _ssim(img1, img2, window, window_size, channel, size_average=True):
     mu1 = F.conv2d(img1, window, padding=window_size // 2, groups=channel)
     mu2 = F.conv2d(img2, window, padding=window_size // 2, groups=channel)
 
-    mu1_sq = mu1.pow(2)
-    mu2_sq = mu2.pow(2)
+    # TODO: check if you need AMP disabled
+    # with torch.cuda.amp.autocast(enabled=False):
+    mu1_sq = mu1.float().pow(2)
+    mu2_sq = mu2.float().pow(2)
     mu1_mu2 = mu1 * mu2
 
     sigma1_sq = F.conv2d(img1 * img1, window, padding=window_size // 2, groups=channel) - mu1_sq

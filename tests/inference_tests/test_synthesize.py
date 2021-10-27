@@ -11,11 +11,10 @@ def test_synthesize():
     # single speaker model
     run_cli(f'tts --text "This is an example." --out_path "{output_path}"')
     run_cli(
-        "tts --model_name tts_models/en/ljspeech/speedy-speech-wn "
-        f'--text "This is an example." --out_path "{output_path}"'
+        "tts --model_name tts_models/en/ljspeech/glow-tts " f'--text "This is an example." --out_path "{output_path}"'
     )
     run_cli(
-        "tts --model_name tts_models/en/ljspeech/speedy-speech-wn  "
+        "tts --model_name tts_models/en/ljspeech/glow-tts  "
         "--vocoder_name vocoder_models/en/ljspeech/multiband-melgan "
         f'--text "This is an example." --out_path "{output_path}"'
     )

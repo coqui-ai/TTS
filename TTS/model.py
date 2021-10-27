@@ -6,8 +6,6 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 
-from TTS.utils.audio import AudioProcessor
-
 # pylint: skip-file
 
 
@@ -22,36 +20,40 @@ class BaseModel(nn.Module, ABC):
         - 1D tensors `batch x 1`
     """
 
+    def __init__(self, config: Coqpit):
+        super().__init__()
+        self._set_model_args(config)
+
+    def _set_model_args(self, config: Coqpit):
+        """Set model arguments from the config. Override this."""
+        pass
+
     @abstractmethod
-    def forward(self, text: torch.Tensor, aux_input={}, **kwargs) -> Dict:
+    def forward(self, input: torch.Tensor, *args, aux_input={}, **kwargs) -> Dict:
         """Forward pass for the model mainly used in training.
 
-        You can be flexible here and use different number of arguments and argument names since it is mostly used by
-        `train_step()` in training whitout exposing it to the out of the class.
+        You can be flexible here and use different number of arguments and argument names since it is intended to be
+        used by `train_step()` without exposing it out of the model.
 
         Args:
-            text (torch.Tensor): Input text character sequence ids.
+            input (torch.Tensor): Input tensor.
             aux_input (Dict): Auxiliary model inputs like embeddings, durations or any other sorts of inputs.
-                for the model.
 
         Returns:
-            Dict: model outputs. This must include an item keyed `model_outputs` as the final artifact of the model.
+            Dict: Model outputs. Main model output must be named as "model_outputs".
         """
         outputs_dict = {"model_outputs": None}
         ...
         return outputs_dict
 
     @abstractmethod
-    def inference(self, text: torch.Tensor, aux_input={}) -> Dict:
+    def inference(self, input: torch.Tensor, aux_input={}) -> Dict:
         """Forward pass for inference.
 
-        After the model is trained this is the only function that connects the model the out world.
-
-        This function must only take a `text` input and a dictionary that has all the other model specific inputs.
         We don't use `*kwargs` since it is problematic with the TorchScript API.
 
         Args:
-            text (torch.Tensor): [description]
+            input (torch.Tensor): [description]
             aux_input (Dict): Auxiliary inputs like speaker embeddings, durations etc.
 
         Returns:
@@ -77,7 +79,7 @@ class BaseModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    def train_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int) -> None:
         """Create visualizations and waveform examples for training.
 
         For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
@@ -91,7 +93,7 @@ class BaseModel(nn.Module, ABC):
         Returns:
             Tuple[Dict, np.ndarray]: training plots and output waveform.
         """
-        return None, None
+        pass
 
     @abstractmethod
     def eval_step(self, batch: Dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
@@ -110,9 +112,9 @@ class BaseModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    def eval_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int) -> None:
         """The same as `train_log()`"""
-        return None, None
+        pass
 
     @abstractmethod
     def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False) -> None:

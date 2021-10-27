@@ -6,7 +6,7 @@ import torch
 from torch import optim
 
 from tests import get_tests_input_path
-from TTS.tts.configs import GlowTTSConfig
+from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.models.glow_tts import GlowTTS
 from TTS.utils.audio import AudioProcessor
@@ -63,7 +63,7 @@ class GlowTTSTrainTest(unittest.TestCase):
             optimizer.zero_grad()
             outputs = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths, None)
             loss_dict = criterion(
-                outputs["model_outputs"],
+                outputs["z"],
                 outputs["y_mean"],
                 outputs["y_log_scale"],
                 outputs["logdet"],

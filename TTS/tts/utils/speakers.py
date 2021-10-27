@@ -63,7 +63,6 @@ class SpeakerManager:
         use_cuda: bool = False,
     ):
 
-        self.data_items = []
         self.d_vectors = {}
         self.speaker_ids = {}
         self.clip_ids = []
@@ -72,7 +71,7 @@ class SpeakerManager:
         self.use_cuda = use_cuda
 
         if data_items:
-            self.speaker_ids, self.speaker_names, _ = self.parse_speakers_from_data(self.data_items)
+            self.speaker_ids, _ = self.parse_speakers_from_data(data_items)
 
         if d_vectors_file_path:
             self.set_d_vectors_from_file(d_vectors_file_path)
@@ -110,10 +109,10 @@ class SpeakerManager:
 
     @staticmethod
     def parse_speakers_from_data(items: list) -> Tuple[Dict, int]:
-        """Parse speaker IDs from data samples retured by `load_meta_data()`.
+        """Parse speaker IDs from data samples retured by `load_tts_samples()`.
 
         Args:
-            items (list): Data sampled returned by `load_meta_data()`.
+            items (list): Data sampled returned by `load_tts_samples()`.
 
         Returns:
             Tuple[Dict, int]: speaker IDs and number of speakers.
@@ -127,7 +126,7 @@ class SpeakerManager:
         """Set speaker IDs from data samples.
 
         Args:
-            items (List): Data sampled returned by `load_meta_data()`.
+            items (List): Data sampled returned by `load_tts_samples()`.
         """
         self.speaker_ids, _ = self.parse_speakers_from_data(items)
 

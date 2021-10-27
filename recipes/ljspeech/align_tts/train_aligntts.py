@@ -1,9 +1,14 @@
 import os
 
-from TTS.trainer import Trainer, TrainingArgs, init_training
-from TTS.tts.configs import AlignTTSConfig, BaseDatasetConfig
+from TTS.trainer import Trainer, TrainingArgs
+from TTS.tts.configs.align_tts_config import AlignTTSConfig, BaseDatasetConfig
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.models.align_tts import AlignTTS
+from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
+
+# init configs
 dataset_config = BaseDatasetConfig(
     name="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/")
 )
@@ -25,6 +30,24 @@ config = AlignTTSConfig(
     output_path=output_path,
     datasets=[dataset_config],
 )
-args, config, output_path, _, c_logger, dashboard_logger = init_training(TrainingArgs(), config)
-trainer = Trainer(args, config, output_path, c_logger, dashboard_logger)
+
+# init audio processor
+ap = AudioProcessor(**config.audio.to_dict())
+
+# load training samples
+train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+
+# init model
+model = AlignTTS(config)
+
+# init the trainer and 🚀
+trainer = Trainer(
+    TrainingArgs(),
+    config,
+    output_path,
+    model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples,
+    training_assets={"audio_processor": ap},
+)
 trainer.fit()

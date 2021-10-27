@@ -2,15 +2,14 @@ from typing import Dict, Tuple
 
 import librosa
 import numpy as np
+import pyworld as pw
 import scipy.io.wavfile
 import scipy.signal
 import soundfile as sf
 import torch
 from torch import nn
 
-from TTS.tts.utils.data import StandardScaler
-
-# import pyworld as pw
+from TTS.tts.utils.helpers import StandardScaler
 
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
@@ -108,6 +107,8 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
 # pylint: disable=too-many-public-methods
 class AudioProcessor(object):
     """Audio Processor for TTS used by all the data pipelines.
+
+    TODO: Make this a dataclass to replace `BaseAudioConfig`.
 
     Note:
         All the class arguments are set to default values to enable a flexible initialization
@@ -241,6 +242,7 @@ class AudioProcessor(object):
         self.sample_rate = sample_rate
         self.resample = resample
         self.num_mels = num_mels
+        self.log_func = log_func
         self.min_level_db = min_level_db or 0
         self.frame_shift_ms = frame_shift_ms
         self.frame_length_ms = frame_length_ms
@@ -608,6 +610,9 @@ class AudioProcessor(object):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
         S_complex = np.abs(S).astype(np.complex)
         y = self._istft(S_complex * angles)
+        if not np.isfinite(y).all():
+            print(" [!] Waveform is not finite everywhere. Skipping the GL.")
+            return np.array([0.0])
         for _ in range(self.griffin_lim_iters):
             angles = np.exp(1j * np.angle(self._stft(y)))
             y = self._istft(S_complex * angles)
@@ -622,17 +627,51 @@ class AudioProcessor(object):
             return 0, pad
         return pad // 2, pad // 2 + pad % 2
 
-    ### Compute F0 ###
-    # TODO: pw causes some dep issues
-    # def compute_f0(self, x):
-    #     f0, t = pw.dio(
-    #         x.astype(np.double),
-    #         fs=self.sample_rate,
-    #         f0_ceil=self.mel_fmax,
-    #         frame_period=1000 * self.hop_length / self.sample_rate,
-    #     )
-    #     f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-    #     return f0
+    def compute_f0(self, x: np.ndarray) -> np.ndarray:
+        """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
+
+        Args:
+            x (np.ndarray): Waveform.
+
+        Returns:
+            np.ndarray: Pitch.
+
+        Examples:
+            >>> WAV_FILE = filename = librosa.util.example_audio_file()
+            >>> from TTS.config import BaseAudioConfig
+            >>> from TTS.utils.audio import AudioProcessor
+            >>> conf = BaseAudioConfig(mel_fmax=8000)
+            >>> ap = AudioProcessor(**conf)
+            >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
+            >>> pitch = ap.compute_f0(wav)
+        """
+        # align F0 length to the spectrogram length
+        if len(x) % self.hop_length == 0:
+            x = np.pad(x, (0, self.hop_length // 2), mode="reflect")
+
+        f0, t = pw.dio(
+            x.astype(np.double),
+            fs=self.sample_rate,
+            f0_ceil=self.mel_fmax,
+            frame_period=1000 * self.hop_length / self.sample_rate,
+        )
+        f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
+        # pad = int((self.win_length / self.hop_length) / 2)
+        # f0 = [0.0] * pad + f0 + [0.0] * pad
+        # f0 = np.pad(f0, (pad, pad), mode="constant", constant_values=0)
+        # f0 = np.array(f0, dtype=np.float32)
+
+        # f01, _, _ = librosa.pyin(
+        #     x,
+        #     fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
+        #     fmax=self.mel_fmax,
+        #     frame_length=self.win_length,
+        #     sr=self.sample_rate,
+        #     fill_na=0.0,
+        # )
+
+        # spec = self.melspectrogram(x)
+        return f0
 
     ### Audio Processing ###
     def find_endpoint(self, wav: np.ndarray, threshold_db=-40, min_silence_sec=0.8) -> int:
@@ -711,6 +750,14 @@ class AudioProcessor(object):
         """
         wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
         scipy.io.wavfile.write(path, sr if sr else self.sample_rate, wav_norm.astype(np.int16))
+
+    def get_duration(self, filename: str) -> float:
+        """Get the duration of a wav file using Librosa.
+
+        Args:
+            filename (str): Path to the wav file.
+        """
+        return librosa.get_duration(filename)
 
     @staticmethod
     def mulaw_encode(wav: np.ndarray, qc: int) -> np.ndarray:

@@ -12,60 +12,89 @@ class BaseAudioConfig(Coqpit):
     Args:
         fft_size (int):
             Number of STFT frequency levels aka.size of the linear spectogram frame. Defaults to 1024.
+
         win_length (int):
             Each frame of audio is windowed by window of length ```win_length``` and then padded with zeros to match
             ```fft_size```. Defaults to 1024.
+
         hop_length (int):
             Number of audio samples between adjacent STFT columns. Defaults to 1024.
+
         frame_shift_ms (int):
             Set ```hop_length``` based on milliseconds and sampling rate.
+
         frame_length_ms (int):
             Set ```win_length``` based on milliseconds and sampling rate.
+
         stft_pad_mode (str):
             Padding method used in STFT. 'reflect' or 'center'. Defaults to 'reflect'.
+
         sample_rate (int):
             Audio sampling rate. Defaults to 22050.
+
         resample (bool):
             Enable / Disable resampling audio to ```sample_rate```. Defaults to ```False```.
+
         preemphasis (float):
             Preemphasis coefficient. Defaults to 0.0.
+
         ref_level_db (int): 20
             Reference Db level to rebase the audio signal and ignore the level below. 20Db is assumed the sound of air.
             Defaults to 20.
+
         do_sound_norm (bool):
             Enable / Disable sound normalization to reconcile the volume differences among samples. Defaults to False.
+
+        log_func (str):
+            Numpy log function used for amplitude to DB conversion. Defaults to 'np.log10'.
+
         do_trim_silence (bool):
             Enable / Disable trimming silences at the beginning and the end of the audio clip. Defaults to ```True```.
+
         do_amp_to_db_linear (bool, optional):
             enable/disable amplitude to dB conversion of linear spectrograms. Defaults to True.
+
         do_amp_to_db_mel (bool, optional):
             enable/disable amplitude to dB conversion of mel spectrograms. Defaults to True.
+
         trim_db (int):
             Silence threshold used for silence trimming. Defaults to 45.
+
         power (float):
             Exponent used for expanding spectrogra levels before running Griffin Lim. It helps to reduce the
             artifacts in the synthesized voice. Defaults to 1.5.
+
         griffin_lim_iters (int):
             Number of Griffing Lim iterations. Defaults to 60.
+
         num_mels (int):
             Number of mel-basis frames that defines the frame lengths of each mel-spectrogram frame. Defaults to 80.
+
         mel_fmin (float): Min frequency level used for the mel-basis filters. ~50 for male and ~95 for female voices.
             It needs to be adjusted for a dataset. Defaults to 0.
+
         mel_fmax (float):
             Max frequency level used for the mel-basis filters. It needs to be adjusted for a dataset.
+
         spec_gain (int):
             Gain applied when converting amplitude to DB. Defaults to 20.
+
         signal_norm (bool):
             enable/disable signal normalization. Defaults to True.
+
         min_level_db (int):
             minimum db threshold for the computed melspectrograms. Defaults to -100.
+
         symmetric_norm (bool):
             enable/disable symmetric normalization. If set True normalization is performed in the range [-k, k] else
             [0, k], Defaults to True.
+
         max_norm (float):
             ```k``` defining the normalization range. Defaults to 4.0.
+
         clip_norm (bool):
             enable/disable clipping the our of range values in the normalized audio signal. Defaults to True.
+
         stats_path (str):
             Path to the computed stats file. Defaults to None.
     """
@@ -147,15 +176,20 @@ class BaseDatasetConfig(Coqpit):
     Args:
         name (str):
             Dataset name that defines the preprocessor in use. Defaults to None.
+
         path (str):
             Root path to the dataset files. Defaults to None.
+
         meta_file_train (str):
             Name of the dataset meta file. Or a list of speakers to be ignored at training for multi-speaker datasets.
             Defaults to None.
+
         unused_speakers (List):
             List of speakers IDs that are not used at the training. Default None.
+
         meta_file_val (str):
             Name of the dataset meta file that defines the instances used at validation.
+
         meta_file_attn_mask (str):
             Path to the file that lists the attention mask files used with models that require attention masks to
             train the duration predictor.
@@ -191,7 +225,7 @@ class BaseTrainingConfig(Coqpit):
             Name of the model that is used in the training.
 
         run_name (str):
-            Name of the experiment. This prefixes the output folder name.
+            Name of the experiment. This prefixes the output folder name. Defaults to `coqui_tts`.
 
         run_description (str):
             Short description of the experiment.
@@ -273,7 +307,7 @@ class BaseTrainingConfig(Coqpit):
     """
 
     model: str = None
-    run_name: str = ""
+    run_name: str = "coqui_tts"
     run_description: str = ""
     # training params
     epochs: int = 10000
@@ -299,7 +333,7 @@ class BaseTrainingConfig(Coqpit):
     keep_all_best: bool = False
     keep_after: int = 10000
     # dataloading
-    num_loader_workers: int = None
+    num_loader_workers: int = 0
     num_eval_loader_workers: int = 0
     use_noise_augment: bool = False
     use_language_weighted_sampler: bool = False

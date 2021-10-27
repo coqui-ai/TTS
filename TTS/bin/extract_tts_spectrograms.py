@@ -10,13 +10,11 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from TTS.config import load_config
-from TTS.tts.datasets import load_meta_data
-from TTS.tts.datasets.TTSDataset import TTSDataset
+from TTS.tts.datasets import TTSDataset, load_tts_samples
 from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters
-from TTS.utils.io import load_fsspec
 
 use_cuda = torch.cuda.is_available()
 
@@ -46,7 +44,7 @@ def setup_loader(ap, r, verbose=False):
     if c.use_phonemes and c.compute_input_seq_cache:
         # precompute phonemes to have a better estimate of sequence lengths.
         dataset.compute_input_seq(c.num_loader_workers)
-    dataset.sort_items()
+    dataset.sort_and_filter_items(c.get("sort_by_audio_len", default=False))
 
     loader = DataLoader(
         dataset,
@@ -77,14 +75,14 @@ def set_filename(wav_path, out_path):
 
 def format_data(data):
     # setup input data
-    text_input = data[0]
-    text_lengths = data[1]
-    mel_input = data[4]
-    mel_lengths = data[5]
-    item_idx = data[7]
-    d_vectors = data[8]
-    speaker_ids = data[9]
-    attn_mask = data[10]
+    text_input = data["text"]
+    text_lengths = data["text_lengths"]
+    mel_input = data["mel"]
+    mel_lengths = data["mel_lengths"]
+    item_idx = data["item_idxs"]
+    d_vectors = data["d_vectors"]
+    speaker_ids = data["speaker_ids"]
+    attn_mask = data["attns"]
     avg_text_length = torch.mean(text_lengths.float())
     avg_spec_length = torch.mean(mel_lengths.float())
 
@@ -132,9 +130,12 @@ def inference(
             speaker_c = speaker_ids
         elif d_vectors is not None:
             speaker_c = d_vectors
-
         outputs = model.inference_with_MAS(
-            text_input, text_lengths, mel_input, mel_lengths, aux_input={"d_vectors": speaker_c}
+            text_input,
+            text_lengths,
+            mel_input,
+            mel_lengths,
+            aux_input={"d_vectors": speaker_c, "speaker_ids": speaker_ids},
         )
         model_output = outputs["model_outputs"]
         model_output = model_output.transpose(1, 2).detach().cpu().numpy()
@@ -215,7 +216,7 @@ def extract_spectrograms(
                 wav = ap.inv_melspectrogram(mel)
                 ap.save_wav(wav, wav_gl_path)
 
-    with open(os.path.join(output_path, metada_name), "w") as f:
+    with open(os.path.join(output_path, metada_name), "w", encoding="utf-8") as f:
         for data in export_metadata:
             f.write(f"{data[0]}|{data[1]+'.npy'}\n")
 
@@ -228,7 +229,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
 
     # load data instances
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=args.eval)
+    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=args.eval)
 
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval
@@ -240,8 +241,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     model = setup_model(c)
 
     # restore model
-    checkpoint = load_fsspec(args.checkpoint_path, map_location="cpu")
-    model.load_state_dict(checkpoint["model"])
+    model.load_checkpoint(c, args.checkpoint_path, eval=True)
 
     if use_cuda:
         model.cuda()

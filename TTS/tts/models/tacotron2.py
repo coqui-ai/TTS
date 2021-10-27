@@ -1,28 +1,50 @@
 # coding: utf-8
 
-from typing import Dict, Tuple
+from typing import Dict
 
 import torch
 from coqpit import Coqpit
 from torch import nn
+from torch.cuda.amp.autocast_mode import autocast
 
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
 from TTS.tts.models.base_tacotron import BaseTacotron
 from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from TTS.utils.audio import AudioProcessor
 
 
 class Tacotron2(BaseTacotron):
-    """Tacotron2 as in https://arxiv.org/abs/1712.05884
-    Check `TacotronConfig` for the arguments.
+    """Tacotron2 model implementation inherited from :class:`TTS.tts.models.base_tacotron.BaseTacotron`.
+
+    Paper::
+        https://arxiv.org/abs/1712.05884
+
+    Paper abstract::
+        This paper describes Tacotron 2, a neural network architecture for speech synthesis directly from text.
+        The system is composed of a recurrent sequence-to-sequence feature prediction network that maps character
+        embeddings to mel-scale spectrograms, followed by a modified WaveNet model acting as a vocoder to synthesize
+        timedomain waveforms from those spectrograms. Our model achieves a mean opinion score (MOS) of 4.53 comparable
+        to a MOS of 4.58 for professionally recorded speech. To validate our design choices, we present ablation
+        studies of key components of our system and evaluate the impact of using mel spectrograms as the input to
+        WaveNet instead of linguistic, duration, and F0 features. We further demonstrate that using a compact acoustic
+        intermediate representation enables significant simplification of the WaveNet architecture.
+
+    Check :class:`TTS.tts.configs.tacotron2_config.Tacotron2Config` for model arguments.
+
+    Args:
+        config (TacotronConfig):
+            Configuration for the Tacotron2 model.
+        speaker_manager (SpeakerManager):
+            Speaker manager for multi-speaker training. Uuse only for multi-speaker training. Defaults to None.
     """
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
         super().__init__(config)
 
-        chars, self.config = self.get_characters(config)
+        self.speaker_manager = speaker_manager
+        chars, self.config, _ = self.get_characters(config)
         config.num_chars = len(chars)
         self.decoder_output_dim = config.out_channels
 
@@ -31,9 +53,7 @@ class Tacotron2(BaseTacotron):
         for key in config:
             setattr(self, key, config[key])
 
-        # set speaker embedding channel size for determining `in_channels` for the connected layers.
-        # `init_multispeaker` needs to be called once more in training to initialize the speaker embedding layer based
-        # on the number of speakers infered from the dataset.
+        # init multi-speaker layers
         if self.use_speaker_embedding or self.use_d_vector_file:
             self.init_multispeaker(config)
             self.decoder_in_features += self.embedded_speaker_dim  # add speaker embedding dim
@@ -103,6 +123,7 @@ class Tacotron2(BaseTacotron):
 
     @staticmethod
     def shape_outputs(mel_outputs, mel_outputs_postnet, alignments):
+        """Final reshape of the model output tensors."""
         mel_outputs = mel_outputs.transpose(1, 2)
         mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
         return mel_outputs, mel_outputs_postnet, alignments
@@ -110,13 +131,14 @@ class Tacotron2(BaseTacotron):
     def forward(  # pylint: disable=dangerous-default-value
         self, text, text_lengths, mel_specs=None, mel_lengths=None, aux_input={"speaker_ids": None, "d_vectors": None}
     ):
-        """
+        """Forward pass for training with Teacher Forcing.
+
         Shapes:
-            text: [B, T_in]
-            text_lengths: [B]
-            mel_specs: [B, T_out, C]
-            mel_lengths: [B]
-            aux_input: 'speaker_ids': [B, 1] and  'd_vectors':[B, C]
+            text: :math:`[B, T_in]`
+            text_lengths: :math:`[B]`
+            mel_specs: :math:`[B, T_out, C]`
+            mel_lengths: :math:`[B]`
+            aux_input: 'speaker_ids': :math:`[B, 1]` and  'd_vectors': :math:`[B, C]`
         """
         aux_input = self._format_aux_input(aux_input)
         outputs = {"alignments_backward": None, "decoder_outputs_backward": None}
@@ -177,6 +199,12 @@ class Tacotron2(BaseTacotron):
 
     @torch.no_grad()
     def inference(self, text, aux_input=None):
+        """Forward pass for inference with no Teacher-Forcing.
+
+        Shapes:
+           text: :math:`[B, T_in]`
+           text_lengths: :math:`[B]`
+        """
         aux_input = self._format_aux_input(aux_input)
         embedded_inputs = self.embedding(text).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
@@ -210,18 +238,17 @@ class Tacotron2(BaseTacotron):
         }
         return outputs
 
-    def train_step(self, batch, criterion):
-        """Perform a single training step by fetching the right set if samples from the batch.
+    def train_step(self, batch: Dict, criterion: torch.nn.Module):
+        """A single training step. Forward pass and loss computation.
 
         Args:
-            batch ([type]): [description]
-            criterion ([type]): [description]
+            batch ([Dict]): A dictionary of input tensors.
+            criterion ([type]): Callable criterion to compute model loss.
         """
         text_input = batch["text_input"]
         text_lengths = batch["text_lengths"]
         mel_input = batch["mel_input"]
         mel_lengths = batch["mel_lengths"]
-        linear_input = batch["linear_input"]
         stop_targets = batch["stop_targets"]
         stop_target_lengths = batch["stop_target_lengths"]
         speaker_ids = batch["speaker_ids"]
@@ -248,28 +275,30 @@ class Tacotron2(BaseTacotron):
         outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input)
 
         # compute loss
-        loss_dict = criterion(
-            outputs["model_outputs"],
-            outputs["decoder_outputs"],
-            mel_input,
-            linear_input,
-            outputs["stop_tokens"],
-            stop_targets,
-            stop_target_lengths,
-            mel_lengths,
-            outputs["decoder_outputs_backward"],
-            outputs["alignments"],
-            alignment_lengths,
-            outputs["alignments_backward"],
-            text_lengths,
-        )
+        with autocast(enabled=False):  # use float32 for the criterion
+            loss_dict = criterion(
+                outputs["model_outputs"].float(),
+                outputs["decoder_outputs"].float(),
+                mel_input.float(),
+                None,
+                outputs["stop_tokens"].float(),
+                stop_targets.float(),
+                stop_target_lengths,
+                mel_lengths,
+                None if outputs["decoder_outputs_backward"] is None else outputs["decoder_outputs_backward"].float(),
+                outputs["alignments"].float(),
+                alignment_lengths,
+                None if outputs["alignments_backward"] is None else outputs["alignments_backward"].float(),
+                text_lengths,
+            )
 
         # compute alignment error (the lower the better )
         align_error = 1 - alignment_diagonal_score(outputs["alignments"])
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict) -> Tuple[Dict, Dict]:
+    def _create_logs(self, batch, outputs, ap):
+        """Create dashboard log information."""
         postnet_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         alignments_backward = outputs["alignments_backward"]
@@ -289,11 +318,23 @@ class Tacotron2(BaseTacotron):
             figures["alignment_backward"] = plot_alignment(alignments_backward[0].data.cpu().numpy(), output_fig=False)
 
         # Sample audio
-        train_audio = ap.inv_melspectrogram(pred_spec.T)
-        return figures, {"audio": train_audio}
+        audio = ap.inv_melspectrogram(pred_spec.T)
+        return figures, {"audio": audio}
 
-    def eval_step(self, batch, criterion):
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ) -> None:  # pylint: disable=no-self-use
+        """Log training progress."""
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, ap.sample_rate)
+
+    def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap, batch, outputs):
-        return self.train_log(ap, batch, outputs)
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)

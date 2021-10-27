@@ -22,6 +22,7 @@
     inference
     implementing_a_new_model
     training_a_model
+    finetuning
     configuration
     formatting_your_dataset
     what_makes_a_good_dataset
@@ -45,6 +46,8 @@
 
     models/glow_tts.md
     models/vits.md
+    models/forward_tts.md
+    models/tacotron1-2.md
 
 .. toctree::
     :maxdepth: 2

@@ -1,4 +1,24 @@
 #!/usr/bin/env python
+#                   ,*++++++*,                ,*++++++*,
+#                *++.        .+++          *++.        .++*
+#              *+*     ,++++*   *+*      *+*   ,++++,     *+*
+#             ,+,   .++++++++++* ,++,,,,*+, ,++++++++++.   *+,
+#             *+.  .++++++++++++..++    *+.,++++++++++++.  .+*
+#             .+*   ++++++++++++.*+,    .+*.++++++++++++   *+,
+#              .++   *++++++++* ++,      .++.*++++++++*   ++,
+#               ,+++*.    . .*++,          ,++*.      .*+++*
+#              *+,   .,*++**.                  .**++**.   ,+*
+#             .+*                                          *+,
+#             *+.                                          .+*
+#             *+*              +++        +++              *+*
+#             .+++*.            .          .             *+++.
+#              ,+* *+++*...                       ...*+++* *+,
+#               .++.    .""""+++++++****+++++++"""".     ++.
+#                 ,++.                                .++,
+#                   .++*                            *++.
+#                       *+++,                  ,+++*
+#                           .,*++++::::::++++*,.
+#                                  ``````
 
 import os
 import subprocess
@@ -54,8 +74,8 @@ with open("README.md", "r", encoding="utf-8") as readme_file:
 
 exts = [
     Extension(
-        name="TTS.tts.layers.glow_tts.monotonic_align.core",
-        sources=["TTS/tts/layers/glow_tts/monotonic_align/core.pyx"],
+        name="TTS.tts.utils.monotonic_align.core",
+        sources=["TTS/tts/utils/monotonic_align/core.pyx"],
     )
 ]
 setup(
