@@ -100,7 +100,7 @@ def pick_forwardtts_encoder(encoder_name: str):
 
 
 def pick_forwardtts_decoder(decoder_name: str):
-    if decoder_name  == "position transformer":
+    if decoder_name == "position transformer":
         decoder = "relative_position_transformer"
     elif decoder_name == " residual_bn":
         decoder = "residual_conv_bn"

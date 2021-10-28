@@ -1,6 +1,7 @@
+import zipfile
+
 import requests
 import tqdm
-import zipfile
 
 from TTS.auto_tts.model_hub import TtsModels, VocoderModels
 from TTS.auto_tts.utils import data_loader
@@ -67,9 +68,9 @@ class TtsAutoTrainer(TtsModels):
         self.data_path = data_path
         self.dataset_name = dataset
 
-    def single_speaker_autotts(     # im actually going to change this to autotts_recipes and i'm making a more generic
-                                    # single_speaker_autotts cause it's gonna get too clunky when implenting fine tuning
-                                    # all in the same function. it'll be finished in the next commit
+    def single_speaker_autotts(  # im actually going to change this to autotts_recipes and i'm making a more generic
+        # single_speaker_autotts cause it's gonna get too clunky when implenting fine tuning
+        # all in the same function. it'll be finished in the next commit
         self,
         model_name,
         stats_path=None,
@@ -162,8 +163,9 @@ class TtsAutoTrainer(TtsModels):
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
 
-    def multi_speaker_autotts(self, model_name, speaker_file, glowtts_encoder=None, r=2, forward_attn=True,
-                              location_attn=False):
+    def multi_speaker_autotts(
+        self, model_name, speaker_file, glowtts_encoder=None, r=2, forward_attn=True, location_attn=False
+    ):
         """
 
         Args:
@@ -199,8 +201,9 @@ class TtsAutoTrainer(TtsModels):
             elif model_name == "vits tts":
                 model_config = self._vctk_vits_tts(audio, dataset, speaker_file)
             elif model_name == "tacotron2":
-                model_config = self._multi_speaker_vctk_tacotron2(audio, dataset, speaker_file, r=r, forward_attn=forward_attn,
-                                                                  location_attn=location_attn)
+                model_config = self._multi_speaker_vctk_tacotron2(
+                    audio, dataset, speaker_file, r=r, forward_attn=forward_attn, location_attn=location_attn
+                )
         args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), model_config)
         trainer = Trainer(args, config, output_path, c_logger, tb_logger)
         return trainer
