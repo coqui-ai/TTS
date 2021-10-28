@@ -38,7 +38,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
     You can list the availabe models on terminal as
 
     ```bash
-    tts --list-models
+    tts --list_models
     ```
 
     The command above lists the the models in a naming format as ```<model_type>/<language>/<dataset>/<model_name>```.

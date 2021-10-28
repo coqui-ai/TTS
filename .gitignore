@@ -124,6 +124,15 @@ version.py
 # jupyter dummy files
 core
 
+# ignore local datasets
+recipes/WIP/*
+recipes/ljspeech/LJSpeech-1.1/*
+recipes/vctk/VCTK/*
+VCTK-Corpus-removed-silence/*
+
+# ignore training logs
+trainer_*_log.txt
+
 # files used internally fro dev, test etc.
 tests/outputs/*
 tests/train_outputs/*
@@ -131,12 +140,9 @@ TODO.txt
 .vscode/*
 data/*
 notebooks/data/*
-TTS/tts/layers/glow_tts/monotonic_align/core.c
+TTS/tts/utils/monotonic_align/core.c
 .vscode-upload.json
 temp_build/*
-recipes/WIP/*
-recipes/ljspeech/LJSpeech-1.1/*
-recipes/ljspeech/tacotron2-DDC/LJSpeech-1.1/*
 events.out*
 old_configs/*
 model_importers/*

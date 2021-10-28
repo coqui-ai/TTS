@@ -10,7 +10,7 @@ class AlignTTSConfig(BaseTTSConfig):
     """Defines parameters for AlignTTS model.
     Example:
 
-        >>> from TTS.tts.configs import AlignTTSConfig
+        >>> from TTS.tts.configs.align_tts_config import AlignTTSConfig
         >>> config = AlignTTSConfig()
 
     Args:

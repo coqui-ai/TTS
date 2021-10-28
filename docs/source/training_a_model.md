@@ -1,66 +1,33 @@
 # Training a Model
 
-1. Decide what model you want to use.
+1. Decide the model you want to use.
 
     Each model has a different set of pros and cons that define the run-time efficiency and the voice quality. It is up to you to decide what model servers your needs. Other than referring to the papers, one easy way is to test the 🐸TTS
     community models and see how fast and good each of the models. Or you can start a discussion on our communication channels.
 
-2. Understand the configuration class, its fields and values of your model.
+2. Understand the configuration, its fields and values.
 
     For instance, if you want to train a `Tacotron` model then see the `TacotronConfig` class and make sure you understand it.
 
-3. Go to the recipes and check the recipe of your target model.
+3. Check the recipes.
 
-    Recipes do not promise perfect models but they provide a good start point for `Nervous Beginners`. A recipe script training
-    a `GlowTTS` model on `LJSpeech` dataset looks like below. Let's be creative and call this script `train_glowtts.py`.
+    Recipes are located under `TTS/recipes/`. They do not promise perfect models but they provide a good start point for
+    `Nervous Beginners`.
+    A recipe for `GlowTTS` using `LJSpeech` dataset looks like below. Let's be creative and call this `train_glowtts.py`.
 
-    ```python
-    # train_glowtts.py
-
-    import os
-
-    from TTS.tts.configs import GlowTTSConfig
-    from TTS.tts.configs import BaseDatasetConfig
-    from TTS.trainer import init_training, Trainer, TrainingArgs
-
-
-    output_path = os.path.dirname(os.path.abspath(__file__))
-    dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/"))
-    config = GlowTTSConfig(
-        batch_size=32,
-        eval_batch_size=16,
-        num_loader_workers=4,
-        num_eval_loader_workers=4,
-        run_eval=True,
-        test_delay_epochs=-1,
-        epochs=1000,
-        text_cleaner="english_cleaners",
-        use_phonemes=False,
-        phoneme_language="en-us",
-        phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
-        print_step=25,
-        print_eval=True,
-        mixed_precision=False,
-        output_path=output_path,
-        datasets=[dataset_config]
-    )
-    args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
-    trainer = Trainer(args, config, output_path, c_logger, tb_logger)
-    trainer.fit()
+    ```{literalinclude} ../../recipes/ljspeech/glow_tts/train_glowtts.py
     ```
 
-    You need to change fields of the `BaseDatasetConfig` to match your own dataset and then update `GlowTTSConfig`
+    You need to change fields of the `BaseDatasetConfig` to match your dataset and then update `GlowTTSConfig`
     fields as you need.
 
  4. Run the training.
-
-    You need to run the training script.
 
     ```bash
     $ CUDA_VISIBLE_DEVICES="0" python train_glowtts.py
     ```
 
-    Notice that you set the GPU you want to use on your system by setting `CUDA_VISIBLE_DEVICES` environment variable.
+    Notice that we set the GPU for the training by `CUDA_VISIBLE_DEVICES` environment variable.
     To see available GPUs on your system, you can use `nvidia-smi` command on the terminal.
 
     If you like to run a multi-gpu training using DDP back-end,
@@ -71,7 +38,7 @@
 
     The example above runs a multi-gpu training using GPUs `0, 1, 2`.
 
-    The beginning of a training run looks like below.
+    Beginning of a training log looks like this:
 
     ```console
     > Experiment folder: /your/output_path/-Juni-23-2021_02+52-78899209
@@ -140,11 +107,11 @@
     $ tensorboard --logdir=<path to your training directory>
     ```
 
-6. Check the logs and the Tensorboard and monitor the training.
+6. Monitor the training progress.
 
-    On the terminal and Tensorboard, you can monitor the losses and their changes over time. Also Tensorboard provides certain figures and sample outputs.
+    On the terminal and Tensorboard, you can monitor the progress of your model. Also Tensorboard provides certain figures and sample outputs.
 
-    Note that different models have different metrics, visuals and outputs to be displayed.
+    Note that different models have different metrics, visuals and outputs.
 
     You should also check the [FAQ page](https://github.com/coqui-ai/TTS/wiki/FAQ) for common problems and solutions
     that occur in a training.
@@ -163,3 +130,17 @@
 8. Return to the step 1 and reiterate for training a `vocoder` model.
 
     In the example above, we trained a `GlowTTS` model, but the same workflow applies to all the other 🐸TTS models.
+
+
+# Multi-speaker Training
+
+Training a multi-speaker model is mostly the same as training a single-speaker model.
+You need to specify a couple of configuration parameters, initiate a `SpeakerManager` instance and pass it to the model.
+
+The configuration parameters define whether you want to train the model with a speaker-embedding layer or pre-computed
+d-vectors. For using d-vectors, you first need to compute the d-vectors using the `SpeakerEncoder`.
+
+The same Glow-TTS model above can be trained on a multi-speaker VCTK dataset with the script below.
+
+```{literalinclude} ../../recipes/vctk/glow_tts/train_glow_tts.py
+```

@@ -90,7 +90,7 @@ class VitsConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import VitsConfig
+        >>> from TTS.tts.configs.vits_config import VitsConfig
         >>> config = VitsConfig()
     """
 
@@ -139,3 +139,36 @@ class VitsConfig(BaseTTSConfig):
             "Prior to November 22, 1963.",
         ]
     )
+
+    # multi-speaker settings
+    # use speaker embedding layer
+    num_speakers: int = 0
+    use_speaker_embedding: bool = False
+    speakers_file: str = None
+    speaker_embedding_channels: int = 256
+
+    # use d-vectors
+    use_d_vector_file: bool = False
+    d_vector_file: str = False
+    d_vector_dim: int = None
+
+    def __post_init__(self):
+        # Pass multi-speaker parameters to the model args as `model.init_multispeaker()` looks for it there.
+        if self.num_speakers > 0:
+            self.model_args.num_speakers = self.num_speakers
+
+        # speaker embedding settings
+        if self.use_speaker_embedding:
+            self.model_args.use_speaker_embedding = True
+        if self.speakers_file:
+            self.model_args.speakers_file = self.speakers_file
+        if self.speaker_embedding_channels:
+            self.model_args.speaker_embedding_channels = self.speaker_embedding_channels
+
+        # d-vector settings
+        if self.use_d_vector_file:
+            self.model_args.use_d_vector_file = True
+        if self.d_vector_dim is not None and self.d_vector_dim > 0:
+            self.model_args.d_vector_dim = self.d_vector_dim
+        if self.d_vector_file:
+            self.model_args.d_vector_file = self.d_vector_file

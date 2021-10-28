@@ -6,8 +6,6 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 
-from TTS.utils.audio import AudioProcessor
-
 # pylint: skip-file
 
 
@@ -21,6 +19,14 @@ class BaseModel(nn.Module, ABC):
         - 2D tensors `batch x channels`
         - 1D tensors `batch x 1`
     """
+
+    def __init__(self, config: Coqpit):
+        super().__init__()
+        self._set_model_args(config)
+
+    def _set_model_args(self, config: Coqpit):
+        """Set model arguments from the config. Override this."""
+        pass
 
     @abstractmethod
     def forward(self, input: torch.Tensor, *args, aux_input={}, **kwargs) -> Dict:
@@ -73,7 +79,7 @@ class BaseModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    def train_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int) -> None:
         """Create visualizations and waveform examples for training.
 
         For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
@@ -87,7 +93,7 @@ class BaseModel(nn.Module, ABC):
         Returns:
             Tuple[Dict, np.ndarray]: training plots and output waveform.
         """
-        return None, None
+        pass
 
     @abstractmethod
     def eval_step(self, batch: Dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
@@ -106,9 +112,9 @@ class BaseModel(nn.Module, ABC):
         ...
         return outputs_dict, loss_dict
 
-    def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
+    def eval_log(self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int) -> None:
         """The same as `train_log()`"""
-        return None, None
+        pass
 
     @abstractmethod
     def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False) -> None:

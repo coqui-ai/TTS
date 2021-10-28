@@ -218,7 +218,3 @@ class BaseTTSConfig(BaseTrainingConfig):
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # testing
     test_sentences: List[str] = field(default_factory=lambda: [])
-    # multi-speaker
-    use_speaker_embedding: bool = False
-    use_d_vector_file: bool = False
-    d_vector_dim: int = 0

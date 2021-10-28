@@ -106,7 +106,6 @@ class InvConvNear(nn.Module):
             - x: :math:`[B, C, T]`
             - x_mask: :math:`[B, 1, T]`
         """
-
         b, c, t = x.size()
         assert c % self.num_splits == 0
         if x_mask is None:

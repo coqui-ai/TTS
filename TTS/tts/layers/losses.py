@@ -410,11 +410,6 @@ class TacotronLoss(torch.nn.Module):
             return_dict["postnet_ssim_loss"] = postnet_ssim_loss
 
         return_dict["loss"] = loss
-
-        # check if any loss is NaN
-        for key, loss in return_dict.items():
-            if torch.isnan(loss):
-                raise RuntimeError(f" [!] NaN loss with {key}.")
         return return_dict
 
 
