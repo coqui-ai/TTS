@@ -5,7 +5,6 @@ import zipfile
 from pathlib import Path
 from shutil import copyfile, rmtree
 
-import gdown
 import requests
 
 from TTS.config import load_config
@@ -92,8 +91,6 @@ class ModelManager(object):
 
         Args:
             model_name (str): model name as explained above.
-
-        TODO: support multi-speaker models
         """
         # fetch model info from the dict
         model_type, lang, dataset, model = model_name.split("/")
@@ -109,19 +106,8 @@ class ModelManager(object):
         else:
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
-            output_stats_path = os.path.join(output_path, "scale_stats.npy")
-
-            # download files to the output path
-            if self._check_dict_key(model_item, "github_rls_url"):
-                # download from github release
-                self._download_zip_file(model_item["github_rls_url"], output_path)
-            else:
-                # download from gdrive
-                self._download_gdrive_file(model_item["model_file"], output_model_path)
-                self._download_gdrive_file(model_item["config_file"], output_config_path)
-                if self._check_dict_key(model_item, "stats_file"):
-                    self._download_gdrive_file(model_item["stats_file"], output_stats_path)
-
+            # download from github release
+            self._download_zip_file(model_item["github_rls_url"], output_path)
         # update paths in the config.json
         self._update_paths(output_path, output_config_path)
         return output_model_path, output_config_path, model_item
@@ -167,10 +153,6 @@ class ModelManager(object):
                 # field name points to a top-level field
                 config[field_name] = new_path
             config.save_json(config_path)
-
-    def _download_gdrive_file(self, gdrive_idx, output):
-        """Download files from GDrive using their file ids"""
-        gdown.download(f"{self.url_prefix}{gdrive_idx}", output=output, quiet=False)
 
     @staticmethod
     def _download_zip_file(file_url, output_folder):
