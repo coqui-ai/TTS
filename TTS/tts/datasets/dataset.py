@@ -56,6 +56,10 @@ class TTSDataset(Dataset):
 
             meta_data (list): List of dataset instances.
 
+            compute_f0 (bool): compute f0 if True. Defaults to False.
+
+            f0_cache_path (str): Path to store f0 cache. Defaults to None.
+
             characters (dict): `dict` of custom text characters used for converting texts to sequences.
 
             custom_symbols (list): List of custom symbols used for converting texts to sequences. Models using its own
@@ -106,6 +110,7 @@ class TTSDataset(Dataset):
         self.compute_linear_spec = compute_linear_spec
         self.return_wav = return_wav
         self.compute_f0 = compute_f0
+        self.f0_cache_path = f0_cache_path
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
