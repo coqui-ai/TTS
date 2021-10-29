@@ -261,7 +261,7 @@ class Trainer:
             self.run_get_model(self.config, get_model)
 
         if hasattr(self.model, "init_multilingual"):
-            self.model.init_multilingual(self.config, self.data_train + self.data_eval)
+            self.model.init_multilingual(self.config, self.train_samples + self.eval_samples)
             config = self.config.model_args if hasattr(self.config, "model_args") else self.config
             # save speakers json
             if config.use_language_embedding and self.model.language_manager.num_languages > 1:

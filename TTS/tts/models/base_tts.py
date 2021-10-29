@@ -245,8 +245,13 @@ class BaseTTS(BaseModel):
 
             # setup multi-speaker attributes
             if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
-                speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
-                d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
+                if hasattr(config, "model_args"):
+                    speaker_id_mapping = self.speaker_manager.speaker_ids if config.model_args.use_speaker_embedding else None
+                    d_vector_mapping = self.speaker_manager.d_vectors if config.model_args.use_d_vector_file else None
+                    config.use_d_vector_file = config.model_args.use_d_vector_file
+                else:
+                    speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
+                    d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
             else:
                 speaker_id_mapping = None
                 d_vector_mapping = None

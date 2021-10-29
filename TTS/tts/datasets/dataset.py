@@ -404,8 +404,7 @@ class TTSDataset(Dataset):
 
             # get language ids from language names
             if self.language_id_mapping is not None:
-                language_names = [batch[idx]["language_name"] for idx in ids_sorted_decreasing]
-                language_ids = [self.language_id_mapping[ln] for ln in language_names]
+                language_ids = [self.language_id_mapping[ln] for ln in batch["language_name"]]
             else:
                 language_ids = None
             # get pre-computed d-vectors
