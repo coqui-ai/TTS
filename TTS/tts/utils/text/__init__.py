@@ -5,6 +5,7 @@ import re
 from typing import Dict, List
 
 import gruut
+from gruut_ipa import IPA
 
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.chinese_mandarin.phonemizer import chinese_text_to_phonemes
@@ -32,7 +33,7 @@ PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 GRUUT_TRANS_TABLE = str.maketrans("g", "ɡ")
 
 
-def text2phone(text, language, use_espeak_phonemes=False):
+def text2phone(text, language, use_espeak_phonemes=False, keep_stress=False):
     """Convert graphemes to phonemes.
     Parameters:
             text (str): text to phonemize
@@ -51,36 +52,44 @@ def text2phone(text, language, use_espeak_phonemes=False):
         ph = japanese_text_to_phonemes(text)
         return ph
 
-    if gruut.is_language_supported(language):
-        # Use gruut for phonemization
-        phonemizer_args = {
-            "remove_stress": True,
-            "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
-            "ipa_major_breaks": False,  # don't replace periods with IPA ‖
-        }
+    if not gruut.is_language_supported(language):
+        raise ValueError(f" [!] Language {language} is not supported for phonemization.")
 
-        if use_espeak_phonemes:
-            # Use a lexicon/g2p model train on eSpeak IPA instead of gruut IPA.
-            # This is intended for backwards compatibility with TTS<=v0.0.13
-            # pre-trained models.
-            phonemizer_args["model_prefix"] = "espeak"
+    # Use gruut for phonemization
+    ph_list = []
+    for sentence in gruut.sentences(text, lang=language, espeak=use_espeak_phonemes):
+        for word in sentence:
+            if word.is_break:
+                # Use actual character for break phoneme (e.g., comma)
+                if ph_list:
+                    # Join with previous word
+                    ph_list[-1].append(word.text)
+                else:
+                    # First word is punctuation
+                    ph_list.append([word.text])
+            elif word.phonemes:
+                # Add phonemes for word
+                word_phonemes = []
 
-        ph_list = gruut.text_to_phonemes(
-            text,
-            lang=language,
-            return_format="word_phonemes",
-            phonemizer_args=phonemizer_args,
-        )
+                for word_phoneme in word.phonemes:
+                    if not keep_stress:
+                        # Remove primary/secondary stress
+                        word_phoneme = IPA.without_stress(word_phoneme)
 
-        # Join and re-split to break apart dipthongs, suprasegmentals, etc.
-        ph_words = ["|".join(word_phonemes) for word_phonemes in ph_list]
-        ph = "| ".join(ph_words)
+                    word_phoneme = word_phoneme.translate(GRUUT_TRANS_TABLE)
 
-        # Fix a few phonemes
-        ph = ph.translate(GRUUT_TRANS_TABLE)
-        return ph
+                    if word_phoneme:
+                        # Flatten phonemes
+                        word_phonemes.extend(word_phoneme)
 
-    raise ValueError(f" [!] Language {language} is not supported for phonemization.")
+                if word_phonemes:
+                    ph_list.append(word_phonemes)
+
+    # Join and re-split to break apart dipthongs, suprasegmentals, etc.
+    ph_words = ["|".join(word_phonemes) for word_phonemes in ph_list]
+    ph = "| ".join(ph_words)
+
+    return ph
 
 
 def intersperse(sequence, token):
