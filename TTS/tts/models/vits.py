@@ -375,8 +375,7 @@ class Vits(BaseTTS):
             data (List, optional): Dataset items to infer number of speakers. Defaults to None.
         """
         self.embedded_speaker_dim = 0
-        if hasattr(config, "model_args"):
-            config = config.model_args
+        config = config.model_args
 
         self.num_speakers = config.num_speakers
 
@@ -385,7 +384,7 @@ class Vits(BaseTTS):
 
         if config.use_d_vector_file:
             self._init_d_vector(config)
-        
+
         if config.use_speaker_encoder_as_loss:
             if not config.speaker_encoder_model_path or not config.speaker_encoder_config_path:
                 raise RuntimeError(" [!] To use the speaker encoder loss you need to specify speaker_encoder_model_path and speaker_encoder_config_path !!")
@@ -1005,30 +1004,6 @@ class Vits(BaseTTS):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        aux_inputs = {
-            "speaker_id": None
-            if not self.config.use_speaker_embedding
-            else random.sample(sorted(self.speaker_manager.speaker_ids.values()), 1),
-            "d_vector": None
-            if not self.config.use_d_vector_file
-            else random.samples(sorted(self.speaker_manager.d_vectors.values()), 1),
-            "style_wav": None,
-        }
-        for idx, sen in enumerate(test_sentences):
-            wav, alignment, _, _ = synthesis(
-                self,
-                sen,
-                self.config,
-                "cuda" in str(next(self.parameters()).device),
-                ap,
-                speaker_id=aux_inputs["speaker_id"],
-                d_vector=aux_inputs["d_vector"],
-                style_wav=aux_inputs["style_wav"],
-                enable_eos_bos_chars=self.config.enable_eos_bos_chars,
-                use_griffin_lim=True,
-                do_trim_silence=False,
-            ).values()
-
         for idx, s_info in enumerate(test_sentences):
             try:
                 aux_inputs = self.get_aux_input_from_test_setences(s_info)
@@ -1046,7 +1021,6 @@ class Vits(BaseTTS):
                     use_griffin_lim=True,
                     do_trim_silence=False,
                 ).values()
-
                 test_audios["{}-audio".format(idx)] = wav
                 test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
             except:  # pylint: disable=bare-except
