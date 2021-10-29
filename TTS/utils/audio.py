@@ -687,7 +687,7 @@ class AudioProcessor(object):
         """
         window_length = int(self.sample_rate * min_silence_sec)
         hop_length = int(window_length / 4)
-        threshold = self._db_to_amp(self.trim_db)
+        threshold = self._db_to_amp(-self.trim_db)
         for x in range(hop_length, len(wav) - window_length, hop_length):
             if np.max(wav[x : x + window_length]) < threshold:
                 return x + hop_length
