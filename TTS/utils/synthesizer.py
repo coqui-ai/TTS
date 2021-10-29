@@ -265,7 +265,8 @@ class Synthesizer(object):
             waveform = waveform.squeeze()
 
             # trim silence
-            waveform = trim_silence(waveform, self.ap)
+            if self.tts_config.audio["do_trim_silence"] is True:
+                waveform = trim_silence(waveform, self.ap)
 
             wavs += list(waveform)
             wavs += [0] * 10000
