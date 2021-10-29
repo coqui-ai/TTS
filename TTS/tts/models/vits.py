@@ -376,8 +376,7 @@ class Vits(BaseTTS):
             data (List, optional): Dataset items to infer number of speakers. Defaults to None.
         """
         self.embedded_speaker_dim = 0
-        if hasattr(config, "model_args"):
-            config = config.model_args
+        config = config.model_args
 
         self.num_speakers = config.num_speakers
 
@@ -1033,7 +1032,6 @@ class Vits(BaseTTS):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-
         for idx, s_info in enumerate(test_sentences):
             try:
                 aux_inputs = self.get_aux_input_from_test_setences(s_info)
@@ -1051,7 +1049,6 @@ class Vits(BaseTTS):
                     use_griffin_lim=True,
                     do_trim_silence=False,
                 ).values()
-
                 test_audios["{}-audio".format(idx)] = wav
                 test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
             except:  # pylint: disable=bare-except
