@@ -337,7 +337,7 @@ class Vits(BaseTTS):
     def _init_speaker_embedding(self, config):
         # pylint: disable=attribute-defined-outside-init
         if config.speakers_file is not None:
-            self.speaker_manager = SpeakerManager(speaker_id_file_path=config.speakers_file_path)
+            self.speaker_manager = SpeakerManager(speaker_id_file_path=config.speakers_file)
 
         if self.num_speakers > 0:
             print(" > initialization of speaker-embedding layers.")
