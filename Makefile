@@ -23,6 +23,9 @@ test_aux:	## run aux tests.
 	nosetests tests.aux_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.aux_tests --nologcapture --with-id
 	./run_bash_tests.sh
 
+test_zoo:	## run zoo tests.
+	nosetests tests.zoo_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.zoo_tests --nologcapture --with-id
+
 test_failed:  ## only run tests failed the last time.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --failed
 
