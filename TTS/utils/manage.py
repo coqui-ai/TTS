@@ -29,7 +29,6 @@ class ModelManager(object):
             self.output_prefix = get_user_data_dir("tts")
         else:
             self.output_prefix = os.path.join(output_prefix, "tts")
-        self.url_prefix = "https://drive.google.com/uc?id="
         self.models_dict = None
         if models_file is not None:
             self.read_models_file(models_file)
