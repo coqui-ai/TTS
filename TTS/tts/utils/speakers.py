@@ -7,6 +7,7 @@ import fsspec
 import numpy as np
 import torch
 from coqpit import Coqpit
+from torch.utils.data.sampler import WeightedRandomSampler
 
 from TTS.config import load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_model

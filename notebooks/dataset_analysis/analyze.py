@@ -180,7 +180,7 @@ def plot_phonemes(train_path, cmu_dict_path, save_path):
 
     plt.figure()
     plt.rcParams["figure.figsize"] = (50, 20)
-    barplot = sns.barplot(x, y)
+    barplot = sns.barplot(x=x, y=y)
     if save_path:
         fig = barplot.get_figure()
         fig.savefig(os.path.join(save_path, "phoneme_dist"))
