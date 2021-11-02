@@ -765,7 +765,6 @@ class Vits(BaseTTS):
         sid, g, lid = self._set_cond_input(aux_input)
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths)
         # speaker embedding
         if self.args.use_speaker_embedding and sid is not None and not self.use_d_vector:
             g = self.emb_g(sid).unsqueeze(-1)
