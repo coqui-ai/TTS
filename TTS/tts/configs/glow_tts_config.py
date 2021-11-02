@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
 
@@ -9,7 +10,7 @@ class GlowTTSConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import GlowTTSConfig
+        >>> from TTS.tts.configs.glow_tts_config import GlowTTSConfig
         >>> config = GlowTTSConfig()
 
     Args:
@@ -167,3 +168,14 @@ class GlowTTSConfig(BaseTTSConfig):
     min_seq_len: int = 3
     max_seq_len: int = 500
     r: int = 1  # DO NOT CHANGE - TODO: make this immutable once coqpit implements it.
+
+    # testing
+    test_sentences: List[str] = field(
+        default_factory=lambda: [
+            "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+            "Be a voice, not an echo.",
+            "I'm sorry Dave. I'm afraid I can't do that.",
+            "This cake is great. It's so delicious and moist.",
+            "Prior to November 22, 1963.",
+        ]
+    )

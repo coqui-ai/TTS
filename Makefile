@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: test system-deps dev-deps deps style lint install help
+.PHONY: test system-deps dev-deps deps style lint install help docs
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -12,6 +12,15 @@ test_all:	## run tests and don't stop on an error.
 
 test:	## run tests.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
+
+test_vocoder:	## run vocoder tests.
+	nosetests tests.vocoder_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.vocoder_tests --nologcapture --with-id
+
+test_tts:	## run tts tests.
+	nosetests tests.tts_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.tts_tests --nologcapture --with-id
+
+test_aux:	## run aux tests.
+	nosetests tests.aux_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.aux_tests --nologcapture --with-id
 	./run_bash_tests.sh
 
 test_failed:  ## only run tests failed the last time.
@@ -45,3 +54,6 @@ deps:	## install 🐸 requirements.
 
 install:	## install 🐸 TTS for development.
 	pip install -e .[all]
+
+docs:	## build the docs
+	$(MAKE) -C docs clean && $(MAKE) -C docs html

@@ -9,12 +9,11 @@ from torch.nn.utils import weight_norm
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from TTS.model import BaseModel
-from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.datasets import WaveGradDataset
 from TTS.vocoder.layers.wavegrad import Conv1d, DBlock, FiLM, UBlock
+from TTS.vocoder.models.base_vocoder import BaseVocoder
 from TTS.vocoder.utils.generic_utils import plot_results
 
 
@@ -33,7 +32,7 @@ class WavegradArgs(Coqpit):
     )
 
 
-class Wavegrad(BaseModel):
+class Wavegrad(BaseVocoder):
     """🐸 🌊 WaveGrad 🌊 model.
     Paper - https://arxiv.org/abs/2009.00713
 
@@ -58,7 +57,7 @@ class Wavegrad(BaseModel):
 
     # pylint: disable=dangerous-default-value
     def __init__(self, config: Coqpit):
-        super().__init__()
+        super().__init__(config)
         self.config = config
         self.use_weight_norm = config.model_params.use_weight_norm
         self.hop_len = np.prod(config.model_params.upsample_factors)
@@ -257,18 +256,23 @@ class Wavegrad(BaseModel):
         loss = criterion(noise, noise_hat)
         return {"model_output": noise_hat}, {"loss": loss}
 
-    def train_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
-        return None, None
+    def train_log(  # pylint: disable=no-self-use
+        self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
+    ) -> Tuple[Dict, np.ndarray]:
+        pass
 
     @torch.no_grad()
     def eval_step(self, batch: Dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, np.ndarray]:
-        return None, None
+    def eval_log(  # pylint: disable=no-self-use
+        self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
+    ) -> None:
+        pass
 
-    def test_run(self, ap: AudioProcessor, samples: List[Dict], ouputs: Dict):  # pylint: disable=unused-argument
+    def test_run(self, assets: Dict, samples: List[Dict], outputs: Dict):  # pylint: disable=unused-argument
         # setup noise schedule and inference
+        ap = assets["audio_processor"]
         noise_schedule = self.config["test_noise_schedule"]
         betas = np.linspace(noise_schedule["min_val"], noise_schedule["max_val"], noise_schedule["num_steps"])
         self.compute_noise_level(betas)
@@ -291,7 +295,8 @@ class Wavegrad(BaseModel):
     def get_scheduler(self, optimizer):
         return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
 
-    def get_criterion(self):
+    @staticmethod
+    def get_criterion():
         return torch.nn.L1Loss()
 
     @staticmethod
@@ -302,8 +307,9 @@ class Wavegrad(BaseModel):
         return {"input": m, "waveform": y}
 
     def get_data_loader(
-        self, config: Coqpit, ap: AudioProcessor, is_eval: True, data_items: List, verbose: bool, num_gpus: int
+        self, config: Coqpit, assets: Dict, is_eval: True, data_items: List, verbose: bool, num_gpus: int
     ):
+        ap = assets["audio_processor"]
         dataset = WaveGradDataset(
             ap=ap,
             items=data_items,

@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-from TTS.tts.configs import Tacotron2Config
+from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.tf.models.tacotron2 import Tacotron2
 from TTS.tts.tf.utils.tflite import convert_tacotron2_to_tflite, load_tflite_model
 
@@ -38,6 +38,7 @@ class TacotronTFTrainTest(unittest.TestCase):
         mel_spec = tf.convert_to_tensor(mel_spec.cpu().numpy())
         return chars_seq, chars_seq_lengths, mel_spec, mel_postnet_spec, mel_lengths, stop_targets, speaker_ids
 
+    @unittest.skipIf(use_cuda, " [!] Skip Test: TfLite conversion does not work on GPU.")
     def test_train_step(self):
         """test forward pass"""
         (
@@ -70,6 +71,7 @@ class TacotronTFTrainTest(unittest.TestCase):
         # inference pass
         output = model(chars_seq, training=False)
 
+    @unittest.skipIf(use_cuda, " [!] Skip Test: TfLite conversion does not work on GPU.")
     def test_forward_attention(
         self,
     ):
@@ -103,6 +105,7 @@ class TacotronTFTrainTest(unittest.TestCase):
         # inference pass
         output = model(chars_seq, training=False)
 
+    @unittest.skipIf(use_cuda, " [!] Skip Test: TfLite conversion does not work on GPU.")
     def test_tflite_conversion(
         self,
     ):  # pylint:disable=no-self-use

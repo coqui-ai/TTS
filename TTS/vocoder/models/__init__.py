@@ -11,7 +11,6 @@ def to_camel(text):
 
 def setup_model(config: Coqpit):
     """Load models directly from configuration."""
-    print(" > Vocoder Model: {}".format(config.model))
     if "discriminator_model" in config and "generator_model" in config:
         MyModel = importlib.import_module("TTS.vocoder.models.gan")
         MyModel = getattr(MyModel, "GAN")
@@ -28,6 +27,7 @@ def setup_model(config: Coqpit):
                 MyModel = getattr(MyModel, to_camel(config.model))
             except ModuleNotFoundError as e:
                 raise ValueError(f"Model {config.model} not exist!") from e
+    print(" > Vocoder Model: {}".format(config.model))
     model = MyModel(config)
     return model
 

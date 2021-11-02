@@ -1,6 +1,6 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 # adapted from https://github.com/cvqluu/GE2E-Loss

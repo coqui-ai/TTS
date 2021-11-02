@@ -19,7 +19,7 @@ def tweb(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "tweb"
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             cols = line.split("\t")
             wav_file = os.path.join(root_path, cols[0] + ".wav")
@@ -33,7 +33,7 @@ def mozilla(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "mozilla"
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             cols = line.split("|")
             wav_file = cols[1].strip()
@@ -86,7 +86,7 @@ def mailabs(root_path, meta_files=None, ununsed_speakers=None):
             if speaker_name in ununsed_speakers:
                 continue
         print(" | > {}".format(csv_file))
-        with open(txt_file, "r") as ttf:
+        with open(txt_file, "r", encoding="utf-8") as ttf:
             for line in ttf:
                 cols = line.split("|")
                 if not meta_files:
@@ -112,7 +112,7 @@ def ljspeech(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
         for line in ttf:
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
-            text = cols[1]
+            text = cols[2]
             items.append([text, wav_file, speaker_name])
     return items
 
@@ -126,7 +126,7 @@ def ljspeech_test(root_path, meta_file, **kwargs):  # pylint: disable=unused-arg
         for idx, line in enumerate(ttf):
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
-            text = cols[1]
+            text = cols[2]
             items.append([text, wav_file, f"ljspeech-{idx}"])
     return items
 
@@ -167,8 +167,8 @@ def css10(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the CSS10 dataset file to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
-    speaker_name = "css10"
-    with open(txt_file, "r") as ttf:
+    speaker_name = "ljspeech"
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             cols = line.split("|")
             wav_file = os.path.join(root_path, cols[0])
@@ -182,7 +182,7 @@ def nancy(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "nancy"
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             utt_id = line.split()[1]
             text = line[line.find('"') + 1 : line.rfind('"') - 1]
@@ -195,7 +195,7 @@ def common_voice(root_path, meta_file, ununsed_speakers=None):
     """Normalize the common voice meta data file to TTS format."""
     txt_file = os.path.join(root_path, meta_file)
     items = []
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             if line.startswith("client_id"):
                 continue
@@ -222,7 +222,7 @@ def libri_tts(root_path, meta_files=None, ununsed_speakers=None):
 
     for meta_file in meta_files:
         _meta_file = os.path.basename(meta_file).split(".")[0]
-        with open(meta_file, "r") as ttf:
+        with open(meta_file, "r", encoding="utf-8") as ttf:
             for line in ttf:
                 cols = line.split("\t")
                 file_name = cols[0]
@@ -263,7 +263,7 @@ def brspeech(root_path, meta_file, ununsed_speakers=None):
     """BRSpeech 3.0 beta"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             if line.startswith("wav_filename"):
                 continue
@@ -290,7 +290,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
         if isinstance(ununsed_speakers, list):
             if speaker_id in ununsed_speakers:
                 continue
-        with open(meta_file) as file_text:
+        with open(meta_file, "r", encoding="utf-8") as file_text:
             text = file_text.readlines()[0]
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
         items.append([text, wav_file, "VCTK_" + speaker_id])
@@ -318,7 +318,7 @@ def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=No
 def mls(root_path, meta_files=None, ununsed_speakers=None):
     """http://www.openslr.org/94/"""
     items = []
-    with open(os.path.join(root_path, meta_files), "r") as meta:
+    with open(os.path.join(root_path, meta_files), "r", encoding="utf-8") as meta:
         for line in meta:
             file, text = line.split("\t")
             text = text[:-1]
@@ -335,14 +335,14 @@ def mls(root_path, meta_files=None, ununsed_speakers=None):
 # ======================================== VOX CELEB ===========================================
 def voxceleb2(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
     """
-    :param meta_file   Used only for consistency with load_meta_data api
+    :param meta_file   Used only for consistency with load_tts_samples api
     """
     return _voxcel_x(root_path, meta_file, voxcel_idx="2")
 
 
 def voxceleb1(root_path, meta_file=None, **kwargs):  # pylint: disable=unused-argument
     """
-    :param meta_file   Used only for consistency with load_meta_data api
+    :param meta_file   Used only for consistency with load_tts_samples api
     """
     return _voxcel_x(root_path, meta_file, voxcel_idx="1")
 
@@ -356,7 +356,7 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
 
     # if not exists meta file, crawl recursively for 'wav' files
     if meta_file is not None:
-        with open(str(meta_file), "r") as f:
+        with open(str(meta_file), "r", encoding="utf-8") as f:
             return [x.strip().split("|") for x in f.readlines()]
 
     elif not cache_to.exists():
@@ -373,12 +373,12 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
             text = None  # VoxCel does not provide transciptions, and they are not needed for training the SE
             meta_data.append(f"{text}|{path}|voxcel{voxcel_idx}_{speaker_id}\n")
             cnt += 1
-        with open(str(cache_to), "w") as f:
+        with open(str(cache_to), "w", encoding="utf-8") as f:
             f.write("".join(meta_data))
         if cnt < expected_count:
             raise ValueError(f"Found too few instances for Voxceleb. Should be around {expected_count}, is: {cnt}")
 
-    with open(str(cache_to), "r") as f:
+    with open(str(cache_to), "r", encoding="utf-8") as f:
         return [x.strip().split("|") for x in f.readlines()]
 
 
@@ -394,7 +394,7 @@ def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:  # pylin
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "baker"
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             wav_name, text = line.rstrip("\n").split("|")
             wav_path = os.path.join(root_path, "clips_22", wav_name)
@@ -407,7 +407,7 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "kokoro"
-    with open(txt_file, "r") as ttf:
+    with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")

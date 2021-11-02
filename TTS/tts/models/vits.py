@@ -1,4 +1,5 @@
 import math
+import random
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Dict, List, Tuple
@@ -11,42 +12,18 @@ from torch.cuda.amp.autocast_mode import autocast
 from torch.nn import functional as F
 
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.glow_tts.monotonic_align import generate_path, maximum_path
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
-from TTS.tts.utils.data import sequence_mask
-from TTS.tts.utils.speakers import get_speaker_manager
+from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.languages import get_language_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
-from TTS.utils.audio import AudioProcessor
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-
-
-def segment(x: torch.tensor, segment_indices: torch.tensor, segment_size=4):
-    """Segment each sample in a batch based on the provided segment indices"""
-    segments = torch.zeros_like(x[:, :, :segment_size])
-    for i in range(x.size(0)):
-        index_start = segment_indices[i]
-        index_end = index_start + segment_size
-        segments[i] = x[i, :, index_start:index_end]
-    return segments
-
-
-def rand_segment(x: torch.tensor, x_lengths: torch.tensor = None, segment_size=4):
-    """Create random segments based on the input lengths."""
-    B, _, T = x.size()
-    if x_lengths is None:
-        x_lengths = T
-    max_idxs = x_lengths - segment_size + 1
-    assert all(max_idxs > 0), " [!] At least one sample is shorter than the segment size."
-    ids_str = (torch.rand([B]).type_as(x) * max_idxs).long()
-    ret = segment(x, ids_str, segment_size)
-    return ret, ids_str
 
 
 @dataclass
@@ -122,7 +99,7 @@ class VitsArgs(Coqpit):
         upsample_kernel_sizes_decoder (List[int]):
             Kernel sizes for each upsampling layer of the decoder network. Defaults to `[16, 16, 4, 4]`.
 
-        use_sdp (int):
+        use_sdp (bool):
             Use Stochastic Duration Predictor. Defaults to True.
 
         noise_scale (float):
@@ -131,7 +108,7 @@ class VitsArgs(Coqpit):
         inference_noise_scale (float):
             Noise scale used for the sample noise tensor in inference. Defaults to 0.667.
 
-        length_scale (int):
+        length_scale (float):
             Scale factor for the predicted duration values. Smaller values result faster speech. Defaults to 1.
 
         noise_scale_dp (float):
@@ -214,7 +191,7 @@ class VitsArgs(Coqpit):
     kernel_size_flow: int = 5
     dilation_rate_flow: int = 1
     num_layers_flow: int = 4
-    resblock_type_decoder: int = "1"
+    resblock_type_decoder: str = "1"
     resblock_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [3, 7, 11])
     resblock_dilation_sizes_decoder: List[List[int]] = field(default_factory=lambda: [[1, 3, 5], [1, 3, 5], [1, 3, 5]])
     upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
@@ -223,7 +200,7 @@ class VitsArgs(Coqpit):
     use_sdp: bool = True
     noise_scale: float = 1.0
     inference_noise_scale: float = 0.667
-    length_scale: int = 1
+    length_scale: float = 1
     noise_scale_dp: float = 1.0
     inference_noise_scale_dp: float = 1.0
     max_inference_len: int = None
@@ -235,6 +212,7 @@ class VitsArgs(Coqpit):
     d_vector_file: str = None
     speaker_embedding_channels: int = 256
     use_d_vector_file: bool = False
+    d_vector_file: str = None
     d_vector_dim: int = 0
     detach_dp_input: bool = True
     use_language_embedding: bool = False
@@ -274,7 +252,7 @@ class Vits(BaseTTS):
     Check :class:`TTS.tts.configs.vits_config.VitsConfig` for class arguments.
 
     Examples:
-        >>> from TTS.tts.configs import VitsConfig
+        >>> from TTS.tts.configs.vits_config import VitsConfig
         >>> from TTS.tts.models.vits import Vits
         >>> config = VitsConfig()
         >>> model = Vits(config)
@@ -282,12 +260,13 @@ class Vits(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
 
-        super().__init__()
+        super().__init__(config)
 
         self.END2END = True
         self.audio_config = config["audio"]
+        self.speaker_manager = speaker_manager
         if config.__class__.__name__ == "VitsConfig":
             # loading from VitsConfig
             if "num_chars" not in config:
@@ -387,36 +366,24 @@ class Vits(BaseTTS):
         if args.init_discriminator:
             self.disc = VitsDiscriminator(use_spectral_norm=args.use_spectral_norm_disriminator)
 
-    def init_multispeaker(self, config: Coqpit, data: List = None):
+    def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
         or with external `d_vectors` computed from a speaker encoder model.
-
-        If you need a different behaviour, override this function for your model.
 
         Args:
             config (Coqpit): Model configuration.
             data (List, optional): Dataset items to infer number of speakers. Defaults to None.
         """
-        if hasattr(config, "model_args"):
-            config = config.model_args
         self.embedded_speaker_dim = 0
-        # init speaker manager
-        self.speaker_manager = get_speaker_manager(config, data=data)
-        if config.num_speakers > 0 and self.speaker_manager.num_speakers == 0:
-            self.num_speakers = config.num_speakers
-        else:
-            self.num_speakers = self.speaker_manager.num_speakers
+        config = config.model_args
 
-        # init speaker embedding layer
-        if config.use_speaker_embedding and not config.use_d_vector_file:
-            self.embedded_speaker_dim = config.speaker_embedding_channels
-            self.emb_g = nn.Embedding(self.num_speakers, config.speaker_embedding_channels)
+        self.num_speakers = config.num_speakers
 
-        self.use_d_vector = config.use_d_vector_file
+        if config.use_speaker_embedding:
+            self._init_speaker_embedding(config)
 
-        # init d-vector usage
         if config.use_d_vector_file:
-            self.embedded_speaker_dim = config.d_vector_dim
+            self._init_d_vector(config)
 
         if config.use_speaker_encoder_as_loss:
             if not config.speaker_encoder_model_path or not config.speaker_encoder_config_path:
@@ -435,6 +402,23 @@ class Vits(BaseTTS):
         else:
             self.audio_transform = None
             self.speaker_encoder = None
+
+    def _init_speaker_embedding(self, config):
+        # pylint: disable=attribute-defined-outside-init
+        if config.speakers_file is not None:
+            self.speaker_manager = SpeakerManager(speaker_id_file_path=config.speakers_file_path)
+
+        if self.num_speakers > 0:
+            print(" > initialization of speaker-embedding layers.")
+            self.embedded_speaker_dim = config.speaker_embedding_channels
+            self.emb_g = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
+
+    def _init_d_vector(self, config):
+        # pylint: disable=attribute-defined-outside-init
+        if hasattr(self, "emb_g"):
+            raise ValueError("[!] Speaker embedding layer already initialized before d_vector settings.")
+        self.speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
+        self.embedded_speaker_dim = config.d_vector_dim
 
     def init_multilingual(self, config: Coqpit, data: List = None):
         """Initialize multilingual modules of a model.
@@ -481,6 +465,51 @@ class Vits(BaseTTS):
                 lid = lid.unsqueeze_(0)
 
         return sid, g, lid
+
+    def get_aux_input(self, aux_input: Dict):
+        sid, g, lid = self._set_cond_input(aux_input)
+        return {"speaker_id": sid, "style_wav": None, "d_vector": g, "language_id": lid}
+
+    def get_aux_input_from_test_setences(self, sentence_info):
+        if hasattr(self.config, "model_args"):
+            config = self.config.model_args
+        else:
+            config = self.config
+
+        # extract speaker and language info
+        text, speaker_name, style_wav, language_name = None, None, None, None
+
+        if isinstance(sentence_info, list):
+            if len(sentence_info) == 1:
+                text = sentence_info[0]
+            elif len(sentence_info) == 2:
+                text, speaker_name = sentence_info
+            elif len(sentence_info) == 3:
+                text, speaker_name, style_wav = sentence_info
+            elif len(sentence_info) == 4:
+                text, speaker_name, style_wav, language_name = sentence_info
+        else:
+            text = sentence_info
+
+        # get speaker  id/d_vector 
+        speaker_id, d_vector, language_id = None, None, None
+        if hasattr(self, "speaker_manager"):
+            if config.use_d_vector_file:
+                if speaker_name is None:
+                    d_vector = self.speaker_manager.get_random_d_vector()
+                else:
+                    d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
+            elif config.use_speaker_embedding:
+                if speaker_name is None:
+                    speaker_id = self.speaker_manager.get_random_speaker_id()
+                else:
+                    speaker_id = self.speaker_manager.speaker_ids[speaker_name]
+
+        # get language id
+        if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
+            language_id = self.language_manager.language_id_mapping[language_name]
+
+        return {"text": text, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector, "language_id": language_id}
 
     def forward(
         self,
@@ -568,7 +597,7 @@ class Vits(BaseTTS):
         logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
 
         # select a random feature segment for the waveform decoder
-        z_slice, slice_ids = rand_segment(z, y_lengths, self.spec_segment_size)
+        z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size)
         o = self.waveform_decoder(z_slice, g=g)
 
         wav_seg = segment(
@@ -916,22 +945,7 @@ class Vits(BaseTTS):
                 )
         return outputs, loss_dict
 
-    def train_log(
-        self, ap: AudioProcessor, batch: Dict, outputs: List, name_prefix="train"
-    ):  # pylint: disable=no-self-use
-        """Create visualizations and waveform examples.
-
-        For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
-        be projected onto Tensorboard.
-
-        Args:
-            ap (AudioProcessor): audio processor used at training.
-            batch (Dict): Model inputs used at the previous training step.
-            outputs (Dict): Model outputs generated at the previoud training step.
-
-        Returns:
-            Tuple[Dict, np.ndarray]: training plots and output waveform.
-        """
+    def _log(self, ap, batch, outputs, name_prefix="train"):  # pylint: disable=unused-argument,no-self-use
         y_hat = outputs[0]["model_outputs"]
         y = outputs[0]["waveform_seg"]
         figures = plot_results(y_hat, y, ap, name_prefix)
@@ -949,12 +963,32 @@ class Vits(BaseTTS):
 
         return figures, audios
 
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ):  # pylint: disable=no-self-use
+        """Create visualizations and waveform examples.
+
+        For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
+        be projected onto Tensorboard.
+
+        Args:
+            ap (AudioProcessor): audio processor used at training.
+            batch (Dict): Model inputs used at the previous training step.
+            outputs (Dict): Model outputs generated at the previoud training step.
+
+        Returns:
+            Tuple[Dict, np.ndarray]: training plots and output waveform.
+        """
+        ap = assets["audio_processor"]
+        self._log(ap, batch, outputs, "train")
+
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         return self.train_step(batch, criterion, optimizer_idx)
 
-    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
-        return self.train_log(ap, batch, outputs, "eval")
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        return self._log(ap, batch, outputs, "eval")
 
     @torch.no_grad()
     def test_run(self, ap) -> Tuple[Dict, Dict]:
@@ -969,7 +1003,6 @@ class Vits(BaseTTS):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-
         for idx, s_info in enumerate(test_sentences):
             try:
                 aux_inputs = self.get_aux_input_from_test_setences(s_info)
@@ -987,7 +1020,6 @@ class Vits(BaseTTS):
                     use_griffin_lim=True,
                     do_trim_silence=False,
                 ).values()
-
                 test_audios["{}-audio".format(idx)] = wav
                 test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
             except:  # pylint: disable=bare-except
@@ -1015,7 +1047,6 @@ class Vits(BaseTTS):
         # add the language embedding layer
         if hasattr(self, "emb_l") and self.args.use_language_embedding:
             gen_parameters = chain(gen_parameters, self.emb_l.parameters())
-
         optimizer0 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )

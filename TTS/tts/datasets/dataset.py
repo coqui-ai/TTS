@@ -22,6 +22,8 @@ class TTSDataset(Dataset):
         compute_linear_spec: bool,
         ap: AudioProcessor,
         meta_data: List[List],
+        compute_f0: bool = False,
+        f0_cache_path: str = None,
         characters: Dict = None,
         custom_symbols: List = None,
         add_blank: bool = False,
@@ -41,8 +43,7 @@ class TTSDataset(Dataset):
     ):
         """Generic 📂 data loader for `tts` models. It is configurable for different outputs and needs.
 
-        If you need something different, you can either override or create a new class as the dataset is
-        initialized by the model.
+        If you need something different, you can inherit and override.
 
         Args:
             outputs_per_step (int): Number of time frames predicted per step.
@@ -54,6 +55,10 @@ class TTSDataset(Dataset):
             ap (TTS.tts.utils.AudioProcessor): Audio processor object.
 
             meta_data (list): List of dataset instances.
+
+            compute_f0 (bool): compute f0 if True. Defaults to False.
+
+            f0_cache_path (str): Path to store f0 cache. Defaults to None.
 
             characters (dict): `dict` of custom text characters used for converting texts to sequences.
 
@@ -70,7 +75,7 @@ class TTSDataset(Dataset):
                 batch. Set 0 to disable. Defaults to 0.
 
             min_seq_len (int): Minimum input sequence length to be processed
-                by the loader. Filter out input sequences that are shorter than this. Some models have a
+                by sort_inputs`. Filter out input sequences that are shorter than this. Some models have a
                 minimum input length due to its architecture. Defaults to 0.
 
             max_seq_len (int): Maximum input sequence length. Filter out input sequences that are longer than this.
@@ -79,8 +84,8 @@ class TTSDataset(Dataset):
 
             use_phonemes (bool): If true, input text converted to phonemes. Defaults to false.
 
-            phoneme_cache_path (str): Path to cache phoneme features. It writes computed phonemes to files to use in
-                the coming iterations. Defaults to None.
+            phoneme_cache_path (str): Path to cache computed phonemes. It writes phonemes of each sample to a
+                separate file. Defaults to None.
 
             phoneme_language (str): One the languages from supported by the phonemizer interface. Defaults to `en-us`.
 
@@ -104,6 +109,8 @@ class TTSDataset(Dataset):
         self.cleaners = text_cleaner
         self.compute_linear_spec = compute_linear_spec
         self.return_wav = return_wav
+        self.compute_f0 = compute_f0
+        self.f0_cache_path = f0_cache_path
         self.min_seq_len = min_seq_len
         self.max_seq_len = max_seq_len
         self.ap = ap
@@ -118,12 +125,15 @@ class TTSDataset(Dataset):
         self.d_vector_mapping = d_vector_mapping
         self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
-
         self.verbose = verbose
         self.input_seq_computed = False
         self.rescue_item_idx = 1
+        self.pitch_computed = False
+
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
+        if compute_f0:
+            self.pitch_extractor = PitchExtractor(self.items, verbose=verbose)
         if self.verbose:
             print("\n > DataLoader initialization")
             print(" | > Use phonemes: {}".format(self.use_phonemes))
@@ -239,10 +249,16 @@ class TTSDataset(Dataset):
             # TODO: find a better fix
             return self.load_data(self.rescue_item_idx)
 
+        pitch = None
+        if self.compute_f0:
+            pitch = self.pitch_extractor.load_or_compute_pitch(self.ap, wav_file, self.f0_cache_path)
+            pitch = self.pitch_extractor.normalize_pitch(pitch.astype(np.float32))
+
         sample = {
             "raw_text": raw_text,
             "text": text,
             "wav": wav,
+            "pitch": pitch,
             "attn": attn,
             "item_idx": self.items[idx][1],
             "speaker_name": speaker_name,
@@ -260,8 +276,8 @@ class TTSDataset(Dataset):
         return phonemes
 
     def compute_input_seq(self, num_workers=0):
-        """compute input sequences separately. Call it before
-        passing dataset to data loader."""
+        """Compute the input sequences with multi-processing.
+        Call it before passing dataset to the data loader to cache the input sequences for faster data loading."""
         if not self.use_phonemes:
             if self.verbose:
                 print(" | > Computing input sequences ...")
@@ -306,9 +322,21 @@ class TTSDataset(Dataset):
                     for idx, p in enumerate(phonemes):
                         self.items[idx][0] = p
 
-    def sort_items(self):
-        r"""Sort instances based on text length in ascending order"""
-        lengths = np.array([len(ins[0]) for ins in self.items])
+    def sort_and_filter_items(self, by_audio_len=False):
+        r"""Sort `items` based on text length or audio length in ascending order. Filter out samples out or the length
+        range.
+
+        Args:
+            by_audio_len (bool): if True, sort by audio length else by text length.
+        """
+        # compute the target sequence length
+        if by_audio_len:
+            lengths = []
+            for item in self.items:
+                lengths.append(os.path.getsize(item[1]) / 16 * 8)  # assuming 16bit audio
+            lengths = np.array(lengths)
+        else:
+            lengths = np.array([len(ins[0]) for ins in self.items])
 
         idxs = np.argsort(lengths)
         new_items = []
@@ -346,11 +374,23 @@ class TTSDataset(Dataset):
     def __getitem__(self, idx):
         return self.load_data(idx)
 
+    @staticmethod
+    def _sort_batch(batch, text_lengths):
+        """Sort the batch by the input text length for RNN efficiency.
+
+        Args:
+            batch (Dict): Batch returned by `__getitem__`.
+            text_lengths (List[int]): Lengths of the input character sequences.
+        """
+        text_lengths, ids_sorted_decreasing = torch.sort(torch.LongTensor(text_lengths), dim=0, descending=True)
+        batch = [batch[idx] for idx in ids_sorted_decreasing]
+        return batch, text_lengths, ids_sorted_decreasing
+
     def collate_fn(self, batch):
         r"""
         Perform preprocessing and create a final data batch:
         1. Sort batch instances by text-length
-        2. Convert Audio signal to Spectrograms.
+        2. Convert Audio signal to features.
         3. PAD sequences wrt r.
         4. Load to Torch.
         """
@@ -358,37 +398,33 @@ class TTSDataset(Dataset):
         # Puts each data field into a tensor with outer dimension batch size
         if isinstance(batch[0], collections.abc.Mapping):
 
-            text_lenghts = np.array([len(d["text"]) for d in batch])
+            text_lengths = np.array([len(d["text"]) for d in batch])
 
             # sort items with text input length for RNN efficiency
-            text_lenghts, ids_sorted_decreasing = torch.sort(torch.LongTensor(text_lenghts), dim=0, descending=True)
+            batch, text_lengths, ids_sorted_decreasing = self._sort_batch(batch, text_lengths)
 
-            wav = [batch[idx]["wav"] for idx in ids_sorted_decreasing]
-            item_idxs = [batch[idx]["item_idx"] for idx in ids_sorted_decreasing]
-            text = [batch[idx]["text"] for idx in ids_sorted_decreasing]
-            raw_text = [batch[idx]["raw_text"] for idx in ids_sorted_decreasing]
-
-            speaker_names = [batch[idx]["speaker_name"] for idx in ids_sorted_decreasing]
+            # convert list of dicts to dict of lists
+            batch = {k: [dic[k] for dic in batch] for k in batch[0]}
 
             # get language ids from language names
             if self.language_id_mapping is not None:
-                language_names = [batch[idx]["language_name"] for idx in ids_sorted_decreasing]
-                language_ids = [self.language_id_mapping[ln] for ln in language_names]
+                language_ids = [self.language_id_mapping[ln] for ln in batch["language_name"]]
             else:
                 language_ids = None
             # get pre-computed d-vectors
             if self.d_vector_mapping is not None:
-                wav_files_names = [batch[idx]["wav_file_name"] for idx in ids_sorted_decreasing]
+                wav_files_names = [batch["wav_file_name"][idx] for idx in ids_sorted_decreasing]
                 d_vectors = [self.d_vector_mapping[w]["embedding"] for w in wav_files_names]
             else:
                 d_vectors = None
+
             # get numerical speaker ids from speaker names
             if self.speaker_id_mapping:
-                speaker_ids = [self.speaker_id_mapping[sn] for sn in speaker_names]
+                speaker_ids = [self.speaker_id_mapping[sn] for sn in batch["speaker_name"]]
             else:
                 speaker_ids = None
             # compute features
-            mel = [self.ap.melspectrogram(w).astype("float32") for w in wav]
+            mel = [self.ap.melspectrogram(w).astype("float32") for w in batch["wav"]]
 
             mel_lengths = [m.shape[1] for m in mel]
 
@@ -407,7 +443,7 @@ class TTSDataset(Dataset):
             stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
 
             # PAD sequences with longest instance in the batch
-            text = prepare_data(text).astype(np.int32)
+            text = prepare_data(batch["text"]).astype(np.int32)
 
             # PAD features with longest instance
             mel = prepare_tensor(mel, self.outputs_per_step)
@@ -416,7 +452,7 @@ class TTSDataset(Dataset):
             mel = mel.transpose(0, 2, 1)
 
             # convert things to pytorch
-            text_lenghts = torch.LongTensor(text_lenghts)
+            text_lengths = torch.LongTensor(text_lengths)
             text = torch.LongTensor(text)
             mel = torch.FloatTensor(mel).contiguous()
             mel_lengths = torch.LongTensor(mel_lengths)
@@ -433,7 +469,7 @@ class TTSDataset(Dataset):
 
             # compute linear spectrogram
             if self.compute_linear_spec:
-                linear = [self.ap.spectrogram(w).astype("float32") for w in wav]
+                linear = [self.ap.spectrogram(w).astype("float32") for w in batch["wav"]]
                 linear = prepare_tensor(linear, self.outputs_per_step)
                 linear = linear.transpose(0, 2, 1)
                 assert mel.shape[1] == linear.shape[1]
@@ -444,23 +480,33 @@ class TTSDataset(Dataset):
             # format waveforms
             wav_padded = None
             if self.return_wav:
-                wav_lengths = [w.shape[0] for w in wav]
+                wav_lengths = [w.shape[0] for w in batch["wav"]]
                 max_wav_len = max(mel_lengths_adjusted) * self.ap.hop_length
                 wav_lengths = torch.LongTensor(wav_lengths)
-                wav_padded = torch.zeros(len(batch), 1, max_wav_len)
-                for i, w in enumerate(wav):
+                wav_padded = torch.zeros(len(batch["wav"]), 1, max_wav_len)
+                for i, w in enumerate(batch["wav"]):
                     mel_length = mel_lengths_adjusted[i]
                     w = np.pad(w, (0, self.ap.hop_length * self.outputs_per_step), mode="edge")
                     w = w[: mel_length * self.ap.hop_length]
                     wav_padded[i, :, : w.shape[0]] = torch.from_numpy(w)
                 wav_padded.transpose_(1, 2)
 
+            # compute f0
+            # TODO: compare perf in collate_fn vs in load_data
+            if self.compute_f0:
+                pitch = prepare_data(batch["pitch"])
+                assert mel.shape[1] == pitch.shape[1], f"[!] {mel.shape} vs {pitch.shape}"
+                pitch = torch.FloatTensor(pitch)[:, None, :].contiguous()  # B x 1 xT
+            else:
+                pitch = None
+
             # collate attention alignments
-            if batch[0]["attn"] is not None:
-                attns = [batch[idx]["attn"].T for idx in ids_sorted_decreasing]
+            if batch["attn"][0] is not None:
+                attns = [batch["attn"][idx].T for idx in ids_sorted_decreasing]
                 for idx, attn in enumerate(attns):
                     pad2 = mel.shape[1] - attn.shape[1]
                     pad1 = text.shape[1] - attn.shape[0]
+                    assert pad1 >= 0 and pad2 >= 0, f"[!] Negative padding - {pad1} and {pad2}"
                     attn = np.pad(attn, [[0, pad1], [0, pad2]])
                     attns[idx] = attn
                 attns = prepare_tensor(attns, self.outputs_per_step)
@@ -468,22 +514,23 @@ class TTSDataset(Dataset):
             else:
                 attns = None
             # TODO: return dictionary
-            return (
-                text,
-                text_lenghts,
-                speaker_names,
-                linear,
-                mel,
-                mel_lengths,
-                stop_targets,
-                item_idxs,
-                d_vectors,
-                speaker_ids,
-                attns,
-                wav_padded,
-                raw_text,
-                language_ids,
-            )
+            return {
+                "text": text,
+                "text_lengths": text_lengths,
+                "speaker_names": batch["speaker_name"],
+                "linear": linear,
+                "mel": mel,
+                "mel_lengths": mel_lengths,
+                "stop_targets": stop_targets,
+                "item_idxs": batch["item_idx"],
+                "d_vectors": d_vectors,
+                "speaker_ids": speaker_ids,
+                "attns": attns,
+                "waveform": wav_padded,
+                "raw_text": batch["raw_text"],
+                "pitch": pitch,
+                "language_ids": language_ids,
+            }
 
         raise TypeError(
             (
@@ -493,3 +540,108 @@ class TTSDataset(Dataset):
                 )
             )
         )
+
+class PitchExtractor:
+    """Pitch Extractor for computing F0 from wav files.
+    Args:
+        items (List[List]): Dataset samples.
+        verbose (bool): Whether to print the progress.
+    """
+
+    def __init__(
+        self,
+        items: List[List],
+        verbose=False,
+    ):
+        self.items = items
+        self.verbose = verbose
+        self.mean = None
+        self.std = None
+
+    @staticmethod
+    def create_pitch_file_path(wav_file, cache_path):
+        file_name = os.path.splitext(os.path.basename(wav_file))[0]
+        pitch_file = os.path.join(cache_path, file_name + "_pitch.npy")
+        return pitch_file
+
+    @staticmethod
+    def _compute_and_save_pitch(ap, wav_file, pitch_file=None):
+        wav = ap.load_wav(wav_file)
+        pitch = ap.compute_f0(wav)
+        if pitch_file:
+            np.save(pitch_file, pitch)
+        return pitch
+
+    @staticmethod
+    def compute_pitch_stats(pitch_vecs):
+        nonzeros = np.concatenate([v[np.where(v != 0.0)[0]] for v in pitch_vecs])
+        mean, std = np.mean(nonzeros), np.std(nonzeros)
+        return mean, std
+
+    def normalize_pitch(self, pitch):
+        zero_idxs = np.where(pitch == 0.0)[0]
+        pitch = pitch - self.mean
+        pitch = pitch / self.std
+        pitch[zero_idxs] = 0.0
+        return pitch
+
+    def denormalize_pitch(self, pitch):
+        zero_idxs = np.where(pitch == 0.0)[0]
+        pitch *= self.std
+        pitch += self.mean
+        pitch[zero_idxs] = 0.0
+        return pitch
+
+    @staticmethod
+    def load_or_compute_pitch(ap, wav_file, cache_path):
+        """
+        compute pitch and return a numpy array of pitch values
+        """
+        pitch_file = PitchExtractor.create_pitch_file_path(wav_file, cache_path)
+        if not os.path.exists(pitch_file):
+            pitch = PitchExtractor._compute_and_save_pitch(ap, wav_file, pitch_file)
+        else:
+            pitch = np.load(pitch_file)
+        return pitch.astype(np.float32)
+
+    @staticmethod
+    def _pitch_worker(args):
+        item = args[0]
+        ap = args[1]
+        cache_path = args[2]
+        _, wav_file, *_ = item
+        pitch_file = PitchExtractor.create_pitch_file_path(wav_file, cache_path)
+        if not os.path.exists(pitch_file):
+            pitch = PitchExtractor._compute_and_save_pitch(ap, wav_file, pitch_file)
+            return pitch
+        return None
+
+    def compute_pitch(self, ap, cache_path, num_workers=0):
+        """Compute the input sequences with multi-processing.
+        Call it before passing dataset to the data loader to cache the input sequences for faster data loading."""
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path, exist_ok=True)
+
+        if self.verbose:
+            print(" | > Computing pitch features ...")
+        if num_workers == 0:
+            pitch_vecs = []
+            for _, item in enumerate(tqdm.tqdm(self.items)):
+                pitch_vecs += [self._pitch_worker([item, ap, cache_path])]
+        else:
+            with Pool(num_workers) as p:
+                pitch_vecs = list(
+                    tqdm.tqdm(
+                        p.imap(PitchExtractor._pitch_worker, [[item, ap, cache_path] for item in self.items]),
+                        total=len(self.items),
+                    )
+                )
+        pitch_mean, pitch_std = self.compute_pitch_stats(pitch_vecs)
+        pitch_stats = {"mean": pitch_mean, "std": pitch_std}
+        np.save(os.path.join(cache_path, "pitch_stats"), pitch_stats, allow_pickle=True)
+
+    def load_pitch_stats(self, cache_path):
+        stats_path = os.path.join(cache_path, "pitch_stats.npy")
+        stats = np.load(stats_path, allow_pickle=True).item()
+        self.mean = stats["mean"].astype(np.float32)
+        self.std = stats["std"].astype(np.float32)

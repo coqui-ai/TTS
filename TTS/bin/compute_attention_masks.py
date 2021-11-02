@@ -8,12 +8,12 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from TTS.config import load_config
 from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.models import setup_model
-from TTS.tts.utils.io import load_checkpoint
 from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from TTS.utils.io import load_checkpoint
 
 if __name__ == "__main__":
     # pylint: disable=bad-option-value
@@ -27,7 +27,7 @@ Example run:
     CUDA_VISIBLE_DEVICE="0" python TTS/bin/compute_attention_masks.py
         --model_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/checkpoint_200000.pth.tar
         --config_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/config.json
-        --dataset_metafile /root/LJSpeech-1.1/metadata.csv
+        --dataset_metafile metadata.csv
         --data_path /root/LJSpeech-1.1/
         --batch_size 32
         --dataset ljspeech
@@ -76,8 +76,7 @@ Example run:
     num_chars = len(phonemes) if C.use_phonemes else len(symbols)
     # TODO: handle multi-speaker
     model = setup_model(C)
-    model, _ = load_checkpoint(model, args.model_path, None, args.use_cuda)
-    model.eval()
+    model, _ = load_checkpoint(model, args.model_path, args.use_cuda, True)
 
     # data loader
     preprocessor = importlib.import_module("TTS.tts.datasets.formatters")
@@ -97,7 +96,7 @@ Example run:
         enable_eos_bos=C.enable_eos_bos_chars,
     )
 
-    dataset.sort_items()
+    dataset.sort_and_filter_items(C.get("sort_by_audio_len", default=False))
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -127,9 +126,9 @@ Example run:
                 mel_input = mel_input.cuda()
                 mel_lengths = mel_lengths.cuda()
 
-            mel_outputs, postnet_outputs, alignments, stop_tokens = model.forward(text_input, text_lengths, mel_input)
+            model_outputs = model.forward(text_input, text_lengths, mel_input)
 
-            alignments = alignments.detach()
+            alignments = model_outputs["alignments"].detach()
             for idx, alignment in enumerate(alignments):
                 item_idx = item_idxs[idx]
                 # interpolate if r > 1
@@ -149,16 +148,18 @@ Example run:
                 alignment = alignment[: mel_lengths[idx], : text_lengths[idx]].cpu().numpy()
                 # set file paths
                 wav_file_name = os.path.basename(item_idx)
-                align_file_name = os.path.splitext(wav_file_name)[0] + ".npy"
+                align_file_name = os.path.splitext(wav_file_name)[0] + "_attn.npy"
                 file_path = item_idx.replace(wav_file_name, align_file_name)
                 # save output
-                file_paths.append([item_idx, file_path])
+                wav_file_abs_path = os.path.abspath(item_idx)
+                file_abs_path = os.path.abspath(file_path)
+                file_paths.append([wav_file_abs_path, file_abs_path])
                 np.save(file_path, alignment)
 
         # ourput metafile
         metafile = os.path.join(args.data_path, "metadata_attn_mask.txt")
 
-        with open(metafile, "w") as f:
+        with open(metafile, "w", encoding="utf-8") as f:
             for p in file_paths:
                 f.write(f"{p[0]}|{p[1]}\n")
         print(f" >> Metafile created: {metafile}")

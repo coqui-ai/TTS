@@ -67,11 +67,14 @@ class VitsConfig(BaseTTSConfig):
         compute_linear_spec (bool):
             If true, the linear spectrogram is computed and returned alongside the mel output. Do not change. Defaults to `True`.
 
+        sort_by_audio_len (bool):
+            If true, dataloder sorts the data by audio length else sorts by the input text length. Defaults to `True`.
+
         min_seq_len (int):
-            Minimum text length to be considered for training. Defaults to `13`.
+            Minimum sequnce length to be considered for training. Defaults to `0`.
 
         max_seq_len (int):
-            Maximum text length to be considered for training. Defaults to `500`.
+            Maximum sequnce length to be considered for training. Defaults to `500000`.
 
         r (int):
             Number of spectrogram frames to be generated at a time. Do not change. Defaults to `1`.
@@ -87,7 +90,7 @@ class VitsConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import VitsConfig
+        >>> from TTS.tts.configs.vits_config import VitsConfig
         >>> config = VitsConfig()
     """
 
@@ -121,8 +124,9 @@ class VitsConfig(BaseTTSConfig):
     compute_linear_spec: bool = True
 
     # overrides
-    min_seq_len: int = 32
-    max_seq_len: int = 1000
+    sort_by_audio_len: bool = True
+    min_seq_len: int = 0
+    max_seq_len: int = 500000
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 
@@ -136,3 +140,20 @@ class VitsConfig(BaseTTSConfig):
             ["Prior to November 22, 1963."],
         ]
     )
+
+    # multi-speaker settings
+    # use speaker embedding layer
+    num_speakers: int = 0
+    use_speaker_embedding: bool = False
+    speakers_file: str = None
+    speaker_embedding_channels: int = 256
+
+    # use d-vectors
+    use_d_vector_file: bool = False
+    d_vector_file: str = False
+    d_vector_dim: int = None
+
+    def __post_init__(self):
+        for key in self.model_args.keys():
+            if hasattr(self, key):
+                self[key] = self.model_args[key]

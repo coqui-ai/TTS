@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from tests import get_tests_output_path
-from TTS.tts.configs import BaseTTSConfig
+from TTS.tts.configs.shared_configs import BaseTTSConfig
 from TTS.tts.datasets import TTSDataset
 from TTS.tts.datasets.formatters import ljspeech
 from TTS.utils.audio import AudioProcessor
@@ -73,15 +73,15 @@ class TestTTSDataset(unittest.TestCase):
             for i, data in enumerate(dataloader):
                 if i == self.max_loader_iter:
                     break
-                text_input = data[0]
-                text_lengths = data[1]
-                speaker_name = data[2]
-                linear_input = data[3]
-                mel_input = data[4]
-                mel_lengths = data[5]
-                stop_target = data[6]
-                item_idx = data[7]
-                wavs = data[11]
+                text_input = data["text"]
+                text_lengths = data["text_lengths"]
+                speaker_name = data["speaker_names"]
+                linear_input = data["linear"]
+                mel_input = data["mel"]
+                mel_lengths = data["mel_lengths"]
+                stop_target = data["stop_targets"]
+                item_idx = data["item_idxs"]
+                wavs = data["waveform"]
 
                 neg_values = text_input[text_input < 0]
                 check_count = len(neg_values)
@@ -118,18 +118,18 @@ class TestTTSDataset(unittest.TestCase):
             for i, data in enumerate(dataloader):
                 if i == self.max_loader_iter:
                     break
-                text_input = data[0]
-                text_lengths = data[1]
-                speaker_name = data[2]
-                linear_input = data[3]
-                mel_input = data[4]
-                mel_lengths = data[5]
-                stop_target = data[6]
-                item_idx = data[7]
+                text_input = data["text"]
+                text_lengths = data["text_lengths"]
+                speaker_name = data["speaker_names"]
+                linear_input = data["linear"]
+                mel_input = data["mel"]
+                mel_lengths = data["mel_lengths"]
+                stop_target = data["stop_targets"]
+                item_idx = data["item_idxs"]
 
                 avg_length = mel_lengths.numpy().mean()
                 assert avg_length >= last_length
-            dataloader.dataset.sort_items()
+            dataloader.dataset.sort_and_filter_items()
             is_items_reordered = False
             for idx, item in enumerate(dataloader.dataset.items):
                 if item != frames[idx]:
@@ -144,14 +144,14 @@ class TestTTSDataset(unittest.TestCase):
             for i, data in enumerate(dataloader):
                 if i == self.max_loader_iter:
                     break
-                text_input = data[0]
-                text_lengths = data[1]
-                speaker_name = data[2]
-                linear_input = data[3]
-                mel_input = data[4]
-                mel_lengths = data[5]
-                stop_target = data[6]
-                item_idx = data[7]
+                text_input = data["text"]
+                text_lengths = data["text_lengths"]
+                speaker_name = data["speaker_names"]
+                linear_input = data["linear"]
+                mel_input = data["mel"]
+                mel_lengths = data["mel_lengths"]
+                stop_target = data["stop_targets"]
+                item_idx = data["item_idxs"]
 
                 # check mel_spec consistency
                 wav = np.asarray(self.ap.load_wav(item_idx[0]), dtype=np.float32)
@@ -193,14 +193,14 @@ class TestTTSDataset(unittest.TestCase):
             for i, data in enumerate(dataloader):
                 if i == self.max_loader_iter:
                     break
-                text_input = data[0]
-                text_lengths = data[1]
-                speaker_name = data[2]
-                linear_input = data[3]
-                mel_input = data[4]
-                mel_lengths = data[5]
-                stop_target = data[6]
-                item_idx = data[7]
+                text_input = data["text"]
+                text_lengths = data["text_lengths"]
+                speaker_name = data["speaker_names"]
+                linear_input = data["linear"]
+                mel_input = data["mel"]
+                mel_lengths = data["mel_lengths"]
+                stop_target = data["stop_targets"]
+                item_idx = data["item_idxs"]
 
                 if mel_lengths[0] > mel_lengths[1]:
                     idx = 0

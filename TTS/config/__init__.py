@@ -36,10 +36,11 @@ def register_config(model_name: str) -> Coqpit:
         Coqpit: config class.
     """
     config_class = None
+    config_name = model_name + "_config"
     paths = ["TTS.tts.configs", "TTS.vocoder.configs", "TTS.speaker_encoder"]
     for path in paths:
         try:
-            config_class = find_module(path, model_name + "_config")
+            config_class = find_module(path, config_name)
         except ModuleNotFoundError:
             pass
     if config_class is None:

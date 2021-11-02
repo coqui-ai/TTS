@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchaudio
-import torch.nn as nn
+from torch import nn
 
 from TTS.utils.io import load_fsspec
 

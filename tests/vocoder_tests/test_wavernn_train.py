@@ -11,7 +11,7 @@ output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
 config = WavernnConfig(
-    model_params=WavernnArgs(),
+    model_args=WavernnArgs(),
     batch_size=8,
     eval_batch_size=8,
     num_loader_workers=0,
