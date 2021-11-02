@@ -59,7 +59,7 @@ def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argume
     return items
 
 
-def mailabs(root_path, meta_files=None):
+def mailabs(root_path, meta_files=None, ununsed_speakers=None):
     """Normalizes M-AI-Labs meta data files to TTS format
 
     Args:

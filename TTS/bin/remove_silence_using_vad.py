@@ -6,12 +6,7 @@ import glob
 import multiprocessing
 import os
 import pathlib
-import sys
 import wave
-from itertools import chain
-
-import numpy as np
-import tqdm
 import webrtcvad
 from tqdm.contrib.concurrent import process_map
 
@@ -47,8 +42,8 @@ def write_wave(path, audio, sample_rate):
 class Frame(object):
     """Represents a "frame" of audio data."""
 
-    def __init__(self, bytes, timestamp, duration):
-        self.bytes = bytes
+    def __init__(self, _bytes, timestamp, duration):
+        self.bytes =_bytes
         self.timestamp = timestamp
         self.duration = duration
 
@@ -121,7 +116,7 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
                 # We want to yield all the audio we see from now until
                 # we are NOTTRIGGERED, but we have to start with the
                 # audio that's already in the ring buffer.
-                for f, s in ring_buffer:
+                for f, _ in ring_buffer:
                     voiced_frames.append(f)
                 ring_buffer.clear()
         else:
@@ -146,11 +141,10 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
 
 
 def remove_silence(filepath):
-    filename = os.path.basename(filepath)
     output_path = filepath.replace(os.path.join(args.input_dir, ""), os.path.join(args.output_dir, ""))
     # ignore if the file exists
     if os.path.exists(output_path) and not args.force:
-        return False
+        return
     # create all directory structure
     pathlib.Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     padding_duration_ms = 300  # default 300
@@ -166,7 +160,7 @@ def remove_silence(filepath):
     if num_segments != 0:
         for i, segment in reversed(list(enumerate(segments))):
             if i >= 1:
-                if flag == False:
+                if not flag:
                     concat_segment = segment
                     flag = True
                 else:
@@ -176,11 +170,12 @@ def remove_silence(filepath):
                     segment = segment + concat_segment
                 write_wave(output_path, segment, sample_rate)
                 print(output_path)
-                return True
+                return
     else:
         print("> Just Copying the file to:", output_path)
         # if fail to remove silence just write the file
         write_wave(output_path, audio, sample_rate)
+        return
 
 
 def preprocess_audios():
@@ -198,11 +193,9 @@ def preprocess_audios():
 
 
 if __name__ == "__main__":
-    """
-    usage
-    python remove_silence.py -i=VCTK-Corpus-bk/ -o=../VCTK-Corpus-removed-silence -g=wav48/*/*.wav -a=2
-    """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="python remove_silence.py -i=VCTK-Corpus-bk/ -o=../VCTK-Corpus-removed-silence -g=wav48/*/*.wav -a=2"
+    )
     parser.add_argument("-i", "--input_dir", type=str, default="../VCTK-Corpus", help="Dataset root dir")
     parser.add_argument(
         "-o", "--output_dir", type=str, default="../VCTK-Corpus-removed-silence", help="Output Dataset dir"

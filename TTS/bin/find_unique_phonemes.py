@@ -3,7 +3,6 @@ import argparse
 import multiprocessing
 from argparse import RawTextHelpFormatter
 
-import numpy
 from tqdm.contrib.concurrent import process_map
 
 from TTS.config import load_config
