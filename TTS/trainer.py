@@ -265,7 +265,9 @@ class Trainer:
             config = self.config.model_args if hasattr(self.config, "model_args") else self.config
             # save speakers json
             if config.use_language_embedding and self.model.language_manager.num_languages > 1:
-                self.model.language_manager.save_language_ids_to_file(os.path.join(self.output_path, "language_ids.json"))
+                self.model.language_manager.save_language_ids_to_file(
+                    os.path.join(self.output_path, "language_ids.json")
+                )
             if hasattr(self.config, "model_args"):
                 self.config.model_args["num_languages"] = self.model.language_manager.num_languages
             else:

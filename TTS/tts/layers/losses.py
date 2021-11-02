@@ -602,7 +602,7 @@ class VitsGeneratorLoss(nn.Module):
         fine_tuning_mode=0,
         use_speaker_encoder_as_loss=False,
         gt_spk_emb=None,
-        syn_spk_emb=None
+        syn_spk_emb=None,
     ):
         """
         Shapes:
@@ -638,7 +638,9 @@ class VitsGeneratorLoss(nn.Module):
         loss = loss_kl + loss_feat + loss_mel + loss_gen + loss_duration
 
         if use_speaker_encoder_as_loss:
-            loss_se = - torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean() * self.spk_encoder_loss_alpha
+            loss_se = (
+                -torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean() * self.spk_encoder_loss_alpha
+            )
             loss += loss_se
             return_dict["loss_spk_encoder"] = loss_se
 

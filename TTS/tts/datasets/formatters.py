@@ -304,7 +304,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
     return items
 
 
-def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):   # pylint: disable=unused-argument
+def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):  # pylint: disable=unused-argument
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
     txt_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)

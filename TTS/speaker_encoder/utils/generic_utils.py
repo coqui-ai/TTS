@@ -179,10 +179,12 @@ def setup_model(c):
             c.model_params["num_lstm_layers"],
         )
     elif c.model_params["model_name"].lower() == "resnet":
-        model = ResNetSpeakerEncoder(input_dim=c.model_params["input_dim"], proj_dim=c.model_params["proj_dim"],
+        model = ResNetSpeakerEncoder(
+            input_dim=c.model_params["input_dim"],
+            proj_dim=c.model_params["proj_dim"],
             log_input=c.model_params.get("log_input", False),
             use_torch_spec=c.model_params.get("use_torch_spec", False),
-            audio_config=c.audio
+            audio_config=c.audio,
         )
     return model
 
