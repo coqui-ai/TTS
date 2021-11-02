@@ -61,9 +61,9 @@ def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argume
 
 def mailabs(root_path, meta_files=None):
     """Normalizes M-AI-Labs meta data files to TTS format
-    
+
     Args:
-        root_path (str): root folder of the MAILAB language folder. 
+        root_path (str): root folder of the MAILAB language folder.
         meta_files (str):  list of meta files to be used in the training. If None, finds all the csv files
             recursively. Defaults to None
     """
@@ -304,7 +304,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
     return items
 
 
-def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):   # pylint: disable=unused-argument
+def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):  # pylint: disable=unused-argument
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
     txt_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)

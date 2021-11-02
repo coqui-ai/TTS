@@ -178,7 +178,14 @@ class StochasticDurationPredictor(nn.Module):
     """
 
     def __init__(
-        self, in_channels: int, hidden_channels: int, kernel_size: int, dropout_p: float, num_flows=4, cond_channels=0, language_emb_dim=None
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        kernel_size: int,
+        dropout_p: float,
+        num_flows=4,
+        cond_channels=0,
+        language_emb_dim=None,
     ):
         super().__init__()
 

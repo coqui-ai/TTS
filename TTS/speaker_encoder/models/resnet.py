@@ -5,19 +5,19 @@ from torch import nn
 
 from TTS.utils.io import load_fsspec
 
+
 class PreEmphasis(torch.nn.Module):
     def __init__(self, coefficient=0.97):
         super().__init__()
         self.coefficient = coefficient
-        self.register_buffer(
-            'filter', torch.FloatTensor([-self.coefficient, 1.]).unsqueeze(0).unsqueeze(0)
-        )
+        self.register_buffer("filter", torch.FloatTensor([-self.coefficient, 1.0]).unsqueeze(0).unsqueeze(0))
 
     def forward(self, x):
         assert len(x.size()) == 2
 
-        x = torch.nn.functional.pad(x.unsqueeze(1), (1, 0), 'reflect')
+        x = torch.nn.functional.pad(x.unsqueeze(1), (1, 0), "reflect")
         return torch.nn.functional.conv1d(x, self.filter).squeeze(1)
+
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=8):
@@ -110,8 +110,15 @@ class ResNetSpeakerEncoder(nn.Module):
         if self.use_torch_spec:
             self.torch_spec = torch.nn.Sequential(
                 PreEmphasis(audio_config["preemphasis"]),
-                torchaudio.transforms.MelSpectrogram(sample_rate=audio_config["sample_rate"], n_fft=audio_config["fft_size"], win_length=audio_config["win_length"], hop_length=audio_config["hop_length"], window_fn=torch.hamming_window, n_mels=audio_config["num_mels"])
-                )
+                torchaudio.transforms.MelSpectrogram(
+                    sample_rate=audio_config["sample_rate"],
+                    n_fft=audio_config["fft_size"],
+                    win_length=audio_config["win_length"],
+                    hop_length=audio_config["hop_length"],
+                    window_fn=torch.hamming_window,
+                    n_mels=audio_config["num_mels"],
+                ),
+            )
         else:
             self.torch_spec = None
 
@@ -213,7 +220,7 @@ class ResNetSpeakerEncoder(nn.Module):
         """
         # map to the waveform size
         if self.use_torch_spec:
-            num_frames = num_frames * self.audio_config['hop_length']
+            num_frames = num_frames * self.audio_config["hop_length"]
 
         max_len = x.shape[1]
 
