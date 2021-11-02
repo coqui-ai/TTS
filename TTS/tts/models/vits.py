@@ -1,5 +1,4 @@
 import math
-import random
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Dict, List, Tuple
@@ -727,7 +726,7 @@ class Vits(BaseTTS):
 
             # inverse decoder and get the output
             z_f_pred = self.flow(z_ft, y_mask, g=g, reverse=True)
-            z_slice, slice_ids = rand_segment(z_f_pred, y_lengths, self.spec_segment_size)
+            z_slice, slice_ids = rand_segments(z_f_pred, y_lengths, self.spec_segment_size)
 
         o = self.waveform_decoder(z_slice, g=g)
 
