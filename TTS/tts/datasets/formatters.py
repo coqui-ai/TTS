@@ -59,8 +59,14 @@ def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argume
     return items
 
 
-def mailabs(root_path, meta_files=None, ununsed_speakers=None):
-    """Normalizes M-AI-Labs meta data files to TTS format"""
+def mailabs(root_path, meta_files=None):
+    """Normalizes M-AI-Labs meta data files to TTS format
+    
+    Args:
+        root_path (str): root folder of the MAILAB language folder. 
+        meta_files (str):  list of meta files to be used in the training. If None, finds all the csv files
+            recursively. Defaults to None
+    """
     speaker_regex = re.compile("by_book/(male|female)/(?P<speaker_name>[^/]+)/")
     if not meta_files:
         csv_files = glob(root_path + "/**/metadata.csv", recursive=True)

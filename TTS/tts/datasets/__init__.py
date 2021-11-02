@@ -116,3 +116,18 @@ def _get_formatter_by_name(name):
     """Returns the respective preprocessing function."""
     thismodule = sys.modules[__name__]
     return getattr(thismodule, name.lower())
+
+
+def find_unique_chars(data_samples, verbose=True):
+    texts = "".join(item[0] for item in data_samples)
+    chars = set(texts)
+    lower_chars = filter(lambda c: c.islower(), chars)
+    chars_force_lower = [c.lower() for c in chars]
+    chars_force_lower = set(chars_force_lower)
+
+    if verbose:
+        print(f" > Number of unique characters: {len(chars)}")
+        print(f" > Unique characters: {''.join(sorted(chars))}")
+        print(f" > Unique lower characters: {''.join(sorted(lower_chars))}")
+        print(f" > Unique all forced to lower characters: {''.join(sorted(chars_force_lower))}")
+    return chars_force_lower

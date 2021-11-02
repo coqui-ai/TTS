@@ -98,7 +98,7 @@
                 "fast_pitch":{
                     "description": "FastPitch model trained on VCTK dataseset.",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.4.0/tts_models--en--vctk--fast_pitch.zip",
-                    "default_vocoder": "vocoder_models/en/vctk/hifigan_v2",
+                    "default_vocoder": null,
                     "commit": "bdab788d",
                     "author": "Eren @erogol",
                     "license": "CC BY-NC-ND 4.0",
