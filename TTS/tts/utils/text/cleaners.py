@@ -136,8 +136,9 @@ def phoneme_cleaners(text):
     text = collapse_whitespace(text)
     return text
 
+
 def multilingual_cleaners(text):
-    '''Pipeline for multilingual text'''
+    """Pipeline for multilingual text"""
     text = lowercase(text)
     text = replace_symbols(text, lang=None)
     text = remove_aux_symbols(text)

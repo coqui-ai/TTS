@@ -1,26 +1,27 @@
 # This code is adpated from: https://github.com/wiseman/py-webrtcvad/blob/master/example.py
-import os
-import tqdm
-import glob
 import argparse
-import pathlib
-
 import collections
 import contextlib
+import glob
+import multiprocessing
+import os
+import pathlib
 import sys
 import wave
+from itertools import chain
+
 import numpy as np
+import tqdm
 import webrtcvad
 from tqdm.contrib.concurrent import process_map
-import multiprocessing
-from itertools import chain
+
 
 def read_wave(path):
     """Reads a .wav file.
 
     Takes the path, and returns (PCM audio data, sample rate).
     """
-    with contextlib.closing(wave.open(path, 'rb')) as wf:
+    with contextlib.closing(wave.open(path, "rb")) as wf:
         num_channels = wf.getnchannels()
         assert num_channels == 1
         sample_width = wf.getsampwidth()
@@ -36,7 +37,7 @@ def write_wave(path, audio, sample_rate):
 
     Takes path, PCM audio data, and sample rate.
     """
-    with contextlib.closing(wave.open(path, 'wb')) as wf:
+    with contextlib.closing(wave.open(path, "wb")) as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(sample_rate)
@@ -45,6 +46,7 @@ def write_wave(path, audio, sample_rate):
 
 class Frame(object):
     """Represents a "frame" of audio data."""
+
     def __init__(self, bytes, timestamp, duration):
         self.bytes = bytes
         self.timestamp = timestamp
@@ -64,13 +66,12 @@ def frame_generator(frame_duration_ms, audio, sample_rate):
     timestamp = 0.0
     duration = (float(n) / sample_rate) / 2.0
     while offset + n < len(audio):
-        yield Frame(audio[offset:offset + n], timestamp, duration)
+        yield Frame(audio[offset : offset + n], timestamp, duration)
         timestamp += duration
         offset += n
 
 
-def vad_collector(sample_rate, frame_duration_ms,
-                  padding_duration_ms, vad, frames):
+def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, frames):
     """Filters out non-voiced audio frames.
 
     Given a webrtcvad.Vad and a source of audio frames, yields only
@@ -133,25 +134,26 @@ def vad_collector(sample_rate, frame_duration_ms,
             # unvoiced, then enter NOTTRIGGERED and yield whatever
             # audio we've collected.
             if num_unvoiced > 0.9 * ring_buffer.maxlen:
-                #sys.stdout.write('-(%s)' % (frame.timestamp + frame.duration))
+                # sys.stdout.write('-(%s)' % (frame.timestamp + frame.duration))
                 triggered = False
-                yield b''.join([f.bytes for f in voiced_frames])
+                yield b"".join([f.bytes for f in voiced_frames])
                 ring_buffer.clear()
                 voiced_frames = []
     # If we have any leftover voiced audio when we run out of input,
     # yield it.
     if voiced_frames:
-        yield b''.join([f.bytes for f in voiced_frames])
+        yield b"".join([f.bytes for f in voiced_frames])
+
 
 def remove_silence(filepath):
     filename = os.path.basename(filepath)
-    output_path = filepath.replace(os.path.join(args.input_dir, ''),os.path.join(args.output_dir, ''))
-    # ignore if the file exists 
+    output_path = filepath.replace(os.path.join(args.input_dir, ""), os.path.join(args.output_dir, ""))
+    # ignore if the file exists
     if os.path.exists(output_path) and not args.force:
         return False
     # create all directory structure
     pathlib.Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    padding_duration_ms = 300 # default 300
+    padding_duration_ms = 300  # default 300
     audio, sample_rate = read_wave(filepath)
     vad = webrtcvad.Vad(int(args.aggressiveness))
     frames = frame_generator(30, audio, sample_rate)
@@ -180,6 +182,7 @@ def remove_silence(filepath):
         # if fail to remove silence just write the file
         write_wave(output_path, audio, sample_rate)
 
+
 def preprocess_audios():
     files = sorted(glob.glob(os.path.join(args.input_dir, args.glob), recursive=True))
     print("> Number of files: ", len(files))
@@ -193,21 +196,31 @@ def preprocess_audios():
     else:
         print("> No files Found !")
 
+
 if __name__ == "__main__":
     """
     usage
-    python remove_silence.py -i=VCTK-Corpus-bk/ -o=../VCTK-Corpus-removed-silence -g=wav48/*/*.wav -a=2 
+    python remove_silence.py -i=VCTK-Corpus-bk/ -o=../VCTK-Corpus-removed-silence -g=wav48/*/*.wav -a=2
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input_dir', type=str, default='../VCTK-Corpus',
-                        help='Dataset root dir')
-    parser.add_argument('-o', '--output_dir', type=str, default='../VCTK-Corpus-removed-silence',
-                        help='Output Dataset dir')
-    parser.add_argument('-f', '--force', type=bool, default=True,
-                        help='Force the replace of exists files')
-    parser.add_argument('-g', '--glob', type=str, default='**/*.wav',
-                        help='path in glob format for acess wavs from input_dir. ex: wav48/*/*.wav')
-    parser.add_argument('-a', '--aggressiveness', type=int, default=2,
-                        help='set its aggressiveness mode, which is an integer between 0 and 3. 0 is the least aggressive about filtering out non-speech, 3 is the most aggressive.')
+    parser.add_argument("-i", "--input_dir", type=str, default="../VCTK-Corpus", help="Dataset root dir")
+    parser.add_argument(
+        "-o", "--output_dir", type=str, default="../VCTK-Corpus-removed-silence", help="Output Dataset dir"
+    )
+    parser.add_argument("-f", "--force", type=bool, default=True, help="Force the replace of exists files")
+    parser.add_argument(
+        "-g",
+        "--glob",
+        type=str,
+        default="**/*.wav",
+        help="path in glob format for acess wavs from input_dir. ex: wav48/*/*.wav",
+    )
+    parser.add_argument(
+        "-a",
+        "--aggressiveness",
+        type=int,
+        default=2,
+        help="set its aggressiveness mode, which is an integer between 0 and 3. 0 is the least aggressive about filtering out non-speech, 3 is the most aggressive.",
+    )
     args = parser.parse_args()
     preprocess_audios()
