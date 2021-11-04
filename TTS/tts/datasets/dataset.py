@@ -273,6 +273,7 @@ class TTSDataset(Dataset):
         item = args[0]
         func_args = args[1]
         text, wav_file, *_ = item
+        func_args[3] = item[4]
         phonemes = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
         return phonemes
 
