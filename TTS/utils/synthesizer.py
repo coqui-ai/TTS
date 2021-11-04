@@ -74,6 +74,8 @@ class Synthesizer(object):
         if vocoder_checkpoint:
             self._load_vocoder(vocoder_checkpoint, vocoder_config, use_cuda)
             self.output_sample_rate = self.vocoder_config.audio["sample_rate"]
+        else:
+            print(" > Using Griffin-Lim as no vocoder model defined")
 
     @staticmethod
     def _get_segmenter(lang: str):
@@ -265,7 +267,8 @@ class Synthesizer(object):
             waveform = waveform.squeeze()
 
             # trim silence
-            waveform = trim_silence(waveform, self.ap)
+            if self.tts_config.audio["do_trim_silence"] is True:
+                waveform = trim_silence(waveform, self.ap)
 
             wavs += list(waveform)
             wavs += [0] * 10000
