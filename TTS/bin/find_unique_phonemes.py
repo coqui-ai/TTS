@@ -6,7 +6,7 @@ from argparse import RawTextHelpFormatter
 from tqdm.contrib.concurrent import process_map
 
 from TTS.config import load_config
-from TTS.tts.datasets import load_meta_data
+from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.text import text2phone
 
 
@@ -38,10 +38,9 @@ def main():
     c = load_config(args.config_path)
 
     # load all datasets
-    train_items, eval_items = load_meta_data(c.datasets, eval_split=True)
+    train_items, eval_items = load_tts_samples(c.datasets, eval_split=True)
     items = train_items + eval_items
     print("Num items:", len(items))
-    # items = items[:1000]
 
     phonemes = process_map(compute_phonemes, items, max_workers=multiprocessing.cpu_count(), chunksize=15)
     phones = []
