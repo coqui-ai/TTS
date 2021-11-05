@@ -7,7 +7,7 @@ from tqdm.contrib.concurrent import process_map
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.text import text2phone
+from TTS.tts.utils.text import text2phone, phoneme_to_sequence
 
 
 def compute_phonemes(item):
