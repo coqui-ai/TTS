@@ -543,6 +543,7 @@ class Vits(BaseTTS):
             "style_wav": style_wav,
             "d_vector": d_vector,
             "language_id": language_id,
+            "language_name": language_name,
         }
 
     def forward(
@@ -1061,6 +1062,7 @@ class Vits(BaseTTS):
                     d_vector=aux_inputs["d_vector"],
                     style_wav=aux_inputs["style_wav"],
                     language_id=aux_inputs["language_id"],
+                    language_name=aux_inputs["language_name"],
                     enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                     use_griffin_lim=True,
                     do_trim_silence=False,

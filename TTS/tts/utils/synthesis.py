@@ -15,7 +15,7 @@ if "tensorflow" in installed or "tensorflow-gpu" in installed:
     import tensorflow as tf
 
 
-def text_to_seq(text, CONFIG, custom_symbols=None):
+def text_to_seq(text, CONFIG, custom_symbols=None, language=None):
     text_cleaner = [CONFIG.text_cleaner]
     # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
@@ -23,7 +23,7 @@ def text_to_seq(text, CONFIG, custom_symbols=None):
             phoneme_to_sequence(
                 text,
                 text_cleaner,
-                CONFIG.phoneme_language,
+                language if language else CONFIG.phoneme_language,
                 CONFIG.enable_eos_bos_chars,
                 tp=CONFIG.characters,
                 add_blank=CONFIG.add_blank,
@@ -212,6 +212,7 @@ def synthesis(
     do_trim_silence=False,
     d_vector=None,
     language_id=None,
+    language_name=None,
     backend="torch",
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
@@ -262,7 +263,7 @@ def synthesis(
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
     # preprocess the given text
-    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols)
+    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols, language=language_name)
     # pass tensors to backend
     if backend == "torch":
         if speaker_id is not None:
