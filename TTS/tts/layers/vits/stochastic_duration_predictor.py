@@ -266,7 +266,7 @@ class StochasticDurationPredictor(nn.Module):
 
         flows = list(reversed(self.flows))
         flows = flows[:-2] + [flows[-1]]  # remove a useless vflow
-        z = torch.rand(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype) * noise_scale
+        z = torch.randn(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype) * noise_scale
         for flow in flows:
             z = torch.flip(z, [1])
             z = flow(z, x_mask, g=x, reverse=reverse)
