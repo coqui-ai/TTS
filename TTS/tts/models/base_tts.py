@@ -102,7 +102,7 @@ class BaseTTS(BaseModel):
                 config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
             )
         # init speaker embedding layer
-        if config.use_speaker_embedding and not config.use_d_vector_file:
+        if config.use_speaker_embedding:
             print(" > Init speaker_embedding layer.")
             self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
