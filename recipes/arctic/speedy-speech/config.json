@@ -77,13 +77,13 @@
     "loss_masking": null,
     "sort_by_audio_len": true,
     "min_seq_len": 11,
-    "max_seq_len": 500000,
+    "max_seq_len": 93,
     "compute_f0": false,
     "compute_linear_spec": false,
     "add_blank": false,
     "datasets": [
         {
-            "name": "arctic",
+            "name": "ljspeech",
             "path": "/content/TTS/recipes/arctic/speedy_speech/../arctic-data/",
             "meta_file_train": "metadata.csv",
             "ununsed_speakers": null,
