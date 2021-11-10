@@ -76,7 +76,7 @@
     "batch_group_size": 0,
     "loss_masking": null,
     "sort_by_audio_len": true,
-    "min_seq_len": 13,
+    "min_seq_len": 11,
     "max_seq_len": 500000,
     "compute_f0": false,
     "compute_linear_spec": false,
