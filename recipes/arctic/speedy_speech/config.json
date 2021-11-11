@@ -17,7 +17,7 @@
     "project_name": null,
     "log_model_step": null,
     "wandb_entity": null,
-    "save_step": 10000,
+    "save_step": 5000,
     "checkpoint": true,
     "keep_all_best": false,
     "keep_after": 10000,
