@@ -333,7 +333,6 @@ class TTSDataset(Dataset):
                 lengths.append(os.path.getsize(item[1]) / 16 * 8)  # assuming 16bit audio
             lengths = np.array(lengths)
         else:
-            print('sorting by text length')
             lengths = np.array([len(ins[0]) for ins in self.items])
 
         # sort items based on the sequence length in ascending order
@@ -346,7 +345,6 @@ class TTSDataset(Dataset):
                 ignored.append(idx)
             else:
                 new_items.append(self.items[idx])
-        print("after first filter no of items:", len(new_items))
 
         # shuffle batch groups
         # create batches with similar length items
@@ -358,7 +356,6 @@ class TTSDataset(Dataset):
                 temp_items = new_items[offset:end_offset]
                 random.shuffle(temp_items)
                 new_items[offset:end_offset] = temp_items
-            print("after sort no of items", len(new_items))
 
         if len(new_items) == 0:
             raise RuntimeError(" [!] No items left after filtering.")

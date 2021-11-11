@@ -77,7 +77,7 @@
     "loss_masking": null,
     "sort_by_audio_len": true,
     "min_seq_len": 11,
-    "max_seq_len": 93,
+    "max_seq_len": 500000,
     "compute_f0": false,
     "compute_linear_spec": false,
     "add_blank": false,
