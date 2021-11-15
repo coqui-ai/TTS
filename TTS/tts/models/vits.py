@@ -211,7 +211,6 @@ class VitsArgs(Coqpit):
     d_vector_file: str = None
     speaker_embedding_channels: int = 256
     use_d_vector_file: bool = False
-    d_vector_file: str = None
     d_vector_dim: int = 0
     detach_dp_input: bool = True
     use_language_embedding: bool = False

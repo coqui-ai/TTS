@@ -9,7 +9,6 @@ from TTS.utils.audio import AudioProcessor
 
 
 def main():
-    #os.environ["CUDA_VISIBLE_DEVICES"]=""
     """Run `tts` model training directly by a `config.json` file."""
     # init trainer args
     train_args = TrainingArgs()
