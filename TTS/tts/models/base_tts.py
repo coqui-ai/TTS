@@ -14,7 +14,7 @@ from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.text import make_symbols
+from TTS.tts.utils.text.symbols import Graphemes, make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 # pylint: skip-file
@@ -33,8 +33,20 @@ class BaseTTS(BaseModel):
         - 1D tensors `batch x 1`
     """
 
+    def __init__(self, config: Coqpit, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None):
+        super().__init__(config)
+        self.config = config
+        self.ap = ap
+        self.tokenizer = tokenizer
+        self.speaker_manager = speaker_manager
+        self._set_model_args(config)
+
     def _set_model_args(self, config: Coqpit):
-        """Setup model args based on the config type.
+        """Setup model args based on the config type (`ModelConfig` or `ModelArgs`).
+
+        `ModelArgs` has all the fields reuqired to initialize the model architecture.
+
+        `ModelConfig` has all the fields required for training, inference and containes `ModelArgs`.
 
         If the config is for training with a name like "*Config", then the model args are embeded in the
         config.model_args
@@ -43,8 +55,8 @@ class BaseTTS(BaseModel):
         """
         # don't use isintance not to import recursively
         if "Config" in config.__class__.__name__:
+            num_chars = self.config.model_args.num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
             if "characters" in config:
-                _, self.config, num_chars = self.get_characters(config)
                 self.config.num_chars = num_chars
                 if hasattr(self.config, "model_args"):
                     config.model_args.num_chars = num_chars
@@ -57,18 +69,21 @@ class BaseTTS(BaseModel):
         else:
             raise ValueError("config must be either a *Config or *Args")
 
-    @staticmethod
-    def get_characters(config: Coqpit) -> str:
-        # TODO: implement CharacterProcessor
-        if config.characters is not None:
-            symbols, phonemes = make_symbols(**config.characters)
-        else:
-            from TTS.tts.utils.text.symbols import parse_symbols, phonemes, symbols
+    # @staticmethod
+    # def get_characters(config: Coqpit) -> str:
+    #     # TODO: implement CharacterProcessor
+    #     if config.characters is not None:
+    #         symbols, phonemes = make_symbols(**config.characters)
+    #     else:
+    #         from TTS.tts.utils.text.symbols import parse_symbols, phonemes, symbols
 
-            config.characters = CharactersConfig(**parse_symbols())
-        model_characters = phonemes if config.use_phonemes else symbols
-        num_chars = len(model_characters) + getattr(config, "add_blank", False)
-        return model_characters, config, num_chars
+    #         if config.use_phonemes:
+
+    #         config.characters = Graphemes()
+
+    #     model_characters = phonemes if config.use_phonemes else symbols
+    #     num_chars = len(model_characters) + getattr(config, "add_blank", False)
+    #     return model_characters, config, num_chars
 
     def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:
         return get_speaker_manager(config, restore_path, data, out_path)
@@ -184,8 +199,6 @@ class BaseTTS(BaseModel):
         if is_eval and not config.run_eval:
             loader = None
         else:
-            ap = assets["audio_processor"]
-
             # setup multi-speaker attributes
             if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
                 speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
@@ -202,27 +215,21 @@ class BaseTTS(BaseModel):
             # init dataset
             dataset = TTSDataset(
                 outputs_per_step=config.r if "r" in config else 1,
-                text_cleaner=config.text_cleaner,
                 compute_linear_spec=config.model.lower() == "tacotron" or config.compute_linear_spec,
                 compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
                 meta_data=data_items,
-                ap=ap,
-                characters=config.characters,
-                custom_symbols=custom_symbols,
-                add_blank=config["add_blank"],
+                ap=self.ap,
                 return_wav=config.return_wav if "return_wav" in config else False,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_seq_len=config.min_seq_len,
                 max_seq_len=config.max_seq_len,
                 phoneme_cache_path=config.phoneme_cache_path,
-                use_phonemes=config.use_phonemes,
-                phoneme_language=config.phoneme_language,
-                enable_eos_bos=config.enable_eos_bos_chars,
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
+                tokenizer=self.tokenizer
             )
 
             # pre-compute phonemes
@@ -254,7 +261,7 @@ class BaseTTS(BaseModel):
             if config.compute_f0 and rank in [None, 0]:
                 if not os.path.exists(config.f0_cache_path):
                     dataset.pitch_extractor.compute_pitch(
-                        ap, config.get("f0_cache_path", None), config.num_loader_workers
+                        self.ap, config.get("f0_cache_path", None), config.num_loader_workers
                     )
 
             # halt DDP processes for the main process to finish computing the F0 cache
@@ -311,6 +318,7 @@ class BaseTTS(BaseModel):
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
         ap = assets["audio_processor"]
+        tokenizer = assets["tokenizer"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
@@ -323,6 +331,7 @@ class BaseTTS(BaseModel):
                 self.config,
                 "cuda" in str(next(self.parameters()).device),
                 ap,
+                tokenizer,
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 style_wav=aux_inputs["style_wav"],

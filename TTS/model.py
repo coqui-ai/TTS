@@ -22,10 +22,13 @@ class BaseModel(nn.Module, ABC):
 
     def __init__(self, config: Coqpit):
         super().__init__()
-        self._set_model_args(config)
 
-    def _set_model_args(self, config: Coqpit):
-        """Set model arguments from the config. Override this."""
+    @staticmethod
+    def init_from_config(config: Coqpit):
+        """Init the model from given config.
+
+        Override this depending on your model.
+        """
         pass
 
     @abstractmethod
