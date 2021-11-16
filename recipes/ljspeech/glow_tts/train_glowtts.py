@@ -71,7 +71,12 @@ model = GlowTTS(config, ap, tokenizer, speaker_manager=None)
 # Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
 # distributed training, etc.
 trainer = Trainer(
-    TrainingArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
+    TrainingArgs(),
+    config,
+    output_path,
+    model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples
 )
 
 # AND... 3,2,1... 🚀

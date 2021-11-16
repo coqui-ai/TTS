@@ -14,6 +14,7 @@ from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
+from TTS.tts.utils.text.symbols import Graphemes, make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 # pylint: skip-file
@@ -32,9 +33,7 @@ class BaseTTS(BaseModel):
         - 1D tensors `batch x 1`
     """
 
-    def __init__(
-        self, config: Coqpit, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None
-    ):
+    def __init__(self, config: Coqpit, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None):
         super().__init__(config)
         self.config = config
         self.ap = ap
@@ -292,7 +291,7 @@ class BaseTTS(BaseModel):
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
-                tokenizer=self.tokenizer,
+                tokenizer=self.tokenizer
             )
 
             # pre-compute phonemes
