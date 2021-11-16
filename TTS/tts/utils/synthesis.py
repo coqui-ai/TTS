@@ -4,34 +4,6 @@ import numpy as np
 import torch
 from torch import nn
 
-from .text import phoneme_to_sequence, text_to_sequence
-
-
-def text_to_seq(text, CONFIG, custom_symbols=None, language=None):
-    text_cleaner = [CONFIG.text_cleaner]
-    # text ot phonemes to sequence vector
-    if CONFIG.use_phonemes:
-        seq = np.asarray(
-            phoneme_to_sequence(
-                text,
-                text_cleaner,
-                language if language else CONFIG.phoneme_language,
-                CONFIG.enable_eos_bos_chars,
-                tp=CONFIG.characters,
-                add_blank=CONFIG.add_blank,
-                use_espeak_phonemes=CONFIG.use_espeak_phonemes,
-                custom_symbols=custom_symbols,
-            ),
-            dtype=np.int32,
-        )
-    else:
-        seq = np.asarray(
-            text_to_sequence(
-                text, text_cleaner, tp=CONFIG.characters, add_blank=CONFIG.add_blank, custom_symbols=custom_symbols
-            ),
-            dtype=np.int32,
-        )
-    return seq
 
 
 def numpy_to_torch(np_array, dtype, cuda=False):
@@ -143,9 +115,9 @@ def synthesis(
     CONFIG,
     use_cuda,
     ap,
+    tokenizer,
     speaker_id=None,
     style_wav=None,
-    enable_eos_bos_chars=False,  # pylint: disable=unused-argument
     use_griffin_lim=False,
     do_trim_silence=False,
     d_vector=None,
@@ -194,17 +166,17 @@ def synthesis(
     """
     # GST processing
     style_mel = None
-    custom_symbols = None
-    if style_wav:
-        style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
-    elif CONFIG.has("gst") and CONFIG.gst and not style_wav:
-        if CONFIG.gst.gst_style_input_weights:
-            style_mel = CONFIG.gst.gst_style_input_weights
-    if hasattr(model, "make_symbols"):
-        custom_symbols = model.make_symbols(CONFIG)
-    # preprocess the given text
-    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols, language=language_name)
-
+    if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
+        if isinstance(style_wav, dict):
+            style_mel = style_wav
+        else:
+            style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
+    # convert text to sequence of token IDs
+    text_inputs = np.asarray(
+        tokenizer.text_to_ids(text),
+        dtype=np.int32,
+    )
+    # pass tensors to backend
     if speaker_id is not None:
         speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
 
@@ -218,7 +190,6 @@ def synthesis(
         style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
     text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
     text_inputs = text_inputs.unsqueeze(0)
-
     # synthesize voice
     outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id)
     model_outputs = outputs["model_outputs"]
