@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from TTS.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme
-
 matplotlib.use("Agg")
 
 
@@ -95,6 +93,7 @@ def visualize(
     text,
     hop_length,
     CONFIG,
+    tokenizer,
     stop_tokens=None,
     decoder_output=None,
     output_path=None,
@@ -117,14 +116,8 @@ def visualize(
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
     # compute phoneme representation and back
     if CONFIG.use_phonemes:
-        seq = phoneme_to_sequence(
-            text,
-            [CONFIG.text_cleaner],
-            CONFIG.phoneme_language,
-            CONFIG.enable_eos_bos_chars,
-            tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
-        )
-        text = sequence_to_phoneme(seq, tp=CONFIG.characters if "characters" in CONFIG.keys() else None)
+        seq = tokenizer.text_to_ids(text)
+        text = tokenizer.ids_to_text(seq)
         print(text)
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()
