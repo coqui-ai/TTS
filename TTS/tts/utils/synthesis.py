@@ -113,11 +113,8 @@ def synthesis(
     text,
     CONFIG,
     use_cuda,
-<<<<<<< HEAD
-=======
     ap,
     tokenizer,
->>>>>>> Refactor synthesis.py for TTSTokenizer
     speaker_id=None,
     style_wav=None,
     use_griffin_lim=False,
