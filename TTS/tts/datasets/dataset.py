@@ -72,6 +72,9 @@ class TTSDataset(Dataset):
             tokenizer (TTSTokenizer): tokenizer to convert text to sequence IDs. If None init internally else
                 use the given. Defaults to None.
 
+            tokenizer (TTSTokenizer): tokenizer to convert text to sequence IDs. If None init internally else
+                use the given. Defaults to None.
+
             compute_f0 (bool): compute f0 if True. Defaults to False.
 
             f0_cache_path (str): Path to store f0 cache. Defaults to None.
@@ -201,6 +204,20 @@ class TTSDataset(Dataset):
         else:
             token_ids = self.tokenizer.text_to_ids(text)
         return np.array(token_ids, dtype=np.int32)
+
+    @staticmethod
+    def _parse_sample(item):
+        language_name = None
+        attn_file = None
+        if len(item) == 5:
+            text, wav_file, speaker_name, language_name, attn_file = item
+        elif len(item) == 4:
+            text, wav_file, speaker_name, language_name = item
+        elif len(item) == 3:
+            text, wav_file, speaker_name = item
+        else:
+            raise ValueError(" [!] Dataset cannot parse the sample.")
+        return text, wav_file, speaker_name, language_name, attn_file
 
     def load_data(self, idx):
         item = self.samples[idx]
