@@ -46,11 +46,9 @@ class GlowTTS(BaseTTS):
 
     """
 
-    def __init__(self, config: GlowTTSConfig, speaker_manager: SpeakerManager = None):
+    def __init__(self, config: GlowTTSConfig, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None):
 
-        super().__init__(config)
-
-        self.speaker_manager = speaker_manager
+        super().__init__(config, ap, tokenizer, speaker_manager)
 
         # pass all config fields to `self`
         # for fewer code change
@@ -58,7 +56,7 @@ class GlowTTS(BaseTTS):
         for key in config:
             setattr(self, key, config[key])
 
-        _, self.config, self.num_chars = self.get_characters(config)
+        self.num_chars = self.tokenizer.characters.num_chars
         self.decoder_output_dim = config.out_channels
 
         # init multi-speaker layers if necessary
@@ -448,7 +446,6 @@ class GlowTTS(BaseTTS):
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
-        ap = assets["audio_processor"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
@@ -463,7 +460,8 @@ class GlowTTS(BaseTTS):
                     sen,
                     self.config,
                     "cuda" in str(next(self.parameters()).device),
-                    ap,
+                    self.ap,
+                    self.tokenizer,
                     speaker_id=aux_inputs["speaker_id"],
                     d_vector=aux_inputs["d_vector"],
                     style_wav=aux_inputs["style_wav"],
