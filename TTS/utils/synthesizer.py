@@ -13,6 +13,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, trim_silence
+from TTS.tts.utils.text import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.models import setup_model as setup_vocoder_model
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
@@ -114,6 +115,7 @@ class Synthesizer(object):
         self.tts_config = load_config(tts_config_path)
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
+        self.tokenizer = TTSTokenizer.init_from_config(self.tts_config)
 
         speaker_manager = self._init_speaker_manager()
         language_manager = self._init_language_manager()
@@ -332,6 +334,7 @@ class Synthesizer(object):
                 CONFIG=self.tts_config,
                 use_cuda=self.use_cuda,
                 ap=self.ap,
+                tokenizer=self.tokenizer,
                 speaker_id=speaker_id,
                 language_id=language_id,
                 language_name=language_name,
