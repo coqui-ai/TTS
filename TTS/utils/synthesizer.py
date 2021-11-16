@@ -114,7 +114,8 @@ class Synthesizer(object):
 
         self.tts_config = load_config(tts_config_path)
         self.use_phonemes = self.tts_config.use_phonemes
-        self.tts_model = setup_tts_model(config=self.tts_config)
+        self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
+        self.tokenizer = TTSTokenizer.init_from_config(self.tts_config)
 
         speaker_manager = self._init_speaker_manager()
         language_manager = self._init_language_manager()
@@ -332,6 +333,8 @@ class Synthesizer(object):
                 text=sen,
                 CONFIG=self.tts_config,
                 use_cuda=self.use_cuda,
+                ap=self.ap,
+                tokenizer=self.tokenizer,
                 speaker_id=speaker_id,
                 language_id=language_id,
                 language_name=language_name,
