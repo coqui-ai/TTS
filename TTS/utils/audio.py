@@ -379,6 +379,10 @@ class AudioProcessor(object):
             self.clip_norm = None
             self.symmetric_norm = None
 
+    @staticmethod
+    def init_from_config(config: "Coqpit"):
+        return AudioProcessor(**config.audio)
+
     ### setting up the parameters ###
     def _build_mel_basis(
         self,
