@@ -11,7 +11,7 @@ from tqdm import tqdm
 from TTS.config import load_config
 from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.models import setup_model
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.tts.utils.text.characters import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_checkpoint
 

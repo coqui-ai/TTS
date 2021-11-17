@@ -32,7 +32,6 @@ class BasePhonemizer(abc.ABC):
         self._keep_puncs = keep_puncs
         self._punctuator = Punctuation(punctuations)
 
-
     def _init_language(self, language):
         """Language initialization
 
@@ -130,7 +129,7 @@ class BasePhonemizer(abc.ABC):
         phonemized = self._phonemize_postprocess(phonemized, punctuations)
         return phonemized
 
-    def print_logs(self, level: int=0):
+    def print_logs(self, level: int = 0):
         indent = "\t" * level
         print(f"{indent}| > phoneme language: {self.language}")
         print(f"{indent}| > phoneme backend: {self.name()}")
