@@ -4,7 +4,7 @@ from coqpit import Coqpit
 
 from TTS.config import load_config, register_config
 from TTS.trainer import TrainingArgs
-from TTS.tts.utils.text.symbols import parse_symbols
+from TTS.tts.utils.text.characters import parse_symbols
 from TTS.utils.generic_utils import get_experiment_folder_path, get_git_branch
 from TTS.utils.io import copy_model_files
 from TTS.utils.logging import init_dashboard_logger

@@ -2,7 +2,7 @@ from typing import Callable, Dict, List, Union
 
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.phonemizers import DEF_LANG_TO_PHONEMIZER, get_phonemizer_by_name
-from TTS.tts.utils.text.symbols import Graphemes, IPAPhonemes
+from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes
 
 
 class TTSTokenizer:
@@ -117,4 +117,6 @@ class TTSTokenizer:
             phonemizer = get_phonemizer_by_name(DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs)
         else:
             characters = Graphemes().init_from_config(config)
-        return TTSTokenizer(config.use_phonemes, text_cleaner, characters, phonemizer, config.add_blank, config.enable_eos_bos_chars)
+        return TTSTokenizer(
+            config.use_phonemes, text_cleaner, characters, phonemizer, config.add_blank, config.enable_eos_bos_chars
+        )

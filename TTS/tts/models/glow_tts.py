@@ -46,7 +46,13 @@ class GlowTTS(BaseTTS):
 
     """
 
-    def __init__(self, config: GlowTTSConfig, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None):
+    def __init__(
+        self,
+        config: GlowTTSConfig,
+        ap: "AudioProcessor",
+        tokenizer: "TTSTokenizer",
+        speaker_manager: SpeakerManager = None,
+    ):
 
         super().__init__(config, ap, tokenizer, speaker_manager)
 

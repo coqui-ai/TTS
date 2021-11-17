@@ -5,7 +5,6 @@ import torch
 from torch import nn
 
 
-
 def numpy_to_torch(np_array, dtype, cuda=False):
     if np_array is None:
         return None
