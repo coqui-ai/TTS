@@ -415,7 +415,7 @@ class TTSDataset(Dataset):
                 language_ids = None
             # get pre-computed d-vectors
             if self.d_vector_mapping is not None:
-                wav_files_names = [batch["wav_file_name"][idx] for idx in ids_sorted_decreasing]
+                wav_files_names = list(batch["wav_file_name"])
                 d_vectors = [self.d_vector_mapping[w]["embedding"] for w in wav_files_names]
             else:
                 d_vectors = None
