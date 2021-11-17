@@ -219,7 +219,7 @@ class BaseTTS(BaseModel):
                 use_phonemes=config.use_phonemes,
                 phoneme_language=config.phoneme_language,
                 enable_eos_bos=config.enable_eos_bos_chars,
-                use_noise_augment=not is_eval,
+                use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,

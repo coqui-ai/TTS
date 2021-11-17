@@ -143,7 +143,7 @@ class FastSpeechConfig(BaseTTSConfig):
     r: int = 1  # DO NOT CHANGE
 
     # dataset configs
-    compute_f0: bool = False 
+    compute_f0: bool = False
     f0_cache_path: str = None
 
     # testing
