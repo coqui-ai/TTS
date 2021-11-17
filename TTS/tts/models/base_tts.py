@@ -287,7 +287,7 @@ class BaseTTS(BaseModel):
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
-                tokenizer=self.tokenizer
+                tokenizer=self.tokenizer,
             )
 
             # wait all the DDP process to be ready
