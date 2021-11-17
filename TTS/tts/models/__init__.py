@@ -1,4 +1,4 @@
-from TTS.tts.utils.text.symbols import make_symbols, parse_symbols
+from TTS.tts.utils.text.characters import make_symbols, parse_symbols
 from TTS.utils.generic_utils import find_module
 
 
@@ -17,7 +17,7 @@ def setup_model(config, speaker_manager: "SpeakerManager" = None):
         else:
             symbols, phonemes = make_symbols(**config.characters)
     else:
-        from TTS.tts.utils.text.symbols import phonemes, symbols  # pylint: disable=import-outside-toplevel
+        from TTS.tts.utils.text.characters import phonemes, symbols  # pylint: disable=import-outside-toplevel
 
         if config.use_phonemes:
             symbols = phonemes

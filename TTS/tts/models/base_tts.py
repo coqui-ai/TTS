@@ -14,7 +14,7 @@ from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.text.symbols import Graphemes, make_symbols
+from TTS.tts.utils.text.characters import Graphemes, make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 # pylint: skip-file
@@ -33,7 +33,9 @@ class BaseTTS(BaseModel):
         - 1D tensors `batch x 1`
     """
 
-    def __init__(self, config: Coqpit, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None):
+    def __init__(
+        self, config: Coqpit, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None
+    ):
         super().__init__(config)
         self.config = config
         self.ap = ap
@@ -55,7 +57,9 @@ class BaseTTS(BaseModel):
         """
         # don't use isintance not to import recursively
         if "Config" in config.__class__.__name__:
-            num_chars = self.config.model_args.num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
+            num_chars = (
+                self.config.model_args.num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
+            )
             if "characters" in config:
                 self.config.num_chars = num_chars
                 if hasattr(self.config, "model_args"):
@@ -75,7 +79,7 @@ class BaseTTS(BaseModel):
     #     if config.characters is not None:
     #         symbols, phonemes = make_symbols(**config.characters)
     #     else:
-    #         from TTS.tts.utils.text.symbols import parse_symbols, phonemes, symbols
+    #         from TTS.tts.utils.text.characters import parse_symbols, phonemes, symbols
 
     #         if config.use_phonemes:
 
@@ -229,7 +233,7 @@ class BaseTTS(BaseModel):
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
-                tokenizer=self.tokenizer
+                tokenizer=self.tokenizer,
             )
 
             # pre-compute phonemes

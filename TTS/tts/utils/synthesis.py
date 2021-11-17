@@ -6,7 +6,6 @@ import pkg_resources
 import torch
 from torch import nn
 
-
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 installed = {pkg.key for pkg in pkg_resources.working_set}  # pylint: disable=not-an-iterable

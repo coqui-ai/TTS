@@ -12,7 +12,7 @@ from TTS.tts.models import setup_model
 from TTS.tts.tf.models.tacotron2 import Tacotron2
 from TTS.tts.tf.utils.convert_torch_to_tf_utils import compare_torch_tf, convert_tf_name, transfer_weights_torch_to_tf
 from TTS.tts.tf.utils.generic_utils import save_checkpoint
-from TTS.tts.utils.text.symbols import phonemes, symbols
+from TTS.tts.utils.text.characters import phonemes, symbols
 from TTS.utils.io import load_config, load_fsspec
 
 sys.path.append("/home/erogol/Projects")
