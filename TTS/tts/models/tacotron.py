@@ -1,29 +1,34 @@
 # coding: utf-8
 
-from typing import Dict, Tuple
-
 import torch
 from coqpit import Coqpit
 from torch import nn
+from torch.cuda.amp.autocast_mode import autocast
 
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron import Decoder, Encoder, PostCBHG
 from TTS.tts.models.base_tacotron import BaseTacotron
 from TTS.tts.utils.measures import alignment_diagonal_score
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from TTS.utils.audio import AudioProcessor
 
 
 class Tacotron(BaseTacotron):
     """Tacotron as in https://arxiv.org/abs/1703.10135
     It's an autoregressive encoder-attention-decoder-postnet architecture.
     Check `TacotronConfig` for the arguments.
+
+    Args:
+        config (TacotronConfig): Configuration for the Tacotron model.
+        speaker_manager (SpeakerManager): Speaker manager to handle multi-speaker settings. Only use if the model is
+            a multi-speaker model. Defaults to None.
     """
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
         super().__init__(config)
 
-        chars, self.config = self.get_characters(config)
+        self.speaker_manager = speaker_manager
+        chars, self.config, _ = self.get_characters(config)
         config.num_chars = self.num_chars = len(chars)
 
         # pass all config fields to `self`
@@ -243,40 +248,47 @@ class Tacotron(BaseTacotron):
         outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input)
 
         # compute loss
-        loss_dict = criterion(
-            outputs["model_outputs"],
-            outputs["decoder_outputs"],
-            mel_input,
-            linear_input,
-            outputs["stop_tokens"],
-            stop_targets,
-            stop_target_lengths,
-            mel_lengths,
-            outputs["decoder_outputs_backward"],
-            outputs["alignments"],
-            alignment_lengths,
-            outputs["alignments_backward"],
-            text_lengths,
-        )
+        with autocast(enabled=False):  # use float32 for the criterion
+            loss_dict = criterion(
+                outputs["model_outputs"].float(),
+                outputs["decoder_outputs"].float(),
+                mel_input.float(),
+                linear_input.float(),
+                outputs["stop_tokens"].float(),
+                stop_targets.float(),
+                stop_target_lengths,
+                mel_lengths,
+                None if outputs["decoder_outputs_backward"] is None else outputs["decoder_outputs_backward"].float(),
+                outputs["alignments"].float(),
+                alignment_lengths,
+                None if outputs["alignments_backward"] is None else outputs["alignments_backward"].float(),
+                text_lengths,
+            )
 
         # compute alignment error (the lower the better )
         align_error = 1 - alignment_diagonal_score(outputs["alignments"])
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
 
-    def train_log(self, ap: AudioProcessor, batch: dict, outputs: dict) -> Tuple[Dict, Dict]:
+    def _create_logs(self, batch, outputs, ap):
         postnet_outputs = outputs["model_outputs"]
+        decoder_outputs = outputs["decoder_outputs"]
         alignments = outputs["alignments"]
         alignments_backward = outputs["alignments_backward"]
         mel_input = batch["mel_input"]
+        linear_input = batch["linear_input"]
 
-        pred_spec = postnet_outputs[0].data.cpu().numpy()
-        gt_spec = mel_input[0].data.cpu().numpy()
+        pred_linear_spec = postnet_outputs[0].data.cpu().numpy()
+        pred_mel_spec = decoder_outputs[0].data.cpu().numpy()
+        gt_linear_spec = linear_input[0].data.cpu().numpy()
+        gt_mel_spec = mel_input[0].data.cpu().numpy()
         align_img = alignments[0].data.cpu().numpy()
 
         figures = {
-            "prediction": plot_spectrogram(pred_spec, ap, output_fig=False),
-            "ground_truth": plot_spectrogram(gt_spec, ap, output_fig=False),
+            "pred_linear_spec": plot_spectrogram(pred_linear_spec, ap, output_fig=False),
+            "real_linear_spec": plot_spectrogram(gt_linear_spec, ap, output_fig=False),
+            "pred_mel_spec": plot_spectrogram(pred_mel_spec, ap, output_fig=False),
+            "real_mel_spec": plot_spectrogram(gt_mel_spec, ap, output_fig=False),
             "alignment": plot_alignment(align_img, output_fig=False),
         }
 
@@ -284,11 +296,22 @@ class Tacotron(BaseTacotron):
             figures["alignment_backward"] = plot_alignment(alignments_backward[0].data.cpu().numpy(), output_fig=False)
 
         # Sample audio
-        train_audio = ap.inv_spectrogram(pred_spec.T)
-        return figures, {"audio": train_audio}
+        audio = ap.inv_spectrogram(pred_linear_spec.T)
+        return figures, {"audio": audio}
 
-    def eval_step(self, batch, criterion):
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ) -> None:  # pylint: disable=no-self-use
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, ap.sample_rate)
+
+    def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap, batch, outputs):
-        return self.train_log(ap, batch, outputs)
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)

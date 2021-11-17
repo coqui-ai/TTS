@@ -10,8 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from TTS.config import load_config
-from TTS.tts.datasets import load_meta_data
-from TTS.tts.datasets.TTSDataset import TTSDataset
+from TTS.tts.datasets import TTSDataset, load_tts_samples
 from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import get_speaker_manager
 from TTS.utils.audio import AudioProcessor
@@ -230,7 +229,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
 
     # load data instances
-    meta_data_train, meta_data_eval = load_meta_data(c.datasets, eval_split=args.eval)
+    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=args.eval)
 
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval

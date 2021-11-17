@@ -1,18 +1,15 @@
 import os
 
 from TTS.config import BaseAudioConfig, BaseDatasetConfig
-from TTS.trainer import Trainer, TrainingArgs, init_training
-from TTS.tts.configs import SpeedySpeechConfig
-from TTS.utils.manage import ModelManager
+from TTS.trainer import Trainer, TrainingArgs
+from TTS.tts.configs.speedy_speech_config import SpeedySpeechConfig
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.models.forward_tts import ForwardTTS
+from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
-
-# init configs
 dataset_config = BaseDatasetConfig(
-    name="ljspeech",
-    meta_file_train="metadata.csv",
-    # meta_file_attn_mask=os.path.join(output_path, "../LJSpeech-1.1/metadata_attn_mask.txt"),
-    path=os.path.join(output_path, "../LJSpeech-1.1/"),
+    name="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/")
 )
 
 audio_config = BaseAudioConfig(
@@ -53,16 +50,32 @@ config = SpeedySpeechConfig(
     datasets=[dataset_config],
 )
 
-# compute alignments
-if not config.model_args.use_aligner:
-    manager = ModelManager()
-    model_path, config_path, _ = manager.download_model("tts_models/en/ljspeech/tacotron2-DCA")
-    # TODO: make compute_attention python callable
-    os.system(
-        f"python TTS/bin/compute_attention_masks.py --model_path {model_path} --config_path {config_path} --dataset ljspeech --dataset_metafile metadata.csv --data_path ./recipes/ljspeech/LJSpeech-1.1/  --use_cuda true"
-    )
+# # compute alignments
+# if not config.model_args.use_aligner:
+#     manager = ModelManager()
+#     model_path, config_path, _ = manager.download_model("tts_models/en/ljspeech/tacotron2-DCA")
+#     # TODO: make compute_attention python callable
+#     os.system(
+#         f"python TTS/bin/compute_attention_masks.py --model_path {model_path} --config_path {config_path} --dataset ljspeech --dataset_metafile metadata.csv --data_path ./recipes/ljspeech/LJSpeech-1.1/  --use_cuda true"
+#     )
 
-# train the model
-args, config, output_path, _, c_logger, tb_logger = init_training(TrainingArgs(), config)
-trainer = Trainer(args, config, output_path, c_logger, tb_logger)
+# init audio processor
+ap = AudioProcessor(**config.audio.to_dict())
+
+# load training samples
+train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+
+# init model
+model = ForwardTTS(config)
+
+# init the trainer and 🚀
+trainer = Trainer(
+    TrainingArgs(),
+    config,
+    output_path,
+    model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples,
+    training_assets={"audio_processor": ap},
+)
 trainer.fit()

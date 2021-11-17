@@ -10,7 +10,7 @@ class TacotronConfig(BaseTTSConfig):
 
     Example:
 
-        >>> from TTS.tts.configs import TacotronConfig
+        >>> from TTS.tts.configs.tacotron_config import TacotronConfig
         >>> config = TacotronConfig()
 
     Args:
@@ -106,7 +106,7 @@ class TacotronConfig(BaseTTSConfig):
             Weight decay coefficient. Defaults to `1e-6`.
         grad_clip (float):
             Gradient clipping threshold. Defaults to `5`.
-        seq_len_notm (bool):
+        seq_len_norm (bool):
             enable / disable the sequnce length normalization in the loss functions. If set True, loss of a sample
             is divided by the sequence length. Defaults to False.
         loss_masking (bool):

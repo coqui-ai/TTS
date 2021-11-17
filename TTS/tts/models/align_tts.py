@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
 
 import torch
 from coqpit import Coqpit
@@ -12,8 +11,8 @@ from TTS.tts.layers.feed_forward.encoder import Encoder
 from TTS.tts.layers.generic.pos_encoding import PositionalEncoding
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, sequence_mask
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
 
 
@@ -93,7 +92,7 @@ class AlignTTS(BaseTTS):
         differently based on your requirements using ```encoder_type``` and ```decoder_type``` parameters.
 
     Examples:
-        >>> from TTS.tts.configs import AlignTTSConfig
+        >>> from TTS.tts.configs.align_tts_config import AlignTTSConfig
         >>> config = AlignTTSConfig()
         >>> model = AlignTTS(config)
 
@@ -101,9 +100,10 @@ class AlignTTS(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
 
-        super().__init__()
+        super().__init__(config)
+        self.speaker_manager = speaker_manager
         self.config = config
         self.phase = -1
         self.length_scale = (
@@ -360,9 +360,7 @@ class AlignTTS(BaseTTS):
 
         return outputs, loss_dict
 
-    def train_log(
-        self, ap: AudioProcessor, batch: dict, outputs: dict
-    ) -> Tuple[Dict, Dict]:  # pylint: disable=no-self-use
+    def _create_logs(self, batch, outputs, ap):  # pylint: disable=no-self-use
         model_outputs = outputs["model_outputs"]
         alignments = outputs["alignments"]
         mel_input = batch["mel_input"]
@@ -381,11 +379,22 @@ class AlignTTS(BaseTTS):
         train_audio = ap.inv_melspectrogram(pred_spec.T)
         return figures, {"audio": train_audio}
 
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ) -> None:  # pylint: disable=no-self-use
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, ap.sample_rate)
+
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
-        return self.train_log(ap, batch, outputs)
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        figures, audios = self._create_logs(batch, outputs, ap)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False

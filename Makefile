@@ -12,7 +12,19 @@ test_all:	## run tests and don't stop on an error.
 
 test:	## run tests.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
+
+test_vocoder:	## run vocoder tests.
+	nosetests tests.vocoder_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.vocoder_tests --nologcapture --with-id
+
+test_tts:	## run tts tests.
+	nosetests tests.tts_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.tts_tests --nologcapture --with-id
+
+test_aux:	## run aux tests.
+	nosetests tests.aux_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.aux_tests --nologcapture --with-id
 	./run_bash_tests.sh
+
+test_zoo:	## run zoo tests.
+	nosetests tests.zoo_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.zoo_tests --nologcapture --with-id
 
 test_failed:  ## only run tests failed the last time.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --failed

@@ -1,4 +1,4 @@
-name: CI
+name: zoo-tests
 
 on:
   push:
@@ -45,8 +45,5 @@ jobs:
         run: |
           python3 -m pip install .[all]
           python3 setup.py egg_info
-      - name: Lint check
-        run: |
-          make lint
       - name: Unit tests
-        run: make test
+        run: make test_zoo

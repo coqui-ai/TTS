@@ -1,4 +1,5 @@
 import math
+import random
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Dict, List, Tuple
@@ -14,10 +15,9 @@ from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlock
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
-from TTS.tts.utils.speakers import get_speaker_manager
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
-from TTS.utils.audio import AudioProcessor
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
@@ -181,6 +181,7 @@ class VitsArgs(Coqpit):
     speakers_file: str = None
     speaker_embedding_channels: int = 256
     use_d_vector_file: bool = False
+    d_vector_file: str = None
     d_vector_dim: int = 0
     detach_dp_input: bool = True
 
@@ -207,7 +208,7 @@ class Vits(BaseTTS):
     Check :class:`TTS.tts.configs.vits_config.VitsConfig` for class arguments.
 
     Examples:
-        >>> from TTS.tts.configs import VitsConfig
+        >>> from TTS.tts.configs.vits_config import VitsConfig
         >>> from TTS.tts.models.vits import Vits
         >>> config = VitsConfig()
         >>> model = Vits(config)
@@ -215,12 +216,13 @@ class Vits(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
 
-        super().__init__()
+        super().__init__(config)
 
         self.END2END = True
 
+        self.speaker_manager = speaker_manager
         if config.__class__.__name__ == "VitsConfig":
             # loading from VitsConfig
             if "num_chars" not in config:
@@ -312,31 +314,42 @@ class Vits(BaseTTS):
         if args.init_discriminator:
             self.disc = VitsDiscriminator(use_spectral_norm=args.use_spectral_norm_disriminator)
 
-    def init_multispeaker(self, config: Coqpit, data: List = None):
+    def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
         or with external `d_vectors` computed from a speaker encoder model.
-
-        If you need a different behaviour, override this function for your model.
 
         Args:
             config (Coqpit): Model configuration.
             data (List, optional): Dataset items to infer number of speakers. Defaults to None.
         """
+        self.embedded_speaker_dim = 0
         if hasattr(config, "model_args"):
             config = config.model_args
-        self.embedded_speaker_dim = 0
-        # init speaker manager
-        self.speaker_manager = get_speaker_manager(config, data=data)
-        if config.num_speakers > 0 and self.speaker_manager.num_speakers == 0:
-            self.speaker_manager.num_speakers = config.num_speakers
-        self.num_speakers = self.speaker_manager.num_speakers
-        # init speaker embedding layer
-        if config.use_speaker_embedding and not config.use_d_vector_file:
-            self.embedded_speaker_dim = config.speaker_embedding_channels
-            self.emb_g = nn.Embedding(config.num_speakers, config.speaker_embedding_channels)
-        # init d-vector usage
+
+        self.num_speakers = config.num_speakers
+
+        if config.use_speaker_embedding:
+            self._init_speaker_embedding(config)
+
         if config.use_d_vector_file:
-            self.embedded_speaker_dim = config.d_vector_dim
+            self._init_d_vector(config)
+
+    def _init_speaker_embedding(self, config):
+        # pylint: disable=attribute-defined-outside-init
+        if config.speakers_file is not None:
+            self.speaker_manager = SpeakerManager(speaker_id_file_path=config.speakers_file)
+
+        if self.num_speakers > 0:
+            print(" > initialization of speaker-embedding layers.")
+            self.embedded_speaker_dim = config.speaker_embedding_channels
+            self.emb_g = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
+
+    def _init_d_vector(self, config):
+        # pylint: disable=attribute-defined-outside-init
+        if hasattr(self, "emb_g"):
+            raise ValueError("[!] Speaker embedding layer already initialized before d_vector settings.")
+        self.speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
+        self.embedded_speaker_dim = config.d_vector_dim
 
     @staticmethod
     def _set_cond_input(aux_input: Dict):
@@ -349,6 +362,10 @@ class Vits(BaseTTS):
         if "d_vectors" in aux_input and aux_input["d_vectors"] is not None:
             g = aux_input["d_vectors"]
         return sid, g
+
+    def get_aux_input(self, aux_input: Dict):
+        sid, g = self._set_cond_input(aux_input)
+        return {"speaker_id": sid, "style_wav": None, "d_vector": g}
 
     def forward(
         self,
@@ -457,7 +474,7 @@ class Vits(BaseTTS):
 
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths)
 
-        if self.num_speakers > 0 and sid:
+        if self.num_speakers > 0 and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)
 
         if self.args.use_sdp:
@@ -576,22 +593,7 @@ class Vits(BaseTTS):
                 )
         return outputs, loss_dict
 
-    def train_log(
-        self, ap: AudioProcessor, batch: Dict, outputs: List, name_prefix="train"
-    ):  # pylint: disable=no-self-use
-        """Create visualizations and waveform examples.
-
-        For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
-        be projected onto Tensorboard.
-
-        Args:
-            ap (AudioProcessor): audio processor used at training.
-            batch (Dict): Model inputs used at the previous training step.
-            outputs (Dict): Model outputs generated at the previoud training step.
-
-        Returns:
-            Tuple[Dict, np.ndarray]: training plots and output waveform.
-        """
+    def _log(self, ap, batch, outputs, name_prefix="train"):  # pylint: disable=unused-argument,no-self-use
         y_hat = outputs[0]["model_outputs"]
         y = outputs[0]["waveform_seg"]
         figures = plot_results(y_hat, y, ap, name_prefix)
@@ -609,12 +611,32 @@ class Vits(BaseTTS):
 
         return figures, audios
 
+    def train_log(
+        self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
+    ):  # pylint: disable=no-self-use
+        """Create visualizations and waveform examples.
+
+        For example, here you can plot spectrograms and generate sample sample waveforms from these spectrograms to
+        be projected onto Tensorboard.
+
+        Args:
+            ap (AudioProcessor): audio processor used at training.
+            batch (Dict): Model inputs used at the previous training step.
+            outputs (Dict): Model outputs generated at the previoud training step.
+
+        Returns:
+            Tuple[Dict, np.ndarray]: training plots and output waveform.
+        """
+        ap = assets["audio_processor"]
+        self._log(ap, batch, outputs, "train")
+
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         return self.train_step(batch, criterion, optimizer_idx)
 
-    def eval_log(self, ap: AudioProcessor, batch: dict, outputs: dict):
-        return self.train_log(ap, batch, outputs, "eval")
+    def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+        ap = assets["audio_processor"]
+        return self._log(ap, batch, outputs, "eval")
 
     @torch.no_grad()
     def test_run(self, ap) -> Tuple[Dict, Dict]:
@@ -629,7 +651,15 @@ class Vits(BaseTTS):
         test_audios = {}
         test_figures = {}
         test_sentences = self.config.test_sentences
-        aux_inputs = self.get_aux_input()
+        aux_inputs = {
+            "speaker_id": None
+            if not self.config.use_speaker_embedding
+            else random.sample(sorted(self.speaker_manager.speaker_ids.values()), 1),
+            "d_vector": None
+            if not self.config.use_d_vector_file
+            else random.samples(sorted(self.speaker_manager.d_vectors.values()), 1),
+            "style_wav": None,
+        }
         for idx, sen in enumerate(test_sentences):
             wav, alignment, _, _ = synthesis(
                 self,
@@ -666,7 +696,7 @@ class Vits(BaseTTS):
         )
         # add the speaker embedding layer
         if hasattr(self, "emb_g"):
-            gen_parameters = chain(gen_parameters, self.emb_g)
+            gen_parameters = chain(gen_parameters, self.emb_g.parameters())
         optimizer0 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )
