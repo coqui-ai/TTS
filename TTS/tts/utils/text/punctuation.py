@@ -19,12 +19,25 @@ class PuncPosition(Enum):
 
 
 class Punctuation:
-    """Handle punctuations characters in text.
+    """Handle punctuations in text.
 
     Just strip punctuations from text or strip and restore them later.
 
     Args:
         puncs (str): The punctuations to be processed. Defaults to `_DEF_PUNCS`.
+
+    Example:
+        >>> punc = Punctuation()
+        >>> punc.strip("This is. example !")
+        'This is example'
+
+        >>> text_striped, punc_map = punc.strip_to_restore("This is. example !")
+        >>> ' '.join(text_striped)
+        'This is example'
+
+        >>> text_restored = punc.restore(text_striped, punc_map)
+        >>> text_restored[0]
+        'This is. example !'
     """
 
     def __init__(self, puncs: str = _DEF_PUNCS):
@@ -43,7 +56,7 @@ class Punctuation:
     def puncs(self, value):
         if not isinstance(value, six.string_types):
             raise ValueError("[!] Punctuations must be of type str.")
-        self._puncs = "".join(set(value))
+        self._puncs = "".join(list(dict.fromkeys(list(value))))  # remove duplicates without changing the oreder
         self.puncs_regular_exp = re.compile(fr"(\s*[{re.escape(self._puncs)}]+\s*)+")
 
     def strip(self, text):
@@ -56,7 +69,7 @@ class Punctuation:
 
             "This is. example !" -> "This is example "
         """
-        return re.sub(self.puncs_regular_exp, " ", text).strip()
+        return re.sub(self.puncs_regular_exp, " ", text).rstrip().lstrip()
 
     def strip_to_restore(self, text):
         """Remove punctuations from text to restore them later.
