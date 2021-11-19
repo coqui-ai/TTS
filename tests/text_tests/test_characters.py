@@ -1,12 +1,6 @@
 import unittest
 
-from TTS.tts.utils.text.characters import (
-    BaseCharacters,
-    IPAPhonemes,
-    Graphemes,
-    create_graphemes,
-    create_phonemes,
-)
+from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes, create_graphemes, create_phonemes
 
 
 def test_make_symbols():
@@ -16,16 +10,7 @@ def test_make_symbols():
 
 class BaseCharacterTest(unittest.TestCase):
     def setUp(self):
-        self.characters_empty = BaseCharacters(
-            "",
-            "",
-            pad="",
-            eos="",
-            bos="",
-            blank="",
-            is_unique=True,
-            is_sorted=True
-        )
+        self.characters_empty = BaseCharacters("", "", pad="", eos="", bos="", blank="", is_unique=True, is_sorted=True)
 
     def test_default_character_sets(self):
         """Test initiation of default character sets"""
@@ -41,8 +26,10 @@ class BaseCharacterTest(unittest.TestCase):
         self.characters_empty.bos = "[BOS]"
         self.characters_empty.blank = "[BLANK]"
 
-        self.assertEqual(self.characters_empty.num_chars, len(["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]))
-
+        self.assertEqual(
+            self.characters_empty.num_chars,
+            len(["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]),
+        )
 
     def test_unique_sorted(self):
         """Test if the unique and sorted option works"""
@@ -53,7 +40,10 @@ class BaseCharacterTest(unittest.TestCase):
         self.characters_empty.bos = "[BOS]"
         self.characters_empty.blank = "[BLANK]"
 
-        self.assertEqual(self.characters_empty.num_chars, len(["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]))
+        self.assertEqual(
+            self.characters_empty.num_chars,
+            len(["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]),
+        )
 
     def test_setters_getters(self):
         """Test the class setters behaves as expected"""
@@ -71,16 +61,26 @@ class BaseCharacterTest(unittest.TestCase):
 
         self.characters_empty.eos = "[EOS]"
         self.assertEqual(self.characters_empty._eos, "[EOS]")
-        self.assertEqual(self.characters_empty.vocab, ["[PAD]", "[EOS]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "])
+        self.assertEqual(
+            self.characters_empty.vocab, ["[PAD]", "[EOS]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]
+        )
 
         self.characters_empty.bos = "[BOS]"
         self.assertEqual(self.characters_empty._bos, "[BOS]")
-        self.assertEqual(self.characters_empty.vocab, ["[PAD]", "[EOS]", "[BOS]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "])
+        self.assertEqual(
+            self.characters_empty.vocab, ["[PAD]", "[EOS]", "[BOS]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]
+        )
 
         self.characters_empty.blank = "[BLANK]"
         self.assertEqual(self.characters_empty._blank, "[BLANK]")
-        self.assertEqual(self.characters_empty.vocab, ["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "])
-        self.assertEqual(self.characters_empty.num_chars, len(["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]))
+        self.assertEqual(
+            self.characters_empty.vocab,
+            ["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "],
+        )
+        self.assertEqual(
+            self.characters_empty.num_chars,
+            len(["[PAD]", "[EOS]", "[BOS]", "[BLANK]", "a", "b", "c", ".", ",", ";", ":", "!", "?", " "]),
+        )
 
         self.characters_empty.print_log()
 
@@ -124,4 +124,3 @@ class BaseCharacterTest(unittest.TestCase):
         self.assertEqual(self.characters_empty.id_to_char(11), "!")
         self.assertEqual(self.characters_empty.id_to_char(12), "?")
         self.assertEqual(self.characters_empty.id_to_char(13), " ")
-
