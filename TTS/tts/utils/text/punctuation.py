@@ -91,10 +91,13 @@ class Punctuation:
             puncs.append(_PUNC_IDX(match.group(), position))
         # convert str text to a List[str], each item is separated by a punctuation
         splitted_text = []
-        for punc in puncs:
+        for idx, punc in enumerate(puncs):
             split = text.split(punc.punc)
             prefix, suffix = split[0], punc.punc.join(split[1:])
             splitted_text.append(prefix)
+            # if the text does not end with a punctuation, add it to the last item
+            if idx == len(puncs) - 1 and len(suffix) > 0:
+                splitted_text.append(suffix)
             text = suffix
         return splitted_text, puncs
 
@@ -126,7 +129,7 @@ class Punctuation:
         current = puncs[0]
 
         if current.position == PuncPosition.BEGIN:
-            return cls._restore([current.mark + text[0]] + text[1:], puncs[1:], num)
+            return cls._restore([current.punc + text[0]] + text[1:], puncs[1:], num)
 
         if current.position == PuncPosition.END:
             return [text[0] + current.punc] + cls._restore(text[1:], puncs[1:], num + 1)

@@ -1,8 +1,8 @@
 from typing import Callable, Dict, List, Union
 
 from TTS.tts.utils.text import cleaners
-from TTS.tts.utils.text.phonemizers import DEF_LANG_TO_PHONEMIZER, get_phonemizer_by_name
 from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes
+from TTS.tts.utils.text.phonemizers import DEF_LANG_TO_PHONEMIZER, get_phonemizer_by_name
 
 
 class TTSTokenizer:
