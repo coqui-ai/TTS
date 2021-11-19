@@ -74,36 +74,36 @@ phonemes = create_phonemes(_phonemes, _punctuations, _pad, _eos, _bos, _blank)
 class BaseCharacters:
     """🐸BaseCharacters class
 
-    Every new character class should inherit from this.
+        Every new character class should inherit from this.
 
-    Characters are oredered as follows ```[PAD, EOS, BOS, BLANK, CHARACTERS, PUNCTUATIONS]```.
+        Characters are oredered as follows ```[PAD, EOS, BOS, BLANK, CHARACTERS, PUNCTUATIONS]```.
 
-    If you need a custom order, you need to define inherit from this class and override the ```_create_vocab``` method.
+        If you need a custom order, you need to define inherit from this class and override the ```_create_vocab``` method.
 
-    Args:
-        characters (str):
-            Main set of characters to be used in the vocabulary.
+        Args:
+            characters (str):
+                Main set of characters to be used in the vocabulary.
 
-        punctuations (str):
-            Characters to be treated as punctuation.
+            punctuations (str):
+                Characters to be treated as punctuation.
 
-        pad (str):
-            Special padding character that would be ignored by the model.
+            pad (str):
+                Special padding character that would be ignored by the model.
 
-        eos (str):
-            End of the sentence character.
+            eos (str):
+                End of the sentence character.
 
-        bos (str):
-            Beginning of the sentence character.
+            bos (str):
+                Beginning of the sentence character.
 
-        blank (str):
-            Optional character used between characters by some models for better prosody.
+            blank (str):
+                Optional character used between characters by some models for better prosody.
 
-        is_unique (bool):
-            Remove duplicates from the provided characters. Defaults to True.
-el
-        is_sorted (bool):
-            Sort the characters in alphabetical order. Only applies to `self.characters`. Defaults to True.
+            is_unique (bool):
+                Remove duplicates from the provided characters. Defaults to True.
+    el
+            is_sorted (bool):
+                Sort the characters in alphabetical order. Only applies to `self.characters`. Defaults to True.
     """
 
     def __init__(
@@ -196,10 +196,10 @@ el
         if self.is_sorted:
             _vocab = sorted(_vocab)
         _vocab = list(_vocab)
-        _vocab = [self._blank] + _vocab if self._blank is not None and len(self._blank) > 0  else _vocab
-        _vocab = [self._bos] + _vocab if self._bos is not None and len(self._bos) > 0  else _vocab
-        _vocab = [self._eos] + _vocab if self._eos is not None and len(self._eos) > 0  else _vocab
-        _vocab = [self._pad] + _vocab if self._pad is not None and len(self._pad) > 0  else _vocab
+        _vocab = [self._blank] + _vocab if self._blank is not None and len(self._blank) > 0 else _vocab
+        _vocab = [self._bos] + _vocab if self._bos is not None and len(self._bos) > 0 else _vocab
+        _vocab = [self._eos] + _vocab if self._eos is not None and len(self._eos) > 0 else _vocab
+        _vocab = [self._pad] + _vocab if self._pad is not None and len(self._pad) > 0 else _vocab
         self._vocab = _vocab + list(self._punctuations)
         self._char_to_id = {char: idx for idx, char in enumerate(self.vocab)}
         self._id_to_char = {idx: char for idx, char in enumerate(self.vocab)}
@@ -214,7 +214,7 @@ el
     def id_to_char(self, idx: int) -> str:
         return self._id_to_char[idx]
 
-    def print_log(self, level:int=0):
+    def print_log(self, level: int = 0):
         """
         Prints the vocabulary in a nice format.
         """
