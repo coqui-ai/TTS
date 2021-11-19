@@ -21,6 +21,14 @@ class TTSTokenizer:
         phonemizer (Phonemizer):
             A phonemizer object or a dict that maps language codes to phonemizer objects. Defaults to None.
 
+    Example:
+
+        >>> from TTS.tts.utils.text.tokenizer import TTSTokenizer
+        >>> tokenizer = TTSTokenizer(use_phonemes=False, characters=Graphemes())
+        >>> text = "Hello world!"
+        >>> ids = tokenizer.text_to_ids(text)
+        >>> text_hat = tokenizer.ids_to_text(ids)
+        >>> assert text == text_hat
     """
 
     def __init__(
@@ -89,21 +97,22 @@ class TTSTokenizer:
         return [self.characters.bos] + list(char_sequence) + [self.characters.eos]
 
     def intersperse_blank_char(self, char_sequence: List[str], use_blank_char: bool = False):
-        char_to_use = self.characters.blank_char if use_blank_char else self.characters.pad
+        char_to_use = self.characters.blank if use_blank_char else self.characters.pad
         result = [char_to_use] * (len(char_sequence) * 2 + 1)
         result[1::2] = char_sequence
         return result
 
-    def print_logs(self, level: int = 1):
+    def print_logs(self, level: int = 0):
         indent = "\t" * level
         print(f"{indent}| > add_blank: {self.use_phonemes}")
         print(f"{indent}| > use_eos_bos: {self.use_phonemes}")
         print(f"{indent}| > use_phonemes: {self.use_phonemes}")
-        print(f"{indent}| > phonemizer: {self.phonemizer.print_logs(level + 1)}")
+        if self.use_phonemes:
+            print(f"{indent}| > phonemizer: {self.phonemizer.print_logs(level + 1)}")
 
     @staticmethod
     def init_from_config(config: "Coqpit"):
-        """Init Tokenizer object from the config.
+        """Init Tokenizer object from config
 
         Args:
             config (Coqpit): Coqpit model config.
