@@ -66,6 +66,14 @@ class ESpeak(BasePhonemizer):
 
         keep_puncs (bool):
             If True, keep the punctuations after phonemization. Defaults to True.
+
+    Example:
+
+        >>> from TTS.tts.utils.text.phonemizers import ESpeak
+        >>> phonemizer = ESpeak("tr")
+        >>> phonemizer.phonemize("Bu Türkçe, bir örnektir.", separator="|")
+        'b|ʊ t|ˈø|r|k|tʃ|ɛ, b|ɪ|r œ|r|n|ˈɛ|c|t|ɪ|r.'
+
     """
 
     _ESPEAK_LIB = _DEF_ESPEAK_LIB
@@ -140,14 +148,14 @@ class ESpeak(BasePhonemizer):
             count += 1
         return langs
 
-    def version(self):
+    def version(self) -> str:
         """Get the version of the used backend.
 
         Returns:
             str: Version of the used backend.
         """
         args = ["--version"]
-        for line in self._espeak_exe(args, sync=True):
+        for line in _espeak_exe(_DEF_ESPEAK_LIB, args, sync=True):
             version = line.decode("utf8").strip().split()[2]
             logging.debug("line: %s" % repr(line))
             return version
