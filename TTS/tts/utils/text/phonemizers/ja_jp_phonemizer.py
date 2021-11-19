@@ -24,7 +24,7 @@ class JA_JP_Phonemizer(BasePhonemizer):
         >>> from TTS.tts.utils.text.phonemizers import JA_JP_Phonemizer
         >>> phonemizer = JA_JP_Phonemizer()
         >>> phonemizer.phonemize("どちらに行きますか？", separator="|")
-        d|o|c|h|i|r|a|n|i|i|k|i|m|a|s|u|k|a|?
+        'd|o|c|h|i|r|a|n|i|i|k|i|m|a|s|u|k|a|?'
 
     """
 
