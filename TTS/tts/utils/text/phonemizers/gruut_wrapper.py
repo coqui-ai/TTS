@@ -30,6 +30,13 @@ class Gruut(BasePhonemizer):
 
         keep_stress (bool):
             If true, keep the stress characters after phonemization. Defaults to False.
+
+    Example:
+
+        >>> from TTS.tts.utils.text.phonemizers.gruut_wrapper import Gruut
+        >>> phonemizer = Gruut('en-us')
+        >>> phonemizer.phonemize("Be a voice, not an! echo?", separator="|")
+        'b|i| ə| v|ɔ|ɪ|s, n|ɑ|t| ə|n! ɛ|k|o|ʊ?'
     """
 
     def __init__(
