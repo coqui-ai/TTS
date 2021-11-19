@@ -92,8 +92,12 @@ class BasePhonemizer(abc.ABC):
     def _phonemize_preprocess(self, text) -> Tuple[List[str], List]:
         """Preprocess the text before phonemization
 
+        1. remove spaces
+        2. remove punctuation
+
         Override this if you need a different behaviour
         """
+        text = text.strip()
         if self._keep_puncs:
             # a tuple (text, punctuation marks)
             return self._punctuator.strip_to_restore(text)
