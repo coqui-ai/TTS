@@ -154,6 +154,6 @@ class VitsConfig(BaseTTSConfig):
     d_vector_dim: int = None
 
     def __post_init__(self):
-        for key in self.model_args.keys():
+        for key, val in self.model_args.items():
             if hasattr(self, key):
-                self[key] = self.model_args[key]
+                self[key] = val
