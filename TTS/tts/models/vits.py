@@ -491,7 +491,7 @@ class Vits(BaseTTS):
         sid, g, lid = self._set_cond_input(aux_input)
         return {"speaker_id": sid, "style_wav": None, "d_vector": g, "language_id": lid}
 
-    def get_aux_input_from_test_setences(self, sentence_info):
+    def get_aux_input_from_test_sentences(self, sentence_info):
         if hasattr(self.config, "model_args"):
             config = self.config.model_args
         else:
@@ -907,7 +907,7 @@ class Vits(BaseTTS):
         test_sentences = self.config.test_sentences
         for idx, s_info in enumerate(test_sentences):
             try:
-                aux_inputs = self.get_aux_input_from_test_setences(s_info)
+                aux_inputs = self.get_aux_input_from_test_sentences(s_info)
                 wav, alignment, _, _ = synthesis(
                     self,
                     aux_inputs["text"],
