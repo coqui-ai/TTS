@@ -176,6 +176,7 @@ class ResNetSpeakerEncoder(nn.Module):
     def forward(self, x, l2_norm=False):
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
+                # if you torch spec compute it otherwise use the mel spec computed by the AP
                 if self.use_torch_spec:
                     x = self.torch_spec(x)
                 else:

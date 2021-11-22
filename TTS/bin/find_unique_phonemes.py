@@ -7,7 +7,7 @@ from tqdm.contrib.concurrent import process_map
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.text import text2phone, phoneme_to_sequence
+from TTS.tts.utils.text import text2phone
 
 
 def compute_phonemes(item):
@@ -19,8 +19,8 @@ def compute_phonemes(item):
         return []
     return list(set(ph))
 
-
 def main():
+    # pylint: disable=W0601
     global c
     # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
