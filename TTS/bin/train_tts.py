@@ -48,16 +48,15 @@ def main():
     if config.use_speaker_embedding:
         speaker_manager = SpeakerManager(data_items=train_samples + eval_samples)
         if hasattr(config, "model_args"):
-            config.model_args.num_speakers = len(speaker_manager.speaker_ids)
+            config.model_args.num_speakers = speaker_manager.num_speakers
         else:
-            config.num_speakers = len(speaker_manager.speaker_ids)
-        
+            config.num_speakers = speaker_manager.num_speakers
     elif config.use_d_vector_file:
         speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
         if hasattr(config, "model_args"):
-            config.model_args.num_speakers = len(speaker_manager.speaker_ids)
+            config.model_args.num_speakers = speaker_manager.num_speakers
         else:
-            config.num_speakers = len(speaker_manager.speaker_ids)
+            config.num_speakers = speaker_manager.num_speakers
     else:
         speaker_manager = None
 
