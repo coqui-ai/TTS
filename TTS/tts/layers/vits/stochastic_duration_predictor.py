@@ -185,9 +185,13 @@ class StochasticDurationPredictor(nn.Module):
         dropout_p: float,
         num_flows=4,
         cond_channels=0,
-        language_emb_dim=None,
+        language_emb_dim=0,
     ):
         super().__init__()
+
+        # add language embedding dim in the input
+        if language_emb_dim:
+            in_channels += language_emb_dim
 
         # condition encoder text
         self.pre = nn.Conv1d(in_channels, hidden_channels, 1)

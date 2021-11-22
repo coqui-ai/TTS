@@ -20,6 +20,11 @@ class DurationPredictor(nn.Module):
 
     def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p, cond_channels=None, language_emb_dim=None):
         super().__init__()
+
+        # add language embedding dim in the input
+        if language_emb_dim:
+            in_channels += language_emb_dim
+
         # class arguments
         self.in_channels = in_channels
         self.filter_channels = hidden_channels
