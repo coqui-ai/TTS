@@ -53,9 +53,15 @@ config.audio.trim_db = 60
 
 # active multilingual mode
 config.model_args.use_language_embedding = True
+config.use_language_embedding = True
 # active multispeaker mode
 config.model_args.use_speaker_embedding = True
+config.use_speaker_embedding = True
+# config.num_speakers=1
+# config.model_args.num_speakers=1
+
 config.model_args.use_d_vector_file = False
+config.use_d_vector_file = False
 # active language sampler
 config.use_language_weighted_sampler = True
 
