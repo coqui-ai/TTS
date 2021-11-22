@@ -96,6 +96,8 @@ def load_tts_samples(
                 for idx, ins in enumerate(meta_data_eval_all):
                     attn_file = meta_data[ins[1]].strip()
                     meta_data_eval_all[idx].append(attn_file)
+
+        # set none for the next iter
         formatter = None
     return meta_data_train_all, meta_data_eval_all
 

@@ -93,13 +93,13 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
 
     ```bash
     CUDA_VISIBLE_DEVICES="0" python recipes/ljspeech/glow_tts/train_glowtts.py \
-        --restore_path  /home/ubuntu/.local/share/tts/tts_models--en--ljspeech--glow-tts
+        --restore_path  /home/ubuntu/.local/share/tts/tts_models--en--ljspeech--glow-tts/model_file.pth.tar
     ```
 
     ```bash
     CUDA_VISIBLE_DEVICES="0" python TTS/bin/train_tts.py \
         --config_path  /home/ubuntu/.local/share/tts/tts_models--en--ljspeech--glow-tts/config.json \
-        --restore_path  /home/ubuntu/.local/share/tts/tts_models--en--ljspeech--glow-tts
+        --restore_path  /home/ubuntu/.local/share/tts/tts_models--en--ljspeech--glow-tts/model_file.pth.tar
     ```
 
     As stated above, you can also use command-line arguments to change the model configuration.
@@ -107,7 +107,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
 
     ```bash
     CUDA_VISIBLE_DEVICES="0" python recipes/ljspeech/glow_tts/train_glowtts.py \
-        --restore_path  /home/ubuntu/.local/share/tts/tts_models--en--ljspeech--glow-tts
+        --restore_path  /home/ubuntu/.local/share/tts/tts_models--en--ljspeech--glow-tts/model_file.pth.tar
         --coqpit.run_name "glow-tts-finetune" \
         --coqpit.lr 0.00001
     ```
