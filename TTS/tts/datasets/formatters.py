@@ -59,7 +59,7 @@ def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argume
     return items
 
 
-def mailabs(root_path, meta_files=None, ununsed_speakers=None):
+def mailabs(root_path, meta_files=None, ignored_speakers=None):
     """Normalizes M-AI-Labs meta data files to TTS format
 
     Args:
@@ -88,8 +88,8 @@ def mailabs(root_path, meta_files=None, ununsed_speakers=None):
             continue
         speaker_name = speaker_name_match.group("speaker_name")
         # ignore speakers
-        if isinstance(ununsed_speakers, list):
-            if speaker_name in ununsed_speakers:
+        if isinstance(ignored_speakers, list):
+            if speaker_name in ignored_speakers:
                 continue
         print(" | > {}".format(csv_file))
         with open(txt_file, "r", encoding="utf-8") as ttf:
@@ -197,7 +197,7 @@ def nancy(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     return items
 
 
-def common_voice(root_path, meta_file, ununsed_speakers=None):
+def common_voice(root_path, meta_file, ignored_speakers=None):
     """Normalize the common voice meta data file to TTS format."""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -209,15 +209,15 @@ def common_voice(root_path, meta_file, ununsed_speakers=None):
             text = cols[2]
             speaker_name = cols[0]
             # ignore speakers
-            if isinstance(ununsed_speakers, list):
-                if speaker_name in ununsed_speakers:
+            if isinstance(ignored_speakers, list):
+                if speaker_name in ignored_speakers:
                     continue
             wav_file = os.path.join(root_path, "clips", cols[1].replace(".mp3", ".wav"))
             items.append([text, wav_file, "MCV_" + speaker_name])
     return items
 
 
-def libri_tts(root_path, meta_files=None, ununsed_speakers=None):
+def libri_tts(root_path, meta_files=None, ignored_speakers=None):
     """https://ai.google/tools/datasets/libri-tts/"""
     items = []
     if not meta_files:
@@ -237,8 +237,8 @@ def libri_tts(root_path, meta_files=None, ununsed_speakers=None):
                 wav_file = os.path.join(_root_path, file_name + ".wav")
                 text = cols[2]
                 # ignore speakers
-                if isinstance(ununsed_speakers, list):
-                    if speaker_name in ununsed_speakers:
+                if isinstance(ignored_speakers, list):
+                    if speaker_name in ignored_speakers:
                         continue
                 items.append([text, wav_file, "LTTS_" + speaker_name])
     for item in items:
@@ -265,7 +265,7 @@ def custom_turkish(root_path, meta_file, **kwargs):  # pylint: disable=unused-ar
 
 
 # ToDo: add the dataset link when the dataset is released publicly
-def brspeech(root_path, meta_file, ununsed_speakers=None):
+def brspeech(root_path, meta_file, ignored_speakers=None):
     """BRSpeech 3.0 beta"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
@@ -278,14 +278,14 @@ def brspeech(root_path, meta_file, ununsed_speakers=None):
             text = cols[2]
             speaker_id = cols[3]
             # ignore speakers
-            if isinstance(ununsed_speakers, list):
-                if speaker_id in ununsed_speakers:
+            if isinstance(ignored_speakers, list):
+                if speaker_id in ignored_speakers:
                     continue
             items.append([text, wav_file, speaker_id])
     return items
 
 
-def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
+def vctk(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
     meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
@@ -293,8 +293,8 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
         _, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
         file_id = txt_file.split(".")[0]
         # ignore speakers
-        if isinstance(ununsed_speakers, list):
-            if speaker_id in ununsed_speakers:
+        if isinstance(ignored_speakers, list):
+            if speaker_id in ignored_speakers:
                 continue
         with open(meta_file, "r", encoding="utf-8") as file_text:
             text = file_text.readlines()[0]
@@ -304,7 +304,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):
     return items
 
 
-def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=None):  # pylint: disable=unused-argument
+def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):  # pylint: disable=unused-argument
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
     txt_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
@@ -312,8 +312,8 @@ def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=No
         _, speaker_id, txt_file = os.path.relpath(text_file, root_path).split(os.sep)
         file_id = txt_file.split(".")[0]
         # ignore speakers
-        if isinstance(ununsed_speakers, list):
-            if speaker_id in ununsed_speakers:
+        if isinstance(ignored_speakers, list):
+            if speaker_id in ignored_speakers:
                 continue
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
         items.append([None, wav_file, "VCTK_" + speaker_id])
@@ -321,7 +321,7 @@ def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ununsed_speakers=No
     return items
 
 
-def mls(root_path, meta_files=None, ununsed_speakers=None):
+def mls(root_path, meta_files=None, ignored_speakers=None):
     """http://www.openslr.org/94/"""
     items = []
     with open(os.path.join(root_path, meta_files), "r", encoding="utf-8") as meta:
@@ -331,8 +331,8 @@ def mls(root_path, meta_files=None, ununsed_speakers=None):
             speaker, book, *_ = file.split("_")
             wav_file = os.path.join(root_path, os.path.dirname(meta_files), "audio", speaker, book, file + ".wav")
             # ignore speakers
-            if isinstance(ununsed_speakers, list):
-                if speaker in ununsed_speakers:
+            if isinstance(ignored_speakers, list):
+                if speaker in ignored_speakers:
                     continue
             items.append([text, wav_file, "MLS_" + speaker])
     return items
