@@ -198,7 +198,7 @@ class BaseDatasetConfig(Coqpit):
     name: str = ""
     path: str = ""
     meta_file_train: str = ""
-    ununsed_speakers: List[str] = None
+    ignored_speakers: List[str] = None
     language: str = ""
     meta_file_val: str = ""
     meta_file_attn_mask: str = ""
