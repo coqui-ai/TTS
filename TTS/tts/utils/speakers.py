@@ -194,20 +194,6 @@ class SpeakerManager:
         """
         return [x["embedding"] for x in self.d_vectors.values() if x["name"] == speaker_idx]
 
-    def get_d_vector_by_speaker(self, speaker_idx: str) -> np.ndarray:
-        """Get a d_vector of a speaker.
-
-        Args:
-            speaker_idx (str): Target speaker ID.
-
-        Returns:
-            np.ndarray: d_vector.
-        """
-        for x in self.d_vectors.values():
-            if x["name"] == speaker_idx:
-                return x["embedding"]
-        return None
-
     def get_mean_d_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False) -> np.ndarray:
         """Get mean d_vector of a speaker ID.
 

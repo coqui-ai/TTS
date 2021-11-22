@@ -519,7 +519,7 @@ class Vits(BaseTTS):
                 if speaker_name is None:
                     d_vector = self.speaker_manager.get_random_d_vector()
                 else:
-                    d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
+                    d_vector = self.speaker_manager.get_mean_d_vector(speaker_name, num_samples=1, randomize=False)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_speaker_id()
