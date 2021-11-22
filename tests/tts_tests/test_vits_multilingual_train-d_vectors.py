@@ -42,8 +42,8 @@ config = VitsConfig(
     print_step=1,
     print_eval=True,
     test_sentences=[
-        ["Be a voice, not an echo.", "ljspeech", None, "en"],
-        ["Be a voice, not an echo.", "ljspeech", None, "en2"],
+        ["Be a voice, not an echo.", "ljspeech-0", None, "en"],
+        ["Be a voice, not an echo.", "ljspeech-1", None, "en2"],
     ],
     datasets=[dataset_config1, dataset_config2],
 )
@@ -54,20 +54,25 @@ config.audio.trim_db = 60
 # active multilingual mode
 config.model_args.use_language_embedding = True
 config.use_language_embedding = True
-# active multispeaker mode
-config.model_args.use_speaker_embedding = True
-config.use_speaker_embedding = True
 
-# deactivate multispeaker d-vec mode
-config.model_args.use_d_vector_file = False
-config.use_d_vector_file = False
+# deactivate multispeaker mode
+config.model_args.use_speaker_embedding = False
+config.use_speaker_embedding = False
+
+# active multispeaker d-vec mode
+config.model_args.use_d_vector_file = True
+config.use_d_vector_file = True
+config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
+config.d_vector_file = "tests/data/ljspeech/speakers.json"
+config.model_args.d_vector_dim = 256
+config.d_vector_dim = 256
 
 # duration predictor
-config.model_args.use_sdp = False
-config.use_sdp = False
+config.model_args.use_sdp = True
+config.use_sdp = True
 
-# active language sampler
-config.use_language_weighted_sampler = True
+# deactivate language sampler
+config.use_language_weighted_sampler = False
 
 config.save_json(config_path)
 
