@@ -26,7 +26,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def copy_model_files(config: Coqpit, out_path, new_fields):
+def copy_model_files(config: Coqpit, out_path, new_fields=None):
     """Copy config.json and other model files to training folder and add
     new fields.
 

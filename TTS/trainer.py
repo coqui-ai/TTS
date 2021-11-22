@@ -202,7 +202,7 @@ class Trainer:
             os.makedirs(output_path, exist_ok=True)
 
         # copy training assets to the output folder
-        copy_model_files(config, output_path, new_fields=None)
+        copy_model_files(config, output_path)
 
         # init class members
         self.args = args
@@ -274,7 +274,7 @@ class Trainer:
                 self.config.num_languages = self.model.language_manager.num_languages
 
             # update config file
-            copy_model_files(self.config, self.output_path, None)
+            copy_model_files(self.config, self.output_path)
 
         # setup criterion
         self.criterion = self.get_criterion(self.model)
