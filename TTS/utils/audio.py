@@ -32,6 +32,9 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         use_mel=False,
         do_amp_to_db=False,
         spec_gain=1.0,
+        power=None,
+        use_htk=False,
+        mel_norm="slaney"
     ):
         super().__init__()
         self.n_fft = n_fft
@@ -45,6 +48,9 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         self.use_mel = use_mel
         self.do_amp_to_db = do_amp_to_db
         self.spec_gain = spec_gain
+        self.power = power
+        self.use_htk = use_htk
+        self.mel_norm = mel_norm
         self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
         self.mel_basis = None
         if use_mel:
@@ -83,6 +89,10 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         M = o[:, :, :, 0]
         P = o[:, :, :, 1]
         S = torch.sqrt(torch.clamp(M ** 2 + P ** 2, min=1e-8))
+
+        if self.power is not None:
+            S = S ** self.power
+
         if self.use_mel:
             S = torch.matmul(self.mel_basis.to(x), S)
         if self.do_amp_to_db:
@@ -91,7 +101,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
 
     def _build_mel_basis(self):
         mel_basis = librosa.filters.mel(
-            self.sample_rate, self.n_fft, n_mels=self.n_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
+            self.sample_rate, self.n_fft, n_mels=self.n_mels, fmin=self.mel_fmin, fmax=self.mel_fmax, htk=self.use_htk, norm=self.mel_norm
         )
         self.mel_basis = torch.from_numpy(mel_basis).float()
 

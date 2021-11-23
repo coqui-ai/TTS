@@ -27,4 +27,3 @@ gruut[cs,de,es,fr,it,nl,pt,ru,sv]~=2.0.0
 fsspec>=2021.04.0
 webrtcvad
 pyworld
-torchaudio>=0.7
