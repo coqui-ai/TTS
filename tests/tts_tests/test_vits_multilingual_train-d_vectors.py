@@ -10,7 +10,7 @@ config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
-dataset_config1 = BaseDatasetConfig(
+dataset_config_en = BaseDatasetConfig(
     name="ljspeech",
     meta_file_train="metadata.csv",
     meta_file_val="metadata.csv",
@@ -18,12 +18,12 @@ dataset_config1 = BaseDatasetConfig(
     language="en",
 )
 
-dataset_config2 = BaseDatasetConfig(
+dataset_config_pt = BaseDatasetConfig(
     name="ljspeech",
     meta_file_train="metadata.csv",
     meta_file_val="metadata.csv",
     path="tests/data/ljspeech",
-    language="en2",
+    language="pt-br",
 )
 
 config = VitsConfig(
@@ -43,9 +43,9 @@ config = VitsConfig(
     print_eval=True,
     test_sentences=[
         ["Be a voice, not an echo.", "ljspeech-0", None, "en"],
-        ["Be a voice, not an echo.", "ljspeech-1", None, "en2"],
+        ["Be a voice, not an echo.", "ljspeech-1", None, "pt-br"],
     ],
-    datasets=[dataset_config1, dataset_config2],
+    datasets=[dataset_config_en, dataset_config_pt],
 )
 # set audio config
 config.audio.do_trim_silence = True
