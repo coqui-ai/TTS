@@ -4,7 +4,7 @@ from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
-import torchaudio
+# import torchaudio
 from coqpit import Coqpit
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
@@ -395,7 +395,7 @@ class Vits(BaseTTS):
         if config.use_speaker_encoder_as_loss:
             if not config.speaker_encoder_model_path or not config.speaker_encoder_config_path:
                 raise RuntimeError(
-                    " [!] To use the speaker encoder loss you need to specify speaker_encoder_model_path and speaker_encoder_config_path !!"
+                    " [!] To use the speaker consistency loss (SCL) you need to specify speaker_encoder_model_path and speaker_encoder_config_path !!"
                 )
             self.speaker_manager.init_speaker_encoder(
                 config.speaker_encoder_model_path, config.speaker_encoder_config_path
@@ -410,14 +410,17 @@ class Vits(BaseTTS):
                 hasattr(self.speaker_encoder, "audio_config")
                 and self.audio_config["sample_rate"] != self.speaker_encoder.audio_config["sample_rate"]
             ):
-                self.audio_transform = torchaudio.transforms.Resample(
+                raise RuntimeError(
+                    " [!] To use the speaker consistency loss (SCL) you need to have the TTS model sampling rate ({})  equal to the speaker encoder sampling rate ({}) !".format(self.audio_config["sample_rate"], self.speaker_encoder.audio_config["sample_rate"])
+                )
+                '''self.audio_transform = torchaudio.transforms.Resample(
                     orig_freq=self.audio_config["sample_rate"],
                     new_freq=self.speaker_encoder.audio_config["sample_rate"],
-                )
-            else:
-                self.audio_transform = None
+                    )
+                else:
+                    self.audio_transform = None'''
         else:
-            self.audio_transform = None
+            # self.audio_transform = None
             self.speaker_encoder = None
 
     def _init_speaker_embedding(self, config):
@@ -655,8 +658,8 @@ class Vits(BaseTTS):
             wavs_batch = torch.cat((wav_seg, o), dim=0).squeeze(1)
 
             # resample audio to speaker encoder sample_rate
-            if self.audio_transform is not None:
-                wavs_batch = self.audio_transform(wavs_batch)
+            '''if self.audio_transform is not None:
+                wavs_batch = self.audio_transform(wavs_batch)'''
 
             pred_embs = self.speaker_encoder.forward(wavs_batch, l2_norm=True)
 
