@@ -410,7 +410,8 @@ class Vits(BaseTTS):
                 and self.config.audio["sample_rate"] != self.speaker_encoder.audio_config["sample_rate"]
             ):
                 raise RuntimeError(
-                    " [!] To use the speaker consistency loss (SCL) you need to have the TTS model sampling rate ({})  equal to the speaker encoder sampling rate ({}) !".format(self.audio_config["sample_rate"], self.speaker_encoder.audio_config["sample_rate"])
+                    ' [!] To use the speaker consistency loss (SCL) you need to have matching sample rates between the TTS model ({}) and the speaker encoder ({})!'
+                        .format(self.config.audio["sample_rate"], self.speaker_encoder.audio_config["sample_rate"])
                 )
                 # pylint: disable=W0101,W0105
                 """ self.audio_transform = torchaudio.transforms.Resample(
