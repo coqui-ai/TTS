@@ -167,6 +167,20 @@ class VitsArgs(Coqpit):
         speaker_encoder_model_path (str):
             Path to the file speaker encoder checkpoint file, to use for SCL. Defaults to "".
 
+        freeze_encoder (bool):
+            Freeze the encoder weigths during training. Defaults to False.
+
+        freeze_DP (bool):
+            Freeze the duration predictor weigths during training. Defaults to False.
+
+        freeze_PE (bool):
+            Freeze the posterior encoder weigths during training. Defaults to False.
+
+        freeze_flow_encoder (bool):
+            Freeze the flow encoder weigths during training. Defaults to False.
+
+        freeze_waveform_decoder (bool):
+            Freeze the waveform decoder weigths during training. Defaults to False.
     """
 
     num_chars: int = 100
@@ -535,7 +549,8 @@ class Vits(BaseTTS):
             x_lengths (torch.tensor): Batch of input character sequence lengths.
             y (torch.tensor): Batch of input spectrograms.
             y_lengths (torch.tensor): Batch of input spectrogram lengths.
-            aux_input (dict, optional): Auxiliary inputs for multi-speaker training. Defaults to {"d_vectors": None, "speaker_ids": None}.
+            aux_input (dict, optional): Auxiliary inputs for multi-speaker and multi-lingual training. 
+                Defaults to {"d_vectors": None, "speaker_ids": None, "language_ids": None}.
 
         Returns:
             Dict: model outputs keyed by the output name.
@@ -547,6 +562,7 @@ class Vits(BaseTTS):
             - y_lengths: :math:`[B]`
             - d_vectors: :math:`[B, C, 1]`
             - speaker_ids: :math:`[B]`
+            - language_ids: :math:`[B]`
         """
         outputs = {}
         sid, g, lid = self._set_cond_input(aux_input)
