@@ -569,7 +569,7 @@ class Vits(BaseTTS):
             x_lengths (torch.tensor): Batch of input character sequence lengths.
             y (torch.tensor): Batch of input spectrograms.
             y_lengths (torch.tensor): Batch of input spectrogram lengths.
-            aux_input (dict, optional): Auxiliary inputs for multi-speaker and multi-lingual training. 
+            aux_input (dict, optional): Auxiliary inputs for multi-speaker and multi-lingual training.
                 Defaults to {"d_vectors": None, "speaker_ids": None, "language_ids": None}.
 
         Returns:
@@ -592,7 +592,7 @@ class Vits(BaseTTS):
 
         # language embedding
         lang_emb = None
-        if self.args.use_language_embedding and lid is not None:
+        if hasattr(self, "emb_l"):
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
