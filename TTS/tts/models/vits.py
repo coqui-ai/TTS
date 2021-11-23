@@ -411,12 +411,14 @@ class Vits(BaseTTS):
                 raise RuntimeError(
                     " [!] To use the speaker consistency loss (SCL) you need to have the TTS model sampling rate ({})  equal to the speaker encoder sampling rate ({}) !".format(self.audio_config["sample_rate"], self.speaker_encoder.audio_config["sample_rate"])
                 )
-                '''self.audio_transform = torchaudio.transforms.Resample(
-                    orig_freq=self.audio_config["sample_rate"],
-                    new_freq=self.speaker_encoder.audio_config["sample_rate"],
-                    )
-                else:
-                    self.audio_transform = None'''
+                # pylint: disable=W0101,W0105
+                """ self.audio_transform = torchaudio.transforms.Resample(
+                        orig_freq=self.audio_config["sample_rate"],
+                        new_freq=self.speaker_encoder.audio_config["sample_rate"],
+                        )
+                    else:
+                        self.audio_transform = None
+                """
         else:
             # self.audio_transform = None
             self.speaker_encoder = None
@@ -638,8 +640,9 @@ class Vits(BaseTTS):
             wavs_batch = torch.cat((wav_seg, o), dim=0).squeeze(1)
 
             # resample audio to speaker encoder sample_rate
-            '''if self.audio_transform is not None:
-                wavs_batch = self.audio_transform(wavs_batch)'''
+            # pylint: disable=W0105
+            """if self.audio_transform is not None:
+                wavs_batch = self.audio_transform(wavs_batch)"""
 
             pred_embs = self.speaker_encoder.forward(wavs_batch, l2_norm=True)
 
