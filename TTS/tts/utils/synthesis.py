@@ -249,6 +249,12 @@ def synthesis(
         d_vector (torch.Tensor):
             d-vector for multi-speaker models in share :math:`[1, D]`. Defaults to None.
 
+        language_id (int):
+            Language ID passed to the language embedding layer in multi-langual model. Defaults to None.
+
+        language_name (str):
+            Language name corresponding to the language code used by the phonemizer. Defaults to None.
+
         backend (str):
             tf or torch. Defaults to "torch".
     """
