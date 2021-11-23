@@ -270,7 +270,6 @@ class Vits(BaseTTS):
         super().__init__(config)
 
         self.END2END = True
-        self.audio_config = config["audio"]
         self.speaker_manager = speaker_manager
         if config.__class__.__name__ == "VitsConfig":
             # loading from VitsConfig
@@ -406,10 +405,10 @@ class Vits(BaseTTS):
 
             if (
                 hasattr(self.speaker_encoder, "audio_config")
-                and self.audio_config["sample_rate"] != self.speaker_encoder.audio_config["sample_rate"]
+                and self.config.audio["sample_rate"] != self.speaker_encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
-                    orig_freq=self.audio_config["sample_rate"],
+                    orig_freq=self.config.audio["sample_rate"],
                     new_freq=self.speaker_encoder.audio_config["sample_rate"],
                 )
             else:
