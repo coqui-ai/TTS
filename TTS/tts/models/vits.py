@@ -270,7 +270,6 @@ class Vits(BaseTTS):
         super().__init__(config)
 
         self.END2END = True
-
         self.speaker_manager = speaker_manager
         self.audio_config = config["audio"]
         if config.__class__.__name__ == "VitsConfig":
@@ -408,7 +407,7 @@ class Vits(BaseTTS):
 
             if (
                 hasattr(self.speaker_encoder, "audio_config")
-                and self.audio_config["sample_rate"] != self.speaker_encoder.audio_config["sample_rate"]
+                and self.config.audio["sample_rate"] != self.speaker_encoder.audio_config["sample_rate"]
             ):
                 raise RuntimeError(
                     " [!] To use the speaker consistency loss (SCL) you need to have the TTS model sampling rate ({})  equal to the speaker encoder sampling rate ({}) !".format(self.audio_config["sample_rate"], self.speaker_encoder.audio_config["sample_rate"])
