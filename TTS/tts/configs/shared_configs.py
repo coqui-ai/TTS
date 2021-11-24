@@ -50,7 +50,7 @@ class GSTConfig(Coqpit):
 
 @dataclass
 class CharactersConfig(Coqpit):
-    """Defines character or phoneme set used by the model
+    """Defines arguments for the `BaseCharacters` and its subclasses.
 
     Args:
         pad (str):
@@ -62,6 +62,9 @@ class CharactersConfig(Coqpit):
         bos (str):
             characters showing the beginning of a sentence. Defaults to None.
 
+        blank (str):
+            Optional character used between characters by some models for better prosody. Defaults to `_blank`.
+
         characters (str):
             character set used by the model. Characters not in this list are ignored when converting input text to
             a list of sequence IDs. Defaults to None.
@@ -70,32 +73,26 @@ class CharactersConfig(Coqpit):
             characters considered as punctuation as parsing the input sentence. Defaults to None.
 
         phonemes (str):
-            characters considered as parsing phonemes. Defaults to None.
+            characters considered as parsing phonemes. This is only for backwards compat. Use `characters` for new
+            models. Defaults to None.
 
-        unique (bool):
+        is_unique (bool):
             remove any duplicate characters in the character lists. It is a bandaid for compatibility with the old
             models trained with character lists with duplicates.
+
+        is_sorted (bool):
+            Sort the characters in alphabetical order. Defaults to True.
     """
 
     pad: str = None
     eos: str = None
     bos: str = None
+    blank: str = None
     characters: str = None
     punctuations: str = None
     phonemes: str = None
-    unique: bool = True  # for backwards compatibility of models trained with char sets with duplicates
-
-    def check_values(
-        self,
-    ):
-        """Check config fields"""
-        c = asdict(self)
-        check_argument("pad", c, prerequest="characters", restricted=True)
-        check_argument("eos", c, prerequest="characters", restricted=True)
-        check_argument("bos", c, prerequest="characters", restricted=True)
-        check_argument("characters", c, prerequest="characters", restricted=True)
-        check_argument("phonemes", c, restricted=True)
-        check_argument("punctuations", c, prerequest="characters", restricted=True)
+    is_unique: bool = True  # for backwards compatibility of models trained with char sets with duplicates
+    is_sorted: bool = True
 
 
 @dataclass
@@ -110,8 +107,13 @@ class BaseTTSConfig(BaseTrainingConfig):
         use_phonemes (bool):
             enable / disable phoneme use.
 
-        use_espeak_phonemes (bool):
-            enable / disable eSpeak-compatible phonemes (only if use_phonemes = `True`).
+        phonemizer (str):
+            Name of the phonemizer to use. If set None, the phonemizer will be selected by `phoneme_language`.
+            Defaults to None.
+
+        phoneme_language (str):
+            Language code for the phonemizer. You can check the list of supported languages by running
+            `python TTS/tts/utils/text/phonemizers/__init__.py`. Defaults to None.
 
         compute_input_seq_cache (bool):
             enable / disable precomputation of the phoneme sequences. At the expense of some delay at the beginning of
@@ -195,7 +197,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     # phoneme settings
     use_phonemes: bool = False
-    use_espeak_phonemes: bool = True
+    phonemizer: str = None
     phoneme_language: str = None
     compute_input_seq_cache: bool = False
     text_cleaner: str = None
