@@ -108,32 +108,11 @@ class Synthesizer(object):
 
         self.tts_config = load_config(tts_config_path)
         self.use_phonemes = self.tts_config.use_phonemes
-        self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
-        self.tokenizer = TTSTokenizer.init_from_config(self.tts_config)
+        self.tts_model = setup_tts_model(config=self.tts_config)
 
-        speaker_manager = self._init_speaker_manager()
-
-        self.tts_model = setup_tts_model(config=self.tts_config, speaker_manager=speaker_manager)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
-
-    def _init_speaker_manager(self):
-        """Initialize the SpeakerManager"""
-        # setup if multi-speaker settings are in the global model config
-        speaker_manager = None
-        if hasattr(self.tts_config, "use_speaker_embedding") and self.tts_config.use_speaker_embedding is True:
-            if self.tts_speakers_file:
-                speaker_manager = SpeakerManager(speaker_id_file_path=self.tts_speakers_file)
-            if self.tts_config.get("speakers_file", None):
-                speaker_manager = SpeakerManager(speaker_id_file_path=self.tts_config.speakers_file)
-
-        if hasattr(self.tts_config, "use_d_vector_file") and self.tts_config.use_speaker_embedding is True:
-            if self.tts_speakers_file:
-                speaker_manager = SpeakerManager(d_vectors_file_path=self.tts_speakers_file)
-            if self.tts_config.get("d_vector_file", None):
-                speaker_manager = SpeakerManager(d_vectors_file_path=self.tts_config.d_vector_file)
-        return speaker_manager
 
     def _load_vocoder(self, model_file: str, model_config: str, use_cuda: bool) -> None:
         """Load the vocoder model.
@@ -174,7 +153,7 @@ class Synthesizer(object):
             path (str): output path to save the waveform.
         """
         wav = np.array(wav)
-        self.ap.save_wav(wav, path, self.output_sample_rate)
+        self.tts_model.ap.save_wav(wav, path, self.output_sample_rate)
 
     def tts(self, text: str, speaker_idx: str = "", speaker_wav=None, style_wav=None) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
@@ -234,11 +213,8 @@ class Synthesizer(object):
                 text=sen,
                 CONFIG=self.tts_config,
                 use_cuda=self.use_cuda,
-                ap=self.ap,
-                tokenizer=self.tokenizer,
                 speaker_id=speaker_id,
                 style_wav=style_wav,
-                enable_eos_bos_chars=self.tts_config.enable_eos_bos_chars,
                 use_griffin_lim=use_gl,
                 d_vector=speaker_embedding,
             )
@@ -246,14 +222,14 @@ class Synthesizer(object):
             mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
             if not use_gl:
                 # denormalize tts output based on tts audio config
-                mel_postnet_spec = self.ap.denormalize(mel_postnet_spec.T).T
+                mel_postnet_spec = self.tts_model.ap.denormalize(mel_postnet_spec.T).T
                 device_type = "cuda" if self.use_cuda else "cpu"
                 # renormalize spectrogram based on vocoder config
                 vocoder_input = self.vocoder_ap.normalize(mel_postnet_spec.T)
                 # compute scale factor for possible sample rate mismatch
                 scale_factor = [
                     1,
-                    self.vocoder_config["audio"]["sample_rate"] / self.ap.sample_rate,
+                    self.vocoder_config["audio"]["sample_rate"] / self.tts_model.ap.sample_rate,
                 ]
                 if scale_factor[1] != 1:
                     print(" > interpolating tts model output.")
@@ -271,7 +247,7 @@ class Synthesizer(object):
 
             # trim silence
             if self.tts_config.audio["do_trim_silence"] is True:
-                waveform = trim_silence(waveform, self.ap)
+                waveform = trim_silence(waveform, self.tts_model.ap)
 
             wavs += list(waveform)
             wavs += [0] * 10000
