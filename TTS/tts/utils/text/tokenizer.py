@@ -117,14 +117,22 @@ class TTSTokenizer:
         Args:
             config (Coqpit): Coqpit model config.
         """
+        # init cleaners
         if isinstance(config.text_cleaner, (str, list)):
             text_cleaner = getattr(cleaners, config.text_cleaner)
 
         if config.use_phonemes:
+            # init phoneme set
             characters = IPAPhonemes().init_from_config(config)
             phonemizer_kwargs = {"language": config.phoneme_language}
-            phonemizer = get_phonemizer_by_name(DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs)
+
+            # init phonemizer
+            if "phonemizer" in config and config.phonemizer:
+                phonemizer = get_phonemizer_by_name(config.phonemizer, **phonemizer_kwargs)
+            else:
+                phonemizer = get_phonemizer_by_name(DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs)
         else:
+            # init character set
             characters = Graphemes().init_from_config(config)
         return TTSTokenizer(
             config.use_phonemes, text_cleaner, characters, phonemizer, config.add_blank, config.enable_eos_bos_chars
