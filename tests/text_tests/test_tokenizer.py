@@ -1,19 +1,19 @@
+import unittest
 from dataclasses import dataclass
 from os import sep
-import unittest
-
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes, _phonemes, _punctuations, _eos, _bos, _pad, _blank
-from TTS.tts.utils.text.phonemizers import ESpeak
 
 from coqpit import Coqpit
+
+from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes, _blank, _bos, _eos, _pad, _phonemes, _punctuations
+from TTS.tts.utils.text.phonemizers import ESpeak
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 
 
 class TestTTSTokenizer(unittest.TestCase):
     def setUp(self):
         self.tokenizer = TTSTokenizer(use_phonemes=False, characters=Graphemes())
 
-        self.ph = ESpeak('tr')
+        self.ph = ESpeak("tr")
         self.tokenizer_ph = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=self.ph)
 
     def test_encode_decode_graphemes(self):
@@ -53,7 +53,6 @@ class TestTTSTokenizer(unittest.TestCase):
         self.tokenizer_ph.print_logs()
 
     def test_init_from_config(self):
-
         @dataclass
         class Characters(Coqpit):
             characters: str = _phonemes
@@ -80,9 +79,5 @@ class TestTTSTokenizer(unittest.TestCase):
         text = "Bu bir Örnek."
         text_ph = "<BOS>" + self.ph.phonemize(text, separator="") + "<EOS>"
         ids = tokenizer_ph.text_to_ids(text)
-        test_hat =  tokenizer_ph.ids_to_text(ids)
+        test_hat = tokenizer_ph.ids_to_text(ids)
         self.assertEqual(text_ph, test_hat)
-
-
-
-

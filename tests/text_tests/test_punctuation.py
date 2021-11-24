@@ -1,14 +1,17 @@
 import unittest
-from TTS.tts.utils.text.punctuation import Punctuation, _DEF_PUNCS
+
+from TTS.tts.utils.text.punctuation import _DEF_PUNCS, Punctuation
+
 
 class PunctuationTest(unittest.TestCase):
     def setUp(self):
         self.punctuation = Punctuation()
-        self.test_texts = [("This, is my text ... to be striped !! from text?", "This is my text to be striped from text"),
-                           ("This, is my text ... to be striped !! from text", "This is my text to be striped from text"),
-                           ("This, is my text ... to be striped  from text?", "This is my text to be striped  from text"),
-                           ("This, is my text to be striped from text", "This is my text to be striped from text")
-                           ]
+        self.test_texts = [
+            ("This, is my text ... to be striped !! from text?", "This is my text to be striped from text"),
+            ("This, is my text ... to be striped !! from text", "This is my text to be striped from text"),
+            ("This, is my text ... to be striped  from text?", "This is my text to be striped  from text"),
+            ("This, is my text to be striped from text", "This is my text to be striped from text"),
+        ]
 
     def test_get_set_puncs(self):
         self.punctuation.puncs = "-="
@@ -26,5 +29,5 @@ class PunctuationTest(unittest.TestCase):
         for text, gt in self.test_texts:
             text_striped, puncs_map = self.punctuation.strip_to_restore(text)
             text_restored = self.punctuation.restore(text_striped, puncs_map)
-            self.assertEqual(' '.join(text_striped), gt)
+            self.assertEqual(" ".join(text_striped), gt)
             self.assertEqual(text_restored[0], text)
