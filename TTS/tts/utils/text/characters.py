@@ -206,7 +206,7 @@ class BaseCharacters:
         if self.is_unique:
             assert (
                 len(self.vocab) == len(self._char_to_id) == len(self._id_to_char)
-            ), f" [!] There are duplicate characters in the character set."
+            ), f" [!] There are duplicate characters in the character set. {set([x for x in self.vocab if self.vocab.count(x) > 1])}"
 
     def char_to_id(self, char: str) -> int:
         return self._char_to_id[char]
