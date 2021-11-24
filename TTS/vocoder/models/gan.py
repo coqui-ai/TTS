@@ -361,3 +361,7 @@ class GAN(BaseVocoder):
     def get_criterion(self):
         """Return criterions for the optimizers"""
         return [GeneratorLoss(self.config), DiscriminatorLoss(self.config)]
+
+    @staticmethod
+    def init_from_config(config: Coqpit) -> "GAN":
+        return GAN(config)
