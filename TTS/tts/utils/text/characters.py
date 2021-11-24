@@ -257,6 +257,9 @@ class IPAPhonemes(BaseCharacters):
         bos (str):
             Beginning of the sentence character. Defaults to `_bos`.
 
+        blank (str):
+            Optional character used between characters by some models for better prosody. Defaults to `_blank`.
+
         is_unique (bool):
             Remove duplicates from the provided characters. Defaults to True.
 
@@ -279,9 +282,24 @@ class IPAPhonemes(BaseCharacters):
 
     @staticmethod
     def init_from_config(config: "Coqpit"):
-        return IPAPhonemes(
-            **config.characters if config.characters is not None else {},
-        )
+        # band-aid for compatibility with old models
+        characters = None
+        if "characters" in config:
+            if "phonemes" in config.characters:
+                config.characters["characters"] = config.characters["phonemes"]
+                # delattr(config.characters, "phonemes")
+
+            return IPAPhonemes(
+                characters=config.characters["characters"],
+                punctuations=config.characters["punctuations"],
+                pad=config.characters["pad"],
+                eos=config.characters["eos"],
+                bos=config.characters["bos"],
+                blank=config.characters["blank"],
+                is_unique=config.characters["is_unique"],
+                is_sorted=config.characters["is_sorted"],
+            )
+        return characters
 
 
 class Graphemes(BaseCharacters):
