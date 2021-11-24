@@ -318,6 +318,30 @@ class SpeakerManager:
         # TODO: implement speaker encoder
         raise NotImplementedError
 
+    @staticmethod
+    def init_from_config(config: "Coqpit"):
+        """Initialize a speaker manager from config
+
+        Args:
+            config (Coqpit): Config object.
+
+        Returns:
+            SpeakerEncoder: Speaker encoder object.
+        """
+        speaker_manager = None
+        if hasattr(config, "use_speaker_embedding") and config.use_speaker_embedding is True:
+            if config.get("speaker_file", None):
+                speaker_manager = SpeakerManager(speaker_id_file_path=config.speaker_file)
+            if config.get("speakers_file", None):
+                speaker_manager = SpeakerManager(speaker_id_file_path=config.speakers_file)
+
+        if hasattr(config, "use_d_vector_file") and config.use_speaker_embedding is True:
+            if config.get("speakers_file", None):
+                speaker_manager = SpeakerManager(d_vectors_file_path=config.speaker_file)
+            if config.get("d_vector_file", None):
+                speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
+        return speaker_manager
+
 
 def _set_file_path(path):
     """Find the speakers.json under the given path or the above it.
