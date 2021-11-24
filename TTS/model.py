@@ -130,6 +130,15 @@ class BaseModel(nn.Module, ABC):
         """
         ...
 
+    @staticmethod
+    @abstractmethod
+    def init_from_config(config: Coqpit):
+        """Init the model from given config.
+
+        Override this depending on your model.
+        """
+        pass
+
     def get_optimizer(self) -> Union["Optimizer", List["Optimizer"]]:
         """Setup an return optimizer or optimizers."""
         pass
@@ -150,3 +159,4 @@ class BaseModel(nn.Module, ABC):
 
     def format_batch(self):
         pass
+
