@@ -10,12 +10,10 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from TTS.model import BaseModel
-from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.text.characters import Graphemes, make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 # pylint: skip-file
@@ -73,22 +71,6 @@ class BaseTTS(BaseModel):
             self.args = config
         else:
             raise ValueError("config must be either a *Config or *Args")
-
-    # @staticmethod
-    # def get_characters(config: Coqpit) -> str:
-    #     # TODO: implement CharacterProcessor
-    #     if config.characters is not None:
-    #         symbols, phonemes = make_symbols(**config.characters)
-    #     else:
-    #         from TTS.tts.utils.text.characters import parse_symbols, phonemes, symbols
-
-    #         if config.use_phonemes:
-
-    #         config.characters = Graphemes()
-
-    #     model_characters = phonemes if config.use_phonemes else symbols
-    #     num_chars = len(model_characters) + getattr(config, "add_blank", False)
-    #     return model_characters, config, num_chars
 
     def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:
         return get_speaker_manager(config, restore_path, data, out_path)
