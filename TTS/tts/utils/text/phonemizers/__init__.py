@@ -49,3 +49,7 @@ def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
     if name == "ja_jp_phonemizer":
         return JA_JP_Phonemizer(**kwargs)
     raise ValueError(f"Phonemizer {name} not found")
+
+
+if __name__ == "__main__":
+    print(DEF_LANG_TO_PHONEMIZER)
