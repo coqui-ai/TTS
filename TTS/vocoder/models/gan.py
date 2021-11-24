@@ -310,6 +310,7 @@ class GAN(BaseVocoder):
         data_items: List,
         verbose: bool,
         num_gpus: int,
+        rank: int = None,
     ):
         """Initiate and return the GAN dataloader.
 
@@ -320,6 +321,7 @@ class GAN(BaseVocoder):
             data_items (List): Data samples.
             verbose (bool): Log information if true.
             num_gpus (int): Number of GPUs in use.
+            rank (int): Rank of the current GPU. Defaults to None.
 
         Returns:
             DataLoader: Torch dataloader.
