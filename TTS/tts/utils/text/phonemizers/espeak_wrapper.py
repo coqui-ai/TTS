@@ -1,6 +1,5 @@
 import logging
 import subprocess
-import tempfile
 from typing import Dict, List
 
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
@@ -24,6 +23,7 @@ else:
 def _espeak_exe(espeak_lib: str, args: List, sync=False) -> List[str]:
     cmd = [
         espeak_lib,
+        "-q",
         "-b",
         "1",  # UTF8 text encoding
     ]
@@ -107,11 +107,20 @@ class ESpeak(BasePhonemizer):
                 with '_'. This option requires espeak>=1.49. Default to False.
         """
         # set arguments
-        args = ["-q", "-v", f"{self._language}"]
+        args = ["-v", f"{self._language}"]
+        # espeak and espeak-ng parses `ipa` differently
         if tie:
-            args.append("--ipa=1")  # use '͡' between phonemes
+          # use '͡' between phonemes
+          if _DEF_ESPEAK_LIB == "espeak":
+            args.append("--ipa=1")
+          else:
+            args.append("--ipa=3")
         else:
-            args.append("--ipa=3")  # split with '_'
+          # split with '_'
+          if _DEF_ESPEAK_LIB == "espeak":
+            args.append("--ipa=3")
+          else:
+            args.append("--ipa=1")
         if tie:
             args.append("--tie=%s" % tie)
         args.append(text)
