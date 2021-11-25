@@ -52,6 +52,16 @@ class TestTTSTokenizer(unittest.TestCase):
         self.tokenizer.print_logs()
         self.tokenizer_ph.print_logs()
 
+    def test_not_found_characters(self):
+        self.ph = ESpeak("en-us")
+        self.tokenizer_local = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=self.ph)
+        self.assertEqual(len(self.tokenizer.not_found_characters), 0)
+        text =  "Yolk of one egg beaten light"
+        ids = self.tokenizer_local.text_to_ids(text)
+        text_hat = self.tokenizer_local.ids_to_text(ids)
+        self.assertEqual(self.tokenizer_local.not_found_characters, ['̩'])
+        self.assertEqual(text_hat, "jˈoʊk ʌv wˈʌn ˈɛɡ bˈiːʔn lˈaɪt")
+
     def test_init_from_config(self):
         @dataclass
         class Characters(Coqpit):
