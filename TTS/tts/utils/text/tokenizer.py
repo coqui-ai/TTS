@@ -113,11 +113,12 @@ class TTSTokenizer:
 
     def print_logs(self, level: int = 0):
         indent = "\t" * level
-        print(f"{indent}| > add_blank: {self.use_phonemes}")
-        print(f"{indent}| > use_eos_bos: {self.use_phonemes}")
+        print(f"{indent}| > add_blank: {self.add_blank}")
+        print(f"{indent}| > use_eos_bos: {self.use_eos_bos}")
         print(f"{indent}| > use_phonemes: {self.use_phonemes}")
         if self.use_phonemes:
-            print(f"{indent}| > phonemizer: {self.phonemizer.print_logs(level + 1)}")
+            print(f"{indent}| > phonemizer:")
+            self.phonemizer.print_logs(level + 1)
         if len(self.not_found_characters) > 0:
             print(f"{indent}| > {len(self.not_found_characters)} not found characters:")
             for char in self.not_found_characters:
