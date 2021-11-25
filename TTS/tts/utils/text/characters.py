@@ -209,7 +209,7 @@ class BaseCharacters:
             ), f" [!] There are duplicate characters in the character set. {set([x for x in self.vocab if self.vocab.count(x) > 1])}"
 
     def char_to_id(self, char: str) -> int:
-        return self._char_to_id[char]
+            return self._char_to_id[char]
 
     def id_to_char(self, idx: int) -> str:
         return self._id_to_char[idx]
@@ -283,12 +283,9 @@ class IPAPhonemes(BaseCharacters):
     @staticmethod
     def init_from_config(config: "Coqpit"):
         # band-aid for compatibility with old models
-        characters = None
-        if "characters" in config:
-            if "phonemes" in config.characters:
+        if "characters" in config and config.characters is not None:
+            if "phonemes" in config.characters and config.characters.phonemes is not None:
                 config.characters["characters"] = config.characters["phonemes"]
-                # delattr(config.characters, "phonemes")
-
             return IPAPhonemes(
                 characters=config.characters["characters"],
                 punctuations=config.characters["punctuations"],
@@ -299,7 +296,10 @@ class IPAPhonemes(BaseCharacters):
                 is_unique=config.characters["is_unique"],
                 is_sorted=config.characters["is_sorted"],
             )
-        return characters
+        else:
+            return IPAPhonemes(
+            **config.characters if config.characters is not None else {},
+        )
 
 
 class Graphemes(BaseCharacters):
