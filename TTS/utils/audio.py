@@ -16,6 +16,60 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
     """Some of the audio processing funtions using Torch for faster batch processing.
 
     TODO: Merge this with audio.py
+
+    Args:
+
+        n_fft (int):
+            FFT window size for STFT.
+
+        hop_length (int):
+            number of frames between STFT columns.
+
+        win_length (int, optional):
+            STFT window length.
+
+        pad_wav (bool, optional):
+            If True pad the audio with (n_fft - hop_length) / 2). Defaults to False.
+
+        window (str, optional):
+            The name of a function to create a window tensor that is applied/multiplied to each frame/window. Defaults to "hann_window"
+
+        sample_rate (int, optional):
+            target audio sampling rate. Defaults to None.
+
+        mel_fmin (int, optional):
+            minimum filter frequency for computing melspectrograms. Defaults to None.
+
+        mel_fmax (int, optional):
+            maximum filter frequency for computing melspectrograms. Defaults to None.
+
+        n_mels (int, optional):
+            number of melspectrogram dimensions. Defaults to None.
+
+        use_mel (bool, optional):
+            If True compute the melspectrograms otherwise. Defaults to False.
+
+        do_amp_to_db_linear (bool, optional):
+            enable/disable amplitude to dB conversion of linear spectrograms. Defaults to False.
+
+        spec_gain (float, optional):
+            gain applied when converting amplitude to DB. Defaults to 1.0.
+
+        power (float, optional):
+            Exponent for the magnitude spectrogram, e.g., 1 for energy, 2 for power, etc.  Defaults to None.
+
+        use_htk (bool, optional):
+            Use HTK formula in mel filter instead of Slaney.
+
+        mel_norm (None, 'slaney', or number, optional):
+            If 'slaney', divide the triangular mel weights by the width of the mel band
+            (area normalization).
+
+            If numeric, use `librosa.util.normalize` to normalize each filter by to unit l_p norm.
+            See `librosa.util.normalize` for a full description of supported norm values
+            (including `+-np.inf`).
+
+            Otherwise, leave all the triangles aiming for a peak value of 1.0. Defaults to "slaney".
     """
 
     def __init__(
@@ -177,7 +231,7 @@ class AudioProcessor(object):
             minimum filter frequency for computing melspectrograms. Defaults to None.
 
         mel_fmax (int, optional):
-            maximum filter frequency for computing melspectrograms.. Defaults to None.
+            maximum filter frequency for computing melspectrograms. Defaults to None.
 
         spec_gain (int, optional):
             gain applied when converting amplitude to DB. Defaults to 20.
