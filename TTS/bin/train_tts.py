@@ -5,6 +5,7 @@ from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.languages import LanguageManager
 from TTS.utils.audio import AudioProcessor
 
 
@@ -60,8 +61,17 @@ def main():
     else:
         speaker_manager = None
 
+    if hasattr(config, "use_language_embedding") and config.use_language_embedding:
+        language_manager = LanguageManager(config=config)
+        if hasattr(config, "model_args"):
+            config.model_args.num_languages = language_manager.num_languages
+        else:
+            config.num_languages = language_manager.num_languages
+    else:
+        language_manager = None
+
     # init the model from config
-    model = setup_model(config, speaker_manager)
+    model = setup_model(config, speaker_manager, language_manager)
 
     # init the trainer and 🚀
     trainer = Trainer(
