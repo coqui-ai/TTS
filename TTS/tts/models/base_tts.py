@@ -365,8 +365,7 @@ class BaseTTS(BaseModel):
         return test_figures, test_audios
 
     def on_init_start(self, trainer):
-        """Save the speaker.json at the beginning of the training. And update the config.json with the
-        speakers.json file path."""
+        """Save the speaker.json and language_ids.json at the beginning of the training. Also update both paths."""
         if self.speaker_manager is not None:
             output_path = os.path.join(trainer.output_path, "speakers.json")
             self.speaker_manager.save_speaker_ids_to_file(output_path)
@@ -377,3 +376,13 @@ class BaseTTS(BaseModel):
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
             print(f" > `speakers.json` is saved to {output_path}.")
             print(" > `speakers_file` is updated in the config.json.")
+
+        if hasattr(self, "language_manager") and self.language_manager is not None:
+            output_path = os.path.join(trainer.output_path, "language_ids.json")
+            self.language_manager.save_language_ids_to_file(output_path)
+            trainer.config.language_ids_file = output_path
+            if hasattr(trainer.config, "model_args"):
+                trainer.config.model_args.language_ids_file = output_path
+            trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
+            print(f" > `language_ids.json` is saved to {output_path}.")
+            print(" > `language_ids_file` is updated in the config.json.")

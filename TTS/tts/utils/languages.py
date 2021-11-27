@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import fsspec
 import numpy as np
@@ -14,11 +14,13 @@ class LanguageManager:
     in a way that can be queried by language.
 
     Args:
-        language_id_file_path (str, optional): Path to the metafile that maps language names to ids used by
+        language_ids_file_path (str, optional): Path to the metafile that maps language names to ids used by
         TTS models. Defaults to "".
+        config (Coqpit, optional): Coqpit config that contains the language information in the datasets filed.
+        Defaults to None.
 
     Examples:
-        >>> manager = LanguageManager(language_id_file_path=language_id_file_path)
+        >>> manager = LanguageManager(language_ids_file_path=language_ids_file_path)
         >>> language_id_mapper = manager.language_ids
     """
 
@@ -26,10 +28,14 @@ class LanguageManager:
 
     def __init__(
         self,
-        language_id_file_path: str = "",
+        language_ids_file_path: str = "",
+        config: Coqpit = None,
     ):
-        if language_id_file_path:
-            self.set_language_ids_from_file(language_id_file_path)
+        if language_ids_file_path:
+            self.set_language_ids_from_file(language_ids_file_path)
+
+        if config:
+            self.set_language_ids_from_config(config)
 
     @staticmethod
     def _load_json(json_file_path: str) -> Dict:
@@ -50,27 +56,30 @@ class LanguageManager:
         return list(self.language_id_mapping.keys())
 
     @staticmethod
-    def parse_languages_from_data(items: list) -> Tuple[Dict, int]:
-        """Parse language IDs from data samples retured by `load_meta_data()`.
+    def parse_language_ids_from_config(c: Coqpit) -> Dict:
+        """Set language id from config.
 
         Args:
-            items (list): Data sampled returned by `load_meta_data()`.
+            c (Coqpit): Config
 
         Returns:
-            Tuple[Dict, int]: language IDs and number of languages.
+            Tuple[Dict, int]: Language ID mapping and the number of languages.
         """
-        languages = sorted({item[3] for item in items})
-        language_ids = {name: i for i, name in enumerate(languages)}
-        num_languages = len(language_ids)
-        return language_ids, num_languages
+        languages = set({})
+        for dataset in c.datasets:
+            if "language" in dataset:
+                languages.add(dataset["language"])
+            else:
+                raise ValueError(f"Dataset {dataset['name']} has no language specified.")
+        return {name: i for i, name in enumerate(sorted(list(languages)))}
 
-    def set_language_ids_from_data(self, items: List) -> None:
-        """Set language IDs from data samples.
+    def set_language_ids_from_config(self, c: Coqpit) -> None:
+        """Set language IDs from config samples.
 
         Args:
             items (List): Data sampled returned by `load_meta_data()`.
         """
-        self.language_id_mapping, _ = self.parse_languages_from_data(items)
+        self.language_id_mapping = self.parse_language_ids_from_config(c)
 
     def set_language_ids_from_file(self, file_path: str) -> None:
         """Load language ids from a json file.
@@ -100,36 +109,6 @@ def _set_file_path(path):
     if fs.exists(path_continue):
         return path_continue
     return None
-
-
-def get_language_manager(c: Coqpit, data: List = None, restore_path: str = None) -> LanguageManager:
-    """Initiate a `LanguageManager` instance by the provided config.
-
-    Args:
-        c (Coqpit): Model configuration.
-        restore_path (str): Path to a previous training folder.
-        data (List): Data sampled returned by `load_meta_data()`. Defaults to None.
-        out_path (str, optional): Save the generated language IDs to a output path. Defaults to None.
-
-    Returns:
-        SpeakerManager: initialized and ready to use instance.
-    """
-    language_manager = LanguageManager()
-    if c.use_language_embedding:
-        if data is not None:
-            language_manager.set_language_ids_from_data(data)
-        if restore_path:
-            language_file = _set_file_path(restore_path)
-            # restoring language manager from a previous run.
-            if language_file:
-                language_manager.set_language_ids_from_file(language_file)
-        if language_manager.num_languages > 0:
-            print(
-                " > Language manager is loaded with {} languages: {}".format(
-                    language_manager.num_languages, ", ".join(language_manager.language_names)
-                )
-            )
-    return language_manager
 
 
 def get_language_weighted_sampler(items: list):

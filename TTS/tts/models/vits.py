@@ -16,7 +16,7 @@ from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlock
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
-from TTS.tts.utils.languages import get_language_manager
+from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment
@@ -158,6 +158,9 @@ class VitsArgs(Coqpit):
         num_languages (int):
             Number of languages for the language embedding layer. Defaults to 0.
 
+        language_ids_file (str):
+            Path to the language mapping file for the Language Manager. Defaults to None.
+
         use_speaker_encoder_as_loss (bool):
             Enable/Disable Speaker Consistency Loss (SCL). Defaults to False.
 
@@ -225,6 +228,7 @@ class VitsArgs(Coqpit):
     use_language_embedding: bool = False
     embedded_language_dim: int = 4
     num_languages: int = 0
+    language_ids_file: str = None
     use_speaker_encoder_as_loss: bool = False
     speaker_encoder_config_path: str = ""
     speaker_encoder_model_path: str = ""
@@ -265,12 +269,18 @@ class Vits(BaseTTS):
 
     # pylint: disable=dangerous-default-value
 
-    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
+    def __init__(
+        self,
+        config: Coqpit,
+        speaker_manager: SpeakerManager = None,
+        language_manager: LanguageManager = None,
+    ):
 
         super().__init__(config)
 
         self.END2END = True
         self.speaker_manager = speaker_manager
+        self.language_manager = language_manager
         if config.__class__.__name__ == "VitsConfig":
             # loading from VitsConfig
             if "num_chars" not in config:
@@ -440,25 +450,20 @@ class Vits(BaseTTS):
         self.speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
         self.embedded_speaker_dim = config.d_vector_dim
 
-    def init_multilingual(self, config: Coqpit, data: List = None):
+    def init_multilingual(self, config: Coqpit):
         """Initialize multilingual modules of a model.
 
         Args:
             config (Coqpit): Model configuration.
-            data (List, optional): Dataset items to infer number of speakers. Defaults to None.
         """
         if hasattr(config, "model_args"):
             config = config.model_args
-        # init language manager
-        self.language_manager = get_language_manager(config, data=data)
 
-        # init language embedding layer
-        if config.use_language_embedding:
-            if config.num_languages > 0 and self.language_manager.num_languages == 0:
-                self.num_languages = config.num_languages
-            else:
-                self.num_languages = self.language_manager.num_languages
+        if config.language_ids_file is not None:
+            self.language_manager = LanguageManager(language_ids_file_path=config.language_ids_file)
 
+        if config.use_language_embedding and self.language_manager:
+            self.num_languages = self.language_manager.num_languages
             self.embedded_language_dim = config.embedded_language_dim
             self.emb_l = nn.Embedding(self.num_languages, self.embedded_language_dim)
             torch.nn.init.xavier_uniform_(self.emb_l.weight)

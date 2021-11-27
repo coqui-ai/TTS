@@ -85,6 +85,12 @@ class VitsConfig(BaseTTSConfig):
         test_sentences (List[List]):
             List of sentences with speaker and language information to be used for testing.
 
+        language_ids_file (str):
+            Path to the language ids file.
+        
+        use_language_embedding (bool):
+            If true, language embedding is used. Defaults to `False`.
+
     Note:
         Check :class:`TTS.tts.configs.shared_configs.BaseTTSConfig` for the inherited parameters.
 
@@ -147,6 +153,8 @@ class VitsConfig(BaseTTSConfig):
     use_speaker_embedding: bool = False
     speakers_file: str = None
     speaker_embedding_channels: int = 256
+    language_ids_file: str = None
+    use_language_embedding: bool = False
 
     # use d-vectors
     use_d_vector_file: bool = False
