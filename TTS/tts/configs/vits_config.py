@@ -87,7 +87,7 @@ class VitsConfig(BaseTTSConfig):
 
         language_ids_file (str):
             Path to the language ids file.
-        
+
         use_language_embedding (bool):
             If true, language embedding is used. Defaults to `False`.
 
