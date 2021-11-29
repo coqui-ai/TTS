@@ -65,11 +65,18 @@ def compute_style_mel(style_wav, ap, cuda=False):
     return style_mel
 
 
+def compute_reference_mel(reference_wav, ap, cuda=False):
+    # Reference mel for capacitron is the same as for GST
+    return compute_style_mel(reference_wav, ap, cuda)
+
+
 def run_model_torch(
     model: nn.Module,
     inputs: torch.Tensor,
     speaker_id: int = None,
     style_mel: torch.Tensor = None,
+    reference_mel: torch.Tensor = None,
+    reference_text: str = None,
     d_vector: torch.Tensor = None,
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
@@ -96,14 +103,18 @@ def run_model_torch(
             "speaker_ids": speaker_id,
             "d_vectors": d_vector,
             "style_mel": style_mel,
+            "reference_mel": reference_mel,
+            "reference_text": reference_text,
         },
     )
     return outputs
 
 
-def run_model_tf(model, inputs, CONFIG, speaker_id=None, style_mel=None):
+def run_model_tf(model, inputs, CONFIG, speaker_id=None, style_mel=None, reference_mel=None, reference_text=None):
     if CONFIG.gst and style_mel is not None:
         raise NotImplementedError(" [!] GST inference not implemented for TF")
+    if CONFIG.capacitron and reference_mel is not None and reference_text is not None:
+        raise NotImplementedError(" [!] Capacitron inference not implemented for TF")
     if speaker_id is not None:
         raise NotImplementedError(" [!] Multi-Speaker not implemented for TF")
     # TODO: handle multispeaker case
@@ -111,9 +122,11 @@ def run_model_tf(model, inputs, CONFIG, speaker_id=None, style_mel=None):
     return decoder_output, postnet_output, alignments, stop_tokens
 
 
-def run_model_tflite(model, inputs, CONFIG, speaker_id=None, style_mel=None):
+def run_model_tflite(model, inputs, CONFIG, speaker_id=None, style_mel=None, reference_mel=None, reference_text=None):
     if CONFIG.gst and style_mel is not None:
         raise NotImplementedError(" [!] GST inference not implemented for TfLite")
+    if CONFIG.capacitron and reference_mel is not None and reference_text is not None:
+        raise NotImplementedError(" [!] Capacitron inference not implemented for TF")
     if speaker_id is not None:
         raise NotImplementedError(" [!] Multi-Speaker not implemented for TfLite")
     # get input and output details
@@ -204,6 +217,8 @@ def synthesis(
     ap,
     speaker_id=None,
     style_wav=None,
+    reference_wav=None,
+    reference_text=None,
     enable_eos_bos_chars=False,  # pylint: disable=unused-argument
     use_griffin_lim=False,
     do_trim_silence=False,
@@ -255,6 +270,11 @@ def synthesis(
             style_mel = style_wav
         else:
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
+    # Capacitron processing
+    reference_mel = None
+    if "use_capacitron" in CONFIG.keys() and CONFIG.use_capacitron_vae and reference_wav is not None:
+        reference_mel = compute_reference_mel(reference_wav, ap, cuda=use_cuda)
+        reference_mel = reference_mel.transpose(1, 2)  # [1, time, depth]
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
     # preprocess the given text
@@ -269,29 +289,39 @@ def synthesis(
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
+
+        # Capacitron reference
+        reference_mel = numpy_to_torch(reference_mel, torch.float, cuda=use_cuda)
+        if reference_text is not None:
+            reference_text = numpy_to_torch(reference_text, torch.long, cuda=use_cuda)
+            reference_text = reference_text.unsqueeze(0)
+
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
         text_inputs = text_inputs.unsqueeze(0)
     elif backend in ["tf", "tflite"]:
         # TODO: handle speaker id for tf model
         style_mel = numpy_to_tf(style_mel, tf.float32)
+        reference_mel = numpy_to_tf(reference_mel, tf.float32)
         text_inputs = numpy_to_tf(text_inputs, tf.int32)
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector)
+        outputs = run_model_torch(
+            model, text_inputs, speaker_id, style_mel, reference_mel, reference_text, d_vector=d_vector
+        )
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
         alignments = outputs["alignments"]
     elif backend == "tf":
         decoder_output, postnet_output, alignments, stop_tokens = run_model_tf(
-            model, text_inputs, CONFIG, speaker_id, style_mel
+            model, text_inputs, CONFIG, speaker_id, style_mel, reference_mel, reference_text
         )
         model_outputs, decoder_output, alignments, stop_tokens = parse_outputs_tf(
             postnet_output, decoder_output, alignments, stop_tokens
         )
     elif backend == "tflite":
         decoder_output, postnet_output, alignments, stop_tokens = run_model_tflite(
-            model, text_inputs, CONFIG, speaker_id, style_mel
+            model, text_inputs, CONFIG, speaker_id, style_mel, reference_mel, reference_text
         )
         model_outputs, decoder_output = parse_outputs_tflite(postnet_output, decoder_output)
     # convert outputs to numpy

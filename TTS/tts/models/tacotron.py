@@ -1,16 +1,20 @@
 # coding: utf-8
 
+from typing import Dict, List, Tuple
+
 import torch
 from coqpit import Coqpit
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 
+from TTS.tts.layers.tacotron.capacitron_layers import CapacitronVAE
 from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron import Decoder, Encoder, PostCBHG
 from TTS.tts.models.base_tacotron import BaseTacotron
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.trainer_utils import get_optimizer
 
 
 class Tacotron(BaseTacotron):
@@ -45,6 +49,9 @@ class Tacotron(BaseTacotron):
 
         if self.use_gst:
             self.decoder_in_features += self.gst.gst_embedding_dim
+
+        if self.use_capacitron_vae:
+            self.decoder_in_features += self.capacitron_vae.capacitron_VAE_embedding_dim
 
         # embedding layer
         self.embedding = nn.Embedding(self.num_chars, 256, padding_idx=0)
@@ -83,6 +90,20 @@ class Tacotron(BaseTacotron):
                 num_heads=self.gst.gst_num_heads,
                 num_style_tokens=self.gst.gst_num_style_tokens,
                 gst_embedding_dim=self.gst.gst_embedding_dim,
+            )
+
+        # Capacitron layers
+        if self.capacitron_vae and self.use_capacitron_vae:
+            self.capacitron_vae_layer = CapacitronVAE(
+                num_mel=self.decoder_output_dim,
+                encoder_output_dim=self.encoder_in_features,
+                capacitron_VAE_embedding_dim=self.capacitron_vae.capacitron_VAE_embedding_dim,
+                speaker_embedding_dim=self.embedded_speaker_dim
+                if self.use_speaker_embedding and self.capacitron_vae.capacitron_use_speaker_embedding
+                else None,
+                text_summary_embedding_dim=self.capacitron_vae.capacitron_text_summary_embedding_dim
+                if self.capacitron_vae.capacitron_use_text_summary_embeddings
+                else None,
             )
 
         # backward pass decoder
@@ -141,6 +162,19 @@ class Tacotron(BaseTacotron):
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = torch.unsqueeze(aux_input["d_vectors"], 1)
             encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
+        # Capacitron
+        if self.capacitron_vae and self.use_capacitron_vae:
+            # B x capacitron_VAE_embedding_dim
+            encoder_outputs, *capacitron_vae_outputs = self.compute_capacitron_VAE_embedding(
+                encoder_outputs,
+                reference_mel_info=[mel_specs, mel_lengths],
+                text_info=[inputs, text_lengths]
+                if self.capacitron_vae.capacitron_use_text_summary_embeddings
+                else None,
+                speaker_embedding=embedded_speakers if self.capacitron_vae.capacitron_use_speaker_embedding else None,
+            )
+        else:
+            capacitron_vae_outputs = None
         # decoder_outputs: B x decoder_in_features x T_out
         # alignments: B x T_in x encoder_in_features
         # stop_tokens: B x T_in
@@ -173,6 +207,7 @@ class Tacotron(BaseTacotron):
                 "decoder_outputs": decoder_outputs,
                 "alignments": alignments,
                 "stop_tokens": stop_tokens,
+                "capacitron_vae_outputs": capacitron_vae_outputs,
             }
         )
         return outputs
@@ -185,6 +220,30 @@ class Tacotron(BaseTacotron):
         if self.gst and self.use_gst:
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
+        if self.capacitron_vae and self.use_capacitron_vae:
+            if aux_input["reference_text"] is not None:
+                reference_text_embedding = self.embedding(aux_input["reference_text"])
+                reference_text_length = torch.tensor([reference_text_embedding.size(1)], dtype=torch.int64).to(
+                    encoder_outputs.device
+                )  # pylint: disable=not-callable
+            reference_mel_length = (
+                torch.tensor([aux_input["reference_mel"].size(1)], dtype=torch.int64).to(encoder_outputs.device)
+                if aux_input["reference_mel"] is not None
+                else None
+            )  # pylint: disable=not-callable
+            # B x capacitron_VAE_embedding_dim
+            encoder_outputs, *_ = self.compute_capacitron_VAE_embedding(
+                encoder_outputs,
+                reference_mel_info=[aux_input["reference_mel"], reference_mel_length]
+                if aux_input["reference_mel"] is not None
+                else None,
+                text_info=[reference_text_embedding, reference_text_length]
+                if aux_input["reference_text"] is not None
+                else None,
+                speaker_embedding=aux_input["d_vectors"]
+                if self.capacitron_vae.capacitron_use_speaker_embedding
+                else None,
+            )
         if self.num_speakers > 1:
             if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
@@ -210,12 +269,12 @@ class Tacotron(BaseTacotron):
         }
         return outputs
 
-    def train_step(self, batch, criterion):
-        """Perform a single training step by fetching the right set if samples from the batch.
+    def train_step(self, batch: Dict, criterion: torch.nn.Module) -> Tuple[Dict, Dict]:
+        """Perform a single training step by fetching the right set of samples from the batch.
 
         Args:
-            batch ([type]): [description]
-            criterion ([type]): [description]
+            batch ([Dict]): A dictionary of input tensors.
+            criterion ([torch.nn.Module]): Callable criterion to compute model loss.
         """
         text_input = batch["text_input"]
         text_lengths = batch["text_lengths"]
@@ -257,6 +316,7 @@ class Tacotron(BaseTacotron):
                 outputs["stop_tokens"].float(),
                 stop_targets.float(),
                 stop_target_lengths,
+                outputs["capacitron_vae_outputs"] if self.capacitron_vae else None,
                 mel_lengths,
                 None if outputs["decoder_outputs_backward"] is None else outputs["decoder_outputs_backward"].float(),
                 outputs["alignments"].float(),
@@ -269,6 +329,47 @@ class Tacotron(BaseTacotron):
         align_error = 1 - alignment_diagonal_score(outputs["alignments"])
         loss_dict["align_error"] = align_error
         return outputs, loss_dict
+
+    def get_optimizer(self) -> List:
+        if self.use_capacitron_vae:
+            # Initiate and return optimizers for the Capacitron VAE.
+            # It returns 2 optimizers in a list. First one is for the general model,
+            # the second one is for the single Lagrange multiplier-like variable Beta
+            # Returns:
+            #     List: optimizers.
+
+            primary_params, secondary_params = self.capacitron_split_parameters()
+
+            optimizer1 = get_optimizer(
+                self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=primary_params
+            )
+            optimizer2 = get_optimizer(
+                self.config.capacitron_vae.capacitron_secondary_optimizer,
+                self.config.capacitron_vae.capacitron_secondary_optimizer_params,
+                self.config.capacitron_vae.capacitron_secondary_optimizer_lr,
+                parameters=secondary_params,
+            )
+            return [optimizer1, optimizer2]
+        return self.config.optimizer
+
+    def capacitron_split_parameters(self):
+        primary_params = []
+        secondary_params = []
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                if name == "capacitron_vae_layer.beta":
+                    secondary_params.append(param)
+                else:
+                    primary_params.append(param)
+        return [iter(primary_params), iter(secondary_params)]
+
+    def get_lr(self) -> List:
+        """Set the initial learning rates for each optimizer.
+
+        Returns:
+            List: learning rates for each optimizer.
+        """
+        return [self.config.lr, self.config.capacitron_vae.capacitron_secondary_optimizer_lr]
 
     def _create_logs(self, batch, outputs, ap):
         postnet_outputs = outputs["model_outputs"]

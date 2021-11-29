@@ -8,7 +8,9 @@ import torch
 
 sys.path += [os.path.abspath(".."), os.path.abspath(".")]
 import json
+
 import TTS
+
 
 def system_info():
     return {

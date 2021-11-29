@@ -49,6 +49,58 @@ class GSTConfig(Coqpit):
 
 
 @dataclass
+class CapacitronVAEConfig(Coqpit):
+    """Defines the capacitron VAE Module
+    Args:
+        capacitron_capacity (int):
+            Defines the variational capacity limit of the prosody embeddings. Defaults to 150.
+        capacitron_VAE_embedding_dim (int):
+            Defines the size of the Capacitron embedding vector dimension. Defaults to 128.
+        capacitron_use_text_summary_embeddings (bool):
+            If True, use a text summary embedding in Capacitron. Defaults to True.
+        capacitron_text_summary_embedding_dim (int):
+            Defines the size of the capacitron text embedding vector dimension. Defaults to 128.
+        capacitron_use_speaker_embedding (bool):
+            if True use speaker embeddings in Capacitron. Defaults to False.
+        capacitron_VAE_loss_alpha (float):
+            Weight for the VAE loss of the Tacotron model. If set less than or equal to zero, it disables the
+            corresponding loss function. Defaults to 0.25
+        capacitron_secondary_optimizer (str):
+            Optimizer name for the beta optimizer. Defaults to SGD.
+        capacitron_secondary_optimizer_lr (float):
+            Learning rate for the secondary optimizer. Defaults to 1e-5.
+        capacitron_secondary_optimizer_params (dict):
+            Additional parameters for beta optimizer. Defaults to {momentum : 0.9}.
+    """
+
+    capacitron_loss_alpha: int = 1
+    capacitron_capacity: int = 150
+    capacitron_VAE_embedding_dim: int = 128
+    capacitron_use_text_summary_embeddings: bool = True
+    capacitron_text_summary_embedding_dim: int = 128
+    capacitron_use_speaker_embedding: bool = False
+    capacitron_VAE_loss_alpha: float = 0.25
+    capacitron_secondary_optimizer: str = "SGD"
+    capacitron_secondary_optimizer_lr: float = 1e-5
+    capacitron_secondary_optimizer_params: dict = field(default_factory=lambda: {"momentum": 0.9})
+
+    def check_values(
+        self,
+    ):
+        """Check config fields"""
+        c = asdict(self)
+        super().check_values()
+        check_argument("capacitron_capacity", c, restricted=True, min_val=10, max_val=500)
+        check_argument("capacitron_VAE_embedding_dim", c, restricted=True, min_val=16, max_val=1024)
+        check_argument("capacitron_use_speaker_embedding", c, restricted=False)
+        check_argument("capacitron_text_summary_embedding_dim", c, restricted=False, min_val=16, max_val=512)
+        check_argument("capacitron_VAE_loss_alpha", c, restricted=False)
+        check_argument("capacitron_secondary_optimizer", c, restricted=False)
+        check_argument("capacitron_secondary_optimizer_lr", c, restricted=False, min_val=0)
+        check_argument("capacitron_secondary_optimizer_params", c, restricted=False)
+
+
+@dataclass
 class CharactersConfig(Coqpit):
     """Defines character or phoneme set used by the model
 

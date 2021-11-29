@@ -39,6 +39,11 @@ class BaseTacotron(BaseTTS):
             self.decoder_in_features += self.gst.gst_embedding_dim  # add gst embedding dim
             self.gst_layer = None
 
+        # Capacitron
+        if self.capacitron_vae and self.use_capacitron_vae:
+            self.decoder_in_features += self.capacitron_vae.capacitron_VAE_embedding_dim  # add capacitron embedding dim
+            self.capacitron_vae_layer = None
+
         # additional layers
         self.decoder_backward = None
         self.coarse_decoder = None
@@ -174,6 +179,18 @@ class BaseTacotron(BaseTTS):
             gst_outputs = self.gst_layer(style_input, speaker_embedding)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
+
+    def compute_capacitron_VAE_embedding(self, inputs, reference_mel_info, text_info=None, speaker_embedding=None):
+        """Capacitron Variational Autoencoder"""
+        VAE_outputs, posterior_distribution, prior_distribution, capacitron_beta = self.capacitron_vae_layer(
+            reference_mel_info, text_info, speaker_embedding  # pylint: disable=not-callable
+        )
+
+        VAE_outputs = VAE_outputs.to(inputs.device)
+        encoder_output = self._concat_speaker_embedding(
+            inputs, VAE_outputs
+        )  # concatenate to the output of the basic tacotron encoder
+        return encoder_output, posterior_distribution, prior_distribution, capacitron_beta
 
     @staticmethod
     def _add_speaker_embedding(outputs, embedded_speakers):
