@@ -146,11 +146,19 @@ class BaseTTSConfig(BaseTrainingConfig):
         sort_by_audio_len (bool):
             If true, dataloder sorts the data by audio length else sorts by the input text length. Defaults to `False`.
 
-        min_seq_len (int):
-            Minimum sequence length to be used at training.
+        min_text_len (int):
+            Minimum length of input text to be used. All shorter samples will be ignored. Defaults to 0.
 
-        max_seq_len (int):
-            Maximum sequence length to be used at training. Larger values result in more VRAM usage.
+        max_text_len (int):
+            Maximum length of input text to be used. All longer samples will be ignored. Defaults to float("inf").
+
+        min_audio_len (int):
+            Minimum length of input audio to be used. All shorter samples will be ignored. Defaults to 0.
+
+        max_audio_len (int):
+            Maximum length of input audio to be used. All longer samples will be ignored. The maximum length in the
+            dataset defines the VRAM used in the training. Hence, pay attention to this value if you encounter an
+            OOM error in training. Defaults to float("inf").
 
         compute_f0 (int):
             (Not in use yet).
@@ -204,8 +212,10 @@ class BaseTTSConfig(BaseTrainingConfig):
     loss_masking: bool = None
     # dataloading
     sort_by_audio_len: bool = False
-    min_seq_len: int = 1
-    max_seq_len: int = float("inf")
+    min_audio_len: int = 1
+    max_audio_len: int = float("inf")
+    min_text_len: int = 1
+    max_text_len: int = float("inf")
     compute_f0: bool = False
     compute_linear_spec: bool = False
     use_noise_augment: bool = False
