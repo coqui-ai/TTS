@@ -42,13 +42,23 @@ class TTSTokenizer:
         add_blank: bool = False,
         use_eos_bos=False,
     ):
-        self.text_cleaner = text_cleaner or (lambda x: x)
+        self.text_cleaner = text_cleaner
         self.use_phonemes = use_phonemes
         self.add_blank = add_blank
         self.use_eos_bos = use_eos_bos
         self.characters = characters
         self.not_found_characters = []
         self.phonemizer = phonemizer
+
+    @property
+    def characters(self):
+        return self._characters
+
+    @characters.setter
+    def characters(self, new_characters):
+        self._characters = new_characters
+        self.pad_id = self.characters.char_to_id(self.characters.pad)
+        self.blank_id = self.characters.char_to_id(self.characters.blank)
 
     def encode(self, text: str) -> List[int]:
         """Encodes a string of text as a sequence of IDs."""
@@ -61,6 +71,7 @@ class TTSTokenizer:
                 # discard but store not found characters
                 if char not in self.not_found_characters:
                     self.not_found_characters.append(char)
+                    print(text)
                     print(f" [!] Character {repr(char)} not found in the vocabulary. Discarding it.")
         return token_ids
 
@@ -88,7 +99,8 @@ class TTSTokenizer:
         5. Text to token IDs
         """
         # TODO: text cleaner should pick the right routine based on the language
-        text = self.text_cleaner(text)
+        if self.text_cleaner is not None:
+            text = self.text_cleaner(text)
         if self.use_phonemes:
             text = self.phonemizer.phonemize(text, separator="")
         if self.add_blank:
@@ -144,7 +156,9 @@ class TTSTokenizer:
             if "phonemizer" in config and config.phonemizer:
                 phonemizer = get_phonemizer_by_name(config.phonemizer, **phonemizer_kwargs)
             else:
-                phonemizer = get_phonemizer_by_name(DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs)
+                phonemizer = get_phonemizer_by_name(
+                    DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs
+                )
         else:
             # init character set
             characters = Graphemes().init_from_config(config)

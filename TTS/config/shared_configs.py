@@ -278,7 +278,7 @@ class BaseTrainingConfig(Coqpit):
         log_model_step (int):
             Number of steps required to log a checkpoint as W&B artifact
 
-        save_step (int):ipt
+        save_step (int):
             Number of steps required to save the next checkpoint.
 
         checkpoint (bool):
