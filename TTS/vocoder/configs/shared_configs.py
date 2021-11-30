@@ -99,7 +99,7 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
                 "mel_fmax": None,
             }`
         target_loss (str):
-            Target loss name that defines the quality of the model. Defaults to `avg_G_loss`.
+            Target loss name that defines the quality of the model. Defaults to `G_avg_loss`.
         grad_clip (list):
             A list of gradient clipping theresholds for each optimizer. Any value less than 0 disables clipping.
             Defaults to [5, 5].
