@@ -209,7 +209,7 @@ class BaseCharacters:
             ), f" [!] There are duplicate characters in the character set. {set([x for x in self.vocab if self.vocab.count(x) > 1])}"
 
     def char_to_id(self, char: str) -> int:
-            return self._char_to_id[char]
+        return self._char_to_id[char]
 
     def id_to_char(self, idx: int) -> str:
         return self._id_to_char[idx]
@@ -298,8 +298,8 @@ class IPAPhonemes(BaseCharacters):
             )
         else:
             return IPAPhonemes(
-            **config.characters if config.characters is not None else {},
-        )
+                **config.characters if config.characters is not None else {},
+            )
 
 
 class Graphemes(BaseCharacters):
