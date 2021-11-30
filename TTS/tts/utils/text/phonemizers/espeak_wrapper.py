@@ -29,7 +29,11 @@ def _espeak_exe(espeak_lib: str, args: List, sync=False) -> List[str]:
     ]
     cmd.extend(args)
     logging.debug("espeakng: executing %s" % repr(cmd))
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
     res = iter(p.stdout.readline, b"")
     if not sync:
         p.stdout.close()
@@ -110,20 +114,20 @@ class ESpeak(BasePhonemizer):
         args = ["-v", f"{self._language}"]
         # espeak and espeak-ng parses `ipa` differently
         if tie:
-          # use '͡' between phonemes
-          if _DEF_ESPEAK_LIB == "espeak":
-            args.append("--ipa=1")
-          else:
-            args.append("--ipa=3")
+            # use '͡' between phonemes
+            if _DEF_ESPEAK_LIB == "espeak":
+                args.append("--ipa=1")
+            else:
+                args.append("--ipa=3")
         else:
-          # split with '_'
-          if _DEF_ESPEAK_LIB == "espeak":
-            args.append("--ipa=3")
-          else:
-            args.append("--ipa=1")
+            # split with '_'
+            if _DEF_ESPEAK_LIB == "espeak":
+                args.append("--ipa=3")
+            else:
+                args.append("--ipa=1")
         if tie:
             args.append("--tie=%s" % tie)
-        args.append(text)
+        args.append('"' + text + '"')
         # compute phonemes
         phonemes = ""
         for line in _espeak_exe(self._ESPEAK_LIB, args, sync=True):
