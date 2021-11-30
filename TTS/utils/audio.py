@@ -301,7 +301,10 @@ class AudioProcessor(object):
 
     @staticmethod
     def init_from_config(config: "Coqpit"):
-        return AudioProcessor(**config.audio)
+        if "audio" in config:
+            return AudioProcessor(**config.audio)
+        else:
+            return AudioProcessor(**config)
 
     ### setting up the parameters ###
     def _build_mel_basis(
@@ -649,6 +652,7 @@ class AudioProcessor(object):
             >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
             >>> pitch = ap.compute_f0(wav)
         """
+        assert self.mel_fmax is not None, " [!] Set `mel_fmax` before caling `compute_f0`."
         # align F0 length to the spectrogram length
         if len(x) % self.hop_length == 0:
             x = np.pad(x, (0, self.hop_length // 2), mode="reflect")
@@ -660,21 +664,6 @@ class AudioProcessor(object):
             frame_period=1000 * self.hop_length / self.sample_rate,
         )
         f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-        # pad = int((self.win_length / self.hop_length) / 2)
-        # f0 = [0.0] * pad + f0 + [0.0] * pad
-        # f0 = np.pad(f0, (pad, pad), mode="constant", constant_values=0)
-        # f0 = np.array(f0, dtype=np.float32)
-
-        # f01, _, _ = librosa.pyin(
-        #     x,
-        #     fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
-        #     fmax=self.mel_fmax,
-        #     frame_length=self.win_length,
-        #     sr=self.sample_rate,
-        #     fill_na=0.0,
-        # )
-
-        # spec = self.melspectrogram(x)
         return f0
 
     ### Audio Processing ###
