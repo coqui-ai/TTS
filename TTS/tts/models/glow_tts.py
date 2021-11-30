@@ -522,13 +522,16 @@ class GlowTTS(BaseTTS):
         # init characters
         if config.use_phonemes:
             from TTS.tts.utils.text.characters import IPAPhonemes
+
             characters = IPAPhonemes().init_from_config(config)
         else:
             from TTS.tts.utils.text.characters import Graphemes
+
             characters = Graphemes().init_from_config(config)
         config.num_chars = characters.num_chars
 
         from TTS.utils.audio import AudioProcessor
+
         ap = AudioProcessor.init_from_config(config)
         tokenizer = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config)
