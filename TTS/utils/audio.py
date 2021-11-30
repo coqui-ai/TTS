@@ -381,7 +381,10 @@ class AudioProcessor(object):
 
     @staticmethod
     def init_from_config(config: "Coqpit"):
-        return AudioProcessor(**config.audio)
+        if "audio" in config:
+            return AudioProcessor(**config.audio)
+        else:
+            return AudioProcessor(**config)
 
     ### setting up the parameters ###
     def _build_mel_basis(
@@ -729,6 +732,7 @@ class AudioProcessor(object):
             >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
             >>> pitch = ap.compute_f0(wav)
         """
+        assert self.mel_fmax is not None, " [!] Set `mel_fmax` before caling `compute_f0`."
         # align F0 length to the spectrogram length
         if len(x) % self.hop_length == 0:
             x = np.pad(x, (0, self.hop_length // 2), mode="reflect")
