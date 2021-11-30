@@ -255,7 +255,7 @@ class TTSDataset(Dataset):
         return audio_lengths, text_lengths
 
     @staticmethod
-    def sort_and_filter_by_length(lengths:List[int], min_len:int, max_len:int):
+    def sort_and_filter_by_length(lengths: List[int], min_len: int, max_len: int):
         idxs = np.argsort(lengths)  # ascending order
         ignore_idx = []
         keep_idx = []
@@ -268,7 +268,7 @@ class TTSDataset(Dataset):
         return ignore_idx, keep_idx
 
     @staticmethod
-    def create_buckets(samples, batch_group_size:int):
+    def create_buckets(samples, batch_group_size: int):
         for i in range(len(samples) // batch_group_size):
             offset = i * batch_group_size
             end_offset = offset + batch_group_size
@@ -283,8 +283,12 @@ class TTSDataset(Dataset):
         """
 
         # sort items based on the sequence length in ascending order
-        text_ignore_idx, text_keep_idx = self.sort_and_filter_by_length(self.text_lengths, self.min_text_len, self.max_text_len)
-        audio_ignore_idx, audio_keep_idx = self.sort_and_filter_by_length(self.audio_lengths, self.min_audio_len, self.max_audio_len)
+        text_ignore_idx, text_keep_idx = self.sort_and_filter_by_length(
+            self.text_lengths, self.min_text_len, self.max_text_len
+        )
+        audio_ignore_idx, audio_keep_idx = self.sort_and_filter_by_length(
+            self.audio_lengths, self.min_audio_len, self.max_audio_len
+        )
         keep_idx = list(set(audio_keep_idx) | set(text_keep_idx))
         ignore_idx = list(set(audio_ignore_idx) | set(text_ignore_idx))
 
