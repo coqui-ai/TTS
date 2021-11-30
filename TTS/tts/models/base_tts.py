@@ -110,8 +110,8 @@ class BaseTTS(BaseModel):
             Dict: [description]
         """
         # setup input batch
-        text_input = batch["text"]
-        text_lengths = batch["text_lengths"]
+        text_input = batch["token_id"]
+        text_lengths = batch["token_id_lengths"]
         speaker_names = batch["speaker_names"]
         linear_input = batch["linear"]
         mel_input = batch["mel"]
@@ -193,11 +193,6 @@ class BaseTTS(BaseModel):
                 speaker_id_mapping = None
                 d_vector_mapping = None
 
-            # setup custom symbols if needed
-            custom_symbols = None
-            if hasattr(self, "make_symbols"):
-                custom_symbols = self.make_symbols(self.config)
-
             # init dataset
             dataset = TTSDataset(
                 outputs_per_step=config.r if "r" in config else 1,
@@ -208,8 +203,10 @@ class BaseTTS(BaseModel):
                 ap=self.ap,
                 return_wav=config.return_wav if "return_wav" in config else False,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
-                min_seq_len=config.min_seq_len,
-                max_seq_len=config.max_seq_len,
+                min_text_len=config.min_text_len,
+                max_text_len=config.max_text_len,
+                min_audio_len=config.min_audio_len,
+                max_audio_len=config.max_audio_len,
                 phoneme_cache_path=config.phoneme_cache_path,
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
@@ -218,45 +215,12 @@ class BaseTTS(BaseModel):
                 tokenizer=self.tokenizer,
             )
 
-            # pre-compute phonemes
-            if config.use_phonemes and config.compute_input_seq_cache and rank in [None, 0]:
-                if hasattr(self, "eval_data_items") and is_eval:
-                    dataset.items = self.eval_data_items
-                elif hasattr(self, "train_data_items") and not is_eval:
-                    dataset.items = self.train_data_items
-                else:
-                    # precompute phonemes for precise estimate of sequence lengths.
-                    # otherwise `dataset.sort_items()` uses raw text lengths
-                    dataset.compute_input_seq(config.num_loader_workers)
-
-                    # TODO: find a more efficient solution
-                    # cheap hack - store items in the model state to avoid recomputing when reinit the dataset
-                    if is_eval:
-                        self.eval_data_items = dataset.items
-                    else:
-                        self.train_data_items = dataset.items
-
-            # halt DDP processes for the main process to finish computing the phoneme cache
+            # wait all the DDP process to be ready
             if num_gpus > 1:
                 dist.barrier()
 
             # sort input sequences from short to long
-            dataset.sort_and_filter_items(config.get("sort_by_audio_len", default=False))
-
-            # compute pitch frames and write to files.
-            if config.compute_f0 and rank in [None, 0]:
-                if not os.path.exists(config.f0_cache_path):
-                    dataset.pitch_extractor.compute_pitch(
-                        self.ap, config.get("f0_cache_path", None), config.num_loader_workers
-                    )
-
-            # halt DDP processes for the main process to finish computing the F0 cache
-            if num_gpus > 1:
-                dist.barrier()
-
-            # load pitch stats computed above by all the workers
-            if config.compute_f0:
-                dataset.pitch_extractor.load_pitch_stats(config.get("f0_cache_path", None))
+            dataset.preprocess_samples()
 
             # sampler for DDP
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
