@@ -159,4 +159,3 @@ class BaseModel(nn.Module, ABC):
 
     def format_batch(self):
         pass
-
