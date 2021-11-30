@@ -272,10 +272,7 @@ class Vits(BaseTTS):
     # pylint: disable=dangerous-default-value
 
     def __init__(
-        self,
-        config: Coqpit,
-        speaker_manager: SpeakerManager = None,
-        language_manager: LanguageManager = None,
+        self, config: Coqpit, ap: "AudioProcessor", tokenizer: "TTSTokenizer", speaker_manager: SpeakerManager = None, language_manager: LanguageManager = None
     ):
 
         super().__init__(config, ap, tokenizer, speaker_manager)
