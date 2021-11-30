@@ -216,8 +216,8 @@ class TTSDataset(Dataset):
         elif len(item) == 3:
             text, wav_file, speaker_name = item
         else:
-            raise ValueError(" [!] Dataset cannot parse the sample.")
-        return text, wav_file, speaker_name, language_name, attn_file
+            token_ids = self.tokenizer.text_to_ids(text)
+        return token_ids
 
     def load_data(self, idx):
         item = self.samples[idx]
