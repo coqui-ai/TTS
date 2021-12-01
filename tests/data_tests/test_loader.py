@@ -39,7 +39,6 @@ class TestTTSDataset(unittest.TestCase):
 
     def _create_dataloader(self, batch_size, r, bgs):
         items = ljspeech(c.data_path, "metadata.csv")
-
         tokenizer = TTSTokenizer.init_from_config(c)
         dataset = TTSDataset(
             outputs_per_step=r,
