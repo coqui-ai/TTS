@@ -147,6 +147,7 @@ class TTSTokenizer:
         if isinstance(config.text_cleaner, (str, list)):
             text_cleaner = getattr(cleaners, config.text_cleaner)
 
+        phonemizer = None
         if config.use_phonemes:
             # init phoneme set
             characters = IPAPhonemes().init_from_config(config)
