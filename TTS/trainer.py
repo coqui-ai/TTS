@@ -591,7 +591,7 @@ class Trainer:
 
         step_start_time = time.time()
         # zero-out optimizer
-        if self.model.capacitron_vae:
+        if hasattr(self.model, "capacitron_vae"):
             # HACK: overwrite optimizer_idx so that _model_train_step() works with a single optimizer
             optimizer_idx = None
             capacitron_SGD_optimizer = optimizer[1]
@@ -651,7 +651,7 @@ class Trainer:
                 update_lr_scheduler = scale_prev <= scaler.get_scale()
                 loss_dict["amp_scaler"] = scaler.get_scale()  # for logging
         else:
-            if self.model.capacitron_vae:
+            if hasattr(self.model, "capacitron_vae"):
                 loss_dict["capacitron_vae_beta_loss"].backward()
                 capacitron_SGD_optimizer.step()
                 capacitron_SGD_optimizer.zero_grad()
@@ -717,7 +717,7 @@ class Trainer:
             )
             loss_dict.update(loss_dict_new)
         else:
-            if self.model.capacitron_vae:
+            if hasattr(self.model, "capacitron_vae"):
                 # training with multiple optimizers for CapacitronVAE
                 outputs, loss_dict_new, step_time = self._optimize(
                     batch, self.model, self.optimizer, self.scaler, self.criterion, self.scheduler, self.config
@@ -908,7 +908,7 @@ class Trainer:
         with torch.no_grad():
             outputs = []
             loss_dict = {}
-            if not isinstance(self.optimizer, list) or self.model.capacitron_vae:
+            if not isinstance(self.optimizer, list) or hasattr(self.model, "capacitron_vae"):
                 outputs, loss_dict = self._model_eval_step(batch, self.model, self.criterion)
             else:
                 outputs = [None] * len(self.optimizer)
@@ -1196,7 +1196,7 @@ class Trainer:
             return keep_avg_target[f"avg_{self.config.target_loss}"]
 
         # take the average of loss_{optimizer_idx} as the target loss when there are multiple optimizers
-        if isinstance(self.optimizer, list) and not self.model.capacitron_vae:
+        if isinstance(self.optimizer, list) and not hasattr(self.model, "capacitron_vae"):
             target_avg_loss = 0
             for idx in range(len(self.optimizer)):
                 target_avg_loss += keep_avg_target[f"avg_loss_{idx}"]
