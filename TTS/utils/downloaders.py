@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 
-from TTS.utils.download import download_url, extract_archive, download_kaggle_dataset
+from TTS.utils.download import download_kaggle_dataset, download_url, extract_archive
 
 
 def download_ljspeech(path: str):
