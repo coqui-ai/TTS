@@ -38,7 +38,7 @@ class TTSDataset(Dataset):
         outputs_per_step: int,
         compute_linear_spec: bool,
         ap: AudioProcessor,
-        meta_data: List[Dict],
+        samples: List[Dict],
         tokenizer: "TTSTokenizer" = None,
         compute_f0: bool = False,
         f0_cache_path: str = None,
@@ -67,7 +67,7 @@ class TTSDataset(Dataset):
 
             ap (TTS.tts.utils.AudioProcessor): Audio processor object.
 
-            meta_data (list): List of dataset samples.
+            samples (list): List of dataset samples.
 
             tokenizer (TTSTokenizer): tokenizer to convert text to sequence IDs. If None init internally else
                 use the given. Defaults to None.
@@ -111,7 +111,7 @@ class TTSDataset(Dataset):
         """
         super().__init__()
         self.batch_group_size = batch_group_size
-        self._samples = meta_data
+        self._samples = samples
         self.outputs_per_step = outputs_per_step
         self.sample_rate = ap.sample_rate
         self.compute_linear_spec = compute_linear_spec
@@ -200,7 +200,7 @@ class TTSDataset(Dataset):
             token_ids = self.get_phonemes(idx, text)["token_ids"]
         else:
             token_ids = self.tokenizer.text_to_ids(text)
-        return token_ids
+        return np.array(token_ids, dtype=np.int32)
 
     def load_data(self, idx):
         item = self.samples[idx]
@@ -258,7 +258,7 @@ class TTSDataset(Dataset):
         return audio_lengths, text_lengths
 
     @staticmethod
-    def sort_and_filter_by_length(lengths: List[int], min_len: int, max_len: int):
+    def filter_by_length(lengths: List[int], min_len: int, max_len: int):
         idxs = np.argsort(lengths)  # ascending order
         ignore_idx = []
         keep_idx = []
@@ -271,6 +271,11 @@ class TTSDataset(Dataset):
         return ignore_idx, keep_idx
 
     @staticmethod
+    def sort_by_length(lengths: List[int]):
+        idxs = np.argsort(lengths)  # ascending order
+        return idxs
+
+    @staticmethod
     def create_buckets(samples, batch_group_size: int):
         for i in range(len(samples) // batch_group_size):
             offset = i * batch_group_size
@@ -280,24 +285,33 @@ class TTSDataset(Dataset):
             samples[offset:end_offset] = temp_items
         return samples
 
+    def select_samples_by_idx(self, idxs):
+        samples = []
+        audio_lengths = []
+        text_lengths = []
+        for idx in idxs:
+            samples.append(self.samples[idx])
+            audio_lengths.append(self.audio_lengths[idx])
+            text_lengths.append(self.text_lengths[idx])
+        return samples, audio_lengths, text_lengths
+
     def preprocess_samples(self):
         r"""Sort `items` based on text length or audio length in ascending order. Filter out samples out or the length
         range.
         """
 
         # sort items based on the sequence length in ascending order
-        text_ignore_idx, text_keep_idx = self.sort_and_filter_by_length(
-            self.text_lengths, self.min_text_len, self.max_text_len
-        )
-        audio_ignore_idx, audio_keep_idx = self.sort_and_filter_by_length(
+        text_ignore_idx, text_keep_idx = self.filter_by_length(self.text_lengths, self.min_text_len, self.max_text_len)
+        audio_ignore_idx, audio_keep_idx = self.filter_by_length(
             self.audio_lengths, self.min_audio_len, self.max_audio_len
         )
         keep_idx = list(set(audio_keep_idx) | set(text_keep_idx))
         ignore_idx = list(set(audio_ignore_idx) | set(text_ignore_idx))
 
-        samples = []
-        for idx in keep_idx:
-            samples.append(self.samples[idx])
+        samples, audio_lengths, _ = self.select_samples_by_idx(keep_idx)
+
+        sorted_idxs = self.sort_by_length(audio_lengths)
+        samples, audio_lengths, text_lengtsh = self.select_samples_by_idx(sorted_idxs)
 
         if len(samples) == 0:
             raise RuntimeError(" [!] No samples left")
@@ -309,6 +323,8 @@ class TTSDataset(Dataset):
 
         # update items to the new sorted items
         self.samples = samples
+        self.audio_lengths = audio_lengths
+        self.text_lengths = text_lengtsh
 
         if self.verbose:
             print(" | > Preprocessing samples")
@@ -391,7 +407,7 @@ class TTSDataset(Dataset):
             stop_targets = prepare_stop_target(stop_targets, self.outputs_per_step)
 
             # PAD sequences with longest instance in the batch
-            text = prepare_data(batch["token_ids"]).astype(np.int32)
+            token_ids = prepare_data(batch["token_ids"]).astype(np.int32)
 
             # PAD features with longest instance
             mel = prepare_tensor(mel, self.outputs_per_step)
@@ -401,7 +417,7 @@ class TTSDataset(Dataset):
 
             # convert things to pytorch
             token_ids_lengths = torch.LongTensor(token_ids_lengths)
-            text = torch.LongTensor(text)
+            token_ids = torch.LongTensor(token_ids)
             mel = torch.FloatTensor(mel).contiguous()
             mel_lengths = torch.LongTensor(mel_lengths)
             stop_targets = torch.FloatTensor(stop_targets)
@@ -453,7 +469,7 @@ class TTSDataset(Dataset):
                 attns = [batch["attn"][idx].T for idx in ids_sorted_decreasing]
                 for idx, attn in enumerate(attns):
                     pad2 = mel.shape[1] - attn.shape[1]
-                    pad1 = text.shape[1] - attn.shape[0]
+                    pad1 = token_ids.shape[1] - attn.shape[0]
                     assert pad1 >= 0 and pad2 >= 0, f"[!] Negative padding - {pad1} and {pad2}"
                     attn = np.pad(attn, [[0, pad1], [0, pad2]])
                     attns[idx] = attn
@@ -461,7 +477,7 @@ class TTSDataset(Dataset):
                 attns = torch.FloatTensor(attns).unsqueeze(1)
 
             return {
-                "token_id": text,
+                "token_id": token_ids,
                 "token_id_lengths": token_ids_lengths,
                 "speaker_names": batch["speaker_name"],
                 "linear": linear,
@@ -786,7 +802,7 @@ if __name__ == "__main__":
     dataset = TTSDataset(
         outputs_per_step=1,
         compute_linear_spec=False,
-        meta_data=samples,
+        samples=samples,
         ap=ap,
         return_wav=False,
         batch_group_size=0,
