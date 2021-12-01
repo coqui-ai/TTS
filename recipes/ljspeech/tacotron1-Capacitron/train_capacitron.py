@@ -11,9 +11,7 @@ from TTS.utils.audio import AudioProcessor
 output_path = os.path.dirname(os.path.abspath(__file__))
 
 # Using LJSpeech like dataset processing for the blizzard dataset
-dataset_config = BaseDatasetConfig(
-    name="ljspeech", meta_file_train="metadata.csv", path="/home/big-boy/Data/blizzard2013/segmented/"
-)
+dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv", path="/home/Data/")
 
 audio_config = BaseAudioConfig(
     sample_rate=24000,
@@ -27,8 +25,6 @@ audio_config = BaseAudioConfig(
     ref_level_db=20,
     preemphasis=0.0,
 )
-
-output_path = os.path.dirname(os.path.abspath(__file__))
 
 # Using the standard Capacitron config
 capacitron_config = CapacitronVAEConfig()
