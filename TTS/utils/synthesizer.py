@@ -174,7 +174,7 @@ class Synthesizer(object):
         wav = np.array(wav)
         self.ap.save_wav(wav, path, self.output_sample_rate)
 
-    def tts(self, text: str, speaker_idx: str = "", speaker_wav=None, style_wav=None) -> List[int]:
+    def tts(self, text: str, speaker_idx: str = "", speaker_wav=None, style_wav=None, reference_wav=None, reference_text=None) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
         Args:
@@ -182,6 +182,8 @@ class Synthesizer(object):
             speaker_idx (str, optional): spekaer id for multi-speaker models. Defaults to "".
             speaker_wav ():
             style_wav ([type], optional): style waveform for GST. Defaults to None.
+            reference_wav ([type], optional): reference waveform for Capacitron. Defaults to None.
+            reference_text ([type], optional): transcription of reference_wav for Capacitron. Defaults to None.
 
         Returns:
             List[int]: [description]
@@ -235,6 +237,8 @@ class Synthesizer(object):
                 ap=self.ap,
                 speaker_id=speaker_id,
                 style_wav=style_wav,
+                reference_wav=reference_wav,
+                reference_text=reference_text,
                 enable_eos_bos_chars=self.tts_config.enable_eos_bos_chars,
                 use_griffin_lim=use_gl,
                 d_vector=speaker_embedding,

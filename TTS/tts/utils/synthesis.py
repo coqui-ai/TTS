@@ -249,7 +249,14 @@ def synthesis(
 
         style_wav (str | Dict[str, float]):
             Path or tensor to/of a waveform used for computing the style embedding. Defaults to None.
+        
+        reference_wav (str | Dict[str, float]):
+            Path or tensor to/of a waveform used for computing the Capacitron reference embedding. Defaults to None,
+            meaning the model will sample from the prior distribution to generate random but realistic prosody.
 
+        reference_text (str):
+            Transcription of reference_wav. Defaults to None.
+        
         enable_eos_bos_chars (bool):
             enable special chars for end of sentence and start of sentence. Defaults to False.
 
@@ -272,7 +279,7 @@ def synthesis(
             style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
     # Capacitron processing
     reference_mel = None
-    if "use_capacitron" in CONFIG.keys() and CONFIG.use_capacitron_vae and reference_wav is not None:
+    if CONFIG.has("capacitron_vae") and CONFIG.use_capacitron_vae and reference_wav is not None:
         reference_mel = compute_reference_mel(reference_wav, ap, cuda=use_cuda)
         reference_mel = reference_mel.transpose(1, 2)  # [1, time, depth]
     if hasattr(model, "make_symbols"):
@@ -293,6 +300,7 @@ def synthesis(
         # Capacitron reference
         reference_mel = numpy_to_torch(reference_mel, torch.float, cuda=use_cuda)
         if reference_text is not None:
+            reference_text = text_to_seq(reference_text, CONFIG, custom_symbols=custom_symbols)
             reference_text = numpy_to_torch(reference_text, torch.long, cuda=use_cuda)
             reference_text = reference_text.unsqueeze(0)
 
