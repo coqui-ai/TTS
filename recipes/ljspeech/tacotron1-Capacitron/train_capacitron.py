@@ -27,7 +27,7 @@ audio_config = BaseAudioConfig(
 )
 
 # Using the standard Capacitron config
-capacitron_config = CapacitronVAEConfig()
+capacitron_config = CapacitronVAEConfig(capacitron_VAE_loss_alpha=1.0)
 
 config = TacotronConfig(
     audio=audio_config,
@@ -41,19 +41,30 @@ config = TacotronConfig(
     test_delay_epochs=0,
     ga_alpha=0.0,
     r=2,
-    attention_type="original",
+    attention_type="graves",
+    attention_heads=5,
     epochs=1000,
     text_cleaner="phoneme_cleaners",
     use_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
-    print_step=25,
+    print_step=500,
     print_eval=True,
     mixed_precision=False,
     output_path=output_path,
     datasets=[dataset_config],
     min_seq_len=1,
     max_seq_len=110,
+    lr=1e-3,
+    lr_scheduler="StepwiseGradualLR",
+    lr_scheduler_params= {
+        "gradual_learning_rates":[
+            [0, 1e-3],
+            [2e4, 5e-4], 
+            [3e4, 3e-4],
+            [4e4, 1e-4]
+        ]
+    },
     # Need to experiment with these below for capacitron
     loss_masking=False,
     decoder_loss_alpha=1.0,

@@ -8,7 +8,7 @@ import fsspec
 import torch
 
 from TTS.utils.io import load_fsspec
-from TTS.utils.training import NoamLR
+from TTS.utils.training import NoamLR, StepwiseGradualLR
 
 
 def is_apex_available():
@@ -58,6 +58,8 @@ def get_scheduler(
         return None
     if lr_scheduler.lower() == "noamlr":
         scheduler = NoamLR
+    if lr_scheduler.lower() == "stepwisegraduallr":
+        scheduler = StepwiseGradualLR
     else:
         scheduler = getattr(torch.optim.lr_scheduler, lr_scheduler)
     return scheduler(optimizer, **lr_scheduler_params)
