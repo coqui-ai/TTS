@@ -1,5 +1,4 @@
 import importlib
-from os import stat
 from typing import List
 
 import gruut
@@ -55,7 +54,7 @@ class Gruut(BasePhonemizer):
     def name():
         return "gruut"
 
-    def phonemize_gruut(self, text: str, separator: str = "|", tie=False) -> str:
+    def phonemize_gruut(self, text: str, separator: str = "|", tie=False) -> str:  # pylint: disable=unused-argument
         """Convert input text to phonemes.
 
         Gruut phonemizes the given `str` by seperating each phoneme character with `separator`, even for characters

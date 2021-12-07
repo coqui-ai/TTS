@@ -283,10 +283,10 @@ def synthesis(
         wav = model_outputs.squeeze(0)
     else:
         if use_griffin_lim:
-            wav = inv_spectrogram(model_outputs, ap, CONFIG)
+            wav = inv_spectrogram(model_outputs, model.ap, CONFIG)
             # trim silence
             if do_trim_silence:
-                wav = trim_silence(wav, ap)
+                wav = trim_silence(wav, model.ap)
     return_dict = {
         "wav": wav,
         "alignments": alignments,

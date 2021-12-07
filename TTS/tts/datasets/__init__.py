@@ -88,8 +88,8 @@ def load_tts_samples(
             meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
         # load attention masks for the duration predictor training
-        if dataset.meta_file_attn_mask:
-            meta_data = dict(load_attention_mask_meta_data(dataset["meta_file_attn_mask"]))
+        if d.meta_file_attn_mask:
+            meta_data = dict(load_attention_mask_meta_data(d["meta_file_attn_mask"]))
             for idx, ins in enumerate(meta_data_train_all):
                 attn_file = meta_data[ins[1]].strip()
                 meta_data_train_all[idx].append(attn_file)

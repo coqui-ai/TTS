@@ -383,8 +383,7 @@ class AudioProcessor(object):
     def init_from_config(config: "Coqpit"):
         if "audio" in config:
             return AudioProcessor(**config.audio)
-        else:
-            return AudioProcessor(**config)
+        return AudioProcessor(**config)
 
     ### setting up the parameters ###
     def _build_mel_basis(

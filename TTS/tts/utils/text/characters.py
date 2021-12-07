@@ -1,3 +1,8 @@
+from dataclasses import replace
+
+from TTS.tts.configs.shared_configs import CharactersConfig
+
+
 def parse_symbols():
     return {
         "pad": _pad,
@@ -29,46 +34,49 @@ _diacrilics = "ɚ˞ɫ"
 _phonemes = _vowels + _non_pulmonic_consonants + _pulmonic_consonants + _suprasegmentals + _other_symbols + _diacrilics
 
 
-def create_graphemes(
-    characters=_characters,
-    punctuations=_punctuations,
-    pad=_pad,
-    eos=_eos,
-    bos=_bos,
-    blank=_blank,
-    unique=True,
-):  # pylint: disable=redefined-outer-name
-    """Function to create default characters and phonemes"""
-    # create graphemes
-    _graphemes = list(characters)
-    _graphemes = [bos] + _graphemes if len(bos) > 0 and bos is not None else _graphemes
-    _graphemes = [eos] + _graphemes if len(bos) > 0 and eos is not None else _graphemes
-    _graphemes = [pad] + _graphemes if len(bos) > 0 and pad is not None else _graphemes
-    _graphemes = [blank] + _graphemes if len(bos) > 0 and blank is not None else _graphemes
-    _graphemes = _graphemes + list(punctuations)
-    return _graphemes, _phonemes
+# def create_graphemes(
+#     characters=_characters,
+#     punctuations=_punctuations,
+#     pad=_pad,
+#     eos=_eos,
+#     bos=_bos,
+#     blank=_blank,
+#     unique=True,
+# ):  # pylint: disable=redefined-outer-name
+#     """Function to create default characters and phonemes"""
+#     # create graphemes
+#     = (
+#         sorted(list(set(phonemes))) if unique else sorted(list(phonemes))
+#     )  # this is to keep previous models compatible.
+#     _graphemes = list(characters)
+#     _graphemes = [bos] + _graphemes if len(bos) > 0 and bos is not None else _graphemes
+#     _graphemes = [eos] + _graphemes if len(bos) > 0 and eos is not None else _graphemes
+#     _graphemes = [pad] + _graphemes if len(bos) > 0 and pad is not None else _graphemes
+#     _graphemes = [blank] + _graphemes if len(bos) > 0 and blank is not None else _graphemes
+#     _graphemes = _graphemes + list(punctuations)
+#     return _graphemes, _phonemes
 
 
-def create_phonemes(
-    phonemes=_phonemes, punctuations=_punctuations, pad=_pad, eos=_eos, bos=_bos, blank=_blank, unique=True
-):
-    # create phonemes
-    _phonemes = None
-    _phonemes_sorted = (
-        sorted(list(set(phonemes))) if unique else sorted(list(phonemes))
-    )  # this is to keep previous models compatible.
-    _phonemes = list(_phonemes_sorted)
-    _phonemes = [bos] + _phonemes if len(bos) > 0 and bos is not None else _phonemes
-    _phonemes = [eos] + _phonemes if len(bos) > 0 and eos is not None else _phonemes
-    _phonemes = [pad] + _phonemes if len(bos) > 0 and pad is not None else _phonemes
-    _phonemes = [blank] + _phonemes if len(bos) > 0 and blank is not None else _phonemes
-    _phonemes = _phonemes + list(punctuations)
-    _phonemes = [pad, eos, bos] + list(_phonemes_sorted) + list(punctuations)
-    return _phonemes
+# def create_phonemes(
+#     phonemes=_phonemes, punctuations=_punctuations, pad=_pad, eos=_eos, bos=_bos, blank=_blank, unique=True
+# ):
+#     # create phonemes
+#     _phonemes = None
+#     _phonemes_sorted = (
+#         sorted(list(set(phonemes))) if unique else sorted(list(phonemes))
+#     )  # this is to keep previous models compatible.
+#     _phonemes = list(_phonemes_sorted)
+#     _phonemes = [bos] + _phonemes if len(bos) > 0 and bos is not None else _phonemes
+#     _phonemes = [eos] + _phonemes if len(bos) > 0 and eos is not None else _phonemes
+#     _phonemes = [pad] + _phonemes if len(bos) > 0 and pad is not None else _phonemes
+#     _phonemes = [blank] + _phonemes if len(bos) > 0 and blank is not None else _phonemes
+#     _phonemes = _phonemes + list(punctuations)
+#     _phonemes = [pad, eos, bos] + list(_phonemes_sorted) + list(punctuations)
+#     return _phonemes
 
 
-graphemes = create_graphemes(_characters, _phonemes, _punctuations, _pad, _eos, _bos)
-phonemes = create_phonemes(_phonemes, _punctuations, _pad, _eos, _bos, _blank)
+# DEF_GRAPHEMES = create_graphemes(_characters, _phonemes, _punctuations, _pad, _eos, _bos)
+# DEF_PHONEMES = create_phonemes(_phonemes, _punctuations, _pad, _eos, _bos, _blank)
 
 
 class BaseCharacters:
@@ -114,7 +122,7 @@ class BaseCharacters:
         eos: str,
         bos: str,
         blank: str,
-        is_unique: bool = True,
+        is_unique: bool = False,
         is_sorted: bool = True,
     ) -> None:
         self._characters = characters
@@ -202,14 +210,20 @@ class BaseCharacters:
         _vocab = [self._pad] + _vocab if self._pad is not None and len(self._pad) > 0 else _vocab
         self._vocab = _vocab + list(self._punctuations)
         self._char_to_id = {char: idx for idx, char in enumerate(self.vocab)}
-        self._id_to_char = {idx: char for idx, char in enumerate(self.vocab)}
+        self._id_to_char = {
+            idx: char for idx, char in enumerate(self.vocab)  # pylint: disable=unnecessary-comprehension
+        }
         if self.is_unique:
+            duplicates = {x for x in self.vocab if self.vocab.count(x) > 1}
             assert (
                 len(self.vocab) == len(self._char_to_id) == len(self._id_to_char)
-            ), f" [!] There are duplicate characters in the character set. {set([x for x in self.vocab if self.vocab.count(x) > 1])}"
+            ), f" [!] There are duplicate characters in the character set. {duplicates}"
 
     def char_to_id(self, char: str) -> int:
-        return self._char_to_id[char]
+        try:
+            return self._char_to_id[char]
+        except KeyError as e:
+            raise KeyError(f" [!] {repr(char)} is not in the vocabulary.") from e
 
     def id_to_char(self, idx: int) -> str:
         return self._id_to_char[idx]
@@ -229,9 +243,23 @@ class BaseCharacters:
         print(f"{indent}| > Num chars: {self.num_chars}")
 
     @staticmethod
-    def init_from_config(config: "Coqpit"):
-        return BaseCharacters(
-            **config.characters if config.characters is not None else {},
+    def init_from_config(config: "Coqpit"):  # pylint: disable=unused-argument
+        """Init your character class from a config.
+
+        Implement this method for your subclass.
+        """
+        ...
+
+    def to_config(self) -> "CharactersConfig":
+        return CharactersConfig(
+            characters=self._characters,
+            punctuations=self._punctuations,
+            pad=self._pad,
+            eos=self._eos,
+            bos=self._bos,
+            blank=self._blank,
+            is_unique=self.is_unique,
+            is_sorted=self.is_sorted,
         )
 
 
@@ -275,31 +303,42 @@ class IPAPhonemes(BaseCharacters):
         eos: str = _eos,
         bos: str = _bos,
         blank: str = _blank,
-        is_unique: bool = True,
+        is_unique: bool = False,
         is_sorted: bool = True,
     ) -> None:
         super().__init__(characters, punctuations, pad, eos, bos, blank, is_unique, is_sorted)
 
     @staticmethod
     def init_from_config(config: "Coqpit"):
+        """Init a IPAPhonemes object from a model config
+
+        If characters are not defined in the config, it will be set to the default characters and the config
+        will be updated.
+        """
         # band-aid for compatibility with old models
         if "characters" in config and config.characters is not None:
             if "phonemes" in config.characters and config.characters.phonemes is not None:
                 config.characters["characters"] = config.characters["phonemes"]
-            return IPAPhonemes(
-                characters=config.characters["characters"],
-                punctuations=config.characters["punctuations"],
-                pad=config.characters["pad"],
-                eos=config.characters["eos"],
-                bos=config.characters["bos"],
-                blank=config.characters["blank"],
-                is_unique=config.characters["is_unique"],
-                is_sorted=config.characters["is_sorted"],
+            return (
+                IPAPhonemes(
+                    characters=config.characters["characters"],
+                    punctuations=config.characters["punctuations"],
+                    pad=config.characters["pad"],
+                    eos=config.characters["eos"],
+                    bos=config.characters["bos"],
+                    blank=config.characters["blank"],
+                    is_unique=config.characters["is_unique"],
+                    is_sorted=config.characters["is_sorted"],
+                ),
+                config,
             )
-        else:
-            return IPAPhonemes(
-                **config.characters if config.characters is not None else {},
-            )
+        # use character set from config
+        if config.characters is not None:
+            return IPAPhonemes(**config.characters), config
+        # return default character set
+        characters = IPAPhonemes()
+        new_config = replace(config, characters=characters.to_config())
+        return characters, new_config
 
 
 class Graphemes(BaseCharacters):
@@ -339,24 +378,42 @@ class Graphemes(BaseCharacters):
         eos: str = _eos,
         bos: str = _bos,
         blank: str = _blank,
-        is_unique: bool = True,
+        is_unique: bool = False,
         is_sorted: bool = True,
     ) -> None:
         super().__init__(characters, punctuations, pad, eos, bos, blank, is_unique, is_sorted)
 
     @staticmethod
     def init_from_config(config: "Coqpit"):
-        return Graphemes(
-            **config.characters if config.characters is not None else {},
-        )
+        """Init a Graphemes object from a model config
+
+        If characters are not defined in the config, it will be set to the default characters and the config
+        will be updated.
+        """
+        if config.characters is not None:
+            # band-aid for compatibility with old models
+            if "phonemes" in config.characters:
+                return (
+                    Graphemes(
+                        characters=config.characters["characters"],
+                        punctuations=config.characters["punctuations"],
+                        pad=config.characters["pad"],
+                        eos=config.characters["eos"],
+                        bos=config.characters["bos"],
+                        blank=config.characters["blank"],
+                        is_unique=config.characters["is_unique"],
+                        is_sorted=config.characters["is_sorted"],
+                    ),
+                    config,
+                )
+            return Graphemes(**config.characters), config
+        characters = Graphemes()
+        new_config = replace(config, characters=characters.to_config())
+        return characters, new_config
 
 
 if __name__ == "__main__":
     gr = Graphemes()
     ph = IPAPhonemes()
-
-    print(gr.vocab)
-    print(ph.vocab)
-
-    print(gr.num_chars)
-    assert "a" == gr.id_to_char(gr.char_to_id("a"))
+    gr.print_log()
+    ph.print_log()
