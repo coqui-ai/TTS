@@ -57,8 +57,8 @@ class TTSTokenizer:
     @characters.setter
     def characters(self, new_characters):
         self._characters = new_characters
-        self.pad_id = self.characters.char_to_id(self.characters.pad)
-        self.blank_id = self.characters.char_to_id(self.characters.blank)
+        self.pad_id = self.characters.char_to_id(self.characters.pad) if self.characters.pad else None
+        self.blank_id = self.characters.char_to_id(self.characters.blank) if self.characters.blank else None
 
     def encode(self, text: str) -> List[int]:
         """Encodes a string of text as a sequence of IDs."""
@@ -82,7 +82,7 @@ class TTSTokenizer:
             text += self.characters.id_to_char(token_id)
         return text
 
-    def text_to_ids(self, text: str, language: str = None) -> List[int]:
+    def text_to_ids(self, text: str, language: str = None) -> List[int]:  # pylint: disable=unused-argument
         """Converts a string of text to a sequence of token IDs.
 
         Args:
@@ -137,32 +137,50 @@ class TTSTokenizer:
                 print(f"{indent}| > {char}")
 
     @staticmethod
-    def init_from_config(config: "Coqpit"):
+    def init_from_config(config: "Coqpit", characters: "BaseCharacters" = None):
         """Init Tokenizer object from config
 
         Args:
             config (Coqpit): Coqpit model config.
+            characters (BaseCharacters): Defines the model character set. If not set, use the default options based on
+                the config values. Defaults to None.
         """
         # init cleaners
         if isinstance(config.text_cleaner, (str, list)):
             text_cleaner = getattr(cleaners, config.text_cleaner)
 
+        # init characters
+        if characters is None:
+            if config.use_phonemes:
+                # init phoneme set
+                characters, new_config = IPAPhonemes().init_from_config(config)
+            else:
+                # init character set
+                characters, new_config = Graphemes().init_from_config(config)
+        else:
+            characters, new_config = characters.init_from_config(config)
+
+        # init phonemizer
         phonemizer = None
         if config.use_phonemes:
-            # init phoneme set
-            characters = IPAPhonemes().init_from_config(config)
             phonemizer_kwargs = {"language": config.phoneme_language}
 
-            # init phonemizer
             if "phonemizer" in config and config.phonemizer:
                 phonemizer = get_phonemizer_by_name(config.phonemizer, **phonemizer_kwargs)
             else:
-                phonemizer = get_phonemizer_by_name(
-                    DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs
-                )
-        else:
-            # init character set
-            characters = Graphemes().init_from_config(config)
-        return TTSTokenizer(
-            config.use_phonemes, text_cleaner, characters, phonemizer, config.add_blank, config.enable_eos_bos_chars
+                try:
+                    phonemizer = get_phonemizer_by_name(
+                        DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs
+                    )
+                except KeyError as e:
+                    raise ValueError(
+                        f"""No phonemizer found for language {config.phoneme_language}.
+                        You may need to install a third party library for this language."""
+                    ) from e
+
+        return (
+            TTSTokenizer(
+                config.use_phonemes, text_cleaner, characters, phonemizer, config.add_blank, config.enable_eos_bos_chars
+            ),
+            new_config,
         )
