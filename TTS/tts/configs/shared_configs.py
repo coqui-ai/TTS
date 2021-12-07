@@ -78,7 +78,7 @@ class CharactersConfig(Coqpit):
 
         is_unique (bool):
             remove any duplicate characters in the character lists. It is a bandaid for compatibility with the old
-            models trained with character lists with duplicates.
+            models trained with character lists with duplicates. Defaults to True.
 
         is_sorted (bool):
             Sort the characters in alphabetical order. Defaults to True.
@@ -166,6 +166,9 @@ class BaseTTSConfig(BaseTrainingConfig):
         compute_linear_spec (bool):
             If True data loader computes and returns linear spectrograms alongside the other data.
 
+        precompute_num_workers (int):
+            Number of workers to precompute features. Defaults to 0.
+
         use_noise_augment (bool):
             Augment the input audio with random noise.
 
@@ -207,6 +210,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     phoneme_cache_path: str = None
     # vocabulary parameters
     characters: CharactersConfig = None
+    add_blank: bool = False
     # training params
     batch_group_size: int = 0
     loss_masking: bool = None
@@ -218,8 +222,8 @@ class BaseTTSConfig(BaseTrainingConfig):
     max_text_len: int = float("inf")
     compute_f0: bool = False
     compute_linear_spec: bool = False
+    precompute_num_workers: int = 0
     use_noise_augment: bool = False
-    add_blank: bool = False
     # dataset
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # optimizer
