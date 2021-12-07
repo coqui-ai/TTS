@@ -17,7 +17,7 @@ class MultiPhonemizer:
     lang_to_phonemizer_name = DEF_LANG_TO_PHONEMIZER
     language = "multi-lingual"
 
-    def __init__(self, custom_lang_to_phonemizer: Dict = {}) -> None:
+    def __init__(self, custom_lang_to_phonemizer: Dict = {}) -> None:  # pylint: disable=dangerous-default-value
         self.lang_to_phonemizer_name.update(custom_lang_to_phonemizer)
         self.lang_to_phonemizer = self.init_phonemizers(self.lang_to_phonemizer_name)
 
@@ -40,16 +40,16 @@ class MultiPhonemizer:
         return list(self.lang_to_phonemizer_name.keys())
 
 
-if __name__ == "__main__":
-    texts = {
-        "tr": "Merhaba, bu Türkçe bit örnek!",
-        "en-us": "Hello, this is English example!",
-        "de": "Hallo, das ist ein Deutches Beipiel!",
-        "zh-cn": "这是中国的例子",
-    }
-    phonemes = {}
-    ph = MultiPhonemizer()
-    for lang, text in texts.items():
-        phoneme = ph.phonemize(text, lang)
-        phonemes[lang] = phoneme
-    print(phonemes)
+# if __name__ == "__main__":
+#     texts = {
+#         "tr": "Merhaba, bu Türkçe bit örnek!",
+#         "en-us": "Hello, this is English example!",
+#         "de": "Hallo, das ist ein Deutches Beipiel!",
+#         "zh-cn": "这是中国的例子",
+#     }
+#     phonemes = {}
+#     ph = MultiPhonemizer()
+#     for lang, text in texts.items():
+#         phoneme = ph.phonemize(text, lang)
+#         phonemes[lang] = phoneme
+#     print(phonemes)

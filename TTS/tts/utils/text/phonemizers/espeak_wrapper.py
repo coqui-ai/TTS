@@ -28,29 +28,30 @@ def _espeak_exe(espeak_lib: str, args: List, sync=False) -> List[str]:
         "1",  # UTF8 text encoding
     ]
     cmd.extend(args)
-    logging.debug("espeakng: executing %s" % repr(cmd))
-    p = subprocess.Popen(
+    logging.debug("espeakng: executing %s", repr(cmd))
+
+    with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-    )
-    res = iter(p.stdout.readline, b"")
-    if not sync:
+    ) as p:
+        res = iter(p.stdout.readline, b"")
+        if not sync:
+            p.stdout.close()
+            if p.stderr:
+                p.stderr.close()
+            if p.stdin:
+                p.stdin.close()
+            return res
+        res2 = []
+        for line in res:
+            res2.append(line)
         p.stdout.close()
         if p.stderr:
             p.stderr.close()
         if p.stdin:
             p.stdin.close()
-        return res
-    res2 = []
-    for line in res:
-        res2.append(line)
-    p.stdout.close()
-    if p.stderr:
-        p.stderr.close()
-    if p.stdin:
-        p.stdin.close()
-    p.wait()
+        p.wait()
     return res2
 
 
@@ -85,7 +86,24 @@ class ESpeak(BasePhonemizer):
     def __init__(self, language: str, backend=None, punctuations=Punctuation.default_puncs(), keep_puncs=True):
         if self._ESPEAK_LIB is None:
             raise Exception("Unknown backend: %s" % backend)
+
+        # band-aid for backwards compatibility
+        if language == "en":
+            language = "en-us"
+
         super().__init__(language, punctuations=punctuations, keep_puncs=keep_puncs)
+        if backend is not None:
+            self.backend = backend
+
+    @property
+    def backend(self):
+        return self._ESPEAK_LIB
+
+    @backend.setter
+    def backend(self, backend):
+        if backend not in ["espeak", "espeak-ng"]:
+            raise Exception("Unknown backend: %s" % backend)
+        self._ESPEAK_LIB = backend
 
     def auto_set_espeak_lib(self) -> None:
         if is_tool("espeak-ng"):
@@ -115,24 +133,25 @@ class ESpeak(BasePhonemizer):
         # espeak and espeak-ng parses `ipa` differently
         if tie:
             # use '͡' between phonemes
-            if _DEF_ESPEAK_LIB == "espeak":
+            if self.backend == "espeak":
                 args.append("--ipa=1")
             else:
                 args.append("--ipa=3")
         else:
             # split with '_'
-            if _DEF_ESPEAK_LIB == "espeak":
+            if self.backend == "espeak":
                 args.append("--ipa=3")
             else:
                 args.append("--ipa=1")
         if tie:
             args.append("--tie=%s" % tie)
+
         args.append('"' + text + '"')
         # compute phonemes
         phonemes = ""
         for line in _espeak_exe(self._ESPEAK_LIB, args, sync=True):
-            logging.debug("line: %s" % repr(line))
-            phonemes += line.decode("utf8").strip()
+            logging.debug("line: %s", repr(line))
+            phonemes += line.decode("utf8").strip()[2:]  # skip two redundant characters
         return phonemes.replace("_", separator)
 
     def _phonemize(self, text, separator=None):
@@ -146,7 +165,7 @@ class ESpeak(BasePhonemizer):
             Dict: Dictionary of language codes.
         """
         if _DEF_ESPEAK_LIB is None:
-            raise {}
+            return {}
         args = ["--voices"]
         langs = {}
         count = 0
@@ -157,7 +176,7 @@ class ESpeak(BasePhonemizer):
                 lang_code = cols[1]
                 lang_name = cols[3]
                 langs[lang_code] = lang_name
-            logging.debug("line: %s" % repr(line))
+            logging.debug("line: %s", repr(line))
             count += 1
         return langs
 
@@ -168,9 +187,9 @@ class ESpeak(BasePhonemizer):
             str: Version of the used backend.
         """
         args = ["--version"]
-        for line in _espeak_exe(_DEF_ESPEAK_LIB, args, sync=True):
+        for line in _espeak_exe(self.backend, args, sync=True):
             version = line.decode("utf8").strip().split()[2]
-            logging.debug("line: %s" % repr(line))
+            logging.debug("line: %s", repr(line))
             return version
 
     @classmethod

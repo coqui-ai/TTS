@@ -1,7 +1,6 @@
 import collections
 import os
 import random
-from multiprocessing import Pool
 from typing import Dict, List, Union
 
 import numpy as np
@@ -10,7 +9,6 @@ import tqdm
 from torch.utils.data import Dataset
 
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
-from TTS.tts.utils.text import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 
@@ -183,7 +181,7 @@ class TTSDataset(Dataset):
     def get_phonemes(self, idx, text):
         out_dict = self.phoneme_dataset[idx]
         assert text == out_dict["text"], f"{text} != {out_dict['text']}"
-        assert out_dict["token_ids"].size > 0
+        assert len(out_dict["token_ids"]) > 0
         return out_dict
 
     def get_f0(self, idx):
@@ -192,7 +190,8 @@ class TTSDataset(Dataset):
         assert wav_file == out_dict["audio_file"]
         return out_dict
 
-    def get_attn_maks(self, attn_file):
+    @staticmethod
+    def get_attn_mask(attn_file):
         return np.load(attn_file)
 
     def get_token_ids(self, idx, text):
@@ -207,7 +206,7 @@ class TTSDataset(Dataset):
 
         raw_text = item["text"]
 
-        wav = np.asarray(self.load_wav(item[]), dtype=np.float32)
+        wav = np.asarray(self.load_wav(item["audio_file"]), dtype=np.float32)
 
         # apply noise for augmentation
         if self.use_noise_augment:
@@ -262,7 +261,7 @@ class TTSDataset(Dataset):
         idxs = np.argsort(lengths)  # ascending order
         ignore_idx = []
         keep_idx = []
-        for i, idx in enumerate(idxs):
+        for idx in idxs:
             length = lengths[idx]
             if length < min_len or length > max_len:
                 ignore_idx.append(idx)
@@ -277,6 +276,7 @@ class TTSDataset(Dataset):
 
     @staticmethod
     def create_buckets(samples, batch_group_size: int):
+        assert batch_group_size > 0
         for i in range(len(samples) // batch_group_size):
             offset = i * batch_group_size
             end_offset = offset + batch_group_size
@@ -319,7 +319,8 @@ class TTSDataset(Dataset):
         # shuffle batch groups
         # create batches with similar length items
         # the larger the `batch_group_size`, the higher the length variety in a batch.
-        samples = self.create_buckets(samples, self.batch_group_size)
+        if self.batch_group_size > 0:
+            samples = self.create_buckets(samples, self.batch_group_size)
 
         # update items to the new sorted items
         self.samples = samples
@@ -571,6 +572,7 @@ class PhonemeDataset(Dataset):
 
         We use pytorch dataloader because we are lazy.
         """
+        print("[*] Pre-computing phonemes...")
         with tqdm.tqdm(total=len(self)) as pbar:
             batch_size = num_workers if num_workers > 0 else 1
             dataloder = torch.utils.data.DataLoader(
@@ -658,16 +660,21 @@ class F0Dataset:
         return len(self.samples)
 
     def precompute(self, num_workers=0):
+        print("[*] Pre-computing F0s...")
         with tqdm.tqdm(total=len(self)) as pbar:
             batch_size = num_workers if num_workers > 0 else 1
+            # we do not normalize at preproessing
+            normalize_f0 = self.normalize_f0
+            self.normalize_f0 = False
             dataloder = torch.utils.data.DataLoader(
                 batch_size=batch_size, dataset=self, shuffle=False, num_workers=num_workers, collate_fn=self.collate_fn
             )
             computed_data = []
             for batch in dataloder:
                 f0 = batch["f0"]
-                computed_data.append([f for f in f0])
+                computed_data.append(f for f in f0)
                 pbar.update(batch_size)
+            self.normalize_f0 = normalize_f0
 
         if self.normalize_f0:
             computed_data = [tensor for batch in computed_data for tensor in batch]  # flatten
@@ -746,80 +753,80 @@ class F0Dataset:
         print(f"{indent}| > Number of instances : {len(self.samples)}")
 
 
-if __name__ == "__main__":
-    from torch.utils.data import DataLoader
+# if __name__ == "__main__":
+#     from torch.utils.data import DataLoader
 
-    from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig
-    from TTS.tts.datasets import load_tts_samples
-    from TTS.tts.utils.text.characters import IPAPhonemes
-    from TTS.tts.utils.text.phonemizers import ESpeak
+#     from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig
+#     from TTS.tts.datasets import load_tts_samples
+#     from TTS.tts.utils.text.characters import IPAPhonemes
+#     from TTS.tts.utils.text.phonemizers import ESpeak
 
-    dataset_config = BaseDatasetConfig(
-        name="ljspeech",
-        meta_file_train="metadata.csv",
-        path="/Users/erengolge/Projects/TTS/recipes/ljspeech/LJSpeech-1.1",
-    )
-    train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
-    samples = train_samples + eval_samples
+#     dataset_config = BaseDatasetConfig(
+#         name="ljspeech",
+#         meta_file_train="metadata.csv",
+#         path="/Users/erengolge/Projects/TTS/recipes/ljspeech/LJSpeech-1.1",
+#     )
+#     train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+#     samples = train_samples + eval_samples
 
-    phonemizer = ESpeak(language="en-us")
-    tokenizer = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=phonemizer)
-    # ph_dataset = PhonemeDataset(samples, tokenizer, phoneme_cache_path="/Users/erengolge/Projects/TTS/phonemes_tests")
-    # ph_dataset.precompute(num_workers=4)
+#     phonemizer = ESpeak(language="en-us")
+#     tokenizer = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=phonemizer)
+#     # ph_dataset = PhonemeDataset(samples, tokenizer, phoneme_cache_path="/Users/erengolge/Projects/TTS/phonemes_tests")
+#     # ph_dataset.precompute(num_workers=4)
 
-    # dataloader = DataLoader(ph_dataset, batch_size=4, shuffle=False, num_workers=4, collate_fn=ph_dataset.collate_fn)
-    # for batch in dataloader:
-    #     print(batch)
-    #     break
+#     # dataloader = DataLoader(ph_dataset, batch_size=4, shuffle=False, num_workers=4, collate_fn=ph_dataset.collate_fn)
+#     # for batch in dataloader:
+#     #     print(batch)
+#     #     break
 
-    audio_config = BaseAudioConfig(
-        sample_rate=22050,
-        win_length=1024,
-        hop_length=256,
-        num_mels=80,
-        preemphasis=0.0,
-        ref_level_db=20,
-        log_func="np.log",
-        do_trim_silence=True,
-        trim_db=45,
-        mel_fmin=0,
-        mel_fmax=8000,
-        spec_gain=1.0,
-        signal_norm=False,
-        do_amp_to_db_linear=False,
-    )
+#     audio_config = BaseAudioConfig(
+#         sample_rate=22050,
+#         win_length=1024,
+#         hop_length=256,
+#         num_mels=80,
+#         preemphasis=0.0,
+#         ref_level_db=20,
+#         log_func="np.log",
+#         do_trim_silence=True,
+#         trim_db=45,
+#         mel_fmin=0,
+#         mel_fmax=8000,
+#         spec_gain=1.0,
+#         signal_norm=False,
+#         do_amp_to_db_linear=False,
+#     )
 
-    ap = AudioProcessor.init_from_config(audio_config)
+#     ap = AudioProcessor.init_from_config(audio_config)
 
-    # f0_dataset = F0Dataset(samples, ap, cache_path="/Users/erengolge/Projects/TTS/f0_tests", verbose=False, precompute_num_workers=4)
+#     # f0_dataset = F0Dataset(samples, ap, cache_path="/Users/erengolge/Projects/TTS/f0_tests", verbose=False, precompute_num_workers=4)
 
-    # dataloader = DataLoader(f0_dataset, batch_size=4, shuffle=False, num_workers=4, collate_fn=f0_dataset.collate_fn)
-    # for batch in dataloader:
-    #     print(batch)
-    #     breakpoint()
-    #     break
+#     # dataloader = DataLoader(f0_dataset, batch_size=4, shuffle=False, num_workers=4, collate_fn=f0_dataset.collate_fn)
+#     # for batch in dataloader:
+#     #     print(batch)
+#     #     breakpoint()
+#     #     break
 
-    dataset = TTSDataset(
-        outputs_per_step=1,
-        compute_linear_spec=False,
-        samples=samples,
-        ap=ap,
-        return_wav=False,
-        batch_group_size=0,
-        min_seq_len=0,
-        max_seq_len=500,
-        use_noise_augment=False,
-        verbose=True,
-        speaker_id_mapping=None,
-        d_vector_mapping=None,
-        compute_f0=True,
-        f0_cache_path="/Users/erengolge/Projects/TTS/f0_tests",
-        tokenizer=tokenizer,
-        phoneme_cache_path="/Users/erengolge/Projects/TTS/phonemes_tests",
-        precompute_num_workers=4,
-    )
+#     dataset = TTSDataset(
+#         outputs_per_step=1,
+#         compute_linear_spec=False,
+#         samples=samples,
+#         ap=ap,
+#         return_wav=False,
+#         batch_group_size=0,
+#         min_seq_len=0,
+#         max_seq_len=500,
+#         use_noise_augment=False,
+#         verbose=True,
+#         speaker_id_mapping=None,
+#         d_vector_mapping=None,
+#         compute_f0=True,
+#         f0_cache_path="/Users/erengolge/Projects/TTS/f0_tests",
+#         tokenizer=tokenizer,
+#         phoneme_cache_path="/Users/erengolge/Projects/TTS/phonemes_tests",
+#         precompute_num_workers=4,
+#     )
 
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=False, num_workers=0, collate_fn=dataset.collate_fn)
-    for batch in dataloader:
-        print(batch)
-        break
+#     dataloader = DataLoader(dataset, batch_size=4, shuffle=False, num_workers=0, collate_fn=dataset.collate_fn)
+#     for batch in dataloader:
+#         print(batch)
+#         break
