@@ -16,7 +16,6 @@ config = VitsConfig(
     num_eval_loader_workers=0,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    use_espeak_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path="tests/data/ljspeech/phoneme_cache/",
     run_eval=True,
