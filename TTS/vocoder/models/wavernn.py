@@ -631,3 +631,7 @@ class Wavernn(BaseVocoder):
     def get_criterion(self):
         # define train functions
         return WaveRNNLoss(self.args.mode)
+
+    @staticmethod
+    def init_from_config(config: "WavernnConfig"):
+        return Wavernn(config)
