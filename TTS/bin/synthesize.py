@@ -254,7 +254,7 @@ def main():
     print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav)
+    wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav, args.gst_style)
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))
