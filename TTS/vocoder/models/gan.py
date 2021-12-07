@@ -310,7 +310,7 @@ class GAN(BaseVocoder):
         data_items: List,
         verbose: bool,
         num_gpus: int,
-        rank: int = None,
+        rank: int = None,  # pylint: disable=unused-argument
     ):
         """Initiate and return the GAN dataloader.
 

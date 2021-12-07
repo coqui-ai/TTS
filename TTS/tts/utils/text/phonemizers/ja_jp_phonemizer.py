@@ -30,7 +30,7 @@ class JA_JP_Phonemizer(BasePhonemizer):
 
     language = "ja-jp"
 
-    def __init__(self, punctuations=_DEF_JA_PUNCS, keep_puncs=True, **kwargs):
+    def __init__(self, punctuations=_DEF_JA_PUNCS, keep_puncs=True, **kwargs):  # pylint: disable=unused-argument
         super().__init__(self.language, punctuations=punctuations, keep_puncs=keep_puncs)
 
     @staticmethod
@@ -61,12 +61,12 @@ class JA_JP_Phonemizer(BasePhonemizer):
         return True
 
 
-if __name__ == "__main__":
-    text = "これは、電話をかけるための私の日本語の例のテキストです。"
-    e = JA_JP_Phonemizer()
-    print(e.supported_languages())
-    print(e.version())
-    print(e.language)
-    print(e.name())
-    print(e.is_available())
-    print("`" + e.phonemize(text) + "`")
+# if __name__ == "__main__":
+#     text = "これは、電話をかけるための私の日本語の例のテキストです。"
+#     e = JA_JP_Phonemizer()
+#     print(e.supported_languages())
+#     print(e.version())
+#     print(e.language)
+#     print(e.name())
+#     print(e.is_available())
+#     print("`" + e.phonemize(text) + "`")

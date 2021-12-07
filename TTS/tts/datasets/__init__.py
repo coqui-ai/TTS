@@ -62,11 +62,11 @@ def load_tts_samples(
     meta_data_eval_all = [] if eval_split else None
     if not isinstance(datasets, list):
         datasets = [datasets]
-    for dataset in datasets:
-        name = dataset["name"]
-        root_path = dataset["path"]
-        meta_file_train = dataset["meta_file_train"]
-        meta_file_val = dataset["meta_file_val"]
+    for d in datasets:
+        name = d["name"]
+        root_path = d["path"]
+        meta_file_train = d["meta_file_train"]
+        meta_file_val = d["meta_file_val"]
         # setup the right data processor
         if formatter is None:
             formatter = _get_formatter_by_name(name)
@@ -82,8 +82,8 @@ def load_tts_samples(
             meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
         # load attention masks for the duration predictor training
-        if dataset.meta_file_attn_mask:
-            meta_data = dict(load_attention_mask_meta_data(dataset["meta_file_attn_mask"]))
+        if d.meta_file_attn_mask:
+            meta_data = dict(load_attention_mask_meta_data(d["meta_file_attn_mask"]))
             for idx, ins in enumerate(meta_data_train_all):
                 attn_file = meta_data[ins[1]].strip()
                 meta_data_train_all[idx].append(attn_file)

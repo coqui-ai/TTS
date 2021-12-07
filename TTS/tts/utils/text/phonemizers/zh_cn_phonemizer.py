@@ -25,14 +25,15 @@ class ZH_CN_Phonemizer(BasePhonemizer):
 
     language = "zh-cn"
 
-    def __init__(self, punctuations=_DEF_ZH_PUNCS, keep_puncs=False, **kwargs):
+    def __init__(self, punctuations=_DEF_ZH_PUNCS, keep_puncs=False, **kwargs):  # pylint: disable=unused-argument
         super().__init__(self.language, punctuations=punctuations, keep_puncs=keep_puncs)
 
     @staticmethod
     def name():
         return "zh_cn_phonemizer"
 
-    def phonemize_zh_cn(self, text: str, separator: str = "|") -> str:
+    @staticmethod
+    def phonemize_zh_cn(text: str, separator: str = "|") -> str:
         ph = chinese_text_to_phonemes(text, separator)
         return ph
 
@@ -50,12 +51,12 @@ class ZH_CN_Phonemizer(BasePhonemizer):
         return True
 
 
-if __name__ == "__main__":
-    text = "这是，样本中文。"
-    e = ZH_CN_Phonemizer()
-    print(e.supported_languages())
-    print(e.version())
-    print(e.language)
-    print(e.name())
-    print(e.is_available())
-    print("`" + e.phonemize(text) + "`")
+# if __name__ == "__main__":
+#     text = "这是，样本中文。"
+#     e = ZH_CN_Phonemizer()
+#     print(e.supported_languages())
+#     print(e.version())
+#     print(e.language)
+#     print(e.name())
+#     print(e.is_available())
+#     print("`" + e.phonemize(text) + "`")

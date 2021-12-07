@@ -1,12 +1,24 @@
 import abc
-import itertools
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 from TTS.tts.utils.text.punctuation import Punctuation
 
 
 class BasePhonemizer(abc.ABC):
     """Base phonemizer class
+
+    Phonemization follows the following steps:
+        1. Preprocessing:
+            - remove empty lines
+            - remove punctuation
+            - keep track of punctuation marks
+
+        2. Phonemization:
+            - convert text to phonemes
+
+        3. Postprocessing:
+            - join phonemes
+            - restore punctuation marks
 
     Args:
         language (str):
@@ -51,39 +63,29 @@ class BasePhonemizer(abc.ABC):
     @abc.abstractmethod
     def name():
         """The name of the backend"""
+        ...
 
     @classmethod
     @abc.abstractmethod
     def is_available(cls):
         """Returns True if the backend is installed, False otherwise"""
+        ...
 
     @classmethod
     @abc.abstractmethod
     def version(cls):
         """Return the backend version as a tuple (major, minor, patch)"""
+        ...
 
+    @staticmethod
     @abc.abstractmethod
     def supported_languages():
         """Return a dict of language codes -> name supported by the backend"""
+        ...
 
     def is_supported_language(self, language):
         """Returns True if `language` is supported by the backend"""
         return language in self.supported_languages()
-
-    fr"""
-        Phonemization follows the following steps:
-            1. Preprocessing:
-                - remove empty lines
-                - remove punctuation
-                - keep track of punctuation marks
-
-            2. Phonemization:
-                - convert text to phonemes
-
-            3. Postprocessing:
-                - join phonemes
-                - restore punctuation marks
-    """
 
     @abc.abstractmethod
     def _phonemize(self, text, separator):

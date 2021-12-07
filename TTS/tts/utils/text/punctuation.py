@@ -130,7 +130,7 @@ class Punctuation:
         return cls._restore(text, puncs, 0)
 
     @classmethod
-    def _restore(cls, text, puncs, num):
+    def _restore(cls, text, puncs, num):  # pylint: disable=too-many-return-statements
         """Auxiliary method for Punctuation.restore()"""
         if not puncs:
             return text
@@ -159,14 +159,14 @@ class Punctuation:
         return cls._restore([text[0] + current.punc + text[1]] + text[2:], puncs[1:], num)
 
 
-if __name__ == "__main__":
-    punc = Punctuation()
-    text = "This is. This is, example!"
+# if __name__ == "__main__":
+#     punc = Punctuation()
+#     text = "This is. This is, example!"
 
-    print(punc.strip(text))
+#     print(punc.strip(text))
 
-    split_text, puncs = punc.strip_to_restore(text)
-    print(split_text, " ---- ", puncs)
+#     split_text, puncs = punc.strip_to_restore(text)
+#     print(split_text, " ---- ", puncs)
 
-    restored_text = punc.restore(split_text, puncs)
-    print(restored_text)
+#     restored_text = punc.restore(split_text, puncs)
+#     print(restored_text)
