@@ -20,6 +20,7 @@ class BaseVocoder(BaseModel):
 
     def __init__(self, config):
         super().__init__(config)
+        self._set_model_args(config)
 
     def _set_model_args(self, config: Coqpit):
         """Setup model args based on the config type.
