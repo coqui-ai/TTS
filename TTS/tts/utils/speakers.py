@@ -289,23 +289,27 @@ class SpeakerManager:
         raise NotImplementedError
 
     @staticmethod
-    def init_from_config(config: "Coqpit"):
+    def init_from_config(config: "Coqpit", samples: Union[List[List], List[Dict]] = None) -> "SpeakerManager":
         """Initialize a speaker manager from config
 
         Args:
             config (Coqpit): Config object.
+            samples (Union[List[List], List[Dict]], optional): List of data samples to parse out the speaker names.
+                Defaults to None.
 
         Returns:
             SpeakerEncoder: Speaker encoder object.
         """
         speaker_manager = None
-        if hasattr(config, "use_speaker_embedding") and config.use_speaker_embedding is True:
+        if hasattr(config, "use_speaker_embedding") and config.use_speaker_embedding:
+            if samples:
+                speaker_manager = SpeakerManager(data_items=samples)
             if config.get("speaker_file", None):
                 speaker_manager = SpeakerManager(speaker_id_file_path=config.speaker_file)
             if config.get("speakers_file", None):
                 speaker_manager = SpeakerManager(speaker_id_file_path=config.speakers_file)
 
-        if hasattr(config, "use_d_vector_file") and config.use_speaker_embedding is True:
+        if hasattr(config, "use_d_vector_file") and config.use_d_vector_file:
             if config.get("speakers_file", None):
                 speaker_manager = SpeakerManager(d_vectors_file_path=config.speaker_file)
             if config.get("d_vector_file", None):
