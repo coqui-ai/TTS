@@ -1,20 +1,38 @@
 import unittest
 
-from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes, create_graphemes, create_phonemes
 from TTS.tts.utils.text.phonemizers import ESpeak, Gruut, JA_JP_Phonemizer, ZH_CN_Phonemizer
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
 
-EXAMPLE_TEXT = "Recent research at Harvard has shown meditating for as little as 8 weeks can actually increase, the grey matter in the parts of the brain responsible for emotional regulation and learning!"
+EXAMPLE_TEXTs = [
+    "Recent research at Harvard has shown meditating",
+    "for as little as 8 weeks can actually increase, the grey matter",
+    "in the parts of the brain responsible",
+    "for emotional regulation and learning!",
+]
+
+
+EXPECTED_ESPEAK_PHONEMES = [
+    "ɹ|ˈiː|s|ə|n|t ɹ|ɪ|s|ˈɜː|tʃ æ|t h|ˈɑːɹ|v|ɚ|d h|ɐ|z ʃ|ˈoʊ|n m|ˈɛ|d|ɪ|t|ˌeɪ|ɾ|ɪ|ŋ",
+    "f|ɔː|ɹ æ|z l|ˈɪ|ɾ|əl æ|z ˈeɪ|t w|ˈiː|k|s k|æ|n ˈæ|k|tʃ|uː|əl|i| ˈɪ|n|k|ɹ|iː|s, ð|ə ɡ|ɹ|ˈeɪ m|ˈæ|ɾ|ɚ",
+    "ɪ|n|ð|ə p|ˈɑːɹ|t|s ʌ|v|ð|ə b|ɹ|ˈeɪ|n ɹ|ɪ|s|p|ˈɑː|n|s|ə|b|əl",
+    "f|ɔː|ɹ ɪ|m|ˈoʊ|ʃ|ə|n|əl ɹ|ˌɛ|ɡ|j|uː|l|ˈeɪ|ʃ|ə|n|| æ|n|d l|ˈɜː|n|ɪ|ŋ!",
+]
+
+
+EXPECTED_ESPEAKNG_PHONEMES = [
+    "ɹ|ˈiː|s|ə|n|t ɹ|ᵻ|s|ˈɜː|tʃ æ|t h|ˈɑːɹ|v|ɚ|d h|ɐ|z ʃ|ˈoʊ|n m|ˈɛ|d|ᵻ|t|ˌeɪ|ɾ|ɪ|ŋ",
+    "f|ɔː|ɹ æ|z l|ˈɪ|ɾ|əl æ|z ˈeɪ|t w|ˈiː|k|s k|æ|n ˈæ|k|tʃ|uː|əl|i| ˈɪ|ŋ|k|ɹ|iː|s, ð|ə ɡ|ɹ|ˈeɪ m|ˈæ|ɾ|ɚ",
+    "ɪ|n|ð|ə p|ˈɑːɹ|t|s ʌ|v|ð|ə b|ɹ|ˈeɪ|n ɹ|ᵻ|s|p|ˈɑː|n|s|ᵻ|b|əl",
+    "f|ɔː|ɹ ɪ|m|ˈoʊ|ʃ|ə|n|əl ɹ|ˌɛ|ɡ|j|ʊ|l|ˈeɪ|ʃ|ə|n|| æ|n|d l|ˈɜː|n|ɪ|ŋ!",
+]
 
 
 class TestEspeakPhonemizer(unittest.TestCase):
     def setUp(self):
-        self.phonemizer = ESpeak(language="en-us")
-        self.EXPECTED_PHONEMES = "ɹ|ˈiː|s|ə|n|t ɹ|ɪ|s|ˈɜː|tʃ æ|t h|ˈɑːɹ|v|ɚ|d h|ɐ|z ʃ|ˈoʊ|n m|ˈɛ|d|ᵻ|t|ˌeɪ|ɾ|ɪ|ŋ f|ɔː|ɹ æ|z l|ˈɪ|ɾ|əl æ|z ˈeɪ|t w|ˈiː|k|s k|æ|n ˈæ|k|tʃ|uː|əl|i| ˈɪ|n|k|ɹ|iː|s, ð|ə ɡ|ɹ|ˈeɪ m|ˈæ|ɾ|ɚ|ɹ ɪ|n|ð|ə p|ˈɑːɹ|t|s ʌ|v|ð|ə b|ɹ|ˈeɪ|n ɹ|ɪ|s|p|ˈɑː|n|s|ə|b|əl f|ɔː|ɹ ɪ|m|ˈoʊ|ʃ|ə|n|əl ɹ|ˌɛ|ɡ|j|uː|l|ˈeɪ|ʃ|ə|n|| æ|n|d l|ˈɜː|n|ɪ|ŋ!"
+        self.phonemizer = ESpeak(language="en-us", backend="espeak")
 
-    def test_phonemize(self):
-        output = self.phonemizer.phonemize(EXAMPLE_TEXT, separator="|")
-        self.assertEqual(output, self.EXPECTED_PHONEMES)
+        for text, ph in zip(EXAMPLE_TEXTs, EXPECTED_ESPEAK_PHONEMES):
+            phonemes = self.phonemizer.phonemize(text)
+            self.assertEqual(phonemes, ph)
 
         # multiple punctuations
         text = "Be a voice, not an! echo?"
@@ -48,14 +66,59 @@ class TestEspeakPhonemizer(unittest.TestCase):
         self.assertTrue(self.phonemizer.is_available())
 
 
+class TestEspeakNgPhonemizer(unittest.TestCase):
+    def setUp(self):
+        self.phonemizer = ESpeak(language="en-us", backend="espeak-ng")
+
+        for text, ph in zip(EXAMPLE_TEXTs, EXPECTED_ESPEAKNG_PHONEMES):
+            phonemes = self.phonemizer.phonemize(text)
+            self.assertEqual(phonemes, ph)
+
+        # multiple punctuations
+        text = "Be a voice, not an! echo?"
+        gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ?"
+        output = self.phonemizer.phonemize(text, separator="|")
+        output = output.replace("|", "")
+        self.assertEqual(output, gt)
+
+        # not ending with punctuation
+        text = "Be a voice, not an! echo"
+        gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ"
+        output = self.phonemizer.phonemize(text, separator="")
+        self.assertEqual(output, gt)
+
+        # extra space after the sentence
+        text = "Be a voice, not an! echo.  "
+        gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ."
+        output = self.phonemizer.phonemize(text, separator="")
+        self.assertEqual(output, gt)
+
+    def test_name(self):
+        self.assertEqual(self.phonemizer.name(), "espeak")
+
+    def test_get_supported_languages(self):
+        self.assertIsInstance(self.phonemizer.supported_languages(), dict)
+
+    def test_get_version(self):
+        self.assertIsInstance(self.phonemizer.version(), str)
+
+    def test_is_available(self):
+        self.assertTrue(self.phonemizer.is_available())
+
+
 class TestGruutPhonemizer(unittest.TestCase):
     def setUp(self):
         self.phonemizer = Gruut(language="en-us", use_espeak_phonemes=True, keep_stress=False)
-        self.EXPECTED_PHONEMES = "ɹ|i|ː|s|ə|n|t| ɹ|ᵻ|s|ɜ|ː|t|ʃ| æ|ɾ| h|ɑ|ː|ɹ|v|ɚ|d| h|ɐ|z| ʃ|o|ʊ|n| m|ɛ|d|ᵻ|t|e|ɪ|ɾ|ɪ|ŋ| f|ɔ|ː|ɹ| æ|z| l|ɪ|ɾ|ə|l| æ|z| e|ɪ|t| w|i|ː|k|s| k|æ|ŋ| æ|k|t|ʃ|u|ː|ə|l|i| ɪ|ŋ|k|ɹ|i|ː|s, ð|ə| ɡ|ɹ|e|ɪ| m|æ|ɾ|ɚ| ɪ|n| ð|ə| p|ɑ|ː|ɹ|t|s| ʌ|v| ð|ə| b|ɹ|e|ɪ|n| ɹ|ᵻ|s|p|ɑ|ː|n|s|ᵻ|b|ə|l| f|ɔ|ː|ɹ| ɪ|m|o|ʊ|ʃ|ə|n|ə|l| ɹ|ɛ|ɡ|j|ʊ|l|e|ɪ|ʃ|ə|n| æ|n|d| l|ɜ|ː|n|ɪ|ŋ!"
+        self.EXPECTED_PHONEMES = ["ɹ|i|ː|s|ə|n|t| ɹ|ᵻ|s|ɜ|ː|t|ʃ| æ|ɾ| h|ɑ|ː|ɹ|v|ɚ|d| h|ɐ|z| ʃ|o|ʊ|n| m|ɛ|d|ᵻ|t|e|ɪ|ɾ|ɪ|ŋ",
+                                  "f|ɔ|ː|ɹ| æ|z| l|ɪ|ɾ|ə|l| æ|z| e|ɪ|t| w|i|ː|k|s| k|æ|ŋ| æ|k|t|ʃ|u|ː|ə|l|i| ɪ|ŋ|k|ɹ|i|ː|s, ð|ə| ɡ|ɹ|e|ɪ| m|æ|ɾ|ɚ",
+                                  "ɪ|n| ð|ə| p|ɑ|ː|ɹ|t|s| ʌ|v| ð|ə| b|ɹ|e|ɪ|n| ɹ|ᵻ|s|p|ɑ|ː|n|s|ᵻ|b|ə|l",
+                                  "f|ɔ|ː|ɹ| ɪ|m|o|ʊ|ʃ|ə|n|ə|l| ɹ|ɛ|ɡ|j|ʊ|l|e|ɪ|ʃ|ə|n| æ|n|d| l|ɜ|ː|n|ɪ|ŋ!"
+        ]
 
     def test_phonemize(self):
-        output = self.phonemizer.phonemize(EXAMPLE_TEXT, separator="|")
-        self.assertEqual(output, self.EXPECTED_PHONEMES)
+        for text, ph in zip(EXAMPLE_TEXTs, self.EXPECTED_PHONEMES):
+            phonemes = self.phonemizer.phonemize(text, separator="|")
+            self.assertEqual(phonemes, ph)
 
         # multiple punctuations
         text = "Be a voice, not an! echo?"

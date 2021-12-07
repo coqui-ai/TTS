@@ -1,6 +1,5 @@
 import unittest
 from dataclasses import dataclass
-from os import sep
 
 from coqpit import Coqpit
 
@@ -13,7 +12,7 @@ class TestTTSTokenizer(unittest.TestCase):
     def setUp(self):
         self.tokenizer = TTSTokenizer(use_phonemes=False, characters=Graphemes())
 
-        self.ph = ESpeak("tr")
+        self.ph = ESpeak("tr", backend="espeak")
         self.tokenizer_ph = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=self.ph)
 
     def test_encode_decode_graphemes(self):
@@ -54,12 +53,12 @@ class TestTTSTokenizer(unittest.TestCase):
 
     def test_not_found_characters(self):
         self.ph = ESpeak("en-us")
-        self.tokenizer_local = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=self.ph)
+        tokenizer_local = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=self.ph)
         self.assertEqual(len(self.tokenizer.not_found_characters), 0)
         text = "Yolk of one egg beaten light"
-        ids = self.tokenizer_local.text_to_ids(text)
-        text_hat = self.tokenizer_local.ids_to_text(ids)
-        self.assertEqual(self.tokenizer_local.not_found_characters, ["̩"])
+        ids = tokenizer_local.text_to_ids(text)
+        text_hat = tokenizer_local.ids_to_text(ids)
+        self.assertEqual(tokenizer_local.not_found_characters, ["̩"])
         self.assertEqual(text_hat, "jˈoʊk ʌv wˈʌn ˈɛɡ bˈiːʔn lˈaɪt")
 
     def test_init_from_config(self):
@@ -85,7 +84,8 @@ class TestTTSTokenizer(unittest.TestCase):
             text_cleaner: str = "phoneme_cleaners"
             characters = Characters()
 
-        tokenizer_ph = TTSTokenizer.init_from_config(TokenizerConfig())
+        tokenizer_ph, _ = TTSTokenizer.init_from_config(TokenizerConfig())
+        tokenizer_ph.phonemizer.backend = "espeak"
         text = "Bu bir Örnek."
         text_ph = "<BOS>" + self.ph.phonemize(text, separator="") + "<EOS>"
         ids = tokenizer_ph.text_to_ids(text)

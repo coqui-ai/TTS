@@ -2,6 +2,8 @@ import unittest
 
 from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes, create_graphemes, create_phonemes
 
+# pylint: disable=protected-access
+
 
 def test_make_symbols():
     _ = create_phonemes()
@@ -12,7 +14,7 @@ class BaseCharacterTest(unittest.TestCase):
     def setUp(self):
         self.characters_empty = BaseCharacters("", "", pad="", eos="", bos="", blank="", is_unique=True, is_sorted=True)
 
-    def test_default_character_sets(self):
+    def test_default_character_sets(self):  # pylint: disable=no-self-use
         """Test initiation of default character sets"""
         _ = IPAPhonemes()
         _ = Graphemes()
