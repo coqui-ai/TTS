@@ -33,7 +33,7 @@ audio_config = BaseAudioConfig(
 config = VitsConfig(
     audio=audio_config,
     run_name="vits_ljspeech",
-    batch_size=48,
+    batch_size=16,
     eval_batch_size=16,
     batch_group_size=5,
     num_loader_workers=0,
@@ -48,7 +48,7 @@ config = VitsConfig(
     compute_input_seq_cache=True,
     print_step=25,
     print_eval=True,
-    mixed_precision=True,
+    mixed_precision=False,
     max_seq_len=500000,
     output_path=output_path,
     datasets=[dataset_config],
@@ -61,7 +61,8 @@ ap = AudioProcessor.init_from_config(config)
 
 # INITIALIZE THE TOKENIZER
 # Tokenizer is used to convert text to sequences of token IDs.
-tokenizer = TTSTokenizer.init_from_config(config)
+# config is updated with the default characters if not defined in the config.
+tokenizer, config = TTSTokenizer.init_from_config(config)
 
 # LOAD DATA SAMPLES
 # Each sample is a list of ```[text, audio_file_path, speaker_name]```
