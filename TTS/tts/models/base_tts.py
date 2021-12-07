@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -55,9 +55,10 @@ class BaseTTS(BaseModel):
         """
         # don't use isintance not to import recursively
         if "Config" in config.__class__.__name__:
-            num_chars = (
-                self.config.model_args.num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
+            config_num_chars = (
+                self.config.model_args.num_chars if hasattr(self.config, "model_args") else self.config.num_chars
             )
+            num_chars = config_num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
             if "characters" in config:
                 self.config.num_chars = num_chars
                 if hasattr(self.config, "model_args"):
@@ -177,7 +178,7 @@ class BaseTTS(BaseModel):
         config: Coqpit,
         assets: Dict,
         is_eval: bool,
-        data_items: List,
+        samples: Union[List[Dict], List[List]],
         verbose: bool,
         num_gpus: int,
         rank: int = None,
@@ -199,7 +200,7 @@ class BaseTTS(BaseModel):
                 compute_linear_spec=config.model.lower() == "tacotron" or config.compute_linear_spec,
                 compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
-                meta_data=data_items,
+                samples=samples,
                 ap=self.ap,
                 return_wav=config.return_wav if "return_wav" in config else False,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
@@ -208,6 +209,7 @@ class BaseTTS(BaseModel):
                 min_audio_len=config.min_audio_len,
                 max_audio_len=config.max_audio_len,
                 phoneme_cache_path=config.phoneme_cache_path,
+                precompute_num_workers=config.precompute_num_workers,
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
@@ -267,8 +269,6 @@ class BaseTTS(BaseModel):
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
-        ap = assets["audio_processor"]
-        tokenizer = assets["tokenizer"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
@@ -280,18 +280,15 @@ class BaseTTS(BaseModel):
                 sen,
                 self.config,
                 "cuda" in str(next(self.parameters()).device),
-                ap,
-                tokenizer,
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 style_wav=aux_inputs["style_wav"],
-                enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                 use_griffin_lim=True,
                 do_trim_silence=False,
             )
             test_audios["{}-audio".format(idx)] = outputs_dict["wav"]
             test_figures["{}-prediction".format(idx)] = plot_spectrogram(
-                outputs_dict["outputs"]["model_outputs"], ap, output_fig=False
+                outputs_dict["outputs"]["model_outputs"], self.ap, output_fig=False
             )
             test_figures["{}-alignment".format(idx)] = plot_alignment(
                 outputs_dict["outputs"]["alignments"], output_fig=False
