@@ -339,3 +339,7 @@ class Wavegrad(BaseVocoder):
         noise_schedule = self.config["train_noise_schedule"]
         betas = np.linspace(noise_schedule["min_val"], noise_schedule["max_val"], noise_schedule["num_steps"])
         self.compute_noise_level(betas)
+
+    @staticmethod
+    def init_from_config(config: "WavegradConfig"):
+        return Wavegrad(config)
