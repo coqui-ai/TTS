@@ -116,8 +116,8 @@ class TestTTSDataset(unittest.TestCase):
                 if self.ap.symmetric_norm:
                     self.assertLessEqual(mel_input.max(), self.ap.max_norm)
                     self.assertGreaterEqual(
-                        mel_input.min(), -self.ap.max_norm
-                    )  # pylint: disable=invalid-unary-operand-type
+                        mel_input.min(), -self.ap.max_norm  # pylint: disable=invalid-unary-operand-type
+                    )
                     self.assertLess(mel_input.min(), 0)
                 else:
                     self.assertLessEqual(mel_input.max(), self.ap.max_norm)
