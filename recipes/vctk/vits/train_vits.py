@@ -7,6 +7,7 @@ from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits, VitsArgs
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
@@ -63,10 +64,21 @@ config = VitsConfig(
     datasets=[dataset_config],
 )
 
-# init audio processor
-ap = AudioProcessor(**config.audio.to_dict())
+# INITIALIZE THE AUDIO PROCESSOR
+# Audio processor is used for feature extraction and audio I/O.
+# It mainly serves to the dataloader and the training loggers.
+ap = AudioProcessor.init_from_config(config)
 
-# load training samples
+# INITIALIZE THE TOKENIZER
+# Tokenizer is used to convert text to sequences of token IDs.
+# config is updated with the default characters if not defined in the config.
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
+# LOAD DATA SAMPLES
+# Each sample is a list of ```[text, audio_file_path, speaker_name]```
+# You can define your custom sample loader returning the list of samples.
+# Or define your custom formatter and pass it to the `load_tts_samples`.
+# Check `TTS.tts.datasets.load_tts_samples` for more details.
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
 # init speaker manager for multi-speaker training
@@ -76,7 +88,7 @@ speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
 config.model_args.num_speakers = speaker_manager.num_speakers
 
 # init model
-model = Vits(config, speaker_manager)
+model = Vits(config, ap, tokenizer, speaker_manager)
 
 # init the trainer and 🚀
 trainer = Trainer(
@@ -86,6 +98,5 @@ trainer = Trainer(
     model=model,
     train_samples=train_samples,
     eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
 )
 trainer.fit()
