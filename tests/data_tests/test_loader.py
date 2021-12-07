@@ -39,7 +39,7 @@ class TestTTSDataset(unittest.TestCase):
 
     def _create_dataloader(self, batch_size, r, bgs):
         items = ljspeech(c.data_path, "metadata.csv")
-        tokenizer = TTSTokenizer.init_from_config(c)
+        tokenizer, _ = TTSTokenizer.init_from_config(c)
         dataset = TTSDataset(
             outputs_per_step=r,
             compute_linear_spec=True,
@@ -101,8 +101,8 @@ class TestTTSDataset(unittest.TestCase):
                 if self.ap.symmetric_norm:
                     self.assertLessEqual(mel_input.max(), self.ap.max_norm)
                     self.assertGreaterEqual(
-                        mel_input.min(), -self.ap.max_norm
-                    )  # pylint: disable=invalid-unary-operand-type
+                        mel_input.min(), -self.ap.max_norm  # pylint: disable=invalid-unary-operand-type
+                    )
                     self.assertLess(mel_input.min(), 0)
                 else:
                     self.assertLessEqual(mel_input.max(), self.ap.max_norm)
