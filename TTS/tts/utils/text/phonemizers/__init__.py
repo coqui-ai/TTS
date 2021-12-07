@@ -29,6 +29,8 @@ _ = [ESpeak.name()] * len(ESPEAK_LANGS)
 _new_dict = dict(list(zip(list(ESPEAK_LANGS), _)))
 DEF_LANG_TO_PHONEMIZER.update(_new_dict)
 
+DEF_LANG_TO_PHONEMIZER["en"] = DEF_LANG_TO_PHONEMIZER["en-us"]
+
 
 def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
     """Initiate a phonemizer by name
