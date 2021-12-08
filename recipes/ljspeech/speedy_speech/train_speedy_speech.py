@@ -68,12 +68,6 @@ tokenizer, config = TTSTokenizer.init_from_config(config)
 # Check `TTS.tts.datasets.load_tts_samples` for more details.
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
-# init audio processor
-ap = AudioProcessor(**config.audio.to_dict())
-
-# load training samples
-train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
-
 # init model
 model = ForwardTTS(config, ap, tokenizer)
 
