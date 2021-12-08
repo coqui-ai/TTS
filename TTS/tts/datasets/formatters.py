@@ -289,7 +289,7 @@ def brspeech(root_path, meta_file, ignored_speakers=None):
     return items
 
 
-def vctk(root_path, meta_files=None, wavs_path="wav22", mic="mic2", ignored_speakers=None):
+def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic2", ignored_speakers=None):
     """https://datashare.ed.ac.uk/bitstream/handle/10283/3443/VCTK-Corpus-0.92.zip"""
     file_ext = 'flac'
     test_speakers = meta_files
