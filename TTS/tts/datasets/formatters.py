@@ -263,7 +263,33 @@ def brspeech(root_path, meta_file):
     return items
 
 
-def vctk(root_path, meta_files=None, wavs_path="wav48"):
+def vctk(root_path, meta_files=None, wavs_path="wav22", mic="mic2"):
+    """https://datashare.ed.ac.uk/bitstream/handle/10283/3443/VCTK-Corpus-0.92.zip"""
+    file_ext = 'flac'
+    test_speakers = meta_files
+    items = []
+    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
+    for meta_file in meta_files:
+        _, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
+        file_id = txt_file.split(".")[0]
+        if isinstance(test_speakers, list):  # if is list ignore this speakers ids
+            if speaker_id in test_speakers:
+                continue
+        with open(meta_file, "r", encoding="utf-8") as file_text:
+            text = file_text.readlines()[0]
+        # p280 has no mic2 recordings
+        if speaker_id == "p280":
+            wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + f"_mic1.{file_ext}")
+        else:
+            wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + f"_{mic}.{file_ext}")
+        if os.path.exists(wav_file):
+            items.append([text, wav_file, "VCTK_" + speaker_id])
+        else:
+            print(f" [!] wav files don't exist - {wav_file}")
+    return items
+
+
+def vctk_old(root_path, meta_files=None, wavs_path="wav48"):
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     test_speakers = meta_files
     items = []
@@ -277,24 +303,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48"):
         with open(meta_file, "r", encoding="utf-8") as file_text:
             text = file_text.readlines()[0]
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append([text, wav_file, "VCTK_" + speaker_id])
-
-    return items
-
-
-def vctk_slim(root_path, meta_files=None, wavs_path="wav48"):
-    """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
-    items = []
-    txt_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
-    for text_file in txt_files:
-        _, speaker_id, txt_file = os.path.relpath(text_file, root_path).split(os.sep)
-        file_id = txt_file.split(".")[0]
-        if isinstance(meta_files, list):  # if is list ignore this speakers ids
-            if speaker_id in meta_files:
-                continue
-        wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append([None, wav_file, "VCTK_" + speaker_id])
-
+        items.append([text, wav_file, "VCTK_old_" + speaker_id])
     return items
 
 
