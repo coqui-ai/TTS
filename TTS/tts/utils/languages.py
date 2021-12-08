@@ -31,6 +31,7 @@ class LanguageManager:
         language_ids_file_path: str = "",
         config: Coqpit = None,
     ):
+        self.language_id_mapping = {}
         if language_ids_file_path:
             self.set_language_ids_from_file(language_ids_file_path)
 
