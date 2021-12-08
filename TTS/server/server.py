@@ -103,7 +103,7 @@ synthesizer = Synthesizer(
     model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, use_cuda=args.use_cuda
 )
 
-use_multi_speaker = hasattr(synthesizer.tts_model, "speaker_manager") and synthesizer.tts_model.num_speakers > 1
+use_multi_speaker = hasattr(synthesizer.tts_model, "num_speakers") and synthesizer.tts_model.num_speakers > 1
 speaker_manager = getattr(synthesizer.tts_model, "speaker_manager", None)
 # TODO: set this from SpeakerManager
 use_gst = synthesizer.tts_config.get("use_gst", False)
