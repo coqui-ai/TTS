@@ -91,6 +91,8 @@ def load_tts_samples(
                 for idx, ins in enumerate(meta_data_eval_all):
                     attn_file = meta_data[ins[1]].strip()
                     meta_data_eval_all[idx].append(attn_file)
+        # set none for the next iter
+        formatter = None
     return meta_data_train_all, meta_data_eval_all
 
 
@@ -110,3 +112,18 @@ def _get_formatter_by_name(name):
     """Returns the respective preprocessing function."""
     thismodule = sys.modules[__name__]
     return getattr(thismodule, name.lower())
+
+
+def find_unique_chars(data_samples, verbose=True):
+    texts = "".join(item[0] for item in data_samples)
+    chars = set(texts)
+    lower_chars = filter(lambda c: c.islower(), chars)
+    chars_force_lower = [c.lower() for c in chars]
+    chars_force_lower = set(chars_force_lower)
+
+    if verbose:
+        print(f" > Number of unique characters: {len(chars)}")
+        print(f" > Unique characters: {''.join(sorted(chars))}")
+        print(f" > Unique lower characters: {''.join(sorted(lower_chars))}")
+        print(f" > Unique all forced to lower characters: {''.join(sorted(chars_force_lower))}")
+    return chars_force_lower

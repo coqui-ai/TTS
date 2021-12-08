@@ -110,6 +110,7 @@ class FastSpeechConfig(BaseTTSConfig):
     model_args: ForwardTTSArgs = ForwardTTSArgs(use_pitch=False)
 
     # multi-speaker settings
+    num_speakers: int = 0
     speakers_file: str = None
     use_speaker_embedding: bool = False
     use_d_vector_file: bool = False
@@ -142,7 +143,7 @@ class FastSpeechConfig(BaseTTSConfig):
     r: int = 1  # DO NOT CHANGE
 
     # dataset configs
-    compute_f0: bool = True
+    compute_f0: bool = False
     f0_cache_path: str = None
 
     # testing
