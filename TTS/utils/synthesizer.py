@@ -118,11 +118,14 @@ class Synthesizer(object):
         speaker_manager = self._init_speaker_manager()
         language_manager = self._init_language_manager()
 
-        self.tts_model = setup_tts_model(
-            config=self.tts_config,
-            speaker_manager=speaker_manager,
-            language_manager=language_manager,
-        )
+        if language_manager is not None:
+            self.tts_model = setup_tts_model(
+                config=self.tts_config,
+                speaker_manager=speaker_manager,
+                language_manager=language_manager,
+            )
+        else:
+            self.tts_model = setup_tts_model(config=self.tts_config, speaker_manager=speaker_manager)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
@@ -251,7 +254,7 @@ class Synthesizer(object):
 
         # handle multi-lingaul
         language_id = None
-        if self.tts_languages_file or hasattr(self.tts_model.language_manager, "language_id_mapping"):
+        if self.tts_languages_file or (hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None):
             if language_idx and isinstance(language_idx, str):
                 language_id = self.tts_model.language_manager.language_id_mapping[language_idx]
 
