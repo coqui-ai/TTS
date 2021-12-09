@@ -100,7 +100,7 @@ if args.vocoder_path is not None:
 
 # load models
 synthesizer = Synthesizer(
-    model_path, config_path, speakers_file_path, vocoder_path, vocoder_config_path, use_cuda=args.use_cuda
+    model_path, config_path, speakers_file_path, None, vocoder_path, vocoder_config_path, use_cuda=args.use_cuda
 )
 
 use_multi_speaker = hasattr(synthesizer.tts_model, "num_speakers") and synthesizer.tts_model.num_speakers > 1
