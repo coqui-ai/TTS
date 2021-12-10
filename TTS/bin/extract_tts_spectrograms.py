@@ -242,7 +242,6 @@ def main(args):  # pylint: disable=redefined-outer-name
     else:
         speaker_manager = None
 
-
     # setup model
     model = setup_model(c)
 

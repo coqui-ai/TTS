@@ -588,7 +588,7 @@ class VitsGeneratorLoss(nn.Module):
 
     @staticmethod
     def cosine_similarity_loss(gt_spk_emb, syn_spk_emb):
-        l = - torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean()
+        l = -torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean()
         return l
 
     def forward(

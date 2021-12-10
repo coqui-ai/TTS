@@ -12,8 +12,8 @@ from torch.utils.data.distributed import DistributedSampler
 from TTS.model import BaseModel
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
 from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text import make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -150,7 +150,13 @@ class BaseTTS(BaseModel):
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
             language_id = self.language_manager.language_id_mapping[language_name]
 
-        return {"text": text, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector, "language_id": language_id}
+        return {
+            "text": text,
+            "speaker_id": speaker_id,
+            "style_wav": style_wav,
+            "d_vector": d_vector,
+            "language_id": language_id,
+        }
 
     def format_batch(self, batch: Dict) -> Dict:
         """Generic batch formatting for `TTSDataset`.
@@ -337,14 +343,16 @@ class BaseTTS(BaseModel):
             if config.compute_f0:
                 dataset.pitch_extractor.load_pitch_stats(config.get("f0_cache_path", None))
 
-
-
             # sampler for DDP
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
 
             # Weighted samplers
-            assert not (num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)), "language_weighted_sampler is not supported with DistributedSampler"
-            assert not (num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)), "speaker_weighted_sampler is not supported with DistributedSampler"
+            assert not (
+                num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)
+            ), "language_weighted_sampler is not supported with DistributedSampler"
+            assert not (
+                num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)
+            ), "speaker_weighted_sampler is not supported with DistributedSampler"
 
             if sampler is None:
                 if getattr(config, "use_language_weighted_sampler", False):
@@ -353,7 +361,6 @@ class BaseTTS(BaseModel):
                 elif getattr(config, "use_speaker_weighted_sampler", False):
                     print(" > Using Language weighted sampler")
                     sampler = get_speaker_weighted_sampler(dataset.items)
-
 
             loader = DataLoader(
                 dataset,

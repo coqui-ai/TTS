@@ -88,7 +88,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         spec_gain=1.0,
         power=None,
         use_htk=False,
-        mel_norm="slaney"
+        mel_norm="slaney",
     ):
         super().__init__()
         self.n_fft = n_fft
@@ -155,7 +155,13 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
 
     def _build_mel_basis(self):
         mel_basis = librosa.filters.mel(
-            self.sample_rate, self.n_fft, n_mels=self.n_mels, fmin=self.mel_fmin, fmax=self.mel_fmax, htk=self.use_htk, norm=self.mel_norm
+            self.sample_rate,
+            self.n_fft,
+            n_mels=self.n_mels,
+            fmin=self.mel_fmin,
+            fmax=self.mel_fmax,
+            htk=self.use_htk,
+            norm=self.mel_norm,
         )
         self.mel_basis = torch.from_numpy(mel_basis).float()
 
