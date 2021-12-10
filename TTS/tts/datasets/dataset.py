@@ -531,7 +531,7 @@ class TTSDataset(Dataset):
                 "waveform": wav_padded,
                 "raw_text": batch["raw_text"],
                 "pitch": pitch,
-                "language_ids": language_ids
+                "language_ids": language_ids,
             }
 
         raise TypeError(

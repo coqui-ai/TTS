@@ -1,12 +1,13 @@
-import os
-import glob
-import pathlib
 import argparse
+import glob
 import multiprocessing
+import os
+import pathlib
 
 from tqdm.contrib.concurrent import process_map
 
-from TTS.utils.vad import  read_wave, write_wave, get_vad_speech_segments
+from TTS.utils.vad import get_vad_speech_segments, read_wave, write_wave
+
 
 def remove_silence(filepath):
     output_path = filepath.replace(os.path.join(args.input_dir, ""), os.path.join(args.output_dir, ""))
@@ -69,10 +70,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o", "--output_dir", type=str, default="../VCTK-Corpus-removed-silence", help="Output Dataset dir"
     )
-    parser.add_argument("-f", "--force",
-                        default=False,
-                        action='store_true',
-                        help='Force the replace of exists files')
+    parser.add_argument("-f", "--force", default=False, action="store_true", help="Force the replace of exists files")
     parser.add_argument(
         "-g",
         "--glob",

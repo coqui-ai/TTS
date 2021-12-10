@@ -19,6 +19,7 @@ def compute_phonemes(item):
         return []
     return list(set(ph))
 
+
 def main():
     # pylint: disable=W0601
     global c

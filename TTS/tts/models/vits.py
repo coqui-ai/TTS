@@ -4,6 +4,7 @@ from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
+
 # import torchaudio
 from coqpit import Coqpit
 from torch import nn
@@ -420,8 +421,9 @@ class Vits(BaseTTS):
             ):
                 # TODO: change this with torchaudio Resample
                 raise RuntimeError(
-                    ' [!] To use the speaker consistency loss (SCL) you need to have matching sample rates between the TTS model ({}) and the speaker encoder ({})!'
-                        .format(self.config.audio["sample_rate"], self.speaker_encoder.audio_config["sample_rate"])
+                    " [!] To use the speaker consistency loss (SCL) you need to have matching sample rates between the TTS model ({}) and the speaker encoder ({})!".format(
+                        self.config.audio["sample_rate"], self.speaker_encoder.audio_config["sample_rate"]
+                    )
                 )
                 # pylint: disable=W0101,W0105
                 """ self.audio_transform = torchaudio.transforms.Resample(
@@ -674,7 +676,6 @@ class Vits(BaseTTS):
             }
         )
         return outputs
-
 
     def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None}):
         """

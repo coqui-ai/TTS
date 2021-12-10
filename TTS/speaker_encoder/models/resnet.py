@@ -2,11 +2,12 @@ import numpy as np
 import torch
 from torch import nn
 
+from TTS.utils.audio import TorchSTFT
+from TTS.utils.io import load_fsspec
+
 # import torchaudio
 
-from TTS.utils.audio import TorchSTFT
 
-from TTS.utils.io import load_fsspec
 
 
 class PreEmphasis(torch.nn.Module):
@@ -126,16 +127,16 @@ class ResNetSpeakerEncoder(nn.Module):
                     n_mels=audio_config["num_mels"],
                     power=2.0,
                     use_mel=True,
-                    mel_norm=None
+                    mel_norm=None,
                 ),
-                '''torchaudio.transforms.MelSpectrogram(
+                """torchaudio.transforms.MelSpectrogram(
                     sample_rate=audio_config["sample_rate"],
                     n_fft=audio_config["fft_size"],
                     win_length=audio_config["win_length"],
                     hop_length=audio_config["hop_length"],
                     window_fn=torch.hamming_window,
                     n_mels=audio_config["num_mels"],
-                ),'''
+                ),""",
             )
         else:
             self.torch_spec = None

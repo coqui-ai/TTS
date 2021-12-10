@@ -31,7 +31,7 @@ dataset_config_pt = BaseDatasetConfig(
 class TestFindUniquePhonemes(unittest.TestCase):
     @staticmethod
     def test_espeak_phonemes():
-       # prepare the config
+        # prepare the config
         config = VitsConfig(
             batch_size=2,
             eval_batch_size=2,
@@ -52,9 +52,7 @@ class TestFindUniquePhonemes(unittest.TestCase):
         config.save_json(config_path)
 
         # run test
-        run_cli(
-            f'CUDA_VISIBLE_DEVICES="" python TTS/bin/find_unique_phonemes.py --config_path "{config_path}"'
-        )
+        run_cli(f'CUDA_VISIBLE_DEVICES="" python TTS/bin/find_unique_phonemes.py --config_path "{config_path}"')
 
     @staticmethod
     def test_no_espeak_phonemes():
@@ -79,6 +77,4 @@ class TestFindUniquePhonemes(unittest.TestCase):
         config.save_json(config_path)
 
         # run test
-        run_cli(
-            f'CUDA_VISIBLE_DEVICES="" python TTS/bin/find_unique_phonemes.py --config_path "{config_path}"'
-        )
+        run_cli(f'CUDA_VISIBLE_DEVICES="" python TTS/bin/find_unique_phonemes.py --config_path "{config_path}"')

@@ -7,8 +7,8 @@ import torch
 
 from TTS.config import load_config
 from TTS.tts.models import setup_model as setup_tts_model
-from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.languages import LanguageManager
+from TTS.tts.utils.speakers import SpeakerManager
 
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
@@ -200,12 +200,7 @@ class Synthesizer(object):
         self.ap.save_wav(wav, path, self.output_sample_rate)
 
     def tts(
-        self,
-        text: str,
-        speaker_idx: str = "",
-        language_idx: str = "",
-        speaker_wav=None,
-        style_wav=None
+        self, text: str, speaker_idx: str = "", language_idx: str = "", speaker_wav=None, style_wav=None
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -254,7 +249,9 @@ class Synthesizer(object):
 
         # handle multi-lingaul
         language_id = None
-        if self.tts_languages_file or (hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None):
+        if self.tts_languages_file or (
+            hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
+        ):
             if language_idx and isinstance(language_idx, str):
                 language_id = self.tts_model.language_manager.language_id_mapping[language_idx]
 

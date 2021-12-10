@@ -4,8 +4,8 @@ from TTS.config import load_config, register_config
 from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models import setup_model
-from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.languages import LanguageManager
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
 

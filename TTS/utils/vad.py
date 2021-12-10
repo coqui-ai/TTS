@@ -1,8 +1,9 @@
 # This code is adpated from: https://github.com/wiseman/py-webrtcvad/blob/master/example.py
-import wave
-import webrtcvad
-import contextlib
 import collections
+import contextlib
+import wave
+
+import webrtcvad
 
 
 def read_wave(path):
@@ -37,7 +38,7 @@ class Frame(object):
     """Represents a "frame" of audio data."""
 
     def __init__(self, _bytes, timestamp, duration):
-        self.bytes =_bytes
+        self.bytes = _bytes
         self.timestamp = timestamp
         self.duration = duration
 
@@ -132,6 +133,7 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
     # yield it.
     if voiced_frames:
         yield b"".join([f.bytes for f in voiced_frames])
+
 
 def get_vad_speech_segments(audio, sample_rate, aggressiveness=2, padding_duration_ms=300):
 
