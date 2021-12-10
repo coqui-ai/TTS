@@ -29,9 +29,11 @@ def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None):
             skip_flag = True
     return grad_norm, skip_flag
 
+
 class StepwiseGradualLR(torch.optim.lr_scheduler._LRScheduler):
-    '''Hardcoded step-wise learning rate scheduling.
-    Necessary for CapacitronVAE'''
+    """Hardcoded step-wise learning rate scheduling.
+    Necessary for CapacitronVAE"""
+
     def __init__(self, optimizer, gradual_learning_rates, last_epoch=-1):
         self.gradual_learning_rates = gradual_learning_rates
         super().__init__(optimizer, last_epoch)
@@ -57,7 +59,8 @@ class StepwiseGradualLR(torch.optim.lr_scheduler._LRScheduler):
         # Return first lr if step is below the second threshold - first is initial lr
         lr = rates[0] if step < step_thresholds[1] else lr
 
-        return np.tile(lr, len(self.base_lrs)) # hack?
+        return np.tile(lr, len(self.base_lrs))  # hack?
+
 
 # pylint: disable=protected-access
 class NoamLR(torch.optim.lr_scheduler._LRScheduler):

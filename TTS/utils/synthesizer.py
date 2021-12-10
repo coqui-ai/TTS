@@ -174,7 +174,15 @@ class Synthesizer(object):
         wav = np.array(wav)
         self.ap.save_wav(wav, path, self.output_sample_rate)
 
-    def tts(self, text: str, speaker_idx: str = "", speaker_wav=None, style_wav=None, reference_wav=None, reference_text=None) -> List[int]:
+    def tts(
+        self,
+        text: str,
+        speaker_idx: str = "",
+        speaker_wav=None,
+        style_wav=None,
+        reference_wav=None,
+        reference_text=None,
+    ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
         Args:
