@@ -830,15 +830,6 @@ class Vits(BaseTTS):
                     gt_spk_emb=outputs["gt_spk_emb"],
                     syn_spk_emb=outputs["syn_spk_emb"],
                 )
-            # ignore duration loss if fine tuning mode is on
-            if not self.args.fine_tuning_mode:
-                # handle the duration loss
-                if self.args.use_sdp:
-                    loss_dict["nll_duration"] = outputs["nll_duration"]
-                    loss_dict["loss"] += outputs["nll_duration"]
-                else:
-                    loss_dict["loss_duration"] = outputs["loss_duration"]
-                    loss_dict["loss"] += outputs["loss_duration"]
 
         elif optimizer_idx == 1:
             # discriminator pass
