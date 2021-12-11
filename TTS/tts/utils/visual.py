@@ -144,6 +144,7 @@ def visualize(
         y_axis="linear",
         fmin=CONFIG.audio["mel_fmin"],
         fmax=CONFIG.audio["mel_fmax"],
+        auto_aspect=False,
     )
 
     plt.xlabel("Time", fontsize=label_fontsize)
@@ -161,6 +162,7 @@ def visualize(
             y_axis="linear",
             fmin=CONFIG.audio["mel_fmin"],
             fmax=CONFIG.audio["mel_fmax"],
+            auto_aspect=False,
         )
         plt.xlabel("Time", fontsize=label_fontsize)
         plt.ylabel("Hz", fontsize=label_fontsize)
