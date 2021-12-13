@@ -10,7 +10,7 @@ from coqpit import Coqpit
 from torch.utils.data.sampler import WeightedRandomSampler
 
 from TTS.config import load_config
-from TTS.speaker_encoder.utils.generic_utils import setup_model
+from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
 from TTS.utils.audio import AudioProcessor
 
 
@@ -252,7 +252,7 @@ class SpeakerManager:
             config_path (str): Model config file path.
         """
         self.speaker_encoder_config = load_config(config_path)
-        self.speaker_encoder = setup_model(self.speaker_encoder_config)
+        self.speaker_encoder = setup_speaker_encoder_model(self.speaker_encoder_config)
         self.speaker_encoder.load_checkpoint(config_path, model_path, eval=True, use_cuda=self.use_cuda)
         self.speaker_encoder_ap = AudioProcessor(**self.speaker_encoder_config.audio)
         # normalize the input audio level and trim silences
