@@ -161,7 +161,9 @@ def main():
         default=None,
     )
     parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
-    parser.add_argument("--capacitron_reference_wav", type=str, help="Wav path file for Capacitron prosody reference.", default=None)
+    parser.add_argument(
+        "--capacitron_reference_wav", type=str, help="Wav path file for Capacitron prosody reference.", default=None
+    )
     parser.add_argument("--capacitron_reference_text", type=str, help="Transcription of the reference.", default=None)
     parser.add_argument(
         "--list_speaker_idxs",
@@ -256,7 +258,13 @@ def main():
     print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav, reference_wav=args.capacitron_reference_wav, reference_text=args.capacitron_reference_text)
+    wav = synthesizer.tts(
+        args.text,
+        args.speaker_idx,
+        args.speaker_wav,
+        reference_wav=args.capacitron_reference_wav,
+        reference_text=args.capacitron_reference_text,
+    )
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))

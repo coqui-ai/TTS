@@ -249,14 +249,14 @@ def synthesis(
 
         style_wav (str | Dict[str, float]):
             Path or tensor to/of a waveform used for computing the style embedding. Defaults to None.
-        
+
         reference_wav (str | Dict[str, float]):
             Path or tensor to/of a waveform used for computing the Capacitron reference embedding. Defaults to None,
             meaning the model will sample from the prior distribution to generate random but realistic prosody.
 
         reference_text (str):
             Transcription of reference_wav. Defaults to None.
-        
+
         enable_eos_bos_chars (bool):
             enable special chars for end of sentence and start of sentence. Defaults to False.
 
