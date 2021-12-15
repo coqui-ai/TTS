@@ -219,6 +219,7 @@ class BaseTTS(BaseModel):
                 use_phonemes=config.use_phonemes,
                 phoneme_language=config.phoneme_language,
                 enable_eos_bos=config.enable_eos_bos_chars,
+                use_espeak_phonemes=config.use_espeak_phonemes,
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,

@@ -35,6 +35,7 @@ class TTSDataset(Dataset):
         phoneme_cache_path: str = None,
         phoneme_language: str = "en-us",
         enable_eos_bos: bool = False,
+        use_espeak_phonemes: bool = False,
         speaker_id_mapping: Dict = None,
         d_vector_mapping: Dict = None,
         use_noise_augment: bool = False,
@@ -91,6 +92,8 @@ class TTSDataset(Dataset):
             enable_eos_bos (bool): Enable the `end of sentence` and the `beginning of sentences characters`. Defaults
                 to False.
 
+            use_espeak_phonemes (bool): Use the espeak phonemizer instead of Gruut. Defaults to False.
+
             speaker_id_mapping (dict): Mapping of speaker names to IDs used to compute embedding vectors by the
                 embedding layer. Defaults to None.
 
@@ -117,6 +120,7 @@ class TTSDataset(Dataset):
         self.custom_symbols = custom_symbols
         self.add_blank = add_blank
         self.use_phonemes = use_phonemes
+        self.use_espeak_phonemes = use_espeak_phonemes
         self.phoneme_cache_path = phoneme_cache_path
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
@@ -150,7 +154,7 @@ class TTSDataset(Dataset):
 
     @staticmethod
     def _generate_and_cache_phoneme_sequence(
-        text, cache_path, cleaners, language, custom_symbols, characters, add_blank
+        text, cache_path, cleaners, language, custom_symbols, characters, add_blank, use_espeak_phonemes
     ):
         """generate a phoneme sequence from text.
         since the usage is for subsequent caching, we never add bos and
@@ -164,6 +168,7 @@ class TTSDataset(Dataset):
             custom_symbols=custom_symbols,
             tp=characters,
             add_blank=add_blank,
+            use_espeak_phonemes=use_espeak_phonemes,
         )
         phonemes = np.asarray(phonemes, dtype=np.int32)
         np.save(cache_path, phonemes)
@@ -171,7 +176,16 @@ class TTSDataset(Dataset):
 
     @staticmethod
     def _load_or_generate_phoneme_sequence(
-        wav_file, text, phoneme_cache_path, enable_eos_bos, cleaners, language, custom_symbols, characters, add_blank
+        wav_file,
+        text,
+        phoneme_cache_path,
+        enable_eos_bos,
+        cleaners,
+        language,
+        custom_symbols,
+        characters,
+        add_blank,
+        use_espeak_phonemes,
     ):
         file_name = os.path.splitext(os.path.basename(wav_file))[0]
 
@@ -182,12 +196,12 @@ class TTSDataset(Dataset):
             phonemes = np.load(cache_path)
         except FileNotFoundError:
             phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, custom_symbols, characters, add_blank
+                text, cache_path, cleaners, language, custom_symbols, characters, add_blank, use_espeak_phonemes
             )
         except (ValueError, IOError):
             print(" [!] failed loading phonemes for {}. " "Recomputing.".format(wav_file))
             phonemes = TTSDataset._generate_and_cache_phoneme_sequence(
-                text, cache_path, cleaners, language, custom_symbols, characters, add_blank
+                text, cache_path, cleaners, language, custom_symbols, characters, add_blank, use_espeak_phonemes
             )
         if enable_eos_bos:
             phonemes = pad_with_eos_bos(phonemes, tp=characters)
@@ -222,6 +236,7 @@ class TTSDataset(Dataset):
                     self.custom_symbols,
                     self.characters,
                     self.add_blank,
+                    self.use_espeak_phonemes,
                 )
             else:
                 text = np.asarray(
