@@ -29,7 +29,7 @@ def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None):
             skip_flag = True
     return grad_norm, skip_flag
 
-
+# pylint: disable=protected-access
 class StepwiseGradualLR(torch.optim.lr_scheduler._LRScheduler):
     """Hardcoded step-wise learning rate scheduling.
     Necessary for CapacitronVAE"""
@@ -48,7 +48,7 @@ class StepwiseGradualLR(torch.optim.lr_scheduler._LRScheduler):
 
         boolean_indeces = np.less_equal(step_thresholds, step)
         try:
-            last_true = np.where(boolean_indeces == True)[0][-1]
+            last_true = np.where(boolean_indeces is True)[0][-1]
         except IndexError:
             # For the steps larger than the last step in the list
             pass
