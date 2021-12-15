@@ -250,11 +250,11 @@ def synthesis(
     # GST processing
     style_mel = None
     custom_symbols = None
-    if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
-        if isinstance(style_wav, dict):
-            style_mel = style_wav
-        else:
-            style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
+    if style_wav:
+        style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
+    elif CONFIG.has("gst") and CONFIG.gst and not style_wav:
+        if CONFIG.gst.gst_style_input_weights:
+            style_mel = CONFIG.gst.gst_style_input_weights
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
     # preprocess the given text
