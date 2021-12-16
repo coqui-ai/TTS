@@ -165,7 +165,7 @@ def tts():
 
     style_wav = style_wav_uri_to_dict(style_wav)
     print(" > Model input: {}".format(text))
-    wavs = synthesizer.tts(text, speaker_idx=speaker_idx, style_wav=style_wav)
+    wavs = synthesizer.tts(text, speaker_name=speaker_idx, style_wav=style_wav)
     out = io.BytesIO()
     synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype="audio/wav")
