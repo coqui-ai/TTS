@@ -1,6 +1,6 @@
 import os
 
-from TTS.config import load_config, register_config
+from TTS.config import check_config_and_model_args, get_from_config_or_model_args, load_config, register_config
 from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models import setup_model
@@ -46,14 +46,14 @@ def main():
     ap = AudioProcessor(**config.audio)
 
     # init speaker manager
-    if config.use_speaker_embedding:
+    if check_config_and_model_args(config, "use_speaker_embedding", True):
         speaker_manager = SpeakerManager(data_items=train_samples + eval_samples)
         if hasattr(config, "model_args"):
             config.model_args.num_speakers = speaker_manager.num_speakers
         else:
             config.num_speakers = speaker_manager.num_speakers
-    elif config.use_d_vector_file:
-        speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
+    elif check_config_and_model_args(config, "use_d_vector_file", True):
+        speaker_manager = SpeakerManager(d_vectors_file_path=get_from_config_or_model_args(config, "d_vector_file"))
         if hasattr(config, "model_args"):
             config.model_args.num_speakers = speaker_manager.num_speakers
         else:
