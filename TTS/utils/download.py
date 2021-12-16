@@ -196,13 +196,12 @@ def download_kaggle_dataset(dataset_path: str, dataset_name: str, output_path: s
     """
     data_path = os.path.join(output_path, dataset_name)
     try:
-        import kaggle
+        import kaggle  # pylint: disable=import-outside-toplevel
 
         kaggle.api.authenticate()
         print(f"""\nDownloading {dataset_name}...""")
         kaggle.api.dataset_download_files(dataset_path, path=data_path, unzip=True)
     except OSError:
-        logging.warning(
-            f"""[!] in order to download kaggle datasets, you need to have a kaggle api token stored in your 
-        {os.path.join(expanduser('~'), '.kaggle/kaggle.json')}"""
+        print(
+            f"""[!] in order to download kaggle datasets, you need to have a kaggle api token stored in your {os.path.join(expanduser('~'), '.kaggle/kaggle.json')}"""
         )
