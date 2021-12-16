@@ -70,11 +70,10 @@ def download_libri_tts(path: str, subset: Optional[str] = "all"):
 
     os.makedirs(path, exist_ok=True)
     if subset == "all":
-        for sub in subset_dict:
-            url = subset_dict[sub]
+        for sub, val in subset_dict.items():
             print(f" > Downloading {sub}...")
-            download_url(url, path)
-            basename = os.path.basename(url)
+            download_url(val, path)
+            basename = os.path.basename(val)
             archive = os.path.join(path, basename)
             print(" > Extracting archive file...")
             extract_archive(archive)
