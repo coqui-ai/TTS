@@ -3,7 +3,7 @@ import torch
 import torchaudio
 from torch import nn
 
-from TTS.utils.audio import TorchSTFT
+# from TTS.utils.audio import TorchSTFT
 from TTS.utils.io import load_fsspec
 
 
@@ -258,7 +258,6 @@ class ResNetSpeakerEncoder(nn.Module):
 
         if return_mean:
             embeddings = torch.mean(embeddings, dim=0, keepdim=True)
-
         return embeddings
 
     def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False, use_cuda: bool = False):
