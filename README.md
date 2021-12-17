@@ -135,6 +135,66 @@ $ make install
 
 If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
 
+## Use TTS
+
+### Single Speaker Models
+
+- List provided models:
+
+    ```
+    $ tts --list_models
+    ```
+
+- Run TTS with default models:
+
+    ```
+    $ tts --text "Text for TTS"
+    ```
+
+- Run a TTS model with its default vocoder model:
+
+    ```
+    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
+    ```
+
+- Run with specific TTS and vocoder models from the list:
+
+    ```
+    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
+    ```
+
+- Run your own TTS model (Using Griffin-Lim Vocoder):
+
+    ```
+    $ tts --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
+    ```
+
+- Run your own TTS and Vocoder models:
+    ```
+    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
+        --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
+    ```
+
+### Multi-speaker Models
+
+- List the available speakers and choose as <speaker_id> among them:
+
+    ```
+    $ tts --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs
+    ```
+
+- Run the multi-speaker TTS model with the target speaker ID:
+
+    ```
+    $ tts --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx <speaker_id>
+    ```
+
+- Run your own multi-speaker TTS model:
+
+    ```
+    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth.tar --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
+    ```
+
 ## Directory Structure
 ```
 |- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
