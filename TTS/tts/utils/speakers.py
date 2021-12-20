@@ -255,9 +255,6 @@ class SpeakerManager:
         self.speaker_encoder = setup_speaker_encoder_model(self.speaker_encoder_config)
         self.speaker_encoder.load_checkpoint(config_path, model_path, eval=True, use_cuda=self.use_cuda)
         self.speaker_encoder_ap = AudioProcessor(**self.speaker_encoder_config.audio)
-        # normalize the input audio level and trim silences
-        # self.speaker_encoder_ap.do_sound_norm = True
-        # self.speaker_encoder_ap.do_trim_silence = True
 
     def compute_d_vector_from_clip(self, wav_file: Union[str, list]) -> list:
         """Compute a d_vector from a given audio file.
