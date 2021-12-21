@@ -101,7 +101,8 @@ def check_config_and_model_args(config, arg_name, value):
     """Check the give argument in `config.model_args` if exist or in `config` for
     the given value.
 
-    It is to patch up the compatibility between models with and without `model_args`.
+    Return False if the argument does not exist in `config.model_args` or `config`.
+    This is to patch up the compatibility between models with and without `model_args`.
 
     TODO: Remove this in the future with a unified approach.
     """
@@ -110,7 +111,7 @@ def check_config_and_model_args(config, arg_name, value):
             return config.model_args[arg_name] == value
     if hasattr(config, arg_name):
         return config[arg_name] == value
-    raise ValueError(f" [!] {arg_name} is not found in config or config.model_args")
+    return False
 
 
 def get_from_config_or_model_args(config, arg_name):
