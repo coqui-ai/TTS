@@ -170,7 +170,7 @@ class Synthesizer(object):
 
     def _init_speaker_encoder(self, speaker_manager):
         """Initialize the SpeakerEncoder"""
-        if self.encoder_checkpoint is not None:
+        if self.encoder_checkpoint:
             speaker_manager.init_speaker_encoder(self.encoder_checkpoint, self.encoder_config)
         return speaker_manager
 
