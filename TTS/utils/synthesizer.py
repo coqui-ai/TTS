@@ -171,7 +171,12 @@ class Synthesizer(object):
     def _init_speaker_encoder(self, speaker_manager):
         """Initialize the SpeakerEncoder"""
         if self.encoder_checkpoint:
-            speaker_manager.init_speaker_encoder(self.encoder_checkpoint, self.encoder_config)
+            if speaker_manager is None:
+                speaker_manager = SpeakerManager(
+                    encoder_model_path=self.encoder_checkpoint, encoder_config_path=self.encoder_config
+                )
+            else:
+                speaker_manager.init_speaker_encoder(self.encoder_checkpoint, self.encoder_config)
         return speaker_manager
 
     def _init_language_manager(self):
@@ -183,6 +188,8 @@ class Synthesizer(object):
                 language_manager = LanguageManager(language_ids_file_path=self.tts_languages_file)
             elif self.tts_config.get("language_ids_file", None):
                 language_manager = LanguageManager(language_ids_file_path=self.tts_config.language_ids_file)
+            else:
+                language_manager = LanguageManager(config=self.tts_config)
         return language_manager
 
     def _load_vocoder(self, model_file: str, model_config: str, use_cuda: bool) -> None:

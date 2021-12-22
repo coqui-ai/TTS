@@ -256,11 +256,11 @@ class SpeakerManager:
         self.speaker_encoder.load_checkpoint(config_path, model_path, eval=True, use_cuda=self.use_cuda)
         self.speaker_encoder_ap = AudioProcessor(**self.speaker_encoder_config.audio)
 
-    def compute_d_vector_from_clip(self, wav_file: Union[str, list]) -> list:
+    def compute_d_vector_from_clip(self, wav_file: Union[str, List[str]]) -> list:
         """Compute a d_vector from a given audio file.
 
         Args:
-            wav_file (Union[str, list]): Target file path.
+            wav_file (Union[str, List[str]]): Target file path.
 
         Returns:
             list: Computed d_vector.
