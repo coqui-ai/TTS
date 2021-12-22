@@ -60,6 +60,12 @@ class BaseAudioConfig(Coqpit):
         trim_db (int):
             Silence threshold used for silence trimming. Defaults to 45.
 
+        do_rms_norm (bool, optional):
+            enable/disable RMS volume normalization when loading an audio file. Defaults to False.
+
+        db_level (int, optional):
+            dB level used for rms normalization. The range is -99 to 0. Defaults to None.
+
         power (float):
             Exponent used for expanding spectrogra levels before running Griffin Lim. It helps to reduce the
             artifacts in the synthesized voice. Defaults to 1.5.
@@ -116,6 +122,9 @@ class BaseAudioConfig(Coqpit):
     # silence trimming
     do_trim_silence: bool = True
     trim_db: int = 45
+    # rms volume normalization
+    do_rms_norm: bool = False
+    db_level: float = None
     # griffin-lim params
     power: float = 1.5
     griffin_lim_iters: int = 60
