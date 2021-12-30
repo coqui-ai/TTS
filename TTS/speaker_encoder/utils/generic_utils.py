@@ -177,6 +177,8 @@ def setup_speaker_encoder_model(config: "Coqpit"):
             config.model_params["proj_dim"],
             config.model_params["lstm_dim"],
             config.model_params["num_lstm_layers"],
+            use_torch_spec=config.model_params.get("use_torch_spec", False),
+            audio_config=config.audio,
         )
     elif config.model_params["model_name"].lower() == "resnet":
         model = ResNetSpeakerEncoder(

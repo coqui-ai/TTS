@@ -190,8 +190,19 @@ class ResNetSpeakerEncoder(nn.Module):
         return out
 
     def forward(self, x, l2_norm=False):
+        """Forward pass of the model.
+
+        Args:
+            x (Tensor): Raw waveform signal or spectrogram frames. If input is a waveform, `torch_spec` must be `True`
+                to compute the spectrogram on-the-fly.
+            l2_norm (bool): Whether to L2-normalize the outputs.
+
+        Shapes:
+            - x: :math:`(N, 1, T_{in})`
+        """
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
+                x.squeeze_(1)
                 # if you torch spec compute it otherwise use the mel spec computed by the AP
                 if self.use_torch_spec:
                     x = self.torch_spec(x)
@@ -230,7 +241,11 @@ class ResNetSpeakerEncoder(nn.Module):
         return x
 
     @torch.no_grad()
-    def compute_embedding(self, x, num_frames=250, num_eval=10, return_mean=True):
+    def inference(self, x, l2_norm=False):
+        return self.forward(x, l2_norm)
+
+    @torch.no_grad()
+    def compute_embedding(self, x, num_frames=250, num_eval=10, return_mean=True, l2_norm=True):
         """
         Generate embeddings for a batch of utterances
         x: 1xTxD
@@ -254,7 +269,7 @@ class ResNetSpeakerEncoder(nn.Module):
             frames_batch.append(frames)
 
         frames_batch = torch.cat(frames_batch, dim=0)
-        embeddings = self.forward(frames_batch, l2_norm=True)
+        embeddings = self.inference(frames_batch, l2_norm=l2_norm)
 
         if return_mean:
             embeddings = torch.mean(embeddings, dim=0, keepdim=True)
