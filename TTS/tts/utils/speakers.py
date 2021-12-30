@@ -270,7 +270,7 @@ class SpeakerManager:
             waveform = self.speaker_encoder_ap.load_wav(wav_file, sr=self.speaker_encoder_ap.sample_rate)
             if not self.speaker_encoder_config.model_params.get("use_torch_spec", False):
                 m_input = self.speaker_encoder_ap.melspectrogram(waveform)
-                m_input = torch.from_numpy(m_input.T)
+                m_input = torch.from_numpy(m_input)
             else:
                 m_input = torch.from_numpy(waveform)
 

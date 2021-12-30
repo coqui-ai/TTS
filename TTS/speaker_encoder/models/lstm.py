@@ -127,7 +127,7 @@ class LSTMSpeakerEncoder(nn.Module):
 
     @torch.no_grad()
     def inference(self, x, l2_norm=True):
-        d = self.layers.forward(x, l2_norm=l2_norm)
+        d = self.forward(x, l2_norm=l2_norm)
         return d
 
     def compute_embedding(self, x, num_frames=250, num_eval=10, return_mean=True):

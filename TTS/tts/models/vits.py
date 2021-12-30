@@ -398,10 +398,10 @@ class Vits(BaseTTS):
             self.num_speakers = self.speaker_manager.num_speakers
 
         if self.args.use_speaker_embedding:
-            self._init_speaker_embedding(config)
+            self._init_speaker_embedding()
 
         if self.args.use_d_vector_file:
-            self._init_d_vector(config)
+            self._init_d_vector()
 
         # TODO: make this a function
         if self.args.use_speaker_encoder_as_loss:
@@ -436,14 +436,14 @@ class Vits(BaseTTS):
                     self.audio_transform = None
                 """
 
-    def _init_speaker_embedding(self, config):
+    def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
         if self.num_speakers > 0:
             print(" > initialization of speaker-embedding layers.")
             self.embedded_speaker_dim = self.args.speaker_embedding_channels
             self.emb_g = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
 
-    def _init_d_vector(self, config):
+    def _init_d_vector(self):
         # pylint: disable=attribute-defined-outside-init
         if hasattr(self, "emb_g"):
             raise ValueError("[!] Speaker embedding layer already initialized before d_vector settings.")

@@ -38,7 +38,7 @@ class SpeakerManagerTest(unittest.TestCase):
         # load a sample audio and compute embedding
         waveform = ap.load_wav(sample_wav_path)
         mel = ap.melspectrogram(waveform)
-        d_vector = manager.compute_d_vector(mel.T)
+        d_vector = manager.compute_d_vector(mel)
         assert d_vector.shape[1] == 256
 
         # compute d_vector directly from an input file
