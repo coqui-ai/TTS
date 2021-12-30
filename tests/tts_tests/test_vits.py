@@ -19,7 +19,7 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-#pylint: disable=no-self-use
+# pylint: disable=no-self-use
 class TestVits(unittest.TestCase):
     def test_init_multispeaker(self):
         num_speakers = 10

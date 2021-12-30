@@ -198,7 +198,7 @@ class ResNetSpeakerEncoder(nn.Module):
             l2_norm (bool): Whether to L2-normalize the outputs.
 
         Shapes:
-            - x: :math:`(N, 1, T_{in})`
+            - x: :math:`(N, 1, T_{in})` or :math:`(N, D_{spec}, T_{in})`
         """
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
@@ -206,8 +206,6 @@ class ResNetSpeakerEncoder(nn.Module):
                 # if you torch spec compute it otherwise use the mel spec computed by the AP
                 if self.use_torch_spec:
                     x = self.torch_spec(x)
-                else:
-                    x = x.transpose(1, 2)
 
                 if self.log_input:
                     x = (x + 1e-6).log()

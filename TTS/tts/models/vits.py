@@ -417,8 +417,7 @@ class Vits(BaseTTS):
 
             if (
                 hasattr(self.speaker_manager.speaker_encoder, "audio_config")
-                and self.config.audio["sample_rate"]
-                != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
+                and self.config.audio["sample_rate"] != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
             ):
                 # TODO: change this with torchaudio Resample
                 raise RuntimeError(
