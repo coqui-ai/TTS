@@ -67,7 +67,14 @@ ap = AudioProcessor(**config.audio.to_dict())
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
 # init speaker manager for multi-speaker training
+# it mainly handles speaker-id # load training samples
+train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+
+# init speaker manager for multi-speaker training
 # it mainly handles speaker-id to speaker-name for the model and the data-loader
+speaker_manager = SpeakerManager()
+speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
+to speaker-name for the model and the data-loader
 speaker_manager = SpeakerManager()
 speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
 

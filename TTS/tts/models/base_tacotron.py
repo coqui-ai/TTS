@@ -36,8 +36,11 @@ class BaseTacotron(BaseTTS):
 
         # global style token
         if self.gst and self.use_gst:
+            print("BaseTacotron: Using GST")
             self.decoder_in_features += self.gst.gst_embedding_dim  # add gst embedding dim
             self.gst_layer = None
+        else:
+            print("BaseTacotron: Not Using GST")
 
         # additional layers
         self.decoder_backward = None

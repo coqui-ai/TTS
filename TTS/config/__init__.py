@@ -1,4 +1,5 @@
 import json
+import jstyleson
 import os
 import re
 from typing import Dict
@@ -17,9 +18,13 @@ def read_json_with_comments(json_path):
     with fsspec.open(json_path, "r", encoding="utf-8") as f:
         input_str = f.read()
     # handle comments
-    input_str = re.sub(r"\\\n", "", input_str)
-    input_str = re.sub(r"//.*\n", "\n", input_str)
-    data = json.loads(input_str)
+    # input_str = re.sub(r"\\\n", "", input_str)
+    # input_str = re.sub(r"//.*\n", "\n", input_str)
+    # data = json.loads(input_str)
+
+    # Try using jstyleson instead...
+    data = jstyleson.loads(input_str)
+
     return data
 
 

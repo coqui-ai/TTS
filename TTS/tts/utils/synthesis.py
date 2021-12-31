@@ -84,11 +84,15 @@ def run_model_torch(
     Returns:
         Dict: model outputs.
     """
+
+
     input_lengths = torch.tensor(inputs.shape[1:2]).to(inputs.device)
+
     if hasattr(model, "module"):
         _func = model.module.inference
     else:
         _func = model.inference
+
     outputs = _func(
         inputs,
         aux_input={
@@ -247,16 +251,21 @@ def synthesis(
         backend (str):
             tf or torch. Defaults to "torch".
     """
+
     # GST processing
     style_mel = None
     custom_symbols = None
     if style_wav:
+        print("Computing style mel spectrogram from style reference clip...")
         style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
     elif CONFIG.has("gst") and CONFIG.gst and not style_wav:
+        print("Configuration file has gst component... getting manual style input weights from config...")
         if CONFIG.gst.gst_style_input_weights:
             style_mel = CONFIG.gst.gst_style_input_weights
+
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
+
     # preprocess the given text
     text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols)
     # pass tensors to backend
@@ -269,15 +278,20 @@ def synthesis(
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
+
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
         text_inputs = text_inputs.unsqueeze(0)
+
     elif backend in ["tf", "tflite"]:
         # TODO: handle speaker id for tf model
         style_mel = numpy_to_tf(style_mel, tf.float32)
         text_inputs = numpy_to_tf(text_inputs, tf.int32)
         text_inputs = tf.expand_dims(text_inputs, 0)
+
     # synthesize voice
     if backend == "torch":
+        print("Running model on torch backend...")
+
         outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()

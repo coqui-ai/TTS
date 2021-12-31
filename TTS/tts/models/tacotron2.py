@@ -61,6 +61,7 @@ class Tacotron2(BaseTacotron):
         if self.use_gst:
             self.decoder_in_features += self.gst.gst_embedding_dim
 
+
         # embedding layer
         self.embedding = nn.Embedding(self.num_chars, 512, padding_idx=0)
 

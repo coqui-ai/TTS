@@ -19,7 +19,6 @@ from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 # pylint: skip-file
 
-
 class BaseTTS(BaseModel):
     """Base `tts` class. Every new `tts` model must inherit this.
 
@@ -349,6 +348,7 @@ class BaseTTS(BaseModel):
             # some models don't have `model_args` set
             if hasattr(trainer.config, "model_args"):
                 trainer.config.model_args.speakers_file = output_path
+            print(f"SAVING JSON {trainer.output_path}/config.json")
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
             print(f" > `speakers.json` is saved to {output_path}.")
             print(" > `speakers_file` is updated in the config.json.")
