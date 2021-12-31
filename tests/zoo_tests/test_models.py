@@ -2,6 +2,7 @@
 import glob
 import os
 import shutil
+from TTS.tts.utils.languages import LanguageManager
 
 from tests import get_tests_output_path, run_cli
 from TTS.tts.utils.speakers import SpeakerManager
@@ -22,16 +23,24 @@ def test_run_all_models():
             local_download_dir = os.path.dirname(model_path)
             # download and run the model
             speaker_files = glob.glob(local_download_dir + "/speaker*")
+            language_files = glob.glob(local_download_dir + "/language*")
+            language_id = ""
             if len(speaker_files) > 0:
                 # multi-speaker model
                 if "speaker_ids" in speaker_files[0]:
                     speaker_manager = SpeakerManager(speaker_id_file_path=speaker_files[0])
                 elif "speakers" in speaker_files[0]:
                     speaker_manager = SpeakerManager(d_vectors_file_path=speaker_files[0])
+
+                # multi-lingual model - Assuming multi-lingual models are also multi-speaker
+                if len(language_files) > 0 and "language_ids" in language_files[0]:
+                    language_manager = LanguageManager(language_ids_file_path=language_files[0])
+                    language_id = language_manager.language_names[0]
+
                 speaker_id = list(speaker_manager.speaker_ids.keys())[0]
                 run_cli(
                     f"tts --model_name  {model_name} "
-                    f'--text "This is an example." --out_path "{output_path}" --speaker_idx "{speaker_id}"'
+                    f'--text "This is an example." --out_path "{output_path}" --speaker_idx "{speaker_id}" --language_idx "{language_id}" '
                 )
             else:
                 # single-speaker model

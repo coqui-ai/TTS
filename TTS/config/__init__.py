@@ -120,3 +120,13 @@ def get_from_config_or_model_args(config, arg_name):
         if arg_name in config.model_args:
             return config.model_args[arg_name]
     return config[arg_name]
+
+
+def get_from_config_or_model_args_with_default(config, arg_name, def_val):
+    """Get the given argument from `config.model_args` if exist or in `config`."""
+    if hasattr(config, "model_args"):
+        if arg_name in config.model_args:
+            return config.model_args[arg_name]
+    if hasattr(config, arg_name):
+        return config[arg_name]
+    return def_val

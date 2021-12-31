@@ -5,7 +5,7 @@ import numpy as np
 import pysbd
 import torch
 
-from TTS.config import check_config_and_model_args, load_config
+from TTS.config import check_config_and_model_args, load_config, get_from_config_or_model_args_with_default
 from TTS.tts.models import setup_model as setup_tts_model
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
@@ -117,6 +117,7 @@ class Synthesizer(object):
 
         speaker_manager = self._init_speaker_manager()
         language_manager = self._init_language_manager()
+        self._set_speaker_encoder_paths_from_tts_config()
         speaker_manager = self._init_speaker_encoder(speaker_manager)
 
         if language_manager is not None:
@@ -130,6 +131,12 @@ class Synthesizer(object):
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
+
+    def _set_speaker_encoder_paths_from_tts_config(self):
+        """Set the encoder paths from the tts model config for models with speaker encoders."""
+        if hasattr(self.tts_config, "model_args") and hasattr(self.tts_config.model_args, "speaker_encoder_config_path"):
+            self.encoder_checkpoint = self.tts_config.model_args.speaker_encoder_model_path
+            self.encoder_config = self.tts_config.model_args.speaker_encoder_config_path
 
     def _is_use_speaker_embedding(self):
         """Check if the speaker embedding is used in the model"""
@@ -155,17 +162,19 @@ class Synthesizer(object):
         """Initialize the SpeakerManager"""
         # setup if multi-speaker settings are in the global model config
         speaker_manager = None
+        speakers_file = get_from_config_or_model_args_with_default(self.tts_config, "speakers_file", None)
         if self._is_use_speaker_embedding():
             if self.tts_speakers_file:
                 speaker_manager = SpeakerManager(speaker_id_file_path=self.tts_speakers_file)
-            if self.tts_config.get("speakers_file", None):
-                speaker_manager = SpeakerManager(speaker_id_file_path=self.tts_config.speakers_file)
+            if speakers_file:
+                speaker_manager = SpeakerManager(speaker_id_file_path=speakers_file)
 
         if self._is_use_d_vector_file():
+            d_vector_file = get_from_config_or_model_args_with_default(self.tts_config, "d_vector_file", None)
             if self.tts_speakers_file:
                 speaker_manager = SpeakerManager(d_vectors_file_path=self.tts_speakers_file)
-            if self.tts_config.get("d_vector_file", None):
-                speaker_manager = SpeakerManager(d_vectors_file_path=self.tts_config.d_vector_file)
+            if d_vector_file:
+                speaker_manager = SpeakerManager(d_vectors_file_path=d_vector_file)
         return speaker_manager
 
     def _init_speaker_encoder(self, speaker_manager):
