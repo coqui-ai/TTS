@@ -816,6 +816,8 @@ class Trainer:
         else:
             batch_num_steps = int(len(self.train_loader.dataset) / self.config.batch_size)
         self.c_logger.print_train_start()
+        print(f" >>> BATCH SIZE >>> {self.config.batch_size}" )
+        print(f" >>> NUM SPEAKERS >>> {self.config.num_speakers}" )
         loader_start_time = time.time()
         # iterate over the training samples
         for cur_step, batch in enumerate(self.train_loader):

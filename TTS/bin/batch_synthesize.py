@@ -3,10 +3,8 @@
 
 import argparse
 import sys
-import os
 from argparse import RawTextHelpFormatter
 
-# pylint: disable=redefined-outer-name, unused-argument
 from pathlib import Path
 
 from TTS.utils.manage import ModelManager
@@ -26,87 +24,54 @@ def str2bool(v):
 def main():
     # pylint: disable=bad-option-value
     parser = argparse.ArgumentParser(
-        description="""Synthesize speech on command line.\n\n"""
-        """You can either use your trained model or choose a model from the provided list.\n\n"""
-        """If you don't specify any models, then it uses LJSpeech based English model.\n\n"""
+        description="""Batch synthesize multiple speech phrases with a single model.\n\n"""
+        """This should, theoretically, speed up synthesis because the model is only loaded once... \n\n"""
         """
     # Example Runs:
 
-    ## Single Speaker Models
+    ## Single Speaker Model
 
-    - list provided models
-
-    ```
-    $ ./TTS/bin/synthesize.py --list_models
-    ```
-
-    - run tts with default models.
+    Using custom model with coqui vocoder model..
 
     ```
-    $ ./TTS/bin synthesize.py --text "Text for TTS"
+    $ ./batch_synthesize.py --model_path ~/models/mymodel.pth.tar  --config_path ~/models/config.json  --vocoder_name "vocoder_models/en/ljspeech/hifigan_v2"
+    --output_path results/ --text "There is a saying in the West" "Says Jonas Salk." "We cannot choose our parents but we can choose our Ancestors."
     ```
 
-    - run tts with batch synthesis option
-
-
-    ```
-    $ ./TTS/bin synthesize.py --batch --text "One blue frog" "Two green frogs" "Three orange frogs"
-    ```
-
-    - run a tts model with its default vocoder model.
+    Using coqui model and vocoder (leaving vocoder empty uses griffin lim)
 
     ```
-    $ ./TTS/bin synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
+    $ ./batch_synthesize.py --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>"
+    --output_path results/ --text "There is a saying in the West" "Says Jonas Salk." "We cannot choose our parents but we can choose our Ancestors."
     ```
 
-    - run with specific tts and vocoder models from the list
-
-    ```
-    $ ./TTS/bin/synthesize.py --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
-    ```
-
-    - run your own TTS model (Using Griffin-Lim Vocoder)
-
-    ```
-    $ ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
-    ```
-
-    - run your own TTS and Vocoder models
-    ```
-    $ ./TTS/bin/synthesize.py --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
-        --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
-    ```
 
     ## MULTI-SPEAKER MODELS
 
-    - list the available speakers and choose as <speaker_id> among them.
 
+    List the available speakers and choose as <speaker_id> among them (custom model)
     ```
-    $ ./TTS/bin/synthesize.py --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs
-    ```
-
-    - run the multi-speaker TTS model with the target speaker ID.
-
-    ```
-    $ ./TTS/bin/synthesize.py --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx <speaker_id>
+    ./batch_synthesize.py --model_path mymodels/best_model.pth.tar --config_path mymodels/config.json
+    --speakers_file_path mymodels/speakers.json --list_speaker_idxs
     ```
 
-    - run your own multi-speaker TTS model.
-
+    For a pre-trained coqui model..
     ```
-    $ ./TTS/bin/synthesize.py --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth.tar --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
-    ```
-
-    - batch synthesis across multiple speakers & lines of text
-
-    ```
-    $ ./TTS/bin/synthesize.py --text "This is" "text for" "the TTS" --out_path output/path/
-    --model_path path/to/model.pth.tar --config_path path/to/config.json --speakers_file_path path/to/speaker.json
-    --speaker_idx <speaker_id1> <speaker_id2> <speaker_id3>
+    ./batch_synthesize.py --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs
     ```
 
+    Generate texts from a custom model using griffin lim
+    ```
+    ./batch_synthesize.py --model_path mymodels/best_model.pth.tar --config_path mymodels/config.json
+    --speakers_file_path mymodels/speakers.json --speaker_idx "p225"
+    --out_path results/ --text "There is a saying in the West" "Says Jonas Salk." "We cannot choose our parents but we can choose our Ancestors."
+    ```
 
-
+    Using coqui models..
+    ```
+    ./batch_synthesize.py --model_name "<language>/<dataset>/<model_name>"  --speaker_idx <speaker_id>
+    --out_path results/ --text "There is a saying in the West" "Says Jonas Salk." "We cannot choose our parents but we can choose our Ancestors."
+    ```
 
     """,
         formatter_class=RawTextHelpFormatter,
@@ -118,19 +83,12 @@ def main():
         nargs="?",
         const=True,
         default=False,
-        help="list available pre-trained tts and vocoder models.",
+        help="list available coqui pre-trained tts and vocoder models.",
     )
+
+    parser.add_argument("--text", nargs='+', default=[], help="Lines of text to generate speech, each will be a new wav file.")
 
     parser.add_argument("--batch", type=str2bool, nargs="?", const=True, default=False, help="batch synthesize multiple lines of text, this theoretically should make generation and evaluation faster because you only load the model once")
-
-    parser.add_argument("--text", nargs='+', default=None, help="Text to generate speech, if --batch flag is set this is expected to be multiple quoted strings of text.")
-
-    parser.add_argument(
-        "--out_path",
-        type=str,
-        default="tts_output.wav",
-        help="Output wav file path, in batch mode this becomes the output directory where wav files are written.",
-    )
 
     # Args for running pre-trained TTS models.
     parser.add_argument(
@@ -155,30 +113,33 @@ def main():
         help="Path to model file.",
     )
 
-    parser.add_argument("--use_cuda", type=bool, help="Run model on CUDA.", default=False)
+    parser.add_argument("--use_cuda", type=bool, help="Run inference on GPU.", default=False)
+
     parser.add_argument(
         "--vocoder_path",
         type=str,
         help="Path to vocoder model file. If it is not defined, model uses GL as vocoder. Please make sure that you installed vocoder library before (WaveRNN).",
         default=None,
     )
+
     parser.add_argument("--vocoder_config_path", type=str, help="Path to vocoder model config file.", default=None)
+
     parser.add_argument(
-        "--encoder_path",
+        "--sp_encoder_path",
         type=str,
         help="Path to speaker encoder model file.",
         default=None,
     )
-    parser.add_argument("--encoder_config_path", type=str, help="Path to speaker encoder config file.", default=None)
+
+    parser.add_argument("--sp_encoder_config_path", type=str, help="Path to speaker encoder config file.", default=None)
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
 
     parser.add_argument(
         "--speaker_idx",
-        nargs='+',
         type=str,
-        help="Target speaker IDs for a multi-speaker TTS model. If batch flag is enabled a file will be generated for each speaker",
+        help="Target speaker ID for a multi-speaker TTS model.",
         default=None,
     )
 
@@ -189,9 +150,6 @@ def main():
         default=None,
     )
 
-    # GST Style Reference
-    parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
-
     parser.add_argument(
         "--list_speaker_idxs",
         help="List available speaker ids for the defined multi-speaker model.",
@@ -200,6 +158,11 @@ def main():
         const=True,
         default=False,
     )
+
+
+    # GST Style Reference
+    parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
+
     # aux args
     parser.add_argument(
         "--save_spectogram",
@@ -214,7 +177,7 @@ def main():
     if args.text is None and not args.list_models and not args.list_speaker_idxs:
         parser.parse_args(["-h"])
 
-    # load model manager
+    # load coqui/TTS pre-trained model manager
     path = Path(__file__).parent / "../.models.json"
     manager = ModelManager(path)
 
@@ -282,47 +245,15 @@ def main():
         return
 
     # RUN THE SYNTHESIS
-    if args.batch:
-        print(" > Batch generating Text:")
-        # 1. check output directory exists, if not, make it..
-        if args.out_path == "tts_output.wav":
-            args.out_path = "tts_output/"
-        if not os.path.exists(args.out_path):
-            os.mkdir(args.out_path)
+    print("TEXT IS", typeof(args.text))
+    print(" > Text: {}".format(args.text))
 
+    # kick it
+    wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav, args.gst_style)
 
-        text = args.text
-        if not type(args.text) == list:
-            text = [args.text]
-
-        speaker_idxs = args.speaker_idx
-        if not type(args.speaker_idx) == list:
-            speaker_idxs = [args.speaker_idx]
-
-        for idx, line in enumerate(text):
-            print(f" > Text {idx}: {line}")
-
-            for jdx, speaker in enumerate(speaker_idxs):
-                print(f" > Spkr {jdx}: {speaker}")
-
-                # kick it
-                wav = synthesizer.tts(line, speaker, args.speaker_wav, args.gst_style)
-                # save the results
-                if speaker is not None:
-                    line_abbrev = f"{speaker}_{line[0:3]}"
-                else:
-                    line_abbrev = line[0:3]
-
-                out_path = os.path.join(args.out_path, f"{idx}_{line_abbrev}.wav");
-                print(f"Writing synthesized file to: {out_path}")
-                synthesizer.save_wav(wav, out_path)
-    else:
-        print(f" > Text: {args.text}")
-        # kick it
-        wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav, args.gst_style)
-        # save the results
-        print(f"Writing synthesized file to: {args.out_path}")
-        synthesizer.save_wav(wav, args.out_path)
+    # save the results
+    print(" > Saving output to {}".format(args.out_path))
+    synthesizer.save_wav(wav, args.out_path)
 
 
 if __name__ == "__main__":
