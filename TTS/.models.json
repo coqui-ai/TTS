@@ -161,7 +161,7 @@
                     "commit": "bdab788d",
                     "license": "MIT",
                     "contact": "",
-                    "default_vocoder": null
+                    "default_vocoder": "vocoder_models/uk/mai/multiband-melgan"
                 }
             }
         },
