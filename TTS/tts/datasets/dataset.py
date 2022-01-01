@@ -273,7 +273,9 @@ class TTSDataset(Dataset):
         item = args[0]
         func_args = args[1]
         text, wav_file, *_ = item
-        func_args[3] = item[3]
+        if item[3] is not None and item[3] != '':
+            # If language is specified in dataset, overwrite phoneme_language key
+            func_args[3] = item[3]
         phonemes = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
         return phonemes
 
