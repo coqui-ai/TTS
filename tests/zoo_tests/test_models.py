@@ -18,6 +18,7 @@ def test_run_all_models():
     manager = ModelManager(output_prefix=get_tests_output_path())
     model_names = manager.list_models()
     for model_name in model_names:
+        print(f"\n > Run - {model_name}")
         model_path, _, _ = manager.download_model(model_name)
         if "tts_models" in model_name:
             local_download_dir = os.path.dirname(model_path)
