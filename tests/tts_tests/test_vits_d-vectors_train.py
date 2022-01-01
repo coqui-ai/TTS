@@ -25,11 +25,19 @@ config = VitsConfig(
     print_step=1,
     print_eval=True,
     test_sentences=[
-        ["Be a voice, not an echo."],
+        ["Be a voice, not an echo.", "ljspeech-0"],
     ],
 )
+# set audio config
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
+
+# active multispeaker d-vec mode
+config.model_args.use_d_vector_file = True
+config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
+config.model_args.d_vector_dim = 256
+
+
 config.save_json(config_path)
 
 # train the model for one epoch

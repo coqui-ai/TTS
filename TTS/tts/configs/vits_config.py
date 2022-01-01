@@ -82,8 +82,14 @@ class VitsConfig(BaseTTSConfig):
         add_blank (bool):
             If true, a blank token is added in between every character. Defaults to `True`.
 
-        test_sentences (List[str]):
-            List of sentences to be used for testing.
+        test_sentences (List[List]):
+            List of sentences with speaker and language information to be used for testing.
+
+        language_ids_file (str):
+            Path to the language ids file.
+
+        use_language_embedding (bool):
+            If true, language embedding is used. Defaults to `False`.
 
     Note:
         Check :class:`TTS.tts.configs.shared_configs.BaseTTSConfig` for the inherited parameters.
@@ -117,6 +123,7 @@ class VitsConfig(BaseTTSConfig):
     feat_loss_alpha: float = 1.0
     mel_loss_alpha: float = 45.0
     dur_loss_alpha: float = 1.0
+    speaker_encoder_loss_alpha: float = 1.0
 
     # data loader params
     return_wav: bool = True
@@ -130,13 +137,13 @@ class VitsConfig(BaseTTSConfig):
     add_blank: bool = True
 
     # testing
-    test_sentences: List[str] = field(
+    test_sentences: List[List] = field(
         default_factory=lambda: [
-            "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-            "Be a voice, not an echo.",
-            "I'm sorry Dave. I'm afraid I can't do that.",
-            "This cake is great. It's so delicious and moist.",
-            "Prior to November 22, 1963.",
+            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent."],
+            ["Be a voice, not an echo."],
+            ["I'm sorry Dave. I'm afraid I can't do that."],
+            ["This cake is great. It's so delicious and moist."],
+            ["Prior to November 22, 1963."],
         ]
     )
 
@@ -146,29 +153,15 @@ class VitsConfig(BaseTTSConfig):
     use_speaker_embedding: bool = False
     speakers_file: str = None
     speaker_embedding_channels: int = 256
+    language_ids_file: str = None
+    use_language_embedding: bool = False
 
     # use d-vectors
     use_d_vector_file: bool = False
-    d_vector_file: str = False
+    d_vector_file: str = None
     d_vector_dim: int = None
 
     def __post_init__(self):
-        # Pass multi-speaker parameters to the model args as `model.init_multispeaker()` looks for it there.
-        if self.num_speakers > 0:
-            self.model_args.num_speakers = self.num_speakers
-
-        # speaker embedding settings
-        if self.use_speaker_embedding:
-            self.model_args.use_speaker_embedding = True
-        if self.speakers_file:
-            self.model_args.speakers_file = self.speakers_file
-        if self.speaker_embedding_channels:
-            self.model_args.speaker_embedding_channels = self.speaker_embedding_channels
-
-        # d-vector settings
-        if self.use_d_vector_file:
-            self.model_args.use_d_vector_file = True
-        if self.d_vector_dim is not None and self.d_vector_dim > 0:
-            self.model_args.d_vector_dim = self.d_vector_dim
-        if self.d_vector_file:
-            self.model_args.d_vector_file = self.d_vector_file
+        for key, val in self.model_args.items():
+            if hasattr(self, key):
+                self[key] = val

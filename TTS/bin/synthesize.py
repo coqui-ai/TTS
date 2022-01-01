@@ -152,10 +152,17 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
+    parser.add_argument("--language_ids_file_path", type=str, help="JSON file for multi-lingual model.", default=None)
     parser.add_argument(
         "--speaker_idx",
         type=str,
         help="Target speaker ID for a multi-speaker TTS model.",
+        default=None,
+    )
+    parser.add_argument(
+        "--language_idx",
+        type=str,
+        help="Target language ID for a multi-lingual TTS model.",
         default=None,
     )
     parser.add_argument(
@@ -173,6 +180,14 @@ If you don't specify any models, then it uses LJSpeech based English model.
         const=True,
         default=False,
     )
+    parser.add_argument(
+        "--list_language_idxs",
+        help="List available language ids for the defined multi-lingual model.",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+    )
     # aux args
     parser.add_argument(
         "--save_spectogram",
@@ -184,7 +199,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
-    if args.text is None and not args.list_models and not args.list_speaker_idxs:
+    if args.text is None and not args.list_models and not args.list_speaker_idxs and not args.list_language_idxs:
         parser.parse_args(["-h"])
 
     # load model manager
@@ -194,6 +209,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     model_path = None
     config_path = None
     speakers_file_path = None
+    language_ids_file_path = None
     vocoder_path = None
     vocoder_config_path = None
     encoder_path = None
@@ -217,6 +233,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         model_path = args.model_path
         config_path = args.config_path
         speakers_file_path = args.speakers_file_path
+        language_ids_file_path = args.language_ids_file_path
 
     if args.vocoder_path is not None:
         vocoder_path = args.vocoder_path
@@ -231,6 +248,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         model_path,
         config_path,
         speakers_file_path,
+        language_ids_file_path,
         vocoder_path,
         vocoder_config_path,
         encoder_path,
@@ -246,6 +264,14 @@ If you don't specify any models, then it uses LJSpeech based English model.
         print(synthesizer.tts_model.speaker_manager.speaker_ids)
         return
 
+    # query langauge ids of a multi-lingual model.
+    if args.list_language_idxs:
+        print(
+            " > Available language ids: (Set --language_idx flag to one of these values to use the multi-lingual model."
+        )
+        print(synthesizer.tts_model.language_manager.language_id_mapping)
+        return
+
     # check the arguments against a multi-speaker model.
     if synthesizer.tts_speakers_file and (not args.speaker_idx and not args.speaker_wav):
         print(
@@ -258,7 +284,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav, args.gst_style)
+    wav = synthesizer.tts(args.text, args.speaker_idx, args.language_idx, args.speaker_wav)
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))

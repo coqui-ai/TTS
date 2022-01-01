@@ -15,7 +15,7 @@ if "tensorflow" in installed or "tensorflow-gpu" in installed:
     import tensorflow as tf
 
 
-def text_to_seq(text, CONFIG, custom_symbols=None):
+def text_to_seq(text, CONFIG, custom_symbols=None, language=None):
     text_cleaner = [CONFIG.text_cleaner]
     # text ot phonemes to sequence vector
     if CONFIG.use_phonemes:
@@ -23,7 +23,7 @@ def text_to_seq(text, CONFIG, custom_symbols=None):
             phoneme_to_sequence(
                 text,
                 text_cleaner,
-                CONFIG.phoneme_language,
+                language if language else CONFIG.phoneme_language,
                 CONFIG.enable_eos_bos_chars,
                 tp=CONFIG.characters,
                 add_blank=CONFIG.add_blank,
@@ -71,6 +71,7 @@ def run_model_torch(
     speaker_id: int = None,
     style_mel: torch.Tensor = None,
     d_vector: torch.Tensor = None,
+    language_id: torch.Tensor = None,
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
 
@@ -96,6 +97,7 @@ def run_model_torch(
             "speaker_ids": speaker_id,
             "d_vectors": d_vector,
             "style_mel": style_mel,
+            "language_ids": language_id,
         },
     )
     return outputs
@@ -160,19 +162,20 @@ def inv_spectrogram(postnet_output, ap, CONFIG):
     return wav
 
 
-def speaker_id_to_torch(speaker_id, cuda=False):
-    if speaker_id is not None:
-        speaker_id = np.asarray(speaker_id)
-        speaker_id = torch.from_numpy(speaker_id)
+def id_to_torch(aux_id, cuda=False):
+    if aux_id is not None:
+        aux_id = np.asarray(aux_id)
+        aux_id = torch.from_numpy(aux_id)
     if cuda:
-        return speaker_id.cuda()
-    return speaker_id
+        return aux_id.cuda()
+    return aux_id
 
 
 def embedding_to_torch(d_vector, cuda=False):
     if d_vector is not None:
         d_vector = np.asarray(d_vector)
         d_vector = torch.from_numpy(d_vector).type(torch.FloatTensor)
+        d_vector = d_vector.squeeze().unsqueeze(0)
     if cuda:
         return d_vector.cuda()
     return d_vector
@@ -208,6 +211,8 @@ def synthesis(
     use_griffin_lim=False,
     do_trim_silence=False,
     d_vector=None,
+    language_id=None,
+    language_name=None,
     backend="torch",
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
@@ -244,6 +249,12 @@ def synthesis(
         d_vector (torch.Tensor):
             d-vector for multi-speaker models in share :math:`[1, D]`. Defaults to None.
 
+        language_id (int):
+            Language ID passed to the language embedding layer in multi-langual model. Defaults to None.
+
+        language_name (str):
+            Language name corresponding to the language code used by the phonemizer. Defaults to None.
+
         backend (str):
             tf or torch. Defaults to "torch".
     """
@@ -258,14 +269,17 @@ def synthesis(
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
     # preprocess the given text
-    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols)
+    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols, language=language_name)
     # pass tensors to backend
     if backend == "torch":
         if speaker_id is not None:
-            speaker_id = speaker_id_to_torch(speaker_id, cuda=use_cuda)
+            speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
 
         if d_vector is not None:
             d_vector = embedding_to_torch(d_vector, cuda=use_cuda)
+
+        if language_id is not None:
+            language_id = id_to_torch(language_id, cuda=use_cuda)
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
@@ -278,7 +292,7 @@ def synthesis(
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector)
+        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
         alignments = outputs["alignments"]
