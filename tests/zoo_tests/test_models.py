@@ -2,9 +2,9 @@
 import glob
 import os
 import shutil
-from TTS.tts.utils.languages import LanguageManager
 
 from tests import get_tests_output_path, run_cli
+from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager

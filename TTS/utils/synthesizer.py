@@ -5,7 +5,7 @@ import numpy as np
 import pysbd
 import torch
 
-from TTS.config import check_config_and_model_args, load_config, get_from_config_or_model_args_with_default
+from TTS.config import check_config_and_model_args, get_from_config_or_model_args_with_default, load_config
 from TTS.tts.models import setup_model as setup_tts_model
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
@@ -134,7 +134,9 @@ class Synthesizer(object):
 
     def _set_speaker_encoder_paths_from_tts_config(self):
         """Set the encoder paths from the tts model config for models with speaker encoders."""
-        if hasattr(self.tts_config, "model_args") and hasattr(self.tts_config.model_args, "speaker_encoder_config_path"):
+        if hasattr(self.tts_config, "model_args") and hasattr(
+            self.tts_config.model_args, "speaker_encoder_config_path"
+        ):
             self.encoder_checkpoint = self.tts_config.model_args.speaker_encoder_model_path
             self.encoder_config = self.tts_config.model_args.speaker_encoder_config_path
 

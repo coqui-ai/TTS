@@ -165,7 +165,7 @@ class ModelManager(object):
         self._update_path("speakers_file", output_speaker_ids_file_path, config_path)
         self._update_path("model_args.speakers_file", output_speaker_ids_file_path, config_path)
 
-         # update the speaker_encoder file path in the model config.json to the current path
+        # update the speaker_encoder file path in the model config.json to the current path
         self._update_path("speaker_encoder_model_path", speaker_encoder_model_path, config_path)
         self._update_path("model_args.speaker_encoder_model_path", speaker_encoder_model_path, config_path)
         self._update_path("speaker_encoder_config_path", speaker_encoder_config_path, config_path)
@@ -197,8 +197,12 @@ class ModelManager(object):
         # download the file
         r = requests.get(file_url)
         # extract the file
-        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-            z.extractall(output_folder)
+        try:
+            with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+                z.extractall(output_folder)
+        except zipfile.BadZipFile:
+            print(f" > Error: Bad zip file - {file_url}")
+            raise zipfile.BadZipFile
         # move the files to the outer path
         for file_path in z.namelist()[1:]:
             src_path = os.path.join(output_folder, file_path)
