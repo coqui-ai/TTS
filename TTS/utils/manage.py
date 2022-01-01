@@ -202,7 +202,7 @@ class ModelManager(object):
                 z.extractall(output_folder)
         except zipfile.BadZipFile:
             print(f" > Error: Bad zip file - {file_url}")
-            raise zipfile.BadZipFile
+            raise zipfile.BadZipFile  # pylint: disable=raise-missing-from
         # move the files to the outer path
         for file_path in z.namelist()[1:]:
             src_path = os.path.join(output_folder, file_path)
