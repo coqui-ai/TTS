@@ -317,7 +317,7 @@
         "uk": {
             "mai": {
                 "multiband-melgan": {
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.5.0/vocoder_models--uk--mai--multiband-melgan.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.5.0_models/vocoder_models--uk--mai--multiband-melgan.zip",
                     "author":"@robinhad",
                     "commit": "bdab788d",
                     "license": "MIT",
