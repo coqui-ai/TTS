@@ -10,7 +10,9 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
-dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=os.path.join(output_path, "../VCTK/"))
+dataset_config = BaseDatasetConfig(
+    name="vctk", meta_file_train="", language="en-us", path=os.path.join(output_path, "../VCTK/")
+)
 
 
 audio_config = BaseAudioConfig(
@@ -49,7 +51,6 @@ config = VitsConfig(
     epochs=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     compute_input_seq_cache=True,
     print_step=25,

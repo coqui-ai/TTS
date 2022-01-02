@@ -193,8 +193,11 @@ class BaseDatasetConfig(Coqpit):
             Name of the dataset meta file. Or a list of speakers to be ignored at training for multi-speaker datasets.
             Defaults to None.
 
-        unused_speakers (List):
+        ignored_speakers (List):
             List of speakers IDs that are not used at the training. Default None.
+
+        language (str):
+            Language code of the dataset. If defined, it overrides `phoneme_language`. Defaults to None.
 
         meta_file_val (str):
             Name of the dataset meta file that defines the instances used at validation.
