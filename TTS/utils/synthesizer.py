@@ -117,7 +117,8 @@ class Synthesizer(object):
 
         speaker_manager = self._init_speaker_manager()
         language_manager = self._init_language_manager()
-        self._set_speaker_encoder_paths_from_tts_config()
+        if not self.encoder_checkpoint:
+            self._set_speaker_encoder_paths_from_tts_config()
         speaker_manager = self._init_speaker_encoder(speaker_manager)
 
         if language_manager is not None:
