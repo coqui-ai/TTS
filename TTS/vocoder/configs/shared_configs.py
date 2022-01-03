@@ -113,8 +113,10 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
             Parameters for the generator learning rate scheduler. Defaults to `{"gamma": 0.999, "last_epoch": -1}`.
         lr_scheduler_disc (torch.optim.Scheduler):
             Learning rate scheduler for the discriminator. Defaults to `ExponentialLR`.
-        lr_scheduler_dict_params (dict):
+        lr_scheduler_disc_params (dict):
             Parameters for the discriminator learning rate scheduler. Defaults to `{"gamma": 0.999, "last_epoch": -1}`.
+        scheduler_after_epoch (bool):
+            Whether to update the learning rate schedulers after each epoch. Defaults to True.
         use_pqmf (bool):
             enable / disable PQMF for subband approximation at training. Defaults to False.
         steps_to_start_discriminator (int):
@@ -173,6 +175,7 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
     lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
     lr_scheduler_disc: str = "ExponentialLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
     lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
+    scheduler_after_epoch: bool = True
 
     use_pqmf: bool = False  # enable/disable using pqmf for multi-band training. (Multi-band MelGAN)
     steps_to_start_discriminator = 0  # start training the discriminator after this number of steps.

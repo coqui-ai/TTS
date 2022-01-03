@@ -12,7 +12,8 @@ from torch.utils.data.distributed import DistributedSampler
 from TTS.model import BaseModel
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager
+from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text import make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
@@ -73,9 +74,18 @@ class BaseTTS(BaseModel):
     def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:
         return get_speaker_manager(config, restore_path, data, out_path)
 
-    def init_multispeaker(self, config: Coqpit):
-        """Init speaker embedding layer if `use_speaker_embedding` is True and set the expected speaker embedding
-        vector dimension in the network. If model uses d-vectors, then it only sets the expected dimension.
+    def init_multispeaker(self, config: Coqpit, data: List = None):
+        """Initialize a speaker embedding layer if needen and define expected embedding channel size for defining
+        `in_channels` size of the connected layers.
+
+        This implementation yields 3 possible outcomes:
+
+        1. If `config.use_speaker_embedding` and `config.use_d_vector_file are False, do nothing.
+        2. If `config.use_d_vector_file` is True, set expected embedding channel size to `config.d_vector_dim` or 512.
+        3. If `config.use_speaker_embedding`, initialize a speaker embedding layer with channel size of
+        `config.d_vector_dim` or 512.
+
+        You can override this function for new models.
 
         Args:
             config (Coqpit): Model configuration.
@@ -96,6 +106,57 @@ class BaseTTS(BaseModel):
             print(" > Init speaker_embedding layer.")
             self.speaker_embedding = nn.Embedding(self.num_speakers, self.embedded_speaker_dim)
             self.speaker_embedding.weight.data.normal_(0, 0.3)
+
+    def get_aux_input(self, **kwargs) -> Dict:
+        """Prepare and return `aux_input` used by `forward()`"""
+        return {"speaker_id": None, "style_wav": None, "d_vector": None, "language_id": None}
+
+    def get_aux_input_from_test_setences(self, sentence_info):
+        if hasattr(self.config, "model_args"):
+            config = self.config.model_args
+        else:
+            config = self.config
+
+        # extract speaker and language info
+        text, speaker_name, style_wav, language_name = None, None, None, None
+
+        if isinstance(sentence_info, list):
+            if len(sentence_info) == 1:
+                text = sentence_info[0]
+            elif len(sentence_info) == 2:
+                text, speaker_name = sentence_info
+            elif len(sentence_info) == 3:
+                text, speaker_name, style_wav = sentence_info
+            elif len(sentence_info) == 4:
+                text, speaker_name, style_wav, language_name = sentence_info
+        else:
+            text = sentence_info
+
+        # get speaker  id/d_vector
+        speaker_id, d_vector, language_id = None, None, None
+        if hasattr(self, "speaker_manager"):
+            if config.use_d_vector_file:
+                if speaker_name is None:
+                    d_vector = self.speaker_manager.get_random_d_vector()
+                else:
+                    d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
+            elif config.use_speaker_embedding:
+                if speaker_name is None:
+                    speaker_id = self.speaker_manager.get_random_speaker_id()
+                else:
+                    speaker_id = self.speaker_manager.speaker_ids[speaker_name]
+
+        # get language id
+        if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
+            language_id = self.language_manager.language_id_mapping[language_name]
+
+        return {
+            "text": text,
+            "speaker_id": speaker_id,
+            "style_wav": style_wav,
+            "d_vector": d_vector,
+            "language_id": language_id,
+        }
 
     def format_batch(self, batch: Dict) -> Dict:
         """Generic batch formatting for `TTSDataset`.
@@ -122,6 +183,7 @@ class BaseTTS(BaseModel):
         attn_mask = batch["attns"]
         waveform = batch["waveform"]
         pitch = batch["pitch"]
+        language_ids = batch["language_ids"]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
 
@@ -169,6 +231,7 @@ class BaseTTS(BaseModel):
             "item_idx": item_idx,
             "waveform": waveform,
             "pitch": pitch,
+            "language_ids": language_ids,
         }
 
     def get_data_loader(
@@ -188,8 +251,15 @@ class BaseTTS(BaseModel):
 
             # setup multi-speaker attributes
             if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
-                speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
-                d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
+                if hasattr(config, "model_args"):
+                    speaker_id_mapping = (
+                        self.speaker_manager.speaker_ids if config.model_args.use_speaker_embedding else None
+                    )
+                    d_vector_mapping = self.speaker_manager.d_vectors if config.model_args.use_d_vector_file else None
+                    config.use_d_vector_file = config.model_args.use_d_vector_file
+                else:
+                    speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
+                    d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
             else:
                 speaker_id_mapping = None
                 d_vector_mapping = None
@@ -199,7 +269,14 @@ class BaseTTS(BaseModel):
             if hasattr(self, "make_symbols"):
                 custom_symbols = self.make_symbols(self.config)
 
-            # init dataset
+            if hasattr(self, "language_manager"):
+                language_id_mapping = (
+                    self.language_manager.language_id_mapping if self.args.use_language_embedding else None
+                )
+            else:
+                language_id_mapping = None
+
+            # init dataloader
             dataset = TTSDataset(
                 outputs_per_step=config.r if "r" in config else 1,
                 text_cleaner=config.text_cleaner,
@@ -222,7 +299,8 @@ class BaseTTS(BaseModel):
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
-                d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
+                d_vector_mapping=d_vector_mapping,
+                language_id_mapping=language_id_mapping,
             )
 
             # pre-compute phonemes
@@ -268,7 +346,22 @@ class BaseTTS(BaseModel):
             # sampler for DDP
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
 
-            # init dataloader
+            # Weighted samplers
+            assert not (
+                num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)
+            ), "language_weighted_sampler is not supported with DistributedSampler"
+            assert not (
+                num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)
+            ), "speaker_weighted_sampler is not supported with DistributedSampler"
+
+            if sampler is None:
+                if getattr(config, "use_language_weighted_sampler", False):
+                    print(" > Using Language weighted sampler")
+                    sampler = get_language_weighted_sampler(dataset.items)
+                elif getattr(config, "use_speaker_weighted_sampler", False):
+                    print(" > Using Language weighted sampler")
+                    sampler = get_speaker_weighted_sampler(dataset.items)
+
             loader = DataLoader(
                 dataset,
                 batch_size=config.eval_batch_size if is_eval else config.batch_size,
@@ -340,8 +433,7 @@ class BaseTTS(BaseModel):
         return test_figures, test_audios
 
     def on_init_start(self, trainer):
-        """Save the speaker.json at the beginning of the training. And update the config.json with the
-        speakers.json file path."""
+        """Save the speaker.json and language_ids.json at the beginning of the training. Also update both paths."""
         if self.speaker_manager is not None:
             output_path = os.path.join(trainer.output_path, "speakers.json")
             self.speaker_manager.save_speaker_ids_to_file(output_path)
@@ -352,3 +444,13 @@ class BaseTTS(BaseModel):
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
             print(f" > `speakers.json` is saved to {output_path}.")
             print(" > `speakers_file` is updated in the config.json.")
+
+        if hasattr(self, "language_manager") and self.language_manager is not None:
+            output_path = os.path.join(trainer.output_path, "language_ids.json")
+            self.language_manager.save_language_ids_to_file(output_path)
+            trainer.config.language_ids_file = output_path
+            if hasattr(trainer.config, "model_args"):
+                trainer.config.model_args.language_ids_file = output_path
+            trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
+            print(f" > `language_ids.json` is saved to {output_path}.")
+            print(" > `language_ids_file` is updated in the config.json.")

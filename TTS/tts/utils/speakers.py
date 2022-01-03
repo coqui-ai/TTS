@@ -7,9 +7,10 @@ import fsspec
 import numpy as np
 import torch
 from coqpit import Coqpit
+from torch.utils.data.sampler import WeightedRandomSampler
 
 from TTS.config import load_config
-from TTS.speaker_encoder.utils.generic_utils import setup_model
+from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
 from TTS.utils.audio import AudioProcessor
 
 
@@ -161,8 +162,10 @@ class SpeakerManager:
             file_path (str): Path to the target json file.
         """
         self.d_vectors = self._load_json(file_path)
+
         speakers = sorted({x["name"] for x in self.d_vectors.values()})
         self.speaker_ids = {name: i for i, name in enumerate(speakers)}
+
         self.clip_ids = list(set(sorted(clip_name for clip_name in self.d_vectors.keys())))
 
     def get_d_vector_by_clip(self, clip_idx: str) -> List:
@@ -209,6 +212,32 @@ class SpeakerManager:
                 d_vectors = np.stack(d_vectors[:num_samples]).mean(0)
         return d_vectors
 
+    def get_random_speaker_id(self) -> Any:
+        """Get a random d_vector.
+
+        Args:
+
+        Returns:
+            np.ndarray: d_vector.
+        """
+        if self.speaker_ids:
+            return self.speaker_ids[random.choices(list(self.speaker_ids.keys()))[0]]
+
+        return None
+
+    def get_random_d_vector(self) -> Any:
+        """Get a random D  ID.
+
+        Args:
+
+        Returns:
+            np.ndarray: d_vector.
+        """
+        if self.d_vectors:
+            return self.d_vectors[random.choices(list(self.d_vectors.keys()))[0]]["embedding"]
+
+        return None
+
     def get_speakers(self) -> List:
         return self.speaker_ids
 
@@ -223,18 +252,15 @@ class SpeakerManager:
             config_path (str): Model config file path.
         """
         self.speaker_encoder_config = load_config(config_path)
-        self.speaker_encoder = setup_model(self.speaker_encoder_config)
+        self.speaker_encoder = setup_speaker_encoder_model(self.speaker_encoder_config)
         self.speaker_encoder.load_checkpoint(config_path, model_path, eval=True, use_cuda=self.use_cuda)
         self.speaker_encoder_ap = AudioProcessor(**self.speaker_encoder_config.audio)
-        # normalize the input audio level and trim silences
-        # self.speaker_encoder_ap.do_sound_norm = True
-        # self.speaker_encoder_ap.do_trim_silence = True
 
-    def compute_d_vector_from_clip(self, wav_file: Union[str, list]) -> list:
+    def compute_d_vector_from_clip(self, wav_file: Union[str, List[str]]) -> list:
         """Compute a d_vector from a given audio file.
 
         Args:
-            wav_file (Union[str, list]): Target file path.
+            wav_file (Union[str, List[str]]): Target file path.
 
         Returns:
             list: Computed d_vector.
@@ -242,12 +268,16 @@ class SpeakerManager:
 
         def _compute(wav_file: str):
             waveform = self.speaker_encoder_ap.load_wav(wav_file, sr=self.speaker_encoder_ap.sample_rate)
-            spec = self.speaker_encoder_ap.melspectrogram(waveform)
-            spec = torch.from_numpy(spec.T)
+            if not self.speaker_encoder_config.model_params.get("use_torch_spec", False):
+                m_input = self.speaker_encoder_ap.melspectrogram(waveform)
+                m_input = torch.from_numpy(m_input)
+            else:
+                m_input = torch.from_numpy(waveform)
+
             if self.use_cuda:
-                spec = spec.cuda()
-            spec = spec.unsqueeze(0)
-            d_vector = self.speaker_encoder.compute_embedding(spec)
+                m_input = m_input.cuda()
+            m_input = m_input.unsqueeze(0)
+            d_vector = self.speaker_encoder.compute_embedding(m_input)
             return d_vector
 
         if isinstance(wav_file, list):
@@ -364,11 +394,14 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
         elif c.use_speaker_embedding and "speakers_file" in c and c.speakers_file:
             # new speaker manager with speaker IDs file.
             speaker_manager.set_speaker_ids_from_file(c.speakers_file)
-        print(
-            " > Speaker manager is loaded with {} speakers: {}".format(
-                speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
+
+        if speaker_manager.num_speakers > 0:
+            print(
+                " > Speaker manager is loaded with {} speakers: {}".format(
+                    speaker_manager.num_speakers, ", ".join(speaker_manager.speaker_ids)
+                )
             )
-        )
+
         # save file if path is defined
         if out_path:
             out_file_path = os.path.join(out_path, "speakers.json")
@@ -378,3 +411,13 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
             else:
                 speaker_manager.save_speaker_ids_to_file(out_file_path)
     return speaker_manager
+
+
+def get_speaker_weighted_sampler(items: list):
+    speaker_names = np.array([item[2] for item in items])
+    unique_speaker_names = np.unique(speaker_names).tolist()
+    speaker_ids = [unique_speaker_names.index(l) for l in speaker_names]
+    speaker_count = np.array([len(np.where(speaker_names == l)[0]) for l in unique_speaker_names])
+    weight_speaker = 1.0 / speaker_count
+    dataset_samples_weight = torch.from_numpy(np.array([weight_speaker[l] for l in speaker_ids])).double()
+    return WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))

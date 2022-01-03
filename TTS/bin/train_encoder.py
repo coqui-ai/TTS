@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from TTS.speaker_encoder.dataset import SpeakerEncoderDataset
 from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
-from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_model
+from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_speaker_encoder_model
 from TTS.speaker_encoder.utils.training import init_training
 from TTS.speaker_encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets import load_tts_samples
@@ -151,7 +151,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     global meta_data_eval
 
     ap = AudioProcessor(**c.audio)
-    model = setup_model(c)
+    model = setup_speaker_encoder_model(c)
 
     optimizer = RAdam(model.parameters(), lr=c.lr)
 
