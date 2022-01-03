@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple
 
 import torch
 
-# import torchaudio
+import torchaudio
 from coqpit import Coqpit
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
@@ -419,21 +419,12 @@ class Vits(BaseTTS):
                 hasattr(self.speaker_manager.speaker_encoder, "audio_config")
                 and self.config.audio["sample_rate"] != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
             ):
-                # TODO: change this with torchaudio Resample
-                raise RuntimeError(
-                    " [!] To use the speaker consistency loss (SCL) you need to have matching sample rates between the TTS model ({}) and the speaker encoder ({})!".format(
-                        self.config.audio["sample_rate"],
-                        self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
-                    )
-                )
-                # pylint: disable=W0101,W0105
-                """ self.audio_transform = torchaudio.transforms.Resample(
+                self.audio_transform = torchaudio.transforms.Resample(
                         orig_freq=self.audio_config["sample_rate"],
                         new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
                         )
-                else:
-                    self.audio_transform = None
-                """
+            else:
+                self.audio_transform = None
 
     def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
@@ -458,6 +449,7 @@ class Vits(BaseTTS):
             self.language_manager = LanguageManager(language_ids_file_path=config.language_ids_file)
 
         if self.args.use_language_embedding and self.language_manager:
+            print(" > initialization of language-embedding layers.")
             self.num_languages = self.language_manager.num_languages
             self.embedded_language_dim = self.args.embedded_language_dim
             self.emb_l = nn.Embedding(self.num_languages, self.embedded_language_dim)
@@ -643,8 +635,8 @@ class Vits(BaseTTS):
 
             # resample audio to speaker encoder sample_rate
             # pylint: disable=W0105
-            """if self.audio_transform is not None:
-                wavs_batch = self.audio_transform(wavs_batch)"""
+            if self.audio_transform is not None:
+                wavs_batch = self.audio_transform(wavs_batch)
 
             pred_embs = self.speaker_manager.speaker_encoder.forward(wavs_batch, l2_norm=True)
 
