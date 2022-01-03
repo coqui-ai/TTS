@@ -117,7 +117,8 @@ class Synthesizer(object):
 
         speaker_manager = self._init_speaker_manager()
         language_manager = self._init_language_manager()
-        self._set_speaker_encoder_paths_from_tts_config()
+        if not self.encoder_checkpoint:
+            self._set_speaker_encoder_paths_from_tts_config()
         speaker_manager = self._init_speaker_encoder(speaker_manager)
 
         if language_manager is not None:
@@ -168,14 +169,14 @@ class Synthesizer(object):
         if self._is_use_speaker_embedding():
             if self.tts_speakers_file:
                 speaker_manager = SpeakerManager(speaker_id_file_path=self.tts_speakers_file)
-            if speakers_file:
+            elif speakers_file:
                 speaker_manager = SpeakerManager(speaker_id_file_path=speakers_file)
 
         if self._is_use_d_vector_file():
             d_vector_file = get_from_config_or_model_args_with_default(self.tts_config, "d_vector_file", None)
             if self.tts_speakers_file:
                 speaker_manager = SpeakerManager(d_vectors_file_path=self.tts_speakers_file)
-            if d_vector_file:
+            elif d_vector_file:
                 speaker_manager = SpeakerManager(d_vectors_file_path=d_vector_file)
         return speaker_manager
 
