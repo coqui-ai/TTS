@@ -56,7 +56,7 @@ def main():
     elif check_config_and_model_args(config, "use_d_vector_file", True):
         if check_config_and_model_args(config, "use_speaker_encoder_as_loss", True):
             speaker_manager = SpeakerManager(
-                d_vectors_file_path=config.model_args.d_vector_file, 
+                d_vectors_file_path=config.model_args.d_vector_file,
                 encoder_model_path=config.model_args.speaker_encoder_model_path,
                 encoder_config_path=config.model_args.speaker_encoder_config_path,
                 use_cuda=torch.cuda.is_available(),
