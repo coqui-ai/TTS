@@ -95,6 +95,7 @@ class ResNetSpeakerEncoder(nn.Module):
         self.log_input = log_input
         self.use_torch_spec = use_torch_spec
         self.audio_config = audio_config
+        self.proj_dim = proj_dim
 
         self.conv1 = nn.Conv2d(1, num_filters[0], kernel_size=3, stride=1, padding=1)
         self.relu = nn.ReLU(inplace=True)

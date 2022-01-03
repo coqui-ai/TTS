@@ -49,6 +49,7 @@ class LSTMSpeakerEncoder(nn.Module):
         self.use_lstm_with_projection = use_lstm_with_projection
         self.use_torch_spec = use_torch_spec
         self.audio_config = audio_config
+        self.proj_dim = proj_dim
 
         layers = []
         # choise LSTM layer
