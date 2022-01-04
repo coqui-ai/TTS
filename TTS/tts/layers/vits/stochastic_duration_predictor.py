@@ -178,9 +178,20 @@ class StochasticDurationPredictor(nn.Module):
     """
 
     def __init__(
-        self, in_channels: int, hidden_channels: int, kernel_size: int, dropout_p: float, num_flows=4, cond_channels=0
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        kernel_size: int,
+        dropout_p: float,
+        num_flows=4,
+        cond_channels=0,
+        language_emb_dim=0,
     ):
         super().__init__()
+
+        # add language embedding dim in the input
+        if language_emb_dim:
+            in_channels += language_emb_dim
 
         # condition encoder text
         self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
@@ -205,7 +216,10 @@ class StochasticDurationPredictor(nn.Module):
         if cond_channels != 0 and cond_channels is not None:
             self.cond = nn.Conv1d(cond_channels, hidden_channels, 1)
 
-    def forward(self, x, x_mask, dr=None, g=None, reverse=False, noise_scale=1.0):
+        if language_emb_dim != 0 and language_emb_dim is not None:
+            self.cond_lang = nn.Conv1d(language_emb_dim, hidden_channels, 1)
+
+    def forward(self, x, x_mask, dr=None, g=None, lang_emb=None, reverse=False, noise_scale=1.0):
         """
         Shapes:
             - x: :math:`[B, C, T]`
@@ -217,6 +231,10 @@ class StochasticDurationPredictor(nn.Module):
         x = self.pre(x)
         if g is not None:
             x = x + self.cond(g)
+
+        if lang_emb is not None:
+            x = x + self.cond_lang(lang_emb)
+
         x = self.convs(x, x_mask)
         x = self.proj(x) * x_mask
 

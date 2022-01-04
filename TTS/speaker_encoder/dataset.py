@@ -250,4 +250,4 @@ class SpeakerEncoderDataset(Dataset):
         feats = torch.stack(feats)
         labels = torch.stack(labels)
 
-        return feats.transpose(1, 2), labels
+        return feats, labels
