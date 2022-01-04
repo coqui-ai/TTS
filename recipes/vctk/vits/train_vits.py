@@ -5,12 +5,14 @@ from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.vits import Vits
+from TTS.tts.models.vits import Vits, VitsArgs
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
-dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=os.path.join(output_path, "../VCTK/"))
+dataset_config = BaseDatasetConfig(
+    name="vctk", meta_file_train="", language="en-us", path=os.path.join(output_path, "../VCTK/")
+)
 
 
 audio_config = BaseAudioConfig(
@@ -31,10 +33,14 @@ audio_config = BaseAudioConfig(
     resample=True,
 )
 
+vitsArgs = VitsArgs(
+    use_speaker_embedding=True,
+)
+
 config = VitsConfig(
+    model_args=vitsArgs,
     audio=audio_config,
     run_name="vits_vctk",
-    use_speaker_embedding=True,
     batch_size=32,
     eval_batch_size=16,
     batch_group_size=5,
@@ -45,7 +51,6 @@ config = VitsConfig(
     epochs=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     compute_input_seq_cache=True,
     print_step=25,

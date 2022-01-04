@@ -12,7 +12,7 @@ from tqdm import tqdm
 from TTS.config import load_config
 from TTS.tts.datasets import TTSDataset, load_tts_samples
 from TTS.tts.models import setup_model
-from TTS.tts.utils.speakers import get_speaker_manager
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters
 
@@ -37,8 +37,8 @@ def setup_loader(ap, r, verbose=False):
         enable_eos_bos=c.enable_eos_bos_chars,
         use_noise_augment=False,
         verbose=verbose,
-        speaker_id_mapping=speaker_manager.speaker_ids,
-        d_vector_mapping=speaker_manager.d_vectors if c.use_speaker_embedding and c.use_d_vector_file else None,
+        speaker_id_mapping=speaker_manager.speaker_ids if c.use_speaker_embedding else None,
+        d_vector_mapping=speaker_manager.d_vectors if c.use_d_vector_file else None,
     )
 
     if c.use_phonemes and c.compute_input_seq_cache:
@@ -234,8 +234,13 @@ def main(args):  # pylint: disable=redefined-outer-name
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval
 
-    # parse speakers
-    speaker_manager = get_speaker_manager(c, args, meta_data_train)
+    # init speaker manager
+    if c.use_speaker_embedding:
+        speaker_manager = SpeakerManager(data_items=meta_data)
+    elif c.use_d_vector_file:
+        speaker_manager = SpeakerManager(d_vectors_file_path=c.d_vector_file)
+    else:
+        speaker_manager = None
 
     # setup model
     model = setup_model(c)

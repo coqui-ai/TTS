@@ -1,8 +1,23 @@
 import numpy as np
 import torch
+import torchaudio
 from torch import nn
 
+# from TTS.utils.audio import TorchSTFT
 from TTS.utils.io import load_fsspec
+
+
+class PreEmphasis(nn.Module):
+    def __init__(self, coefficient=0.97):
+        super().__init__()
+        self.coefficient = coefficient
+        self.register_buffer("filter", torch.FloatTensor([-self.coefficient, 1.0]).unsqueeze(0).unsqueeze(0))
+
+    def forward(self, x):
+        assert len(x.size()) == 2
+
+        x = torch.nn.functional.pad(x.unsqueeze(1), (1, 0), "reflect")
+        return torch.nn.functional.conv1d(x, self.filter).squeeze(1)
 
 
 class SELayer(nn.Module):
@@ -70,12 +85,18 @@ class ResNetSpeakerEncoder(nn.Module):
         num_filters=[32, 64, 128, 256],
         encoder_type="ASP",
         log_input=False,
+        use_torch_spec=False,
+        audio_config=None,
     ):
         super(ResNetSpeakerEncoder, self).__init__()
 
         self.encoder_type = encoder_type
         self.input_dim = input_dim
         self.log_input = log_input
+        self.use_torch_spec = use_torch_spec
+        self.audio_config = audio_config
+        self.proj_dim = proj_dim
+
         self.conv1 = nn.Conv2d(1, num_filters[0], kernel_size=3, stride=1, padding=1)
         self.relu = nn.ReLU(inplace=True)
         self.bn1 = nn.BatchNorm2d(num_filters[0])
@@ -87,6 +108,36 @@ class ResNetSpeakerEncoder(nn.Module):
         self.layer4 = self.create_layer(SEBasicBlock, num_filters[3], layers[3], stride=(2, 2))
 
         self.instancenorm = nn.InstanceNorm1d(input_dim)
+
+        if self.use_torch_spec:
+            self.torch_spec = torch.nn.Sequential(
+                PreEmphasis(audio_config["preemphasis"]),
+                # TorchSTFT(
+                #     n_fft=audio_config["fft_size"],
+                #     hop_length=audio_config["hop_length"],
+                #     win_length=audio_config["win_length"],
+                #     sample_rate=audio_config["sample_rate"],
+                #     window="hamming_window",
+                #     mel_fmin=0.0,
+                #     mel_fmax=None,
+                #     use_htk=True,
+                #     do_amp_to_db=False,
+                #     n_mels=audio_config["num_mels"],
+                #     power=2.0,
+                #     use_mel=True,
+                #     mel_norm=None,
+                # )
+                torchaudio.transforms.MelSpectrogram(
+                    sample_rate=audio_config["sample_rate"],
+                    n_fft=audio_config["fft_size"],
+                    win_length=audio_config["win_length"],
+                    hop_length=audio_config["hop_length"],
+                    window_fn=torch.hamming_window,
+                    n_mels=audio_config["num_mels"],
+                ),
+            )
+        else:
+            self.torch_spec = None
 
         outmap_size = int(self.input_dim / 8)
 
@@ -140,9 +191,23 @@ class ResNetSpeakerEncoder(nn.Module):
         return out
 
     def forward(self, x, l2_norm=False):
-        x = x.transpose(1, 2)
+        """Forward pass of the model.
+
+        Args:
+            x (Tensor): Raw waveform signal or spectrogram frames. If input is a waveform, `torch_spec` must be `True`
+                to compute the spectrogram on-the-fly.
+            l2_norm (bool): Whether to L2-normalize the outputs.
+
+        Shapes:
+            - x: :math:`(N, 1, T_{in})` or :math:`(N, D_{spec}, T_{in})`
+        """
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
+                x.squeeze_(1)
+                # if you torch spec compute it otherwise use the mel spec computed by the AP
+                if self.use_torch_spec:
+                    x = self.torch_spec(x)
+
                 if self.log_input:
                     x = (x + 1e-6).log()
                 x = self.instancenorm(x).unsqueeze(1)
@@ -175,11 +240,19 @@ class ResNetSpeakerEncoder(nn.Module):
         return x
 
     @torch.no_grad()
-    def compute_embedding(self, x, num_frames=250, num_eval=10, return_mean=True):
+    def inference(self, x, l2_norm=False):
+        return self.forward(x, l2_norm)
+
+    @torch.no_grad()
+    def compute_embedding(self, x, num_frames=250, num_eval=10, return_mean=True, l2_norm=True):
         """
         Generate embeddings for a batch of utterances
         x: 1xTxD
         """
+        # map to the waveform size
+        if self.use_torch_spec:
+            num_frames = num_frames * self.audio_config["hop_length"]
+
         max_len = x.shape[1]
 
         if max_len < num_frames:
@@ -195,11 +268,10 @@ class ResNetSpeakerEncoder(nn.Module):
             frames_batch.append(frames)
 
         frames_batch = torch.cat(frames_batch, dim=0)
-        embeddings = self.forward(frames_batch, l2_norm=True)
+        embeddings = self.inference(frames_batch, l2_norm=l2_norm)
 
         if return_mean:
             embeddings = torch.mean(embeddings, dim=0, keepdim=True)
-
         return embeddings
 
     def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False, use_cuda: bool = False):
