@@ -18,7 +18,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
     our English models with, is almost 24 hours long. And it requires for someone to collect thid amount of data with
     a help of a voice talent takes weeks.
 
-    Fine-tuning cames to rescue in this case. You can take one of our pre-trained models and fine-tune it for your own
+    Fine-tuning comes to rescue in this case. You can take one of our pre-trained models and fine-tune it for your own
     speech dataset and achive reasonable results with only a couple of hours in the worse case.
 
     However, note that, fine-tuning does not promise great results. The model performance is still depends on the
