@@ -9,6 +9,10 @@ def setup_model(config, speaker_manager: "SpeakerManager" = None):
         MyModel = find_module("TTS.tts.models", config.base_model.lower())
     else:
         MyModel = find_module("TTS.tts.models", config.model.lower())
+
+    # JCR
+    print("JCR: LOADING MODEL", MyModel)
+
     # define set of characters used by the model
     if config.characters is not None:
         # set characters from config

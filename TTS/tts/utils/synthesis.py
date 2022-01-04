@@ -93,6 +93,7 @@ def run_model_torch(
     else:
         _func = model.inference
 
+    # Run the inference function...
     outputs = _func(
         inputs,
         aux_input={
@@ -262,12 +263,14 @@ def synthesis(
         print("Configuration file has gst component... getting manual style input weights from config...")
         if CONFIG.gst.gst_style_input_weights:
             style_mel = CONFIG.gst.gst_style_input_weights
+        print("JCR: Found style weights:", style_mel)
 
     if hasattr(model, "make_symbols"):
         custom_symbols = model.make_symbols(CONFIG)
 
     # preprocess the given text
     text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols)
+
     # pass tensors to backend
     if backend == "torch":
         if speaker_id is not None:
@@ -308,9 +311,11 @@ def synthesis(
             model, text_inputs, CONFIG, speaker_id, style_mel
         )
         model_outputs, decoder_output = parse_outputs_tflite(postnet_output, decoder_output)
+
     # convert outputs to numpy
     # plot results
     wav = None
+
     if hasattr(model, "END2END") and model.END2END:
         wav = model_outputs.squeeze(0)
     else:

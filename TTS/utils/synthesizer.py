@@ -28,6 +28,7 @@ class Synthesizer(object):
         encoder_checkpoint: str = "",
         encoder_config: str = "",
         use_cuda: bool = False,
+        use_model_class: str = None,
     ) -> None:
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
         model and synthesize speech from the provided text.
@@ -48,6 +49,7 @@ class Synthesizer(object):
             encoder_checkpoint (str, optional): path to the speaker encoder model file. Defaults to `""`,
             encoder_config (str, optional): path to the speaker encoder config file. Defaults to `""`,
             use_cuda (bool, optional): enable/disable cuda. Defaults to False.
+            use_model_class (str, optional): specify the class name of the model to use, overrides config model param
         """
         self.tts_checkpoint = tts_checkpoint
         self.tts_config_path = tts_config_path
@@ -69,7 +71,7 @@ class Synthesizer(object):
 
         if self.use_cuda:
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
-        self._load_tts(tts_checkpoint, tts_config_path, use_cuda)
+        self._load_tts(tts_checkpoint, tts_config_path, use_cuda, use_model_class)
         self.output_sample_rate = self.tts_config.audio["sample_rate"]
         if vocoder_checkpoint:
             self._load_vocoder(vocoder_checkpoint, vocoder_config, use_cuda)
@@ -89,7 +91,7 @@ class Synthesizer(object):
         """
         return pysbd.Segmenter(language=lang, clean=True)
 
-    def _load_tts(self, tts_checkpoint: str, tts_config_path: str, use_cuda: bool) -> None:
+    def _load_tts(self, tts_checkpoint: str, tts_config_path: str, use_cuda: bool, use_model_class: str) -> None:
         """Load the TTS model.
 
         1. Load the model config.
@@ -102,10 +104,15 @@ class Synthesizer(object):
             tts_checkpoint (str): path to the model checkpoint.
             tts_config_path (str): path to the model config file.
             use_cuda (bool): enable/disable CUDA use.
+            use_model_class (str): specifies model class, overrides config model parameter
         """
         # pylint: disable=global-statement
 
         self.tts_config = load_config(tts_config_path)
+        if not use_model_class is None:
+            # JCR
+            print(f"JCR: use_model_class set to {use_model_class}, found {self.tts_config.model} in config")
+            self.tts_config.model = use_model_class
         self.use_phonemes = self.tts_config.use_phonemes
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
@@ -241,17 +248,21 @@ class Synthesizer(object):
             )
             waveform = outputs["wav"]
             mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
+
             if not use_gl:
                 # denormalize tts output based on tts audio config
                 mel_postnet_spec = self.ap.denormalize(mel_postnet_spec.T).T
                 device_type = "cuda" if self.use_cuda else "cpu"
+
                 # renormalize spectrogram based on vocoder config
                 vocoder_input = self.vocoder_ap.normalize(mel_postnet_spec.T)
+
                 # compute scale factor for possible sample rate mismatch
                 scale_factor = [
                     1,
                     self.vocoder_config["audio"]["sample_rate"] / self.ap.sample_rate,
                 ]
+
                 if scale_factor[1] != 1:
                     print(" > interpolating tts model output.")
                     vocoder_input = interpolate_vocoder_input(scale_factor, vocoder_input)
@@ -260,10 +271,13 @@ class Synthesizer(object):
                 # run vocoder model
                 # [1, T, C]
                 waveform = self.vocoder_model.inference(vocoder_input.to(device_type))
+
             if self.use_cuda and not use_gl:
                 waveform = waveform.cpu()
+
             if not use_gl:
                 waveform = waveform.numpy()
+
             waveform = waveform.squeeze()
 
             # trim silence

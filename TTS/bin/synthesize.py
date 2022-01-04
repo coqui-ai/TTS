@@ -125,6 +125,8 @@ def main():
 
     parser.add_argument("--text", nargs='+', default=None, help="Text to generate speech, if --batch flag is set this is expected to be multiple quoted strings of text.")
 
+    parser.add_argument("--use_model_class", type=str, default=None, help="Specifies an alternative class file to use for representing the model, useful for modifications.")
+
     parser.add_argument(
         "--out_path",
         type=str,
@@ -263,6 +265,7 @@ def main():
         encoder_path,
         encoder_config_path,
         args.use_cuda,
+        args.use_model_class,
     )
 
     # query speaker ids of a multi-speaker model.
@@ -317,9 +320,9 @@ def main():
                 print(f"Writing synthesized file to: {out_path}")
                 synthesizer.save_wav(wav, out_path)
     else:
-        print(f" > Text: {args.text}")
+        print(f" > Text: {args.text[0]}")
         # kick it
-        wav = synthesizer.tts(args.text, args.speaker_idx, args.speaker_wav, args.gst_style)
+        wav = synthesizer.tts(args.text[0], args.speaker_idx, args.speaker_wav, args.gst_style)
         # save the results
         print(f"Writing synthesized file to: {args.out_path}")
         synthesizer.save_wav(wav, args.out_path)
