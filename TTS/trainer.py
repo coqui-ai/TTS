@@ -590,18 +590,7 @@ class Trainer:
         """
 
         step_start_time = time.time()
-        # zero-out optimizer
-        if hasattr(self.model, "capacitron_vae") and self.model.capacitron_vae is not None:
-            # HACK: overwrite optimizer_idx so that _model_train_step() works with a single optimizer
-            optimizer_idx = None
-            capacitron_SGD_optimizer = optimizer[1]
-            optimizer = optimizer[0]
-
-            capacitron_SGD_optimizer.zero_grad()
-            optimizer.zero_grad()
-
-        else:
-            optimizer.zero_grad()
+        optimizer.zero_grad()
 
         # forward pass and loss computation
         with torch.cuda.amp.autocast(enabled=config.mixed_precision):
@@ -653,9 +642,7 @@ class Trainer:
         else:
             if hasattr(self.model, "capacitron_vae") and self.model.capacitron_vae is not None:
                 loss_dict["capacitron_vae_beta_loss"].backward()
-                capacitron_SGD_optimizer.step()
-                capacitron_SGD_optimizer.zero_grad()
-                optimizer.zero_grad()
+                optimizer.first_step()
                 # Gradient clipping below needs to exclude capacitron_beta
                 model_params_to_clip = []
                 for name, param in model.named_parameters():
@@ -717,38 +704,31 @@ class Trainer:
             )
             loss_dict.update(loss_dict_new)
         else:
-            if hasattr(self.model, "capacitron_vae"):
-                # training with multiple optimizers for CapacitronVAE
+            # training with multiple optimizers for GAN
+            outputs_per_optimizer = [None] * len(self.optimizer)
+            total_step_time = 0
+            for idx, optimizer in enumerate(self.optimizer):
+                criterion = self.criterion
+                # scaler = self.scaler[idx] if self.use_amp_scaler else None
+                scaler = self.scaler
+                scheduler = self.scheduler[idx]
                 outputs, loss_dict_new, step_time = self._optimize(
-                    batch, self.model, self.optimizer, self.scaler, self.criterion, self.scheduler, self.config
+                    batch, self.model, optimizer, scaler, criterion, scheduler, self.config, idx
                 )
-                loss_dict.update(loss_dict_new)
-            else:
-                # training with multiple optimizers for GAN
-                outputs_per_optimizer = [None] * len(self.optimizer)
-                total_step_time = 0
-                for idx, optimizer in enumerate(self.optimizer):
-                    criterion = self.criterion
-                    # scaler = self.scaler[idx] if self.use_amp_scaler else None
-                    scaler = self.scaler
-                    scheduler = self.scheduler[idx]
-                    outputs, loss_dict_new, step_time = self._optimize(
-                        batch, self.model, optimizer, scaler, criterion, scheduler, self.config, idx
-                    )
-                    # skip the rest if the model returns None
-                    total_step_time += step_time
-                    outputs_per_optimizer[idx] = outputs
-                    # merge loss_dicts from each optimizer
-                    # rename duplicates with the optimizer idx
-                    # if None, model skipped this optimizer
-                    if loss_dict_new is not None:
-                        for k, v in loss_dict_new.items():
-                            if k in loss_dict:
-                                loss_dict[f"{k}-{idx}"] = v
-                            else:
-                                loss_dict[k] = v
-                    step_time = total_step_time
-                outputs = outputs_per_optimizer
+                # skip the rest if the model returns None
+                total_step_time += step_time
+                outputs_per_optimizer[idx] = outputs
+                # merge loss_dicts from each optimizer
+                # rename duplicates with the optimizer idx
+                # if None, model skipped this optimizer
+                if loss_dict_new is not None:
+                    for k, v in loss_dict_new.items():
+                        if k in loss_dict:
+                            loss_dict[f"{k}-{idx}"] = v
+                        else:
+                            loss_dict[k] = v
+                step_time = total_step_time
+            outputs = outputs_per_optimizer
 
         # update avg runtime stats
         keep_avg_update = {}
@@ -908,7 +888,7 @@ class Trainer:
         with torch.no_grad():
             outputs = []
             loss_dict = {}
-            if not isinstance(self.optimizer, list) or hasattr(self.model, "capacitron_vae"):
+            if not isinstance(self.optimizer, list):
                 outputs, loss_dict = self._model_eval_step(batch, self.model, self.criterion)
             else:
                 outputs = [None] * len(self.optimizer)
@@ -1094,7 +1074,7 @@ class Trainer:
             config (Coqpit): Training configuration.
 
         Returns:
-            Union[torch.optim.Optimizer, List]: A optimizer or a list of optimizers. GAN and Capacitron VAE models define a list.
+            Union[torch.optim.Optimizer, List]: A optimizer or a list of optimizers. GAN models define a list.
         """
         if hasattr(model, "get_optimizer"):
             optimizer = model.get_optimizer()
@@ -1107,7 +1087,7 @@ class Trainer:
     @staticmethod
     def get_lr(model: nn.Module, config: Coqpit) -> Union[float, List[float]]:
         """Set the initial learning rate by the model if model implements `get_lr()` else try setting the learning rate
-        fromthe config.
+        from the config.
 
         Args:
             model (nn.Module): Training model.
@@ -1138,10 +1118,6 @@ class Trainer:
             Union[torch.optim.Optimizer, List]: A scheduler or a list of schedulers, one for each optimizer.
         """
 
-        # Capacitron has two optimizers but only one needs the scheduler
-        # TODO: not sure if this should be done here?
-        if isinstance(optimizer, list):
-            optimizer = optimizer[0]
         scheduler = None
         if hasattr(model, "get_scheduler"):
             scheduler = model.get_scheduler(optimizer)
@@ -1196,7 +1172,7 @@ class Trainer:
             return keep_avg_target[f"avg_{self.config.target_loss}"]
 
         # take the average of loss_{optimizer_idx} as the target loss when there are multiple optimizers
-        if isinstance(self.optimizer, list) and not hasattr(self.model, "capacitron_vae"):
+        if isinstance(self.optimizer, list):
             target_avg_loss = 0
             for idx in range(len(self.optimizer)):
                 target_avg_loss += keep_avg_target[f"avg_loss_{idx}"]

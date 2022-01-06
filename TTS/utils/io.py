@@ -106,6 +106,8 @@ def save_model(config, model, optimizer, scaler, current_step, epoch, output_pat
         model_state = model.state_dict()
     if isinstance(optimizer, list):
         optimizer_state = [optim.state_dict() for optim in optimizer]
+    elif optimizer.__class__.__name__ == "CapacitronOptimizer":
+        optimizer_state = [optimizer.primary_optimizer.state_dict(), optimizer.secondary_optimizer.state_dict()]
     else:
         optimizer_state = optimizer.state_dict() if optimizer is not None else None
 

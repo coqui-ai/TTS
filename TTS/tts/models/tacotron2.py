@@ -14,7 +14,8 @@ from TTS.tts.models.base_tacotron import BaseTacotron
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from TTS.utils.trainer_utils import get_optimizer
+from TTS.utils.capacitron_optimizer import CapacitronOptimizer
+from TTS.utils.trainer_utils import get_scheduler
 
 
 class Tacotron2(BaseTacotron):
@@ -359,44 +360,11 @@ class Tacotron2(BaseTacotron):
 
     def get_optimizer(self) -> List:
         if self.use_capacitron_vae:
-            # Initiate and return optimizers for the Capacitron VAE.
-            # It returns 2 optimizers in a list. First one is for the general model,
-            # the second one is for the single Lagrange multiplier-like variable Beta
-            # Returns:
-            #     List: optimizers.
+            return CapacitronOptimizer(self.config, self.named_parameters())
+        return self.config.optimizer
 
-            primary_params, secondary_params = self.capacitron_split_parameters()
-
-            optimizer1 = get_optimizer(
-                self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=primary_params
-            )
-            optimizer2 = get_optimizer(
-                self.capacitron_vae.capacitron_secondary_optimizer,
-                self.capacitron_vae.capacitron_secondary_optimizer_params,
-                self.capacitron_vae.capacitron_secondary_optimizer_lr,
-                parameters=secondary_params,
-            )
-            return [optimizer1, optimizer2]
-        return get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, self)
-
-    def capacitron_split_parameters(self):
-        primary_params = []
-        secondary_params = []
-        for name, param in self.named_parameters():
-            if param.requires_grad:
-                if name == "capacitron_vae_layer.beta":
-                    secondary_params.append(param)
-                else:
-                    primary_params.append(param)
-        return [iter(primary_params), iter(secondary_params)]
-
-    def get_lr(self) -> List:
-        """Set the initial learning rates for each optimizer.
-
-        Returns:
-            List: learning rates for each optimizer.
-        """
-        return [self.config.lr, self.capacitron_vae.capacitron_secondary_optimizer_lr]
+    def get_scheduler(self, optimizer: object):
+        return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer.primary_optimizer)
 
     def _create_logs(self, batch, outputs, ap):
         """Create dashboard log information."""
