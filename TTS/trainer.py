@@ -590,6 +590,7 @@ class Trainer:
         """
 
         step_start_time = time.time()
+        # zero-out optimizer
         optimizer.zero_grad()
 
         # forward pass and loss computation
@@ -697,14 +698,14 @@ class Trainer:
         # conteainers to hold model outputs and losses for each optimizer.
         outputs_per_optimizer = None
         loss_dict = {}
-        if not isinstance(self.optimizer, list):  # pylint: disable=R1702
+        if not isinstance(self.optimizer, list):
             # training with a single optimizer
             outputs, loss_dict_new, step_time = self._optimize(
                 batch, self.model, self.optimizer, self.scaler, self.criterion, self.scheduler, self.config
             )
             loss_dict.update(loss_dict_new)
         else:
-            # training with multiple optimizers for GAN
+            # training with multiple optimizers (e.g. GAN)
             outputs_per_optimizer = [None] * len(self.optimizer)
             total_step_time = 0
             for idx, optimizer in enumerate(self.optimizer):
