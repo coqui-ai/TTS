@@ -7,6 +7,7 @@ import tarfile
 import urllib
 import urllib.request
 import zipfile
+from os.path import expanduser
 from typing import Any, Iterable, List, Optional
 
 from torch.utils.model_zoo import tqdm
@@ -183,3 +184,24 @@ def extract_archive(from_path: str, to_path: Optional[str] = None, overwrite: bo
         pass
 
     raise NotImplementedError(" > [!] only supports tar.gz, tgz, and zip achives.")
+
+
+def download_kaggle_dataset(dataset_path: str, dataset_name: str, output_path: str):
+    """Download dataset from kaggle.
+    Args:
+        dataset_path (str):
+        This the kaggle link to the dataset. for example vctk is 'mfekadu/english-multispeaker-corpus-for-voice-cloning'
+        dataset_name (str): Name of the folder the dataset will be saved in.
+        output_path (str): Path of the location you want the dataset folder to be saved to.
+    """
+    data_path = os.path.join(output_path, dataset_name)
+    try:
+        import kaggle  # pylint: disable=import-outside-toplevel
+
+        kaggle.api.authenticate()
+        print(f"""\nDownloading {dataset_name}...""")
+        kaggle.api.dataset_download_files(dataset_path, path=data_path, unzip=True)
+    except OSError:
+        print(
+            f"""[!] in order to download kaggle datasets, you need to have a kaggle api token stored in your {os.path.join(expanduser('~'), '.kaggle/kaggle.json')}"""
+        )

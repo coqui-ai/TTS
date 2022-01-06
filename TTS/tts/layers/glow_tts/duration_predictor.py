@@ -18,8 +18,13 @@ class DurationPredictor(nn.Module):
         dropout_p (float): Dropout rate used after each conv layer.
     """
 
-    def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p, cond_channels=None):
+    def __init__(self, in_channels, hidden_channels, kernel_size, dropout_p, cond_channels=None, language_emb_dim=None):
         super().__init__()
+
+        # add language embedding dim in the input
+        if language_emb_dim:
+            in_channels += language_emb_dim
+
         # class arguments
         self.in_channels = in_channels
         self.filter_channels = hidden_channels
@@ -36,7 +41,10 @@ class DurationPredictor(nn.Module):
         if cond_channels is not None and cond_channels != 0:
             self.cond = nn.Conv1d(cond_channels, in_channels, 1)
 
-    def forward(self, x, x_mask, g=None):
+        if language_emb_dim != 0 and language_emb_dim is not None:
+            self.cond_lang = nn.Conv1d(language_emb_dim, in_channels, 1)
+
+    def forward(self, x, x_mask, g=None, lang_emb=None):
         """
         Shapes:
             - x: :math:`[B, C, T]`
@@ -45,6 +53,10 @@ class DurationPredictor(nn.Module):
         """
         if g is not None:
             x = x + self.cond(g)
+
+        if lang_emb is not None:
+            x = x + self.cond_lang(lang_emb)
+
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
         x = self.norm_1(x)

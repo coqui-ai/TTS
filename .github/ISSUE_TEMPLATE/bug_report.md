@@ -37,8 +37,8 @@ In the worse case provide steps to reproduce the behaviour.
 You can either run `TTS/bin/collect_env_info.py`
 
 ```bash
-wget https://raw.githubusercontent.com/coqui-ai/TTS/main/TTS/bin/collect_env_details.py
-python collect_env_details.py
+wget https://raw.githubusercontent.com/coqui-ai/TTS/main/TTS/bin/collect_env_info.py
+python collect_env_info.py
 ```
 
 or fill in the fields below manually.

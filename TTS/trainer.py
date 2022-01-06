@@ -202,7 +202,7 @@ class Trainer:
             os.makedirs(output_path, exist_ok=True)
 
         # copy training assets to the output folder
-        copy_model_files(config, output_path, new_fields=None)
+        copy_model_files(config, output_path)
 
         # init class members
         self.args = args
@@ -439,7 +439,7 @@ class Trainer:
             if "scaler" in checkpoint and self.use_amp_scaler and checkpoint["scaler"]:
                 print(" > Restoring Scaler...")
                 scaler = _restore_list_objs(checkpoint["scaler"], scaler)
-        except (KeyError, RuntimeError):
+        except (KeyError, RuntimeError, ValueError):
             print(" > Partial model initialization...")
             model_dict = model.state_dict()
             model_dict = set_init_dict(model_dict, checkpoint["model"], config)

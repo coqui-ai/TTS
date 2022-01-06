@@ -1,5 +1,17 @@
 {
     "tts_models": {
+        "multilingual":{
+            "multi-dataset":{
+                "your_tts":{
+                    "description": "Your TTS model accompanying the paper https://arxiv.org/abs/2112.02418",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.5.0_models/tts_models--multilingual--multi-dataset--your_tts.zip",
+                    "default_vocoder": null,
+                    "commit": "e9a1953e",
+                    "license": "CC BY-NC-ND 4.0",
+                    "contact": "egolge@coqui.ai"
+                }
+            }
+        },
         "en": {
             "ek1": {
                 "tacotron2": {
@@ -149,7 +161,7 @@
                     "commit": "bdab788d",
                     "license": "MIT",
                     "contact": "",
-                    "default_vocoder": null
+                    "default_vocoder": "vocoder_models/uk/mai/multiband-melgan"
                 }
             }
         },
@@ -299,6 +311,17 @@
                     "description": "HifiGAN model trained for kokoro dataset by @kaiidams",
                     "author": "@kaiidams",
                     "commit": "3900448"
+                }
+            }
+        },
+        "uk": {
+            "mai": {
+                "multiband-melgan": {
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.5.0_models/vocoder_models--uk--mai--multiband-melgan.zip",
+                    "author":"@robinhad",
+                    "commit": "bdab788d",
+                    "license": "MIT",
+                    "contact": ""
                 }
             }
         }

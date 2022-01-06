@@ -16,6 +16,60 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
     """Some of the audio processing funtions using Torch for faster batch processing.
 
     TODO: Merge this with audio.py
+
+    Args:
+
+        n_fft (int):
+            FFT window size for STFT.
+
+        hop_length (int):
+            number of frames between STFT columns.
+
+        win_length (int, optional):
+            STFT window length.
+
+        pad_wav (bool, optional):
+            If True pad the audio with (n_fft - hop_length) / 2). Defaults to False.
+
+        window (str, optional):
+            The name of a function to create a window tensor that is applied/multiplied to each frame/window. Defaults to "hann_window"
+
+        sample_rate (int, optional):
+            target audio sampling rate. Defaults to None.
+
+        mel_fmin (int, optional):
+            minimum filter frequency for computing melspectrograms. Defaults to None.
+
+        mel_fmax (int, optional):
+            maximum filter frequency for computing melspectrograms. Defaults to None.
+
+        n_mels (int, optional):
+            number of melspectrogram dimensions. Defaults to None.
+
+        use_mel (bool, optional):
+            If True compute the melspectrograms otherwise. Defaults to False.
+
+        do_amp_to_db_linear (bool, optional):
+            enable/disable amplitude to dB conversion of linear spectrograms. Defaults to False.
+
+        spec_gain (float, optional):
+            gain applied when converting amplitude to DB. Defaults to 1.0.
+
+        power (float, optional):
+            Exponent for the magnitude spectrogram, e.g., 1 for energy, 2 for power, etc.  Defaults to None.
+
+        use_htk (bool, optional):
+            Use HTK formula in mel filter instead of Slaney.
+
+        mel_norm (None, 'slaney', or number, optional):
+            If 'slaney', divide the triangular mel weights by the width of the mel band
+            (area normalization).
+
+            If numeric, use `librosa.util.normalize` to normalize each filter by to unit l_p norm.
+            See `librosa.util.normalize` for a full description of supported norm values
+            (including `+-np.inf`).
+
+            Otherwise, leave all the triangles aiming for a peak value of 1.0. Defaults to "slaney".
     """
 
     def __init__(
@@ -32,6 +86,9 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         use_mel=False,
         do_amp_to_db=False,
         spec_gain=1.0,
+        power=None,
+        use_htk=False,
+        mel_norm="slaney",
     ):
         super().__init__()
         self.n_fft = n_fft
@@ -45,6 +102,9 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         self.use_mel = use_mel
         self.do_amp_to_db = do_amp_to_db
         self.spec_gain = spec_gain
+        self.power = power
+        self.use_htk = use_htk
+        self.mel_norm = mel_norm
         self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
         self.mel_basis = None
         if use_mel:
@@ -83,6 +143,10 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         M = o[:, :, :, 0]
         P = o[:, :, :, 1]
         S = torch.sqrt(torch.clamp(M ** 2 + P ** 2, min=1e-8))
+
+        if self.power is not None:
+            S = S ** self.power
+
         if self.use_mel:
             S = torch.matmul(self.mel_basis.to(x), S)
         if self.do_amp_to_db:
@@ -91,7 +155,13 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
 
     def _build_mel_basis(self):
         mel_basis = librosa.filters.mel(
-            self.sample_rate, self.n_fft, n_mels=self.n_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
+            self.sample_rate,
+            self.n_fft,
+            n_mels=self.n_mels,
+            fmin=self.mel_fmin,
+            fmax=self.mel_fmax,
+            htk=self.use_htk,
+            norm=self.mel_norm,
         )
         self.mel_basis = torch.from_numpy(mel_basis).float()
 
@@ -167,7 +237,7 @@ class AudioProcessor(object):
             minimum filter frequency for computing melspectrograms. Defaults to None.
 
         mel_fmax (int, optional):
-            maximum filter frequency for computing melspectrograms.. Defaults to None.
+            maximum filter frequency for computing melspectrograms. Defaults to None.
 
         spec_gain (int, optional):
             gain applied when converting amplitude to DB. Defaults to 20.
@@ -195,6 +265,12 @@ class AudioProcessor(object):
 
         do_amp_to_db_mel (bool, optional):
             enable/disable amplitude to dB conversion of mel spectrograms. Defaults to True.
+
+        do_rms_norm (bool, optional):
+            enable/disable RMS volume normalization when loading an audio file. Defaults to False.
+
+        db_level (int, optional):
+            dB level used for rms normalization. The range is -99 to 0. Defaults to None.
 
         stats_path (str, optional):
             Path to the computed stats file. Defaults to None.
@@ -233,6 +309,8 @@ class AudioProcessor(object):
         do_sound_norm=False,
         do_amp_to_db_linear=True,
         do_amp_to_db_mel=True,
+        do_rms_norm=False,
+        db_level=None,
         stats_path=None,
         verbose=True,
         **_,
@@ -264,6 +342,8 @@ class AudioProcessor(object):
         self.do_sound_norm = do_sound_norm
         self.do_amp_to_db_linear = do_amp_to_db_linear
         self.do_amp_to_db_mel = do_amp_to_db_mel
+        self.do_rms_norm = do_rms_norm
+        self.db_level = db_level
         self.stats_path = stats_path
         # setup exp_func for db to amp conversion
         if log_func == "np.log":
@@ -656,21 +736,6 @@ class AudioProcessor(object):
             frame_period=1000 * self.hop_length / self.sample_rate,
         )
         f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-        # pad = int((self.win_length / self.hop_length) / 2)
-        # f0 = [0.0] * pad + f0 + [0.0] * pad
-        # f0 = np.pad(f0, (pad, pad), mode="constant", constant_values=0)
-        # f0 = np.array(f0, dtype=np.float32)
-
-        # f01, _, _ = librosa.pyin(
-        #     x,
-        #     fmin=65 if self.mel_fmin == 0 else self.mel_fmin,
-        #     fmax=self.mel_fmax,
-        #     frame_length=self.win_length,
-        #     sr=self.sample_rate,
-        #     fill_na=0.0,
-        # )
-
-        # spec = self.melspectrogram(x)
         return f0
 
     ### Audio Processing ###
@@ -713,9 +778,32 @@ class AudioProcessor(object):
         """
         return x / abs(x).max() * 0.95
 
+    @staticmethod
+    def _rms_norm(wav, db_level=-27):
+        r = 10 ** (db_level / 20)
+        a = np.sqrt((len(wav) * (r ** 2)) / np.sum(wav ** 2))
+        return wav * a
+
+    def rms_volume_norm(self, x: np.ndarray, db_level: float = None) -> np.ndarray:
+        """Normalize the volume based on RMS of the signal.
+
+        Args:
+            x (np.ndarray): Raw waveform.
+
+        Returns:
+            np.ndarray: RMS normalized waveform.
+        """
+        if db_level is None:
+            db_level = self.db_level
+        assert -99 <= db_level <= 0, " [!] db_level should be between -99 and 0"
+        wav = self._rms_norm(x, db_level)
+        return wav
+
     ### save and load ###
     def load_wav(self, filename: str, sr: int = None) -> np.ndarray:
         """Read a wav file using Librosa and optionally resample, silence trim, volume normalize.
+
+        Resampling slows down loading the file significantly. Therefore it is recommended to resample the file before.
 
         Args:
             filename (str): Path to the wav file.
@@ -725,8 +813,10 @@ class AudioProcessor(object):
             np.ndarray: Loaded waveform.
         """
         if self.resample:
+            # loading with resampling. It is significantly slower.
             x, sr = librosa.load(filename, sr=self.sample_rate)
         elif sr is None:
+            # SF is faster than librosa for loading files
             x, sr = sf.read(filename)
             assert self.sample_rate == sr, "%s vs %s" % (self.sample_rate, sr)
         else:
@@ -738,6 +828,8 @@ class AudioProcessor(object):
                 print(f" [!] File cannot be trimmed for silence - {filename}")
         if self.do_sound_norm:
             x = self.sound_norm(x)
+        if self.do_rms_norm:
+            x = self.rms_volume_norm(x, self.db_level)
         return x
 
     def save_wav(self, wav: np.ndarray, path: str, sr: int = None) -> None:
