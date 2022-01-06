@@ -173,9 +173,9 @@ If you don't specify any models, then it uses LJSpeech based English model.
     )
     parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
     parser.add_argument(
-        "--capacitron_reference_wav", type=str, help="Wav path file for Capacitron prosody reference.", default=None
+        "--reference_wav", type=str, help="Wav path file for Capacitron prosody reference.", default=None
     )
-    parser.add_argument("--capacitron_reference_text", type=str, help="Transcription of the reference.", default=None)
+    parser.add_argument("--reference_text", type=str, help="Transcription of the reference.", default=None)
     parser.add_argument(
         "--list_speaker_idxs",
         help="List available speaker ids for the defined multi-speaker model.",
@@ -293,8 +293,8 @@ If you don't specify any models, then it uses LJSpeech based English model.
         args.speaker_idx,
         args.language_idx,
         args.speaker_wav,
-        reference_wav=args.capacitron_reference_wav,
-        reference_text=args.capacitron_reference_text,
+        reference_wav=args.reference_wav,
+        reference_text=args.reference_text,
     )
 
     # save the results
