@@ -202,7 +202,9 @@ class GAN(BaseVocoder):
     ) -> Tuple[Dict, np.ndarray]:
         """Call `_log()` for training."""
         ap = assets["audio_processor"]
-        self._log("train", ap, batch, outputs)
+        figures, audios = self._log("eval", ap, batch, outputs)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)
 
     @torch.no_grad()
     def eval_step(self, batch: Dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
@@ -214,7 +216,9 @@ class GAN(BaseVocoder):
     ) -> Tuple[Dict, np.ndarray]:
         """Call `_log()` for evaluation."""
         ap = assets["audio_processor"]
-        self._log("eval", ap, batch, outputs)
+        figures, audios = self._log("eval", ap, batch, outputs)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, ap.sample_rate)
 
     def load_checkpoint(
         self,

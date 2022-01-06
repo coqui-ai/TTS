@@ -1,12 +1,13 @@
 import time
-from typing import List
+from typing import List, Union
 
 import numpy as np
 import pysbd
 import torch
 
-from TTS.config import load_config
+from TTS.config import check_config_and_model_args, get_from_config_or_model_args_with_default, load_config
 from TTS.tts.models import setup_model as setup_tts_model
+from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 
 # pylint: disable=unused-wildcard-import
@@ -23,6 +24,7 @@ class Synthesizer(object):
         tts_checkpoint: str,
         tts_config_path: str,
         tts_speakers_file: str = "",
+        tts_languages_file: str = "",
         vocoder_checkpoint: str = "",
         vocoder_config: str = "",
         encoder_checkpoint: str = "",
@@ -52,6 +54,7 @@ class Synthesizer(object):
         self.tts_checkpoint = tts_checkpoint
         self.tts_config_path = tts_config_path
         self.tts_speakers_file = tts_speakers_file
+        self.tts_languages_file = tts_languages_file
         self.vocoder_checkpoint = vocoder_checkpoint
         self.vocoder_config = vocoder_config
         self.encoder_checkpoint = encoder_checkpoint
@@ -63,6 +66,9 @@ class Synthesizer(object):
         self.speaker_manager = None
         self.num_speakers = 0
         self.tts_speakers = {}
+        self.language_manager = None
+        self.num_languages = 0
+        self.tts_languages = {}
         self.d_vector_dim = 0
         self.seg = self._get_segmenter("en")
         self.use_cuda = use_cuda
@@ -110,28 +116,93 @@ class Synthesizer(object):
         self.ap = AudioProcessor(verbose=False, **self.tts_config.audio)
 
         speaker_manager = self._init_speaker_manager()
+        language_manager = self._init_language_manager()
+        if not self.encoder_checkpoint:
+            self._set_speaker_encoder_paths_from_tts_config()
+        speaker_manager = self._init_speaker_encoder(speaker_manager)
 
-        self.tts_model = setup_tts_model(config=self.tts_config, speaker_manager=speaker_manager)
+        if language_manager is not None:
+            self.tts_model = setup_tts_model(
+                config=self.tts_config,
+                speaker_manager=speaker_manager,
+                language_manager=language_manager,
+            )
+        else:
+            self.tts_model = setup_tts_model(config=self.tts_config, speaker_manager=speaker_manager)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
+
+    def _set_speaker_encoder_paths_from_tts_config(self):
+        """Set the encoder paths from the tts model config for models with speaker encoders."""
+        if hasattr(self.tts_config, "model_args") and hasattr(
+            self.tts_config.model_args, "speaker_encoder_config_path"
+        ):
+            self.encoder_checkpoint = self.tts_config.model_args.speaker_encoder_model_path
+            self.encoder_config = self.tts_config.model_args.speaker_encoder_config_path
+
+    def _is_use_speaker_embedding(self):
+        """Check if the speaker embedding is used in the model"""
+        # we handle here the case that some models use model_args some don't
+        use_speaker_embedding = False
+        if hasattr(self.tts_config, "model_args"):
+            use_speaker_embedding = self.tts_config["model_args"].get("use_speaker_embedding", False)
+        use_speaker_embedding = use_speaker_embedding or self.tts_config.get("use_speaker_embedding", False)
+        return use_speaker_embedding
+
+    def _is_use_d_vector_file(self):
+        """Check if the d-vector file is used in the model"""
+        # we handle here the case that some models use model_args some don't
+        use_d_vector_file = False
+        if hasattr(self.tts_config, "model_args"):
+            config = self.tts_config.model_args
+            use_d_vector_file = config.get("use_d_vector_file", False)
+        config = self.tts_config
+        use_d_vector_file = use_d_vector_file or config.get("use_d_vector_file", False)
+        return use_d_vector_file
 
     def _init_speaker_manager(self):
         """Initialize the SpeakerManager"""
         # setup if multi-speaker settings are in the global model config
         speaker_manager = None
-        if hasattr(self.tts_config, "use_speaker_embedding") and self.tts_config.use_speaker_embedding is True:
+        speakers_file = get_from_config_or_model_args_with_default(self.tts_config, "speakers_file", None)
+        if self._is_use_speaker_embedding():
             if self.tts_speakers_file:
                 speaker_manager = SpeakerManager(speaker_id_file_path=self.tts_speakers_file)
-            if self.tts_config.get("speakers_file", None):
-                speaker_manager = SpeakerManager(speaker_id_file_path=self.tts_config.speakers_file)
+            elif speakers_file:
+                speaker_manager = SpeakerManager(speaker_id_file_path=speakers_file)
 
-        if hasattr(self.tts_config, "use_d_vector_file") and self.tts_config.use_speaker_embedding is True:
+        if self._is_use_d_vector_file():
+            d_vector_file = get_from_config_or_model_args_with_default(self.tts_config, "d_vector_file", None)
             if self.tts_speakers_file:
                 speaker_manager = SpeakerManager(d_vectors_file_path=self.tts_speakers_file)
-            if self.tts_config.get("d_vector_file", None):
-                speaker_manager = SpeakerManager(d_vectors_file_path=self.tts_config.d_vector_file)
+            elif d_vector_file:
+                speaker_manager = SpeakerManager(d_vectors_file_path=d_vector_file)
         return speaker_manager
+
+    def _init_speaker_encoder(self, speaker_manager):
+        """Initialize the SpeakerEncoder"""
+        if self.encoder_checkpoint:
+            if speaker_manager is None:
+                speaker_manager = SpeakerManager(
+                    encoder_model_path=self.encoder_checkpoint, encoder_config_path=self.encoder_config
+                )
+            else:
+                speaker_manager.init_speaker_encoder(self.encoder_checkpoint, self.encoder_config)
+        return speaker_manager
+
+    def _init_language_manager(self):
+        """Initialize the LanguageManager"""
+        # setup if multi-lingual settings are in the global model config
+        language_manager = None
+        if check_config_and_model_args(self.tts_config, "use_language_embedding", True):
+            if self.tts_languages_file:
+                language_manager = LanguageManager(language_ids_file_path=self.tts_languages_file)
+            elif self.tts_config.get("language_ids_file", None):
+                language_manager = LanguageManager(language_ids_file_path=self.tts_config.language_ids_file)
+            else:
+                language_manager = LanguageManager(config=self.tts_config)
+        return language_manager
 
     def _load_vocoder(self, model_file: str, model_config: str, use_cuda: bool) -> None:
         """Load the vocoder model.
@@ -174,13 +245,21 @@ class Synthesizer(object):
         wav = np.array(wav)
         self.ap.save_wav(wav, path, self.output_sample_rate)
 
-    def tts(self, text: str, speaker_idx: str = "", speaker_wav=None, style_wav=None) -> List[int]:
+    def tts(
+        self,
+        text: str,
+        speaker_name: str = "",
+        language_name: str = "",
+        speaker_wav: Union[str, List[str]] = None,
+        style_wav=None,
+    ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
         Args:
             text (str): input text.
-            speaker_idx (str, optional): spekaer id for multi-speaker models. Defaults to "".
-            speaker_wav ():
+            speaker_name (str, optional): spekaer id for multi-speaker models. Defaults to "".
+            language_name (str, optional): language id for multi-language models. Defaults to "".
+            speaker_wav (Union[str, List[str]], optional): path to the speaker wav. Defaults to None.
             style_wav ([type], optional): style waveform for GST. Defaults to None.
 
         Returns:
@@ -196,27 +275,47 @@ class Synthesizer(object):
         speaker_embedding = None
         speaker_id = None
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "speaker_ids"):
-            if speaker_idx and isinstance(speaker_idx, str):
+            if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
                     # get the speaker embedding from the saved d_vectors.
-                    speaker_embedding = self.tts_model.speaker_manager.get_d_vectors_by_speaker(speaker_idx)[0]
+                    speaker_embedding = self.tts_model.speaker_manager.get_d_vectors_by_speaker(speaker_name)[0]
                     speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
-                    speaker_id = self.tts_model.speaker_manager.speaker_ids[speaker_idx]
+                    speaker_id = self.tts_model.speaker_manager.speaker_ids[speaker_name]
 
-            elif not speaker_idx and not speaker_wav:
+            elif not speaker_name and not speaker_wav:
                 raise ValueError(
                     " [!] Look like you use a multi-speaker model. "
-                    "You need to define either a `speaker_idx` or a `style_wav` to use a multi-speaker model."
+                    "You need to define either a `speaker_name` or a `style_wav` to use a multi-speaker model."
                 )
             else:
                 speaker_embedding = None
         else:
-            if speaker_idx:
+            if speaker_name:
                 raise ValueError(
-                    f" [!] Missing speakers.json file path for selecting speaker {speaker_idx}."
+                    f" [!] Missing speakers.json file path for selecting speaker {speaker_name}."
                     "Define path for speaker.json if it is a multi-speaker model or remove defined speaker idx. "
+                )
+
+        # handle multi-lingaul
+        language_id = None
+        if self.tts_languages_file or (
+            hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
+        ):
+            if language_name and isinstance(language_name, str):
+                language_id = self.tts_model.language_manager.language_id_mapping[language_name]
+
+            elif not language_name:
+                raise ValueError(
+                    " [!] Look like you use a multi-lingual model. "
+                    "You need to define either a `language_name` or a `style_wav` to use a multi-lingual model."
+                )
+
+            else:
+                raise ValueError(
+                    f" [!] Missing language_ids.json file path for selecting language {language_name}."
+                    "Define path for language_ids.json if it is a multi-lingual model or remove defined language idx. "
                 )
 
         # compute a new d_vector from the given clip.
@@ -234,6 +333,8 @@ class Synthesizer(object):
                 use_cuda=self.use_cuda,
                 ap=self.ap,
                 speaker_id=speaker_id,
+                language_id=language_id,
+                language_name=language_name,
                 style_wav=style_wav,
                 enable_eos_bos_chars=self.tts_config.enable_eos_bos_chars,
                 use_griffin_lim=use_gl,

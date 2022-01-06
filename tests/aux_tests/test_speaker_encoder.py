@@ -13,7 +13,7 @@ file_path = get_tests_input_path()
 class LSTMSpeakerEncoderTests(unittest.TestCase):
     # pylint: disable=R0201
     def test_in_out(self):
-        dummy_input = T.rand(4, 20, 80)  # B x T x D
+        dummy_input = T.rand(4, 80, 20)  # B x D x T
         dummy_hidden = [T.rand(2, 4, 128), T.rand(2, 4, 128)]
         model = LSTMSpeakerEncoder(input_dim=80, proj_dim=256, lstm_dim=768, num_lstm_layers=3)
         # computing d vectors
@@ -34,7 +34,7 @@ class LSTMSpeakerEncoderTests(unittest.TestCase):
         assert output.type() == "torch.FloatTensor"
         assert abs(assert_diff) < 1e-4, f" [!] output_norm has wrong values - {assert_diff}"
         # compute d for a given batch
-        dummy_input = T.rand(1, 240, 80)  # B x T x D
+        dummy_input = T.rand(1, 80, 240)  # B x T x D
         output = model.compute_embedding(dummy_input, num_frames=160, num_eval=5)
         assert output.shape[0] == 1
         assert output.shape[1] == 256
@@ -44,7 +44,7 @@ class LSTMSpeakerEncoderTests(unittest.TestCase):
 class ResNetSpeakerEncoderTests(unittest.TestCase):
     # pylint: disable=R0201
     def test_in_out(self):
-        dummy_input = T.rand(4, 20, 80)  # B x T x D
+        dummy_input = T.rand(4, 80, 20)  # B x D x T
         dummy_hidden = [T.rand(2, 4, 128), T.rand(2, 4, 128)]
         model = ResNetSpeakerEncoder(input_dim=80, proj_dim=256)
         # computing d vectors
@@ -61,7 +61,7 @@ class ResNetSpeakerEncoderTests(unittest.TestCase):
         assert output.type() == "torch.FloatTensor"
         assert abs(assert_diff) < 1e-4, f" [!] output_norm has wrong values - {assert_diff}"
         # compute d for a given batch
-        dummy_input = T.rand(1, 240, 80)  # B x T x D
+        dummy_input = T.rand(1, 80, 240)  # B x D x T
         output = model.compute_embedding(dummy_input, num_frames=160, num_eval=10)
         assert output.shape[0] == 1
         assert output.shape[1] == 256

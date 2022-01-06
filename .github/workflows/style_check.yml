@@ -22,25 +22,22 @@ jobs:
         experimental: [false]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: coqui-ai/setup-python@pip-cache-key-py-ver
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
+          cache: 'pip'
+          cache-dependency-path: 'requirements*'
       - name: check OS
         run: cat /etc/os-release
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y git make
-          sudo apt install -y python3-wheel gcc
+          sudo apt-get update
+          sudo apt-get install -y git make gcc
           make system-deps
-      - name: Upgrade pip
-        run: python3 -m pip install --upgrade pip
+      - name: Install/upgrade Python setup deps
+        run: python3 -m pip install --upgrade pip setuptools wheel
       - name: Install TTS
         run: |
           python3 -m pip install .[all]
