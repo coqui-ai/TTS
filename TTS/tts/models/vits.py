@@ -4,7 +4,6 @@ from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
-
 import torchaudio
 from coqpit import Coqpit
 from torch import nn
@@ -420,9 +419,9 @@ class Vits(BaseTTS):
                 and self.config.audio["sample_rate"] != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
-                        orig_freq=self.audio_config["sample_rate"],
-                        new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
-                        )
+                    orig_freq=self.audio_config["sample_rate"],
+                    new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
+                )
             else:
                 self.audio_transform = None
 
