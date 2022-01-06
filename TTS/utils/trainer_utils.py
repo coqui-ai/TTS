@@ -58,7 +58,7 @@ def get_scheduler(
         return None
     if lr_scheduler.lower() == "noamlr":
         scheduler = NoamLR
-    if lr_scheduler.lower() == "stepwisegraduallr":
+    elif lr_scheduler.lower() == "stepwisegraduallr":
         scheduler = StepwiseGradualLR
     else:
         scheduler = getattr(torch.optim.lr_scheduler, lr_scheduler)

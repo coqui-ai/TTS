@@ -591,7 +591,7 @@ class Trainer:
 
         step_start_time = time.time()
         # zero-out optimizer
-        if hasattr(self.model, "capacitron_vae"):
+        if hasattr(self.model, "capacitron_vae") and self.model.capacitron_vae is not None:
             # HACK: overwrite optimizer_idx so that _model_train_step() works with a single optimizer
             optimizer_idx = None
             capacitron_SGD_optimizer = optimizer[1]
@@ -651,7 +651,7 @@ class Trainer:
                 update_lr_scheduler = scale_prev <= scaler.get_scale()
                 loss_dict["amp_scaler"] = scaler.get_scale()  # for logging
         else:
-            if hasattr(self.model, "capacitron_vae"):
+            if hasattr(self.model, "capacitron_vae") and self.model.capacitron_vae is not None:
                 loss_dict["capacitron_vae_beta_loss"].backward()
                 capacitron_SGD_optimizer.step()
                 capacitron_SGD_optimizer.zero_grad()

@@ -25,7 +25,7 @@ class TacotronConfig(BaseTTSConfig):
             this is not defined, the model uses a zero vector as an input. Defaults to None.
         use_capacitron_vae (bool):
             enable / disable the use of Capacitron modules. Defaults to False.
-        capacitron (CapacitronConfig):
+        capacitron_vae (CapacitronConfig):
             Instance of `CapacitronConfig` class.
         num_chars (int):
             Number of characters used by the model. It must be defined before initializing the model. Defaults to None.

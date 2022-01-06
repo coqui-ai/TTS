@@ -105,12 +105,12 @@ class Tacotron2(BaseTacotron):
 
         # Capacitron VAE Layers
         if self.capacitron_vae and self.use_capacitron_vae:
-            self.capacitron_layer = CapacitronVAE(
+            self.capacitron_vae_layer = CapacitronVAE(
                 num_mel=self.decoder_output_dim,
                 encoder_output_dim=self.encoder_in_features,
                 capacitron_VAE_embedding_dim=self.capacitron_vae.capacitron_VAE_embedding_dim,
                 speaker_embedding_dim=self.embedded_speaker_dim
-                if self.embeddings_per_sample and self.capacitron_vae.capacitron_use_speaker_embedding
+                if self.capacitron_vae.capacitron_use_speaker_embedding
                 else None,
                 text_summary_embedding_dim=self.capacitron_vae.capacitron_text_summary_embedding_dim
                 if self.capacitron_vae.capacitron_use_text_summary_embeddings
@@ -172,22 +172,6 @@ class Tacotron2(BaseTacotron):
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, mel_specs)
 
-        # capacitron
-        if self.capacitron_vae and self.use_capacitron_vae:
-            # B x capacitron_VAE_embedding_dim
-            encoder_outputs, *capacitron_vae_outputs = self.compute_VAE_embedding(
-                encoder_outputs,
-                reference_mel_info=[mel_specs, mel_lengths],
-                text_info=[embedded_inputs.transpose(1, 2), text_lengths]
-                if self.capacitron_vae.capacitron_use_text_summary_embeddings
-                else None,
-                speaker_embedding=self.embedded_speaker_dim
-                if self.capacitron_vae.capacitron_use_speaker_embedding
-                else None,
-            )
-        else:
-            capacitron_vae_outputs = None
-
         if self.use_speaker_embedding or self.use_d_vector_file:
             if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
@@ -196,6 +180,20 @@ class Tacotron2(BaseTacotron):
                 # B x 1 x speaker_embed_dim
                 embedded_speakers = torch.unsqueeze(aux_input["d_vectors"], 1)
             encoder_outputs = self._concat_speaker_embedding(encoder_outputs, embedded_speakers)
+
+        # capacitron
+        if self.capacitron_vae and self.use_capacitron_vae:
+            # B x capacitron_VAE_embedding_dim
+            encoder_outputs, *capacitron_vae_outputs = self.compute_capacitron_VAE_embedding(
+                encoder_outputs,
+                reference_mel_info=[mel_specs, mel_lengths],
+                text_info=[embedded_inputs.transpose(1, 2), text_lengths]
+                if self.capacitron_vae.capacitron_use_text_summary_embeddings
+                else None,
+                speaker_embedding=embedded_speakers if self.capacitron_vae.capacitron_use_speaker_embedding else None,
+            )
+        else:
+            capacitron_vae_outputs = None
 
         encoder_outputs = encoder_outputs * input_mask.unsqueeze(2).expand_as(encoder_outputs)
 
@@ -228,7 +226,7 @@ class Tacotron2(BaseTacotron):
                 "decoder_outputs": decoder_outputs,
                 "alignments": alignments,
                 "stop_tokens": stop_tokens,
-                "capacitron_outputs": capacitron_vae_outputs,
+                "capacitron_vae_outputs": capacitron_vae_outputs,
             }
         )
         return outputs
@@ -261,7 +259,7 @@ class Tacotron2(BaseTacotron):
                 else None
             )  # pylint: disable=not-callable
             # B x capacitron_VAE_embedding_dim
-            encoder_outputs, *_ = self.compute_VAE_embedding(
+            encoder_outputs, *_ = self.compute_capacitron_VAE_embedding(
                 encoder_outputs,
                 reference_mel_info=[aux_input["reference_mel"], reference_mel_length]
                 if aux_input["reference_mel"] is not None
@@ -373,13 +371,13 @@ class Tacotron2(BaseTacotron):
                 self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=primary_params
             )
             optimizer2 = get_optimizer(
-                self.config.capacitron_vae.capacitron_secondary_optimizer,
-                self.config.capacitron_vae.capacitron_secondary_optimizer_params,
-                self.config.capacitron_vae.capacitron_secondary_optimizer_lr,
+                self.capacitron_vae.capacitron_secondary_optimizer,
+                self.capacitron_vae.capacitron_secondary_optimizer_params,
+                self.capacitron_vae.capacitron_secondary_optimizer_lr,
                 parameters=secondary_params,
             )
             return [optimizer1, optimizer2]
-        return self.config.optimizer
+        return get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, self)
 
     def capacitron_split_parameters(self):
         primary_params = []
@@ -398,7 +396,7 @@ class Tacotron2(BaseTacotron):
         Returns:
             List: learning rates for each optimizer.
         """
-        return [self.config.lr, self.config.capacitron_vae.capacitron_secondary_optimizer_lr]
+        return [self.config.lr, self.capacitron_vae.capacitron_secondary_optimizer_lr]
 
     def _create_logs(self, batch, outputs, ap):
         """Create dashboard log information."""

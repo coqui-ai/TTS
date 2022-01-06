@@ -147,7 +147,9 @@ class BaseTacotron(BaseTTS):
         )
         # scale_factor = self.decoder.r_init / self.decoder.r
         alignments_backward = torch.nn.functional.interpolate(
-            alignments_backward.transpose(1, 2), size=alignments.shape[1], mode="nearest"
+            alignments_backward.transpose(1, 2),
+            size=alignments.shape[1],
+            mode="nearest",
         ).transpose(1, 2)
         decoder_outputs_backward = decoder_outputs_backward.transpose(1, 2)
         decoder_outputs_backward = decoder_outputs_backward[:, :T, :]
@@ -182,15 +184,22 @@ class BaseTacotron(BaseTTS):
 
     def compute_capacitron_VAE_embedding(self, inputs, reference_mel_info, text_info=None, speaker_embedding=None):
         """Capacitron Variational Autoencoder"""
-        VAE_outputs, posterior_distribution, prior_distribution, capacitron_beta = self.capacitron_vae_layer(
-            reference_mel_info, text_info, speaker_embedding  # pylint: disable=not-callable
+        (VAE_outputs, posterior_distribution, prior_distribution, capacitron_beta,) = self.capacitron_vae_layer(
+            reference_mel_info,
+            text_info,
+            speaker_embedding,  # pylint: disable=not-callable
         )
 
         VAE_outputs = VAE_outputs.to(inputs.device)
         encoder_output = self._concat_speaker_embedding(
             inputs, VAE_outputs
         )  # concatenate to the output of the basic tacotron encoder
-        return encoder_output, posterior_distribution, prior_distribution, capacitron_beta
+        return (
+            encoder_output,
+            posterior_distribution,
+            prior_distribution,
+            capacitron_beta,
+        )
 
     @staticmethod
     def _add_speaker_embedding(outputs, embedded_speakers):
