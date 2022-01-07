@@ -13,7 +13,7 @@ from TTS.utils.audio import AudioProcessor
 
 # to prevent too many open files error as suggested here
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
-torch.multiprocessing.set_sharing_strategy('file_system')
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 def _parse_sample(item):
@@ -208,7 +208,7 @@ class TTSDataset(Dataset):
     def load_data(self, idx):
         item = self.samples[idx]
 
-        text, wav_file, speaker_name, _, attn_file = _parse_sample(item)
+        text, wav_file, speaker_name, language_name, attn_file = _parse_sample(item)
         raw_text = text
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)

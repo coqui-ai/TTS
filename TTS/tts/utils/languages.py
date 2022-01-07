@@ -98,6 +98,15 @@ class LanguageManager:
         """
         self._save_json(file_path, self.language_id_mapping)
 
+    @staticmethod
+    def init_from_config(config: Coqpit) -> "LanguageManager":
+        """Initialize the language manager from a Coqpit config.
+
+        Args:
+            config (Coqpit): Coqpit config.
+        """
+        return LanguageManager(config=config)
+
 
 def _set_file_path(path):
     """Find the language_ids.json under the given path or the above it.

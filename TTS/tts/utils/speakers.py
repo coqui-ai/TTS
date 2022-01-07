@@ -9,7 +9,7 @@ import torch
 from coqpit import Coqpit
 from torch.utils.data.sampler import WeightedRandomSampler
 
-from TTS.config import load_config
+from TTS.config import get_from_config_or_model_args_with_default, load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
 from TTS.utils.audio import AudioProcessor
 
@@ -331,19 +331,27 @@ class SpeakerManager:
             SpeakerEncoder: Speaker encoder object.
         """
         speaker_manager = None
-        if hasattr(config, "use_speaker_embedding") and config.use_speaker_embedding:
+        if get_from_config_or_model_args_with_default(config, "use_speaker_embedding", False):
             if samples:
                 speaker_manager = SpeakerManager(data_items=samples)
-            if config.get("speaker_file", None):
-                speaker_manager = SpeakerManager(speaker_id_file_path=config.speaker_file)
-            if config.get("speakers_file", None):
-                speaker_manager = SpeakerManager(speaker_id_file_path=config.speakers_file)
+            if get_from_config_or_model_args_with_default(config, "speaker_file", None):
+                speaker_manager = SpeakerManager(
+                    speaker_id_file_path=get_from_config_or_model_args_with_default(config, "speaker_file", None)
+                )
+            if get_from_config_or_model_args_with_default(config, "speakers_file", None):
+                speaker_manager = SpeakerManager(
+                    speaker_id_file_path=get_from_config_or_model_args_with_default(config, "speakers_file", None)
+                )
 
-        if hasattr(config, "use_d_vector_file") and config.use_d_vector_file:
-            if config.get("speakers_file", None):
-                speaker_manager = SpeakerManager(d_vectors_file_path=config.speaker_file)
-            if config.get("d_vector_file", None):
-                speaker_manager = SpeakerManager(d_vectors_file_path=config.d_vector_file)
+        if get_from_config_or_model_args_with_default(config, "use_d_vector_file", False):
+            if get_from_config_or_model_args_with_default(config, "speakers_file", None):
+                speaker_manager = SpeakerManager(
+                    d_vectors_file_path=get_from_config_or_model_args_with_default(config, "speaker_file", None)
+                )
+            if get_from_config_or_model_args_with_default(config, "d_vector_file", None):
+                speaker_manager = SpeakerManager(
+                    d_vectors_file_path=get_from_config_or_model_args_with_default(config, "d_vector_file", None)
+                )
         return speaker_manager
 
 
