@@ -175,8 +175,6 @@ def synthesis(
     text,
     CONFIG,
     use_cuda,
-    ap,
-    tokenizer,
     speaker_id=None,
     style_wav=None,
     use_griffin_lim=False,
@@ -232,10 +230,10 @@ def synthesis(
         if isinstance(style_wav, dict):
             style_mel = style_wav
         else:
-            style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
+            style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
     # convert text to sequence of token IDs
     text_inputs = np.asarray(
-        tokenizer.text_to_ids(text),
+        model.tokenizer.text_to_ids(text),
         dtype=np.int32,
     )
     # pass tensors to backend
