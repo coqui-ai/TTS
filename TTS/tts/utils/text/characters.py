@@ -1,3 +1,6 @@
+from typing import List, Union
+
+
 def parse_symbols():
     return {
         "pad": _pad,
@@ -81,10 +84,10 @@ class BaseCharacters:
         If you need a custom order, you need to define inherit from this class and override the ```_create_vocab``` method.
 
         Args:
-            characters (str):
+            characters (str|list):
                 Main set of characters to be used in the vocabulary.
 
-            punctuations (str):
+            punctuations (str|list):
                 Characters to be treated as punctuation.
 
             pad (str):
@@ -108,8 +111,8 @@ class BaseCharacters:
 
     def __init__(
         self,
-        characters: str,
-        punctuations: str,
+        characters: Union[str, List[str]],
+        punctuations: Union[str, List[str]],
         pad: str,
         eos: str,
         bos: str,
@@ -194,7 +197,9 @@ class BaseCharacters:
         if self.is_unique:
             _vocab = list(set(_vocab))
         if self.is_sorted:
-            _vocab = sorted(_vocab)
+            _vocab = sorted(
+                _vocab, key=len, reverse=True
+            )  # Python's sorting is very English-centric, reverse-length sorting helps with digraphs and is more language agnostic
         _vocab = list(_vocab)
         _vocab = [self._blank] + _vocab if self._blank is not None and len(self._blank) > 0 else _vocab
         _vocab = [self._bos] + _vocab if self._bos is not None and len(self._bos) > 0 else _vocab
@@ -209,7 +214,7 @@ class BaseCharacters:
             ), f" [!] There are duplicate characters in the character set. {set([x for x in self.vocab if self.vocab.count(x) > 1])}"
 
     def char_to_id(self, char: str) -> int:
-            return self._char_to_id[char]
+        return self._char_to_id[char]
 
     def id_to_char(self, idx: int) -> str:
         return self._id_to_char[idx]
@@ -298,8 +303,8 @@ class IPAPhonemes(BaseCharacters):
             )
         else:
             return IPAPhonemes(
-            **config.characters if config.characters is not None else {},
-        )
+                **config.characters if config.characters is not None else {},
+            )
 
 
 class Graphemes(BaseCharacters):

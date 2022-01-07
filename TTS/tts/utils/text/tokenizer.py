@@ -1,4 +1,7 @@
 from typing import Callable, Dict, List, Union
+import re
+
+from nltk.tokenize import RegexpTokenizer
 
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes
@@ -49,6 +52,9 @@ class TTSTokenizer:
         self.characters = characters
         self.not_found_characters = []
         self.phonemizer = phonemizer
+        pattern = "|".join([re.escape(x) for x in characters.vocab])
+        self.tokenizer = RegexpTokenizer(pattern)
+        self.not_found_tokenizer = RegexpTokenizer(pattern, gaps=True)
 
     @property
     def characters(self):
@@ -59,20 +65,25 @@ class TTSTokenizer:
         self._characters = new_characters
         self.pad_id = self.characters.char_to_id(self.characters.pad)
         self.blank_id = self.characters.char_to_id(self.characters.blank)
+        pattern = "|".join([re.escape(x) for x in new_characters.vocab])
+        self.tokenizer = RegexpTokenizer(pattern)
+        self.not_found_tokenizer = RegexpTokenizer(pattern, gaps=True)
 
-    def encode(self, text: str) -> List[int]:
+    def log_not_found_characters(self, not_found_characters: List[str]):
+        for char in not_found_characters:
+            if char not in self.not_found_characters:
+                self.not_found_characters.append(char)
+                print(f" [!] Character {repr(char)} not found in the vocabulary. Discarding it.")
+
+    def encode(self, text: Union[str, List]) -> List[int]:
         """Encodes a string of text as a sequence of IDs."""
-        token_ids = []
-        for char in text:
-            try:
-                idx = self.characters.char_to_id(char)
-                token_ids.append(idx)
-            except KeyError:
-                # discard but store not found characters
-                if char not in self.not_found_characters:
-                    self.not_found_characters.append(char)
-                    print(text)
-                    print(f" [!] Character {repr(char)} not found in the vocabulary. Discarding it.")
+        if not isinstance(text, list):
+            tokenized_text = self.tokenizer.tokenize(text)
+            not_found_characters = self.not_found_tokenizer.tokenize(text)
+            self.log_not_found_characters(not_found_characters)
+        else:
+            tokenized_text = text
+        token_ids = [self.characters.char_to_id(char) for char in tokenized_text]
         return token_ids
 
     def decode(self, token_ids: List[int]) -> str:

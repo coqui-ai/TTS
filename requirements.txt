@@ -5,6 +5,7 @@ inflect
 jieba
 librosa==0.8.0
 matplotlib
+nltk
 numpy==1.19.5
 pandas
 pypinyin

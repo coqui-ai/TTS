@@ -12,7 +12,10 @@ from TTS.tts.utils.text.tokenizer import TTSTokenizer
 class TestTTSTokenizer(unittest.TestCase):
     def setUp(self):
         self.tokenizer = TTSTokenizer(use_phonemes=False, characters=Graphemes())
-
+        self.digraph_tokenizer = TTSTokenizer(
+            use_phonemes=False,
+            characters=Graphemes(characters=["d", "dd"]),
+        )
         self.ph = ESpeak("tr")
         self.tokenizer_ph = TTSTokenizer(use_phonemes=True, characters=IPAPhonemes(), phonemizer=self.ph)
 
@@ -22,6 +25,13 @@ class TestTTSTokenizer(unittest.TestCase):
         test_hat = self.tokenizer.decode(ids)
         self.assertEqual(text, test_hat)
         self.assertEqual(len(ids), len(text))
+
+    def test_digraph_text_to_ids(self):
+        text = "dd"
+        ids = self.digraph_tokenizer.encode(text)
+        test_hat = self.digraph_tokenizer.decode(ids)
+        self.assertEqual(text, test_hat)
+        self.assertEqual(len(ids), 1)
 
     def test_text_to_ids_phonemes(self):
         # TODO: note sure how to extend to cover all the languages and phonemizer.
