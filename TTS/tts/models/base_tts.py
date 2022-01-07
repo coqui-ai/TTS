@@ -261,7 +261,7 @@ class BaseTTS(BaseModel):
                 speaker_id_mapping = None
                 d_vector_mapping = None
 
-            # setup custom symbols if needed
+            # setup multi-lingual attributes
             if hasattr(self, "language_manager"):
                 language_id_mapping = (
                     self.language_manager.language_id_mapping if self.args.use_language_embedding else None
@@ -290,6 +290,7 @@ class BaseTTS(BaseModel):
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
                 tokenizer=self.tokenizer,
+                language_id_mapping=language_id_mapping,
             )
 
             # wait all the DDP process to be ready
@@ -303,6 +304,7 @@ class BaseTTS(BaseModel):
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
 
             # Weighted samplers
+            # TODO: make this DDP amenable
             assert not (
                 num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)
             ), "language_weighted_sampler is not supported with DistributedSampler"
@@ -313,10 +315,10 @@ class BaseTTS(BaseModel):
             if sampler is None:
                 if getattr(config, "use_language_weighted_sampler", False):
                     print(" > Using Language weighted sampler")
-                    sampler = get_language_weighted_sampler(dataset.items)
+                    sampler = get_language_weighted_sampler(dataset.samples)
                 elif getattr(config, "use_speaker_weighted_sampler", False):
                     print(" > Using Language weighted sampler")
-                    sampler = get_speaker_weighted_sampler(dataset.items)
+                    sampler = get_speaker_weighted_sampler(dataset.samples)
 
             loader = DataLoader(
                 dataset,
