@@ -42,36 +42,8 @@ def main():
     # load training samples
     train_samples, eval_samples = load_tts_samples(config.datasets, eval_split=True)
 
-    # setup audio processor
-    ap = AudioProcessor(**config.audio)
-
-    # init speaker manager
-    if check_config_and_model_args(config, "use_speaker_embedding", True):
-        speaker_manager = SpeakerManager(data_items=train_samples + eval_samples)
-        if hasattr(config, "model_args"):
-            config.model_args.num_speakers = speaker_manager.num_speakers
-        else:
-            config.num_speakers = speaker_manager.num_speakers
-    elif check_config_and_model_args(config, "use_d_vector_file", True):
-        speaker_manager = SpeakerManager(d_vectors_file_path=get_from_config_or_model_args(config, "d_vector_file"))
-        if hasattr(config, "model_args"):
-            config.model_args.num_speakers = speaker_manager.num_speakers
-        else:
-            config.num_speakers = speaker_manager.num_speakers
-    else:
-        speaker_manager = None
-
-    if hasattr(config, "use_language_embedding") and config.use_language_embedding:
-        language_manager = LanguageManager(config=config)
-        if hasattr(config, "model_args"):
-            config.model_args.num_languages = language_manager.num_languages
-        else:
-            config.num_languages = language_manager.num_languages
-    else:
-        language_manager = None
-
     # init the model from config
-    model = setup_model(config, speaker_manager, language_manager)
+    model = setup_model(config, train_samples + eval_samples)
 
     # init the trainer and 🚀
     trainer = Trainer(
