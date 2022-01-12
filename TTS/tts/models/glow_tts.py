@@ -40,11 +40,20 @@ class GlowTTS(BaseTTS):
     Check :class:`TTS.tts.configs.glow_tts_config.GlowTTSConfig` for class arguments.
 
     Examples:
+        Init only model layers.
+
+        >>> from TTS.tts.configs.glow_tts_config import GlowTTSConfig
+        >>> from TTS.tts.models.glow_tts import GlowTTS
+        >>> config = GlowTTSConfig(num_chars=2)
+        >>> model = GlowTTS(config)
+
+        Fully init a model ready for action. All the class attributes and class members
+        (e.g Tokenizer, AudioProcessor, etc.). are initialized internally based on config values.
+
         >>> from TTS.tts.configs.glow_tts_config import GlowTTSConfig
         >>> from TTS.tts.models.glow_tts import GlowTTS
         >>> config = GlowTTSConfig()
-        >>> model = GlowTTS(config)
-
+        >>> model = GlowTTS.init_from_config(config, verbose=False)
     """
 
     def __init__(
@@ -98,25 +107,23 @@ class GlowTTS(BaseTTS):
 
     def init_multispeaker(self, config: Coqpit):
         """Init speaker embedding layer if `use_speaker_embedding` is True and set the expected speaker embedding
-        vector dimension in the network. If model uses d-vectors, then it only sets the expected dimension.
+        vector dimension to the encoder layer channel size. If model uses d-vectors, then it only sets
+        speaker embedding vector dimension to the d-vector dimension from the config.
 
         Args:
             config (Coqpit): Model configuration.
         """
         self.embedded_speaker_dim = 0
-        # init speaker manager
-        if self.speaker_manager is None and (self.use_speaker_embedding or self.use_d_vector_file):
-            raise ValueError(
-                " > SpeakerManager is not provided. You must provide the SpeakerManager before initializing a multi-speaker model."
-            )
         # set number of speakers - if num_speakers is set in config, use it, otherwise use speaker_manager
         if self.speaker_manager is not None:
             self.num_speakers = self.speaker_manager.num_speakers
         # set ultimate speaker embedding size
-        if config.use_speaker_embedding or config.use_d_vector_file:
+        if config.use_d_vector_file:
             self.embedded_speaker_dim = (
                 config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
             )
+            if self.speaker_manager is not None:
+                assert config.d_vector_dim == self.speaker_manager.d_vector_dim, " [!] d-vector dimension mismatch b/w config and speaker manager."
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
             print(" > Init speaker_embedding layer.")
@@ -186,12 +193,33 @@ class GlowTTS(BaseTTS):
         self, x, x_lengths, y, y_lengths=None, aux_input={"d_vectors": None, "speaker_ids": None}
     ):  # pylint: disable=dangerous-default-value
         """
-        Shapes:
-            - x: :math:`[B, T]`
-            - x_lenghts::math:`B`
-            - y: :math:`[B, T, C]`
-            - y_lengths::math:`B`
-            - g: :math:`[B, C] or B`
+        Args:
+            x (torch.Tensor):
+                Input text sequence ids. :math:`[B, T_en]`
+
+            x_lengths (torch.Tensor):
+                Lengths of input text sequences. :math:`[B]`
+
+            y (torch.Tensor):
+                Target mel-spectrogram frames. :math:`[B, T_de, C_mel]`
+
+            y_lengths (torch.Tensor):
+                Lengths of target mel-spectrogram frames. :math:`[B]`
+
+            aux_input (Dict):
+                Auxiliary inputs. `d_vectors` is speaker embedding vectors for a multi-speaker model.
+                :math:`[B, D_vec]`. `speaker_ids` is speaker ids for a multi-speaker model usind speaker-embedding
+                layer. :math:`B`
+
+        Returns:
+            Dict:
+                - z: :math: `[B, T_de, C]`
+                - logdet: :math:`B`
+                - y_mean: :math:`[B, T_de, C]`
+                - y_log_scale: :math:`[B, T_de, C]`
+                - alignments: :math:`[B, T_en, T_de]`
+                - durations_log: :math:`[B, T_en, 1]`
+                - total_durations_log: :math:`[B, T_en, 1]`
         """
         # [B, T, C] -> [B, C, T]
         y = y.transpose(1, 2)
@@ -510,17 +538,18 @@ class GlowTTS(BaseTTS):
         self.run_data_dep_init = trainer.total_steps_done < self.data_dep_init_steps
 
     @staticmethod
-    def init_from_config(config: "GlowTTSConfig", samples: Union[List[List], List[Dict]] = None):
+    def init_from_config(config: "GlowTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
         """Initiate model from config
 
         Args:
             config (VitsConfig): Model config.
             samples (Union[List[List], List[Dict]]): Training samples to parse speaker ids for training.
                 Defaults to None.
+            verbose (bool): If True, print init messages. Defaults to True.
         """
         from TTS.utils.audio import AudioProcessor
 
-        ap = AudioProcessor.init_from_config(config)
+        ap = AudioProcessor.init_from_config(config, verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config, samples)
         return GlowTTS(new_config, ap, tokenizer, speaker_manager)
