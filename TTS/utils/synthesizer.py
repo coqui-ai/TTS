@@ -122,13 +122,9 @@ class Synthesizer(object):
         speaker_manager = self._init_speaker_encoder(speaker_manager)
 
         if language_manager is not None:
-            self.tts_model = setup_tts_model(
-                config=self.tts_config,
-                speaker_manager=speaker_manager,
-                language_manager=language_manager,
-            )
+            self.tts_model = setup_tts_model(config=self.tts_config)
         else:
-            self.tts_model = setup_tts_model(config=self.tts_config, speaker_manager=speaker_manager)
+            self.tts_model = setup_tts_model(config=self.tts_config)
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
         if use_cuda:
             self.tts_model.cuda()
@@ -333,7 +329,6 @@ class Synthesizer(object):
                 use_cuda=self.use_cuda,
                 speaker_id=speaker_id,
                 language_id=language_id,
-                language_name=language_name,
                 style_wav=style_wav,
                 use_griffin_lim=use_gl,
                 d_vector=speaker_embedding,

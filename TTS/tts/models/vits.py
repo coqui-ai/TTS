@@ -1,5 +1,4 @@
 import math
-import random
 from dataclasses import dataclass, field, replace
 from itertools import chain
 from typing import Dict, List, Tuple, Union
@@ -269,10 +268,20 @@ class Vits(BaseTTS):
     Check :class:`TTS.tts.configs.vits_config.VitsConfig` for class arguments.
 
     Examples:
+        Init only model layers.
+
         >>> from TTS.tts.configs.vits_config import VitsConfig
         >>> from TTS.tts.models.vits import Vits
         >>> config = VitsConfig()
         >>> model = Vits(config)
+
+        Fully init a model ready for action. All the class attributes and class members
+        (e.g Tokenizer, AudioProcessor, etc.). are initialized internally based on config values.
+
+        >>> from TTS.tts.configs.vits_config import VitsConfig
+        >>> from TTS.tts.models.vits import Vits
+        >>> config = VitsConfig()
+        >>> model = Vits.init_from_config(config)
     """
 
     # pylint: disable=dangerous-default-value
@@ -908,13 +917,10 @@ class Vits(BaseTTS):
                     aux_inputs["text"],
                     self.config,
                     "cuda" in str(next(self.parameters()).device),
-                    self.ap,
                     speaker_id=aux_inputs["speaker_id"],
                     d_vector=aux_inputs["d_vector"],
                     style_wav=aux_inputs["style_wav"],
                     language_id=aux_inputs["language_id"],
-                    language_name=aux_inputs["language_name"],
-                    enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                     use_griffin_lim=True,
                     do_trim_silence=False,
                 ).values()

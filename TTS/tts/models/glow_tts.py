@@ -123,7 +123,9 @@ class GlowTTS(BaseTTS):
                 config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
             )
             if self.speaker_manager is not None:
-                assert config.d_vector_dim == self.speaker_manager.d_vector_dim, " [!] d-vector dimension mismatch b/w config and speaker manager."
+                assert (
+                    config.d_vector_dim == self.speaker_manager.d_vector_dim
+                ), " [!] d-vector dimension mismatch b/w config and speaker manager."
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
             print(" > Init speaker_embedding layer.")
