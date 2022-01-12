@@ -26,6 +26,11 @@ def get_tests_input_path():
     return os.path.join(get_tests_path(), "inputs")
 
 
+def get_tests_data_path():
+    """Returns the path to the test data directory."""
+    return os.path.join(get_tests_path(), "data")
+
+
 def get_tests_output_path():
     """Returns the path to the directory for test outputs."""
     return os.path.join(get_tests_path(), "outputs")
