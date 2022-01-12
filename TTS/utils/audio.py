@@ -380,10 +380,10 @@ class AudioProcessor(object):
             self.symmetric_norm = None
 
     @staticmethod
-    def init_from_config(config: "Coqpit"):
+    def init_from_config(config: "Coqpit", verbose=True):
         if "audio" in config:
-            return AudioProcessor(**config.audio)
-        return AudioProcessor(**config)
+            return AudioProcessor(verbose=verbose, **config.audio)
+        return AudioProcessor(verbose=verbose, **config)
 
     ### setting up the parameters ###
     def _build_mel_basis(
