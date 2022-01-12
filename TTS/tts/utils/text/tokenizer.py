@@ -148,7 +148,7 @@ class TTSTokenizer:
         # init cleaners
         text_cleaner = None
         if isinstance(config.text_cleaner, (str, list)):
-            text_cleaner = getattr(config, "text_cleaner")
+            text_cleaner = getattr(cleaners, config.text_cleaner)
 
         # init characters
         if characters is None:

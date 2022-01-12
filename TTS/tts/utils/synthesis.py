@@ -181,7 +181,6 @@ def synthesis(
     do_trim_silence=False,
     d_vector=None,
     language_id=None,
-    language_name=None,
     backend="torch",
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
@@ -217,9 +216,6 @@ def synthesis(
 
         language_id (int):
             Language ID passed to the language embedding layer in multi-langual model. Defaults to None.
-
-        language_name (str):
-            Language name corresponding to the language code used by the phonemizer. Defaults to None.
 
         backend (str):
             tf or torch. Defaults to "torch".
