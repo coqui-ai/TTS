@@ -153,6 +153,7 @@ class GlowTTSConfig(BaseTTSConfig):
 
     # multi-speaker settings
     use_speaker_embedding: bool = False
+    speakers_file: str = None
     use_d_vector_file: bool = False
     d_vector_file: str = False
 
