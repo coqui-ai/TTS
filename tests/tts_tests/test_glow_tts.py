@@ -23,6 +23,7 @@ c = GlowTTSConfig()
 
 ap = AudioProcessor(**c.audio)
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
+BATCH_SIZE = 3
 
 
 def count_parameters(model):
@@ -32,13 +33,13 @@ def count_parameters(model):
 
 class TestGlowTTS(unittest.TestCase):
     @staticmethod
-    def _create_inputs():
-        input_dummy = torch.randint(0, 24, (8, 128)).long().to(device)
-        input_lengths = torch.randint(100, 129, (8,)).long().to(device)
+    def _create_inputs(batch_size=8):
+        input_dummy = torch.randint(0, 24, (batch_size, 128)).long().to(device)
+        input_lengths = torch.randint(100, 129, (batch_size,)).long().to(device)
         input_lengths[-1] = 128
-        mel_spec = torch.rand(8, 30, c.audio["num_mels"]).to(device)
-        mel_lengths = torch.randint(20, 30, (8,)).long().to(device)
-        speaker_ids = torch.randint(0, 5, (8,)).long().to(device)
+        mel_spec = torch.rand(batch_size, 30, c.audio["num_mels"]).to(device)
+        mel_lengths = torch.randint(20, 30, (batch_size,)).long().to(device)
+        speaker_ids = torch.randint(0, 5, (batch_size,)).long().to(device)
         return input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids
 
     @staticmethod
@@ -104,8 +105,8 @@ class TestGlowTTS(unittest.TestCase):
             if getattr(f, "set_ddi", False):
                 self.assertTrue(f.initialized)
 
-    def test_forward(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
+    def _test_forward(self, batch_size):
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
         # create model
         config = GlowTTSConfig(num_chars=32)
         model = GlowTTS(config).to(device)
@@ -114,16 +115,20 @@ class TestGlowTTS(unittest.TestCase):
         # inference encoder and decoder with MAS
         y = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths)
         self.assertEqual(y["z"].shape, mel_spec.shape)
-        self.assertEqual(y["logdet"].shape, torch.Size([8]))
+        self.assertEqual(y["logdet"].shape, torch.Size([batch_size]))
         self.assertEqual(y["y_mean"].shape, mel_spec.shape)
         self.assertEqual(y["y_log_scale"].shape, mel_spec.shape)
         self.assertEqual(y["alignments"].shape, mel_spec.shape[:2] + (input_dummy.shape[1],))
         self.assertEqual(y["durations_log"].shape, input_dummy.shape + (1,))
         self.assertEqual(y["total_durations_log"].shape, input_dummy.shape + (1,))
 
-    def test_forward_with_d_vector(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
-        d_vector = torch.rand(8, 256).to(device)
+    def test_forward(self):
+        self._test_forward(1)
+        self._test_forward(3)
+
+    def _test_forward_with_d_vector(self, batch_size):
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
+        d_vector = torch.rand(batch_size, 256).to(device)
         # create model
         config = GlowTTSConfig(
             num_chars=32,
@@ -137,16 +142,20 @@ class TestGlowTTS(unittest.TestCase):
         # inference encoder and decoder with MAS
         y = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths, {"d_vectors": d_vector})
         self.assertEqual(y["z"].shape, mel_spec.shape)
-        self.assertEqual(y["logdet"].shape, torch.Size([8]))
+        self.assertEqual(y["logdet"].shape, torch.Size([batch_size]))
         self.assertEqual(y["y_mean"].shape, mel_spec.shape)
         self.assertEqual(y["y_log_scale"].shape, mel_spec.shape)
         self.assertEqual(y["alignments"].shape, mel_spec.shape[:2] + (input_dummy.shape[1],))
         self.assertEqual(y["durations_log"].shape, input_dummy.shape + (1,))
         self.assertEqual(y["total_durations_log"].shape, input_dummy.shape + (1,))
 
-    def test_forward_with_speaker_id(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
-        speaker_ids = torch.randint(0, 24, (8,)).long().to(device)
+    def test_forward_with_d_vector(self):
+        self._test_forward_with_d_vector(1)
+        self._test_forward_with_d_vector(3)
+
+    def _test_forward_with_speaker_id(self, batch_size):
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
+        speaker_ids = torch.randint(0, 24, (batch_size,)).long().to(device)
         # create model
         config = GlowTTSConfig(
             num_chars=32,
@@ -159,12 +168,16 @@ class TestGlowTTS(unittest.TestCase):
         # inference encoder and decoder with MAS
         y = model.forward(input_dummy, input_lengths, mel_spec, mel_lengths, {"speaker_ids": speaker_ids})
         self.assertEqual(y["z"].shape, mel_spec.shape)
-        self.assertEqual(y["logdet"].shape, torch.Size([8]))
+        self.assertEqual(y["logdet"].shape, torch.Size([batch_size]))
         self.assertEqual(y["y_mean"].shape, mel_spec.shape)
         self.assertEqual(y["y_log_scale"].shape, mel_spec.shape)
         self.assertEqual(y["alignments"].shape, mel_spec.shape[:2] + (input_dummy.shape[1],))
         self.assertEqual(y["durations_log"].shape, input_dummy.shape + (1,))
         self.assertEqual(y["total_durations_log"].shape, input_dummy.shape + (1,))
+
+    def test_forward_with_speaker_id(self):
+        self._test_forward_with_speaker_id(1)
+        self._test_forward_with_speaker_id(3)
 
     def _assert_inference_outputs(self, outputs, input_dummy, mel_spec):
         output_shape = outputs["model_outputs"].shape
@@ -176,17 +189,21 @@ class TestGlowTTS(unittest.TestCase):
         self.assertEqual(outputs["durations_log"].shape, input_dummy.shape + (1,))
         self.assertEqual(outputs["total_durations_log"].shape, input_dummy.shape + (1,))
 
-    def test_inference(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
+    def _test_inference(self, batch_size):
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
         config = GlowTTSConfig(num_chars=32)
         model = GlowTTS(config).to(device)
         model.eval()
         outputs = model.inference(input_dummy, {"x_lengths": input_lengths})
         self._assert_inference_outputs(outputs, input_dummy, mel_spec)
 
-    def test_inference_with_d_vector(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
-        d_vector = torch.rand(8, 256).to(device)
+    def test_inference(self):
+        self._test_inference(1)
+        self._test_inference(3)
+
+    def _test_inference_with_d_vector(self, batch_size):
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
+        d_vector = torch.rand(batch_size, 256).to(device)
         config = GlowTTSConfig(
             num_chars=32,
             use_d_vector_file=True,
@@ -198,9 +215,13 @@ class TestGlowTTS(unittest.TestCase):
         outputs = model.inference(input_dummy, {"x_lengths": input_lengths, "d_vectors": d_vector})
         self._assert_inference_outputs(outputs, input_dummy, mel_spec)
 
-    def test_inference_with_speaker_ids(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
-        speaker_ids = torch.randint(0, 24, (8,)).long().to(device)
+    def test_inference_with_d_vector(self):
+        self._test_inference_with_d_vector(1)
+        self._test_inference_with_d_vector(3)
+
+    def _test_inference_with_speaker_ids(self, batch_size):
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
+        speaker_ids = torch.randint(0, 24, (batch_size,)).long().to(device)
         # create model
         config = GlowTTSConfig(
             num_chars=32,
@@ -211,8 +232,12 @@ class TestGlowTTS(unittest.TestCase):
         outputs = model.inference(input_dummy, {"x_lengths": input_lengths, "speaker_ids": speaker_ids})
         self._assert_inference_outputs(outputs, input_dummy, mel_spec)
 
-    def test_inference_with_MAS(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
+    def test_inference_with_speaker_ids(self):
+        self._test_inference_with_speaker_ids(1)
+        self._test_inference_with_speaker_ids(3)
+
+    def _test_inference_with_MAS(self, batch_size):
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
         # create model
         config = GlowTTSConfig(num_chars=32)
         model = GlowTTS(config).to(device)
@@ -226,8 +251,13 @@ class TestGlowTTS(unittest.TestCase):
             y["model_outputs"].shape, y2["model_outputs"].shape
         )
 
+    def test_inference_with_MAS(self):
+        self._test_inference_with_MAS(1)
+        self._test_inference_with_MAS(3)
+
     def test_train_step(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs()
+        batch_size = BATCH_SIZE
+        input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids = self._create_inputs(batch_size)
         criterion = GlowTTSLoss()
         # model to train
         config = GlowTTSConfig(num_chars=32)
@@ -263,7 +293,8 @@ class TestGlowTTS(unittest.TestCase):
         self._check_parameter_changes(model, model_ref)
 
     def test_train_eval_log(self):
-        input_dummy, input_lengths, mel_spec, mel_lengths, _ = self._create_inputs()
+        batch_size = BATCH_SIZE
+        input_dummy, input_lengths, mel_spec, mel_lengths, _ = self._create_inputs(batch_size)
         batch = {}
         batch["text_input"] = input_dummy
         batch["text_lengths"] = input_lengths
