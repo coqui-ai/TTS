@@ -568,6 +568,19 @@ class Vits(BaseTTS):
             - d_vectors: :math:`[B, C, 1]`
             - speaker_ids: :math:`[B]`
             - language_ids: :math:`[B]`
+
+        Return Shapes:
+            - model_outputs: :math:`[B, 1, T_wav]`
+            - alignments: :math:`[B, T_seq, T_dec]`
+            - z: :math:`[B, C, T_dec]`
+            - z_p: :math:`[B, C, T_dec]`
+            - m_p: :math:`[B, C, T_dec]`
+            - logs_p: :math:`[B, C, T_dec]`
+            - m_q: :math:`[B, C, T_dec]`
+            - logs_q: :math:`[B, C, T_dec]`
+            - waveform_seg: :math:`[B, 1, spec_seg_size * hop_length]`
+            - gt_spk_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
+            - syn_spk_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
         """
         outputs = {}
         sid, g, lid = self._set_cond_input(aux_input)
@@ -668,15 +681,33 @@ class Vits(BaseTTS):
         )
         return outputs
 
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None}):
+    @staticmethod
+    def _set_x_lengths(x, aux_input):
+        if "x_lengths" in aux_input and aux_input["x_lengths"] is not None:
+            return aux_input["x_lengths"]
+        return torch.tensor(x.shape[1:2]).to(x.device)
+
+    def inference(self, x, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None}):
         """
+        Note:
+            To run in batch mode, provide `x_lengths` else model assumes that the batch size is 1.
+
         Shapes:
             - x: :math:`[B, T_seq]`
-            - d_vectors: :math:`[B, C, 1]`
+            - x_lengths: :math:`[B]`
+            - d_vectors: :math:`[B, C]`
             - speaker_ids: :math:`[B]`
+
+        Return Shapes:
+            - model_outputs: :math:`[B, 1, T_wav]`
+            - alignments: :math:`[B, T_seq, T_dec]`
+            - z: :math:`[B, C, T_dec]`
+            - z_p: :math:`[B, C, T_dec]`
+            - m_p: :math:`[B, C, T_dec]`
+            - logs_p: :math:`[B, C, T_dec]`
         """
         sid, g, lid = self._set_cond_input(aux_input)
-        x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
+        x_lengths = self._set_x_lengths(x, aux_input)
 
         # speaker embedding
         if self.args.use_speaker_embedding and sid is not None:
@@ -699,8 +730,9 @@ class Vits(BaseTTS):
         w = torch.exp(logw) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
-        y_mask = sequence_mask(y_lengths, None).to(x_mask.dtype)
-        attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+        y_mask = sequence_mask(y_lengths, None).to(x_mask.dtype).unsqueeze(1)  # [B, 1, T_dec]
+
+        attn_mask = x_mask * y_mask.transpose(1, 2)  # [B, 1, T_enc] * [B, T_dec, 1]
         attn = generate_path(w_ceil.squeeze(1), attn_mask.squeeze(1).transpose(1, 2))
 
         m_p = torch.matmul(attn.transpose(1, 2), m_p.transpose(1, 2)).transpose(1, 2)
@@ -999,7 +1031,7 @@ class Vits(BaseTTS):
             assert not self.training
 
     @staticmethod
-    def init_from_config(config: "VitsConfig", samples: Union[List[List], List[Dict]] = None):
+    def init_from_config(config: "VitsConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
         """Initiate model from config
 
         Args:
@@ -1009,7 +1041,7 @@ class Vits(BaseTTS):
         """
         from TTS.utils.audio import AudioProcessor
 
-        ap = AudioProcessor.init_from_config(config)
+        ap = AudioProcessor.init_from_config(config, verbose=verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config, samples)
         language_manager = LanguageManager.init_from_config(config)
