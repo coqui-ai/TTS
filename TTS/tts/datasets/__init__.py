@@ -13,7 +13,7 @@ def split_dataset(items):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
     Args:
-        items (List[List]): A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
+        items (List[List]): A list of samples. Each sample is a list of `[text, audio_path, speaker_id]`.
     """
     speakers = [item[-1] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
@@ -52,7 +52,7 @@ def load_tts_samples(
 
         formatter (Callable, optional): The preprocessing function to be applied to create the list of samples. It
             must take the root_path and the meta_file name and return a list of samples in the format of
-            `[[audio_path, text, speaker_id], ...]]`. See the available formatters in `TTS.tts.dataset.formatter` as
+            `[[text, audio_path, speaker_id], ...]]`. See the available formatters in `TTS.tts.dataset.formatter` as
             example. Defaults to None.
 
     Returns:
