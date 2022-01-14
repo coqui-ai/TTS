@@ -7,14 +7,16 @@ from tqdm.contrib.concurrent import process_map
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.text import text2phone
+from TTS.tts.utils.text.phonemizers.gruut_wrapper import Gruut
+
+
+phonemizer = Gruut(language="en-us")
 
 
 def compute_phonemes(item):
     try:
         text = item[0]
-        language = item[-1]
-        ph = text2phone(text, language, use_espeak_phonemes=c.use_espeak_phonemes).split("|")
+        ph = phonemizer.phonemize(text).split("|")
     except:
         return []
     return list(set(ph))
