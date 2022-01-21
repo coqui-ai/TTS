@@ -172,6 +172,10 @@ class BaseTTSConfig(BaseTrainingConfig):
         use_noise_augment (bool):
             Augment the input audio with random noise.
 
+        start_by_longest (bool):
+            If True, the data loader will start loading the longest batch first. It is useful for checking OOM issues.
+            Defaults to False.
+
         add_blank (bool):
             Add blank characters between each other two characters. It improves performance for some models at expense
             of slower run-time due to the longer input sequence.
@@ -224,6 +228,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     compute_linear_spec: bool = False
     precompute_num_workers: int = 0
     use_noise_augment: bool = False
+    start_by_longest: bool = False
     # dataset
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # optimizer

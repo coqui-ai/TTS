@@ -67,15 +67,6 @@ class VitsConfig(BaseTTSConfig):
         compute_linear_spec (bool):
             If true, the linear spectrogram is computed and returned alongside the mel output. Do not change. Defaults to `True`.
 
-        sort_by_audio_len (bool):
-            If true, dataloder sorts the data by audio length else sorts by the input text length. Defaults to `True`.
-
-        min_seq_len (int):
-            Minimum sequnce length to be considered for training. Defaults to `0`.
-
-        max_seq_len (int):
-            Maximum sequnce length to be considered for training. Defaults to `500000`.
-
         r (int):
             Number of spectrogram frames to be generated at a time. Do not change. Defaults to `1`.
 
@@ -123,6 +114,7 @@ class VitsConfig(BaseTTSConfig):
     feat_loss_alpha: float = 1.0
     mel_loss_alpha: float = 45.0
     dur_loss_alpha: float = 1.0
+    aligner_loss_alpha = 1.0
     speaker_encoder_loss_alpha: float = 1.0
 
     # data loader params
@@ -130,9 +122,6 @@ class VitsConfig(BaseTTSConfig):
     compute_linear_spec: bool = True
 
     # overrides
-    sort_by_audio_len: bool = True
-    min_seq_len: int = 0
-    max_seq_len: int = 500000
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 

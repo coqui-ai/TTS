@@ -56,6 +56,7 @@ class TTSDataset(Dataset):
         d_vector_mapping: Dict = None,
         language_id_mapping: Dict = None,
         use_noise_augment: bool = False,
+        start_by_longest: bool = False,
         verbose: bool = False,
     ):
         """Generic 📂 data loader for `tts` models. It is configurable for different outputs and needs.
@@ -109,6 +110,8 @@ class TTSDataset(Dataset):
 
             use_noise_augment (bool): Enable adding random noise to wav for augmentation. Defaults to False.
 
+            start_by_longest (bool): Start by longest sequence. It is especially useful to check OOM. Defaults to False.
+
             verbose (bool): Print diagnostic information. Defaults to false.
         """
         super().__init__()
@@ -130,6 +133,7 @@ class TTSDataset(Dataset):
         self.d_vector_mapping = d_vector_mapping
         self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
+        self.start_by_longest = start_by_longest
 
         self.verbose = verbose
         self.rescue_item_idx = 1
@@ -316,6 +320,12 @@ class TTSDataset(Dataset):
         samples, audio_lengths, _ = self.select_samples_by_idx(keep_idx)
 
         sorted_idxs = self.sort_by_length(audio_lengths)
+
+        if self.start_by_longest:
+            longest_idxs = sorted_idxs[-1]
+            sorted_idxs[-1] = sorted_idxs[0]
+            sorted_idxs[0] = longest_idxs
+
         samples, audio_lengths, text_lengtsh = self.select_samples_by_idx(sorted_idxs)
 
         if len(samples) == 0:
