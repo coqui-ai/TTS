@@ -290,6 +290,7 @@ class BaseTTS(BaseModel):
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
                 tokenizer=self.tokenizer,
+                start_by_longest=config.start_by_longest,
                 language_id_mapping=language_id_mapping,
             )
 

@@ -63,6 +63,7 @@ class TestTTSDataset(unittest.TestCase):
             max_text_len=c.max_text_len,
             min_audio_len=c.min_audio_len,
             max_audio_len=c.max_audio_len,
+            start_by_longest=start_by_longest
         )
         dataloader = DataLoader(
             dataset,
@@ -141,6 +142,23 @@ class TestTTSDataset(unittest.TestCase):
                     break
             self.assertGreaterEqual(avg_length, last_length)
             self.assertTrue(is_items_reordered)
+
+    def test_start_by_longest(self):
+        """Test start_by_longest option.
+
+        Ther first item of the fist batch must be longer than all the other items.
+        """
+        if ok_ljspeech:
+            dataloader, _ = self._create_dataloader(2, c.r, 0, True)
+            dataloader.dataset.preprocess_samples()
+            for i, data in enumerate(dataloader):
+                if i == self.max_loader_iter:
+                    break
+                mel_lengths = data["mel_lengths"]
+                if i == 0:
+                    max_len = mel_lengths[0]
+                print(mel_lengths)
+                self.assertTrue(all(max_len >= mel_lengths))
 
     def test_padding_and_spectrograms(self):
         def check_conditions(idx, linear_input, mel_input, stop_target, mel_lengths):
