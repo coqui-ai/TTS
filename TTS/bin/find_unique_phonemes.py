@@ -9,7 +9,6 @@ from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.text.phonemizers.gruut_wrapper import Gruut
 
-
 phonemizer = Gruut(language="en-us")
 
 

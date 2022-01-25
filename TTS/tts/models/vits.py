@@ -361,7 +361,9 @@ class Vits(BaseTTS):
             )
 
         upsample_rate = math.prod(self.args.upsample_rates_decoder)
-        assert upsample_rate == self.config.audio.hop_length, f" [!] Product of upsample rates must be equal to the hop length - {upsample_rate} vs {self.config.audio.hop_length}"
+        assert (
+            upsample_rate == self.config.audio.hop_length
+        ), f" [!] Product of upsample rates must be equal to the hop length - {upsample_rate} vs {self.config.audio.hop_length}"
         self.waveform_decoder = HifiganGenerator(
             self.args.hidden_channels,
             1,
@@ -671,7 +673,7 @@ class Vits(BaseTTS):
             waveform,
             slice_ids * self.config.audio.hop_length,
             self.args.spec_segment_size * self.config.audio.hop_length,
-            pad_short=True
+            pad_short=True,
         )
 
         if self.args.use_speaker_encoder_as_loss and self.speaker_manager.speaker_encoder is not None:
@@ -693,7 +695,7 @@ class Vits(BaseTTS):
         outputs.update(
             {
                 "model_outputs": o,
-                "alignments" : attn.squeeze(1),
+                "alignments": attn.squeeze(1),
                 "m_p": m_p,
                 "logs_p": logs_p,
                 "z": z,
@@ -949,7 +951,7 @@ class Vits(BaseTTS):
         return self.train_step(batch, criterion, optimizer_idx)
 
     def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
-        figures, audios =  self._log(self.ap, batch, outputs, "eval")
+        figures, audios = self._log(self.ap, batch, outputs, "eval")
         logger.eval_figures(steps, figures)
         logger.eval_audios(steps, audios, self.ap.sample_rate)
 

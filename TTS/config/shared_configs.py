@@ -57,6 +57,12 @@ class BaseAudioConfig(Coqpit):
         do_amp_to_db_mel (bool, optional):
             enable/disable amplitude to dB conversion of mel spectrograms. Defaults to True.
 
+        pitch_fmax (float, optional):
+            Maximum frequency of the F0 frames. Defaults to ```640```.
+
+        pitch_fmin (float, optional):
+            Minimum frequency of the F0 frames. Defaults to ```0```.
+
         trim_db (int):
             Silence threshold used for silence trimming. Defaults to 45.
 
@@ -135,6 +141,9 @@ class BaseAudioConfig(Coqpit):
     spec_gain: int = 20
     do_amp_to_db_linear: bool = True
     do_amp_to_db_mel: bool = True
+    # f0 params
+    pitch_fmax: float = 640.0
+    pitch_fmin: float = 0.0
     # normalization params
     signal_norm: bool = True
     min_level_db: int = -100

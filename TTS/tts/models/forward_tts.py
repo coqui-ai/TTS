@@ -646,7 +646,7 @@ class ForwardTTS(BaseTTS):
                 alignment_logprob=outputs["alignment_logprob"] if self.use_aligner else None,
                 alignment_soft=outputs["alignment_soft"],
                 alignment_hard=outputs["alignment_mas"],
-                binary_loss_weight=self.binary_loss_weight
+                binary_loss_weight=self.binary_loss_weight,
             )
             # compute duration error
             durations_pred = outputs["durations"]

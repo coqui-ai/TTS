@@ -104,7 +104,7 @@ def plot_avg_pitch(pitch, chars, fig_size=(30, 10), output_fig=False):
     fig, ax = plt.subplots()
 
     x = np.array(range(len(chars)))
-    my_xticks = [c for c in chars]
+    my_xticks = chars
     plt.xticks(x, my_xticks)
 
     ax.set_xlabel("characters")

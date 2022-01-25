@@ -52,7 +52,7 @@ class TestTTSDataset(unittest.TestCase):
             max_text_len=c.max_text_len,
             min_audio_len=c.min_audio_len,
             max_audio_len=c.max_audio_len,
-            start_by_longest=start_by_longest
+            start_by_longest=start_by_longest,
         )
         dataloader = DataLoader(
             dataset,

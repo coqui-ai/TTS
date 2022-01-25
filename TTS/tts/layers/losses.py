@@ -740,7 +740,7 @@ class ForwardTTSLoss(nn.Module):
         alignment_logprob=None,
         alignment_hard=None,
         alignment_soft=None,
-        binary_loss_weight=None
+        binary_loss_weight=None,
     ):
         loss = 0
         return_dict = {}
@@ -774,7 +774,9 @@ class ForwardTTSLoss(nn.Module):
             binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
             loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
             if binary_loss_weight:
-                return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss * binary_loss_weight
+                return_dict["loss_binary_alignment"] = (
+                    self.binary_alignment_loss_alpha * binary_alignment_loss * binary_loss_weight
+                )
             else:
                 return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
 
