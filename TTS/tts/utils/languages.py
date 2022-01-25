@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Dict, List
+from TTS.config import check_config_and_model_args
 
 import fsspec
 import numpy as np
@@ -105,7 +106,12 @@ class LanguageManager:
         Args:
             config (Coqpit): Coqpit config.
         """
-        return LanguageManager(config=config)
+        language_manager = None
+        if check_config_and_model_args(config, "use_language_embedding", True):
+            if config.get("language_ids_file", None):
+                language_manager = LanguageManager(language_ids_file_path=config.language_ids_file)
+            language_manager = LanguageManager(config=config)
+        return language_manager
 
 
 def _set_file_path(path):
