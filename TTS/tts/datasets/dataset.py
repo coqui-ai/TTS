@@ -1,5 +1,4 @@
 import collections
-from email.mime import audio
 import os
 import random
 from typing import Dict, List, Union
@@ -256,7 +255,7 @@ class TTSDataset(Dataset):
         new_samples = []
         for item in samples:
             text, wav_file, *_ = _parse_sample(item)
-            audio_length = os.path.getsize(wav_file) / 16 * 8 # assuming 16bit audio
+            audio_length = os.path.getsize(wav_file) / 16 * 8  # assuming 16bit audio
             text_lenght = len(text)
             new_samples += [item + [audio_length, text_lenght]]
         return new_samples
@@ -291,7 +290,8 @@ class TTSDataset(Dataset):
             samples[offset:end_offset] = temp_items
         return samples
 
-    def _select_samples_by_idx(self, idxs, samples):
+    @staticmethod
+    def _select_samples_by_idx(idxs, samples):
         samples_new = []
         for idx in idxs:
             samples_new.append(samples[idx])
@@ -307,9 +307,7 @@ class TTSDataset(Dataset):
         text_lengths = [i[-1] for i in samples]
         audio_lengths = [i[-2] for i in samples]
         text_ignore_idx, text_keep_idx = self.filter_by_length(text_lengths, self.min_text_len, self.max_text_len)
-        audio_ignore_idx, audio_keep_idx = self.filter_by_length(
-            audio_lengths, self.min_audio_len, self.max_audio_len
-        )
+        audio_ignore_idx, audio_keep_idx = self.filter_by_length(audio_lengths, self.min_audio_len, self.max_audio_len)
         keep_idx = list(set(audio_keep_idx) & set(text_keep_idx))
         ignore_idx = list(set(audio_ignore_idx) | set(text_ignore_idx))
 

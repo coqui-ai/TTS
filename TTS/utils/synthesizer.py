@@ -5,10 +5,8 @@ import numpy as np
 import pysbd
 import torch
 
-from TTS.config import check_config_and_model_args, get_from_config_or_model_args_with_default, load_config
+from TTS.config import load_config
 from TTS.tts.models import setup_model as setup_tts_model
-from TTS.tts.utils.languages import LanguageManager
-from TTS.tts.utils.speakers import SpeakerManager
 
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import

@@ -19,7 +19,7 @@ from TTS.vocoder.utils.generic_utils import plot_results
 
 
 class GAN(BaseVocoder):
-    def __init__(self, config: Coqpit, ap: AudioProcessor=None):
+    def __init__(self, config: Coqpit, ap: AudioProcessor = None):
         """Wrap a generator and a discriminator network. It provides a compatible interface for the trainer.
         It also helps mixing and matching different generator and disciminator networks easily.
 
@@ -306,7 +306,7 @@ class GAN(BaseVocoder):
         x, y = batch
         return {"input": x, "waveform": y}
 
-    def get_data_loader(  # pylint: disable=no-self-use
+    def get_data_loader(  # pylint: disable=no-self-use, unused-argument
         self,
         config: Coqpit,
         assets: Dict,
