@@ -239,6 +239,12 @@ class AudioProcessor(object):
         mel_fmax (int, optional):
             maximum filter frequency for computing melspectrograms. Defaults to None.
 
+        pitch_fmin (int, optional):
+            minimum filter frequency for computing pitch. Defaults to None.
+
+        pitch_fmax (int, optional):
+            maximum filter frequency for computing pitch. Defaults to None.
+
         spec_gain (int, optional):
             gain applied when converting amplitude to DB. Defaults to 20.
 
@@ -300,6 +306,8 @@ class AudioProcessor(object):
         max_norm=None,
         mel_fmin=None,
         mel_fmax=None,
+        pitch_fmax=None,
+        pitch_fmin=None,
         spec_gain=20,
         stft_pad_mode="reflect",
         clip_norm=True,
@@ -333,6 +341,8 @@ class AudioProcessor(object):
         self.symmetric_norm = symmetric_norm
         self.mel_fmin = mel_fmin or 0
         self.mel_fmax = mel_fmax
+        self.pitch_fmin = pitch_fmin
+        self.pitch_fmax = pitch_fmax
         self.spec_gain = float(spec_gain)
         self.stft_pad_mode = stft_pad_mode
         self.max_norm = 1.0 if max_norm is None else float(max_norm)
@@ -726,12 +736,12 @@ class AudioProcessor(object):
             >>> WAV_FILE = filename = librosa.util.example_audio_file()
             >>> from TTS.config import BaseAudioConfig
             >>> from TTS.utils.audio import AudioProcessor
-            >>> conf = BaseAudioConfig(mel_fmax=8000)
+            >>> conf = BaseAudioConfig(pitch_fmax=8000)
             >>> ap = AudioProcessor(**conf)
             >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
             >>> pitch = ap.compute_f0(wav)
         """
-        assert self.mel_fmax is not None, " [!] Set `mel_fmax` before caling `compute_f0`."
+        assert self.pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
         # align F0 length to the spectrogram length
         if len(x) % self.hop_length == 0:
             x = np.pad(x, (0, self.hop_length // 2), mode="reflect")
@@ -739,7 +749,7 @@ class AudioProcessor(object):
         f0, t = pw.dio(
             x.astype(np.double),
             fs=self.sample_rate,
-            f0_ceil=self.mel_fmax,
+            f0_ceil=self.pitch_fmax,
             frame_period=1000 * self.hop_length / self.sample_rate,
         )
         f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
