@@ -53,6 +53,10 @@ class CharactersConfig(Coqpit):
     """Defines arguments for the `BaseCharacters` and its subclasses.
 
     Args:
+        characters_class (str):
+            Defines the class of the characters used. If None, we pick ```Phonemes``` or ```Graphemes``` based on
+            the configuration. Defaults to None.
+
         pad (str):
             characters in place of empty padding. Defaults to None.
 
@@ -84,6 +88,7 @@ class CharactersConfig(Coqpit):
             Sort the characters in alphabetical order. Defaults to True.
     """
 
+    characters_class: str = None
     pad: str = None
     eos: str = None
     bos: str = None
