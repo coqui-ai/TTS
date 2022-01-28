@@ -3,6 +3,7 @@ from typing import Callable, Dict, List, Union
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes
 from TTS.tts.utils.text.phonemizers import DEF_LANG_TO_PHONEMIZER, get_phonemizer_by_name
+from TTS.utils.generic_utils import get_import_path, import_class
 
 
 class TTSTokenizer:
@@ -152,14 +153,24 @@ class TTSTokenizer:
 
         # init characters
         if characters is None:
-            if config.use_phonemes:
-                # init phoneme set
-                characters, new_config = IPAPhonemes().init_from_config(config)
+            # set characters based on defined characters class
+            if config.characters and config.characters.characters_class:
+                CharactersClass = import_class(config.characters.characters_class)
+                characters, new_config = CharactersClass.init_from_config(config)
+            # set characters based on config
             else:
-                # init character set
-                characters, new_config = Graphemes().init_from_config(config)
+                if config.use_phonemes:
+                    # init phoneme set
+                    characters, new_config = IPAPhonemes().init_from_config(config)
+                else:
+                    # init character set
+                    characters, new_config = Graphemes().init_from_config(config)
+
         else:
             characters, new_config = characters.init_from_config(config)
+
+        # set characters class
+        new_config.characters.characters_class = get_import_path(characters)
 
         # init phonemizer
         phonemizer = None
