@@ -57,9 +57,7 @@ config = VitsConfig(
     print_step=25,
     print_eval=False,
     mixed_precision=True,
-    sort_by_audio_len=True,
-    min_seq_len=32 * 256 * 4,
-    max_seq_len=1500000,
+    max_text_len= 325,  # change this if you have a larger VRAM than 16GB
     output_path=output_path,
     datasets=[dataset_config],
 )
