@@ -17,7 +17,7 @@ class VitsConfig(BaseTTSConfig):
             Model architecture arguments. Defaults to `VitsArgs()`.
 
         grad_clip (List):
-            Gradient clipping thresholds for each optimizer. Defaults to `[5.0, 5.0]`.
+            Gradient clipping thresholds for each optimizer. Defaults to `[1000.0, 1000.0]`.
 
         lr_gen (float):
             Initial learning rate for the generator. Defaults to 0.0002.
@@ -114,7 +114,6 @@ class VitsConfig(BaseTTSConfig):
     feat_loss_alpha: float = 1.0
     mel_loss_alpha: float = 45.0
     dur_loss_alpha: float = 1.0
-    aligner_loss_alpha = 1.0
     speaker_encoder_loss_alpha: float = 1.0
 
     # data loader params
