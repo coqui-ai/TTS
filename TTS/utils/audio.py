@@ -818,7 +818,7 @@ class AudioProcessor(object):
         elif sr is None:
             # SF is faster than librosa for loading files
             x, sr = sf.read(filename)
-            assert self.sample_rate == sr, "%s vs %s" % (self.sample_rate, sr)
+            assert self.sample_rate == sr, "%s vs %s in %s" % (self.sample_rate, sr, filename)
         else:
             x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
