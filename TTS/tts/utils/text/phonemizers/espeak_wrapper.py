@@ -11,6 +11,7 @@ def is_tool(name):
 
     return which(name) is not None
 
+
 # priority: espeakng > espeak
 if is_tool("espeak-ng"):
     _DEF_ESPEAK_LIB = "espeak-ng"
@@ -116,7 +117,6 @@ class ESpeak(BasePhonemizer):
             #  ^
             self.num_skip_chars = 1
 
-
     def auto_set_espeak_lib(self) -> None:
         if is_tool("espeak-ng"):
             self._ESPEAK_LIB = "espeak-ng"
@@ -163,7 +163,7 @@ class ESpeak(BasePhonemizer):
         phonemes = ""
         for line in _espeak_exe(self._ESPEAK_LIB, args, sync=True):
             logging.debug("line: %s", repr(line))
-            phonemes += line.decode("utf8").strip()[self.num_skip_chars:]  # skip initial redundant characters
+            phonemes += line.decode("utf8").strip()[self.num_skip_chars :]  # skip initial redundant characters
         return phonemes.replace("_", separator)
 
     def _phonemize(self, text, separator=None):

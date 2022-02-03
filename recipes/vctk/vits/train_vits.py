@@ -1,7 +1,8 @@
 import os
 
-from TTS.config.shared_configs import BaseAudioConfig
 from trainer import Trainer, TrainerArgs
+
+from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
@@ -57,7 +58,7 @@ config = VitsConfig(
     print_step=25,
     print_eval=False,
     mixed_precision=True,
-    max_text_len= 325,  # change this if you have a larger VRAM than 16GB
+    max_text_len=325,  # change this if you have a larger VRAM than 16GB
     output_path=output_path,
     datasets=[dataset_config],
 )
