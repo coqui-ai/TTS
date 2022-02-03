@@ -1,7 +1,8 @@
 import os
 
-from TTS.config import load_config, register_config
 from trainer import Trainer, TrainerArgs
+
+from TTS.config import load_config, register_config
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model
