@@ -10,7 +10,7 @@ pandas
 pypinyin
 pysbd
 pyyaml
-scipy>=0.19.0
+scipy>=1.4.0
 soundfile
 tensorboardX
 torch>=1.7
