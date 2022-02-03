@@ -1,7 +1,7 @@
 import os
 
 from TTS.config import load_config, register_config
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model
@@ -10,7 +10,7 @@ from TTS.vocoder.models import setup_model
 def main():
     """Run `tts` model training directly by a `config.json` file."""
     # init trainer args
-    train_args = TrainingArgs()
+    train_args = TrainerArgs()
     parser = train_args.init_argparse(arg_prefix="")
 
     # override trainer args from comman-line args

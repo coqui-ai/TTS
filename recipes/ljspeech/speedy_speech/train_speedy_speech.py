@@ -1,7 +1,7 @@
 import os
 
 from TTS.config import BaseAudioConfig, BaseDatasetConfig
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.configs.speedy_speech_config import SpeedySpeechConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS
@@ -75,7 +75,7 @@ model = ForwardTTS(config, ap, tokenizer)
 # Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
 # distributed training, etc.
 trainer = Trainer(
-    TrainingArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 
 # AND... 3,2,1... 🚀

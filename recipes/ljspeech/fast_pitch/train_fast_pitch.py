@@ -1,7 +1,7 @@
 import os
 
 from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.configs.fast_pitch_config import FastPitchConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS
@@ -90,6 +90,6 @@ model = ForwardTTS(config, ap, tokenizer, speaker_manager=None)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 trainer.fit()
