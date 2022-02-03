@@ -2,7 +2,7 @@ import os
 
 # Trainer: Where the ✨️ happens.
 # TrainingArgs: Defines the set of arguments of the Trainer.
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 
 # GlowTTSConfig: all model related values for training, validating and testing.
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
@@ -72,7 +72,7 @@ model = GlowTTS(config, ap, tokenizer, speaker_manager=None)
 # Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
 # distributed training, etc.
 trainer = Trainer(
-    TrainingArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 
 # AND... 3,2,1... 🚀

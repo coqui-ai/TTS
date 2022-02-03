@@ -1,7 +1,7 @@
 import os
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
@@ -33,7 +33,7 @@ audio_config = BaseAudioConfig(
 config = VitsConfig(
     audio=audio_config,
     run_name="vits_ljspeech",
-    batch_size=16,
+    batch_size=32,
     eval_batch_size=16,
     batch_group_size=5,
     num_loader_workers=0,
@@ -48,8 +48,7 @@ config = VitsConfig(
     compute_input_seq_cache=True,
     print_step=25,
     print_eval=True,
-    mixed_precision=False,
-    max_seq_len=500000,
+    mixed_precision=True,
     output_path=output_path,
     datasets=[dataset_config],
 )
@@ -76,7 +75,7 @@ model = Vits(config, ap, tokenizer, speaker_manager=None)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(),
+    TrainerArgs(),
     config,
     output_path,
     model=model,

@@ -1,7 +1,7 @@
 import os
 
 from TTS.config import load_config, register_config
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models import setup_model
 
@@ -9,7 +9,7 @@ from TTS.tts.models import setup_model
 def main():
     """Run `tts` model training directly by a `config.json` file."""
     # init trainer args
-    train_args = TrainingArgs()
+    train_args = TrainerArgs()
     parser = train_args.init_argparse(arg_prefix="")
 
     # override trainer args from comman-line args

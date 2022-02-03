@@ -1,7 +1,7 @@
 import os
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
@@ -90,7 +90,7 @@ model = Vits(config, ap, tokenizer, speaker_manager)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(),
+    TrainerArgs(),
     config,
     output_path,
     model=model,

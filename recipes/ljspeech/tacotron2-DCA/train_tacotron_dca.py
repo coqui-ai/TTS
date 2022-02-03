@@ -1,7 +1,7 @@
 import os
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.datasets import load_tts_samples
@@ -82,7 +82,7 @@ model = Tacotron2(config, ap, tokenizer)
 # Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
 # distributed training, etc.
 trainer = Trainer(
-    TrainingArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 
 # AND... 3,2,1... 🚀
