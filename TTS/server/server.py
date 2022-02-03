@@ -150,7 +150,7 @@ def index():
 
 @app.route("/details")
 def details():
-    model_config = load_config(args.tts_config)
+    model_config = load_config(config_path)
     if args.vocoder_config is not None and os.path.isfile(args.vocoder_config):
         vocoder_config = load_config(args.vocoder_config)
     else:

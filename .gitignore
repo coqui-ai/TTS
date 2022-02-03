@@ -165,3 +165,5 @@ internal/*
 *_phoneme.npy
 wandb
 depot/*
+bin
+pyvenv.cfg
