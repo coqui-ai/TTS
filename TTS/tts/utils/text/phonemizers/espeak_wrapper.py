@@ -11,7 +11,7 @@ def is_tool(name):
 
     return which(name) is not None
 
-
+# priority: espeakng > espeak
 if is_tool("espeak-ng"):
     _DEF_ESPEAK_LIB = "espeak-ng"
 elif is_tool("espeak"):
@@ -21,6 +21,7 @@ else:
 
 
 def _espeak_exe(espeak_lib: str, args: List, sync=False) -> List[str]:
+    """Run espeak with the given arguments."""
     cmd = [
         espeak_lib,
         "-q",
@@ -85,7 +86,8 @@ class ESpeak(BasePhonemizer):
 
     def __init__(self, language: str, backend=None, punctuations=Punctuation.default_puncs(), keep_puncs=True):
         if self._ESPEAK_LIB is None:
-            raise Exception("Unknown backend: %s" % backend)
+            raise Exception(" [!] No espeak backend found. Install espeak-ng or espeak to your system.")
+        self.backend = self._ESPEAK_LIB
 
         # band-aid for backwards compatibility
         if language == "en":
@@ -104,6 +106,16 @@ class ESpeak(BasePhonemizer):
         if backend not in ["espeak", "espeak-ng"]:
             raise Exception("Unknown backend: %s" % backend)
         self._ESPEAK_LIB = backend
+        # skip first two characters of the retuned text
+        # "_ p_ɹ_ˈaɪ_ɚ t_ə n_oʊ_v_ˈɛ_m_b_ɚ t_w_ˈɛ_n_t_i t_ˈuː\n"
+        #  ^^
+        self.num_skip_chars = 2
+        if backend == "espeak-ng":
+            # skip the first character of the retuned text
+            # "_p_ɹ_ˈaɪ_ɚ t_ə n_oʊ_v_ˈɛ_m_b_ɚ t_w_ˈɛ_n_t_i t_ˈuː\n"
+            #  ^
+            self.num_skip_chars = 1
+
 
     def auto_set_espeak_lib(self) -> None:
         if is_tool("espeak-ng"):
@@ -151,7 +163,7 @@ class ESpeak(BasePhonemizer):
         phonemes = ""
         for line in _espeak_exe(self._ESPEAK_LIB, args, sync=True):
             logging.debug("line: %s", repr(line))
-            phonemes += line.decode("utf8").strip()[2:]  # skip two redundant characters
+            phonemes += line.decode("utf8").strip()[self.num_skip_chars:]  # skip initial redundant characters
         return phonemes.replace("_", separator)
 
     def _phonemize(self, text, separator=None):
