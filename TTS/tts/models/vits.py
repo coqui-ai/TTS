@@ -656,14 +656,13 @@ class Vits(BaseTTS):
         logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
 
         # select a random feature segment for the waveform decoder
-        z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size, let_short_samples=True, pad_short=True)
+        z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size)
         o = self.waveform_decoder(z_slice, g=g)
 
         wav_seg = segment(
             waveform,
             slice_ids * self.config.audio.hop_length,
             self.args.spec_segment_size * self.config.audio.hop_length,
-            pad_short=True,
         )
 
         if self.args.use_speaker_encoder_as_loss and self.speaker_manager.speaker_encoder is not None:
