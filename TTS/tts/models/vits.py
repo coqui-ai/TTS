@@ -947,8 +947,8 @@ class Vits(BaseTTS):
             Tuple[Dict, np.ndarray]: training plots and output waveform.
         """
         figures, audios = self._log(self.ap, batch, outputs, "train")
-        logger.eval_figures(steps, figures)
-        logger.eval_audios(steps, audios, self.ap.sample_rate)
+        logger.train_figures(steps, figures)
+        logger.train_figures(steps, audios, self.ap.sample_rate)
 
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
