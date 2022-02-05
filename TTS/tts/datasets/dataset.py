@@ -229,7 +229,8 @@ class TTSDataset(Dataset):
         # after phonemization the text length may change
         # this is a shareful 🤭 hack to prevent longer phonemes
         # TODO: find a better fix
-        if len(token_ids) > self.max_text_len:
+        if len(token_ids) > self.max_text_len or len(wav) < self.min_audio_len:
+            self.rescue_item_idx += 1
             return self.load_data(self.rescue_item_idx)
 
         # get f0 values
