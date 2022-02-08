@@ -11,10 +11,11 @@ from torch.utils.data.distributed import DistributedSampler
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
-from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_weighted_sampler
+from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_balancer_weights
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from torch.utils.data.sampler import WeightedRandomSampler
 
 # pylint: skip-file
 
@@ -313,12 +314,22 @@ class BaseTTS(BaseTrainerModel):
             ), "speaker_weighted_sampler is not supported with DistributedSampler"
 
             if sampler is None:
+                weights = None
                 if getattr(config, "use_language_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_language_weighted_sampler(dataset.samples)
-                elif getattr(config, "use_speaker_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_speaker_weighted_sampler(dataset.samples)
+                    alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
+                    print(" > Using Language weighted sampler with alpha:", alpha)
+                    weights = get_language_balancer_weights(dataset.items) * alpha
+
+                if getattr(config, "use_speaker_weighted_sampler", False):
+                    alpha = getattr(config, "speaker_weighted_sampler_alpha", 1.0)
+                    print(" > Using Speaker weighted sampler with alpha:", alpha)
+                    if weights is not None:
+                        weights += get_speaker_balancer_weights(dataset.items) * alpha
+                    else:
+                        weights = get_speaker_balancer_weights(dataset.items) * alpha
+
+                if weights is not None:
+                    sampler = WeightedRandomSampler(weights, len(weights))
 
             loader = DataLoader(
                 dataset,

@@ -6,7 +6,6 @@ import fsspec
 import numpy as np
 import torch
 from coqpit import Coqpit
-from torch.utils.data.sampler import WeightedRandomSampler
 
 from TTS.config import check_config_and_model_args
 
@@ -134,5 +133,8 @@ def get_language_weighted_sampler(items: list):
     language_ids = [unique_language_names.index(l) for l in language_names]
     language_count = np.array([len(np.where(language_names == l)[0]) for l in unique_language_names])
     weight_language = 1.0 / language_count
-    dataset_samples_weight = torch.from_numpy(np.array([weight_language[l] for l in language_ids])).double()
-    return WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
+    # get weight for each sample
+    dataset_samples_weight = np.array([weight_language[l] for l in language_ids])
+    # normalize
+    dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
+    return torch.from_numpy(dataset_samples_weight).double()

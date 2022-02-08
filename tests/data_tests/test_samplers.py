@@ -4,7 +4,8 @@ import torch
 
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.languages import get_language_weighted_sampler
+from TTS.tts.utils.languages import get_language_balancer_weights
+from TTS.tts.utils.speakers import get_speaker_balancer_weights
 
 # Fixing random state to avoid random fails
 torch.manual_seed(0)
@@ -46,7 +47,8 @@ for index in ids:
 
 assert not is_balanced(en, pt), "Random sampler is supposed to be unbalanced"
 
-weighted_sampler = get_language_weighted_sampler(train_samples)
+
+weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(get_language_balancer_weights(train_samples), len(train_samples))
 ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
 en, pt = 0, 0
 for index in ids:
@@ -55,4 +57,24 @@ for index in ids:
     else:
         pt += 1
 
-assert is_balanced(en, pt), "Weighted sampler is supposed to be balanced"
+assert is_balanced(en, pt), "Language Weighted sampler is supposed to be balanced"
+
+# test speaker weighted sampler
+
+# gerenate a speaker unbalanced dataset
+for i in range(0, len(train_samples)):
+    if i < 5:
+        train_samples[i][2] = "ljspeech-0"
+    else:
+        train_samples[i][2] = "ljspeech-1"
+
+weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(get_speaker_balancer_weights(train_samples), len(train_samples))
+ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
+spk1, spk2 = 0, 0
+for index in ids:
+    if train_samples[index][2] == "ljspeech-0":
+        spk1 += 1
+    else:
+        spk2 += 1
+
+assert is_balanced(spk1, spk2), "Speaker Weighted sampler is supposed to be balanced"
