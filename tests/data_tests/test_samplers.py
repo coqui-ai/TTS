@@ -62,11 +62,11 @@ assert is_balanced(en, pt), "Language Weighted sampler is supposed to be balance
 # test speaker weighted sampler
 
 # gerenate a speaker unbalanced dataset
-for i in range(0, len(train_samples)):
+for i, sample in enumerate(train_samples):
     if i < 5:
-        train_samples[i][2] = "ljspeech-0"
+        sample[2] = "ljspeech-0"
     else:
-        train_samples[i][2] = "ljspeech-1"
+        sample[2] = "ljspeech-1"
 
 weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(get_speaker_balancer_weights(train_samples), len(train_samples))
 ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])

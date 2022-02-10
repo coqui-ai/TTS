@@ -71,11 +71,11 @@ config.d_vector_dim = 256
 config.model_args.use_sdp = True
 config.use_sdp = True
 
-# deactivate language sampler
+# activate language and speaker samplers
 config.use_language_weighted_sampler = True
 config.language_weighted_sampler_alpha = 10
 config.use_speaker_weighted_sampler = True
-config.speaker_weighted_sampler_alpha = 1
+config.speaker_weighted_sampler_alpha = 5
 
 config.save_json(config_path)
 
