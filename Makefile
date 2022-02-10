@@ -41,7 +41,6 @@ system-deps:	## install linux system deps
 
 dev-deps:  ## install development deps
 	pip install -r requirements.dev.txt
-	pip install -r requirements.tf.txt
 
 doc-deps:  ## install docs dependencies
 	pip install -r docs/requirements.txt
