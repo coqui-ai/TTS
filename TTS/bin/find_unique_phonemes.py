@@ -43,6 +43,11 @@ def main():
     items = train_items + eval_items
     print("Num items:", len(items))
 
+    is_lang_def = all(item["language"] for item in items)
+
+    if not c.phoneme_language or not is_lang_def:
+        raise ValueError("Phoneme language must be defined in config.")
+
     phonemes = process_map(compute_phonemes, items, max_workers=multiprocessing.cpu_count(), chunksize=15)
     phones = []
     for ph in phonemes:

@@ -101,7 +101,7 @@ class Encoder(nn.Module):
         self.encoder_type = encoder_type
         # embedding layer
         self.emb = nn.Embedding(num_chars, hidden_channels)
-        nn.init.normal_(self.emb.weight, 0.0, hidden_channels ** -0.5)
+        nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
         # init encoder module
         if encoder_type.lower() == "rel_pos_transformer":
             if use_prenet:

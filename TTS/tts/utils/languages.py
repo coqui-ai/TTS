@@ -113,7 +113,7 @@ def _set_file_path(path):
 
 
 def get_language_weighted_sampler(items: list):
-    language_names = np.array([item[3] for item in items])
+    language_names = np.array([item["language"] for item in items])
     unique_language_names = np.unique(language_names).tolist()
     language_ids = [unique_language_names.index(l) for l in language_names]
     language_count = np.array([len(np.where(language_names == l)[0]) for l in unique_language_names])

@@ -24,6 +24,7 @@ def main():
 
     # load all datasets
     train_items, eval_items = load_tts_samples(c.datasets, eval_split=True)
+
     items = train_items + eval_items
 
     texts = "".join(item[0] for item in items)
