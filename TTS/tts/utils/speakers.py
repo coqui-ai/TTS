@@ -457,4 +457,4 @@ def get_speaker_weighted_sampler(items: list):
     dataset_samples_weight = np.array([weight_speaker[l] for l in speaker_ids])
     # normalize
     dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
-    return torch.from_numpy(dataset_samples_weight).double()
+    return torch.from_numpy(dataset_samples_weight).float()
