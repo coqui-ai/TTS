@@ -153,7 +153,7 @@ class Wavegrad(BaseVocoder):
         noise_scale = l_a + torch.rand(y_0.shape[0]).to(y_0) * (l_b - l_a)
         noise_scale = noise_scale.unsqueeze(1)
         noise = torch.randn_like(y_0)
-        noisy_audio = noise_scale * y_0 + (1.0 - noise_scale ** 2) ** 0.5 * noise
+        noisy_audio = noise_scale * y_0 + (1.0 - noise_scale**2) ** 0.5 * noise
         return noise.unsqueeze(1), noisy_audio.unsqueeze(1), noise_scale[:, 0]
 
     def compute_noise_level(self, beta):
@@ -161,8 +161,8 @@ class Wavegrad(BaseVocoder):
         self.num_steps = len(beta)
         alpha = 1 - beta
         alpha_hat = np.cumprod(alpha)
-        noise_level = np.concatenate([[1.0], alpha_hat ** 0.5], axis=0)
-        noise_level = alpha_hat ** 0.5
+        noise_level = np.concatenate([[1.0], alpha_hat**0.5], axis=0)
+        noise_level = alpha_hat**0.5
 
         # pylint: disable=not-callable
         self.beta = torch.tensor(beta.astype(np.float32))
@@ -170,7 +170,7 @@ class Wavegrad(BaseVocoder):
         self.alpha_hat = torch.tensor(alpha_hat.astype(np.float32))
         self.noise_level = torch.tensor(noise_level.astype(np.float32))
 
-        self.c1 = 1 / self.alpha ** 0.5
+        self.c1 = 1 / self.alpha**0.5
         self.c2 = (1 - self.alpha) / (1 - self.alpha_hat) ** 0.5
         self.sigma = ((1.0 - self.alpha_hat[:-1]) / (1.0 - self.alpha_hat[1:]) * self.beta[1:]) ** 0.5
 

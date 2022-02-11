@@ -29,7 +29,9 @@ parser.add_argument(
     help="Path to dataset config file.",
 )
 parser.add_argument("output_path", type=str, help="path for output speakers.json and/or speakers.npy.")
-parser.add_argument("--old_file", type=str, help="Previous speakers.json file, only compute for new audios.", default=None)
+parser.add_argument(
+    "--old_file", type=str, help="Previous speakers.json file, only compute for new audios.", default=None
+)
 parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
 parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
 
@@ -41,7 +43,10 @@ meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_spli
 wav_files = meta_data_train + meta_data_eval
 
 speaker_manager = SpeakerManager(
-    encoder_model_path=args.model_path, encoder_config_path=args.config_path, d_vectors_file_path=args.old_file, use_cuda=args.use_cuda
+    encoder_model_path=args.model_path,
+    encoder_config_path=args.config_path,
+    d_vectors_file_path=args.old_file,
+    use_cuda=args.use_cuda,
 )
 
 # compute speaker embeddings

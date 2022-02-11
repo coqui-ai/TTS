@@ -4,7 +4,6 @@ from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
-
 import torchaudio
 from coqpit import Coqpit
 from torch import nn
@@ -424,9 +423,9 @@ class Vits(BaseTTS):
                 and self.config.audio["sample_rate"] != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
-                        orig_freq=self.audio_config["sample_rate"],
-                        new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
-                        )
+                    orig_freq=self.audio_config["sample_rate"],
+                    new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
+                )
             else:
                 self.audio_transform = None
 
@@ -591,9 +590,9 @@ class Vits(BaseTTS):
         with torch.no_grad():
             o_scale = torch.exp(-2 * logs_p)
             logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p ** 2)])
+            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p**2)])
             logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
-            logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp4 = torch.sum(-0.5 * (m_p**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp2 + logp3 + logp1 + logp4
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
@@ -692,10 +691,17 @@ class Vits(BaseTTS):
 
         if self.args.use_sdp:
             logw = self.duration_predictor(
-                x, x_mask, g=g if self.args.condition_dp_on_speaker else None, reverse=True, noise_scale=self.inference_noise_scale_dp, lang_emb=lang_emb
+                x,
+                x_mask,
+                g=g if self.args.condition_dp_on_speaker else None,
+                reverse=True,
+                noise_scale=self.inference_noise_scale_dp,
+                lang_emb=lang_emb,
             )
         else:
-            logw = self.duration_predictor(x, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb)
+            logw = self.duration_predictor(
+                x, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
+            )
 
         w = torch.exp(logw) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)

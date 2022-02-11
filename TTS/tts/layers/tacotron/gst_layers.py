@@ -141,7 +141,7 @@ class MultiHeadAttention(nn.Module):
 
         # score = softmax(QK^T / (d_k ** 0.5))
         scores = torch.matmul(queries, keys.transpose(2, 3))  # [h, N, T_q, T_k]
-        scores = scores / (self.key_dim ** 0.5)
+        scores = scores / (self.key_dim**0.5)
         scores = F.softmax(scores, dim=3)
 
         # out = score * V

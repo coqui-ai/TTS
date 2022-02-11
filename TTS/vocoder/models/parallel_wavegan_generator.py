@@ -142,7 +142,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         self.apply(_apply_weight_norm)
 
     @staticmethod
-    def _get_receptive_field_size(layers, stacks, kernel_size, dilation=lambda x: 2 ** x):
+    def _get_receptive_field_size(layers, stacks, kernel_size, dilation=lambda x: 2**x):
         assert layers % stacks == 0
         layers_per_cycle = layers // stacks
         dilations = [dilation(i % layers_per_cycle) for i in range(layers)]

@@ -127,5 +127,7 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
     lr_scheduler_gen: str = "StepLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
     lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1})
     lr_scheduler_disc: str = "StepLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
-    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1})
+    lr_scheduler_disc_params: dict = field(
+        default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1}
+    )
     scheduler_after_epoch: bool = False
