@@ -233,6 +233,26 @@ class BaseTTS(BaseTrainerModel):
             "language_ids": language_ids,
         }
 
+    def get_sampler(self, config: Coqpit, data_items: List, sampler: bool = None):
+        weights = None
+        if getattr(config, "use_language_weighted_sampler", False):
+            alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
+            print(" > Using Language weighted sampler with alpha:", alpha)
+            weights = get_language_balancer_weights(data_items) * alpha
+
+        if getattr(config, "use_speaker_weighted_sampler", False):
+            alpha = getattr(config, "speaker_weighted_sampler_alpha", 1.0)
+            print(" > Using Speaker weighted sampler with alpha:", alpha)
+            if weights is not None:
+                weights += get_speaker_balancer_weights(data_items) * alpha
+            else:
+                weights = get_speaker_balancer_weights(data_items) * alpha
+
+        if weights is not None:
+            sampler = WeightedRandomSampler(weights, len(weights))
+
+        return sampler
+
     def get_data_loader(
         self,
         config: Coqpit,
@@ -313,23 +333,7 @@ class BaseTTS(BaseTrainerModel):
                 num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)
             ), "speaker_weighted_sampler is not supported with DistributedSampler"
 
-            if sampler is None:
-                weights = None
-                if getattr(config, "use_language_weighted_sampler", False):
-                    alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
-                    print(" > Using Language weighted sampler with alpha:", alpha)
-                    weights = get_language_balancer_weights(dataset.items) * alpha
-
-                if getattr(config, "use_speaker_weighted_sampler", False):
-                    alpha = getattr(config, "speaker_weighted_sampler_alpha", 1.0)
-                    print(" > Using Speaker weighted sampler with alpha:", alpha)
-                    if weights is not None:
-                        weights += get_speaker_balancer_weights(dataset.items) * alpha
-                    else:
-                        weights = get_speaker_balancer_weights(dataset.items) * alpha
-
-                if weights is not None:
-                    sampler = WeightedRandomSampler(weights, len(weights))
+            sampler = self.get_sampler(config, dataset.items, sampler) if sampler is None else sampler
 
             loader = DataLoader(
                 dataset,
