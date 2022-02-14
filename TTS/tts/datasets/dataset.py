@@ -21,7 +21,7 @@ class TTSDataset(Dataset):
         text_cleaner: list,
         compute_linear_spec: bool,
         ap: AudioProcessor,
-        meta_data: List[List],
+        meta_data: List[Dict],
         compute_f0: bool = False,
         f0_cache_path: str = None,
         characters: Dict = None,
@@ -54,7 +54,7 @@ class TTSDataset(Dataset):
 
             ap (TTS.tts.utils.AudioProcessor): Audio processor object.
 
-            meta_data (list): List of dataset instances.
+            meta_data (list): List of dataset samples.
 
             compute_f0 (bool): compute f0 if True. Defaults to False.
 
@@ -199,15 +199,9 @@ class TTSDataset(Dataset):
 
     def load_data(self, idx):
         item = self.items[idx]
+        raw_text = item["text"]
 
-        if len(item) == 5:
-            text, wav_file, speaker_name, language_name, attn_file = item
-        else:
-            text, wav_file, speaker_name, language_name = item
-            attn = None
-        raw_text = text
-
-        wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
+        wav = np.asarray(self.load_wav(item["audio_file"]), dtype=np.float32)
 
         # apply noise for augmentation
         if self.use_noise_augment:
@@ -216,12 +210,12 @@ class TTSDataset(Dataset):
         if not self.input_seq_computed:
             if self.use_phonemes:
                 text = self._load_or_generate_phoneme_sequence(
-                    wav_file,
-                    text,
+                    item["audio_file"],
+                    item["text"],
                     self.phoneme_cache_path,
                     self.enable_eos_bos,
                     self.cleaners,
-                    language_name if language_name else self.phoneme_language,
+                    item["language"] if item["language"] else self.phoneme_language,
                     self.custom_symbols,
                     self.characters,
                     self.add_blank,
@@ -229,7 +223,7 @@ class TTSDataset(Dataset):
             else:
                 text = np.asarray(
                     text_to_sequence(
-                        text,
+                        item["text"],
                         [self.cleaners],
                         custom_symbols=self.custom_symbols,
                         tp=self.characters,
@@ -238,11 +232,12 @@ class TTSDataset(Dataset):
                     dtype=np.int32,
                 )
 
-        assert text.size > 0, self.items[idx][1]
-        assert wav.size > 0, self.items[idx][1]
+        assert text.size > 0, self.items[idx]["audio_file"]
+        assert wav.size > 0, self.items[idx]["audio_file"]
 
-        if "attn_file" in locals():
-            attn = np.load(attn_file)
+        attn = None
+        if "alignment_file" in item:
+            attn = np.load(item["alignment_file"])
 
         if len(text) > self.max_seq_len:
             # return a different sample if the phonemized
@@ -252,7 +247,7 @@ class TTSDataset(Dataset):
 
         pitch = None
         if self.compute_f0:
-            pitch = self.pitch_extractor.load_or_compute_pitch(self.ap, wav_file, self.f0_cache_path)
+            pitch = self.pitch_extractor.load_or_compute_pitch(self.ap, item["audio_file"], self.f0_cache_path)
             pitch = self.pitch_extractor.normalize_pitch(pitch.astype(np.float32))
 
         sample = {
@@ -261,10 +256,10 @@ class TTSDataset(Dataset):
             "wav": wav,
             "pitch": pitch,
             "attn": attn,
-            "item_idx": self.items[idx][1],
-            "speaker_name": speaker_name,
-            "language_name": language_name,
-            "wav_file_name": os.path.basename(wav_file),
+            "item_idx": item["audio_file"],
+            "speaker_name": item["speaker_name"],
+            "language_name": item["language"],
+            "wav_file_name": os.path.basename(item["audio_file"]),
         }
         return sample
 
@@ -272,11 +267,10 @@ class TTSDataset(Dataset):
     def _phoneme_worker(args):
         item = args[0]
         func_args = args[1]
-        text, wav_file, *_ = item
         func_args[3] = (
-            item[3] if item[3] else func_args[3]
+            item["language"] if "language" in item and item["language"] else func_args[3]
         )  # override phoneme language if specified by the dataset formatter
-        phonemes = TTSDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
+        phonemes = TTSDataset._load_or_generate_phoneme_sequence(item["audio_file"], item["text"], *func_args)
         return phonemes
 
     def compute_input_seq(self, num_workers=0):
@@ -286,10 +280,9 @@ class TTSDataset(Dataset):
             if self.verbose:
                 print(" | > Computing input sequences ...")
             for idx, item in enumerate(tqdm.tqdm(self.items)):
-                text, *_ = item
                 sequence = np.asarray(
                     text_to_sequence(
-                        text,
+                        item["text"],
                         [self.cleaners],
                         custom_symbols=self.custom_symbols,
                         tp=self.characters,
@@ -337,10 +330,10 @@ class TTSDataset(Dataset):
         if by_audio_len:
             lengths = []
             for item in self.items:
-                lengths.append(os.path.getsize(item[1]) / 16 * 8)  # assuming 16bit audio
+                lengths.append(os.path.getsize(item["audio_file"]) / 16 * 8)  # assuming 16bit audio
             lengths = np.array(lengths)
         else:
-            lengths = np.array([len(ins[0]) for ins in self.items])
+            lengths = np.array([len(ins["text"]) for ins in self.items])
 
         idxs = np.argsort(lengths)
         new_items = []
@@ -555,7 +548,7 @@ class PitchExtractor:
 
     def __init__(
         self,
-        items: List[List],
+        items: List[Dict],
         verbose=False,
     ):
         self.items = items
@@ -614,10 +607,9 @@ class PitchExtractor:
         item = args[0]
         ap = args[1]
         cache_path = args[2]
-        _, wav_file, *_ = item
-        pitch_file = PitchExtractor.create_pitch_file_path(wav_file, cache_path)
+        pitch_file = PitchExtractor.create_pitch_file_path(item["audio_file"], cache_path)
         if not os.path.exists(pitch_file):
-            pitch = PitchExtractor._compute_and_save_pitch(ap, wav_file, pitch_file)
+            pitch = PitchExtractor._compute_and_save_pitch(ap, item["audio_file"], pitch_file)
             return pitch
         return None
 

@@ -1,5 +1,7 @@
 import os
 
+import torch
+
 from TTS.config import check_config_and_model_args, get_from_config_or_model_args, load_config, register_config
 from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.datasets import load_tts_samples
@@ -53,15 +55,22 @@ def main():
         else:
             config.num_speakers = speaker_manager.num_speakers
     elif check_config_and_model_args(config, "use_d_vector_file", True):
-        speaker_manager = SpeakerManager(d_vectors_file_path=get_from_config_or_model_args(config, "d_vector_file"))
+        if check_config_and_model_args(config, "use_speaker_encoder_as_loss", True):
+            speaker_manager = SpeakerManager(
+                d_vectors_file_path=config.model_args.d_vector_file,
+                encoder_model_path=config.model_args.speaker_encoder_model_path,
+                encoder_config_path=config.model_args.speaker_encoder_config_path,
+                use_cuda=torch.cuda.is_available(),
+            )
+        else:
+            speaker_manager = SpeakerManager(d_vectors_file_path=get_from_config_or_model_args(config, "d_vector_file"))
+        config.num_speakers = speaker_manager.num_speakers
         if hasattr(config, "model_args"):
             config.model_args.num_speakers = speaker_manager.num_speakers
-        else:
-            config.num_speakers = speaker_manager.num_speakers
     else:
         speaker_manager = None
 
-    if hasattr(config, "use_language_embedding") and config.use_language_embedding:
+    if check_config_and_model_args(config, "use_language_embedding", True):
         language_manager = LanguageManager(config=config)
         if hasattr(config, "model_args"):
             config.model_args.num_languages = language_manager.num_languages

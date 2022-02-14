@@ -39,7 +39,7 @@ class NoamLR(torch.optim.lr_scheduler._LRScheduler):
     def get_lr(self):
         step = max(self.last_epoch, 1)
         return [
-            base_lr * self.warmup_steps ** 0.5 * min(step * self.warmup_steps ** -1.5, step ** -0.5)
+            base_lr * self.warmup_steps**0.5 * min(step * self.warmup_steps**-1.5, step**-0.5)
             for base_lr in self.base_lrs
         ]
 
@@ -63,7 +63,7 @@ def lr_decay(init_lr, global_step, warmup_steps):
     It is only being used by the Speaker Encoder trainer."""
     warmup_steps = float(warmup_steps)
     step = global_step + 1.0
-    lr = init_lr * warmup_steps ** 0.5 * np.minimum(step * warmup_steps ** -1.5, step ** -0.5)
+    lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5, step**-0.5)
     return lr
 
 

@@ -113,7 +113,7 @@ class AugmentWAV(object):
 
     def additive_noise(self, noise_type, audio):
 
-        clean_db = 10 * np.log10(np.mean(audio ** 2) + 1e-4)
+        clean_db = 10 * np.log10(np.mean(audio**2) + 1e-4)
 
         noise_list = random.sample(
             self.noise_list[noise_type],
@@ -135,7 +135,7 @@ class AugmentWAV(object):
                 self.additive_noise_config[noise_type]["min_snr_in_db"],
                 self.additive_noise_config[noise_type]["max_num_noises"],
             )
-            noise_db = 10 * np.log10(np.mean(noiseaudio ** 2) + 1e-4)
+            noise_db = 10 * np.log10(np.mean(noiseaudio**2) + 1e-4)
             noise_wav = np.sqrt(10 ** ((clean_db - noise_db - noise_snr) / 10)) * noiseaudio
 
             if noises_wav is None:
@@ -154,7 +154,7 @@ class AugmentWAV(object):
 
         rir_file = random.choice(self.rir_files)
         rir = self.ap.load_wav(rir_file, sr=self.ap.sample_rate)
-        rir = rir / np.sqrt(np.sum(rir ** 2))
+        rir = rir / np.sqrt(np.sum(rir**2))
         return signal.convolve(audio, rir, mode=self.rir_config["conv_mode"])[:audio_len]
 
     def apply_one(self, audio):
