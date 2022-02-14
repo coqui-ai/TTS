@@ -35,14 +35,15 @@ eval_samples, train_samples = load_wav_data(config.data_path, config.eval_split_
 # init model
 model = Wavegrad(config)
 
-# init the trainer and 🚀
-trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
-)
-trainer.fit()
+if __name__ == "__main__":
+    # init the trainer and 🚀
+    trainer = Trainer(
+        TrainingArgs(),
+        config,
+        output_path,
+        model=model,
+        train_samples=train_samples,
+        eval_samples=eval_samples,
+        training_assets={"audio_processor": ap},
+    )
+    trainer.fit()

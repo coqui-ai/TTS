@@ -117,14 +117,15 @@ config.model_args.num_languages = language_manager.num_languages
 # init model
 model = Vits(config, speaker_manager, language_manager)
 
-# init the trainer and 🚀
-trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
-)
-trainer.fit()
+if __name__ == "__main__":
+    # init the trainer and 🚀
+    trainer = Trainer(
+        TrainingArgs(),
+        config,
+        output_path,
+        model=model,
+        train_samples=train_samples,
+        eval_samples=eval_samples,
+        training_assets={"audio_processor": ap},
+    )
+    trainer.fit()

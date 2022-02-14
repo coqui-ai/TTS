@@ -67,14 +67,15 @@ speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
 # init model
 model = Tacotron(config, speaker_manager)
 
-# init the trainer and 🚀
-trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
-)
-trainer.fit()
+if __name__ == "__main__":
+    # init the trainer and 🚀
+    trainer = Trainer(
+        TrainingArgs(),
+        config,
+        output_path,
+        model=model,
+        train_samples=train_samples,
+        eval_samples=eval_samples,
+        training_assets={"audio_processor": ap},
+    )
+    trainer.fit()

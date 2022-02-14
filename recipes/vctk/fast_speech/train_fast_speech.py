@@ -67,14 +67,15 @@ config.model_args.num_speakers = speaker_manager.num_speakers
 # init model
 model = ForwardTTS(config, speaker_manager)
 
-# init the trainer and 🚀
-trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
-)
-trainer.fit()
+if __name__ == "__main__":
+    # init the trainer and 🚀
+    trainer = Trainer(
+        TrainingArgs(),
+        config,
+        output_path,
+        model=model,
+        train_samples=train_samples,
+        eval_samples=eval_samples,
+        training_assets={"audio_processor": ap},
+    )
+    trainer.fit()

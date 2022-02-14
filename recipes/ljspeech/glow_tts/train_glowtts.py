@@ -65,15 +65,17 @@ model = GlowTTS(config, speaker_manager=None)
 # INITIALIZE THE TRAINER
 # Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
 # distributed training, etc.
-trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},  # assets are objetcs used by the models but not class members.
-)
 
-# AND... 3,2,1... 🚀
-trainer.fit()
+if __name__ == "__main__":
+    trainer = Trainer(
+        TrainingArgs(),
+        config,
+        output_path,
+        model=model,
+        train_samples=train_samples,
+        eval_samples=eval_samples,
+        training_assets={"audio_processor": ap},  # assets are objetcs used by the models but not class members.
+    )
+
+    # AND... 3,2,1... 🚀
+    trainer.fit()
