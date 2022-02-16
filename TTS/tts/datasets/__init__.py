@@ -15,7 +15,7 @@ def split_dataset(items):
     Args:
         items (List[List]): A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
     """
-    speakers = [item[-1] for item in items]
+    speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
     eval_split_size = min(500, int(len(items) * 0.01))
     assert eval_split_size > 0, " [!] You do not have enough samples to train. You need at least 100 samples."
@@ -23,11 +23,11 @@ def split_dataset(items):
     np.random.shuffle(items)
     if is_multi_speaker:
         items_eval = []
-        speakers = [item[-1] for item in items]
+        speakers = [item["speaker_name"] for item in items]
         speaker_counter = Counter(speakers)
         while len(items_eval) < eval_split_size:
             item_idx = np.random.randint(0, len(items))
-            speaker_to_be_removed = items[item_idx][-1]
+            speaker_to_be_removed = items[item_idx]["speaker_name"]
             if speaker_counter[speaker_to_be_removed] > 1:
                 items_eval.append(items[item_idx])
                 speaker_counter[speaker_to_be_removed] -= 1
