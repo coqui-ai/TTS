@@ -59,7 +59,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         # define residual blocks
         self.conv_layers = torch.nn.ModuleList()
         for layer in range(num_res_blocks):
-            dilation = 2 ** (layer % layers_per_stack)
+            dilation = 2**(layer % layers_per_stack)
             conv = ResidualBlock(
                 kernel_size=kernel_size,
                 res_channels=res_channels,
@@ -142,7 +142,7 @@ class ParallelWaveganGenerator(torch.nn.Module):
         self.apply(_apply_weight_norm)
 
     @staticmethod
-    def _get_receptive_field_size(layers, stacks, kernel_size, dilation=lambda x: 2 ** x):
+    def _get_receptive_field_size(layers, stacks, kernel_size, dilation=lambda x: 2**x):
         assert layers % stacks == 0
         layers_per_cycle = layers // stacks
         dilations = [dilation(i % layers_per_cycle) for i in range(layers)]

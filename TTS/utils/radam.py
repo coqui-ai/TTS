@@ -69,7 +69,7 @@ class RAdam(Optimizer):
                     N_sma, step_size = buffered[1], buffered[2]
                 else:
                     buffered[0] = state["step"]
-                    beta2_t = beta2 ** state["step"]
+                    beta2_t = beta2**state["step"]
                     N_sma_max = 2 / (1 - beta2) - 1
                     N_sma = N_sma_max - 2 * state["step"] * beta2_t / (1 - beta2_t)
                     buffered[1] = N_sma
@@ -84,9 +84,9 @@ class RAdam(Optimizer):
                             / N_sma
                             * N_sma_max
                             / (N_sma_max - 2)
-                        ) / (1 - beta1 ** state["step"])
+                        ) / (1 - beta1**state["step"])
                     elif self.degenerated_to_sgd:
-                        step_size = 1.0 / (1 - beta1 ** state["step"])
+                        step_size = 1.0 / (1 - beta1**state["step"])
                     else:
                         step_size = -1
                     buffered[2] = step_size

@@ -35,7 +35,7 @@ class ParallelWaveganDiscriminator(nn.Module):
             if i == 0:
                 dilation = 1
             else:
-                dilation = i if dilation_factor == 1 else dilation_factor ** i
+                dilation = i if dilation_factor == 1 else dilation_factor**i
                 conv_in_channels = conv_channels
             padding = (kernel_size - 1) // 2 * dilation
             conv_layer = [
@@ -123,7 +123,7 @@ class ResidualParallelWaveganDiscriminator(nn.Module):
         # define residual blocks
         self.conv_layers = nn.ModuleList()
         for layer in range(num_layers):
-            dilation = 2 ** (layer % layers_per_stack)
+            dilation = 2**(layer % layers_per_stack)
             conv = ResidualBlock(
                 kernel_size=kernel_size,
                 res_channels=res_channels,

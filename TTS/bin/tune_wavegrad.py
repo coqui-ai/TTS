@@ -71,10 +71,10 @@ if args.use_cuda:
 # setup optimization parameters
 base_values = sorted(10 * np.random.uniform(size=args.search_depth))
 print(base_values)
-exponents = 10 ** np.linspace(-6, -1, num=args.num_iter)
+exponents = 10**np.linspace(-6, -1, num=args.num_iter)
 best_error = float("inf")
 best_schedule = None
-total_search_iter = len(base_values) ** args.num_iter
+total_search_iter = len(base_values)**args.num_iter
 for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=total_search_iter):
     beta = exponents * base
     model.compute_noise_level(beta)
@@ -92,7 +92,7 @@ for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=tot
             mel_hat.append(torch.from_numpy(m))
 
         mel_hat = torch.stack(mel_hat)
-        mse = torch.sum((mel - mel_hat) ** 2).mean()
+        mse = torch.sum((mel - mel_hat)**2).mean()
         if mse.item() < best_error:
             best_error = mse.item()
             best_schedule = {"beta": beta}

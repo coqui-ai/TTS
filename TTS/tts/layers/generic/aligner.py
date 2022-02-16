@@ -71,7 +71,7 @@ class AlignmentNetwork(torch.nn.Module):
         """
         key_out = self.key_layer(keys)
         query_out = self.query_layer(queries)
-        attn_factor = (query_out[:, :, :, None] - key_out[:, :, None]) ** 2
+        attn_factor = (query_out[:, :, :, None] - key_out[:, :, None])**2
         attn_logp = -self.temperature * attn_factor.sum(1, keepdim=True)
         if attn_prior is not None:
             attn_logp = self.log_softmax(attn_logp) + torch.log(attn_prior[:, None] + 1e-8)
