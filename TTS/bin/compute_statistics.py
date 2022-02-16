@@ -51,7 +51,7 @@ def main():
     N = 0
     for item in tqdm(dataset_items):
         # compute features
-        wav = ap.load_wav(item if isinstance(item, str) else item[1])
+        wav = ap.load_wav(item if isinstance(item, str) else item["audio_file"])
         linear = ap.spectrogram(wav)
         mel = ap.melspectrogram(wav)
 

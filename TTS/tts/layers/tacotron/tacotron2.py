@@ -6,7 +6,6 @@ from .attentions import init_attn
 from .common_layers import Linear, Prenet
 
 
-# NOTE: linter has a problem with the current TF release
 # pylint: disable=no-value-for-parameter
 # pylint: disable=unexpected-keyword-arg
 class ConvBNBlock(nn.Module):

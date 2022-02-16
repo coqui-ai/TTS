@@ -70,11 +70,11 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
         lr_scheduler_gen (torch.optim.Scheduler):
             Learning rate scheduler for the generator. Defaults to `ExponentialLR`.
         lr_scheduler_gen_params (dict):
-            Parameters for the generator learning rate scheduler. Defaults to `{"gamma": 0.999, "last_epoch": -1}`.
+            Parameters for the generator learning rate scheduler. Defaults to `{"gamma": 0.5, "step_size": 200000, "last_epoch": -1}`.
         lr_scheduler_disc (torch.optim.Scheduler):
             Learning rate scheduler for the discriminator. Defaults to `ExponentialLR`.
         lr_scheduler_dict_params (dict):
-            Parameters for the discriminator learning rate scheduler. Defaults to `{"gamma": 0.999, "last_epoch": -1}`.
+            Parameters for the discriminator learning rate scheduler. Defaults to `{"gamma": 0.5, "step_size": 200000, "last_epoch": -1}`.
     """
 
     model: str = "parallel_wavegan"
@@ -124,7 +124,10 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
     lr_disc: float = 0.0002  # Initial learning rate.
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "weight_decay": 0.0})
-    lr_scheduler_gen: str = "ExponentialLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
-    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
-    lr_scheduler_disc: str = "ExponentialLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
-    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.999, "last_epoch": -1})
+    lr_scheduler_gen: str = "StepLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
+    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1})
+    lr_scheduler_disc: str = "StepLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
+    lr_scheduler_disc_params: dict = field(
+        default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1}
+    )
+    scheduler_after_epoch: bool = False
