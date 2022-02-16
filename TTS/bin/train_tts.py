@@ -1,4 +1,5 @@
 import os
+
 import torch
 
 from TTS.config import check_config_and_model_args, get_from_config_or_model_args, load_config, register_config

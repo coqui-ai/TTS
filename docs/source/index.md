@@ -27,7 +27,6 @@
     formatting_your_dataset
     what_makes_a_good_dataset
     tts_datasets
-    converting_torch_to_tf
 
 .. toctree::
     :maxdepth: 2

@@ -4,7 +4,6 @@ from itertools import chain
 from typing import Dict, List, Tuple
 
 import torch
-
 import torchaudio
 from coqpit import Coqpit
 from torch import nn
@@ -171,6 +170,9 @@ class VitsArgs(Coqpit):
         speaker_encoder_model_path (str):
             Path to the file speaker encoder checkpoint file, to use for SCL. Defaults to "".
 
+        condition_dp_on_speaker (bool):
+            Condition the duration predictor on the speaker embedding. Defaults to True.
+
         freeze_encoder (bool):
             Freeze the encoder weigths during training. Defaults to False.
 
@@ -233,6 +235,7 @@ class VitsArgs(Coqpit):
     use_speaker_encoder_as_loss: bool = False
     speaker_encoder_config_path: str = ""
     speaker_encoder_model_path: str = ""
+    condition_dp_on_speaker: bool = True
     freeze_encoder: bool = False
     freeze_DP: bool = False
     freeze_PE: bool = False
@@ -349,7 +352,7 @@ class Vits(BaseTTS):
                 3,
                 args.dropout_p_duration_predictor,
                 4,
-                cond_channels=self.embedded_speaker_dim,
+                cond_channels=self.embedded_speaker_dim if self.args.condition_dp_on_speaker else 0,
                 language_emb_dim=self.embedded_language_dim,
             )
         else:
@@ -358,7 +361,7 @@ class Vits(BaseTTS):
                 256,
                 3,
                 args.dropout_p_duration_predictor,
-                cond_channels=self.embedded_speaker_dim,
+                cond_channels=self.embedded_speaker_dim if self.args.condition_dp_on_speaker else 0,
                 language_emb_dim=self.embedded_language_dim,
             )
 
@@ -420,9 +423,9 @@ class Vits(BaseTTS):
                 and self.config.audio["sample_rate"] != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
-                        orig_freq=self.audio_config["sample_rate"],
-                        new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
-                        )
+                    orig_freq=self.audio_config["sample_rate"],
+                    new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
+                )
             else:
                 self.audio_transform = None
 
@@ -587,20 +590,23 @@ class Vits(BaseTTS):
         with torch.no_grad():
             o_scale = torch.exp(-2 * logs_p)
             logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p ** 2)])
+            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p**2)])
             logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
-            logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp4 = torch.sum(-0.5 * (m_p**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp2 + logp3 + logp1 + logp4
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
         # duration predictor
         attn_durations = attn.sum(3)
+        g_dp = None
+        if self.args.condition_dp_on_speaker:
+            g_dp = g.detach() if self.args.detach_dp_input and g is not None else g
         if self.args.use_sdp:
             loss_duration = self.duration_predictor(
                 x.detach() if self.args.detach_dp_input else x,
                 x_mask,
                 attn_durations,
-                g=g.detach() if self.args.detach_dp_input and g is not None else g,
+                g=g_dp,
                 lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
             )
             loss_duration = loss_duration / torch.sum(x_mask)
@@ -609,7 +615,7 @@ class Vits(BaseTTS):
             log_durations = self.duration_predictor(
                 x.detach() if self.args.detach_dp_input else x,
                 x_mask,
-                g=g.detach() if self.args.detach_dp_input and g is not None else g,
+                g=g_dp,
                 lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
             )
             loss_duration = torch.sum((log_durations - attn_log_durations) ** 2, [1, 2]) / torch.sum(x_mask)
@@ -685,10 +691,17 @@ class Vits(BaseTTS):
 
         if self.args.use_sdp:
             logw = self.duration_predictor(
-                x, x_mask, g=g, reverse=True, noise_scale=self.inference_noise_scale_dp, lang_emb=lang_emb
+                x,
+                x_mask,
+                g=g if self.args.condition_dp_on_speaker else None,
+                reverse=True,
+                noise_scale=self.inference_noise_scale_dp,
+                lang_emb=lang_emb,
             )
         else:
-            logw = self.duration_predictor(x, x_mask, g=g, lang_emb=lang_emb)
+            logw = self.duration_predictor(
+                x, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
+            )
 
         w = torch.exp(logw) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)

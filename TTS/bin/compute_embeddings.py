@@ -29,6 +29,9 @@ parser.add_argument(
     help="Path to dataset config file.",
 )
 parser.add_argument("output_path", type=str, help="path for output speakers.json and/or speakers.npy.")
+parser.add_argument(
+    "--old_file", type=str, help="Previous speakers.json file, only compute for new audios.", default=None
+)
 parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
 parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
 
@@ -40,7 +43,10 @@ meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_spli
 wav_files = meta_data_train + meta_data_eval
 
 speaker_manager = SpeakerManager(
-    encoder_model_path=args.model_path, encoder_config_path=args.config_path, use_cuda=args.use_cuda
+    encoder_model_path=args.model_path,
+    encoder_config_path=args.config_path,
+    d_vectors_file_path=args.old_file,
+    use_cuda=args.use_cuda,
 )
 
 # compute speaker embeddings
@@ -52,11 +58,15 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     else:
         speaker_name = None
 
-    # extract the embedding
-    embedd = speaker_manager.compute_d_vector_from_clip(wav_file)
+    wav_file_name = os.path.basename(wav_file)
+    if args.old_file is not None and wav_file_name in speaker_manager.clip_ids:
+        # get the embedding from the old file
+        embedd = speaker_manager.get_d_vector_by_clip(wav_file_name)
+    else:
+        # extract the embedding
+        embedd = speaker_manager.compute_d_vector_from_clip(wav_file)
 
     # create speaker_mapping if target dataset is defined
-    wav_file_name = os.path.basename(wav_file)
     speaker_mapping[wav_file_name] = {}
     speaker_mapping[wav_file_name]["name"] = speaker_name
     speaker_mapping[wav_file_name]["embedding"] = embedd

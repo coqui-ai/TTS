@@ -118,7 +118,7 @@ class SpeakerManager:
         Returns:
             Tuple[Dict, int]: speaker IDs and number of speakers.
         """
-        speakers = sorted({item[2] for item in items})
+        speakers = sorted({item["speaker_name"] for item in items})
         speaker_ids = {name: i for i, name in enumerate(speakers)}
         num_speakers = len(speaker_ids)
         return speaker_ids, num_speakers
@@ -414,7 +414,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
 
 
 def get_speaker_weighted_sampler(items: list):
-    speaker_names = np.array([item[2] for item in items])
+    speaker_names = np.array([item["speaker_name"] for item in items])
     unique_speaker_names = np.unique(speaker_names).tolist()
     speaker_ids = [unique_speaker_names.index(l) for l in speaker_names]
     speaker_count = np.array([len(np.where(speaker_names == l)[0]) for l in unique_speaker_names])
