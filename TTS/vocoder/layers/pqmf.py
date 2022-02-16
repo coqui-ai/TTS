@@ -22,7 +22,7 @@ class PQMF(torch.nn.Module):
             constant_factor = (
                 (2 * k + 1) * (np.pi / (2 * N)) * (np.arange(taps + 1) - ((taps - 1) / 2))
             )  # TODO: (taps - 1) -> taps
-            phase = (-1)**k * np.pi / 4
+            phase = (-1) ** k * np.pi / 4
             H[k] = 2 * QMF * np.cos(constant_factor + phase)
 
             G[k] = 2 * QMF * np.cos(constant_factor - phase)

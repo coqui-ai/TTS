@@ -12,7 +12,7 @@ class ResidualStack(nn.Module):
         self.blocks = nn.ModuleList()
         for idx in range(num_res_blocks):
             layer_kernel_size = kernel_size
-            layer_dilation = layer_kernel_size**idx
+            layer_dilation = layer_kernel_size ** idx
             layer_padding = base_padding * layer_dilation
             self.blocks += [
                 nn.Sequential(

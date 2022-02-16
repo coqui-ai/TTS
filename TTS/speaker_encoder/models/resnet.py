@@ -229,7 +229,7 @@ class ResNetSpeakerEncoder(nn.Module):
             x = torch.sum(x * w, dim=2)
         elif self.encoder_type == "ASP":
             mu = torch.sum(x * w, dim=2)
-            sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu**2).clamp(min=1e-5))
+            sg = torch.sqrt((torch.sum((x ** 2) * w, dim=2) - mu ** 2).clamp(min=1e-5))
             x = torch.cat((mu, sg), 1)
 
         x = x.view(x.size()[0], -1)

@@ -128,7 +128,7 @@ def validate_file(file_obj: Any, hash_value: str, hash_type: str = "sha256") -> 
 
     while True:
         # Read by chunk to avoid filling memory
-        chunk = file_obj.read(1024**2)
+        chunk = file_obj.read(1024 ** 2)
         if not chunk:
             break
         hash_func.update(chunk)

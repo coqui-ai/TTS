@@ -33,7 +33,7 @@ class DilatedDepthSeparableConv(nn.Module):
         self.norms_1 = nn.ModuleList()
         self.norms_2 = nn.ModuleList()
         for i in range(num_layers):
-            dilation = kernel_size**i
+            dilation = kernel_size ** i
             padding = (kernel_size * dilation - dilation) // 2
             self.convs_sep.append(
                 nn.Conv1d(channels, channels, kernel_size, groups=channels, dilation=dilation, padding=padding)
@@ -264,7 +264,7 @@ class StochasticDurationPredictor(nn.Module):
             # posterior encoder - neg log likelihood
             logdet_tot_q += torch.sum((F.logsigmoid(z_u) + F.logsigmoid(-z_u)) * x_mask, [1, 2])
             nll_posterior_encoder = (
-                torch.sum(-0.5 * (math.log(2 * math.pi) + (noise**2)) * x_mask, [1, 2]) - logdet_tot_q
+                torch.sum(-0.5 * (math.log(2 * math.pi) + (noise ** 2)) * x_mask, [1, 2]) - logdet_tot_q
             )
 
             z0 = torch.log(torch.clamp_min(z0, 1e-5)) * x_mask
@@ -279,7 +279,7 @@ class StochasticDurationPredictor(nn.Module):
                     z = torch.flip(z, [1])
 
             # flow layers - neg log likelihood
-            nll_flow_layers = torch.sum(0.5 * (math.log(2 * math.pi) + (z**2)) * x_mask, [1, 2]) - logdet_tot
+            nll_flow_layers = torch.sum(0.5 * (math.log(2 * math.pi) + (z ** 2)) * x_mask, [1, 2]) - logdet_tot
             return nll_flow_layers + nll_posterior_encoder
 
         flows = list(reversed(self.flows))

@@ -207,8 +207,8 @@ class HifiganGenerator(torch.nn.Module):
             self.ups.append(
                 weight_norm(
                     ConvTranspose1d(
-                        upsample_initial_channel // (2**i),
-                        upsample_initial_channel // (2**(i + 1)),
+                        upsample_initial_channel // (2 ** i),
+                        upsample_initial_channel // (2 ** (i + 1)),
                         k,
                         u,
                         padding=(k - u) // 2,
@@ -218,7 +218,7 @@ class HifiganGenerator(torch.nn.Module):
         # MRF blocks
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
-            ch = upsample_initial_channel // (2**(i + 1))
+            ch = upsample_initial_channel // (2 ** (i + 1))
             for _, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer

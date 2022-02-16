@@ -72,6 +72,6 @@ class ResidualBlock(torch.nn.Module):
         s = self.conv1x1_skip(x)
 
         # for residual connection
-        x = (self.conv1x1_out(x) + residual) * (0.5**2)
+        x = (self.conv1x1_out(x) + residual) * (0.5 ** 2)
 
         return x, s

@@ -218,7 +218,7 @@ class GuidedAttentionLoss(torch.nn.Module):
     def _make_ga_mask(ilen, olen, sigma):
         grid_x, grid_y = torch.meshgrid(torch.arange(olen).to(olen), torch.arange(ilen).to(ilen))
         grid_x, grid_y = grid_x.float(), grid_y.float()
-        return 1.0 - torch.exp(-((grid_y / ilen - grid_x / olen)**2) / (2 * (sigma**2)))
+        return 1.0 - torch.exp(-((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma ** 2)))
 
     @staticmethod
     def _make_masks(ilens, olens):
@@ -478,10 +478,10 @@ class GlowTTSLoss(torch.nn.Module):
     def forward(self, z, means, scales, log_det, y_lengths, o_dur_log, o_attn_dur, x_lengths):
         return_dict = {}
         # flow loss - neg log likelihood
-        pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means)**2)
+        pz = torch.sum(scales) + 0.5 * torch.sum(torch.exp(-2 * scales) * (z - means) ** 2)
         log_mle = self.constant_factor + (pz - torch.sum(log_det)) / (torch.sum(y_lengths) * z.shape[2])
         # duration loss - MSE
-        loss_dur = torch.sum((o_dur_log - o_attn_dur)**2) / torch.sum(x_lengths)
+        loss_dur = torch.sum((o_dur_log - o_attn_dur) ** 2) / torch.sum(x_lengths)
         # duration loss - huber loss
         # loss_dur = torch.nn.functional.smooth_l1_loss(o_dur_log, o_attn_dur, reduction="sum") / torch.sum(x_lengths)
         return_dict["loss"] = log_mle + loss_dur
@@ -619,7 +619,7 @@ class VitsGeneratorLoss(nn.Module):
         gen_losses = []
         for dg in scores_fake:
             dg = dg.float()
-            l = torch.mean((1 - dg)**2)
+            l = torch.mean((1 - dg) ** 2)
             gen_losses.append(l)
             loss += l
 
@@ -638,7 +638,7 @@ class VitsGeneratorLoss(nn.Module):
         z_mask = z_mask.float()
 
         kl = logs_p - logs_q - 0.5
-        kl += 0.5 * ((z_p - m_p)**2) * torch.exp(-2.0 * logs_p)
+        kl += 0.5 * ((z_p - m_p) ** 2) * torch.exp(-2.0 * logs_p)
         kl = torch.sum(kl * z_mask)
         l = kl / torch.sum(z_mask)
         return l
@@ -721,8 +721,8 @@ class VitsDiscriminatorLoss(nn.Module):
         for dr, dg in zip(scores_real, scores_fake):
             dr = dr.float()
             dg = dg.float()
-            real_loss = torch.mean((1 - dr)**2)
-            fake_loss = torch.mean(dg**2)
+            real_loss = torch.mean((1 - dr) ** 2)
+            fake_loss = torch.mean(dg ** 2)
             loss += real_loss + fake_loss
             real_losses.append(real_loss.item())
             fake_losses.append(fake_loss.item())

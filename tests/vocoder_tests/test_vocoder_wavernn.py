@@ -46,6 +46,6 @@ def test_wavernn():
     config.model_args.mode = 4
     model = Wavernn(config)
     output = model(dummy_x, dummy_m)
-    assert np.all(output.shape == (2, 1280, 2**4)), output.shape
+    assert np.all(output.shape == (2, 1280, 2 ** 4)), output.shape
     output = model.inference(dummy_y, True, 5500, 550)
     assert np.all(output.shape == (256 * (y_size - 1),))
