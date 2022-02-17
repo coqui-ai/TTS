@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 
 from tests import get_tests_output_path
 from TTS.tts.configs.shared_configs import BaseTTSConfig
-from TTS.tts.datasets import TTSDataset
-from TTS.tts.datasets.formatters import ljspeech
+from TTS.tts.datasets import TTSDataset, load_tts_samples
+from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.utils.audio import AudioProcessor
 
 # pylint: disable=unused-variable
@@ -18,10 +18,18 @@ OUTPATH = os.path.join(get_tests_output_path(), "loader_tests/")
 os.makedirs(OUTPATH, exist_ok=True)
 
 # create a dummy config for testing data loaders.
-c = BaseTTSConfig(text_cleaner="english_cleaners", num_loader_workers=0, batch_size=2)
+c = BaseTTSConfig(text_cleaner="english_cleaners", num_loader_workers=0, batch_size=2, use_noise_augment=False)
 c.r = 5
 c.data_path = "tests/data/ljspeech/"
 ok_ljspeech = os.path.exists(c.data_path)
+
+dataset_config = BaseDatasetConfig(
+    name="ljspeech_test", # ljspeech_test to multi-speaker
+    meta_file_train="metadata.csv",
+    meta_file_val=None,
+    path=c.data_path,
+    language="en",
+)
 
 DATA_EXIST = True
 if not os.path.exists(c.data_path):
@@ -37,11 +45,10 @@ class TestTTSDataset(unittest.TestCase):
         self.ap = AudioProcessor(**c.audio)
 
     def _create_dataloader(self, batch_size, r, bgs):
-        items = ljspeech(c.data_path, "metadata.csv")
 
-        # add a default language because now the TTSDataset expect a language
-        language = ""
-        items = [[*item, language] for item in items]
+        # load dataset
+        meta_data_train, meta_data_eval = load_tts_samples(dataset_config, eval_split=True, eval_split_proportion=0.2)
+        items = meta_data_train + meta_data_eval
 
         dataset = TTSDataset(
             r,
@@ -97,8 +104,12 @@ class TestTTSDataset(unittest.TestCase):
 
                 # make sure that the computed mels and the waveform match and correctly computed
                 mel_new = self.ap.melspectrogram(wavs[0].squeeze().numpy())
+                # remove padding in mel-spectrogram
+                mel_dataloader = mel_input[0].T.numpy()[:, :mel_lengths[0]]
+                # guarantee that both mel-spectrograms have the same size and that we will remove waveform padding
+                mel_new = mel_new[:, :mel_lengths[0]]
                 ignore_seg = -(1 + c.audio.win_length // c.audio.hop_length)
-                mel_diff = (mel_new[:, : mel_input.shape[1]] - mel_input[0].T.numpy())[:, 0:ignore_seg]
+                mel_diff = (mel_new - mel_dataloader)[:, 0:ignore_seg]
                 assert abs(mel_diff.sum()) < 1e-5
 
                 # check normalization ranges
