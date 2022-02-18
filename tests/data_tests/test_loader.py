@@ -47,7 +47,7 @@ class TestTTSDataset(unittest.TestCase):
     def _create_dataloader(self, batch_size, r, bgs):
 
         # load dataset
-        meta_data_train, meta_data_eval = load_tts_samples(dataset_config, eval_split=True, eval_split_proportion=0.2)
+        meta_data_train, meta_data_eval = load_tts_samples(dataset_config, eval_split=True, eval_split_size=0.2)
         items = meta_data_train + meta_data_eval
 
         dataset = TTSDataset(

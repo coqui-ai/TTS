@@ -229,7 +229,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
 
     # load data instances
-    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=args.eval, eval_split_max_size=c.eval_split_max_size, eval_split_proportion=c.eval_split_proportion)
+    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=args.eval, eval_split_max_size=c.eval_split_max_size, eval_split_size=c.eval_split_size)
 
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval
