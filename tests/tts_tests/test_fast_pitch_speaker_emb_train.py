@@ -5,6 +5,7 @@ import shutil
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.fast_pitch_config import FastPitchConfig
+from TTS.utils.trainer_utils import get_last_checkpoint
 
 config_path = os.path.join(get_tests_output_path(), "test_fast_pitch_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -62,6 +63,16 @@ run_cli(command_train)
 
 # Find latest folder
 continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getmtime)
+
+# Inference using TTS API
+continue_config_path = os.path.join(continue_path, "config.json")
+continue_restore_path, _ = get_last_checkpoint(continue_path)
+out_wav_path = os.path.join(get_tests_output_path(), 'output.wav')
+speaker_id = "ljspeech-1"
+continue_speakers_path = os.path.join(continue_path, "speakers.json")
+
+inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
+run_cli(inference_command)
 
 # restore the model and continue training for one more epoch
 command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "
