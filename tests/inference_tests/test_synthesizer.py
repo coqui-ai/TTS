@@ -6,7 +6,7 @@ from TTS.tts.models import setup_model
 from TTS.utils.io import save_checkpoint
 from TTS.utils.synthesizer import Synthesizer
 
-from .. import get_tests_output_path
+from tests import get_tests_output_path
 
 
 class SynthesizerTest(unittest.TestCase):
