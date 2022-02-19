@@ -7,7 +7,7 @@ from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.fast_pitch_config import FastPitchConfig
 from TTS.utils.trainer_utils import get_last_checkpoint
 
-config_path = os.path.join(get_tests_output_path(), "test_fast_pitch_config.json")
+config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 audio_config = BaseAudioConfig(
@@ -45,6 +45,8 @@ config = FastPitchConfig(
     ],
 )
 config.audio.do_trim_silence = True
+config.use_speaker_embedding = True
+config.model_args.use_speaker_embedding = True
 config.audio.trim_db = 60
 config.save_json(config_path)
 
