@@ -307,9 +307,7 @@ class Wavegrad(BaseVocoder):
         y = y.unsqueeze(1)
         return {"input": m, "waveform": y}
 
-    def get_data_loader(
-        self, config: Coqpit, assets: Dict, is_eval: True, samples: List, verbose: bool, num_gpus: int
-    ):
+    def get_data_loader(self, config: Coqpit, assets: Dict, is_eval: True, samples: List, verbose: bool, num_gpus: int):
         ap = assets["audio_processor"]
         dataset = WaveGradDataset(
             ap=ap,

@@ -5,11 +5,11 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 
+# pylint: skip-file
 
 
 class BaseTrainerModel(ABC, nn.Module):
-    """Abstract 🐸TTS class. Every new 🐸TTS model must inherit this.
-    """
+    """Abstract 🐸TTS class. Every new 🐸TTS model must inherit this."""
 
     @staticmethod
     @abstractmethod
