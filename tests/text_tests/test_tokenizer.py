@@ -64,6 +64,7 @@ class TestTTSTokenizer(unittest.TestCase):
     def test_init_from_config(self):
         @dataclass
         class Characters(Coqpit):
+            characters_class: str = None
             characters: str = _phonemes
             punctuations: str = _punctuations
             pad: str = _pad
