@@ -568,12 +568,13 @@ class Wavernn(BaseVocoder):
         return self.train_step(batch, criterion)
 
     @torch.no_grad()
-    def test_run(
-        self, assets: Dict, samples: List[Dict], output: Dict  # pylint: disable=unused-argument
+    def test(
+        self, assets: Dict, test_loader: "DataLoader", output: Dict  # pylint: disable=unused-argument
     ) -> Tuple[Dict, Dict]:
         ap = assets["audio_processor"]
         figures = {}
         audios = {}
+        samples = test_loader.dataset.load_test_samples(1)
         for idx, sample in enumerate(samples):
             x = torch.FloatTensor(sample[0])
             x = x.to(next(self.parameters()).device)
@@ -600,14 +601,14 @@ class Wavernn(BaseVocoder):
         config: Coqpit,
         assets: Dict,
         is_eval: True,
-        data_items: List,
+        samples: List,
         verbose: bool,
         num_gpus: int,
     ):
         ap = assets["audio_processor"]
         dataset = WaveRNNDataset(
             ap=ap,
-            items=data_items,
+            items=samples,
             seq_len=config.seq_len,
             hop_len=ap.hop_length,
             pad=config.model_args.pad,
