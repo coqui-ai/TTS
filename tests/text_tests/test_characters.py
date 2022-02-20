@@ -1,13 +1,8 @@
 import unittest
 
-from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes, create_graphemes, create_phonemes
+from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes
 
 # pylint: disable=protected-access
-
-
-def test_make_symbols():
-    _ = create_phonemes()
-    _ = create_graphemes()
 
 
 class BaseCharacterTest(unittest.TestCase):

@@ -11,7 +11,7 @@ from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.models.glow_tts import GlowTTS
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.logging.tensorboard_logger import TensorboardLogger
+from trainer.logging.tensorboard_logger import TensorboardLogger
 
 # pylint: disable=unused-variable
 
