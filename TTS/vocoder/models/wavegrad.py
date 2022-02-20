@@ -270,7 +270,7 @@ class Wavegrad(BaseVocoder):
     ) -> None:
         pass
 
-    def test(self, assets: Dict, test_loader:"DataLoader", outputs=None):  # pylint: disable=unused-argument
+    def test(self, assets: Dict, test_loader: "DataLoader", outputs=None):  # pylint: disable=unused-argument
         # setup noise schedule and inference
         ap = assets["audio_processor"]
         noise_schedule = self.config["test_noise_schedule"]
@@ -307,9 +307,7 @@ class Wavegrad(BaseVocoder):
         y = y.unsqueeze(1)
         return {"input": m, "waveform": y}
 
-    def get_data_loader(
-        self, config: Coqpit, assets: Dict, is_eval: True, samples: List, verbose: bool, num_gpus: int
-    ):
+    def get_data_loader(self, config: Coqpit, assets: Dict, is_eval: True, samples: List, verbose: bool, num_gpus: int):
         ap = assets["audio_processor"]
         dataset = WaveGradDataset(
             ap=ap,

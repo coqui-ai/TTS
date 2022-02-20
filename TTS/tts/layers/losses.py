@@ -672,7 +672,9 @@ class VitsDiscriminatorLoss(nn.Module):
     def forward(self, scores_disc_real, scores_disc_fake):
         loss = 0.0
         return_dict = {}
-        loss_disc, loss_disc_real, _ = self.discriminator_loss(scores_real=scores_disc_real, scores_fake=scores_disc_fake)
+        loss_disc, loss_disc_real, _ = self.discriminator_loss(
+            scores_real=scores_disc_real, scores_fake=scores_disc_fake
+        )
         return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
         loss = loss + return_dict["loss_disc"]
         return_dict["loss"] = loss

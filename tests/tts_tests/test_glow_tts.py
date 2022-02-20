@@ -4,6 +4,7 @@ import unittest
 
 import torch
 from torch import optim
+from trainer.logging.tensorboard_logger import TensorboardLogger
 
 from tests import get_tests_data_path, get_tests_input_path, get_tests_output_path
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
@@ -11,7 +12,6 @@ from TTS.tts.layers.losses import GlowTTSLoss
 from TTS.tts.models.glow_tts import GlowTTS
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
-from trainer.logging.tensorboard_logger import TensorboardLogger
 
 # pylint: disable=unused-variable
 

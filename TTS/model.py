@@ -5,11 +5,11 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 
+# pylint: skip-file
 
 
 class BaseTrainerModel(ABC, nn.Module):
-    """Abstract 🐸TTS class. Every new 🐸TTS model must inherit this.
-    """
+    """Abstract 🐸TTS class. Every new 🐸TTS model must inherit this."""
 
     @staticmethod
     @abstractmethod
@@ -63,7 +63,7 @@ class BaseTrainerModel(ABC, nn.Module):
         """
         return batch
 
-    def format_batch_on_device(self, batch:Dict) -> Dict:
+    def format_batch_on_device(self, batch: Dict) -> Dict:
         """Format batch on device before sending it to the model.
 
         If not implemented, model uses the batch as is.
@@ -124,7 +124,6 @@ class BaseTrainerModel(ABC, nn.Module):
         """The same as `train_log()`"""
         ...
 
-
     @abstractmethod
     def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True) -> None:
         """Load a checkpoint and get ready for training or inference.
@@ -148,13 +147,8 @@ class BaseTrainerModel(ABC, nn.Module):
 
     @abstractmethod
     def get_data_loader(
-            self,
-            config: Coqpit,
-            assets: Dict,
-            is_eval: True,
-            data_items: List,
-            verbose: bool,
-            num_gpus: int):
+        self, config: Coqpit, assets: Dict, is_eval: True, data_items: List, verbose: bool, num_gpus: int
+    ):
         ...
 
     # def get_optimizer(self) -> Union["Optimizer", List["Optimizer"]]:

@@ -119,6 +119,7 @@ def rand_segments(
     ret = segment(x, segment_indices, segment_size)
     return ret, segment_indices
 
+
 def average_over_durations(values, durs):
     """Average values over durations.
 

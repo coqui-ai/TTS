@@ -530,7 +530,8 @@ class GlowTTS(BaseTTS):
             self.store_inverse()
             assert not self.training
 
-    def get_criterion(self):
+    @staticmethod
+    def get_criterion():
         from TTS.tts.layers.losses import GlowTTSLoss  # pylint: disable=import-outside-toplevel
 
         return GlowTTSLoss()
