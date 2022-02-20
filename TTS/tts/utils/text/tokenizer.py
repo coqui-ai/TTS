@@ -119,6 +119,10 @@ class TTSTokenizer:
         return [self.characters.bos] + list(char_sequence) + [self.characters.eos]
 
     def intersperse_blank_char(self, char_sequence: List[str], use_blank_char: bool = False):
+        """Intersperses the blank character between characters in a sequence.
+
+        Use the ```blank``` character if defined else use the ```pad``` character.
+        """
         char_to_use = self.characters.blank if use_blank_char else self.characters.pad
         result = [char_to_use] * (len(char_sequence) * 2 + 1)
         result[1::2] = char_sequence
