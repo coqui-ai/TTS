@@ -1,8 +1,9 @@
+import collections
 import math
 import os
 from dataclasses import dataclass, field, replace
 from itertools import chain
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -544,8 +545,7 @@ class Vits(BaseTTS):
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
-        language_manager: LanguageManager = None,
-    ):
+        language_manager: LanguageManager = None,):
 
         super().__init__(config, ap, tokenizer, speaker_manager, language_manager)
 
@@ -1482,6 +1482,10 @@ class Vits(BaseTTS):
         speaker_manager = SpeakerManager.init_from_config(config, samples)
         language_manager = LanguageManager.init_from_config(config)
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager)
+
+##################################
+# VITS CHARACTERS
+##################################
 
 
 ##################################
