@@ -92,6 +92,9 @@ class FastPitchConfig(BaseTTSConfig):
         binary_align_loss_alpha (float):
             Weight for the binary loss. If set 0, disables the binary loss. Defaults to 1.0.
 
+        binary_loss_warmup_epochs (float):
+            Number of epochs to gradually increase the binary loss impact. Defaults to 150.
+
         min_seq_len (int):
             Minimum input sequence length to be used at training.
 
