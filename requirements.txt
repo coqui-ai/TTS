@@ -24,7 +24,7 @@ matplotlib
 tensorboardX
 pyworld
 # coqui stack
-git+https://github.com/coqui-ai/Trainer@main    # trainer
+trainer @ git+https://github.com/coqui-ai/trainer.git
 coqpit                                          # config managemenr
 # chinese g2p deps
 jieba
