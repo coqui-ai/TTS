@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import List
+from typing import Dict, List
 
 from coqpit import Coqpit, check_argument
 
@@ -50,12 +50,15 @@ class GSTConfig(Coqpit):
 
 @dataclass
 class CharactersConfig(Coqpit):
-    """Defines arguments for the `BaseCharacters` and its subclasses.
+    """Defines arguments for the `BaseCharacters` or `BaseVocabulary` and their subclasses.
 
     Args:
         characters_class (str):
             Defines the class of the characters used. If None, we pick ```Phonemes``` or ```Graphemes``` based on
             the configuration. Defaults to None.
+
+        vocab_dict (dict):
+            Defines the vocabulary dictionary used to encode the characters. Defaults to None.
 
         pad (str):
             characters in place of empty padding. Defaults to None.
@@ -89,6 +92,11 @@ class CharactersConfig(Coqpit):
     """
 
     characters_class: str = None
+
+    # using BaseVocabulary
+    vocab_dict: Dict = None
+
+    # using on BaseCharacters
     pad: str = None
     eos: str = None
     bos: str = None
