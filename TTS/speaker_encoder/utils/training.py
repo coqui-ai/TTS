@@ -1,3 +1,5 @@
+from asyncio.log import logger
+from dataclasses import dataclass, field
 import os
 from dataclasses import dataclass, field
 
@@ -7,10 +9,12 @@ from trainer.logging import logger_factory
 from trainer.logging.console_logger import ConsoleLogger
 
 from TTS.config import load_config, register_config
+from trainer import TrainerArgs, get_last_checkpoint
 from TTS.tts.utils.text.characters import parse_symbols
 from TTS.utils.generic_utils import get_experiment_folder_path, get_git_branch
 from TTS.utils.io import copy_model_files
-from trainer import get_last_checkpoint
+from trainer.logging import logger_factory
+from trainer.logging.console_logger import ConsoleLogger
 
 
 @dataclass
