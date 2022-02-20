@@ -80,8 +80,8 @@ class GAN(BaseVocoder):
         Returns:
             Tuple[Dict, Dict]: model outputs and the computed loss values.
         """
-        outputs = None
-        loss_dict = None
+        outputs = {}
+        loss_dict = {}
 
         x = batch["input"]
         y = batch["waveform"]
@@ -311,7 +311,7 @@ class GAN(BaseVocoder):
         config: Coqpit,
         assets: Dict,
         is_eval: True,
-        data_items: List,
+        samples: List,
         verbose: bool,
         num_gpus: int,
         rank: int = None,  # pylint: disable=unused-argument
@@ -322,7 +322,7 @@ class GAN(BaseVocoder):
             config (Coqpit): Model config.
             ap (AudioProcessor): Audio processor.
             is_eval (True): Set the dataloader for evaluation if true.
-            data_items (List): Data samples.
+            samples (List): Data samples.
             verbose (bool): Log information if true.
             num_gpus (int): Number of GPUs in use.
             rank (int): Rank of the current GPU. Defaults to None.
@@ -332,7 +332,7 @@ class GAN(BaseVocoder):
         """
         dataset = GANDataset(
             ap=self.ap,
-            items=data_items,
+            items=samples,
             seq_len=config.seq_len,
             hop_len=self.ap.hop_length,
             pad_short=config.pad_short,
