@@ -1,9 +1,8 @@
-import collections
 import math
 import os
 from dataclasses import dataclass, field, replace
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -25,7 +24,7 @@ from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDuration
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
 from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -38,6 +37,7 @@ from TTS.vocoder.utils.generic_utils import plot_results
 # IO / Feature extraction
 ##############################
 
+# pylint: disable=global-statement
 hann_window = {}
 mel_basis = {}
 
@@ -200,7 +200,7 @@ class VitsDataset(TTSDataset):
         text, wav_file, speaker_name, language_name, _ = _parse_sample(item)
         raw_text = text
 
-        wav, sr = load_audio(wav_file)
+        wav, _ = load_audio(wav_file)
         wav_filename = os.path.basename(wav_file)
 
         token_ids = self.get_token_ids(idx, text)
@@ -534,12 +534,14 @@ class Vits(BaseTTS):
         >>> model = Vits(config)
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         config: Coqpit,
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
-        language_manager: LanguageManager = None,):
+        language_manager: LanguageManager = None,
+    ):
 
         super().__init__(config, ap, tokenizer, speaker_manager, language_manager)
 
@@ -672,9 +674,9 @@ class Vits(BaseTTS):
                 )
             # pylint: disable=W0101,W0105
             self.audio_transform = torchaudio.transforms.Resample(
-                    orig_freq=self.config.audio.sample_rate,
-                    new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
-                    )
+                orig_freq=self.config.audio.sample_rate,
+                new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
+            )
 
     def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
@@ -775,9 +777,9 @@ class Vits(BaseTTS):
         with torch.no_grad():
             o_scale = torch.exp(-2 * logs_p)
             logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p ** 2)])
+            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p**2)])
             logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
-            logp4 = torch.sum(-0.5 * (m_p ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp4 = torch.sum(-0.5 * (m_p**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp2 + logp3 + logp1 + logp4
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t, t']
 
@@ -804,7 +806,7 @@ class Vits(BaseTTS):
         outputs["loss_duration"] = loss_duration
         return outputs, attn
 
-    def forward(
+    def forward(  # pylint: disable=dangerous-default-value
         self,
         x: torch.tensor,
         x_lengths: torch.tensor,
@@ -884,7 +886,7 @@ class Vits(BaseTTS):
             waveform,
             slice_ids * self.config.audio.hop_length,
             self.args.spec_segment_size * self.config.audio.hop_length,
-            pad_short = True
+            pad_short=True,
         )
 
         if self.args.use_speaker_encoder_as_loss and self.speaker_manager.speaker_encoder is not None:
@@ -927,7 +929,9 @@ class Vits(BaseTTS):
             return aux_input["x_lengths"]
         return torch.tensor(x.shape[1:2]).to(x.device)
 
-    def inference(self, x, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None}):
+    def inference(
+        self, x, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None}
+    ):  # pylint: disable=dangerous-default-value
         """
         Note:
             To run in batch mode, provide `x_lengths` else model assumes that the batch size is 1.
@@ -1014,7 +1018,6 @@ class Vits(BaseTTS):
         o_hat = self.waveform_decoder(z_hat * y_mask, g=g_tgt)
         return o_hat, y_mask, (z, z_p, z_hat)
 
-
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
         """Perform a single training step. Run the model forward pass and compute losses.
 
@@ -1053,7 +1056,7 @@ class Vits(BaseTTS):
             )
 
             # cache tensors for the generator pass
-            self.model_outputs_cache = outputs
+            self.model_outputs_cache = outputs  # pylint: disable=attribute-defined-outside-init
 
             # compute scores and features
             scores_disc_fake, _, scores_disc_real, _ = self.disc(
@@ -1073,14 +1076,16 @@ class Vits(BaseTTS):
 
             # compute melspec segment
             with autocast(enabled=False):
-                mel_slice = segment(mel.float(),  self.model_outputs_cache["slice_ids"], self.spec_segment_size, pad_short=True)
+                mel_slice = segment(
+                    mel.float(), self.model_outputs_cache["slice_ids"], self.spec_segment_size, pad_short=True
+                )
                 mel_slice_hat = wav_to_mel(
-                    y =  self.model_outputs_cache["model_outputs"].float(),
-                    n_fft = self.config.audio.fft_size,
-                    sample_rate = self.config.audio.sample_rate,
-                    num_mels = self.config.audio.num_mels,
-                    hop_length = self.config.audio.hop_length,
-                    win_length = self.config.audio.win_length,
+                    y=self.model_outputs_cache["model_outputs"].float(),
+                    n_fft=self.config.audio.fft_size,
+                    sample_rate=self.config.audio.sample_rate,
+                    num_mels=self.config.audio.num_mels,
+                    hop_length=self.config.audio.hop_length,
+                    win_length=self.config.audio.win_length,
                     fmin=self.config.audio.mel_fmin,
                     fmax=self.config.audio.mel_fmax,
                     center=False,
@@ -1088,7 +1093,7 @@ class Vits(BaseTTS):
 
             # compute discriminator scores and features
             scores_disc_fake, feats_disc_fake, _, feats_disc_real = self.disc(
-                 self.model_outputs_cache["model_outputs"],  self.model_outputs_cache["waveform_seg"]
+                self.model_outputs_cache["model_outputs"], self.model_outputs_cache["waveform_seg"]
             )
 
             # compute losses
@@ -1096,18 +1101,18 @@ class Vits(BaseTTS):
                 loss_dict = criterion[optimizer_idx](
                     mel_slice_hat=mel_slice.float(),
                     mel_slice=mel_slice_hat.float(),
-                    z_p= self.model_outputs_cache["z_p"].float(),
-                    logs_q= self.model_outputs_cache["logs_q"].float(),
-                    m_p= self.model_outputs_cache["m_p"].float(),
-                    logs_p= self.model_outputs_cache["logs_p"].float(),
+                    z_p=self.model_outputs_cache["z_p"].float(),
+                    logs_q=self.model_outputs_cache["logs_q"].float(),
+                    m_p=self.model_outputs_cache["m_p"].float(),
+                    logs_p=self.model_outputs_cache["logs_p"].float(),
                     z_len=mel_lens,
-                    scores_disc_fake= scores_disc_fake,
-                    feats_disc_fake= feats_disc_fake,
-                    feats_disc_real= feats_disc_real,
-                    loss_duration= self.model_outputs_cache["loss_duration"],
+                    scores_disc_fake=scores_disc_fake,
+                    feats_disc_fake=feats_disc_fake,
+                    feats_disc_real=feats_disc_real,
+                    loss_duration=self.model_outputs_cache["loss_duration"],
                     use_speaker_encoder_as_loss=self.args.use_speaker_encoder_as_loss,
-                    gt_spk_emb= self.model_outputs_cache["gt_spk_emb"],
-                    syn_spk_emb= self.model_outputs_cache["syn_spk_emb"],
+                    gt_spk_emb=self.model_outputs_cache["gt_spk_emb"],
+                    syn_spk_emb=self.model_outputs_cache["syn_spk_emb"],
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1239,7 +1244,9 @@ class Vits(BaseTTS):
             test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
         return {"figures": test_figures, "audios": test_audios}
 
-    def test_log(self, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
+    def test_log(
+        self, outputs: dict, logger: "Logger", assets: dict, steps: int  # pylint: disable=unused-argument
+    ) -> None:
         logger.test_audios(steps, outputs["audios"], self.ap.sample_rate)
         logger.test_figures(steps, outputs["figures"])
 
@@ -1264,7 +1271,11 @@ class Vits(BaseTTS):
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
-        if self.language_manager is not None and self.language_manager.language_id_mapping and self.args.use_language_embedding:
+        if (
+            self.language_manager is not None
+            and self.language_manager.language_id_mapping
+            and self.args.use_language_embedding
+        ):
             language_ids = [self.language_manager.language_id_mapping[ln] for ln in batch["language_names"]]
 
         if language_ids is not None:
@@ -1280,16 +1291,14 @@ class Vits(BaseTTS):
         ac = self.config.audio
 
         # compute spectrograms
-        batch["spec"] = wav_to_spec(
-            batch["waveform"], ac.fft_size, ac.hop_length, ac.win_length, center=False
-        )
+        batch["spec"] = wav_to_spec(batch["waveform"], ac.fft_size, ac.hop_length, ac.win_length, center=False)
         batch["mel"] = spec_to_mel(
-            spec = batch["spec"],
-            n_fft = ac.fft_size,
-            num_mels = ac.num_mels,
-            sample_rate = ac.sample_rate,
-            fmin = ac.mel_fmin,
-            fmax = ac.mel_fmax,
+            spec=batch["spec"],
+            n_fft=ac.fft_size,
+            num_mels=ac.num_mels,
+            sample_rate=ac.sample_rate,
+            fmin=ac.mel_fmin,
+            fmax=ac.mel_fmax,
         )
         assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
 
@@ -1316,27 +1325,6 @@ class Vits(BaseTTS):
         if is_eval and not config.run_eval:
             loader = None
         else:
-            # setup multi-speaker attributes
-            speaker_id_mapping = None
-            d_vector_mapping = None
-            if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
-                if hasattr(config, "model_args"):
-                    speaker_id_mapping = (
-                        self.speaker_manager.speaker_ids if config.model_args.use_speaker_embedding else None
-                    )
-                    d_vector_mapping = self.speaker_manager.d_vectors if config.model_args.use_d_vector_file else None
-                    config.use_d_vector_file = config.model_args.use_d_vector_file
-                else:
-                    speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
-                    d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
-
-            # setup multi-lingual attributes
-            language_id_mapping = None
-            if hasattr(self, "language_manager"):
-                language_id_mapping = (
-                    self.language_manager.language_id_mapping if self.args.use_language_embedding else None
-                )
-
             # init dataloader
             dataset = VitsDataset(
                 samples=samples,
@@ -1485,6 +1473,7 @@ class Vits(BaseTTS):
         speaker_manager = SpeakerManager.init_from_config(config, samples)
         language_manager = LanguageManager.init_from_config(config)
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager)
+
 
 ##################################
 # VITS CHARACTERS

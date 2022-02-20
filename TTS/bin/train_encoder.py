@@ -8,7 +8,6 @@ import traceback
 
 import torch
 from torch.utils.data import DataLoader
-
 from trainer.torch import NoamLR
 
 from TTS.speaker_encoder.dataset import SpeakerEncoderDataset

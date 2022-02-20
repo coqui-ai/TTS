@@ -218,7 +218,7 @@ class GuidedAttentionLoss(torch.nn.Module):
     def _make_ga_mask(ilen, olen, sigma):
         grid_x, grid_y = torch.meshgrid(torch.arange(olen).to(olen), torch.arange(ilen).to(ilen))
         grid_x, grid_y = grid_x.float(), grid_y.float()
-        return 1.0 - torch.exp(-((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma ** 2)))
+        return 1.0 - torch.exp(-((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma**2)))
 
     @staticmethod
     def _make_masks(ilens, olens):
@@ -663,7 +663,7 @@ class VitsDiscriminatorLoss(nn.Module):
             dr = dr.float()
             dg = dg.float()
             real_loss = torch.mean((1 - dr) ** 2)
-            fake_loss = torch.mean(dg ** 2)
+            fake_loss = torch.mean(dg**2)
             loss += real_loss + fake_loss
             real_losses.append(real_loss.item())
             fake_losses.append(fake_loss.item())
@@ -672,7 +672,9 @@ class VitsDiscriminatorLoss(nn.Module):
     def forward(self, scores_disc_real, scores_disc_fake):
         loss = 0.0
         return_dict = {}
-        loss_disc, loss_disc_real, _ = self.discriminator_loss(scores_real=scores_disc_real, scores_fake=scores_disc_fake)
+        loss_disc, loss_disc_real, _ = self.discriminator_loss(
+            scores_real=scores_disc_real, scores_fake=scores_disc_fake
+        )
         return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
         loss = loss + return_dict["loss_disc"]
         return_dict["loss"] = loss

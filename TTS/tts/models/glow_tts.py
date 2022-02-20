@@ -240,9 +240,9 @@ class GlowTTS(BaseTTS):
         with torch.no_grad():
             o_scale = torch.exp(-2 * o_log_scale)
             logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z ** 2))  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z**2))  # [b, t, d] x [b, d, t'] = [b, t, t']
             logp3 = torch.matmul((o_mean * o_scale).transpose(1, 2), z)  # [b, t, d] x [b, d, t'] = [b, t, t']
-            logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp4 = torch.sum(-0.5 * (o_mean**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
@@ -289,9 +289,9 @@ class GlowTTS(BaseTTS):
         # find the alignment path between z and encoder output
         o_scale = torch.exp(-2 * o_log_scale)
         logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-        logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z ** 2))  # [b, t, d] x [b, d, t'] = [b, t, t']
+        logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z**2))  # [b, t, d] x [b, d, t'] = [b, t, t']
         logp3 = torch.matmul((o_mean * o_scale).transpose(1, 2), z)  # [b, t, d] x [b, d, t'] = [b, t, t']
-        logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+        logp4 = torch.sum(-0.5 * (o_mean**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
         logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
         attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
@@ -528,7 +528,8 @@ class GlowTTS(BaseTTS):
             self.store_inverse()
             assert not self.training
 
-    def get_criterion(self):
+    @staticmethod
+    def get_criterion():
         from TTS.tts.layers.losses import GlowTTSLoss  # pylint: disable=import-outside-toplevel
 
         return GlowTTSLoss()

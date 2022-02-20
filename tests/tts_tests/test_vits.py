@@ -3,15 +3,14 @@ import os
 import unittest
 
 import torch
-from TTS.tts.datasets.formatters import ljspeech
+from trainer.logging.tensorboard_logger import TensorboardLogger
 
 from tests import assertHasAttr, assertHasNotAttr, get_tests_data_path, get_tests_input_path, get_tests_output_path
 from TTS.config import load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
 from TTS.tts.configs.vits_config import VitsConfig
-from TTS.tts.models.vits import Vits, VitsArgs, load_audio, amp_to_db, db_to_amp, wav_to_spec, wav_to_mel, spec_to_mel, VitsDataset
+from TTS.tts.models.vits import Vits, VitsArgs, amp_to_db, db_to_amp, load_audio, spec_to_mel, wav_to_mel, wav_to_spec
 from TTS.tts.utils.speakers import SpeakerManager
-from trainer.logging.tensorboard_logger import TensorboardLogger
 
 LANG_FILE = os.path.join(get_tests_input_path(), "language_ids.json")
 SPEAKER_ENCODER_CONFIG = os.path.join(get_tests_input_path(), "test_speaker_encoder_config.json")
@@ -31,7 +30,17 @@ class TestVits(unittest.TestCase):
         self.assertEqual(sr, 22050)
 
         spec = wav_to_spec(wav, n_fft=1024, hop_length=512, win_length=1024, center=False)
-        mel = wav_to_mel(wav, n_fft=1024, num_mels=80, sample_rate=sr, hop_length=512, win_length=1024, fmin=0, fmax=8000, center=False)
+        mel = wav_to_mel(
+            wav,
+            n_fft=1024,
+            num_mels=80,
+            sample_rate=sr,
+            hop_length=512,
+            win_length=1024,
+            fmin=0,
+            fmax=8000,
+            center=False,
+        )
         mel2 = spec_to_mel(spec, n_fft=1024, num_mels=80, sample_rate=sr, fmin=0, fmax=8000)
 
         self.assertEqual((mel - mel2).abs().max(), 0)
@@ -45,7 +54,7 @@ class TestVits(unittest.TestCase):
 
     def test_dataset(self):
         """TODO:"""
-       ...
+        ...
 
     def test_init_multispeaker(self):
         num_speakers = 10
@@ -164,7 +173,7 @@ class TestVits(unittest.TestCase):
         num_speakers = 0
         config = VitsConfig(num_speakers=num_speakers, use_speaker_embedding=True)
         config.model_args.spec_segment_size = 10
-        input_dummy, input_lengths, mel, spec, spec_lengths, waveform = self._create_inputs(config)
+        input_dummy, input_lengths, _, spec, spec_lengths, waveform = self._create_inputs(config)
         model = Vits(config).to(device)
         output_dict = model.forward(input_dummy, input_lengths, spec, spec_lengths, waveform)
         self._check_forward_outputs(config, output_dict)
@@ -175,7 +184,7 @@ class TestVits(unittest.TestCase):
         config = VitsConfig(num_speakers=num_speakers, use_speaker_embedding=True)
         config.model_args.spec_segment_size = 10
 
-        input_dummy, input_lengths, mel, spec, spec_lengths, waveform = self._create_inputs(config)
+        input_dummy, input_lengths, _, spec, spec_lengths, waveform = self._create_inputs(config)
         speaker_ids = torch.randint(0, num_speakers, (8,)).long().to(device)
 
         model = Vits(config).to(device)
@@ -196,7 +205,7 @@ class TestVits(unittest.TestCase):
         config = VitsConfig(model_args=args)
         model = Vits.init_from_config(config, verbose=False).to(device)
         model.train()
-        input_dummy, input_lengths, mel, spec, spec_lengths, waveform = self._create_inputs(config, batch_size=batch_size)
+        input_dummy, input_lengths, _, spec, spec_lengths, waveform = self._create_inputs(config, batch_size=batch_size)
         d_vectors = torch.randn(batch_size, 256).to(device)
         output_dict = model.forward(
             input_dummy, input_lengths, spec, spec_lengths, waveform, aux_input={"d_vectors": d_vectors}
@@ -211,7 +220,7 @@ class TestVits(unittest.TestCase):
         args = VitsArgs(language_ids_file=LANG_FILE, use_language_embedding=True, spec_segment_size=10)
         config = VitsConfig(num_speakers=num_speakers, use_speaker_embedding=True, model_args=args)
 
-        input_dummy, input_lengths, mel, spec, spec_lengths, waveform = self._create_inputs(config, batch_size=batch_size)
+        input_dummy, input_lengths, _, spec, spec_lengths, waveform = self._create_inputs(config, batch_size=batch_size)
         speaker_ids = torch.randint(0, num_speakers, (batch_size,)).long().to(device)
         lang_ids = torch.randint(0, num_langs, (batch_size,)).long().to(device)
 
@@ -246,7 +255,7 @@ class TestVits(unittest.TestCase):
         config = VitsConfig(num_speakers=num_speakers, use_speaker_embedding=True, model_args=args)
         config.audio.sample_rate = 16000
 
-        input_dummy, input_lengths, mel, spec, spec_lengths, waveform = self._create_inputs(config, batch_size=batch_size)
+        input_dummy, input_lengths, _, spec, spec_lengths, waveform = self._create_inputs(config, batch_size=batch_size)
         speaker_ids = torch.randint(0, num_speakers, (batch_size,)).long().to(device)
         lang_ids = torch.randint(0, num_langs, (batch_size,)).long().to(device)
 

@@ -57,7 +57,7 @@ class Punctuation:
         if not isinstance(value, six.string_types):
             raise ValueError("[!] Punctuations must be of type str.")
         self._puncs = "".join(list(dict.fromkeys(list(value))))  # remove duplicates without changing the oreder
-        self.puncs_regular_exp = re.compile(fr"(\s*[{re.escape(self._puncs)}]+\s*)+")
+        self.puncs_regular_exp = re.compile(rf"(\s*[{re.escape(self._puncs)}]+\s*)+")
 
     def strip(self, text):
         """Remove all the punctuations by replacing with `space`.
