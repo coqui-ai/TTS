@@ -273,14 +273,15 @@ def synthesis(
     # convert outputs to numpy
     # plot results
     wav = None
-    if hasattr(model, "END2END") and model.END2END:
-        wav = model_outputs.squeeze(0)
-    else:
+    model_outputs = model_outputs.squeeze()
+    if model_outputs.ndim == 2:  # [T, C_spec]
         if use_griffin_lim:
             wav = inv_spectrogram(model_outputs, model.ap, CONFIG)
             # trim silence
             if do_trim_silence:
                 wav = trim_silence(wav, model.ap)
+    else:  # [T,]
+        wav = model_outputs
     return_dict = {
         "wav": wav,
         "alignments": alignments,
