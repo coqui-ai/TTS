@@ -129,11 +129,15 @@ def ljspeech_test(root_path, meta_file, **kwargs):  # pylint: disable=unused-arg
     txt_file = os.path.join(root_path, meta_file)
     items = []
     with open(txt_file, "r", encoding="utf-8") as ttf:
+        speaker_id = 0
         for idx, line in enumerate(ttf):
+            # 2 samples per speaker to avoid eval split issues
+            if idx%2 == 0:
+                speaker_id += 1
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[2]
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": f"ljspeech-{idx}"})
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": f"ljspeech-{speaker_id}"})
     return items
 
 

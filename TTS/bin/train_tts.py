@@ -42,7 +42,7 @@ def main():
             config = register_config(config_base.model)()
 
     # load training samples
-    train_samples, eval_samples = load_tts_samples(config.datasets, eval_split=True)
+    train_samples, eval_samples = load_tts_samples(config.datasets, eval_split=True, eval_split_max_size=config.eval_split_max_size, eval_split_size=config.eval_split_size)
 
     # setup audio processor
     ap = AudioProcessor(**config.audio)

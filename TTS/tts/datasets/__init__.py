@@ -9,25 +9,40 @@ from TTS.tts.datasets.dataset import *
 from TTS.tts.datasets.formatters import *
 
 
-def split_dataset(items):
+def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
     Args:
-        items (List[List]): A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
+        items (List[List]):
+            A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
+
+        eval_split_max_size (int):
+            Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
+
+        eval_split_size (float):
+            If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
+            If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
     """
-    speakers = [item[-1] for item in items]
+    speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
-    eval_split_size = min(500, int(len(items) * 0.01))
-    assert eval_split_size > 0, " [!] You do not have enough samples to train. You need at least 100 samples."
+    if eval_split_size > 1:
+        eval_split_size = int(eval_split_size)
+    else:
+        if eval_split_max_size:
+            eval_split_size = min(eval_split_max_size, int(len(items) * eval_split_size))
+        else:
+            eval_split_size = int(len(items) * eval_split_size)
+
+    assert eval_split_size > 0, " [!] You do not have enough samples for the evaluation set. You can work around this setting the 'eval_split_size' parameter to a minimum of {}".format(1/len(items))
     np.random.seed(0)
     np.random.shuffle(items)
     if is_multi_speaker:
         items_eval = []
-        speakers = [item[-1] for item in items]
+        speakers = [item["speaker_name"] for item in items]
         speaker_counter = Counter(speakers)
         while len(items_eval) < eval_split_size:
             item_idx = np.random.randint(0, len(items))
-            speaker_to_be_removed = items[item_idx][-1]
+            speaker_to_be_removed = items[item_idx]["speaker_name"]
             if speaker_counter[speaker_to_be_removed] > 1:
                 items_eval.append(items[item_idx])
                 speaker_counter[speaker_to_be_removed] -= 1
@@ -37,7 +52,8 @@ def split_dataset(items):
 
 
 def load_tts_samples(
-    datasets: Union[List[Dict], Dict], eval_split=True, formatter: Callable = None
+    datasets: Union[List[Dict], Dict], eval_split=True, formatter: Callable = None,
+    eval_split_max_size=None, eval_split_size=0.01
 ) -> Tuple[List[List], List[List]]:
     """Parse the dataset from the datasets config, load the samples as a List and load the attention alignments if provided.
     If `formatter` is not None, apply the formatter to the samples else pick the formatter from the available ones based
@@ -54,6 +70,13 @@ def load_tts_samples(
             must take the root_path and the meta_file name and return a list of samples in the format of
             `[[audio_path, text, speaker_id], ...]]`. See the available formatters in `TTS.tts.dataset.formatter` as
             example. Defaults to None.
+
+        eval_split_max_size (int):
+            Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
+
+        eval_split_size (float):
+            If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
+            If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
 
     Returns:
         Tuple[List[List], List[List]: training and evaluation splits of the dataset.
@@ -84,7 +107,7 @@ def load_tts_samples(
                 meta_data_eval = formatter(root_path, meta_file_val, ignored_speakers=ignored_speakers)
                 meta_data_eval = [{**item, **{"language": language}} for item in meta_data_eval]
             else:
-                meta_data_eval, meta_data_train = split_dataset(meta_data_train)
+                meta_data_eval, meta_data_train = split_dataset(meta_data_train, eval_split_max_size, eval_split_size)
             meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
         # load attention masks for the duration predictor training

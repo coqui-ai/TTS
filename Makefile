@@ -29,6 +29,9 @@ test_zoo:	## run zoo tests.
 inference_tests: ## run inference tests.
 	nosetests tests.inference_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.inference_tests --nologcapture --with-id	
 
+data_tests:	## run data tests.
+	nosetests tests.data_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.data_tests --nologcapture --with-id
+
 test_failed:  ## only run tests failed the last time.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --failed
 

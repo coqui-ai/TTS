@@ -39,7 +39,7 @@ random_sampler = torch.utils.data.RandomSampler(train_samples)
 ids = functools.reduce(lambda a, b: a + b, [list(random_sampler) for i in range(100)])
 en, pt = 0, 0
 for index in ids:
-    if train_samples[index][3] == "en":
+    if train_samples[index]["language"] == "en":
         en += 1
     else:
         pt += 1
@@ -50,7 +50,7 @@ weighted_sampler = get_language_weighted_sampler(train_samples)
 ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
 en, pt = 0, 0
 for index in ids:
-    if train_samples[index][3] == "en":
+    if train_samples[index]["language"] == "en":
         en += 1
     else:
         pt += 1
