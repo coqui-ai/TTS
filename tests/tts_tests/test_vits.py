@@ -410,7 +410,9 @@ class TestVits(unittest.TestCase):
             for _ in range(5):
                 batch = self._create_batch(config, 2)
                 for idx in [0, 1]:
-                    _, loss_dict = model.train_step(batch, criterions, idx)
+                    outputs, loss_dict = model.train_step(batch, criterions, idx)
+                    self.assertFalse(not outputs)
+                    self.assertFalse(not loss_dict)
                     loss_dict["loss"].backward()
                     optimizers[idx].step()
                     optimizers[idx].zero_grad()
