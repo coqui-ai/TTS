@@ -36,9 +36,9 @@ train_samples, eval_samples = load_tts_samples(
 # gerenate a speaker unbalanced dataset
 for i, sample in enumerate(train_samples):
     if i < 5:
-        sample[2] = "ljspeech-0"
+        sample["speaker_name"] = "ljspeech-0"
     else:
-        sample[2] = "ljspeech-1"
+        sample["speaker_name"] = "ljspeech-1"
 
 
 def is_balanced(lang_1, lang_2):
@@ -51,7 +51,7 @@ class TestSamplers(unittest.TestCase):
         ids = functools.reduce(lambda a, b: a + b, [list(random_sampler) for i in range(100)])
         en, pt = 0, 0
         for index in ids:
-            if train_samples[index][3] == "en":
+            if train_samples[index]["language"] == "en":
                 en += 1
             else:
                 pt += 1
@@ -63,7 +63,7 @@ class TestSamplers(unittest.TestCase):
         ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
         en, pt = 0, 0
         for index in ids:
-            if train_samples[index][3] == "en":
+            if train_samples[index]["language"] == "en":
                 en += 1
             else:
                 pt += 1
@@ -76,7 +76,7 @@ class TestSamplers(unittest.TestCase):
         ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
         spk1, spk2 = 0, 0
         for index in ids:
-            if train_samples[index][2] == "ljspeech-0":
+            if train_samples[index]["speaker_name"] == "ljspeech-0":
                 spk1 += 1
             else:
                 spk2 += 1

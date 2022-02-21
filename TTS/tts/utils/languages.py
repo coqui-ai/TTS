@@ -127,7 +127,7 @@ def _set_file_path(path):
     return None
 
 
-def get_language_weighted_sampler(items: list):
+def get_language_balancer_weights(items: list):
     language_names = np.array([item["language"] for item in items])
     unique_language_names = np.unique(language_names).tolist()
     language_ids = [unique_language_names.index(l) for l in language_names]

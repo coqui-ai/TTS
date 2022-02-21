@@ -448,7 +448,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
     return speaker_manager
 
 
-def get_speaker_weighted_sampler(items: list):
+def get_speaker_balancer_weights(items: list):
     speaker_names = np.array([item["speaker_name"] for item in items])
     unique_speaker_names = np.unique(speaker_names).tolist()
     speaker_ids = [unique_speaker_names.index(l) for l in speaker_names]
