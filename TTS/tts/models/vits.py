@@ -1069,7 +1069,7 @@ class Vits(BaseTTS):
                     scores_disc_real,
                     scores_disc_fake,
                 )
-            return {}, loss_dict
+            return outputs, loss_dict
 
         if optimizer_idx == 1:
             mel = batch["mel"]
