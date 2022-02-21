@@ -138,7 +138,7 @@ def inference(
             aux_input={"d_vectors": speaker_c, "speaker_ids": speaker_ids},
         )
         model_output = outputs["model_outputs"]
-        model_output = model_output.transpose(1, 2).detach().cpu().numpy()
+        model_output = model_output.detach().cpu().numpy()
 
     elif "tacotron" in model_name:
         aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
