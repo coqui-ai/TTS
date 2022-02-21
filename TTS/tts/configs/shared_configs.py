@@ -183,6 +183,13 @@ class BaseTTSConfig(BaseTrainingConfig):
 
         test_sentences (List[str]):
             List of sentences to be used at testing. Defaults to '[]'
+
+        eval_split_max_size (int):
+            Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
+
+        eval_split_size (float):
+            If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
+            If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
     """
 
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
@@ -218,3 +225,6 @@ class BaseTTSConfig(BaseTrainingConfig):
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # testing
     test_sentences: List[str] = field(default_factory=lambda: [])
+    # evaluation
+    eval_split_max_size: int = None
+    eval_split_size: float = 0.01
