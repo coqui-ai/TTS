@@ -62,7 +62,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Support for Multi-speaker TTS.
 - Efficient, flexible, lightweight but feature complete `Trainer API`.
 - Ability to convert PyTorch models to Tensorflow 2.0 and TFLite for inference.
-- Released and read-to-use models.
+- Released and ready-to-use models.
 - Tools to curate Text2Speech datasets under```dataset_analysis```.
 - Utilities to use and test your models.
 - Modular (but not too much) code base enabling easy implementation of new ideas.
