@@ -7,7 +7,7 @@ import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
+from TTS.utils.samplers import DistributedSampler, DistributedSamplerWithSampler
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
@@ -233,8 +233,10 @@ class BaseTTS(BaseTrainerModel):
             "language_ids": language_ids,
         }
 
-    def get_sampler(self, config: Coqpit, data_items: List, sampler: bool = None):
+    def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1):
         weights = None
+        data_items = dataset.items
+
         if getattr(config, "use_language_weighted_sampler", False):
             alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
             print(" > Using Language weighted sampler with alpha:", alpha)
@@ -250,6 +252,14 @@ class BaseTTS(BaseTrainerModel):
 
         if weights is not None:
             sampler = WeightedRandomSampler(weights, len(weights))
+        else:
+            sampler = None
+
+        # sampler for DDP
+        if sampler is None:
+            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        else: # If a sampler is already defined use this sampler and DDP sampler together
+            sampler = DistributedSamplerWithSampler(sampler) if num_gpus > 1 else sampler
 
         return sampler
 
@@ -321,19 +331,8 @@ class BaseTTS(BaseTrainerModel):
             # sort input sequences from short to long
             dataset.preprocess_samples()
 
-            # sampler for DDP
-            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-
-            # Weighted samplers
-            # TODO: make this DDP amenable
-            assert not (
-                num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)
-            ), "language_weighted_sampler is not supported with DistributedSampler"
-            assert not (
-                num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)
-            ), "speaker_weighted_sampler is not supported with DistributedSampler"
-
-            sampler = self.get_sampler(config, dataset.items, sampler) if sampler is None else sampler
+            # get samplers
+            sampler = self.get_sampler(config, dataset, num_gpus)
 
             loader = DataLoader(
                 dataset,
