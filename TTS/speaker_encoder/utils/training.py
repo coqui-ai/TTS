@@ -10,7 +10,7 @@ from TTS.config import load_config, register_config
 from TTS.tts.utils.text.characters import parse_symbols
 from TTS.utils.generic_utils import get_experiment_folder_path, get_git_branch
 from TTS.utils.io import copy_model_files
-from TTS.utils.trainer_utils import get_last_checkpoint
+from trainer import get_last_checkpoint
 
 
 @dataclass

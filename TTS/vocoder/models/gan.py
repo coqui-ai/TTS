@@ -10,7 +10,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
-from TTS.utils.trainer_utils import get_optimizer, get_scheduler
+from trainer.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
 from TTS.vocoder.models import setup_discriminator, setup_generator
