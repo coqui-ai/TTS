@@ -135,7 +135,7 @@ class FastSpeechConfig(BaseTTSConfig):
     pitch_loss_alpha: float = 0.0
     aligner_loss_alpha: float = 1.0
     binary_align_loss_alpha: float = 1.0
-    binary_align_loss_start_step: int = 50000
+    binary_loss_warmup_epochs: int = 150
 
     # overrides
     min_seq_len: int = 13
