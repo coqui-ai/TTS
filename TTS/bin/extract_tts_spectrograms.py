@@ -138,7 +138,7 @@ def inference(
             aux_input={"d_vectors": speaker_c, "speaker_ids": speaker_ids},
         )
         model_output = outputs["model_outputs"]
-        model_output = model_output.transpose(1, 2).detach().cpu().numpy()
+        model_output = model_output.detach().cpu().numpy()
 
     elif "tacotron" in model_name:
         aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
@@ -229,7 +229,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
 
     # load data instances
-    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=args.eval)
+    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=args.eval, eval_split_max_size=c.eval_split_max_size, eval_split_size=c.eval_split_size)
 
     # use eval and training partitions
     meta_data = meta_data_train + meta_data_eval
