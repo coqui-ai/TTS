@@ -1,8 +1,52 @@
 import unittest
 
-from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes
+from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes, BaseVocabulary
 
 # pylint: disable=protected-access
+
+class BaseVocabularyTest(unittest.TestCase):
+    def setUp(self):
+        self.phonemes = IPAPhonemes()
+        self.base_vocab = BaseVocabulary(vocab=self.phonemes._vocab, pad=self.phonemes.pad,  blank=self.phonemes.blank, bos=self.phonemes.bos, eos=self.phonemes.eos)
+        self.empty_vocab = BaseVocabulary({})
+
+    def test_pad_id(self):
+        self.assertEqual(self.empty_vocab.pad_id, 0)
+        self.assertEqual(self.base_vocab.pad_id, self.phonemes.pad_id)
+
+    def test_blank_id(self):
+        self.assertEqual(self.empty_vocab.blank_id, 0)
+        self.assertEqual(self.base_vocab.blank_id, self.phonemes.blank_id)
+
+    def test_vocab(self):
+        self.assertEqual(self.empty_vocab.vocab, {})
+        self.assertEqual(self.base_vocab.vocab, self.phonemes._vocab)
+
+    def test_init_from_config(self):
+        ...
+
+    def test_num_chars(self):
+        self.assertEqual(self.empty_vocab.num_chars, 0)
+        self.assertEqual(self.base_vocab.num_chars, self.phonemes.num_chars)
+
+    def test_char_to_id(self):
+        try:
+            self.empty_vocab.char_to_id("a")
+            raise Exception("Should have raised KeyError")
+        except:
+            pass
+        for k in self.phonemes.vocab:
+            self.assertEqual(self.base_vocab.char_to_id(k), self.phonemes.char_to_id(k))
+
+    def test_id_to_char(self):
+        try:
+            self.empty_vocab.id_to_char(0)
+            raise Exception("Should have raised KeyError")
+        except:
+            pass
+        for k in self.phonemes.vocab:
+            v = self.phonemes.char_to_id(k)
+            self.assertEqual(self.base_vocab.id_to_char(v), self.phonemes.id_to_char(v))
 
 
 class BaseCharacterTest(unittest.TestCase):
