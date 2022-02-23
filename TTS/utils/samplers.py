@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data.distributed import DistributedSampler
 
-class DistributedSamplerWithSampler(DistributedSampler):
+class DistributedSamplerWrapper(DistributedSampler):
     """ Wrapper over Sampler for distributed training. It allows you to use any sampler in distributed mode.
     It is especially useful in conjunction with torch.nn.parallel.DistributedDataParallel. In such a case, each
     process can pass a torch.utils.data.DistributedSampler instance as a torch.utils.data.DataLoader sampler,

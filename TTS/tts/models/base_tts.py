@@ -7,7 +7,7 @@ import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
-from TTS.utils.samplers import DistributedSampler, DistributedSamplerWithSampler
+from TTS.utils.samplers import DistributedSampler, DistributedSamplerWrapper
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
@@ -259,7 +259,7 @@ class BaseTTS(BaseTrainerModel):
         if sampler is None:
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         else: # If a sampler is already defined use this sampler and DDP sampler together
-            sampler = DistributedSamplerWithSampler(sampler) if num_gpus > 1 else sampler
+            sampler = DistributedSamplerWrapper(sampler) if num_gpus > 1 else sampler
 
         return sampler
 
