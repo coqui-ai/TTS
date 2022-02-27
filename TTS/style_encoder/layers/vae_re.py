@@ -4,7 +4,7 @@ from torch import nn
 
 class VAEReferenceEncoder(nn.Module):
     """NN module creating a fixed size prosody embedding from a spectrogram.
-
+    See: https://arxiv.org/pdf/1812.04342.pdf
     inputs: mel spectrograms [batch_size, num_spec_frames, num_mel]
     outputs: [batch_size, embedding_dim]
     """
