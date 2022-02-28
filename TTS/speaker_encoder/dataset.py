@@ -74,22 +74,6 @@ class SpeakerEncoderDataset(Dataset):
         audio = self.ap.load_wav(filename, sr=self.ap.sample_rate)
         return audio
 
-    def load_data(self, idx):
-        text, wav_file, speaker_name = self.items[idx]
-        wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
-        mel = self.ap.melspectrogram(wav).astype("float32")
-        # sample seq_len
-
-        assert text.size > 0, self.items[idx]["audio_file"]
-        assert wav.size > 0, self.items[idx]["audio_file"]
-
-        sample = {
-            "mel": mel,
-            "item_idx": self.items[idx]["audio_file"],
-            "speaker_name": speaker_name,
-        }
-        return sample
-
     def __parse_items(self):
         self.speaker_to_utters = {}
         for i in self.items:
