@@ -3,7 +3,7 @@ import torch
 import torchaudio
 from torch import nn
 
-from TTS.speaker_encoder.models.resnet import PreEmphasis
+from TTS.encoder.models.resnet import PreEmphasis
 from TTS.utils.io import load_fsspec
 
 

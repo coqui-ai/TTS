@@ -10,11 +10,11 @@ import torch
 from torch.utils.data import DataLoader
 from trainer.torch import NoamLR
 
-from TTS.speaker_encoder.dataset import SpeakerEncoderDataset
-from TTS.speaker_encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
-from TTS.speaker_encoder.utils.generic_utils import save_best_model, setup_speaker_encoder_model
-from TTS.speaker_encoder.utils.training import init_training
-from TTS.speaker_encoder.utils.visual import plot_embeddings
+from TTS.encoder.dataset import SpeakerEncoderDataset
+from TTS.encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
+from TTS.encoder.utils.generic_utils import save_best_model, setup_speaker_encoder_model
+from TTS.encoder.utils.training import init_training
+from TTS.encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
