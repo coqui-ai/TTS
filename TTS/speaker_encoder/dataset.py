@@ -20,6 +20,7 @@ class SpeakerEncoderDataset(Dataset):
         skip_speakers=False,
         verbose=False,
         augmentation_config=None,
+        use_torch_spec=None,
     ):
         """
         Args:
@@ -37,6 +38,7 @@ class SpeakerEncoderDataset(Dataset):
         self.skip_speakers = skip_speakers
         self.ap = ap
         self.verbose = verbose
+        self.use_torch_spec = use_torch_spec
         self.__parse_items()
         storage_max_size = storage_size * num_speakers_in_batch
         self.storage = Storage(
@@ -241,8 +243,12 @@ class SpeakerEncoderDataset(Dataset):
                             self.gaussian_augmentation_config["max_amplitude"],
                             size=len(wav),
                         )
-                mel = self.ap.melspectrogram(wav)
-                feats_.append(torch.FloatTensor(mel))
+
+                if not self.use_torch_spec:
+                    mel = self.ap.melspectrogram(wav)
+                    feats_.append(torch.FloatTensor(mel))
+                else:
+                    feats_.append(torch.FloatTensor(wav))
 
             labels.append(torch.LongTensor(labels_))
             feats.extend(feats_)

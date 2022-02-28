@@ -46,6 +46,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             sample_from_storage_p=c.storage["sample_from_storage_p"],
             verbose=verbose,
             augmentation_config=c.audio_augmentation,
+            use_torch_spec=c.model_params.get("use_torch_spec", False),
         )
 
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
