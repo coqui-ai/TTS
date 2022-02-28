@@ -416,6 +416,26 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
         return [x.strip().split("|") for x in f.readlines()]
 
 
+def emotion(root_path, meta_file, ignored_speakers=None):
+    """Generic emotion dataset"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        for line in ttf:
+            if line.startswith("file_path"):
+                continue
+            cols = line.split(",")
+            wav_file = os.path.join(root_path, cols[0])
+            speaker_id = cols[1]
+            emotion_id = cols[2].replace("\n", "")
+            # ignore speakers
+            if isinstance(ignored_speakers, list):
+                if speaker_id in ignored_speakers:
+                    continue
+            items.append([wav_file, speaker_id, emotion_id])
+    return items
+
+
 def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:  # pylint: disable=unused-argument
     """Normalizes the Baker meta data file to TTS format
 
