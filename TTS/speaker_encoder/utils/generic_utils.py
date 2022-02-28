@@ -8,8 +8,8 @@ from multiprocessing import Manager
 import numpy as np
 from scipy import signal
 
-from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
-from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
+from TTS.encoder.models.lstm import LSTMSpeakerEncoder
+from TTS.encoder.models.resnet import ResNetSpeakerEncoder
 from TTS.utils.io import save_fsspec
 
 

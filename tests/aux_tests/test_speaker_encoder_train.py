@@ -4,7 +4,7 @@ import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.speaker_encoder.speaker_encoder_config import SpeakerEncoderConfig
+from TTS.encoder.speaker_encoder_config import SpeakerEncoderConfig
 
 
 def run_test_train():

@@ -10,7 +10,7 @@ from coqpit import Coqpit
 from torch.utils.data.sampler import WeightedRandomSampler
 
 from TTS.config import get_from_config_or_model_args_with_default, load_config
-from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
+from TTS.encoder.utils.generic_utils import setup_speaker_encoder_model
 from TTS.utils.audio import AudioProcessor
 
 

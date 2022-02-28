@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from TTS.speaker_encoder.utils.generic_utils import AugmentWAV, Storage
+from TTS.encoder.utils.generic_utils import AugmentWAV, Storage
 
 
 class SpeakerEncoderDataset(Dataset):
