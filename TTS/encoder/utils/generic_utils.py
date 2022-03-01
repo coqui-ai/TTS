@@ -14,11 +14,11 @@ from TTS.utils.io import save_fsspec
 
 
 class Storage(object):
-    def __init__(self, maxsize, storage_batchs, num_speakers_in_batch, num_threads=8):
+    def __init__(self, maxsize, storage_batchs, num_classes_in_batch, num_threads=8):
         # use multiprocessing for threading safe
         self.storage = Manager().list()
         self.maxsize = maxsize
-        self.num_speakers_in_batch = num_speakers_in_batch
+        self.num_classes_in_batch = num_classes_in_batch
         self.num_threads = num_threads
         self.ignore_last_batch = False
 
@@ -28,7 +28,7 @@ class Storage(object):
         # used for fast random sample
         self.safe_storage_size = self.maxsize - self.num_threads
         if self.ignore_last_batch:
-            self.safe_storage_size -= self.num_speakers_in_batch
+            self.safe_storage_size -= self.num_classes_in_batch
 
     def __len__(self):
         return len(self.storage)
@@ -48,7 +48,7 @@ class Storage(object):
         storage_size = len(self.storage) - self.num_threads
 
         if self.ignore_last_batch:
-            storage_size -= self.num_speakers_in_batch
+            storage_size -= self.num_classes_in_batch
 
         return self.storage[random.randint(0, storage_size)]
 

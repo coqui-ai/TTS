@@ -29,12 +29,12 @@ colormap = (
 )
 
 
-def plot_embeddings(embeddings, num_utter_per_speaker):
-    embeddings = embeddings[: 10 * num_utter_per_speaker]
+def plot_embeddings(embeddings, num_utter_per_class):
+    embeddings = embeddings[: 10 * num_utter_per_class]
     model = umap.UMAP()
     projection = model.fit_transform(embeddings)
-    num_speakers = embeddings.shape[0] // num_utter_per_speaker
-    ground_truth = np.repeat(np.arange(num_speakers), num_utter_per_speaker)
+    num_speakers = embeddings.shape[0] // num_utter_per_class
+    ground_truth = np.repeat(np.arange(num_speakers), num_utter_per_class)
     colors = [colormap[i] for i in ground_truth]
 
     fig, ax = plt.subplots(figsize=(16, 10))
