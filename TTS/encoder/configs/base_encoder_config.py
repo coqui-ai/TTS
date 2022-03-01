@@ -7,10 +7,10 @@ from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig, BaseTr
 
 
 @dataclass
-class SpeakerEncoderConfig(BaseTrainingConfig):
-    """Defines parameters for Speaker Encoder model."""
+class BaseEncoderConfig(BaseTrainingConfig):
+    """Defines parameters for a Generic Encoder model."""
 
-    model: str = "speaker_encoder"
+    model: str = None
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # model params
