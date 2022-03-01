@@ -102,6 +102,9 @@ class EncoderDataset(Dataset):
     def get_num_classes(self):
         return len(self.classes)
 
+    def get_map_classid_to_classname(self):
+        return dict((c_id, c_n) for c_n, c_id in self.classname_to_classid.items())
+
     def __sample_class(self, ignore_classes=None):
         class_name = random.sample(self.classes, 1)[0]
         # if list of classes_id is provide make sure that it's will be ignored
