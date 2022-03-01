@@ -8,6 +8,7 @@ class EmotionEncoderConfig(SpeakerEncoderConfig):
     """Defines parameters for Speaker Encoder model."""
 
     model: str = "emotion_encoder"
+    map_classid_to_classname: dict = None
 
     def check_values(self):
         super().check_values()
