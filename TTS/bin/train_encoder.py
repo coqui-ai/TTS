@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 from trainer.torch import NoamLR
 
-from TTS.encoder.dataset import SpeakerEncoderDataset
+from TTS.encoder.dataset import EncoderDataset
 from TTS.encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.encoder.utils.generic_utils import save_best_model, setup_speaker_encoder_model
 from TTS.encoder.utils.training import init_training
@@ -35,13 +35,13 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
     if is_val:
         loader = None
     else:
-        dataset = SpeakerEncoderDataset(
+        dataset = EncoderDataset(
             ap,
             meta_data_eval if is_val else meta_data_train,
             voice_len=c.voice_len,
-            num_utter_per_speaker=c.num_utters_per_speaker,
-            num_speakers_in_batch=c.num_speakers_in_batch,
-            skip_speakers=c.skip_speakers,
+            num_utter_per_class=c.num_utter_per_class,
+            num_classes_in_batch=c.num_classes_in_batch,
+            skip_classes=c.skip_classes,
             storage_size=c.storage["storage_size"],
             sample_from_storage_p=c.storage["sample_from_storage_p"],
             verbose=verbose,
@@ -52,12 +52,12 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
-            batch_size=c.num_speakers_in_batch,
+            batch_size=c.num_classes_in_batch,
             shuffle=False,
             num_workers=c.num_loader_workers,
             collate_fn=dataset.collate_fn,
         )
-    return loader, dataset.get_num_speakers()
+    return loader, dataset.get_num_classes()
 
 
 def train(model, optimizer, scheduler, criterion, data_loader, global_step):
@@ -91,7 +91,7 @@ def train(model, optimizer, scheduler, criterion, data_loader, global_step):
         outputs = model(inputs)
 
         # loss computation
-        loss = criterion(outputs.view(c.num_speakers_in_batch, outputs.shape[0] // c.num_speakers_in_batch, -1), labels)
+        loss = criterion(outputs.view(c.num_classes_in_batch, outputs.shape[0] // c.num_classes_in_batch, -1), labels)
         loss.backward()
         grad_norm, _ = check_update(model, c.grad_clip)
         optimizer.step()
@@ -160,14 +160,14 @@ def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=redefined-outer-name
     meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=False)
 
-    data_loader, num_speakers = setup_loader(ap, is_val=False, verbose=True)
+    data_loader, num_classes = setup_loader(ap, is_val=False, verbose=True)
 
     if c.loss == "ge2e":
         criterion = GE2ELoss(loss_method="softmax")
     elif c.loss == "angleproto":
         criterion = AngleProtoLoss()
     elif c.loss == "softmaxproto":
-        criterion = SoftmaxAngleProtoLoss(c.model_params["proj_dim"], num_speakers)
+        criterion = SoftmaxAngleProtoLoss(c.model_params["proj_dim"], num_classes)
     else:
         raise Exception("The %s  not is a loss supported" % c.loss)
 

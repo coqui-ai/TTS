@@ -42,9 +42,9 @@
     "steps_plot_stats": 100, // number of steps to plot embeddings.
 
     // Speakers config
-    "num_speakers_in_batch": 200, // Batch size for training.
-    "num_utters_per_speaker": 2,  //
-    "skip_speakers": true, // skip speakers with samples less than "num_utters_per_speaker"
+    "num_classes_in_batch": 200, // Batch size for training.
+    "num_utter_per_class": 2,  //
+    "skip_classes": true, // skip speakers with samples less than "num_utter_per_class"
     "voice_len": 2, // number of seconds for each training instance
      
     "num_loader_workers": 4, // number of training data loader processes. Don't set it too big. 4-8 are good values.

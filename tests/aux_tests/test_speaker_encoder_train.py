@@ -24,8 +24,8 @@ output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 config = SpeakerEncoderConfig(
     batch_size=4,
-    num_speakers_in_batch=1,
-    num_utters_per_speaker=10,
+    num_classes_in_batch=1,
+    num_utter_per_class=10,
     num_loader_workers=0,
     max_train_step=2,
     print_step=1,

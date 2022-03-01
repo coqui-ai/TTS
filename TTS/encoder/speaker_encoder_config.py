@@ -51,10 +51,10 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
     print_step: int = 20
 
     # data loader
-    num_speakers_in_batch: int = MISSING
-    num_utters_per_speaker: int = MISSING
+    num_classes_in_batch: int = MISSING
+    num_utter_per_class: int = MISSING
     num_loader_workers: int = MISSING
-    skip_speakers: bool = False
+    skip_classes: bool = False
     voice_len: float = 1.6
 
     def check_values(self):
