@@ -173,7 +173,6 @@ def main(args):  # pylint: disable=redefined-outer-name
             # update config with the class map
             c.map_classid_to_classname = map_classid_to_classname
             copy_model_files(c, OUT_PATH)
-            print(OUT_PATH)
     else:
         raise Exception("The %s  not is a loss supported" % c.loss)
 
