@@ -7,16 +7,16 @@ from coqpit import Coqpit
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 
-from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
-from TTS.tts.models.base_tacotron import BaseTacotron
+from TTS.tts.models.base_style_tacotron import BaseTacotron
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
-from TTS.style_encoder.layers.gst import GST
+# Import Style Encoder
+from TTS.style_encoder.style_encoder import StyleEncoder
 
-class Tacotron2(BaseTacotron):
+class StyleTacotron2(BaseTacotron):
     """Tacotron2 model implementation inherited from :class:`TTS.tts.models.base_tacotron.BaseTacotron`.
 
     Paper::
@@ -59,8 +59,7 @@ class Tacotron2(BaseTacotron):
             self.init_multispeaker(config)
             self.decoder_in_features += self.embedded_speaker_dim  # add speaker embedding dim
 
-        if self.use_gst:
-            self.decoder_in_features += self.gst.gst_embedding_dim
+        self.decoder_in_features += self.style_encoder_config.style_embedding_dim
 
         # embedding layer
         self.embedding = nn.Embedding(self.num_chars, 512, padding_idx=0)
@@ -90,14 +89,8 @@ class Tacotron2(BaseTacotron):
         # setup prenet dropout
         self.decoder.prenet.dropout_at_inference = self.prenet_dropout_at_inference
 
-        # global style token layers
-        if self.gst and self.use_gst:
-            self.gst_layer = GST(
-                num_mel=self.decoder_output_dim,
-                num_heads=self.gst.gst_num_heads,
-                num_style_tokens=self.gst.gst_num_style_tokens,
-                gst_embedding_dim=self.gst.gst_embedding_dim,
-            )
+        # style encoder layers
+        self.style_encoder_layer = StyleEncoder(self.style_encoder_config)
 
         # backward pass decoder
         if self.bidirectional_decoder:
@@ -150,9 +143,11 @@ class Tacotron2(BaseTacotron):
         embedded_inputs = self.embedding(text).transpose(1, 2)
         # B x T_in_max x D_en
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
-        if self.gst and self.use_gst:
-            # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, mel_specs)
+        # B x gst_dim
+        if self.style_encoder_config.se_type == 'gst':
+            encoder_outputs = self.gst_compute_style_embedding(encoder_outputs, mel_specs)
+        else:
+            pass
 
         if self.use_speaker_embedding or self.use_d_vector_file:
             if not self.use_d_vector_file:
@@ -210,10 +205,12 @@ class Tacotron2(BaseTacotron):
         embedded_inputs = self.embedding(text).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
 
-        if self.gst and self.use_gst:
-            # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
-
+        # B x gst_dim
+        if self.style_encoder_config.se_type == 'gst':
+            encoder_outputs = self.compute_style_embedding(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
+        else:
+            pass
+        
         if self.num_speakers > 1:
             if not self.use_d_vector_file:
                 embedded_speakers = self.speaker_embedding(aux_input["speaker_ids"])[None]
@@ -339,3 +336,4 @@ class Tacotron2(BaseTacotron):
         figures, audios = self._create_logs(batch, outputs, ap)
         logger.eval_figures(steps, figures)
         logger.eval_audios(steps, audios, ap.sample_rate)
+        
