@@ -121,8 +121,7 @@ def train(model, optimizer, scheduler, criterion, data_loader, global_step):
             }
             dashboard_logger.train_epoch_stats(global_step, train_stats)
             figures = {
-                # FIXME: not constant
-                "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), 10),
+                "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), c.num_classes_in_batch),
             }
             dashboard_logger.train_figures(global_step, figures)
 
