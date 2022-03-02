@@ -8,9 +8,9 @@ from torch import nn
 from torch.nn.utils import weight_norm
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.utils.io import load_fsspec
-from trainer.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.datasets import WaveGradDataset
 from TTS.vocoder.layers.wavegrad import Conv1d, DBlock, FiLM, UBlock
 from TTS.vocoder.models.base_vocoder import BaseVocoder

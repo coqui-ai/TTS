@@ -2,10 +2,11 @@ import glob
 import os
 import shutil
 
+from trainer import get_last_checkpoint
+
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
-from trainer import get_last_checkpoint
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -89,7 +90,7 @@ continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getm
 # Inference using TTS API
 continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
-out_wav_path = os.path.join(get_tests_output_path(), 'output.wav')
+out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
 languae_id = "en"
 continue_speakers_path = config.d_vector_file

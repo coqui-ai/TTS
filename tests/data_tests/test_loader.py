@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from tests import get_tests_output_path
-from TTS.tts.configs.shared_configs import BaseTTSConfig, BaseDatasetConfig
+from TTS.tts.configs.shared_configs import BaseDatasetConfig, BaseTTSConfig
 from TTS.tts.datasets import TTSDataset, load_tts_samples
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
@@ -24,7 +24,7 @@ c.data_path = "tests/data/ljspeech/"
 ok_ljspeech = os.path.exists(c.data_path)
 
 dataset_config = BaseDatasetConfig(
-    name="ljspeech_test", # ljspeech_test to multi-speaker
+    name="ljspeech_test",  # ljspeech_test to multi-speaker
     meta_file_train="metadata.csv",
     meta_file_val=None,
     path=c.data_path,
@@ -106,9 +106,9 @@ class TestTTSDataset(unittest.TestCase):
                 # make sure that the computed mels and the waveform match and correctly computed
                 mel_new = self.ap.melspectrogram(wavs[0].squeeze().numpy())
                 # remove padding in mel-spectrogram
-                mel_dataloader = mel_input[0].T.numpy()[:, :mel_lengths[0]]
+                mel_dataloader = mel_input[0].T.numpy()[:, : mel_lengths[0]]
                 # guarantee that both mel-spectrograms have the same size and that we will remove waveform padding
-                mel_new = mel_new[:, :mel_lengths[0]]
+                mel_new = mel_new[:, : mel_lengths[0]]
                 ignore_seg = -(1 + c.audio.win_length // c.audio.hop_length)
                 mel_diff = (mel_new[:, : mel_input.shape[1]] - mel_input[0].T.numpy())[:, 0:ignore_seg]
                 self.assertLess(abs(mel_diff.sum()), 1e-5)

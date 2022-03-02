@@ -7,10 +7,10 @@ from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
-from trainer.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.datasets.gan_dataset import GANDataset
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
 from TTS.vocoder.models import setup_discriminator, setup_generator

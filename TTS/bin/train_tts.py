@@ -44,7 +44,12 @@ def main():
             config = register_config(config_base.model)()
 
     # load training samples
-    train_samples, eval_samples = load_tts_samples(config.datasets, eval_split=True, eval_split_max_size=config.eval_split_max_size, eval_split_size=config.eval_split_size)
+    train_samples, eval_samples = load_tts_samples(
+        config.datasets,
+        eval_split=True,
+        eval_split_max_size=config.eval_split_max_size,
+        eval_split_size=config.eval_split_size,
+    )
 
     # init the model from config
     model = setup_model(config, train_samples + eval_samples)

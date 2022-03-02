@@ -14,6 +14,7 @@ from torch.cuda.amp.autocast_mode import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
@@ -29,7 +30,6 @@ from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment
-from trainer.trainer_utils import get_optimizer, get_scheduler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
@@ -1481,9 +1481,11 @@ class Vits(BaseTTS):
         language_manager = LanguageManager.init_from_config(config)
 
         if config.model_args.speaker_encoder_model_path is not None:
-            speaker_manager.init_speaker_encoder(config.model_args.speaker_encoder_model_path,
-                                                                   config.model_args.speaker_encoder_config_path)
+            speaker_manager.init_speaker_encoder(
+                config.model_args.speaker_encoder_model_path, config.model_args.speaker_encoder_config_path
+            )
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager)
+
 
 ##################################
 # VITS CHARACTERS

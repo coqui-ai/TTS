@@ -1,13 +1,20 @@
 import unittest
 
-from TTS.tts.utils.text.characters import BaseCharacters, Graphemes, IPAPhonemes, BaseVocabulary
+from TTS.tts.utils.text.characters import BaseCharacters, BaseVocabulary, Graphemes, IPAPhonemes
 
 # pylint: disable=protected-access
+
 
 class BaseVocabularyTest(unittest.TestCase):
     def setUp(self):
         self.phonemes = IPAPhonemes()
-        self.base_vocab = BaseVocabulary(vocab=self.phonemes._vocab, pad=self.phonemes.pad,  blank=self.phonemes.blank, bos=self.phonemes.bos, eos=self.phonemes.eos)
+        self.base_vocab = BaseVocabulary(
+            vocab=self.phonemes._vocab,
+            pad=self.phonemes.pad,
+            blank=self.phonemes.blank,
+            bos=self.phonemes.bos,
+            eos=self.phonemes.eos,
+        )
         self.empty_vocab = BaseVocabulary({})
 
     def test_pad_id(self):
@@ -22,8 +29,8 @@ class BaseVocabularyTest(unittest.TestCase):
         self.assertEqual(self.empty_vocab.vocab, {})
         self.assertEqual(self.base_vocab.vocab, self.phonemes._vocab)
 
-    def test_init_from_config(self):
-        ...
+    # def test_init_from_config(self):
+    #     ...
 
     def test_num_chars(self):
         self.assertEqual(self.empty_vocab.num_chars, 0)
