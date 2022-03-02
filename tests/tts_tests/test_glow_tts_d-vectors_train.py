@@ -4,7 +4,7 @@ import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
-from TTS.utils.trainer_utils import get_last_checkpoint
+from trainer import get_last_checkpoint
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -17,7 +17,6 @@ config = GlowTTSConfig(
     num_eval_loader_workers=0,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    use_espeak_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path="tests/data/ljspeech/phoneme_cache/",
     run_eval=True,

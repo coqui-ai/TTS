@@ -4,7 +4,7 @@ import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
-from TTS.utils.trainer_utils import get_last_checkpoint
+from trainer import get_last_checkpoint
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -28,6 +28,7 @@ config = Tacotron2Config(
         "Be a voice, not an echo.",
     ],
     use_speaker_embedding=True,
+    num_speakers=4,
     max_decoder_steps=50,
 )
 

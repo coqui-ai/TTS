@@ -5,9 +5,9 @@ import shutil
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.fast_pitch_config import FastPitchConfig
-from TTS.utils.trainer_utils import get_last_checkpoint
+from trainer import get_last_checkpoint
 
-config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
+config_path = os.path.join(get_tests_output_path(), "fast_pitch_speaker_emb_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 audio_config = BaseAudioConfig(

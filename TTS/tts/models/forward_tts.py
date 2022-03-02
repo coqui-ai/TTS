@@ -261,7 +261,7 @@ class ForwardTTS(BaseTTS):
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
             print(" > Init speaker_embedding layer.")
-            self.emb_g = nn.Embedding(self.args.num_speakers, self.args.hidden_channels)
+            self.emb_g = nn.Embedding(self.num_speakers, self.args.hidden_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
 
     @staticmethod

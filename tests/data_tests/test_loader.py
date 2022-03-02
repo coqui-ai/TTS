@@ -44,13 +44,13 @@ class TestTTSDataset(unittest.TestCase):
         self.max_loader_iter = 4
         self.ap = AudioProcessor(**c.audio)
 
-    def _create_dataloader(self, batch_size, r, bgs):
+    def _create_dataloader(self, batch_size, r, bgs, start_by_longest=False):
 
         # load dataset
         meta_data_train, meta_data_eval = load_tts_samples(dataset_config, eval_split=True, eval_split_size=0.2)
         items = meta_data_train + meta_data_eval
 
-        tokenizer = TTSTokenizer.init_from_config(c)
+        tokenizer, _ = TTSTokenizer.init_from_config(c)
         dataset = TTSDataset(
             outputs_per_step=r,
             compute_linear_spec=True,
@@ -77,7 +77,7 @@ class TestTTSDataset(unittest.TestCase):
 
     def test_loader(self):
         if ok_ljspeech:
-            dataloader, dataset = self._create_dataloader(2, c.r, 0)
+            dataloader, dataset = self._create_dataloader(1, 1, 0)
 
             for i, data in enumerate(dataloader):
                 if i == self.max_loader_iter:
