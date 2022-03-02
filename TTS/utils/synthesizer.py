@@ -126,26 +126,6 @@ class Synthesizer(object):
             self.encoder_checkpoint = self.tts_config.model_args.speaker_encoder_model_path
             self.encoder_config = self.tts_config.model_args.speaker_encoder_config_path
 
-    def _is_use_speaker_embedding(self):
-        """Check if the speaker embedding is used in the model"""
-        # we handle here the case that some models use model_args some don't
-        use_speaker_embedding = False
-        if hasattr(self.tts_config, "model_args"):
-            use_speaker_embedding = self.tts_config["model_args"].get("use_speaker_embedding", False)
-        use_speaker_embedding = use_speaker_embedding or self.tts_config.get("use_speaker_embedding", False)
-        return use_speaker_embedding
-
-    def _is_use_d_vector_file(self):
-        """Check if the d-vector file is used in the model"""
-        # we handle here the case that some models use model_args some don't
-        use_d_vector_file = False
-        if hasattr(self.tts_config, "model_args"):
-            config = self.tts_config.model_args
-            use_d_vector_file = config.get("use_d_vector_file", False)
-        config = self.tts_config
-        use_d_vector_file = use_d_vector_file or config.get("use_d_vector_file", False)
-        return use_d_vector_file
-
     def _load_vocoder(self, model_file: str, model_config: str, use_cuda: bool) -> None:
         """Load the vocoder model.
 

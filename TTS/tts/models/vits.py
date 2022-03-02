@@ -196,14 +196,12 @@ class VitsDataset(TTSDataset):
 
     def __getitem__(self, idx):
         item = self.samples[idx]
+        raw_text = item["text"]
 
-        text, wav_file, speaker_name, language_name, _ = _parse_sample(item)
-        raw_text = text
+        wav, _ = load_audio(item["audio_file"])
+        wav_filename = os.path.basename(item["audio_file"])
 
-        wav, _ = load_audio(wav_file)
-        wav_filename = os.path.basename(wav_file)
-
-        token_ids = self.get_token_ids(idx, text)
+        token_ids = self.get_token_ids(idx, item["text"])
 
         # after phonemization the text length may change
         # this is a shameful 🤭 hack to prevent longer phonemes
@@ -218,8 +216,8 @@ class VitsDataset(TTSDataset):
             "token_len": len(token_ids),
             "wav": wav,
             "wav_file": wav_filename,
-            "speaker_name": speaker_name,
-            "language_name": language_name,
+            "speaker_name": item["speaker_name"],
+            "language_name": item["language"],
         }
 
     @property
