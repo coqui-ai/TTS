@@ -47,10 +47,10 @@ speaker_manager = SpeakerManager(
 speaker_mapping = {}
 for idx, wav_file in enumerate(tqdm(wav_files)):
     if isinstance(wav_file, list):
-        speaker_name = wav_file[2]
+        class_name = wav_file[2]
         wav_file = wav_file[1]
     else:
-        speaker_name = None
+        class_name = None
 
     # extract the embedding
     embedd = speaker_manager.compute_d_vector_from_clip(wav_file)
@@ -58,7 +58,7 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     # create speaker_mapping if target dataset is defined
     wav_file_name = os.path.basename(wav_file)
     speaker_mapping[wav_file_name] = {}
-    speaker_mapping[wav_file_name]["name"] = speaker_name
+    speaker_mapping[wav_file_name]["name"] = class_name
     speaker_mapping[wav_file_name]["embedding"] = embedd
 
 if speaker_mapping:

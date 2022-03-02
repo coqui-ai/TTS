@@ -5,7 +5,7 @@ from torch import nn
 
 # from TTS.utils.audio import TorchSTFT
 from TTS.utils.io import load_fsspec
-
+from TTS.encoder.losses import SoftmaxAngleProtoLoss
 
 class PreEmphasis(nn.Module):
     def __init__(self, coefficient=0.97):
@@ -277,8 +277,18 @@ class ResNetSpeakerEncoder(nn.Module):
     def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False, use_cuda: bool = False):
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
+        # load the criterion for emotion classification
+        if "criterion" in state and config.loss == "softmaxproto" and config.model == "emotion_encoder" and config.map_classid_to_classname is not None:
+            criterion = SoftmaxAngleProtoLoss(config.model_params["proj_dim"], len(config.map_classid_to_classname.keys()))
+            criterion.load_state_dict(state["criterion"])
+        else:
+            criterion = None
+
         if use_cuda:
             self.cuda()
+            if criterion is not None:
+                criterion = criterion.cuda()
         if eval:
             self.eval()
             assert not self.training
+        return criterion

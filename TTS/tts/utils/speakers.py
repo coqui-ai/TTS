@@ -253,7 +253,7 @@ class SpeakerManager:
         """
         self.speaker_encoder_config = load_config(config_path)
         self.speaker_encoder = setup_speaker_encoder_model(self.speaker_encoder_config)
-        self.speaker_encoder.load_checkpoint(config_path, model_path, eval=True, use_cuda=self.use_cuda)
+        self.speaker_encoder_criterion = self.speaker_encoder.load_checkpoint(self.speaker_encoder_config, model_path, eval=True, use_cuda=self.use_cuda)
         self.speaker_encoder_ap = AudioProcessor(**self.speaker_encoder_config.audio)
 
     def compute_d_vector_from_clip(self, wav_file: Union[str, List[str]]) -> list:
