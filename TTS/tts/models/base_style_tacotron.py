@@ -169,7 +169,8 @@ class BaseTacotron(BaseTTS):
             gst_outputs = torch.zeros(1, 1, self.style_encoder_config.embedding_dim).type_as(inputs)
         else:
             # compute style tokens
-            gst_outputs = self.style_encoder_layer(style_input, speaker_embedding)  # pylint: disable=not-callable
+            input_args = [style_input, speaker_embedding]
+            gst_outputs = self.style_encoder_layer(input_args)  # pylint: disable=not-callable
         inputs = self._concat_speaker_embedding(inputs, gst_outputs)
         return inputs
 

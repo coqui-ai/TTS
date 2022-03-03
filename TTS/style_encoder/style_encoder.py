@@ -28,4 +28,4 @@ class StyleEncoder(nn.Module):
             raise NotImplementedError
 
     def forward(self, inputs):
-        return self.layer(inputs)
+        return self.layer(*inputs)
