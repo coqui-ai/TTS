@@ -93,6 +93,9 @@ class TTSTokenizer:
             language(str):
                 The language code of the text. Defaults to None.
 
+        TODO:
+            - Add support for language-specific processing.
+
         1. Text normalizatin
         2. Phonemization (if use_phonemes is True)
         3. Add blank char between characters
