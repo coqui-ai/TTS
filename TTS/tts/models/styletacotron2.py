@@ -143,12 +143,10 @@ class StyleTacotron2(BaseTacotron):
         embedded_inputs = self.embedding(text).transpose(1, 2)
         # B x T_in_max x D_en
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
-        # B x gst_dim
-        if self.style_encoder_config.se_type == 'gst':
-            encoder_outputs = self.gst_compute_style_embedding(encoder_outputs, mel_specs)
-        else:
-            pass
-
+        # B x style_embed_dim
+        se_inputs = [encoder_outputs, mel_specs]
+        encoder_outputs = self.style_encoder_layer(se_inputs)
+        
         if self.use_speaker_embedding or self.use_d_vector_file:
             if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
@@ -205,11 +203,9 @@ class StyleTacotron2(BaseTacotron):
         embedded_inputs = self.embedding(text).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
 
-        # B x gst_dim
-        if self.style_encoder_config.se_type == 'gst':
-            encoder_outputs = self.compute_style_embedding(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
-        else:
-            pass
+        # B x style_embed_dim
+        se_inputs = [encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"]]
+        encoder_outputs = self.style_encoder_layer(se_inputs)
         
         if self.num_speakers > 1:
             if not self.use_d_vector_file:
