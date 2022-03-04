@@ -27,14 +27,6 @@ class BaseEncoderConfig(BaseTrainingConfig):
 
     audio_augmentation: Dict = field(default_factory=lambda: {})
 
-    use_storage: bool = False
-    storage: Dict = field(
-        default_factory=lambda: {
-            "sample_from_storage_p": 0.66,  # the probability with which we'll sample from the DataSet in-memory storage
-            "storage_size": 15,  # the size of the in-memory storage with respect to a single batch
-        }
-    )
-
     # training params
     max_train_step: int = 1000000  # end training when number of training steps reaches this value.
     loss: str = "angleproto"

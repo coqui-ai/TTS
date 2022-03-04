@@ -13,6 +13,7 @@ from trainer.torch import NoamLR
 from TTS.encoder.dataset import EncoderDataset
 from TTS.encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.encoder.utils.generic_utils import save_best_model, setup_speaker_encoder_model
+from TTS.encoder.utils.samplers import PerfectBatchSampler
 from TTS.encoder.utils.training import init_training
 from TTS.encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets import load_tts_samples
@@ -41,21 +42,24 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             voice_len=c.voice_len,
             num_utter_per_class=c.num_utter_per_class,
             num_classes_in_batch=c.num_classes_in_batch,
-            use_storage=c.use_storage,
-            skip_classes=c.skip_classes,
-            storage_size=c.storage["storage_size"],
-            sample_from_storage_p=c.storage["sample_from_storage_p"],
             verbose=verbose,
             augmentation_config=c.audio_augmentation if not is_val else None,
             use_torch_spec=c.model_params.get("use_torch_spec", False),
         )
 
-        # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        sampler = PerfectBatchSampler(
+            dataset.items,
+            dataset.get_class_list(),
+            batch_size=c.num_classes_in_batch*c.num_utter_per_class, # total batch size
+            num_classes_in_batch=c.num_classes_in_batch,
+            num_gpus=1,
+            shuffle=False if is_val else True,
+            drop_last=True)
+
         loader = DataLoader(
             dataset,
-            batch_size=c.num_classes_in_batch,
-            shuffle=False,
             num_workers=c.num_loader_workers,
+            batch_sampler=sampler,
             collate_fn=dataset.collate_fn,
         )     
 
@@ -70,12 +74,31 @@ def train(model, optimizer, scheduler, criterion, data_loader, global_step):
     avg_loss_all = 0
     avg_loader_time = 0
     end_time = time.time()
-
+    print(len(data_loader))
     for _, data in enumerate(data_loader):
         start_time = time.time()
 
         # setup input data
         inputs, labels = data
+        # agroup samples of each class in the batch. perfect sampler produces [3,2,1,3,2,1] we need [3,3,2,2,1,1]
+        labels = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(labels.shape)
+        inputs = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
+        """
+        labels_converted = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(labels.shape)
+        inputs_converted = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
+        idx = 0
+        for j in range(0, c.num_classes_in_batch, 1):
+            for i in range(j, len(labels), c.num_classes_in_batch):
+                if not torch.all(labels[i].eq(labels_converted[idx])) or not torch.all(inputs[i].eq(inputs_converted[idx])):
+                    print("Invalid")
+                    print(labels)
+                    exit()
+                idx += 1
+        labels = labels_converted
+        inputs = inputs_converted
+        print(labels)
+        print(inputs.shape)"""
+
         loader_time = time.time() - end_time
         global_step += 1
 
@@ -159,9 +182,10 @@ def main(args):  # pylint: disable=redefined-outer-name
     optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=c.wd)
 
     # pylint: disable=redefined-outer-name
-    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=False)
+    meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=True)
 
-    data_loader, num_classes, map_classid_to_classname = setup_loader(ap, is_val=False, verbose=True)
+    train_data_loader, num_classes, map_classid_to_classname = setup_loader(ap, is_val=False, verbose=True)
+    # eval_data_loader, _, _ = setup_loader(ap, is_val=True, verbose=True)
 
     if c.loss == "ge2e":
         criterion = GE2ELoss(loss_method="softmax")
@@ -211,7 +235,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         criterion.cuda()
 
     global_step = args.restore_step
-    _, global_step = train(model, optimizer, scheduler, criterion, data_loader, global_step)
+    _, global_step = train(model, optimizer, scheduler, criterion, train_data_loader, global_step)
 
 
 if __name__ == "__main__":
