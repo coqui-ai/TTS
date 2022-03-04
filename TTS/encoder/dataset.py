@@ -1,10 +1,9 @@
 import random
 
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from TTS.encoder.utils.generic_utils import AugmentWAV, Storage
+from TTS.encoder.utils.generic_utils import AugmentWAV
 
 class EncoderDataset(Dataset):
     def __init__(
@@ -33,7 +32,7 @@ class EncoderDataset(Dataset):
         self.ap = ap
         self.verbose = verbose
         self.use_torch_spec = use_torch_spec
-        self.__parse_items()
+        self.classes, self.items = self.__parse_items()
 
         self.classname_to_classid = {key: i for i, key in enumerate(self.classes)}
 
@@ -78,15 +77,15 @@ class EncoderDataset(Dataset):
             k: v for (k, v) in class_to_utters.items() if len(v) >= self.num_utter_per_class
         }
 
-        self.classes = list(class_to_utters.keys())
-        self.classes.sort()
+        classes = list(class_to_utters.keys())
+        classes.sort()
 
         new_items = []
         for item in self.items:
             path_ = item[1]
             class_name = item[2]
             # ignore filtered classes
-            if class_name not in self.classes:
+            if class_name not in classes:
                 continue
             # ignore small audios
             if self.load_wav(path_).shape[0] - self.seq_len <= 0:
@@ -94,9 +93,7 @@ class EncoderDataset(Dataset):
 
             new_items.append({"wav_file_path": path_, "class_name": class_name})
 
-        self.items = new_items
-  
-    
+        return classes, new_items
     def __len__(self):
         return len(self.items)
 
