@@ -28,7 +28,7 @@ class BaseEncoderConfig(BaseTrainingConfig):
     audio_augmentation: Dict = field(default_factory=lambda: {})
 
     # training params
-    max_train_step: int = 1000000  # end training when number of training steps reaches this value.
+    epochs: int = 10000
     loss: str = "angleproto"
     grad_clip: float = 3.0
     lr: float = 0.0001
@@ -39,7 +39,6 @@ class BaseEncoderConfig(BaseTrainingConfig):
     # logging params
     tb_model_param_stats: bool = False
     steps_plot_stats: int = 10
-    epochs: int = 10000
     save_step: int = 1000
     print_step: int = 20
     run_eval: bool = False
