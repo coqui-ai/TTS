@@ -39,15 +39,18 @@ class BaseEncoderConfig(BaseTrainingConfig):
     # logging params
     tb_model_param_stats: bool = False
     steps_plot_stats: int = 10
-    checkpoint: bool = True
+    epochs: int = 10000
     save_step: int = 1000
     print_step: int = 20
+    run_eval: bool = False
 
     # data loader
     num_classes_in_batch: int = MISSING
     num_utter_per_class: int = MISSING
+    eval_num_classes_in_batch: int = MISSING
+    eval_num_utter_per_class: int = MISSING
+
     num_loader_workers: int = MISSING
-    skip_classes: bool = False
     voice_len: float = 1.6
 
     def check_values(self):

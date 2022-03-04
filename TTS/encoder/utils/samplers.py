@@ -36,7 +36,7 @@ class PerfectBatchSampler(Sampler):
 
     def __init__(self, dataset_items, classes, batch_size, num_classes_in_batch, num_gpus=1, shuffle=True, drop_last=False):
 
-        assert batch_size % (len(classes) * num_gpus) == 0, (
+        assert batch_size % (num_classes_in_batch * num_gpus) == 0, (
             'Batch size must be divisible by number of classes times the number of data parallel devices (if enabled).')
 
         label_indices = {}
