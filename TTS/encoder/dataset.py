@@ -104,7 +104,11 @@ class EncoderDataset(Dataset):
         return len(self.classes)
 
     def get_class_list(self):
-        return list(self.classes)
+        return self.classes
+    def set_classes(self, classes):
+        self.classes = classes
+        self.classname_to_classid = {key: i for i, key in enumerate(self.classes)}
+
 
     def get_map_classid_to_classname(self):
         return dict((c_id, c_n) for c_n, c_id in self.classname_to_classid.items())

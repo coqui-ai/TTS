@@ -209,7 +209,7 @@ def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_s
     save_fsspec(state, checkpoint_path)
 
 
-def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path, current_step):
+def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path, current_step, epoch):
     if model_loss < best_loss:
         new_state_dict = model.state_dict()
         state = {
@@ -217,6 +217,7 @@ def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path
             "optimizer": optimizer.state_dict(),
             "criterion": criterion.state_dict(),
             "step": current_step,
+            "epoch": epoch,
             "loss": model_loss,
             "date": datetime.date.today().strftime("%B %d, %Y"),
         }
