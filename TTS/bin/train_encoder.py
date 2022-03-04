@@ -41,11 +41,12 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
             voice_len=c.voice_len,
             num_utter_per_class=c.num_utter_per_class,
             num_classes_in_batch=c.num_classes_in_batch,
+            use_storage=c.use_storage,
             skip_classes=c.skip_classes,
             storage_size=c.storage["storage_size"],
             sample_from_storage_p=c.storage["sample_from_storage_p"],
             verbose=verbose,
-            augmentation_config=c.audio_augmentation,
+            augmentation_config=c.audio_augmentation if not is_val else None,
             use_torch_spec=c.model_params.get("use_torch_spec", False),
         )
 

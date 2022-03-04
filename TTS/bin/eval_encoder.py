@@ -83,7 +83,7 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
 acc_avg = 0
 for key in class_acc_dict:
     acc = sum(class_acc_dict[key])/len(class_acc_dict[key])
-    print("Class", key, "ACC:", acc)
+    print("Class", key, "Accuracy:", acc)
     acc_avg += acc
 
-print("Average Acc:", acc_avg/len(class_acc_dict))
+print("Average Accuracy:", acc_avg/len(class_acc_dict))
