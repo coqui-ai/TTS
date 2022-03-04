@@ -27,6 +27,7 @@ class BaseEncoderConfig(BaseTrainingConfig):
 
     audio_augmentation: Dict = field(default_factory=lambda: {})
 
+    use_storage: bool = False
     storage: Dict = field(
         default_factory=lambda: {
             "sample_from_storage_p": 0.66,  # the probability with which we'll sample from the DataSet in-memory storage
