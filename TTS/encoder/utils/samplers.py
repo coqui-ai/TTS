@@ -1,4 +1,3 @@
-import torch
 import random
 from torch.utils.data.sampler import Sampler, SubsetRandomSampler
 
@@ -12,6 +11,7 @@ class SubsetSampler(Sampler):
     """
 
     def __init__(self, indices):
+        super().__init__(indices)
         self.indices = indices
 
     def __iter__(self):
@@ -35,15 +35,17 @@ class PerfectBatchSampler(Sampler):
     """
 
     def __init__(self, dataset_items, classes, batch_size, num_classes_in_batch, num_gpus=1, shuffle=True, drop_last=False):
-
+        super().__init__(dataset_items)
         assert batch_size % (num_classes_in_batch * num_gpus) == 0, (
             'Batch size must be divisible by number of classes times the number of data parallel devices (if enabled).')
 
         label_indices = {}
-        for idx in range(len(dataset_items)):
-            label = dataset_items[idx]['class_name']
-            if label not in label_indices: label_indices[label] = []
-            label_indices[label].append(idx)
+        for idx, item in enumerate(dataset_items):
+            label = item['class_name']
+            if label not in label_indices.keys():
+                label_indices[label] = [idx]
+            else:
+                label_indices[label].append(idx)
 
         if shuffle:
             self._samplers = [SubsetRandomSampler(label_indices[key]) for key in classes]
@@ -68,16 +70,16 @@ class PerfectBatchSampler(Sampler):
 
         while True:
             b = []
-            for i in range(len(iters)):
+            for i, it in enumerate(iters):
                 if valid_samplers_idx is not None and i not in valid_samplers_idx:
                     continue
-                it  = iters[i]
                 idx = next(it, None)
                 if idx is None:
                     done = True
                     break
                 b.append(idx)
-            if done: break
+            if done:
+                break
             batch += b
             if len(batch) == self._batch_size:
                 yield batch

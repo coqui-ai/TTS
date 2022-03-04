@@ -12,7 +12,7 @@ from trainer.torch import NoamLR
 
 from TTS.encoder.dataset import EncoderDataset
 from TTS.encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
-from TTS.encoder.utils.generic_utils import save_best_model, setup_speaker_encoder_model
+from TTS.encoder.utils.generic_utils import save_best_model, save_checkpoint, setup_speaker_encoder_model
 from TTS.encoder.utils.samplers import PerfectBatchSampler
 from TTS.encoder.utils.training import init_training
 from TTS.encoder.utils.visual import plot_embeddings
@@ -55,14 +55,13 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
         batch_size=num_classes_in_batch*num_utter_per_class, # total batch size
         num_classes_in_batch=num_classes_in_batch,
         num_gpus=1,
-        shuffle=False if is_val else True,
+        shuffle=not is_val,
         drop_last=True)
 
     if len(classes) < num_classes_in_batch:
         if is_val:
             raise RuntimeError(f"config.eval_num_classes_in_batch ({num_classes_in_batch}) need to be <= {len(classes)} (Number total of Classes in the Eval dataset) !")
-        else:
-            raise RuntimeError(f"config.num_classes_in_batch ({num_classes_in_batch}) need to be <= {len(classes)} (Number total of Classes in the Train dataset) !")
+        raise RuntimeError(f"config.num_classes_in_batch ({num_classes_in_batch}) need to be <= {len(classes)} (Number total of Classes in the Train dataset) !")
 
     # set the classes to avoid get wrong class_id when the number of training and eval classes are not equal
     if is_val:
@@ -73,16 +72,14 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
         num_workers=c.num_loader_workers,
         batch_sampler=sampler,
         collate_fn=dataset.collate_fn,
-    )     
+    )
 
     return loader, classes, dataset.get_map_classid_to_classname()
 
 def evaluation(model, criterion, data_loader, global_step):
     eval_loss = 0
-    for step, data in enumerate(data_loader):
+    for _, data in enumerate(data_loader):
         with torch.no_grad():
-            start_time = time.time()
-
             # setup input data
             inputs, labels = data
 
@@ -121,7 +118,7 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
     for epoch in range(c.epochs):
         tot_loss = 0
         epoch_time = 0
-        for step, data in enumerate(data_loader):
+        for _, data in enumerate(data_loader):
             start_time = time.time()
 
             # setup input data
@@ -129,22 +126,19 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
             # agroup samples of each class in the batch. perfect sampler produces [3,2,1,3,2,1] we need [3,3,2,2,1,1]
             labels = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(labels.shape)
             inputs = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
-            """
             # ToDo: move it to a unit test
-            labels_converted = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(labels.shape)
-            inputs_converted = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
-            idx = 0
-            for j in range(0, c.num_classes_in_batch, 1):
-                for i in range(j, len(labels), c.num_classes_in_batch):
-                    if not torch.all(labels[i].eq(labels_converted[idx])) or not torch.all(inputs[i].eq(inputs_converted[idx])):
-                        print("Invalid")
-                        print(labels)
-                        exit()
-                    idx += 1
-            labels = labels_converted
-            inputs = inputs_converted
-            print(labels)
-            print(inputs.shape)"""
+            # labels_converted = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(labels.shape)
+            # inputs_converted = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
+            # idx = 0
+            # for j in range(0, c.num_classes_in_batch, 1):
+            #     for i in range(j, len(labels), c.num_classes_in_batch):
+            #         if not torch.all(labels[i].eq(labels_converted[idx])) or not torch.all(inputs[i].eq(inputs_converted[idx])):
+            #             print("Invalid")
+            #             print(labels)
+            #             exit()
+            #         idx += 1
+            # labels = labels_converted
+            # inputs = inputs_converted
 
             loader_time = time.time() - end_time
             global_step += 1
@@ -212,12 +206,12 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
                 save_checkpoint(model, optimizer, criterion, loss.item(), OUT_PATH, global_step, epoch)
 
             end_time = time.time()
-        
+
         print("")
         print(
-            "   | > Epoch:{}  AvgLoss: {:.5f} GradNorm:{:.5f}  "
+            ">>> Epoch:{}  AvgLoss: {:.5f} GradNorm:{:.5f}  "
             "EpochTime:{:.2f} AvGLoaderTime:{:.2f} ".format(
-                epoch, tot_loss/len(data_loader), grad_norm, epoch_time, avg_loader_time, current_lr
+                epoch, tot_loss/len(data_loader), grad_norm, epoch_time, avg_loader_time
             ),
             flush=True,
         )

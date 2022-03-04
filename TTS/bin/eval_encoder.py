@@ -1,5 +1,4 @@
 import argparse
-import os
 import torch
 from argparse import RawTextHelpFormatter
 
@@ -45,7 +44,7 @@ speaker_manager = SpeakerManager(
 
 if speaker_manager.speaker_encoder_config.map_classid_to_classname is not None:
     map_classid_to_classname = speaker_manager.speaker_encoder_config.map_classid_to_classname
-else: 
+else:
     map_classid_to_classname = None
 
 # compute speaker embeddings
@@ -69,20 +68,19 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
         predicted_label = map_classid_to_classname[str(class_id)]
     else:
         predicted_label = None
-    
+
     if class_name is not None and predicted_label is not None:
-            is_equal = int(class_name == predicted_label)
-            if class_name not in class_acc_dict:
-                class_acc_dict[class_name] = [is_equal]
-            else:
-                class_acc_dict[class_name].append(is_equal)
+        is_equal = int(class_name == predicted_label)
+        if class_name not in class_acc_dict:
+            class_acc_dict[class_name] = [is_equal]
+        else:
+            class_acc_dict[class_name].append(is_equal)
     else:
-        print("Error: class_name or/and predicted_label are None")
-        exit()
+        raise RuntimeError("Error: class_name or/and predicted_label are None")
 
 acc_avg = 0
-for key in class_acc_dict:
-    acc = sum(class_acc_dict[key])/len(class_acc_dict[key])
+for key, values in class_acc_dict.items():
+    acc = sum(values)/len(values)
     print("Class", key, "Accuracy:", acc)
     acc_avg += acc
 
