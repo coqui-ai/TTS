@@ -100,7 +100,7 @@ def english_cleaners(text):
     return text
 
 
-def english_phoneme_cleaners(text):
+def phoneme_cleaners(text):
     """Pipeline for phonemes mode, including number and abbreviation expansion."""
     text = en_normalize_numbers(text)
     text = expand_abbreviations(text)
