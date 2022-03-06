@@ -9,33 +9,33 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
 1. Faster learning
 
     Since a pre-trained model has already learned features that are relevant for the task, it will converge faster on
-    a new dataset. This will reduce the cost of training and let you experient faster.
+    a new dataset. This will reduce the cost of training and let you experiment faster.
 
 2. Better resutls with small datasets
 
     Deep learning models are data hungry and they give better performance with more data. However, it is not always
-    possible to have this abondance, especially in domain. For instance, LJSpeech dataset, that we released most of
-    our English models with, is almost 24 hours long. And it requires for someone to collect thid amount of data with
-    a help of a voice talent takes weeks.
+    possible to have this abundance, especially in specific domains. For instance, the LJSpeech dataset, that we released most of
+    our English models with, is almost 24 hours long. It takes weeks to record this amount of data with
+    the help of a voice actor.
 
-    Fine-tuning cames to rescue in this case. You can take one of our pre-trained models and fine-tune it for your own
-    speech dataset and achive reasonable results with only a couple of hours in the worse case.
+    Fine-tuning comes to the rescue in this case. You can take one of our pre-trained models and fine-tune it on your own
+    speech dataset and achive reasonable results with only a couple of hours of data.
 
-    However, note that, fine-tuning does not promise great results. The model performance is still depends on the
+    However, note that, fine-tuning does not ensure great results. The model performance is still depends on the
     {ref}`dataset quality <what_makes_a_good_dataset>` and the hyper-parameters you choose for fine-tuning. Therefore,
-    it still demands a bit of tinkering.
+    it still takes a bit of tinkering.
 
 
 ## Steps to fine-tune a 🐸 TTS model
 
 1. Setup your dataset.
 
-    You need to format your target dataset in a certain way so that 🐸TTS data loader would be able to load it for the
+    You need to format your target dataset in a certain way so that 🐸TTS data loader will be able to load it for the
     training. Please see {ref}`this page <formatting_your_dataset>` for more information about formatting.
 
 2. Choose the model you want to fine-tune.
 
-    You can list the availabe models on terminal as
+    You can list the availabe models in the command line with
 
     ```bash
     tts --list_models
@@ -43,15 +43,15 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
 
     The command above lists the the models in a naming format as ```<model_type>/<language>/<dataset>/<model_name>```.
 
-    Or you can manually check `.model.json` file in the project directory.
+    Or you can manually check the `.model.json` file in the project directory.
 
     You should choose the model based on your requirements. Some models are fast and some are better in speech quality.
-    One lazy way to check a model is running the model on the hardware you want to use and see how it works. For
+    One lazy way to test a model is running the model on the hardware you want to use and see how it works. For
     simple testing, you can use the `tts` command on the terminal. For more info see {ref}`here <synthesizing_speech>`.
 
 3. Download the model.
 
-    You can download the model by `tts` command. If you run `tts` with a particular model, it will download automatically
+    You can download the model by using the `tts` command. If you run `tts` with a particular model, it will download it automatically
     and the model path will be printed on the terminal.
 
     ```bash
@@ -78,12 +78,12 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
     - `run_name` field: This is the name of the run. This is used to name the output directory and the entry in the
         logging dashboard.
     - `output_path` field: This is the path where the fine-tuned model is saved.
-    - `lr` field: You may need to use a smaller learning rate for fine-tuning not to impair the features learned by the
+    - `lr` field: You may need to use a smaller learning rate for fine-tuning to not lose the features learned by the
         pre-trained model with big update steps.
     - `audio` fields: Different datasets have different audio characteristics. You must check the current audio parameters and
         make sure that the values reflect your dataset. For instance, your dataset might have a different audio sampling rate.
 
-    Apart from these above, you should check the whole configuration file and make sure that the values are correct for
+    Apart from the parameters above, you should check the whole configuration file and make sure that the values are correct for
     your dataset and training.
 
 5. Start fine-tuning.
@@ -111,5 +111,4 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
         --coqpit.run_name "glow-tts-finetune" \
         --coqpit.lr 0.00001
     ```
-
 
