@@ -37,6 +37,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
     num_classes_in_batch = c.num_classes_in_batch if not is_val else c.eval_num_classes_in_batch
 
     dataset = EncoderDataset(
+        c,
         ap,
         meta_data_eval if is_val else meta_data_train,
         voice_len=c.voice_len,

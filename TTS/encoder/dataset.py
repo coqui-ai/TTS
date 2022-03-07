@@ -8,6 +8,7 @@ from TTS.encoder.utils.generic_utils import AugmentWAV
 class EncoderDataset(Dataset):
     def __init__(
         self,
+        config,
         ap,
         meta_data,
         voice_len=1.6,
@@ -25,6 +26,7 @@ class EncoderDataset(Dataset):
             verbose (bool): print diagnostic information.
         """
         super().__init__()
+        self.config = config
         self.items = meta_data
         self.sample_rate = ap.sample_rate
         self.seq_len = int(voice_len * self.sample_rate)
@@ -62,9 +64,9 @@ class EncoderDataset(Dataset):
 
     def __parse_items(self):
         class_to_utters = {}
-        for i in self.items:
-            path_ = i["audio_file"]
-            speaker_ = i["speaker_name"]
+        for item in self.items:
+            path_ = item["audio_file"]
+            class_name = item["emotion_name"] if self.config.model == "emotion_encoder" else item["speaker_name"]
             if class_name in class_to_utters.keys():
                 class_to_utters[class_name].append(path_)
             else:
@@ -82,8 +84,8 @@ class EncoderDataset(Dataset):
 
         new_items = []
         for item in self.items:
-            path_ = item[1]
-            class_name = item[2]
+            path_ = item["audio_file"]
+            class_name = item["emotion_name"] if self.config.model == "emotion_encoder" else item["speaker_name"]
             # ignore filtered classes
             if class_name not in classes:
                 continue
@@ -94,6 +96,7 @@ class EncoderDataset(Dataset):
             new_items.append({"wav_file_path": path_, "class_name": class_name})
 
         return classes, new_items
+
     def __len__(self):
         return len(self.items)
 

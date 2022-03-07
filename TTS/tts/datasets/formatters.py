@@ -435,7 +435,7 @@ def emotion(root_path, meta_file, ignored_speakers=None):
             if isinstance(ignored_speakers, list):
                 if speaker_id in ignored_speakers:
                     continue
-            items.append([speaker_id, wav_file, emotion_id])
+            items.append({"audio_file": wav_file, "speaker_name": speaker_id, "emotion_name": emotion_id})
     return items
 
 

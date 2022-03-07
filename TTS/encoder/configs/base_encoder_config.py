@@ -46,8 +46,8 @@ class BaseEncoderConfig(BaseTrainingConfig):
     # data loader
     num_classes_in_batch: int = MISSING
     num_utter_per_class: int = MISSING
-    eval_num_classes_in_batch: int = MISSING
-    eval_num_utter_per_class: int = MISSING
+    eval_num_classes_in_batch: int = None
+    eval_num_utter_per_class: int = None
 
     num_loader_workers: int = MISSING
     voice_len: float = 1.6
