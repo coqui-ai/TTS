@@ -1,11 +1,13 @@
 import os
 
+from trainer import Trainer, TrainerArgs
+
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.tacotron2 import Tacotron2
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 # from TTS.tts.datasets.tokenizer import Tokenizer
@@ -46,6 +48,7 @@ config = Tacotron2Config(  # This is the config that is saved for the future use
     use_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
+    precompute_num_workers=8,
     print_step=25,
     print_eval=True,
     mixed_precision=False,
@@ -56,15 +59,32 @@ config = Tacotron2Config(  # This is the config that is saved for the future use
 # init audio processor
 ap = AudioProcessor(**config.audio.to_dict())
 
-# load training samples
+# INITIALIZE THE AUDIO PROCESSOR
+# Audio processor is used for feature extraction and audio I/O.
+# It mainly serves to the dataloader and the training loggers.
+ap = AudioProcessor.init_from_config(config)
+
+# INITIALIZE THE TOKENIZER
+# Tokenizer is used to convert text to sequences of token IDs.
+# If characters are not defined in the config, default characters are passed to the config
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
+# LOAD DATA SAMPLES
+# Each sample is a list of ```[text, audio_file_path, speaker_name]```
+# You can define your custom sample loader returning the list of samples.
+# Or define your custom formatter and pass it to the `load_tts_samples`.
+# Check `TTS.tts.datasets.load_tts_samples` for more details.
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
-# init model
-model = Tacotron2(config)
+# INITIALIZE THE MODEL
+# Models take a config object and a speaker manager as input
+# Config defines the details of the model like the number of layers, the size of the embedding, etc.
+# Speaker manager is used by multi-speaker models.
+model = Tacotron2(config, ap, tokenizer, speaker_manager=None)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(),
+    TrainerArgs(),
     config,
     output_path,
     model=model,

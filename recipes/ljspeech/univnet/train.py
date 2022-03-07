@@ -1,6 +1,7 @@
 import os
 
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
+
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.configs import UnivnetConfig
 from TTS.vocoder.datasets.preprocess import load_wav_data
@@ -39,7 +40,7 @@ model = GAN(config)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(),
+    TrainerArgs(),
     config,
     output_path,
     model=model,

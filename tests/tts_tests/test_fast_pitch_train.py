@@ -2,11 +2,13 @@ import glob
 import os
 import shutil
 
+from trainer import get_last_checkpoint
+
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.fast_pitch_config import FastPitchConfig
 
-config_path = os.path.join(get_tests_output_path(), "test_fast_pitch_config.json")
+config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 audio_config = BaseAudioConfig(
@@ -41,8 +43,11 @@ config = FastPitchConfig(
     test_sentences=[
         "Be a voice, not an echo.",
     ],
+    use_speaker_embedding=False,
 )
 config.audio.do_trim_silence = True
+config.use_speaker_embedding = False
+config.model_args.use_speaker_embedding = False
 config.audio.trim_db = 60
 config.save_json(config_path)
 
@@ -57,10 +62,19 @@ command_train = (
     "--coqpit.datasets.0.meta_file_attn_mask tests/data/ljspeech/metadata_attn_mask.txt "
     "--coqpit.test_delay_epochs 0"
 )
+
 run_cli(command_train)
 
 # Find latest folder
 continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getmtime)
+
+# Inference using TTS API
+continue_config_path = os.path.join(continue_path, "config.json")
+continue_restore_path, _ = get_last_checkpoint(continue_path)
+out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
+
+inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
+run_cli(inference_command)
 
 # restore the model and continue training for one more epoch
 command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "

@@ -23,7 +23,10 @@ def main():
     c = load_config(args.config_path)
 
     # load all datasets
-    train_items, eval_items = load_tts_samples(c.datasets, eval_split=True)
+    train_items, eval_items = load_tts_samples(
+        c.datasets, eval_split=True, eval_split_max_size=c.eval_split_max_size, eval_split_size=c.eval_split_size
+    )
+
     items = train_items + eval_items
 
     texts = "".join(item[0] for item in items)

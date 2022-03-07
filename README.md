@@ -61,8 +61,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Detailed training logs on the terminal and Tensorboard.
 - Support for Multi-speaker TTS.
 - Efficient, flexible, lightweight but feature complete `Trainer API`.
-- Ability to convert PyTorch models to Tensorflow 2.0 and TFLite for inference.
-- Released and read-to-use models.
+- Released and ready-to-use models.
 - Tools to curate Text2Speech datasets under```dataset_analysis```.
 - Utilities to use and test your models.
 - Modular (but not too much) code base enabling easy implementation of new ideas.
@@ -113,17 +112,11 @@ If you are only interested in [synthesizing speech](https://tts.readthedocs.io/e
 pip install TTS
 ```
 
-By default, this only installs the requirements for PyTorch. To install the tensorflow dependencies as well, use the `tf` extra.
-
-```bash
-pip install TTS[tf]
-```
-
 If you plan to code or train models, clone 🐸TTS and install it locally.
 
 ```bash
 git clone https://github.com/coqui-ai/TTS
-pip install -e .[all,dev,notebooks,tf]  # Select the relevant extras
+pip install -e .[all,dev,notebooks]  # Select the relevant extras
 ```
 
 If you are on Ubuntu (Debian), you can also run following commands for installation.
@@ -204,12 +197,10 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
       |- train*.py                  (train your target model.)
       |- distribute.py              (train your TTS model using Multiple GPUs.)
       |- compute_statistics.py      (compute dataset statistics for normalization.)
-      |- convert*.py                (convert target torch model to TF.)
       |- ...
     |- tts/             (text to speech models)
         |- layers/          (model layer definitions)
         |- models/          (model definitions)
-        |- tf/              (Tensorflow 2 utilities and model implementations)
         |- utils/           (model specific utilities.)
     |- speaker_encoder/ (Speaker Encoder models.)
         |- (same)

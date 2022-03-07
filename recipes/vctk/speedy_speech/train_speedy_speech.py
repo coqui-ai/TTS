@@ -1,11 +1,13 @@
 import os
 
+from trainer import Trainer, TrainerArgs
+
 from TTS.config import BaseAudioConfig, BaseDatasetConfig
-from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs.speedy_speech_config import SpeedySpeechConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
@@ -32,30 +34,41 @@ config = SpeedySpeechConfig(
     num_loader_workers=8,
     num_eval_loader_workers=4,
     compute_input_seq_cache=True,
-    compute_f0=True,
-    f0_cache_path=os.path.join(output_path, "f0_cache"),
+    precompute_num_workers=4,
     run_eval=True,
     test_delay_epochs=-1,
     epochs=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    use_espeak_phonemes=False,
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     print_step=50,
     print_eval=False,
     mixed_precision=False,
-    sort_by_audio_len=True,
-    max_seq_len=500000,
+    min_text_len=0,
+    max_text_len=500,
+    min_audio_len=0,
+    max_audio_len=500000,
     output_path=output_path,
     datasets=[dataset_config],
     use_speaker_embedding=True,
 )
 
-# init audio processor
-ap = AudioProcessor(**config.audio)
+# INITIALIZE THE AUDIO PROCESSOR
+# Audio processor is used for feature extraction and audio I/O.
+# It mainly serves to the dataloader and the training loggers.
+ap = AudioProcessor.init_from_config(config)
 
-# load training samples
+# INITIALIZE THE TOKENIZER
+# Tokenizer is used to convert text to sequences of token IDs.
+# If characters are not defined in the config, default characters are passed to the config
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
+# LOAD DATA SAMPLES
+# Each sample is a list of ```[text, audio_file_path, speaker_name]```
+# You can define your custom sample loader returning the list of samples.
+# Or define your custom formatter and pass it to the `load_tts_samples`.
+# Check `TTS.tts.datasets.load_tts_samples` for more details.
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
 # init speaker manager for multi-speaker training
@@ -65,16 +78,14 @@ speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
 config.model_args.num_speakers = speaker_manager.num_speakers
 
 # init model
-model = ForwardTTS(config, speaker_manager)
+model = ForwardTTS(config, ap, tokenizer, speaker_manager)
 
-# init the trainer and 🚀
+# INITIALIZE THE TRAINER
+# Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
+# distributed training, etc.
 trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
+
+# AND... 3,2,1... 🚀
 trainer.fit()

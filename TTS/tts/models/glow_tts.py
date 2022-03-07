@@ -1,5 +1,5 @@
 import math
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import torch
 from coqpit import Coqpit
@@ -14,6 +14,7 @@ from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.io import load_fsspec
 
@@ -39,18 +40,31 @@ class GlowTTS(BaseTTS):
     Check :class:`TTS.tts.configs.glow_tts_config.GlowTTSConfig` for class arguments.
 
     Examples:
+        Init only model layers.
+
+        >>> from TTS.tts.configs.glow_tts_config import GlowTTSConfig
+        >>> from TTS.tts.models.glow_tts import GlowTTS
+        >>> config = GlowTTSConfig(num_chars=2)
+        >>> model = GlowTTS(config)
+
+        Fully init a model ready for action. All the class attributes and class members
+        (e.g Tokenizer, AudioProcessor, etc.). are initialized internally based on config values.
+
         >>> from TTS.tts.configs.glow_tts_config import GlowTTSConfig
         >>> from TTS.tts.models.glow_tts import GlowTTS
         >>> config = GlowTTSConfig()
-        >>> model = GlowTTS(config)
-
+        >>> model = GlowTTS.init_from_config(config, verbose=False)
     """
 
-    def __init__(self, config: GlowTTSConfig, speaker_manager: SpeakerManager = None):
+    def __init__(
+        self,
+        config: GlowTTSConfig,
+        ap: "AudioProcessor" = None,
+        tokenizer: "TTSTokenizer" = None,
+        speaker_manager: SpeakerManager = None,
+    ):
 
-        super().__init__(config)
-
-        self.speaker_manager = speaker_manager
+        super().__init__(config, ap, tokenizer, speaker_manager)
 
         # pass all config fields to `self`
         # for fewer code change
@@ -58,7 +72,6 @@ class GlowTTS(BaseTTS):
         for key in config:
             setattr(self, key, config[key])
 
-        _, self.config, self.num_chars = self.get_characters(config)
         self.decoder_output_dim = config.out_channels
 
         # init multi-speaker layers if necessary
@@ -94,25 +107,25 @@ class GlowTTS(BaseTTS):
 
     def init_multispeaker(self, config: Coqpit):
         """Init speaker embedding layer if `use_speaker_embedding` is True and set the expected speaker embedding
-        vector dimension in the network. If model uses d-vectors, then it only sets the expected dimension.
+        vector dimension to the encoder layer channel size. If model uses d-vectors, then it only sets
+        speaker embedding vector dimension to the d-vector dimension from the config.
 
         Args:
             config (Coqpit): Model configuration.
         """
         self.embedded_speaker_dim = 0
-        # init speaker manager
-        if self.speaker_manager is None and (self.use_speaker_embedding or self.use_d_vector_file):
-            raise ValueError(
-                " > SpeakerManager is not provided. You must provide the SpeakerManager before initializing a multi-speaker model."
-            )
         # set number of speakers - if num_speakers is set in config, use it, otherwise use speaker_manager
         if self.speaker_manager is not None:
             self.num_speakers = self.speaker_manager.num_speakers
         # set ultimate speaker embedding size
-        if config.use_speaker_embedding or config.use_d_vector_file:
+        if config.use_d_vector_file:
             self.embedded_speaker_dim = (
                 config.d_vector_dim if "d_vector_dim" in config and config.d_vector_dim is not None else 512
             )
+            if self.speaker_manager is not None:
+                assert (
+                    config.d_vector_dim == self.speaker_manager.d_vector_dim
+                ), " [!] d-vector dimension mismatch b/w config and speaker manager."
         # init speaker embedding layer
         if config.use_speaker_embedding and not config.use_d_vector_file:
             print(" > Init speaker_embedding layer.")
@@ -170,6 +183,8 @@ class GlowTTS(BaseTTS):
         if g is not None:
             if hasattr(self, "emb_g"):
                 # use speaker embedding layer
+                if not g.size():  # if is a scalar
+                    g = g.unsqueeze(0)  # unsqueeze
                 g = F.normalize(self.emb_g(g)).unsqueeze(-1)  # [b, h, 1]
             else:
                 # use d-vector
@@ -180,12 +195,33 @@ class GlowTTS(BaseTTS):
         self, x, x_lengths, y, y_lengths=None, aux_input={"d_vectors": None, "speaker_ids": None}
     ):  # pylint: disable=dangerous-default-value
         """
-        Shapes:
-            - x: :math:`[B, T]`
-            - x_lenghts::math:`B`
-            - y: :math:`[B, T, C]`
-            - y_lengths::math:`B`
-            - g: :math:`[B, C] or B`
+        Args:
+            x (torch.Tensor):
+                Input text sequence ids. :math:`[B, T_en]`
+
+            x_lengths (torch.Tensor):
+                Lengths of input text sequences. :math:`[B]`
+
+            y (torch.Tensor):
+                Target mel-spectrogram frames. :math:`[B, T_de, C_mel]`
+
+            y_lengths (torch.Tensor):
+                Lengths of target mel-spectrogram frames. :math:`[B]`
+
+            aux_input (Dict):
+                Auxiliary inputs. `d_vectors` is speaker embedding vectors for a multi-speaker model.
+                :math:`[B, D_vec]`. `speaker_ids` is speaker ids for a multi-speaker model usind speaker-embedding
+                layer. :math:`B`
+
+        Returns:
+            Dict:
+                - z: :math: `[B, T_de, C]`
+                - logdet: :math:`B`
+                - y_mean: :math:`[B, T_de, C]`
+                - y_log_scale: :math:`[B, T_de, C]`
+                - alignments: :math:`[B, T_en, T_de]`
+                - durations_log: :math:`[B, T_en, 1]`
+                - total_durations_log: :math:`[B, T_en, 1]`
         """
         # [B, T, C] -> [B, C, T]
         y = y.transpose(1, 2)
@@ -206,9 +242,9 @@ class GlowTTS(BaseTTS):
         with torch.no_grad():
             o_scale = torch.exp(-2 * o_log_scale)
             logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z ** 2))  # [b, t, d] x [b, d, t'] = [b, t, t']
+            logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z**2))  # [b, t, d] x [b, d, t'] = [b, t, t']
             logp3 = torch.matmul((o_mean * o_scale).transpose(1, 2), z)  # [b, t, d] x [b, d, t'] = [b, t, t']
-            logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp4 = torch.sum(-0.5 * (o_mean**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
         y_mean, y_log_scale, o_attn_dur = self.compute_outputs(attn, o_mean, o_log_scale, x_mask)
@@ -255,9 +291,9 @@ class GlowTTS(BaseTTS):
         # find the alignment path between z and encoder output
         o_scale = torch.exp(-2 * o_log_scale)
         logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - o_log_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-        logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z ** 2))  # [b, t, d] x [b, d, t'] = [b, t, t']
+        logp2 = torch.matmul(o_scale.transpose(1, 2), -0.5 * (z**2))  # [b, t, d] x [b, d, t'] = [b, t, t']
         logp3 = torch.matmul((o_mean * o_scale).transpose(1, 2), z)  # [b, t, d] x [b, d, t'] = [b, t, t']
-        logp4 = torch.sum(-0.5 * (o_mean ** 2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+        logp4 = torch.sum(-0.5 * (o_mean**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
         logp = logp1 + logp2 + logp3 + logp4  # [b, t, t']
         attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()
 
@@ -422,20 +458,18 @@ class GlowTTS(BaseTTS):
     def train_log(
         self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
     ) -> None:  # pylint: disable=no-self-use
-        ap = assets["audio_processor"]
-        figures, audios = self._create_logs(batch, outputs, ap)
+        figures, audios = self._create_logs(batch, outputs, self.ap)
         logger.train_figures(steps, figures)
-        logger.train_audios(steps, audios, ap.sample_rate)
+        logger.train_audios(steps, audios, self.ap.sample_rate)
 
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
     def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
-        ap = assets["audio_processor"]
-        figures, audios = self._create_logs(batch, outputs, ap)
+        figures, audios = self._create_logs(batch, outputs, self.ap)
         logger.eval_figures(steps, figures)
-        logger.eval_audios(steps, audios, ap.sample_rate)
+        logger.eval_audios(steps, audios, self.ap.sample_rate)
 
     @torch.no_grad()
     def test_run(self, assets: Dict) -> Tuple[Dict, Dict]:
@@ -446,7 +480,6 @@ class GlowTTS(BaseTTS):
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
-        ap = assets["audio_processor"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
@@ -461,18 +494,16 @@ class GlowTTS(BaseTTS):
                     sen,
                     self.config,
                     "cuda" in str(next(self.parameters()).device),
-                    ap,
                     speaker_id=aux_inputs["speaker_id"],
                     d_vector=aux_inputs["d_vector"],
                     style_wav=aux_inputs["style_wav"],
-                    enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                     use_griffin_lim=True,
                     do_trim_silence=False,
                 )
 
                 test_audios["{}-audio".format(idx)] = outputs["wav"]
                 test_figures["{}-prediction".format(idx)] = plot_spectrogram(
-                    outputs["outputs"]["model_outputs"], ap, output_fig=False
+                    outputs["outputs"]["model_outputs"], self.ap, output_fig=False
                 )
                 test_figures["{}-alignment".format(idx)] = plot_alignment(outputs["alignments"], output_fig=False)
         return test_figures, test_audios
@@ -499,7 +530,8 @@ class GlowTTS(BaseTTS):
             self.store_inverse()
             assert not self.training
 
-    def get_criterion(self):
+    @staticmethod
+    def get_criterion():
         from TTS.tts.layers.losses import GlowTTSLoss  # pylint: disable=import-outside-toplevel
 
         return GlowTTSLoss()
@@ -507,3 +539,20 @@ class GlowTTS(BaseTTS):
     def on_train_step_start(self, trainer):
         """Decide on every training step wheter enable/disable data depended initialization."""
         self.run_data_dep_init = trainer.total_steps_done < self.data_dep_init_steps
+
+    @staticmethod
+    def init_from_config(config: "GlowTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
+        """Initiate model from config
+
+        Args:
+            config (VitsConfig): Model config.
+            samples (Union[List[List], List[Dict]]): Training samples to parse speaker ids for training.
+                Defaults to None.
+            verbose (bool): If True, print init messages. Defaults to True.
+        """
+        from TTS.utils.audio import AudioProcessor
+
+        ap = AudioProcessor.init_from_config(config, verbose)
+        tokenizer, new_config = TTSTokenizer.init_from_config(config)
+        speaker_manager = SpeakerManager.init_from_config(config, samples)
+        return GlowTTS(new_config, ap, tokenizer, speaker_manager)

@@ -1,12 +1,14 @@
 import os
 
+from trainer import Trainer, TrainerArgs
+
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.tacotron_config import TacotronConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.tacotron import Tacotron
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +34,7 @@ config = TacotronConfig(  # This is the config that is saved for the future use
     eval_batch_size=16,
     num_loader_workers=4,
     num_eval_loader_workers=4,
+    precompute_num_workers=4,
     run_eval=True,
     test_delay_epochs=-1,
     r=6,
@@ -45,18 +48,30 @@ config = TacotronConfig(  # This is the config that is saved for the future use
     print_step=25,
     print_eval=False,
     mixed_precision=True,
-    sort_by_audio_len=True,
-    min_seq_len=0,
-    max_seq_len=44000 * 10,  # 44k is the original sampling rate before resampling, corresponds to 10 seconds of audio
+    min_text_len=0,
+    max_text_len=500,
+    min_audio_len=0,
+    max_audio_len=44000 * 10,  # 44k is the original sampling rate before resampling, corresponds to 10 seconds of audio
     output_path=output_path,
     datasets=[dataset_config],
     use_speaker_embedding=True,  # set this to enable multi-sepeaker training
 )
 
-# init audio processor
-ap = AudioProcessor(**config.audio.to_dict())
+## INITIALIZE THE AUDIO PROCESSOR
+# Audio processor is used for feature extraction and audio I/O.
+# It mainly serves to the dataloader and the training loggers.
+ap = AudioProcessor.init_from_config(config)
 
-# load training samples
+# INITIALIZE THE TOKENIZER
+# Tokenizer is used to convert text to sequences of token IDs.
+# If characters are not defined in the config, default characters are passed to the config
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
+# LOAD DATA SAMPLES
+# Each sample is a list of ```[text, audio_file_path, speaker_name]```
+# You can define your custom sample loader returning the list of samples.
+# Or define your custom formatter and pass it to the `load_tts_samples`.
+# Check `TTS.tts.datasets.load_tts_samples` for more details.
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
 # init speaker manager for multi-speaker training
@@ -65,16 +80,14 @@ speaker_manager = SpeakerManager()
 speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
 
 # init model
-model = Tacotron(config, speaker_manager)
+model = Tacotron(config, ap, tokenizer, speaker_manager)
 
-# init the trainer and 🚀
+# INITIALIZE THE TRAINER
+# Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
+# distributed training, etc.
 trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
+
+# AND... 3,2,1... 🚀
 trainer.fit()

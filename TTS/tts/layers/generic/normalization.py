@@ -113,7 +113,7 @@ class ActNorm(nn.Module):
             denom = torch.sum(x_mask, [0, 2])
             m = torch.sum(x * x_mask, [0, 2]) / denom
             m_sq = torch.sum(x * x * x_mask, [0, 2]) / denom
-            v = m_sq - (m ** 2)
+            v = m_sq - (m**2)
             logs = 0.5 * torch.log(torch.clamp_min(v, 1e-6))
 
             bias_init = (-m * torch.exp(-logs)).view(*self.bias.shape).to(dtype=self.bias.dtype)

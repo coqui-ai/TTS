@@ -1,19 +1,24 @@
 import os
+from dataclasses import dataclass, field
 
 from coqpit import Coqpit
+from trainer import TrainerArgs, get_last_checkpoint
+from trainer.logging import logger_factory
+from trainer.logging.console_logger import ConsoleLogger
 
 from TTS.config import load_config, register_config
-from TTS.trainer import TrainingArgs
-from TTS.tts.utils.text.symbols import parse_symbols
+from TTS.tts.utils.text.characters import parse_symbols
 from TTS.utils.generic_utils import get_experiment_folder_path, get_git_branch
 from TTS.utils.io import copy_model_files
-from TTS.utils.logging import init_dashboard_logger
-from TTS.utils.logging.console_logger import ConsoleLogger
-from TTS.utils.trainer_utils import get_last_checkpoint
+
+
+@dataclass
+class TrainArgs(TrainerArgs):
+    config_path: str = field(default=None, metadata={"help": "Path to the config file."})
 
 
 def getarguments():
-    train_config = TrainingArgs()
+    train_config = TrainArgs()
     parser = train_config.init_argparse(arg_prefix="")
     return parser
 
@@ -75,13 +80,13 @@ def process_args(args, config=None):
             used_characters = parse_symbols()
             new_fields["characters"] = used_characters
         copy_model_files(config, experiment_path, new_fields)
-        dashboard_logger = init_dashboard_logger(config)
+        dashboard_logger = logger_factory(config, experiment_path)
     c_logger = ConsoleLogger()
     return config, experiment_path, audio_path, c_logger, dashboard_logger
 
 
 def init_arguments():
-    train_config = TrainingArgs()
+    train_config = TrainArgs()
     parser = train_config.init_argparse(arg_prefix="")
     return parser
 

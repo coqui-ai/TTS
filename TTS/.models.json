@@ -4,7 +4,7 @@
             "multi-dataset":{
                 "your_tts":{
                     "description": "Your TTS model accompanying the paper https://arxiv.org/abs/2112.02418",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.5.0_models/tts_models--multilingual--multi-dataset--your_tts.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--multilingual--multi-dataset--your_tts.zip",
                     "default_vocoder": null,
                     "commit": "e9a1953e",
                     "license": "CC BY-NC-ND 4.0",
@@ -33,7 +33,7 @@
                 },
                 "tacotron2-DDC_ph": {
                     "description": "Tacotron2 with Double Decoder Consistency with phonemes.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.2.0/tts_models--en--ljspeech--tacotronDDC_ph.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--en--ljspeech--tacotron2-DDC_ph.zip",
                     "default_vocoder": "vocoder_models/en/ljspeech/univnet",
                     "commit": "3900448",
                     "author": "Eren Gölge @erogol",
@@ -71,7 +71,7 @@
                 },
                 "vits": {
                     "description": "VITS is an End2End TTS model trained on LJSpeech dataset with phonemes.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.2.0/tts_models--en--ljspeech--vits.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--en--ljspeech--vits.zip",
                     "default_vocoder": null,
                     "commit": "3900448",
                     "author": "Eren Gölge @erogol",
@@ -89,18 +89,9 @@
                 }
             },
             "vctk": {
-                "sc-glow-tts": {
-                    "description": "Multi-Speaker Transformers based SC-Glow model from https://arxiv.org/abs/2104.05557.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.1.0/tts_models--en--vctk--sc-glow-tts.zip",
-                    "default_vocoder": "vocoder_models/en/vctk/hifigan_v2",
-                    "commit": "b531fa69",
-                    "author": "Edresson Casanova",
-                    "license": "",
-                    "contact": ""
-                },
                 "vits": {
                     "description": "VITS End2End TTS model trained on VCTK dataset with 109 different speakers with EN accent.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.2.0/tts_models--en--vctk--vits.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--en--vctk--vits.zip",
                     "default_vocoder": null,
                     "commit": "3900448",
                     "author": "Eren @erogol",
@@ -109,7 +100,7 @@
                 },
                 "fast_pitch":{
                     "description": "FastPitch model trained on VCTK dataseset.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.4.0/tts_models--en--vctk--fast_pitch.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--en--vctk--fast_pitch.zip",
                     "default_vocoder": null,
                     "commit": "bdab788d",
                     "author": "Eren @erogol",
@@ -156,7 +147,7 @@
         "uk":{
             "mai": {
                 "glow-tts": {
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.4.0/tts_models--uk--mailabs--glow-tts.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--uk--mai--glow-tts.zip",
                     "author":"@robinhad",
                     "commit": "bdab788d",
                     "license": "MIT",
@@ -168,7 +159,7 @@
         "zh-CN": {
             "baker": {
                 "tacotron2-DDC-GST": {
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.0.10/tts_models--zh-CN--baker--tacotron2-DDC-GST.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--zh-CN--baker--tacotron2-DDC-GST.zip",
                     "commit": "unknown",
                     "author": "@kirianguiller",
                     "default_vocoder": null
@@ -204,6 +195,52 @@
                     "description": "Tacotron2 with Double Decoder Consistency trained with Kokoro Speech Dataset.",
                     "author": "@kaiidams",
                     "commit": "401fbd89"
+                }
+            }
+        },
+        "tr":{
+            "common-voice": {
+                "glow-tts":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--tr--common-voice--glow-tts.zip",
+                    "default_vocoder": "vocoder_models/tr/common-voice/hifigan",
+                    "license": "MIT",
+                    "description": "Turkish GlowTTS model using an unknown speaker from the Common-Voice dataset.",
+                    "author": "Fatih Akademi",
+                    "commit": null
+                }
+            }
+        },
+        "it": {
+            "mai_female": {
+                "glow-tts":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_female--glow-tts.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
+                },
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_female--vits.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
+                }
+            },
+            "mai_male": {
+                "glow-tts":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_male--glow-tts.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
+                },
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_male--vits.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
                 }
             }
         }
@@ -322,6 +359,17 @@
                     "commit": "bdab788d",
                     "license": "MIT",
                     "contact": ""
+                }
+            }
+        },
+        "tr":{
+            "common-voice": {
+                "hifigan":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/vocoder_models--tr--common-voice--hifigan.zip",
+                    "description": "HifiGAN model using an unknown speaker from the Common-Voice dataset.",
+                    "author": "Fatih Akademi",
+                    "license": "MIT",
+                    "commit": null
                 }
             }
         }

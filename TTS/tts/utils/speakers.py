@@ -9,7 +9,7 @@ import torch
 from coqpit import Coqpit
 from torch.utils.data.sampler import WeightedRandomSampler
 
-from TTS.config import load_config
+from TTS.config import get_from_config_or_model_args_with_default, load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
 from TTS.utils.audio import AudioProcessor
 
@@ -118,7 +118,7 @@ class SpeakerManager:
         Returns:
             Tuple[Dict, int]: speaker IDs and number of speakers.
         """
-        speakers = sorted({item[2] for item in items})
+        speakers = sorted({item["speaker_name"] for item in items})
         speaker_ids = {name: i for i, name in enumerate(speakers)}
         num_speakers = len(speaker_ids)
         return speaker_ids, num_speakers
@@ -318,6 +318,42 @@ class SpeakerManager:
         # TODO: implement speaker encoder
         raise NotImplementedError
 
+    @staticmethod
+    def init_from_config(config: "Coqpit", samples: Union[List[List], List[Dict]] = None) -> "SpeakerManager":
+        """Initialize a speaker manager from config
+
+        Args:
+            config (Coqpit): Config object.
+            samples (Union[List[List], List[Dict]], optional): List of data samples to parse out the speaker names.
+                Defaults to None.
+
+        Returns:
+            SpeakerEncoder: Speaker encoder object.
+        """
+        speaker_manager = None
+        if get_from_config_or_model_args_with_default(config, "use_speaker_embedding", False):
+            if samples:
+                speaker_manager = SpeakerManager(data_items=samples)
+            if get_from_config_or_model_args_with_default(config, "speaker_file", None):
+                speaker_manager = SpeakerManager(
+                    speaker_id_file_path=get_from_config_or_model_args_with_default(config, "speaker_file", None)
+                )
+            if get_from_config_or_model_args_with_default(config, "speakers_file", None):
+                speaker_manager = SpeakerManager(
+                    speaker_id_file_path=get_from_config_or_model_args_with_default(config, "speakers_file", None)
+                )
+
+        if get_from_config_or_model_args_with_default(config, "use_d_vector_file", False):
+            if get_from_config_or_model_args_with_default(config, "speakers_file", None):
+                speaker_manager = SpeakerManager(
+                    d_vectors_file_path=get_from_config_or_model_args_with_default(config, "speaker_file", None)
+                )
+            if get_from_config_or_model_args_with_default(config, "d_vector_file", None):
+                speaker_manager = SpeakerManager(
+                    d_vectors_file_path=get_from_config_or_model_args_with_default(config, "d_vector_file", None)
+                )
+        return speaker_manager
+
 
 def _set_file_path(path):
     """Find the speakers.json under the given path or the above it.
@@ -414,7 +450,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
 
 
 def get_speaker_weighted_sampler(items: list):
-    speaker_names = np.array([item[2] for item in items])
+    speaker_names = np.array([item["speaker_name"] for item in items])
     unique_speaker_names = np.unique(speaker_names).tolist()
     speaker_ids = [unique_speaker_names.index(l) for l in speaker_names]
     speaker_count = np.array([len(np.where(speaker_names == l)[0]) for l in unique_speaker_names])

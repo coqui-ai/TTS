@@ -2,7 +2,7 @@ import os
 
 # Trainer: Where the ✨️ happens.
 # TrainingArgs: Defines the set of arguments of the Trainer.
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 
 # GlowTTSConfig: all model related values for training, validating and testing.
 from TTS.tts.configs.glow_tts_config import GlowTTSConfig
@@ -11,6 +11,7 @@ from TTS.tts.configs.glow_tts_config import GlowTTSConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.glow_tts import GlowTTS
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 # we use the same path as this script as our training folder.
@@ -47,7 +48,12 @@ config = GlowTTSConfig(
 # INITIALIZE THE AUDIO PROCESSOR
 # Audio processor is used for feature extraction and audio I/O.
 # It mainly serves to the dataloader and the training loggers.
-ap = AudioProcessor(**config.audio.to_dict())
+ap = AudioProcessor.init_from_config(config)
+
+# INITIALIZE THE TOKENIZER
+# Tokenizer is used to convert text to sequences of token IDs.
+# If characters are not defined in the config, default characters are passed to the config
+tokenizer, config = TTSTokenizer.init_from_config(config)
 
 # LOAD DATA SAMPLES
 # Each sample is a list of ```[text, audio_file_path, speaker_name]```
@@ -60,19 +66,13 @@ train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 # Models take a config object and a speaker manager as input
 # Config defines the details of the model like the number of layers, the size of the embedding, etc.
 # Speaker manager is used by multi-speaker models.
-model = GlowTTS(config, speaker_manager=None)
+model = GlowTTS(config, ap, tokenizer, speaker_manager=None)
 
 # INITIALIZE THE TRAINER
 # Trainer provides a generic API to train all the 🐸TTS models with all its perks like mixed-precision training,
 # distributed training, etc.
 trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},  # assets are objetcs used by the models but not class members.
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 
 # AND... 3,2,1... 🚀

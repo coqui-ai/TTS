@@ -8,6 +8,8 @@ import torch
 from coqpit import Coqpit
 from torch.utils.data.sampler import WeightedRandomSampler
 
+from TTS.config import check_config_and_model_args
+
 
 class LanguageManager:
     """Manage the languages for multi-lingual 🐸TTS models. Load a datafile and parse the information
@@ -98,6 +100,20 @@ class LanguageManager:
         """
         self._save_json(file_path, self.language_id_mapping)
 
+    @staticmethod
+    def init_from_config(config: Coqpit) -> "LanguageManager":
+        """Initialize the language manager from a Coqpit config.
+
+        Args:
+            config (Coqpit): Coqpit config.
+        """
+        language_manager = None
+        if check_config_and_model_args(config, "use_language_embedding", True):
+            if config.get("language_ids_file", None):
+                language_manager = LanguageManager(language_ids_file_path=config.language_ids_file)
+            language_manager = LanguageManager(config=config)
+        return language_manager
+
 
 def _set_file_path(path):
     """Find the language_ids.json under the given path or the above it.
@@ -113,7 +129,7 @@ def _set_file_path(path):
 
 
 def get_language_weighted_sampler(items: list):
-    language_names = np.array([item[3] for item in items])
+    language_names = np.array([item["language"] for item in items])
     unique_language_names = np.unique(language_names).tolist()
     language_ids = [unique_language_names.index(l) for l in language_names]
     language_count = np.array([len(np.where(language_names == l)[0]) for l in unique_language_names])

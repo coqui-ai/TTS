@@ -1,8 +1,9 @@
 import os
 from glob import glob
 
+from trainer import Trainer, TrainerArgs
+
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
@@ -68,8 +69,8 @@ config = VitsConfig(
     print_eval=False,
     mixed_precision=False,
     sort_by_audio_len=True,
-    min_seq_len=32 * 256 * 4,
-    max_seq_len=160000,
+    min_audio_len=32 * 256 * 4,
+    max_audio_len=160000,
     output_path=output_path,
     datasets=dataset_config,
     characters={
@@ -119,7 +120,7 @@ model = Vits(config, speaker_manager, language_manager)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(),
+    TrainerArgs(),
     config,
     output_path,
     model=model,

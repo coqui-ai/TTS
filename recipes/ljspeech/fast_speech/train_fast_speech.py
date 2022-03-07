@@ -1,10 +1,12 @@
 import os
 
+from trainer import Trainer, TrainerArgs
+
 from TTS.config import BaseAudioConfig, BaseDatasetConfig
-from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs.fast_speech_config import FastSpeechConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.manage import ModelManager
 
@@ -45,9 +47,9 @@ config = FastSpeechConfig(
     epochs=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    use_espeak_phonemes=False,
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
+    precompute_num_workers=8,
     print_step=50,
     print_eval=False,
     mixed_precision=False,
@@ -66,23 +68,28 @@ if not config.model_args.use_aligner:
         f"python TTS/bin/compute_attention_masks.py --model_path {model_path} --config_path {config_path} --dataset ljspeech --dataset_metafile metadata.csv --data_path ./recipes/ljspeech/LJSpeech-1.1/  --use_cuda true"
     )
 
-# init audio processor
-ap = AudioProcessor(**config.audio)
+# INITIALIZE THE AUDIO PROCESSOR
+# Audio processor is used for feature extraction and audio I/O.
+# It mainly serves to the dataloader and the training loggers.
+ap = AudioProcessor.init_from_config(config)
 
-# load training samples
+# INITIALIZE THE TOKENIZER
+# Tokenizer is used to convert text to sequences of token IDs.
+# If characters are not defined in the config, default characters are passed to the config
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
+# LOAD DATA SAMPLES
+# Each sample is a list of ```[text, audio_file_path, speaker_name]```
+# You can define your custom sample loader returning the list of samples.
+# Or define your custom formatter and pass it to the `load_tts_samples`.
+# Check `TTS.tts.datasets.load_tts_samples` for more details.
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
 # init the model
-model = ForwardTTS(config)
+model = ForwardTTS(config, ap, tokenizer)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 trainer.fit()
