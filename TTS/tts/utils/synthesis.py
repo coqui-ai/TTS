@@ -163,7 +163,7 @@ def synthesis(
             style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
     # convert text to sequence of token IDs
     text_inputs = np.asarray(
-        model.tokenizer.text_to_ids(text, language=language_name),
+        model.tokenizer.text_to_ids(text, language=language_id),
         dtype=np.int32,
     )
     # pass tensors to backend
