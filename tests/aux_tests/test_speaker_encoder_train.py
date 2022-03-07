@@ -4,14 +4,14 @@ import shutil
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.encoder.speaker_encoder_config import SpeakerEncoderConfig
+from TTS.encoder.configs.speaker_encoder_config import SpeakerEncoderConfig
 
 
 def run_test_train():
     command = (
         f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_encoder.py --config_path {config_path} "
         f"--coqpit.output_path {output_path} "
-        "--coqpit.datasets.0.name ljspeech "
+        "--coqpit.datasets.0.name ljspeech_test "
         "--coqpit.datasets.0.meta_file_train metadata.csv "
         "--coqpit.datasets.0.meta_file_val metadata.csv "
         "--coqpit.datasets.0.path tests/data/ljspeech "
@@ -24,13 +24,16 @@ output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 config = SpeakerEncoderConfig(
     batch_size=4,
-    num_classes_in_batch=1,
-    num_utter_per_class=10,
-    num_loader_workers=0,
-    max_train_step=2,
+    num_classes_in_batch=2,
+    num_utter_per_class=2,
+    eval_num_classes_in_batch=2,
+    eval_num_utter_per_class=2,
+    num_loader_workers=1,
+    epochs=2,
     print_step=1,
     save_step=1,
     print_eval=True,
+    run_eval=True,
     audio=BaseAudioConfig(num_mels=80),
 )
 config.audio.do_trim_silence = True
