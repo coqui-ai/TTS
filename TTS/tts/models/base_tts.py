@@ -7,7 +7,7 @@ import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
-from TTS.utils.samplers import DistributedSampler, DistributedSamplerWrapper
+from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
