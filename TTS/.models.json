@@ -197,6 +197,52 @@
                     "commit": "401fbd89"
                 }
             }
+        },
+        "tr":{
+            "common-voice": {
+                "glow-tts":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--tr--common-voice--glow-tts.zip",
+                    "default_vocoder": "vocoder_models/tr/common-voice/hifigan",
+                    "license": "MIT",
+                    "description": "Turkish GlowTTS model using an unknown speaker from the Common-Voice dataset.",
+                    "author": "Fatih Akademi",
+                    "commit": null
+                }
+            }
+        },
+        "it": {
+            "mai_female": {
+                "glow-tts":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_female--glow-tts.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
+                },
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_female--vits.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
+                }
+            },
+            "mai_male": {
+                "glow-tts":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_male--glow-tts.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
+                },
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/tts_models--it--mai_male--vits.zip",
+                    "default_vocoder": null,
+                    "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
+                    "author": "@nicolalandro",
+                    "commit": null
+                }
+            }
         }
     },
     "vocoder_models": {
@@ -313,6 +359,17 @@
                     "commit": "bdab788d",
                     "license": "MIT",
                     "contact": ""
+                }
+            }
+        },
+        "tr":{
+            "common-voice": {
+                "hifigan":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.0_models/vocoder_models--tr--common-voice--hifigan.zip",
+                    "description": "HifiGAN model using an unknown speaker from the Common-Voice dataset.",
+                    "author": "Fatih Akademi",
+                    "license": "MIT",
+                    "commit": null
                 }
             }
         }
