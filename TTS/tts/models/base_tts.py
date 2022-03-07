@@ -235,7 +235,7 @@ class BaseTTS(BaseTrainerModel):
 
     def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1):
         weights = None
-        data_items = dataset.items
+        data_items = dataset.samples
 
         if getattr(config, "use_language_weighted_sampler", False):
             alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
