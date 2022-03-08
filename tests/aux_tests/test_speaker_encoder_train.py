@@ -24,20 +24,21 @@ output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 config = SpeakerEncoderConfig(
     batch_size=4,
-    num_classes_in_batch=2,
+    num_classes_in_batch=4,
     num_utter_per_class=2,
-    eval_num_classes_in_batch=2,
+    eval_num_classes_in_batch=4,
     eval_num_utter_per_class=2,
     num_loader_workers=1,
-    epochs=2,
+    epochs=1,
     print_step=1,
-    save_step=1,
+    save_step=2,
     print_eval=True,
     run_eval=True,
     audio=BaseAudioConfig(num_mels=80),
 )
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
+config.loss = "ge2e"
 config.save_json(config_path)
 
 print(config)
@@ -72,14 +73,14 @@ run_cli(command_train)
 shutil.rmtree(continue_path)
 
 # test model with ge2e loss function
-config.loss = "ge2e"
-config.save_json(config_path)
-run_test_train()
+# config.loss = "ge2e"
+# config.save_json(config_path)
+# run_test_train()
 
 # test model with angleproto loss function
-config.loss = "angleproto"
-config.save_json(config_path)
-run_test_train()
+# config.loss = "angleproto"
+# config.save_json(config_path)
+# run_test_train()
 
 # test model with softmaxproto loss function
 config.loss = "softmaxproto"
