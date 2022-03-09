@@ -328,7 +328,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic
         else:
             wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + f"_{mic}.{file_ext}")
         if os.path.exists(wav_file):
-            items.append([text, wav_file, "VCTK_" + speaker_id])
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
         else:
             print(f" [!] wav files don't exist - {wav_file}")
     return items
@@ -348,8 +348,7 @@ def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=Non
         with open(meta_file, "r", encoding="utf-8") as file_text:
             text = file_text.readlines()[0]
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append([text, wav_file, "VCTK_" + speaker_id])
-
+        items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
     return items
 
 
