@@ -213,8 +213,8 @@ class Synthesizer(object):
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "speaker_ids"):
             if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
-                    # get the speaker embedding from the saved d_vectors.
-                    speaker_embedding = self.tts_model.speaker_manager.get_d_vectors_by_speaker(speaker_name)[0]
+                    # get the average speaker embedding from the saved d_vectors.
+                    speaker_embedding = self.tts_model.speaker_manager.get_mean_d_vector(speaker_name, num_samples=None, randomize=False)
                     speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
