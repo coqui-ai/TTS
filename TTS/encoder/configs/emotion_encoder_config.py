@@ -9,3 +9,4 @@ class EmotionEncoderConfig(BaseEncoderConfig):
 
     model: str = "emotion_encoder"
     map_classid_to_classname: dict = None
+    class_name_key: str = "emotion_name"

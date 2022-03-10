@@ -30,7 +30,7 @@ class BaseEncoder(nn.Module):
     def __init__(self):
         super(BaseEncoder, self).__init__()
 
-    def get_torch_mel_spectrogram_class(audio_config):
+    def get_torch_mel_spectrogram_class(self, audio_config):
         return torch.nn.Sequential(
                 PreEmphasis(audio_config["preemphasis"]),
                 # TorchSTFT(
@@ -59,7 +59,7 @@ class BaseEncoder(nn.Module):
             )
 
     @torch.no_grad()
-    def inference(self, x, l2_norm=False):
+    def inference(self, x, l2_norm=True):
         return self.forward(x, l2_norm)
 
     @torch.no_grad()
@@ -121,9 +121,13 @@ class BaseEncoder(nn.Module):
 
         # load the criterion for restore_path
         if criterion is not None and "criterion" in state:
-            criterion.load_state_dict(state["criterion"])
+            try:
+                criterion.load_state_dict(state["criterion"])
+            except (KeyError, RuntimeError) as error:
+                print(" > Criterion load ignored because of:", error)
+
         # instance and load the criterion for the encoder classifier in inference time
-        if eval and criterion is None and "criterion" in state and config.map_classid_to_classname is not None:
+        if eval and criterion is None and "criterion" in state and getattr(config, 'map_classid_to_classname', None) is not None:
             criterion = self.get_criterion(config, len(config.map_classid_to_classname))
             criterion.load_state_dict(state["criterion"])
 

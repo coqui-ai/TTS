@@ -38,33 +38,32 @@ c_dataset = load_config(args.config_dataset_path)
 meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_split=args.eval)
 wav_files = meta_data_train + meta_data_eval
 
-speaker_manager = SpeakerManager(
+encoder_manager = SpeakerManager(
     encoder_model_path=args.model_path, encoder_config_path=args.config_path, use_cuda=args.use_cuda
 )
 
-if speaker_manager.speaker_encoder_config.map_classid_to_classname is not None:
-    map_classid_to_classname = speaker_manager.speaker_encoder_config.map_classid_to_classname
-else:
-    map_classid_to_classname = None
+class_name_key = encoder_manager.speaker_encoder_config.class_name_key
+
+map_classid_to_classname = getattr(encoder_manager.speaker_encoder_config, 'map_classid_to_classname', None)
 
 # compute speaker embeddings
 class_acc_dict = {}
 
 for idx, wav_file in enumerate(tqdm(wav_files)):
-    if isinstance(wav_file, list):
-        class_name = wav_file[2]
-        wav_file = wav_file[1]
+    if isinstance(wav_file, dict):
+        class_name = wav_file[class_name_key]
+        wav_file = wav_file["audio_file"]
     else:
         class_name = None
 
     # extract the embedding
-    embedd = speaker_manager.compute_d_vector_from_clip(wav_file)
-    if speaker_manager.speaker_encoder_criterion is not None and map_classid_to_classname is not None:
+    embedd = encoder_manager.compute_d_vector_from_clip(wav_file)
+    if encoder_manager.speaker_encoder_criterion is not None and map_classid_to_classname is not None:
         embedding = torch.FloatTensor(embedd).unsqueeze(0)
         if args.use_cuda:
             embedding = embedding.cuda()
 
-        class_id = speaker_manager.speaker_encoder_criterion.softmax.inference(embedding).item()
+        class_id = encoder_manager.speaker_encoder_criterion.softmax.inference(embedding).item()
         predicted_label = map_classid_to_classname[str(class_id)]
     else:
         predicted_label = None

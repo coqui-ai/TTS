@@ -8,3 +8,4 @@ class SpeakerEncoderConfig(BaseEncoderConfig):
     """Defines parameters for Speaker Encoder model."""
 
     model: str = "speaker_encoder"
+    class_name_key: str = "speaker_name"

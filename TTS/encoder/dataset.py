@@ -66,7 +66,7 @@ class EncoderDataset(Dataset):
         class_to_utters = {}
         for item in self.items:
             path_ = item["audio_file"]
-            class_name = item["emotion_name"] if self.config.model == "emotion_encoder" else item["speaker_name"]
+            class_name = item[self.config.class_name_key]
             if class_name in class_to_utters.keys():
                 class_to_utters[class_name].append(path_)
             else:
