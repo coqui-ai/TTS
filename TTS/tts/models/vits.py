@@ -994,6 +994,25 @@ class Vits(BaseTTS):
 
         outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p}
         return outputs
+    @torch.no_grad()
+    def inference_voice_conversion(self, reference_wav, speaker_id=None, d_vector=None, reference_speaker_id=None, reference_d_vector=None):
+        """Inference for voice conversion
+
+        Args:
+            reference_wav (Tensor): Reference wavform. Tensor of shape [B, T]
+            speaker_id (Tensor): speaker_id of the target speaker. Tensor of shape [B]
+            d_vector (Tensor): d_vector embedding of target speaker. Tensor of shape `[B, C]`
+            reference_speaker_id (Tensor): speaker_id of the reference_wav speaker. Tensor of shape [B]
+            reference_d_vector (Tensor): d_vector embedding of the reference_wav speaker. Tensor of shape `[B, C]`
+        """
+        # compute spectrograms
+        y = wav_to_spec(reference_wav, self.config.audio.fft_size, self.config.audio.hop_length, self.config.audio.win_length, center=False).transpose(1, 2)
+        y_lengths = torch.tensor([y.size(-1)]).to(y.device)
+        speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
+        speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
+        # print(y.shape, y_lengths.shape)
+        wav, _, _ = self.voice_conversion(y, y_lengths, speaker_cond_src, speaker_cond_tgt)
+        return wav
 
     def voice_conversion(self, y, y_lengths, speaker_cond_src, speaker_cond_tgt):
         """Forward pass for voice conversion
@@ -1007,12 +1026,11 @@ class Vits(BaseTTS):
             speaker_cond_tgt (Tensor): Target speaker ID. Tensor of shape [B,]
         """
         assert self.num_speakers > 0, "num_speakers have to be larger than 0."
-
         # speaker embedding
         if self.args.use_speaker_embedding and not self.args.use_d_vector_file:
             g_src = self.emb_g(speaker_cond_src).unsqueeze(-1)
             g_tgt = self.emb_g(speaker_cond_tgt).unsqueeze(-1)
-        elif self.args.use_speaker_embedding and self.args.use_d_vector_file:
+        elif not self.args.use_speaker_embedding and self.args.use_d_vector_file:
             g_src = F.normalize(speaker_cond_src).unsqueeze(-1)
             g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
         else:
@@ -1199,7 +1217,7 @@ class Vits(BaseTTS):
                 if speaker_name is None:
                     d_vector = self.speaker_manager.get_random_d_vector()
                 else:
-                    d_vector = self.speaker_manager.get_mean_d_vector(speaker_name, num_samples=1, randomize=False)
+                    d_vector = self.speaker_manager.get_mean_d_vector(speaker_name, num_samples=None, randomize=False)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_speaker_id()

@@ -65,6 +65,7 @@ class SpeakerManager:
 
         self.d_vectors = {}
         self.speaker_ids = {}
+        self.d_vectors_by_speakers = {}
         self.clip_ids = []
         self.speaker_encoder = None
         self.speaker_encoder_ap = None
@@ -166,6 +167,8 @@ class SpeakerManager:
         self.speaker_ids = {name: i for i, name in enumerate(speakers)}
 
         self.clip_ids = list(set(sorted(clip_name for clip_name in self.d_vectors.keys())))
+        # cache d_vectors_by_speakers for fast inference using a bigger speakers.json
+        self.d_vectors_by_speakers = self.get_d_vectors_by_speakers()
 
     def get_d_vector_by_clip(self, clip_idx: str) -> List:
         """Get d_vector by clip ID.
@@ -187,7 +190,21 @@ class SpeakerManager:
         Returns:
             List[List]: all the d_vectors of the given speaker.
         """
-        return [x["embedding"] for x in self.d_vectors.values() if x["name"] == speaker_idx]
+        return self.d_vectors_by_speakers[speaker_idx]
+
+    def get_d_vectors_by_speakers(self) -> Dict:
+        """Get all d_vectors by speaker.
+
+        Returns:
+            Dict: all the d_vectors of each speaker.
+        """
+        d_vectors_by_speakers = {}
+        for x in self.d_vectors.values():
+            if x["name"] not in d_vectors_by_speakers.keys():
+                d_vectors_by_speakers[x["name"]] = [x["embedding"]]
+            else:
+                d_vectors_by_speakers[x["name"]].append(x["embedding"])
+        return d_vectors_by_speakers
 
     def get_mean_d_vector(self, speaker_idx: str, num_samples: int = None, randomize: bool = False) -> np.ndarray:
         """Get mean d_vector of a speaker ID.

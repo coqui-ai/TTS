@@ -195,11 +195,22 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="If true save raw spectogram for further (vocoder) processing in out_path.",
         default=False,
     )
-
+    parser.add_argument(
+        "--reference_wav",
+        type=str,
+        help="Reference wav file to convert in the voice of the speaker_idx or speaker_wav",
+        default=None,
+    )
+    parser.add_argument(
+        "--reference_speaker_idx",
+        type=str,
+        help="speaker ID of the reference_wav speaker (If not provided the embedding will be computed using the Speaker Encoder).",
+        default=None,
+    )
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
-    if args.text is None and not args.list_models and not args.list_speaker_idxs and not args.list_language_idxs:
+    if not args.text and not args.list_models and not args.list_speaker_idxs and not args.list_language_idxs and not args.reference_wav:
         parser.parse_args(["-h"])
 
     # load model manager
@@ -281,10 +292,11 @@ If you don't specify any models, then it uses LJSpeech based English model.
         return
 
     # RUN THE SYNTHESIS
-    print(" > Text: {}".format(args.text))
+    if args.text:
+        print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx, args.language_idx, args.speaker_wav)
+    wav = synthesizer.tts(args.text, args.speaker_idx, args.language_idx, args.speaker_wav, reference_wav=args.reference_wav, reference_speaker_name=args.reference_speaker_idx)
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))
