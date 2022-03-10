@@ -20,6 +20,7 @@ class SpeakerEncoderDataset(Dataset):
         skip_speakers=False,
         verbose=False,
         augmentation_config=None,
+        use_torch_spec=None,
     ):
         """
         Args:
@@ -37,6 +38,7 @@ class SpeakerEncoderDataset(Dataset):
         self.skip_speakers = skip_speakers
         self.ap = ap
         self.verbose = verbose
+        self.use_torch_spec = use_torch_spec
         self.__parse_items()
         storage_max_size = storage_size * num_speakers_in_batch
         self.storage = Storage(
@@ -71,22 +73,6 @@ class SpeakerEncoderDataset(Dataset):
     def load_wav(self, filename):
         audio = self.ap.load_wav(filename, sr=self.ap.sample_rate)
         return audio
-
-    def load_data(self, idx):
-        text, wav_file, speaker_name = self.items[idx]
-        wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
-        mel = self.ap.melspectrogram(wav).astype("float32")
-        # sample seq_len
-
-        assert text.size > 0, self.items[idx]["audio_file"]
-        assert wav.size > 0, self.items[idx]["audio_file"]
-
-        sample = {
-            "mel": mel,
-            "item_idx": self.items[idx]["audio_file"],
-            "speaker_name": speaker_name,
-        }
-        return sample
 
     def __parse_items(self):
         self.speaker_to_utters = {}
@@ -241,8 +227,12 @@ class SpeakerEncoderDataset(Dataset):
                             self.gaussian_augmentation_config["max_amplitude"],
                             size=len(wav),
                         )
-                mel = self.ap.melspectrogram(wav)
-                feats_.append(torch.FloatTensor(mel))
+
+                if not self.use_torch_spec:
+                    mel = self.ap.melspectrogram(wav)
+                    feats_.append(torch.FloatTensor(mel))
+                else:
+                    feats_.append(torch.FloatTensor(wav))
 
             labels.append(torch.LongTensor(labels_))
             feats.extend(feats_)
