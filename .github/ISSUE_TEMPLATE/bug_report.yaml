@@ -22,12 +22,14 @@ body:
     attributes:
       label: To Reproduce
       description: |
-        Please share your code to reproduce the error. Issues fixed faster if you can provide a working example.
+        Please share your code to reproduce the error.
+
+        Issues are fixed faster if you can provide a working example.
 
         The best place for sharing code is colab. https://colab.research.google.com/
         So we can directly run your code and reproduce the issue.
 
-        In the worse case provide steps to reproduce the behaviour.
+        In the worse case, provide steps to reproduce the behavior.
 
         1. Run the following command '...'
         2. ...
