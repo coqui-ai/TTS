@@ -13,7 +13,6 @@ from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.tts.configs.shared_configs import CharactersConfig
@@ -24,8 +23,8 @@ from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlock
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
-from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_weighted_sampler
+from TTS.tts.utils.languages import LanguageManager
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -1354,31 +1353,15 @@ class Vits(BaseTTS):
             # sort input sequences from short to long
             dataset.preprocess_samples()
 
-            # sampler for DDP
-            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-
-            # Weighted samplers
-            # TODO: make this DDP amenable
-            assert not (
-                num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)
-            ), "language_weighted_sampler is not supported with DistributedSampler"
-            assert not (
-                num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)
-            ), "speaker_weighted_sampler is not supported with DistributedSampler"
-
-            if sampler is None:
-                if getattr(config, "use_language_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_language_weighted_sampler(dataset.samples)
-                elif getattr(config, "use_speaker_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_speaker_weighted_sampler(dataset.samples)
+            # get samplers
+            sampler = self.get_sampler(config, dataset, num_gpus)
 
             loader = DataLoader(
                 dataset,
                 batch_size=config.eval_batch_size if is_eval else config.batch_size,
                 shuffle=False,  # shuffle is done in the dataset.
                 drop_last=False,  # setting this False might cause issues in AMP training.
+                sampler=sampler,
                 collate_fn=dataset.collate_fn,
                 num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
                 pin_memory=False,

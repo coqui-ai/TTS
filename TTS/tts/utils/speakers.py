@@ -7,7 +7,6 @@ import fsspec
 import numpy as np
 import torch
 from coqpit import Coqpit
-from torch.utils.data.sampler import WeightedRandomSampler
 
 from TTS.config import get_from_config_or_model_args_with_default, load_config
 from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
@@ -449,11 +448,13 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
     return speaker_manager
 
 
-def get_speaker_weighted_sampler(items: list):
+def get_speaker_balancer_weights(items: list):
     speaker_names = np.array([item["speaker_name"] for item in items])
     unique_speaker_names = np.unique(speaker_names).tolist()
     speaker_ids = [unique_speaker_names.index(l) for l in speaker_names]
     speaker_count = np.array([len(np.where(speaker_names == l)[0]) for l in unique_speaker_names])
     weight_speaker = 1.0 / speaker_count
-    dataset_samples_weight = torch.from_numpy(np.array([weight_speaker[l] for l in speaker_ids])).double()
-    return WeightedRandomSampler(dataset_samples_weight, len(dataset_samples_weight))
+    dataset_samples_weight = np.array([weight_speaker[l] for l in speaker_ids])
+    # normalize
+    dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
+    return torch.from_numpy(dataset_samples_weight).float()

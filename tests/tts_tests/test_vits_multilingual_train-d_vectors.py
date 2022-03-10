@@ -45,7 +45,7 @@ config = VitsConfig(
         ["Be a voice, not an echo.", "ljspeech-0", None, "en"],
         ["Be a voice, not an echo.", "ljspeech-1", None, "pt-br"],
     ],
-    datasets=[dataset_config_en, dataset_config_pt],
+    datasets=[dataset_config_en, dataset_config_en, dataset_config_en, dataset_config_pt],
 )
 # set audio config
 config.audio.do_trim_silence = True
@@ -71,8 +71,11 @@ config.d_vector_dim = 256
 config.model_args.use_sdp = True
 config.use_sdp = True
 
-# deactivate language sampler
-config.use_language_weighted_sampler = False
+# activate language and speaker samplers
+config.use_language_weighted_sampler = True
+config.language_weighted_sampler_alpha = 10
+config.use_speaker_weighted_sampler = True
+config.speaker_weighted_sampler_alpha = 5
 
 config.save_json(config_path)
 

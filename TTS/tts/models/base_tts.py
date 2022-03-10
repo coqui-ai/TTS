@@ -7,14 +7,15 @@ import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
+from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
-from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_weighted_sampler
+from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_balancer_weights
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from torch.utils.data.sampler import WeightedRandomSampler
 
 # pylint: skip-file
 
@@ -232,6 +233,36 @@ class BaseTTS(BaseTrainerModel):
             "language_ids": language_ids,
         }
 
+    def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1):
+        weights = None
+        data_items = dataset.samples
+
+        if getattr(config, "use_language_weighted_sampler", False):
+            alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
+            print(" > Using Language weighted sampler with alpha:", alpha)
+            weights = get_language_balancer_weights(data_items) * alpha
+
+        if getattr(config, "use_speaker_weighted_sampler", False):
+            alpha = getattr(config, "speaker_weighted_sampler_alpha", 1.0)
+            print(" > Using Speaker weighted sampler with alpha:", alpha)
+            if weights is not None:
+                weights += get_speaker_balancer_weights(data_items) * alpha
+            else:
+                weights = get_speaker_balancer_weights(data_items) * alpha
+
+        if weights is not None:
+            sampler = WeightedRandomSampler(weights, len(weights))
+        else:
+            sampler = None
+
+        # sampler for DDP
+        if sampler is None:
+            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        else: # If a sampler is already defined use this sampler and DDP sampler together
+            sampler = DistributedSamplerWrapper(sampler) if num_gpus > 1 else sampler
+
+        return sampler
+
     def get_data_loader(
         self,
         config: Coqpit,
@@ -300,25 +331,8 @@ class BaseTTS(BaseTrainerModel):
             # sort input sequences from short to long
             dataset.preprocess_samples()
 
-            # sampler for DDP
-            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-
-            # Weighted samplers
-            # TODO: make this DDP amenable
-            assert not (
-                num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)
-            ), "language_weighted_sampler is not supported with DistributedSampler"
-            assert not (
-                num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)
-            ), "speaker_weighted_sampler is not supported with DistributedSampler"
-
-            if sampler is None:
-                if getattr(config, "use_language_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_language_weighted_sampler(dataset.samples)
-                elif getattr(config, "use_speaker_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_speaker_weighted_sampler(dataset.samples)
+            # get samplers
+            sampler = self.get_sampler(config, dataset, num_gpus)
 
             loader = DataLoader(
                 dataset,
