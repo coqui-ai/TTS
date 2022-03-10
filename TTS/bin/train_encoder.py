@@ -20,7 +20,7 @@ from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
 from TTS.utils.io import load_fsspec, copy_model_files
-from TTS.utils.radam import RAdam
+from trainer.trainer_utils import get_optimizer
 from TTS.utils.training import check_update
 
 torch.backends.cudnn.enabled = True
@@ -244,7 +244,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     ap = AudioProcessor(**c.audio)
     model = setup_speaker_encoder_model(c)
 
-    optimizer = RAdam(model.parameters(), lr=c.lr, weight_decay=c.wd)
+    optimizer = get_optimizer(c.optimizer, c.optimizer_params, c.lr, model)
 
     # pylint: disable=redefined-outer-name
     meta_data_train, meta_data_eval = load_tts_samples(c.datasets, eval_split=True)

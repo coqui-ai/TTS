@@ -32,9 +32,13 @@ class BaseEncoderConfig(BaseTrainingConfig):
     loss: str = "angleproto"
     grad_clip: float = 3.0
     lr: float = 0.0001
+    optimizer: str = "radam"
+    optimizer_params: Dict = field(default_factory=lambda: {
+        "betas": [0.9, 0.999],
+        "weight_decay": 0
+    })
     lr_decay: bool = False
     warmup_steps: int = 4000
-    wd: float = 1e-6
 
     # logging params
     tb_model_param_stats: bool = False
