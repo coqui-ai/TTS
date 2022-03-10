@@ -251,18 +251,6 @@ class BaseTrainingConfig(TrainerConfig):
 
         num_eval_loader_workers (int):
             Number of workers for evaluation time dataloader.
-
-        use_speaker_weighted_sampler (bool):
-            Enable / Disable the batch balancer by speaker. Defaults to ```False```.
-
-        speaker_weighted_sampler_alpha (float):
-            Number that control the influence of the speaker sampler weights. Defaults to ```1.0```.
-
-        use_language_weighted_sampler (bool):
-            Enable / Disable the batch balancer by language. Defaults to ```False```.
-
-        language_weighted_sampler_alpha (float):
-            Number that control the influence of the language sampler weights. Defaults to ```1.0```.
     """
 
     model: str = None
@@ -270,8 +258,3 @@ class BaseTrainingConfig(TrainerConfig):
     num_loader_workers: int = 0
     num_eval_loader_workers: int = 0
     use_noise_augment: bool = False
-    # weighted samplers
-    use_speaker_weighted_sampler: bool = False
-    speaker_weighted_sampler_alpha: float = 1.0
-    use_language_weighted_sampler: bool = False
-    language_weighted_sampler_alpha: float = 1.0
