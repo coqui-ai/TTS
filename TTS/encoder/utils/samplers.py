@@ -34,14 +34,14 @@ class PerfectBatchSampler(Sampler):
         drop_last (bool): if True, drops last incomplete batch.
     """
 
-    def __init__(self, dataset_items, classes, batch_size, num_classes_in_batch, num_gpus=1, shuffle=True, drop_last=False):
+    def __init__(self, dataset_items, classes, batch_size, num_classes_in_batch, num_gpus=1, shuffle=True, drop_last=False, label_key="class_name"):
         super().__init__(dataset_items)
         assert batch_size % (num_classes_in_batch * num_gpus) == 0, (
             'Batch size must be divisible by number of classes times the number of data parallel devices (if enabled).')
 
         label_indices = {}
         for idx, item in enumerate(dataset_items):
-            label = item['class_name']
+            label = item[label_key]
             if label not in label_indices.keys():
                 label_indices[label] = [idx]
             else:
