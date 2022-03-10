@@ -1,10 +1,7 @@
-import numpy as np
 import torch
-import torchaudio
 from torch import nn
 
-from TTS.encoder.models.resnet import PreEmphasis
-from TTS.utils.io import load_fsspec
+from TTS.encoder.models.base_encoder import BaseEncoder
 
 
 class LSTMWithProjection(nn.Module):
@@ -34,7 +31,7 @@ class LSTMWithoutProjection(nn.Module):
         return self.relu(self.linear(hidden[-1]))
 
 
-class LSTMSpeakerEncoder(nn.Module):
+class LSTMSpeakerEncoder(BaseEncoder):
     def __init__(
         self,
         input_dim,
@@ -64,32 +61,7 @@ class LSTMSpeakerEncoder(nn.Module):
         self.instancenorm = nn.InstanceNorm1d(input_dim)
 
         if self.use_torch_spec:
-            self.torch_spec = torch.nn.Sequential(
-                PreEmphasis(audio_config["preemphasis"]),
-                # TorchSTFT(
-                #     n_fft=audio_config["fft_size"],
-                #     hop_length=audio_config["hop_length"],
-                #     win_length=audio_config["win_length"],
-                #     sample_rate=audio_config["sample_rate"],
-                #     window="hamming_window",
-                #     mel_fmin=0.0,
-                #     mel_fmax=None,
-                #     use_htk=True,
-                #     do_amp_to_db=False,
-                #     n_mels=audio_config["num_mels"],
-                #     power=2.0,
-                #     use_mel=True,
-                #     mel_norm=None,
-                # )
-                torchaudio.transforms.MelSpectrogram(
-                    sample_rate=audio_config["sample_rate"],
-                    n_fft=audio_config["fft_size"],
-                    win_length=audio_config["win_length"],
-                    hop_length=audio_config["hop_length"],
-                    window_fn=torch.hamming_window,
-                    n_mels=audio_config["num_mels"],
-                ),
-            )
+            self.torch_spec = self.get_torch_mel_spectrogram_class(audio_config)
         else:
             self.torch_spec = None
 
@@ -125,75 +97,3 @@ class LSTMSpeakerEncoder(nn.Module):
         if l2_norm:
             d = torch.nn.functional.normalize(d, p=2, dim=1)
         return d
-
-    @torch.no_grad()
-    def inference(self, x, l2_norm=True):
-        d = self.forward(x, l2_norm=l2_norm)
-        return d
-
-    def compute_embedding(self, x, num_frames=250, num_eval=10, return_mean=True):
-        """
-        Generate embeddings for a batch of utterances
-        x: 1xTxD
-        """
-        max_len = x.shape[1]
-
-        if max_len < num_frames:
-            num_frames = max_len
-
-        offsets = np.linspace(0, max_len - num_frames, num=num_eval)
-
-        frames_batch = []
-        for offset in offsets:
-            offset = int(offset)
-            end_offset = int(offset + num_frames)
-            frames = x[:, offset:end_offset]
-            frames_batch.append(frames)
-
-        frames_batch = torch.cat(frames_batch, dim=0)
-        embeddings = self.inference(frames_batch)
-
-        if return_mean:
-            embeddings = torch.mean(embeddings, dim=0, keepdim=True)
-
-        return embeddings
-
-    def batch_compute_embedding(self, x, seq_lens, num_frames=160, overlap=0.5):
-        """
-        Generate embeddings for a batch of utterances
-        x: BxTxD
-        """
-        num_overlap = num_frames * overlap
-        max_len = x.shape[1]
-        embed = None
-        num_iters = seq_lens / (num_frames - num_overlap)
-        cur_iter = 0
-        for offset in range(0, max_len, num_frames - num_overlap):
-            cur_iter += 1
-            end_offset = min(x.shape[1], offset + num_frames)
-            frames = x[:, offset:end_offset]
-            if embed is None:
-                embed = self.inference(frames)
-            else:
-                embed[cur_iter <= num_iters, :] += self.inference(frames[cur_iter <= num_iters, :, :])
-        return embed / num_iters
-
-    # pylint: disable=unused-argument, redefined-builtin
-    def load_checkpoint(self, config: dict, checkpoint_path: str, eval: bool = False, use_cuda: bool = False):
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
-        self.load_state_dict(state["model"])
-        # load the criterion for emotion classification
-        if "criterion" in state and config.loss == "softmaxproto" and config.model == "emotion_encoder" and config.map_classid_to_classname is not None:
-            criterion = SoftmaxAngleProtoLoss(config.model_params["proj_dim"], len(config.map_classid_to_classname.keys()))
-            criterion.load_state_dict(state["criterion"])
-        else:
-            criterion = None
-
-        if use_cuda:
-            self.cuda()
-            if criterion is not None:
-                criterion = criterion.cuda()
-        if eval:
-            self.eval()
-            assert not self.training
-        return criterion

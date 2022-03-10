@@ -11,15 +11,14 @@ from torch.utils.data import DataLoader
 from trainer.torch import NoamLR
 
 from TTS.encoder.dataset import EncoderDataset
-from TTS.encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.encoder.utils.generic_utils import save_best_model, save_checkpoint, setup_speaker_encoder_model
 from TTS.encoder.utils.samplers import PerfectBatchSampler
 from TTS.encoder.utils.training import init_training
 from TTS.encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.generic_utils import count_parameters, remove_experiment_folder, set_init_dict
-from TTS.utils.io import load_fsspec, copy_model_files
+from TTS.utils.generic_utils import count_parameters, remove_experiment_folder
+from TTS.utils.io import copy_model_files
 from trainer.trainer_utils import get_optimizer
 from TTS.utils.training import check_update
 
@@ -254,40 +253,17 @@ def main(args):  # pylint: disable=redefined-outer-name
         eval_data_loader, _, _ = setup_loader(ap, is_val=True, verbose=True)
     else:
         eval_data_loader = None
-    num_classes = len(train_classes)
 
-    if c.loss == "ge2e":
-        criterion = GE2ELoss(loss_method="softmax")
-    elif c.loss == "angleproto":
-        criterion = AngleProtoLoss()
-    elif c.loss == "softmaxproto":
-        criterion = SoftmaxAngleProtoLoss(c.model_params["proj_dim"], num_classes)
-        if c.model == "emotion_encoder":
-            # update config with the class map
-            c.map_classid_to_classname = map_classid_to_classname
-            copy_model_files(c, OUT_PATH)
-    else:
-        raise Exception("The %s  not is a loss supported" % c.loss)
+    num_classes = len(train_classes)
+    criterion = model.get_criterion(c, num_classes)
+
+    if c.loss == "softmaxproto" and c.model != "speaker_encoder":
+        c.map_classid_to_classname = map_classid_to_classname
+        copy_model_files(c, OUT_PATH)
 
     if args.restore_path:
-        checkpoint = load_fsspec(args.restore_path)
-        try:
-            model.load_state_dict(checkpoint["model"])
-
-            if "criterion" in checkpoint:
-                criterion.load_state_dict(checkpoint["criterion"])
-
-        except (KeyError, RuntimeError):
-            print(" > Partial model initialization.")
-            model_dict = model.state_dict()
-            model_dict = set_init_dict(model_dict, checkpoint["model"], c)
-            model.load_state_dict(model_dict)
-            del model_dict
-        for group in optimizer.param_groups:
-            group["lr"] = c.lr
-
-        print(" > Model restored from step %d" % checkpoint["step"], flush=True)
-        args.restore_step = checkpoint["step"]
+        criterion, args.restore_step = model.load_checkpoint(c, args.restore_path, eval=False, use_cuda=use_cuda, criterion=criterion)
+        print(" > Model restored from step %d" % args.restore_step, flush=True)
     else:
         args.restore_step = 0
 
