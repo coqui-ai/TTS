@@ -264,7 +264,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     # dataset
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # optimizer
-    optimizer: str = None
+    optimizer: str = "radam"
     optimizer_params: dict = None
     # scheduler
     lr_scheduler: str = ""

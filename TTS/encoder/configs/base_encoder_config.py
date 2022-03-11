@@ -7,10 +7,10 @@ from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig, BaseTr
 
 
 @dataclass
-class SpeakerEncoderConfig(BaseTrainingConfig):
-    """Defines parameters for Speaker Encoder model."""
+class BaseEncoderConfig(BaseTrainingConfig):
+    """Defines parameters for a Generic Encoder model."""
 
-    model: str = "speaker_encoder"
+    model: str = None
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # model params
@@ -27,34 +27,33 @@ class SpeakerEncoderConfig(BaseTrainingConfig):
 
     audio_augmentation: Dict = field(default_factory=lambda: {})
 
-    storage: Dict = field(
-        default_factory=lambda: {
-            "sample_from_storage_p": 0.66,  # the probability with which we'll sample from the DataSet in-memory storage
-            "storage_size": 15,  # the size of the in-memory storage with respect to a single batch
-        }
-    )
-
     # training params
-    max_train_step: int = 1000000  # end training when number of training steps reaches this value.
+    epochs: int = 10000
     loss: str = "angleproto"
     grad_clip: float = 3.0
     lr: float = 0.0001
+    optimizer: str = "radam"
+    optimizer_params: Dict = field(default_factory=lambda: {
+        "betas": [0.9, 0.999],
+        "weight_decay": 0
+    })
     lr_decay: bool = False
     warmup_steps: int = 4000
-    wd: float = 1e-6
 
     # logging params
     tb_model_param_stats: bool = False
     steps_plot_stats: int = 10
-    checkpoint: bool = True
     save_step: int = 1000
     print_step: int = 20
+    run_eval: bool = False
 
     # data loader
-    num_speakers_in_batch: int = MISSING
-    num_utters_per_speaker: int = MISSING
+    num_classes_in_batch: int = MISSING
+    num_utter_per_class: int = MISSING
+    eval_num_classes_in_batch: int = None
+    eval_num_utter_per_class: int = None
+
     num_loader_workers: int = MISSING
-    skip_speakers: bool = False
     voice_len: float = 1.6
 
     def check_values(self):

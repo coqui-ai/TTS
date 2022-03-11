@@ -42,33 +42,35 @@ c_dataset = load_config(args.config_dataset_path)
 meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_split=args.eval)
 wav_files = meta_data_train + meta_data_eval
 
-speaker_manager = SpeakerManager(
+encoder_manager = SpeakerManager(
     encoder_model_path=args.model_path,
     encoder_config_path=args.config_path,
     d_vectors_file_path=args.old_file,
     use_cuda=args.use_cuda,
 )
 
+class_name_key = encoder_manager.speaker_encoder_config.class_name_key
+
 # compute speaker embeddings
 speaker_mapping = {}
 for idx, wav_file in enumerate(tqdm(wav_files)):
-    if isinstance(wav_file, list):
-        speaker_name = wav_file[2]
-        wav_file = wav_file[1]
+    if isinstance(wav_file, dict):
+        class_name = wav_file[class_name_key]
+        wav_file = wav_file["audio_file"]
     else:
-        speaker_name = None
+        class_name = None
 
     wav_file_name = os.path.basename(wav_file)
-    if args.old_file is not None and wav_file_name in speaker_manager.clip_ids:
+    if args.old_file is not None and wav_file_name in encoder_manager.clip_ids:
         # get the embedding from the old file
-        embedd = speaker_manager.get_d_vector_by_clip(wav_file_name)
+        embedd = encoder_manager.get_d_vector_by_clip(wav_file_name)
     else:
         # extract the embedding
-        embedd = speaker_manager.compute_d_vector_from_clip(wav_file)
+        embedd = encoder_manager.compute_d_vector_from_clip(wav_file)
 
     # create speaker_mapping if target dataset is defined
     speaker_mapping[wav_file_name] = {}
-    speaker_mapping[wav_file_name]["name"] = speaker_name
+    speaker_mapping[wav_file_name]["name"] = class_name
     speaker_mapping[wav_file_name]["embedding"] = embedd
 
 if speaker_mapping:
@@ -81,5 +83,5 @@ if speaker_mapping:
     os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
 
     # pylint: disable=W0212
-    speaker_manager._save_json(mapping_file_path, speaker_mapping)
+    encoder_manager._save_json(mapping_file_path, speaker_mapping)
     print("Speaker embeddings saved at:", mapping_file_path)

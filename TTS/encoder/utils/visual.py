@@ -29,14 +29,18 @@ colormap = (
 )
 
 
-def plot_embeddings(embeddings, num_utter_per_speaker):
-    embeddings = embeddings[: 10 * num_utter_per_speaker]
+def plot_embeddings(embeddings, num_classes_in_batch):
+    num_utter_per_class = embeddings.shape[0] // num_classes_in_batch
+
+    # if necessary get just the first 10 classes
+    if num_classes_in_batch > 10:
+        num_classes_in_batch = 10
+        embeddings = embeddings[: num_classes_in_batch * num_utter_per_class]
+
     model = umap.UMAP()
     projection = model.fit_transform(embeddings)
-    num_speakers = embeddings.shape[0] // num_utter_per_speaker
-    ground_truth = np.repeat(np.arange(num_speakers), num_utter_per_speaker)
+    ground_truth = np.repeat(np.arange(num_classes_in_batch), num_utter_per_class)
     colors = [colormap[i] for i in ground_truth]
-
     fig, ax = plt.subplots(figsize=(16, 10))
     _ = ax.scatter(projection[:, 0], projection[:, 1], c=colors)
     plt.gca().set_aspect("equal", "datalim")
