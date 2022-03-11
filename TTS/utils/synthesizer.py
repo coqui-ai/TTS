@@ -240,7 +240,7 @@ class Synthesizer(object):
             hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
         ):
             if language_name and isinstance(language_name, str):
-                language_id = self.tts_model.language_manager.language_id_mapping[language_name]
+                language_id = self.tts_model.language_manager.ids[language_name]
 
             elif not language_name:
                 raise ValueError(

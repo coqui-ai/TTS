@@ -141,13 +141,13 @@ class BaseTTS(BaseTrainerModel):
                     d_vector = self.speaker_manager.get_d_vector_by_name(speaker_name)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
-                    speaker_id = self.speaker_manager.get_random_speaker_id()
+                    speaker_id = self.speaker_manager.get_random_id()
                 else:
                     speaker_id = self.speaker_manager.ids[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
-            language_id = self.language_manager.language_id_mapping[language_name]
+            language_id = self.language_manager.ids[language_name]
 
         return {
             "text": text,
@@ -294,7 +294,7 @@ class BaseTTS(BaseTrainerModel):
             # setup multi-lingual attributes
             if hasattr(self, "language_manager") and self.language_manager is not None:
                 language_id_mapping = (
-                    self.language_manager.language_id_mapping if self.args.use_language_embedding else None
+                    self.language_manager.ids if self.args.use_language_embedding else None
                 )
             else:
                 language_id_mapping = None
@@ -416,7 +416,7 @@ class BaseTTS(BaseTrainerModel):
 
         if hasattr(self, "language_manager") and self.language_manager is not None:
             output_path = os.path.join(trainer.output_path, "language_ids.json")
-            self.language_manager.save_language_ids_to_file(output_path)
+            self.language_manager.save_ids_to_file(output_path)
             trainer.config.language_ids_file = output_path
             if hasattr(trainer.config, "model_args"):
                 trainer.config.model_args.language_ids_file = output_path
