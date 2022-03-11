@@ -257,7 +257,7 @@ class EmbeddingManager(BaseIDManager):
         embedding = _compute(wav_file)
         return embedding[0].tolist()
 
-    def compute_embedding(self, feats: Union[torch.Tensor, np.ndarray]) -> List:
+    def compute_embeddings(self, feats: Union[torch.Tensor, np.ndarray]) -> List:
         """Compute embedding from features.
 
         Args:
