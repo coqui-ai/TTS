@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from trainer.torch import NoamLR
 
 from TTS.encoder.dataset import EncoderDataset
-from TTS.encoder.utils.generic_utils import save_best_model, save_checkpoint, setup_speaker_encoder_model
+from TTS.encoder.utils.generic_utils import save_best_model, save_checkpoint, setup_encoder_model
 from TTS.encoder.utils.samplers import PerfectBatchSampler
 from TTS.encoder.utils.training import init_training
 from TTS.encoder.utils.visual import plot_embeddings
@@ -241,7 +241,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     global train_classes
 
     ap = AudioProcessor(**c.audio)
-    model = setup_speaker_encoder_model(c)
+    model = setup_encoder_model(c)
 
     optimizer = get_optimizer(c.optimizer, c.optimizer_params, c.lr, model)
 

@@ -49,7 +49,7 @@ encoder_manager = SpeakerManager(
     use_cuda=args.use_cuda,
 )
 
-class_name_key = encoder_manager.speaker_encoder_config.class_name_key
+class_name_key = encoder_manager.encoder_config.class_name_key
 
 # compute speaker embeddings
 speaker_mapping = {}
@@ -63,10 +63,10 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     wav_file_name = os.path.basename(wav_file)
     if args.old_file is not None and wav_file_name in encoder_manager.clip_ids:
         # get the embedding from the old file
-        embedd = encoder_manager.get_d_vector_by_clip(wav_file_name)
+        embedd = encoder_manager.get_embedding_by_clip(wav_file_name)
     else:
         # extract the embedding
-        embedd = encoder_manager.compute_d_vector_from_clip(wav_file)
+        embedd = encoder_manager.compute_embedding_from_clip(wav_file)
 
     # create speaker_mapping if target dataset is defined
     speaker_mapping[wav_file_name] = {}

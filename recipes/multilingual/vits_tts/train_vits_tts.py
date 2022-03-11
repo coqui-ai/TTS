@@ -115,7 +115,7 @@ train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 # init speaker manager for multi-speaker training
 # it maps speaker-id to speaker-name in the model and data-loader
 speaker_manager = SpeakerManager()
-speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
+speaker_manager.set_ids_from_data(train_samples + eval_samples)
 config.model_args.num_speakers = speaker_manager.num_speakers
 
 language_manager = LanguageManager(config=config)

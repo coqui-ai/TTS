@@ -136,14 +136,14 @@ class BaseTTS(BaseTrainerModel):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_d_vector()
+                    d_vector = self.speaker_manager.get_random_embeddings()
                 else:
-                    d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
+                    d_vector = self.speaker_manager.get_d_vector_by_name(speaker_name)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_speaker_id()
                 else:
-                    speaker_id = self.speaker_manager.speaker_ids[speaker_name]
+                    speaker_id = self.speaker_manager.ids[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
@@ -280,13 +280,13 @@ class BaseTTS(BaseTrainerModel):
             if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
                 if hasattr(config, "model_args"):
                     speaker_id_mapping = (
-                        self.speaker_manager.speaker_ids if config.model_args.use_speaker_embedding else None
+                        self.speaker_manager.ids if config.model_args.use_speaker_embedding else None
                     )
-                    d_vector_mapping = self.speaker_manager.d_vectors if config.model_args.use_d_vector_file else None
+                    d_vector_mapping = self.speaker_manager.embeddings if config.model_args.use_d_vector_file else None
                     config.use_d_vector_file = config.model_args.use_d_vector_file
                 else:
-                    speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
-                    d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
+                    speaker_id_mapping = self.speaker_manager.ids if config.use_speaker_embedding else None
+                    d_vector_mapping = self.speaker_manager.embeddings if config.use_d_vector_file else None
             else:
                 speaker_id_mapping = None
                 d_vector_mapping = None
@@ -352,13 +352,13 @@ class BaseTTS(BaseTrainerModel):
 
         d_vector = None
         if self.config.use_d_vector_file:
-            d_vector = [self.speaker_manager.d_vectors[name]["embedding"] for name in self.speaker_manager.d_vectors]
+            d_vector = [self.speaker_manager.embeddings[name]["embedding"] for name in self.speaker_manager.embeddings]
             d_vector = (random.sample(sorted(d_vector), 1),)
 
         aux_inputs = {
             "speaker_id": None
             if not self.config.use_speaker_embedding
-            else random.sample(sorted(self.speaker_manager.speaker_ids.values()), 1),
+            else random.sample(sorted(self.speaker_manager.ids.values()), 1),
             "d_vector": d_vector,
             "style_wav": None,  # TODO: handle GST style input
         }
@@ -405,7 +405,7 @@ class BaseTTS(BaseTrainerModel):
         """Save the speaker.json and language_ids.json at the beginning of the training. Also update both paths."""
         if self.speaker_manager is not None:
             output_path = os.path.join(trainer.output_path, "speakers.json")
-            self.speaker_manager.save_speaker_ids_to_file(output_path)
+            self.speaker_manager.save_ids_to_file(output_path)
             trainer.config.speakers_file = output_path
             # some models don't have `model_args` set
             if hasattr(trainer.config, "model_args"):
