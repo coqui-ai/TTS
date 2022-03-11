@@ -53,6 +53,7 @@ config = VitsConfig(
     epochs=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
+    phoneme_language="en",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     compute_input_seq_cache=True,
     print_step=25,

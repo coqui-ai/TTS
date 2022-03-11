@@ -6,9 +6,11 @@ from trainer import Trainer, TrainerArgs
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
+from TTS.tts.models.vits import CharactersConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits, VitsArgs
 from TTS.tts.utils.languages import LanguageManager
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
@@ -73,15 +75,16 @@ config = VitsConfig(
     max_audio_len=160000,
     output_path=output_path,
     datasets=dataset_config,
-    characters={
-        "pad": "_",
-        "eos": "&",
-        "bos": "*",
-        "characters": "!¡'(),-.:;¿?abcdefghijklmnopqrstuvwxyzµßàáâäåæçèéêëìíîïñòóôöùúûüąćęłńœśşźżƒабвгдежзийклмнопрстуфхцчшщъыьэюяёєіїґӧ «°±µ»$%&‘’‚“`”„",
-        "punctuations": "!¡'(),-.:;¿? ",
-        "phonemes": None,
-        "unique": True,
-    },
+    characters=CharactersConfig(
+        characters_class="TTS.tts.models.vits.VitsCharacters",
+        pad="<PAD>",
+        eos="<EOS>",
+        bos="<BOS>",
+        blank="<BLNK>",
+        characters="!¡'(),-.:;¿?abcdefghijklmnopqrstuvwxyzµßàáâäåæçèéêëìíîïñòóôöùúûüąćęłńœśşźżƒабвгдежзийклмнопрстуфхцчшщъыьэюяёєіїґӧ «°±µ»$%&‘’‚“`”„",
+        punctuations="!¡'(),-.:;¿? ",
+        phonemes=None,
+    ),
     test_sentences=[
         [
             "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
@@ -100,6 +103,9 @@ config = VitsConfig(
     ],
 )
 
+# force the convertion of the custom characters to a config attribute
+config.from_dict(config.to_dict())
+
 # init audio processor
 ap = AudioProcessor(**config.audio.to_dict())
 
@@ -115,8 +121,13 @@ config.model_args.num_speakers = speaker_manager.num_speakers
 language_manager = LanguageManager(config=config)
 config.model_args.num_languages = language_manager.num_languages
 
+# INITIALIZE THE TOKENIZER
+# Tokenizer is used to convert text to sequences of token IDs.
+# config is updated with the default characters if not defined in the config.
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
 # init model
-model = Vits(config, speaker_manager, language_manager)
+model = Vits(config, ap, tokenizer, speaker_manager, language_manager)
 
 # init the trainer and 🚀
 trainer = Trainer(
@@ -125,7 +136,6 @@ trainer = Trainer(
     output_path,
     model=model,
     train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
+    eval_samples=eval_samples
 )
 trainer.fit()
