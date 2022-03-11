@@ -11,8 +11,8 @@ from TTS.tts.utils.speakers import SpeakerManager
 
 def compute_encoder_accuracy(dataset_items, encoder_manager):
 
-    class_name_key = encoder_manager.speaker_encoder_config.class_name_key
-    map_classid_to_classname = getattr(encoder_manager.speaker_encoder_config, "map_classid_to_classname", None)
+    class_name_key = encoder_manager.encoder_config.class_name_key
+    map_classid_to_classname = getattr(encoder_manager.encoder_config, 'map_classid_to_classname', None)
 
     class_acc_dict = {}
 
@@ -22,13 +22,13 @@ def compute_encoder_accuracy(dataset_items, encoder_manager):
         wav_file = item["audio_file"]
 
         # extract the embedding
-        embedd = encoder_manager.compute_d_vector_from_clip(wav_file)
-        if encoder_manager.speaker_encoder_criterion is not None and map_classid_to_classname is not None:
+        embedd = encoder_manager.compute_embedding_from_clip(wav_file)
+        if encoder_manager.encoder_criterion is not None and map_classid_to_classname is not None:
             embedding = torch.FloatTensor(embedd).unsqueeze(0)
             if encoder_manager.use_cuda:
                 embedding = embedding.cuda()
 
-            class_id = encoder_manager.speaker_encoder_criterion.softmax.inference(embedding).item()
+            class_id = encoder_manager.encoder_criterion.softmax.inference(embedding).item()
             predicted_label = map_classid_to_classname[str(class_id)]
         else:
             predicted_label = None

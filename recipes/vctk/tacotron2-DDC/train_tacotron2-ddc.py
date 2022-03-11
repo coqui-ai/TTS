@@ -88,7 +88,7 @@ train_samples, eval_samples = load_tts_samples(
 # init speaker manager for multi-speaker training
 # it mainly handles speaker-id to speaker-name for the model and the data-loader
 speaker_manager = SpeakerManager()
-speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
+speaker_manager.set_ids_from_data(train_samples + eval_samples)
 
 # init model
 model = Tacotron2(config, ap, tokenizer, speaker_manager)

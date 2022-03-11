@@ -652,28 +652,28 @@ class Vits(BaseTTS):
 
         # TODO: make this a function
         if self.args.use_speaker_encoder_as_loss:
-            if self.speaker_manager.speaker_encoder is None and (
+            if self.speaker_manager.encoder is None and (
                 not self.args.speaker_encoder_model_path or not self.args.speaker_encoder_config_path
             ):
                 raise RuntimeError(
                     " [!] To use the speaker consistency loss (SCL) you need to specify speaker_encoder_model_path and speaker_encoder_config_path !!"
                 )
 
-            self.speaker_manager.speaker_encoder.eval()
+            self.speaker_manager.encoder.eval()
             print(" > External Speaker Encoder Loaded !!")
 
             if (
-                hasattr(self.speaker_manager.speaker_encoder, "audio_config")
-                and self.config.audio["sample_rate"] != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
+                hasattr(self.speaker_manager.encoder, "audio_config")
+                and self.config.audio["sample_rate"] != self.speaker_manager.encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
                     orig_freq=self.audio_config["sample_rate"],
-                    new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
+                    new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
                 )
             # pylint: disable=W0101,W0105
             self.audio_transform = torchaudio.transforms.Resample(
                 orig_freq=self.config.audio.sample_rate,
-                new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
+                new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
             )
 
     def _init_speaker_embedding(self):
@@ -888,7 +888,7 @@ class Vits(BaseTTS):
             pad_short=True,
         )
 
-        if self.args.use_speaker_encoder_as_loss and self.speaker_manager.speaker_encoder is not None:
+        if self.args.use_speaker_encoder_as_loss and self.speaker_manager.encoder is not None:
             # concate generated and GT waveforms
             wavs_batch = torch.cat((wav_seg, o), dim=0)
 
@@ -897,7 +897,7 @@ class Vits(BaseTTS):
             if self.audio_transform is not None:
                 wavs_batch = self.audio_transform(wavs_batch)
 
-            pred_embs = self.speaker_manager.speaker_encoder.forward(wavs_batch, l2_norm=True)
+            pred_embs = self.speaker_manager.encoder.forward(wavs_batch, l2_norm=True)
 
             # split generated and GT speaker embeddings
             gt_spk_emb, syn_spk_emb = torch.chunk(pred_embs, 2, dim=0)
@@ -1224,14 +1224,14 @@ class Vits(BaseTTS):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_d_vector()
+                    d_vector = self.speaker_manager.get_random_embeddings()
                 else:
-                    d_vector = self.speaker_manager.get_mean_d_vector(speaker_name, num_samples=None, randomize=False)
+                    d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_speaker_id()
                 else:
-                    speaker_id = self.speaker_manager.speaker_ids[speaker_name]
+                    speaker_id = self.speaker_manager.ids[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
@@ -1290,16 +1290,16 @@ class Vits(BaseTTS):
         d_vectors = None
 
         # get numerical speaker ids from speaker names
-        if self.speaker_manager is not None and self.speaker_manager.speaker_ids and self.args.use_speaker_embedding:
-            speaker_ids = [self.speaker_manager.speaker_ids[sn] for sn in batch["speaker_names"]]
+        if self.speaker_manager is not None and self.speaker_manager.ids and self.args.use_speaker_embedding:
+            speaker_ids = [self.speaker_manager.ids[sn] for sn in batch["speaker_names"]]
 
         if speaker_ids is not None:
             speaker_ids = torch.LongTensor(speaker_ids)
             batch["speaker_ids"] = speaker_ids
 
         # get d_vectors from audio file names
-        if self.speaker_manager is not None and self.speaker_manager.d_vectors and self.args.use_d_vector_file:
-            d_vector_mapping = self.speaker_manager.d_vectors
+        if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
+            d_vector_mapping = self.speaker_manager.embeddings
             d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_files"]]
             d_vectors = torch.FloatTensor(d_vectors)
 
@@ -1491,7 +1491,7 @@ class Vits(BaseTTS):
         language_manager = LanguageManager.init_from_config(config)
 
         if config.model_args.speaker_encoder_model_path:
-            speaker_manager.init_speaker_encoder(
+            speaker_manager.init_encoder(
                 config.model_args.speaker_encoder_model_path, config.model_args.speaker_encoder_config_path
             )
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager)
