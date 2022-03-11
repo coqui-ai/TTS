@@ -348,7 +348,29 @@ def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=Non
         with open(meta_file, "r", encoding="utf-8") as file_text:
             text = file_text.readlines()[0]
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
+        items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_old_" + speaker_id})
+    return items
+
+
+def open_bible(root_path, meta_files="train", ignore_digits_sentences=True, ignored_speakers=None):
+    """ToDo: Refer the paper when available"""
+    items = []
+    split_dir = meta_files
+    meta_files = glob(f"{os.path.join(root_path, split_dir)}/**/*.txt", recursive=True)
+    for meta_file in meta_files:
+        _, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
+        file_id = txt_file.split(".")[0]
+        # ignore speakers
+        if isinstance(ignored_speakers, list):
+            if speaker_id in ignored_speakers:
+                continue
+        with open(meta_file, "r", encoding="utf-8") as file_text:
+            text = file_text.readline().replace("\n", "")
+        # ignore sentences that contains digits
+        if ignore_digits_sentences and any(map(str.isdigit, text)):
+            continue
+        wav_file = os.path.join(root_path, split_dir, speaker_id, file_id + ".flac")
+        items.append({"text": text, "audio_file": wav_file, "speaker_name": "OB_" + speaker_id})
     return items
 
 
