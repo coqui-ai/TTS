@@ -1,0 +1,85 @@
+name: "🐛 Bug report"
+description: Create a bug report to help 🐸 improve
+title: '[Bug] '
+labels: [ "bug" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Welcome to the 🐸TTS! Thanks for taking the time to fill out this bug report!
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is. If you intend to submit a PR for this issue, tell us in the description. Thanks!
+      placeholder: Bug description
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: To Reproduce
+      description: |
+        Please share your code to reproduce the error.
+
+        Issues are fixed faster if you can provide a working example.
+
+        The best place for sharing code is colab. https://colab.research.google.com/
+        So we can directly run your code and reproduce the issue.
+
+        In the worse case, provide steps to reproduce the behavior.
+
+        1. Run the following command '...'
+        2. ...
+        3. See error
+      placeholder: Reproduction
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: "Write down what the expected behaviour"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Please include the relevant logs if you can."
+      render: shell
+
+  - type: textarea
+    id: system-info
+    attributes:
+      label: Environment
+      description: |
+        You can either run `TTS/bin/collect_env_info.py`
+
+        ```bash
+        wget https://raw.githubusercontent.com/coqui-ai/TTS/main/TTS/bin/collect_env_info.py
+        python collect_env_info.py
+        ```
+
+        or fill in the fields below manually.
+      render: shell
+      placeholder: |
+        - 🐸TTS Version (e.g., 1.3.0):
+        - PyTorch Version (e.g., 1.8)
+        - Python version:
+        - OS (e.g., Linux):
+        - CUDA/cuDNN version:
+        - GPU models and configuration:
+        - How you installed PyTorch (`conda`, `pip`, source):
+        - Any other relevant information:
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false
