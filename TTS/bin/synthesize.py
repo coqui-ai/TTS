@@ -286,7 +286,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         print(
             " > Available language ids: (Set --language_idx flag to one of these values to use the multi-lingual model."
         )
-        print(synthesizer.tts_model.language_manager.language_id_mapping)
+        print(synthesizer.tts_model.language_manager.ids)
         return
 
     # check the arguments against a multi-speaker model.

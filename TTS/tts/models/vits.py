@@ -1229,13 +1229,13 @@ class Vits(BaseTTS):
                     d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
-                    speaker_id = self.speaker_manager.get_random_speaker_id()
+                    speaker_id = self.speaker_manager.get_random_id()
                 else:
                     speaker_id = self.speaker_manager.ids[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
-            language_id = self.language_manager.language_id_mapping[language_name]
+            language_id = self.language_manager.ids[language_name]
 
         return {
             "text": text,
@@ -1306,10 +1306,10 @@ class Vits(BaseTTS):
         # get language ids from language names
         if (
             self.language_manager is not None
-            and self.language_manager.language_id_mapping
+            and self.language_manager.ids
             and self.args.use_language_embedding
         ):
-            language_ids = [self.language_manager.language_id_mapping[ln] for ln in batch["language_names"]]
+            language_ids = [self.language_manager.ids[ln] for ln in batch["language_names"]]
 
         if language_ids is not None:
             language_ids = torch.LongTensor(language_ids)

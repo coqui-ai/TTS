@@ -44,7 +44,7 @@ class BaseIDManager:
         self.ids, _ = self.parse_ids_from_data(items)
 
     def set_ids_from_file(self, file_path: str) -> None:
-        """Set speaker IDs from a file.
+        """Set IDs from a file.
 
         Args:
             file_path (str): Path to the file.
@@ -52,14 +52,14 @@ class BaseIDManager:
         self.ids = self._load_json(file_path)
 
     def save_ids_to_file(self, file_path: str) -> None:
-        """Save speaker IDs to a json file.
+        """Save IDs to a json file.
 
         Args:
             file_path (str): Path to the output file.
         """
         self._save_json(file_path, self.ids)
 
-    def get_random_speaker_id(self) -> Any:
+    def get_random_id(self) -> Any:
         """Get a random embedding.
 
         Args:
