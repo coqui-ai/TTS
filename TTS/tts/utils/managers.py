@@ -1,6 +1,6 @@
 import json
 import random
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import fsspec
 import numpy as np
@@ -34,14 +34,13 @@ class BaseIDManager:
         with fsspec.open(json_file_path, "w") as f:
             json.dump(data, f, indent=4)
 
-
-    def set_ids_from_data(self, items: List) -> None:
+    def set_ids_from_data(self, items: List, parse_key: str) -> None:
         """Set IDs from data samples.
 
         Args:
             items (List): Data sampled returned by `load_tts_samples()`.
         """
-        self.ids, _ = self.parse_ids_from_data(items)
+        self.ids = self.parse_ids_from_data(items, parse_key=parse_key)
 
     def load_ids_from_file(self, file_path: str) -> None:
         """Set IDs from a file.
@@ -73,9 +72,18 @@ class BaseIDManager:
         return None
 
     @staticmethod
-    def parse_ids_from_data(items: list) -> Any:
-        raise NotImplementedError
+    def parse_ids_from_data(items: List, parse_key: str) -> Tuple[Dict]:
+        """Parse IDs from data samples retured by `load_tts_samples()`.
 
+        Args:
+            items (list): Data sampled returned by `load_tts_samples()`.
+            parse_key (str): The key to being used to parse the data.
+        Returns:
+            Tuple[Dict]: speaker IDs.
+        """
+        classes = sorted({item[parse_key] for item in items})
+        ids = {name: i for i, name in enumerate(classes)}
+        return ids
 
 class EmbeddingManager(BaseIDManager):
     """ Base `Embedding` Manager class. Every new `Embedding` manager must inherit this.
@@ -273,7 +281,3 @@ class EmbeddingManager(BaseIDManager):
         if self.use_cuda:
             feats = feats.cuda()
         return self.encoder.compute_embedding(feats)
-
-    @staticmethod
-    def parse_ids_from_data(items: list) -> Any:
-        raise NotImplementedError

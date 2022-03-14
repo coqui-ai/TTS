@@ -69,10 +69,10 @@ class LanguageManager(BaseIDManager):
         self.ids = self.parse_language_ids_from_config(c)
 
     @staticmethod
-    def parse_ids_from_data(items: list) -> Any:
+    def parse_ids_from_data(items: List, parse_key: str) -> Any:
         raise NotImplementedError
 
-    def set_ids_from_data(self, items: List) -> Any:
+    def set_ids_from_data(self, items: List, parse_key: str) -> Any:
         raise NotImplementedError
 
     def save_ids_to_file(self, file_path: str) -> None:

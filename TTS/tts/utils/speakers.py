@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Union
 
 import fsspec
 import numpy as np
@@ -68,7 +68,7 @@ class SpeakerManager(EmbeddingManager):
             )
 
         if data_items:
-            self.ids, _ = self.parse_ids_from_data(data_items)
+            self.set_ids_from_data(data_items, parse_key="speaker_name")
 
     @property
     def num_speakers(self):
@@ -77,21 +77,6 @@ class SpeakerManager(EmbeddingManager):
     @property
     def speaker_names(self):
         return list(self.ids.keys())
-
-    @staticmethod
-    def parse_ids_from_data(items: list) -> Tuple[Dict, int]:
-        """Parse speaker IDs from data samples retured by `load_tts_samples()`.
-
-        Args:
-            items (list): Data sampled returned by `load_tts_samples()`.
-
-        Returns:
-            Tuple[Dict, int]: speaker IDs and number of speakers.
-        """
-        speakers = sorted({item["speaker_name"] for item in items})
-        speaker_ids = {name: i for i, name in enumerate(speakers)}
-        num_speakers = len(speaker_ids)
-        return speaker_ids, num_speakers
 
     def get_speakers(self) -> List:
         return self.ids
@@ -180,7 +165,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
     speaker_manager = SpeakerManager()
     if c.use_speaker_embedding:
         if data is not None:
-            speaker_manager.set_ids_from_data(data)
+            speaker_manager.set_ids_from_data(data, parse_key="speaker_name")
         if restore_path:
             speakers_file = _set_file_path(restore_path)
             # restoring speaker manager from a previous run.
