@@ -22,7 +22,7 @@ class BaseIDManager:
         self.ids = {}
 
         if id_file_path:
-            self.set_ids_from_file(id_file_path)
+            self.load_ids_from_file(id_file_path)
 
     @staticmethod
     def _load_json(json_file_path: str) -> Dict:
@@ -43,7 +43,7 @@ class BaseIDManager:
         """
         self.ids, _ = self.parse_ids_from_data(items)
 
-    def set_ids_from_file(self, file_path: str) -> None:
+    def load_ids_from_file(self, file_path: str) -> None:
         """Set IDs from a file.
 
         Args:

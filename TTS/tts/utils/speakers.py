@@ -196,7 +196,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
                 speaker_manager.set_embeddings_from_file(speakers_file)
             elif not c.use_d_vector_file:  # restor speaker manager with speaker ID file.
                 speaker_ids_from_data = speaker_manager.ids
-                speaker_manager.set_ids_from_file(speakers_file)
+                speaker_manager.load_ids_from_file(speakers_file)
                 assert all(
                     speaker in speaker_manager.ids for speaker in speaker_ids_from_data
                 ), " [!] You cannot introduce new speakers to a pre-trained model."
@@ -207,7 +207,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
             raise "use_d_vector_file is True, so you need pass a external speaker embedding file."
         elif c.use_speaker_embedding and "speakers_file" in c and c.speakers_file:
             # new speaker manager with speaker IDs file.
-            speaker_manager.set_ids_from_file(c.speakers_file)
+            speaker_manager.load_ids_from_file(c.speakers_file)
 
         if speaker_manager.num_speakers > 0:
             print(
