@@ -717,7 +717,7 @@ class Vits(BaseTTS):
             for param in self.text_encoder.parameters():
                 param.requires_grad = False
 
-            if hasattr(self, "emb_l"):
+            if hasattr(self, "emb_l") and self.emb_l is not None:
                 for param in self.emb_l.parameters():
                     param.requires_grad = False
 
