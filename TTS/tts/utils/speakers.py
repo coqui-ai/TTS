@@ -177,7 +177,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
                         raise RuntimeError(
                             "You must copy the file speakers.json to restore_path, or set a valid file in CONFIG.d_vector_file"
                         )
-                    speaker_manager.load_embeddings_file(c.d_vector_file)
+                    speaker_manager.load_embeddings_from_file(c.d_vector_file)
                 speaker_manager.load_embeddings_from_file(speakers_file)
             elif not c.use_d_vector_file:  # restor speaker manager with speaker ID file.
                 speaker_ids_from_data = speaker_manager.ids
