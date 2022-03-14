@@ -99,7 +99,7 @@ class EmbeddingManager(BaseIDManager):
         self.use_cuda = use_cuda
 
         if embedding_file_path:
-            self.set_embeddings_from_file(embedding_file_path)
+            self.load_embeddings_from_file(embedding_file_path)
 
         if encoder_model_path and encoder_config_path:
             self.init_encoder(encoder_model_path, encoder_config_path)
@@ -119,7 +119,7 @@ class EmbeddingManager(BaseIDManager):
         """
         self._save_json(file_path, self.embeddings)
 
-    def set_embeddings_from_file(self, file_path: str) -> None:
+    def load_embeddings_from_file(self, file_path: str) -> None:
         """Load embeddings from a json file.
 
         Args:
