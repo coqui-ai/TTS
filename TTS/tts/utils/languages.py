@@ -64,7 +64,7 @@ class LanguageManager(BaseIDManager):
         """Set language IDs from config samples.
 
         Args:
-            items (List): Data sampled returned by `load_meta_data()`.
+            c (Coqpit): Config.
         """
         self.ids = self.parse_language_ids_from_config(c)
 
