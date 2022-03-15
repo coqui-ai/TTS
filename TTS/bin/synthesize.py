@@ -227,6 +227,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     model_path = None
     config_path = None
     speakers_file_path = None
+    emotions_file_path = None
     language_ids_file_path = None
     vocoder_path = None
     vocoder_config_path = None

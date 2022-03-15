@@ -1,5 +1,6 @@
 import argparse
 import os
+import torch
 from argparse import RawTextHelpFormatter
 
 from tqdm import tqdm
@@ -28,11 +29,12 @@ parser.add_argument(
     type=str,
     help="Path to dataset config file.",
 )
-parser.add_argument("output_path", type=str, help="path for output speakers.json and/or speakers.npy.")
+parser.add_argument("output_path", type=str, help="path for output .json file.")
 parser.add_argument(
-    "--old_file", type=str, help="Previous speakers.json file, only compute for new audios.", default=None
+    "--old_file", type=str, help="Previous .json file, only compute for new audios.", default=None
 )
 parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
+parser.add_argument("--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False)
 parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
 
 args = parser.parse_args()
@@ -52,10 +54,10 @@ encoder_manager = SpeakerManager(
 class_name_key = encoder_manager.encoder_config.class_name_key
 
 # compute speaker embeddings
-speaker_mapping = {}
+class_mapping = {}
 for idx, wav_file in enumerate(tqdm(wav_files)):
     if isinstance(wav_file, dict):
-        class_name = wav_file[class_name_key]
+        class_name = wav_file[class_name_key] if class_name_key in wav_file else None
         wav_file = wav_file["audio_file"]
     else:
         class_name = None
@@ -68,20 +70,37 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
         # extract the embedding
         embedd = encoder_manager.compute_embedding_from_clip(wav_file)
 
-    # create speaker_mapping if target dataset is defined
-    speaker_mapping[wav_file_name] = {}
-    speaker_mapping[wav_file_name]["name"] = class_name
-    speaker_mapping[wav_file_name]["embedding"] = embedd
+    if args.use_predicted_label:
+        map_classid_to_classname = getattr(encoder_manager.encoder_config, 'map_classid_to_classname', None)
+        if encoder_manager.encoder_criterion is not None and map_classid_to_classname is not None:
+            embedding = torch.FloatTensor(embedd).unsqueeze(0)
+            if encoder_manager.use_cuda:
+                embedding = embedding.cuda()
 
-if speaker_mapping:
-    # save speaker_mapping if target dataset is defined
+            class_id = encoder_manager.encoder_criterion.softmax.inference(embedding).item()
+            class_name = map_classid_to_classname[str(class_id)]
+        else:
+            raise RuntimeError(
+                    " [!] use_predicted_label is enable and predicted_labels is not available !!"
+                )
+
+    # create class_mapping if target dataset is defined
+    class_mapping[wav_file_name] = {}
+    class_mapping[wav_file_name]["name"] = class_name
+    class_mapping[wav_file_name]["embedding"] = embedd
+
+if class_mapping:
+    # save class_mapping if target dataset is defined
     if ".json" not in args.output_path:
-        mapping_file_path = os.path.join(args.output_path, "speakers.json")
+        if class_name_key == "speaker_name":
+            mapping_file_path = os.path.join(args.output_path, "speakers.json")
+        else:
+            mapping_file_path = os.path.join(args.output_path, "emotions.json")
     else:
         mapping_file_path = args.output_path
 
     os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
 
     # pylint: disable=W0212
-    encoder_manager._save_json(mapping_file_path, speaker_mapping)
-    print("Speaker embeddings saved at:", mapping_file_path)
+    encoder_manager._save_json(mapping_file_path, class_mapping)
+    print("Embeddings saved at:", mapping_file_path)
