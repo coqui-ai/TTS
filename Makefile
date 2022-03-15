@@ -43,7 +43,7 @@ style:	## update code style.
 	isort ${target_dirs}
 
 lint:	## run pylint linter.
-	pylint ${target_dirs}
+	pylint ${target_dirs} -j 0
 
 system-deps:	## install linux system deps
 	sudo apt-get install -y libsndfile1-dev
