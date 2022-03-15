@@ -22,6 +22,7 @@ class Synthesizer(object):
         tts_checkpoint: str,
         tts_config_path: str,
         tts_speakers_file: str = "",
+        tts_emotions_file: str = "",
         tts_languages_file: str = "",
         vocoder_checkpoint: str = "",
         vocoder_config: str = "",
@@ -52,6 +53,7 @@ class Synthesizer(object):
         self.tts_checkpoint = tts_checkpoint
         self.tts_config_path = tts_config_path
         self.tts_speakers_file = tts_speakers_file
+        self.tts_emotions_file = tts_emotions_file
         self.tts_languages_file = tts_languages_file
         self.vocoder_checkpoint = vocoder_checkpoint
         self.vocoder_config = vocoder_config
@@ -183,6 +185,7 @@ class Synthesizer(object):
         style_text=None,
         reference_wav=None,
         reference_speaker_name=None,
+        emotion_name=None,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -240,7 +243,7 @@ class Synthesizer(object):
                     "Define path for speaker.json if it is a multi-speaker model or remove defined speaker idx. "
                 )
 
-        # handle multi-lingaul
+        # handle multi-lingual
         language_id = None
         if self.tts_languages_file or (
             hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
@@ -258,6 +261,29 @@ class Synthesizer(object):
                 raise ValueError(
                     f" [!] Missing language_ids.json file path for selecting language {language_name}."
                     "Define path for language_ids.json if it is a multi-lingual model or remove defined language idx. "
+                )
+
+        # handle emotion
+        emotion_embedding, emotion_id = None, None
+        if self.tts_emotions_file or hasattr(self.tts_model.emotion_manager, "ids"):
+            if emotion_name and isinstance(emotion_name, str):
+                if getattr(self.tts_config, "use_external_emotions_embeddings", False) or getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False):
+                    # get the average speaker embedding from the saved embeddings.
+                    emotion_embedding = self.tts_model.emotion_manager.get_mean_embedding(emotion_name, num_samples=None, randomize=False)
+                    emotion_embedding = np.array(emotion_embedding)[None, :]  # [1 x embedding_dim]
+                else:
+                    # get speaker idx from the speaker name
+                    speaker_id = self.tts_model.emotion_manager.ids[emotion_name]
+            elif not emotion_name:
+                raise ValueError(
+                    " [!] Look like you use an emotion model. "
+                    "You need to define either a `emotion_name`  to use an emotion model."
+                )
+        else:
+            if emotion_name:
+                raise ValueError(
+                    f" [!] Missing emotion.json file path for selecting the emotion {emotion_name}."
+                    "Define path for emotion.json if it is an emotion model or remove defined emotion idx. "
                 )
 
         # compute a new d_vector from the given clip.
@@ -280,6 +306,8 @@ class Synthesizer(object):
                     use_griffin_lim=use_gl,
                     d_vector=speaker_embedding,
                     language_id=language_id,
+                    emotion_embedding=emotion_embedding,
+                    emotion_id=emotion_id,
                 )
                 waveform = outputs["wav"]
                 mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()

@@ -152,6 +152,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
+    parser.add_argument("--emotions_file_path", type=str, help="JSON file for emotion model.", default=None)
     parser.add_argument("--language_ids_file_path", type=str, help="JSON file for multi-lingual model.", default=None)
     parser.add_argument(
         "--speaker_idx",
@@ -163,6 +164,12 @@ If you don't specify any models, then it uses LJSpeech based English model.
         "--language_idx",
         type=str,
         help="Target language ID for a multi-lingual TTS model.",
+        default=None,
+    )
+    parser.add_argument(
+        "--emotion_idx",
+        type=str,
+        help="Target emotion ID.",
         default=None,
     )
     parser.add_argument(
@@ -254,6 +261,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         model_path = args.model_path
         config_path = args.config_path
         speakers_file_path = args.speakers_file_path
+        emotions_file_path = args.emotions_file_path
         language_ids_file_path = args.language_ids_file_path
 
     if args.vocoder_path is not None:
@@ -269,6 +277,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         model_path,
         config_path,
         speakers_file_path,
+        emotions_file_path,
         language_ids_file_path,
         vocoder_path,
         vocoder_config_path,
@@ -315,6 +324,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         style_wav=args.capacitron_style_wav,
         style_text=args.capacitron_style_text,
         reference_speaker_name=args.reference_speaker_idx,
+        emotion_name=args.emotion_idx,
     )
 
     # save the results
