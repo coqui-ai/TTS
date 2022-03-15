@@ -129,10 +129,10 @@ class Synthesizer(object):
     def _set_speaker_encoder_paths_from_tts_config(self):
         """Set the encoder paths from the tts model config for models with speaker encoders."""
         if hasattr(self.tts_config, "model_args") and hasattr(
-            self.tts_config.model_args, "speaker_encoder_config_path"
+            self.tts_config.model_args, "encoder_config_path"
         ):
-            self.encoder_checkpoint = self.tts_config.model_args.speaker_encoder_model_path
-            self.encoder_config = self.tts_config.model_args.speaker_encoder_config_path
+            self.encoder_checkpoint = self.tts_config.model_args.encoder_model_path
+            self.encoder_config = self.tts_config.model_args.encoder_config_path
 
     def _load_vocoder(self, model_file: str, model_config: str, use_cuda: bool) -> None:
         """Load the vocoder model.
@@ -273,7 +273,7 @@ class Synthesizer(object):
                     emotion_embedding = np.array(emotion_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
-                    speaker_id = self.tts_model.emotion_manager.ids[emotion_name]
+                    emotion_id = self.tts_model.emotion_manager.ids[emotion_name]
             elif not emotion_name:
                 raise ValueError(
                     " [!] Look like you use an emotion model. "
