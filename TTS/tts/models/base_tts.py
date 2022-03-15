@@ -423,3 +423,25 @@ class BaseTTS(BaseTrainerModel):
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
             print(f" > `language_ids.json` is saved to {output_path}.")
             print(" > `language_ids_file` is updated in the config.json.")
+
+        if hasattr(self, "emotion_manager") and self.emotion_manager is not None:
+            output_path = os.path.join(trainer.output_path, "emotions.json")
+            
+            if hasattr(trainer.config, "model_args"):
+                if trainer.config.model_args.use_emotion_embedding and not trainer.config.model_args.external_emotions_embs_file:
+                    self.emotion_manager.save_ids_to_file(output_path)
+                    trainer.config.model_args.emotions_ids_file = output_path
+                else:
+                    self.emotion_manager.save_embeddings_to_file(output_path)
+                    trainer.config.model_args.external_emotions_embs_file = output_path
+            else:
+                if trainer.config.use_emotion_embedding and not trainer.config.external_emotions_embs_file:
+                    self.emotion_manager.save_ids_to_file(output_path)
+                    trainer.config.emotions_ids_file = output_path
+                else:
+                    self.emotion_manager.save_embeddings_to_file(output_path)
+                    trainer.config.external_emotions_embs_file = output_path
+
+            trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
+            print(f" > `emotions.json` is saved to {output_path}.")
+            print(" > `emotions_ids_file` or `external_emotions_embs_file` is updated in the config.json.")
