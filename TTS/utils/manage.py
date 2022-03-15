@@ -151,8 +151,8 @@ class ModelManager(object):
         output_stats_path = os.path.join(output_path, "scale_stats.npy")
         output_d_vector_file_path = os.path.join(output_path, "speakers.json")
         output_speaker_ids_file_path = os.path.join(output_path, "speaker_ids.json")
-        speaker_encoder_config_path = os.path.join(output_path, "config_se.json")
-        speaker_encoder_model_path = os.path.join(output_path, "model_se.pth.tar")
+        encoder_config_path = os.path.join(output_path, "config_se.json")
+        encoder_model_path = os.path.join(output_path, "model_se.pth.tar")
 
         # update the scale_path.npy file path in the model config.json
         self._update_path("audio.stats_path", output_stats_path, config_path)
@@ -166,10 +166,10 @@ class ModelManager(object):
         self._update_path("model_args.speakers_file", output_speaker_ids_file_path, config_path)
 
         # update the speaker_encoder file path in the model config.json to the current path
-        self._update_path("speaker_encoder_model_path", speaker_encoder_model_path, config_path)
-        self._update_path("model_args.speaker_encoder_model_path", speaker_encoder_model_path, config_path)
-        self._update_path("speaker_encoder_config_path", speaker_encoder_config_path, config_path)
-        self._update_path("model_args.speaker_encoder_config_path", speaker_encoder_config_path, config_path)
+        self._update_path("encoder_model_path", encoder_model_path, config_path)
+        self._update_path("model_args.encoder_model_path", encoder_model_path, config_path)
+        self._update_path("encoder_config_path", encoder_config_path, config_path)
+        self._update_path("model_args.encoder_config_path", encoder_config_path, config_path)
 
     @staticmethod
     def _update_path(field_name, new_path, config_path):

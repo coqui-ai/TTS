@@ -532,7 +532,7 @@ class VitsGeneratorLoss(nn.Module):
         self.feat_loss_alpha = c.feat_loss_alpha
         self.dur_loss_alpha = c.dur_loss_alpha
         self.mel_loss_alpha = c.mel_loss_alpha
-        self.spk_encoder_loss_alpha = c.speaker_encoder_loss_alpha
+        self.consistency_loss_alpha = c.consistency_loss_alpha
         self.stft = TorchSTFT(
             c.audio.fft_size,
             c.audio.hop_length,
@@ -586,8 +586,8 @@ class VitsGeneratorLoss(nn.Module):
         return l
 
     @staticmethod
-    def cosine_similarity_loss(gt_spk_emb, syn_spk_emb):
-        return -torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean()
+    def cosine_similarity_loss(gt_cons_emb, syn_cons_emb):
+        return -torch.nn.functional.cosine_similarity(gt_cons_emb, syn_cons_emb).mean()
 
     def forward(
         self,
@@ -602,9 +602,9 @@ class VitsGeneratorLoss(nn.Module):
         feats_disc_fake,
         feats_disc_real,
         loss_duration,
-        use_speaker_encoder_as_loss=False,
-        gt_spk_emb=None,
-        syn_spk_emb=None,
+        use_encoder_consistency_loss=False,
+        gt_cons_emb=None,
+        syn_cons_emb=None,
     ):
         """
         Shapes:
@@ -635,10 +635,10 @@ class VitsGeneratorLoss(nn.Module):
         loss_duration = torch.sum(loss_duration.float()) * self.dur_loss_alpha
         loss = loss_kl + loss_feat + loss_mel + loss_gen + loss_duration
 
-        if use_speaker_encoder_as_loss:
-            loss_se = self.cosine_similarity_loss(gt_spk_emb, syn_spk_emb) * self.spk_encoder_loss_alpha
-            loss = loss + loss_se
-            return_dict["loss_spk_encoder"] = loss_se
+        if use_encoder_consistency_loss:
+            loss_enc = self.cosine_similarity_loss(gt_cons_emb, syn_cons_emb) * self.consistency_loss_alpha
+            loss = loss + loss_enc
+            return_dict["loss_consistency_enc"] = loss_enc
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
