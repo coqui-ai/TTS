@@ -36,15 +36,20 @@ config.audio.trim_db = 60
 # active multispeaker d-vec mode
 config.model_args.use_speaker_embedding = True
 config.model_args.use_d_vector_file = False
-config.model_args.d_vector_file = None
+config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
+config.model_args.speaker_embedding_channels = 128
 config.model_args.d_vector_dim = 256
 
 # emotion
-config.model_args.use_external_emotions_embeddings = True
-config.model_args.use_emotion_embedding = False
+config.model_args.use_external_emotions_embeddings = False
+config.model_args.use_emotion_embedding = True
 config.model_args.emotion_embedding_dim = 256
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
 
+# consistency loss
+# config.model_args.use_emotion_encoder_as_loss = True
+# config.model_args.encoder_model_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/model_se.pth.tar"
+# config.model_args.encoder_config_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/config_se.json"
 
 config.save_json(config_path)
 
@@ -69,7 +74,7 @@ continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
-emotion_id = "ljspeech-1"
+emotion_id = "ljspeech-3"
 continue_speakers_path = os.path.join(continue_path, "speakers.json")
 continue_emotion_path = os.path.join(continue_path, "speakers.json")
 
