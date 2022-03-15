@@ -1,5 +1,6 @@
 import argparse
 import os
+import torch
 from argparse import RawTextHelpFormatter
 
 import torch
@@ -8,7 +9,7 @@ from tqdm import tqdm
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.managers import save_file
-from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.managers import EmbeddingManager
 
 parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
@@ -25,6 +26,7 @@ parser.add_argument("--output_path", type=str, help="Path for output `pth` or `j
 parser.add_argument("--old_file", type=str, help="Previous embedding file to only compute new audios.", default=None)
 parser.add_argument("--disable_cuda", type=bool, help="Flag to disable cuda.", default=False)
 parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
+parser.add_argument("--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False)
 
 args = parser.parse_args()
 
@@ -39,20 +41,20 @@ if meta_data_eval is None:
 else:
     wav_files = meta_data_train + meta_data_eval
 
-encoder_manager = SpeakerManager(
+encoder_manager = EmbeddingManager(
     encoder_model_path=args.model_path,
     encoder_config_path=args.config_path,
-    d_vectors_file_path=args.old_file,
+    embedding_file_path=args.old_file,
     use_cuda=use_cuda,
 )
 
 class_name_key = encoder_manager.encoder_config.class_name_key
 
 # compute speaker embeddings
-speaker_mapping = {}
+class_mapping = {}
 for idx, wav_file in enumerate(tqdm(wav_files)):
     if isinstance(wav_file, dict):
-        class_name = wav_file[class_name_key]
+        class_name = wav_file[class_name_key] if class_name_key in wav_file else None
         wav_file = wav_file["audio_file"]
     else:
         class_name = None
@@ -65,20 +67,37 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
         # extract the embedding
         embedd = encoder_manager.compute_embedding_from_clip(wav_file)
 
-    # create speaker_mapping if target dataset is defined
-    speaker_mapping[wav_file_name] = {}
-    speaker_mapping[wav_file_name]["name"] = class_name
-    speaker_mapping[wav_file_name]["embedding"] = embedd
+    if args.use_predicted_label:
+        map_classid_to_classname = getattr(encoder_manager.encoder_config, 'map_classid_to_classname', None)
+        if encoder_manager.encoder_criterion is not None and map_classid_to_classname is not None:
+            embedding = torch.FloatTensor(embedd).unsqueeze(0)
+            if encoder_manager.use_cuda:
+                embedding = embedding.cuda()
 
-if speaker_mapping:
-    # save speaker_mapping if target dataset is defined
-    if os.path.isdir(args.output_path):
-        mapping_file_path = os.path.join(args.output_path, "speakers.pth")
+            class_id = encoder_manager.encoder_criterion.softmax.inference(embedding).item()
+            class_name = map_classid_to_classname[str(class_id)]
+        else:
+            raise RuntimeError(
+                    " [!] use_predicted_label is enable and predicted_labels is not available !!"
+                )
+
+    # create class_mapping if target dataset is defined
+    class_mapping[wav_file_name] = {}
+    class_mapping[wav_file_name]["name"] = class_name
+    class_mapping[wav_file_name]["embedding"] = embedd
+
+if class_mapping:
+    # save class_mapping if target dataset is defined
+    if ".json" not in args.output_path or ".pth" not in args.output_path:
+        if class_name_key == "speaker_name":
+            mapping_file_path = os.path.join(args.output_path, "speakers.pth")
+        else:
+            mapping_file_path = os.path.join(args.output_path, "emotions.pth")
     else:
         mapping_file_path = args.output_path
 
     if os.path.dirname(mapping_file_path) != "":
         os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
 
-    save_file(speaker_mapping, mapping_file_path)
-    print("Speaker embeddings saved at:", mapping_file_path)
+    save_file(class_mapping, mapping_file_path)
+    print("Embeddings saved at:", mapping_file_path)

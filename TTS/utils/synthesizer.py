@@ -265,9 +265,9 @@ class Synthesizer(object):
 
         # handle emotion
         emotion_embedding, emotion_id = None, None
-        if self.tts_emotions_file or hasattr(self.tts_model.emotion_manager, "ids"):
+        if self.tts_emotions_file or (getattr(self.tts_model, "emotion_manager", None) and getattr(self.tts_model.emotion_manager, "ids", None)):
             if emotion_name and isinstance(emotion_name, str):
-                if getattr(self.tts_config, "use_external_emotions_embeddings", False) or getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False):
+                if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (getattr(self.tts_config, "model_args", None) and getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False)):
                     # get the average speaker embedding from the saved embeddings.
                     emotion_embedding = self.tts_model.emotion_manager.get_mean_embedding(emotion_name, num_samples=None, randomize=False)
                     emotion_embedding = np.array(emotion_embedding)[None, :]  # [1 x embedding_dim]
