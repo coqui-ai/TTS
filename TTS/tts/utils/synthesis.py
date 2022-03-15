@@ -29,6 +29,8 @@ def run_model_torch(
     style_text: str = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
+    emotion_id: torch.Tensor = None,
+    emotion_embedding: torch.Tensor = None,
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
 
@@ -56,6 +58,8 @@ def run_model_torch(
             "style_mel": style_mel,
             "style_text": style_text,
             "language_ids": language_id,
+            "emotion_ids": emotion_id,
+            "emotion_embeddings": emotion_embedding,
         },
     )
     return outputs
@@ -122,6 +126,8 @@ def synthesis(
     do_trim_silence=False,
     d_vector=None,
     language_id=None,
+    emotion_id=None,
+    emotion_embedding=None
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
     the vocoder model.
@@ -190,6 +196,12 @@ def synthesis(
     if language_id is not None:
         language_id = id_to_torch(language_id, cuda=use_cuda)
 
+    if emotion_id is not None:
+        emotion_id = id_to_torch(emotion_id, cuda=use_cuda)
+
+    if emotion_embedding is not None:
+        emotion_embedding = embedding_to_torch(emotion_embedding, cuda=use_cuda)
+
     if not isinstance(style_mel, dict):
         # GST or Capacitron style mel
         style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
@@ -212,6 +224,8 @@ def synthesis(
         style_text,
         d_vector=d_vector,
         language_id=language_id,
+        emotion_id=emotion_id,
+        emotion_embedding=emotion_embedding,
     )
     model_outputs = outputs["model_outputs"]
     model_outputs = model_outputs[0].data.cpu().numpy()

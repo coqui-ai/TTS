@@ -1,10 +1,8 @@
 import json
 import os
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, List
 
 import fsspec
-import numpy as np
-import torch
 from coqpit import Coqpit
 
 from TTS.config import get_from_config_or_model_args_with_default
@@ -34,7 +32,7 @@ class EmotionManager(EmbeddingManager):
     computes the embeddings for a given clip or emotion.
 
     Args:
-        emo_embeddings_file_path (str, optional): Path to the metafile including x vectors. Defaults to "".
+        embeddings_file_path (str, optional): Path to the metafile including x vectors. Defaults to "".
         emotion_id_file_path (str, optional): Path to the metafile that maps emotion names to ids used by
         TTS models. Defaults to "".
         encoder_model_path (str, optional): Path to the emotion encoder model file. Defaults to "".
@@ -50,14 +48,14 @@ class EmotionManager(EmbeddingManager):
 
     def __init__(
         self,
-        emo_embeddings_file_path: str = "",
+        embeddings_file_path: str = "",
         emotion_id_file_path: str = "",
         encoder_model_path: str = "",
         encoder_config_path: str = "",
         use_cuda: bool = False,
     ):
         super().__init__(
-            external_emotions_ids_file_path=emo_embeddings_file_path,
+            embedding_file_path=embeddings_file_path,
             id_file_path=emotion_id_file_path,
             encoder_model_path=encoder_model_path,
             encoder_config_path=encoder_config_path,
@@ -98,11 +96,15 @@ class EmotionManager(EmbeddingManager):
                 emotion_manager = EmotionManager(
                     emotion_id_file_path=get_from_config_or_model_args_with_default(config, "emotions_ids_file", None)
                 )
-
-        if get_from_config_or_model_args_with_default(config, "use_external_emotion_embedding", False):
-            if get_from_config_or_model_args_with_default(config, "external_emotions_ids_file", None):
+            elif get_from_config_or_model_args_with_default(config, "external_emotions_embs_file", None):
                 emotion_manager = EmotionManager(
-                    embeddings_file_path=get_from_config_or_model_args_with_default(config, "external_emotions_ids_file", None)
+                    embeddings_file_path=get_from_config_or_model_args_with_default(config, "external_emotions_embs_file", None)
+                )
+
+        if get_from_config_or_model_args_with_default(config, "use_external_emotions_embeddings", False):
+            if get_from_config_or_model_args_with_default(config, "external_emotions_embs_file", None):
+                emotion_manager = EmotionManager(
+                    embeddings_file_path=get_from_config_or_model_args_with_default(config, "external_emotions_embs_file", None)
                 )
 
         return emotion_manager
@@ -157,26 +159,26 @@ def get_emotion_manager(c: Coqpit, restore_path: str = None, out_path: str = Non
         if c.use_external_emotions_embeddings:
             # restore emotion manager with the embedding file
             if not os.path.exists(emotions_ids_file):
-                print("WARNING: emotions.json was not found in restore_path, trying to use CONFIG.external_emotions_ids_file")
-                if not os.path.exists(c.external_emotions_ids_file):
+                print("WARNING: emotions.json was not found in restore_path, trying to use CONFIG.external_emotions_embs_file")
+                if not os.path.exists(c.external_emotions_embs_file):
                     raise RuntimeError(
-                        "You must copy the file emotions.json to restore_path, or set a valid file in CONFIG.external_emotions_ids_file"
+                        "You must copy the file emotions.json to restore_path, or set a valid file in CONFIG.external_emotions_embs_file"
                     )
-                emotion_manager.load_embeddings_from_file(c.external_emotions_ids_file)
+                emotion_manager.load_embeddings_from_file(c.external_emotions_embs_file)
             emotion_manager.load_embeddings_from_file(emotions_ids_file)
         elif not c.use_external_emotions_embeddings:  # restor emotion manager with emotion ID file.
             emotion_manager.load_ids_from_file(emotions_ids_file)
 
-    elif c.use_external_emotions_embeddings and c.external_emotions_ids_file:
+    elif c.use_external_emotions_embeddings and c.external_emotions_embs_file:
         # new emotion manager with external emotion embeddings.
-        emotion_manager.load_embeddings_from_file(c.external_emotions_ids_file)
-    elif c.use_external_emotions_embeddings and not c.external_emotions_ids_file:
+        emotion_manager.load_embeddings_from_file(c.external_emotions_embs_file)
+    elif c.use_external_emotions_embeddings and not c.external_emotions_embs_file:
         raise "use_external_emotions_embeddings is True, so you need pass a external emotion embedding file."
     elif c.use_emotion_embedding:
         if "emotions_ids_file" in c and c.emotions_ids_file:
             emotion_manager.load_ids_from_file(c.emotions_ids_file)
         else: # enable get ids from eternal embedding files
-            emotion_manager.load_embeddings_from_file(c.external_emotions_ids_file)
+            emotion_manager.load_embeddings_from_file(c.external_emotions_embs_file)
 
     if emotion_manager.num_emotions > 0:
         print(
@@ -189,9 +191,8 @@ def get_emotion_manager(c: Coqpit, restore_path: str = None, out_path: str = Non
     if out_path:
         out_file_path = os.path.join(out_path, "emotions.json")
         print(f" > Saving `emotions.json` to {out_file_path}.")
-        if c.use_external_emotions_embeddings and c.external_emotions_ids_file:
+        if c.use_external_emotions_embeddings and c.external_emotions_embs_file:
             emotion_manager.save_embeddings_to_file(out_file_path)
         else:
             emotion_manager.save_ids_to_file(out_file_path)
     return emotion_manager
-
