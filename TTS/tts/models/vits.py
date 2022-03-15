@@ -454,10 +454,10 @@ class VitsArgs(Coqpit):
         use_speaker_encoder_as_loss (bool):
             Enable/Disable Speaker Consistency Loss (SCL). Defaults to False.
 
-        speaker_encoder_config_path (str):
+        encoder_config_path (str):
             Path to the file speaker encoder config file, to use for SCL. Defaults to "".
 
-        speaker_encoder_model_path (str):
+        encoder_model_path (str):
             Path to the file speaker encoder checkpoint file, to use for SCL. Defaults to "".
 
         condition_dp_on_speaker (bool):
@@ -545,8 +545,9 @@ class VitsArgs(Coqpit):
     num_languages: int = 0
     language_ids_file: str = None
     use_speaker_encoder_as_loss: bool = False
-    speaker_encoder_config_path: str = ""
-    speaker_encoder_model_path: str = ""
+    use_emotion_encoder_as_loss: bool = False
+    encoder_config_path: str = ""
+    encoder_model_path: str = ""
     condition_dp_on_speaker: bool = True
     freeze_encoder: bool = False
     freeze_DP: bool = False
@@ -602,6 +603,7 @@ class Vits(BaseTTS):
         self.init_multilingual(config)
         self.init_upsampling()
         self.init_emotion(config, emotion_manager)
+        self.init_consistency_loss()
 
         self.length_scale = self.args.length_scale
         self.noise_scale = self.args.noise_scale
@@ -707,15 +709,21 @@ class Vits(BaseTTS):
         if self.args.use_d_vector_file:
             self._init_d_vector()
 
-        # TODO: make this a function
-        if self.args.use_speaker_encoder_as_loss:
-            if self.speaker_manager.encoder is None and (
-                not self.args.speaker_encoder_model_path or not self.args.speaker_encoder_config_path
-            ):
-                raise RuntimeError(
-                    " [!] To use the speaker consistency loss (SCL) you need to specify speaker_encoder_model_path and speaker_encoder_config_path !!"
+    def init_consistency_loss(self):
+        if self.args.use_speaker_encoder_as_loss and self.args.use_emotion_encoder_as_loss:
+            raise RuntimeError(
+                    " [!] The use of speaker consistency loss (SCL) and emotion consistency loss (ECL) together is not supported, please disable one of those !!"
                 )
 
+        if self.args.use_speaker_encoder_as_loss:
+            if self.speaker_manager.encoder is None and (
+                not self.args.encoder_model_path or not self.args.encoder_config_path
+            ):
+                raise RuntimeError(
+                    " [!] To use the speaker consistency loss (SCL) you need to specify encoder_model_path and encoder_config_path !!"
+                )
+            # load encoder
+            self.speaker_manager.init_encoder(self.args.encoder_model_path, self.args.encoder_config_path)
             self.speaker_manager.encoder.eval()
             print(" > External Speaker Encoder Loaded !!")
 
@@ -723,15 +731,33 @@ class Vits(BaseTTS):
                 hasattr(self.speaker_manager.encoder, "audio_config")
                 and self.config.audio["sample_rate"] != self.speaker_manager.encoder.audio_config["sample_rate"]
             ):
+                # pylint: disable=W0101,W0105
                 self.audio_transform = torchaudio.transforms.Resample(
-                    orig_freq=self.audio_config["sample_rate"],
+                    orig_freq=self.config.audio["sample_rate"],
                     new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
                 )
-            # pylint: disable=W0101,W0105
-            self.audio_transform = torchaudio.transforms.Resample(
-                orig_freq=self.config.audio.sample_rate,
-                new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
-            )
+
+        elif self.args.use_emotion_encoder_as_loss:
+            if self.emotion_manager.encoder is None and (
+                not self.args.encoder_model_path or not self.args.encoder_config_path
+            ):
+                raise RuntimeError(
+                    " [!] To use the emotion consistency loss (ECL) you need to specify encoder_model_path and encoder_config_path !!"
+                )
+            # load encoder
+            self.emotion_manager.init_encoder(self.args.encoder_model_path, self.args.encoder_config_path)
+            self.emotion_manager.encoder.eval()
+            print(" > External Emotion Encoder Loaded !!")
+
+            if (
+                hasattr(self.emotion_manager.encoder, "audio_config")
+                and self.config.audio["sample_rate"] != self.emotion_manager.encoder.audio_config["sample_rate"]
+            ):
+                # pylint: disable=W0101,W0105
+                self.audio_transform = torchaudio.transforms.Resample(
+                    orig_freq=self.config.audio["sample_rate"],
+                    new_freq=self.emotion_manager.encoder.audio_config["sample_rate"],
+                )
 
     def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
@@ -990,8 +1016,8 @@ class Vits(BaseTTS):
             - m_q: :math:`[B, C, T_dec]`
             - logs_q: :math:`[B, C, T_dec]`
             - waveform_seg: :math:`[B, 1, spec_seg_size * hop_length]`
-            - gt_spk_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
-            - syn_spk_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
+            - gt_cons_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
+            - syn_cons_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
         """
         outputs = {}
         sid, g, lid, eid, eg = self._set_cond_input(aux_input)
@@ -1042,7 +1068,8 @@ class Vits(BaseTTS):
             pad_short=True,
         )
 
-        if self.args.use_speaker_encoder_as_loss and self.speaker_manager.encoder is not None:
+        if self.args.use_speaker_encoder_as_loss or self.args.use_emotion_encoder_as_loss:
+            encoder = self.speaker_manager.encoder if self.args.use_speaker_encoder_as_loss else self.emotion_manager.encoder
             # concate generated and GT waveforms
             wavs_batch = torch.cat((wav_seg, o), dim=0)
 
@@ -1051,12 +1078,15 @@ class Vits(BaseTTS):
             if self.audio_transform is not None:
                 wavs_batch = self.audio_transform(wavs_batch)
 
-            pred_embs = self.speaker_manager.encoder.forward(wavs_batch, l2_norm=True)
+            if next(encoder.parameters()).device != wavs_batch.device:
+                encoder = encoder.to(wavs_batch.device)
+
+            pred_embs = encoder.forward(wavs_batch, l2_norm=True)
 
             # split generated and GT speaker embeddings
-            gt_spk_emb, syn_spk_emb = torch.chunk(pred_embs, 2, dim=0)
+            gt_cons_emb, syn_cons_emb = torch.chunk(pred_embs, 2, dim=0)
         else:
-            gt_spk_emb, syn_spk_emb = None, None
+            gt_cons_emb, syn_cons_emb = None, None
 
         outputs.update(
             {
@@ -1069,8 +1099,8 @@ class Vits(BaseTTS):
                 "m_q": m_q,
                 "logs_q": logs_q,
                 "waveform_seg": wav_seg,
-                "gt_spk_emb": gt_spk_emb,
-                "syn_spk_emb": syn_spk_emb,
+                "gt_cons_emb": gt_cons_emb,
+                "syn_cons_emb": syn_cons_emb,
                 "slice_ids": slice_ids,
             }
         )
@@ -1327,9 +1357,9 @@ class Vits(BaseTTS):
                     feats_disc_fake=feats_disc_fake,
                     feats_disc_real=feats_disc_real,
                     loss_duration=self.model_outputs_cache["loss_duration"],
-                    use_speaker_encoder_as_loss=self.args.use_speaker_encoder_as_loss,
-                    gt_spk_emb=self.model_outputs_cache["gt_spk_emb"],
-                    syn_spk_emb=self.model_outputs_cache["syn_spk_emb"],
+                    use_encoder_consistency_loss=self.args.use_speaker_encoder_as_loss or self.args.use_emotion_encoder_as_loss,
+                    gt_cons_emb=self.model_outputs_cache["gt_cons_emb"],
+                    syn_cons_emb=self.model_outputs_cache["syn_cons_emb"],
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1443,7 +1473,7 @@ class Vits(BaseTTS):
             "d_vector": d_vector,
             "language_id": language_id,
             "language_name": language_name,
-            "emotion_embedding": emotion_embedding, 
+            "emotion_embedding": emotion_embedding,
             "emotion_ids": emotion_id
         }
 
@@ -1751,9 +1781,9 @@ class Vits(BaseTTS):
         language_manager = LanguageManager.init_from_config(config)
         emotion_manager = EmotionManager.init_from_config(config)
 
-        if config.model_args.speaker_encoder_model_path:
+        if config.model_args.encoder_model_path:
             speaker_manager.init_encoder(
-                config.model_args.speaker_encoder_model_path, config.model_args.speaker_encoder_config_path
+                config.model_args.encoder_model_path, config.model_args.encoder_config_path
             )
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager, emotion_manager=emotion_manager)
 
