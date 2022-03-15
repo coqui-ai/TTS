@@ -602,7 +602,7 @@ class Vits(BaseTTS):
         self.init_multispeaker(config)
         self.init_multilingual(config)
         self.init_upsampling()
-        self.init_emotion(config, emotion_manager)
+        self.init_emotion(emotion_manager)
         self.init_consistency_loss()
 
         self.length_scale = self.args.length_scale
@@ -822,7 +822,7 @@ class Vits(BaseTTS):
                     raise RuntimeError(" [!] The weights of Text Encoder was not reinit check it !")
             print(" > Text Encoder was reinit.")
 
-    def init_emotion(self, config: Coqpit, emotion_manager: EmotionManager):
+    def init_emotion(self, emotion_manager: EmotionManager):
         # pylint: disable=attribute-defined-outside-init
         """Initialize emotion modules of a model. A model can be trained either with a emotion embedding layer
         or with external `embeddings` computed from a emotion encoder model.
@@ -830,7 +830,6 @@ class Vits(BaseTTS):
         You must provide a `emotion_manager` at initialization to set up the emotion modules.
 
         Args:
-            config (Coqpit): Model configuration.
             emotion_manager (Coqpit): Emotion Manager.
         """
         self.emotion_manager = emotion_manager
@@ -1031,7 +1030,7 @@ class Vits(BaseTTS):
 
         # concat the emotion embedding and speaker embedding
         if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
-            g = torch.cat([g, eg], dim=1) # [b, h1+h1, 1]
+            g = torch.cat([g, eg], dim=1) # [b, h1+h2, 1]
 
         # language embedding
         lang_emb = None
@@ -1146,7 +1145,7 @@ class Vits(BaseTTS):
             eg = self.emb_emotion(eid).unsqueeze(-1)  # [b, h, 1]
 
         # concat the emotion embedding and speaker embedding
-        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
+        if eg is not None and g is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
             g = torch.cat([g, eg], dim=1) # [b, h1+h1, 1]
 
         # language embedding
