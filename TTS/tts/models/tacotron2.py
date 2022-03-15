@@ -15,7 +15,7 @@ from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.capacitron_optimizer import CapacitronOptimizer
-from TTS.utils.trainer_utils import get_scheduler
+from TTS.utils.trainer_utils import get_optimizer, get_scheduler
 
 
 class Tacotron2(BaseTacotron):
@@ -361,10 +361,11 @@ class Tacotron2(BaseTacotron):
     def get_optimizer(self) -> List:
         if self.use_capacitron_vae:
             return CapacitronOptimizer(self.config, self.named_parameters())
-        return self.config.optimizer
+        return get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, self)
 
     def get_scheduler(self, optimizer: object):
-        return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer.primary_optimizer)
+        opt = optimizer.primary_optimizer if self.use_capacitron_vae else self.get_optimizer()
+        return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, opt)
 
     def _create_logs(self, batch, outputs, ap):
         """Create dashboard log information."""
