@@ -936,7 +936,10 @@ class Vits(BaseTTS):
 
         # concat the emotion embedding and speaker embedding
         if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
-            g = torch.cat([g, eg], dim=1) # [b, h1+h2, 1]
+            if g is None:
+                g = eg
+            else:
+                g = torch.cat([g, eg], dim=1) # [b, h1+h2, 1]
 
         # language embedding
         lang_emb = None
@@ -1046,8 +1049,11 @@ class Vits(BaseTTS):
             eg = self.emb_emotion(eid).unsqueeze(-1)  # [b, h, 1]
 
         # concat the emotion embedding and speaker embedding
-        if eg is not None and g is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
-            g = torch.cat([g, eg], dim=1) # [b, h1+h1, 1]
+        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
+            if g is None:
+                g = eg
+            else:
+                g = torch.cat([g, eg], dim=1) # [b, h1+h2, 1]
 
         # language embedding
         lang_emb = None
@@ -1614,10 +1620,15 @@ class Vits(BaseTTS):
         language_manager = LanguageManager.init_from_config(config)
         emotion_manager = EmotionManager.init_from_config(config)
 
-        if config.model_args.encoder_model_path:
+        if config.model_args.encoder_model_path and speaker_manager is not None:
             speaker_manager.init_encoder(
                 config.model_args.encoder_model_path, config.model_args.encoder_config_path
             )
+        elif config.model_args.encoder_model_path and emotion_manager is not None:
+            emotion_manager.init_encoder(
+                config.model_args.encoder_model_path, config.model_args.encoder_config_path
+            )
+
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager, emotion_manager=emotion_manager)
 
 
