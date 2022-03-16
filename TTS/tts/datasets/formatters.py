@@ -246,7 +246,7 @@ def libri_tts(root_path, meta_files=None, ignored_speakers=None):
                         continue
                 items.append({"text": text, "audio_file": wav_file, "speaker_name": f"LTTS_{speaker_name}"})
     for item in items:
-        assert os.path.exists(item[1]), f" [!] wav files don't exist - {item[1]}"
+        assert os.path.exists(item["audio_file"]), f" [!] wav files don't exist - {item['audio_file']}"
     return items
 
 
