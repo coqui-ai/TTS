@@ -1,14 +1,13 @@
 import functools
-
 import unittest
 
 import torch
 
 from TTS.config.shared_configs import BaseDatasetConfig
+from TTS.encoder.utils.samplers import PerfectBatchSampler
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.languages import get_language_balancer_weights
 from TTS.tts.utils.speakers import get_speaker_balancer_weights
-from TTS.encoder.utils.samplers import PerfectBatchSampler
 
 # Fixing random state to avoid random fails
 torch.manual_seed(0)
@@ -60,7 +59,9 @@ class TestSamplers(unittest.TestCase):
         assert not is_balanced(en, pt), "Random sampler is supposed to be unbalanced"
 
     def test_language_weighted_random_sampler(self):  # pylint: disable=no-self-use
-        weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(get_language_balancer_weights(train_samples), len(train_samples))
+        weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(
+            get_language_balancer_weights(train_samples), len(train_samples)
+        )
         ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
         en, pt = 0, 0
         for index in ids:
@@ -73,7 +74,9 @@ class TestSamplers(unittest.TestCase):
 
     def test_speaker_weighted_random_sampler(self):  # pylint: disable=no-self-use
 
-        weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(get_speaker_balancer_weights(train_samples), len(train_samples))
+        weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(
+            get_speaker_balancer_weights(train_samples), len(train_samples)
+        )
         ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
         spk1, spk2 = 0, 0
         for index in ids:
@@ -92,11 +95,12 @@ class TestSamplers(unittest.TestCase):
         sampler = PerfectBatchSampler(
             train_samples,
             classes,
-            batch_size=2 * 3, # total batch size
+            batch_size=2 * 3,  # total batch size
             num_classes_in_batch=2,
             label_key="speaker_name",
             shuffle=False,
-            drop_last=True)
+            drop_last=True,
+        )
         batchs = functools.reduce(lambda a, b: a + b, [list(sampler) for i in range(100)])
         for batch in batchs:
             spk1, spk2 = 0, 0
@@ -116,11 +120,12 @@ class TestSamplers(unittest.TestCase):
         sampler = PerfectBatchSampler(
             train_samples,
             classes,
-            batch_size=2 * 3, # total batch size
+            batch_size=2 * 3,  # total batch size
             num_classes_in_batch=2,
             label_key="speaker_name",
             shuffle=True,
-            drop_last=False)
+            drop_last=False,
+        )
         batchs = functools.reduce(lambda a, b: a + b, [list(sampler) for i in range(100)])
         for batch in batchs:
             spk1, spk2 = 0, 0

@@ -206,6 +206,7 @@ def synthesis(
     }
     return return_dict
 
+
 def transfer_voice(
     model,
     CONFIG,
@@ -269,12 +270,7 @@ def transfer_voice(
         _func = model.module.inference_voice_conversion
     else:
         _func = model.inference_voice_conversion
-    model_outputs = _func(
-        reference_wav,
-        speaker_id,
-        d_vector,
-        reference_speaker_id,
-        reference_d_vector)
+    model_outputs = _func(reference_wav, speaker_id, d_vector, reference_speaker_id, reference_d_vector)
 
     # convert outputs to numpy
     # plot results
