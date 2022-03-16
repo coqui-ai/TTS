@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.managers import EmbeddingManager
 
 parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
@@ -48,7 +48,7 @@ if meta_data_eval is None:
 else:
     wav_files = meta_data_train + meta_data_eval
 
-encoder_manager = SpeakerManager(
+encoder_manager = EmbeddingManager(
     encoder_model_path=args.model_path,
     encoder_config_path=args.config_path,
     d_vectors_file_path=args.old_file,
