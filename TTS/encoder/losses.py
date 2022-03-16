@@ -195,6 +195,7 @@ class SoftmaxLoss(nn.Module):
         class_id = torch.argmax(activations)
         return class_id
 
+
 class SoftmaxAngleProtoLoss(nn.Module):
     """
     Implementation of the Softmax AnglePrototypical loss as defined in https://arxiv.org/abs/2009.14153

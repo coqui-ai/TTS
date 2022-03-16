@@ -994,8 +994,11 @@ class Vits(BaseTTS):
 
         outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p}
         return outputs
+
     @torch.no_grad()
-    def inference_voice_conversion(self, reference_wav, speaker_id=None, d_vector=None, reference_speaker_id=None, reference_d_vector=None):
+    def inference_voice_conversion(
+        self, reference_wav, speaker_id=None, d_vector=None, reference_speaker_id=None, reference_d_vector=None
+    ):
         """Inference for voice conversion
 
         Args:
@@ -1006,7 +1009,13 @@ class Vits(BaseTTS):
             reference_d_vector (Tensor): d_vector embedding of the reference_wav speaker. Tensor of shape `[B, C]`
         """
         # compute spectrograms
-        y = wav_to_spec(reference_wav, self.config.audio.fft_size, self.config.audio.hop_length, self.config.audio.win_length, center=False).transpose(1, 2)
+        y = wav_to_spec(
+            reference_wav,
+            self.config.audio.fft_size,
+            self.config.audio.hop_length,
+            self.config.audio.win_length,
+            center=False,
+        ).transpose(1, 2)
         y_lengths = torch.tensor([y.size(-1)]).to(y.device)
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector

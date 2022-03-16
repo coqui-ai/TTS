@@ -1,17 +1,18 @@
 import argparse
-import torch
 from argparse import RawTextHelpFormatter
 
+import torch
 from tqdm import tqdm
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.speakers import SpeakerManager
 
+
 def compute_encoder_accuracy(dataset_items, encoder_manager):
 
     class_name_key = encoder_manager.speaker_encoder_config.class_name_key
-    map_classid_to_classname = getattr(encoder_manager.speaker_encoder_config, 'map_classid_to_classname', None)
+    map_classid_to_classname = getattr(encoder_manager.speaker_encoder_config, "map_classid_to_classname", None)
 
     class_acc_dict = {}
 
@@ -43,11 +44,11 @@ def compute_encoder_accuracy(dataset_items, encoder_manager):
 
     acc_avg = 0
     for key, values in class_acc_dict.items():
-        acc = sum(values)/len(values)
+        acc = sum(values) / len(values)
         print("Class", key, "Accuracy:", acc)
         acc_avg += acc
 
-    print("Average Accuracy:", acc_avg/len(class_acc_dict))
+    print("Average Accuracy:", acc_avg / len(class_acc_dict))
 
 
 if __name__ == "__main__":

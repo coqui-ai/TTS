@@ -35,7 +35,7 @@ def main():
     command += unargs
     command.append("")
 
-    # run processes
+    # run a processes per GPU
     processes = []
     for i in range(num_gpus):
         my_env = os.environ.copy()

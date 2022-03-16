@@ -33,10 +33,7 @@ class BaseEncoderConfig(BaseTrainingConfig):
     grad_clip: float = 3.0
     lr: float = 0.0001
     optimizer: str = "radam"
-    optimizer_params: Dict = field(default_factory=lambda: {
-        "betas": [0.9, 0.999],
-        "weight_decay": 0
-    })
+    optimizer_params: Dict = field(default_factory=lambda: {"betas": [0.9, 0.999], "weight_decay": 0})
     lr_decay: bool = False
     warmup_steps: int = 4000
 
