@@ -12,16 +12,9 @@ GRUUT_LANGS = list(Gruut.supported_languages())
 
 
 # Dict setting default phonemizers for each language
-DEF_LANG_TO_PHONEMIZER = {
-    "ja-jp": JA_JP_Phonemizer.name(),
-    "zh-cn": ZH_CN_Phonemizer.name(),
-}
-
-
 # Add Gruut languages
 _ = [Gruut.name()] * len(GRUUT_LANGS)
-_new_dict = dict(list(zip(GRUUT_LANGS, _)))
-DEF_LANG_TO_PHONEMIZER.update(_new_dict)
+DEF_LANG_TO_PHONEMIZER = dict(list(zip(GRUUT_LANGS, _)))
 
 
 # Add ESpeak languages and override any existing ones
@@ -29,8 +22,10 @@ _ = [ESpeak.name()] * len(ESPEAK_LANGS)
 _new_dict = dict(list(zip(list(ESPEAK_LANGS), _)))
 DEF_LANG_TO_PHONEMIZER.update(_new_dict)
 
+# Force default for some languages
 DEF_LANG_TO_PHONEMIZER["en"] = DEF_LANG_TO_PHONEMIZER["en-us"]
-
+DEF_LANG_TO_PHONEMIZER["ja-jp"] = JA_JP_Phonemizer.name()
+DEF_LANG_TO_PHONEMIZER["zh-cn"] = ZH_CN_Phonemizer.name()
 
 def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
     """Initiate a phonemizer by name
