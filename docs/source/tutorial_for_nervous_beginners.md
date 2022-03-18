@@ -50,7 +50,7 @@ A breakdown of a simple script that trains a GlowTTS model on the LJspeech datas
     - Fine-tune a model.
 
         ```bash
-        CUDA_VISIBLE_DEVICES=0 python train.py --restore_path path/to/model/checkpoint.pth.tar
+        CUDA_VISIBLE_DEVICES=0 python train.py --restore_path path/to/model/checkpoint.pth
         ```
 
     - Run multi-gpu training.

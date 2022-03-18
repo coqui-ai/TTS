@@ -122,7 +122,7 @@
 
     ```bash
     $ tts --text "Text for TTS" \
-          --model_path path/to/checkpoint_x.pth.tar \
+          --model_path path/to/checkpoint_x.pth \
           --config_path path/to/config.json \
           --out_path folder/to/save/output.wav
     ```

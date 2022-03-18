@@ -20,7 +20,7 @@ class SynthesizerTest(unittest.TestCase):
     def test_in_out(self):
         self._create_random_model()
         tts_root_path = get_tests_output_path()
-        tts_checkpoint = os.path.join(tts_root_path, "checkpoint_10.pth.tar")
+        tts_checkpoint = os.path.join(tts_root_path, "checkpoint_10.pth")
         tts_config = os.path.join(tts_root_path, "dummy_model_config.json")
         synthesizer = Synthesizer(tts_checkpoint, tts_config, None, None)
         synthesizer.tts("Better this test works!!")
