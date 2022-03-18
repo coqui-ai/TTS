@@ -114,7 +114,7 @@ class ModelManager(object):
             e.g. 'tts_model/en/ljspeech/tacotron'
 
         Every model must have the following files:
-            - *.pth.tar : pytorch model checkpoint file.
+            - *.pth : pytorch model checkpoint file.
             - config.json : model config file.
             - scale_stats.npy (if exist): scale values for preprocessing.
 
@@ -127,7 +127,7 @@ class ModelManager(object):
         model_item = self.models_dict[model_type][lang][dataset][model]
         # set the model specific output path
         output_path = os.path.join(self.output_prefix, model_full_name)
-        output_model_path = os.path.join(output_path, "model_file.pth.tar")
+        output_model_path = os.path.join(output_path, "model_file.pth")
         output_config_path = os.path.join(output_path, "config.json")
 
         if os.path.exists(output_path):
@@ -152,7 +152,7 @@ class ModelManager(object):
         output_d_vector_file_path = os.path.join(output_path, "speakers.json")
         output_speaker_ids_file_path = os.path.join(output_path, "speaker_ids.json")
         speaker_encoder_config_path = os.path.join(output_path, "config_se.json")
-        speaker_encoder_model_path = os.path.join(output_path, "model_se.pth.tar")
+        speaker_encoder_model_path = os.path.join(output_path, "model_se.pth")
 
         # update the scale_path.npy file path in the model config.json
         self._update_path("audio.stats_path", output_stats_path, config_path)

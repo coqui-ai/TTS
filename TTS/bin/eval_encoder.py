@@ -56,7 +56,7 @@ if __name__ == "__main__":
         description="""Compute the accuracy of the encoder.\n\n"""
         """
         Example runs:
-        python TTS/bin/eval_encoder.py emotion_encoder_model.pth.tar emotion_encoder_config.json  dataset_config.json
+        python TTS/bin/eval_encoder.py emotion_encoder_model.pth emotion_encoder_config.json  dataset_config.json
         """,
         formatter_class=RawTextHelpFormatter,
     )
