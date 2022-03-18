@@ -33,7 +33,7 @@
     If you like to run a multi-gpu training using DDP back-end,
 
     ```bash
-    $ CUDA_VISIBLE_DEVICES="0, 1, 2" python TTS/bin/distribute.py --script <path_to_your_script>/train_glowtts.py
+    $ CUDA_VISIBLE_DEVICES="0, 1, 2" python -m trainer.distribute --script <path_to_your_script>/train_glowtts.py
     ```
 
     The example above runs a multi-gpu training using GPUs `0, 1, 2`.

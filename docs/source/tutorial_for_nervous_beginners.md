@@ -56,7 +56,7 @@ A breakdown of a simple script that trains a GlowTTS model on the LJspeech datas
     - Run multi-gpu training.
 
         ```bash
-        CUDA_VISIBLE_DEVICES=0,1,2 python TTS/bin/distribute.py --script train.py
+        CUDA_VISIBLE_DEVICES=0,1,2 python -m trainer.distribute --script train.py
         ```
 
 ### CLI Way
