@@ -1,9 +1,7 @@
-from importlib.util import spec_from_file_location
 import torch
 import torch.nn as nn
 import numpy as np
 import math
-from math import sqrt
 from functools import partial
 from inspect import isfunction
 import torch.nn.functional as F
@@ -14,25 +12,29 @@ class DiffStyleEncoder(nn.Module):
         diff_schedule_type = 'cosine', 
         diff_K_step = 51, 
         diff_loss_type = 'l1', 
+        diff_use_diff_output = True,
         ref_online = True, 
         ref_num_mel = 80, 
         ref_style_emb_dim = 64, 
-        den_in_dims=1, 
-        den_num_residual_layers=20, 
-        den_residual_channels=256, 
-        den_dilation_cycle_length=1) -> None:
+        den_step_dim = 64,
+        den_in_out_ch=1, 
+        den_num_heads=1, 
+        den_hidden_channels=128, 
+        den_num_blocks=5,
+        den_dropout=0.1) -> None:
         super().__init__()
         to_torch = partial(torch.tensor, dtype=torch.float32)
 
         # Reference Encoder
         self.ref_encoder = ReferenceEncoder(ref_num_mel, ref_style_emb_dim)
         self.online = ref_online    # Flag for wheher to train or not the Ref Encoder together
-
+        
         # Diffusion Globals
-        self.denoiser = DiffNet(den_in_dims, den_num_residual_layers, den_residual_channels, den_dilation_cycle_length)
+        self.denoiser = DiffNet(ref_style_emb_dim, den_step_dim, den_in_out_ch, den_num_heads, den_hidden_channels, den_num_blocks, den_dropout)
         self.num_timesteps = int(diff_num_timesteps)
         self.K_step = diff_K_step
         self.loss_type = diff_loss_type
+        self.use_diff_out = diff_use_diff_output
 
         # Betas
         if diff_schedule_type == 'linear':
@@ -135,43 +137,61 @@ class DiffStyleEncoder(nn.Module):
             raise NotImplementedError()
         return loss
 
-    def forward(self, mel_in, infer, reconstruct_from):
-        ret = {}
-        b, *_, device = *mel_in.shape, mel_in.device
-
-        # Get Style Embedding
-        if self.online:
-            ret['latent'] = self.ref_encoder(mel_in).unsqueeze(1)
-        else:
-            with torch.no_grad():
-                ret['latent'] = self.ref_encoder(mel_in).unsqueeze(1)
-
-        # Training
-        if not infer:
-            t = torch.randint(0, self.num_timesteps, (b,), device=device).long() # Sample a batch of t from U[0,T]
-            x_latent = ret['latent']
-            ret['diff_loss'] = self.p_losses(x_latent, t)
-        
+    def forward(self, mel_in, infer, infer_from):
+        """
         # Inference
         #   1) Diffuse Ref.Style for :start_from: steps and reconstruct
         #   2) Generate new style reconstructing from a Gaussian 
+        """
+        ret = {}
+        b, *_, device = *mel_in.shape, mel_in.device
+
+        # TRAINING
+        if not infer:
+
+            # Ref-Mel-Spec -> Style Embedding
+            if self.online:
+                z = self.ref_encoder(mel_in).unsqueeze(1)
+            else:
+                with torch.no_grad():
+                    z = self.ref_encoder(mel_in).unsqueeze(1)
+            
+            # Compute Loss
+            t = torch.randint(0, self.num_timesteps, (b,), device=device).long() # Sample a batch of t from U[0,T]
+            ret['diff_loss'] = self.p_losses(z, t)
+
+            # Iterate the Denoiser from t to 0 for reconstruction
+            if self.use_diff_out:
+                x = z
+                for i in range(0,b):
+                    x_start = x[i].unsqueeze(0)
+                    for j in reversed(range(0, t[i])):
+                        x_start = self.p_sample(x_start, torch.full((1,), j, device=device, dtype=torch.long))
+                    x[i] = x_start
+                ret['style_out'] = x
+
+        # INFERENCE
         else:
-            x_latent = ret['latent']
-            if isinstance(reconstruct_from, int):
-                t = reconstruct_from
-                x = self.q_sample(x_start=x_latent, t=torch.tensor([t - 1], device=device).long())
-            elif isinstance(reconstruct_from, str) and reconstruct_from == 'gaussian':
+
+            # Ref-Mel-Spec -> Style Embedding
+            with torch.no_grad():
+                z = self.ref_encoder(mel_in).unsqueeze(1)
+
+            # Diffuse z on the noise chain -> x
+            if isinstance(infer_from, int):
+                t = infer_from
+                x = self.q_sample(x_start=z, t=torch.tensor([t - 1], device=device).long())
+            elif isinstance(infer_from, str) and infer_from == 'gaussian':
                 t = self.num_timesteps
-                x = torch.randn(x_latent.shape, device=device)
+                x = torch.randn(z.shape, device=device)
             else:
                 raise NotImplementedError
-    
+
             # Iterate the Denoiser for reconstruction
             for i in reversed(range(0, t)):
                 x = self.p_sample(x, torch.full((b,), i, device=device, dtype=torch.long))
             ret['style_out'] = x
         return ret
-
 
 ###########################
 #### Reference Encoder ####
@@ -232,116 +252,100 @@ class ReferenceEncoder(nn.Module):
             height = (height - kernel_size + 2 * pad) // stride + 1
         return height
 
+
 ##################
 #### Denoiser ####
 ##################
 
 class DiffNet(nn.Module):
-    def __init__(self, in_dims, num_residual_layers, residual_channels, dilation_cycle_length):
+    def __init__(self, style_emb_dim, step_emb_dim, in_out_channels, num_heads, hidden_channels_ffn, num_layers, dropout_p) -> None:
         super().__init__()
-        # Params
-        self.num_residual_layers = num_residual_layers
-        self.residual_channels = residual_channels
-        self.dilation_cycle_length = dilation_cycle_length
-
-        # Input Conv1x1
-        self.input_projection = Conv1d(in_dims, self.residual_channels, 1)
-        
-        # Sinusoidal Step Embedding and Projection
-        self.diffusion_embedding = SinusoidalPosEmb(self.residual_channels)
-        dim = self.residual_channels
+        dim = step_emb_dim
+        self.diffusion_embedding = SinusoidalPosEmb(dim)
         self.mlp = nn.Sequential(
             nn.Linear(dim, dim * 4),
             Mish(),
-            nn.Linear(dim * 4, dim)
-        )
-        
-        # Residual Layers
-        self.residual_layers = nn.ModuleList([
-            ResidualBlock(self.residual_channels, 2 ** (i % self.dilation_cycle_length))
-            for i in range(self.num_residual_layers)
-        ])
-        
-        # Conv 1x1
-        self.skip_projection = Conv1d(self.residual_channels, self.residual_channels, 1)
-        
-        # Conv 1x1
-        self.output_projection = Conv1d(self.residual_channels, in_dims, 1)
-        nn.init.zeros_(self.output_projection.weight)
+            nn.Linear(dim * 4, dim))
+        self.project_input = nn.Linear(style_emb_dim + step_emb_dim, style_emb_dim)
+        self.denoiser = FFTransformerBlock(in_out_channels, num_heads, hidden_channels_ffn, num_layers, dropout_p) 
 
-    def forward(self, specs, diffusion_step):
+    def forward(self, z, diffusion_step, mask=None, g=None):
         """
-        :param spec: [B, M, T]
+        :param z: [B, 1, STYLE_DIM]
         :param diffusion_step: [B]
-        :return:
+        :return: [B, 1, STYLE_DIM]
         """
-        # Conv1x1 + ReLU
-        x = self.input_projection(specs)  #  [B, residual_channel, T]
-        x = F.relu(x)
+        t = self.diffusion_embedding(diffusion_step.unsqueeze(1))
+        t = self.mlp(t)                     # [B, 1, STYLE_DIM]
+        z_t = torch.cat([z, t], dim = -1)   # [B, 1, 2*STYLE_DIM] 
+        z_in = self.project_input(z_t)      # [B, 1, STYLE_DIM]
+        z = self.denoiser(z_in, mask, g)    
+        return z
 
-        # Step Embedding
-        diffusion_step = self.diffusion_embedding(diffusion_step)
-        diffusion_step = self.mlp(diffusion_step) # [B, 1, residual_channel]
+# From Coqui
+class FFTransformerBlock(nn.Module):
+    def __init__(self, in_out_channels, num_heads, hidden_channels_ffn, num_layers, dropout_p):
+        super().__init__()
+        self.fft_layers = nn.ModuleList(
+            [
+                FFTransformer(
+                    in_out_channels=in_out_channels,
+                    num_heads=num_heads,
+                    hidden_channels_ffn=hidden_channels_ffn,
+                    dropout_p=dropout_p,
+                )
+                for _ in range(num_layers)
+            ]
+        )
 
-        # Residual Pass
-        skip = []
-        for layer_id, layer in enumerate(self.residual_layers):
-            x, skip_connection = layer(x, diffusion_step)
-            skip.append(skip_connection)
-
-        # Sum Skips
-        x = torch.sum(torch.stack(skip), dim=0) / sqrt(len(self.residual_layers))
-        
-        # Reultant Skip Project and ReLU
-        x = self.skip_projection(x)
-        x = F.relu(x)
-        
-        # Project to Output
-        x = self.output_projection(x)  # [B, M, T]
+    def forward(self, x, mask=None, g=None):  # pylint: disable=unused-argument
+        """
+        TODO: handle multi-speaker
+        Shapes:
+            - x: :math:`[B, C, T]`
+            - mask:  :math:`[B, 1, T] or [B, T]`
+        """
+        if mask is not None and mask.ndim == 3:
+            mask = mask.squeeze(1)
+            # mask is negated, torch uses 1s and 0s reversely.
+            mask = ~mask.bool()
+        alignments = []
+        for layer in self.fft_layers:
+            x, align = layer(x, src_key_padding_mask=mask)
+            alignments.append(align.unsqueeze(1))
+        alignments = torch.cat(alignments, 1)
         return x
 
-class ResidualBlock(nn.Module):
-    def __init__(self, residual_channels, dilation):
+# From Coqui
+class FFTransformer(nn.Module):
+    def __init__(self, in_out_channels, num_heads, hidden_channels_ffn=1024, kernel_size_fft=3, dropout_p=0.1):
         super().__init__()
+        self.self_attn = nn.MultiheadAttention(in_out_channels, num_heads, dropout=dropout_p)
 
-        # Input Projection
-        self.diffusion_projection = nn.Linear(residual_channels, residual_channels)
-        
-        # Main Dilated 3x3 Conv
-        self.dilated_conv = Conv1d(residual_channels, 2 * residual_channels, 3, padding=dilation, dilation=dilation)
-        
-        # Output Projection
-        self.output_projection = Conv1d(residual_channels, 2 * residual_channels, 1)
+        padding = (kernel_size_fft - 1) // 2
+        self.conv1 = nn.Conv1d(in_out_channels, hidden_channels_ffn, kernel_size=kernel_size_fft, padding=padding)
+        self.conv2 = nn.Conv1d(hidden_channels_ffn, in_out_channels, kernel_size=kernel_size_fft, padding=padding)
 
-    def forward(self, x, diffusion_step):
-        # Project Step Embedding
-        diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(-1) # [B, 1, residual_channels, 1]
+        self.norm1 = nn.LayerNorm(in_out_channels)
+        self.norm2 = nn.LayerNorm(in_out_channels)
 
-        # Sum Input with Step Embedding
-        y = x + diffusion_step
-        
-        # Perform 3x3 Dilated Conv
-        y = self.dilated_conv(y)
+        self.dropout1 = nn.Dropout(dropout_p)
+        self.dropout2 = nn.Dropout(dropout_p)
 
-        # Split
-        gate, filter = torch.chunk(y, 2, dim=1)
-
-        # Dot Product
-        y = torch.sigmoid(gate) * torch.tanh(filter)
-
-        # Project Output
-        y = self.output_projection(y)
-        
-        # Split
-        residual, skip = torch.chunk(y, 2, dim=1)
-
-        # Residual Out
-        residual_out = (x + residual) / sqrt(2.0)
-        return residual_out, skip
-
-class Mish(nn.Module):
-    def forward(self, x):
-        return x * torch.tanh(F.softplus(x))
+    def forward(self, src, src_mask=None, src_key_padding_mask=None):
+        src = src.permute(2, 0, 1)
+        src2, enc_align = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
+        src = src + self.dropout1(src2)
+        src = self.norm1(src + src2)
+        # T x B x D -> B x D x T
+        src = src.permute(1, 2, 0)
+        src2 = self.conv2(F.relu(self.conv1(src)))
+        src2 = self.dropout2(src2)
+        src = src + src2
+        src = src.transpose(1, 2)
+        src = self.norm2(src)
+        src = src.transpose(1, 2)
+        return src, enc_align
 
 class SinusoidalPosEmb(nn.Module):
     def __init__(self, dim):
@@ -357,15 +361,9 @@ class SinusoidalPosEmb(nn.Module):
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
         return emb
 
-def Conv1d(*args, **kwargs):
-    layer = nn.Conv1d(*args, **kwargs)
-    nn.init.kaiming_normal_(layer.weight)
-    return layer
-
-@torch.jit.script
-def silu(x):
-    return x * torch.sigmoid(x)
-
+class Mish(nn.Module):
+    def forward(self, x):
+        return x * torch.tanh(F.softplus(x))
 
 ###########################
 #### Variance Schedule ####
@@ -424,25 +422,3 @@ def default(val, d):
     if exists(val):
         return val
     return d() if isfunction(d) else d
-
-def main():
-
-    """
-    #Variance Schedule Test
-    import matplotlib.pyplot as plt
-    timesteps = 1000
-    plt.plot(np.arange(0, timesteps, 1)/timesteps, np.cumprod(1-cosine_beta_schedule(timesteps)))
-    plt.savefig('fig.png')
-    plt.plot(np.arange(0, timesteps, 1)/timesteps, np.cumprod(1-linear_beta_schedule(timesteps)))
-    plt.savefig('fig2.png')
-    
-    # Foward Test
-    ref_mels = torch.randn((32,512,80))
-    a = DiffStyleEncoder()
-    print(a.forward(ref_mels, infer = False, reconstruct_from = None))
-    print(a.forward(ref_mels, infer = True, reconstruct_from = a.K_step))
-    """
-
-if __name__ == '__main__':
-    main()
-
