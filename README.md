@@ -15,3 +15,4 @@ We are an expressive TTS research group located at Unicamp and CPQD (Brazil).
 
 ### Style Encoders
 - VAE-based
+- Diff-based
