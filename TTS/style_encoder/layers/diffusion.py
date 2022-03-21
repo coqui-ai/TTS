@@ -9,8 +9,7 @@ import torch.nn.functional as F
 class DiffStyleEncoder(nn.Module):
     def __init__(self, 
         diff_num_timesteps, 
-        diff_schedule_type, 
-        diff_K_step, 
+        diff_schedule_type,
         diff_loss_type, 
         diff_use_diff_output,
         ref_online, 
@@ -32,7 +31,6 @@ class DiffStyleEncoder(nn.Module):
         # Diffusion Globals
         self.denoiser = DiffNet(ref_style_emb_dim, den_step_dim, den_in_out_ch, den_num_heads, den_hidden_channels, den_num_blocks, den_dropout)
         self.num_timesteps = int(diff_num_timesteps)
-        self.K_step = diff_K_step
         self.loss_type = diff_loss_type
         self.use_diff_out = diff_use_diff_output
 
@@ -169,15 +167,14 @@ class DiffStyleEncoder(nn.Module):
         z = self.ref_encoder(mel_in).unsqueeze(1)
 
         # Diffuse z on the noise chain -> x
+        assert infer_from <= self.num_timesteps, "Input t for reconstrution greater than chain length"
+        
         if isinstance(infer_from, int):
             t = infer_from
             x = self.q_sample(x_start=z, t=torch.tensor([t - 1], device=device).long())
         elif isinstance(infer_from, str) and infer_from == 'gaussian':
             t = self.num_timesteps
-            x = torch.randn(z.shape, device=device)
-        elif isinstance(infer_from, None):
-            t = self.K_step
-            x = self.q_sample(x_start=z, t=torch.tensor([t - 1], device=device).long())    
+            x = torch.randn(z.shape, device=device)   
         else:
             raise NotImplementedError
 

@@ -35,9 +35,8 @@ class StyleEncoderConfig(Coqpit):
     vae_latent_dim: int = 256
 
     # Diffusion-specific Configs
-    diff_num_timesteps: int = 1000 
+    diff_num_timesteps: int = 25 
     diff_schedule_type: str = 'cosine'
-    diff_K_step: int =  51 
     diff_loss_type: str = 'l1' 
     diff_use_diff_output: bool = False
     diff_ref_online: bool = True 

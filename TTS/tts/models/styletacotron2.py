@@ -207,7 +207,8 @@ class StyleTacotron2(BaseTacotron):
         # B x style_embed_dim
         encoder_outputs = self.style_encoder_layer.inference(encoder_outputs, 
                                                             style_mel = aux_input["style_mel"],
-                                                            d_vectors = aux_input["d_vectors"])
+                                                            d_vectors = aux_input["d_vectors"],
+                                                            diff_t = aux_input["diff_t"])
         
         if self.num_speakers > 1:
             if not self.use_d_vector_file:

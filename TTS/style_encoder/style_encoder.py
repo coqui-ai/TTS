@@ -28,8 +28,7 @@ class StyleEncoder(nn.Module):
         elif self.se_type == 'diffusion':
             self.layer = DiffStyleEncoder(
                 diff_num_timesteps = self.diff_num_timesteps, 
-                diff_schedule_type = self.diff_schedule_type, 
-                diff_K_step = self.diff_K_step, 
+                diff_schedule_type = self.diff_schedule_type,
                 diff_loss_type = self.diff_loss_type, 
                 diff_use_diff_output = self.diff_use_diff_output,
                 ref_online = self.diff_ref_online, 
@@ -58,7 +57,7 @@ class StyleEncoder(nn.Module):
         if self.se_type == 'gst':
             out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
         elif self.se_type == 'diffusion':
-            out = self.diff_inference(inputs, kwargs['style_mel'])
+            out = self.diff_inference(inputs, mel_in = kwargs['style_mel'], infer_from = kwargs['diff_t'])
         else:
             raise NotImplementedError
         return out
@@ -90,8 +89,8 @@ class StyleEncoder(nn.Module):
             diff_output = self.layer.forward(ref_mels)
             return self._concat_embedding(inputs, diff_output['style']), diff_output['noises']
 
-    def diff_inference(self, inputs, ref_mels):
-            diff_output = self.layer.inference(ref_mels, infer_from = None)
+    def diff_inference(self, inputs, ref_mels, infer_from):
+            diff_output = self.layer.inference(ref_mels, infer_from)
             return self._concat_embedding(inputs, diff_output['style'])
 
     def _concat_embedding(self, outputs, embedded_speakers):
