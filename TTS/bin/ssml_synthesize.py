@@ -82,8 +82,7 @@ You can either use your trained model or choose a model from the provided list.
         current_speaker = None
         index = -1
         for word in sent:
-            #print(sub_sent)
-            if word.voice is None:
+            if word.voice == '':
                 word.voice = default_speaker
             if word.voice != current_speaker:
                 current_speaker = word.voice
@@ -98,8 +97,11 @@ You can either use your trained model or choose a model from the provided list.
     for sub_sent in full_sent:
         for sent in sub_sent:
             sent = ' '.join(sent)
-            print(sent)
-            wavs.append(synthesizer.tts(sent, orderedSpeakers[len(wavs)], None, None, ssml=True))
+            speaker = orderedSpeakers[len(wavs)]
+            if speaker not in available_speakers:
+                print(f" [!] Speaker {speaker} is not available. Using {default_speaker} instead.")
+                speaker = default_speaker
+            wavs.append(synthesizer.tts(sent, speaker, None, None, ssml=True))
 
     final_wav = np.array([], dtype=np.float32)
     for wav in wavs:
