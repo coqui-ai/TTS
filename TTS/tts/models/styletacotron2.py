@@ -145,7 +145,7 @@ class StyleTacotron2(BaseTacotron):
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
         # B x style_embed_dim
         se_inputs = [encoder_outputs, mel_specs]
-        encoder_outputs = self.style_encoder_layer(se_inputs)
+        encoder_outputs, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
         
         if self.use_speaker_embedding or self.use_d_vector_file:
             if not self.use_d_vector_file:
@@ -187,6 +187,7 @@ class StyleTacotron2(BaseTacotron):
                 "decoder_outputs": decoder_outputs,
                 "alignments": alignments,
                 "stop_tokens": stop_tokens,
+                "style_encoder_outputs": style_encoder_outputs
             }
         )
         return outputs
@@ -204,8 +205,9 @@ class StyleTacotron2(BaseTacotron):
         encoder_outputs = self.encoder.inference(embedded_inputs)
 
         # B x style_embed_dim
-        se_inputs = [encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"]]
-        encoder_outputs = self.style_encoder_layer(se_inputs)
+        encoder_outputs = self.style_encoder_layer.inference(encoder_outputs, 
+                                                            style_mel = aux_input["style_mel"],
+                                                            d_vectors = aux_input["d_vectors"])
         
         if self.num_speakers > 1:
             if not self.use_d_vector_file:
@@ -259,11 +261,11 @@ class StyleTacotron2(BaseTacotron):
 
         # set the [alignment] lengths wrt reduction factor for guided attention
         if mel_lengths.max() % self.decoder.r != 0:
-            alignment_lengths = (
+            alignment_lengths = torch.div((
                 mel_lengths + (self.decoder.r - (mel_lengths.max() % self.decoder.r))
-            ) // self.decoder.r
+            ) , self.decoder.r, rounding_mode='floor')
         else:
-            alignment_lengths = mel_lengths // self.decoder.r
+            alignment_lengths = torch.div(mel_lengths, self.decoder.r, rounding_mode='floor')
 
         aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
         outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input)
@@ -275,6 +277,7 @@ class StyleTacotron2(BaseTacotron):
                 outputs["decoder_outputs"].float(),
                 mel_input.float(),
                 None,
+                outputs['style_encoder_outputs'],
                 outputs["stop_tokens"].float(),
                 stop_targets.float(),
                 stop_target_lengths,

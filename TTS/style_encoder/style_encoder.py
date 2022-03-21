@@ -3,6 +3,7 @@ from coqpit import Coqpit
 from torch import nn
 from TTS.style_encoder.layers.gst import GST
 from TTS.style_encoder.layers.vae_se import VAEStyleEncoder
+from TTS.style_encoder.layers.diffusion import DiffStyleEncoder
 
 class StyleEncoder(nn.Module):
     def __init__(self, config:Coqpit) -> None:
@@ -24,12 +25,40 @@ class StyleEncoder(nn.Module):
                 embedding_dim = self.embedding_dim,
                 latent_dim = self.vae_latent_dim
             )
+        elif self.se_type == 'diffusion':
+            self.layer = DiffStyleEncoder(
+                diff_num_timesteps = self.diff_num_timesteps, 
+                diff_schedule_type = self.diff_schedule_type, 
+                diff_K_step = self.diff_K_step, 
+                diff_loss_type = self.diff_loss_type, 
+                diff_use_diff_output = self.diff_use_diff_output,
+                ref_online = self.diff_ref_online, 
+                ref_num_mel = self.num_mel, 
+                ref_style_emb_dim = self.style_embedding_dim, 
+                den_step_dim = self.diff_step_dim,
+                den_in_out_ch = self.diff_in_out_ch, 
+                den_num_heads = self.diff_num_heads, 
+                den_hidden_channels = self.diff_hidden_channels, 
+                den_num_blocks = self.diff_num_blocks,
+                den_dropout = self.diff_dropout
+            )
         else:
             raise NotImplementedError
 
     def forward(self, inputs):
         if self.se_type == 'gst':
             out = self.gst_embedding(*inputs)
+        elif self.se_type == 'diffusion':
+            out = self.diff_forward(*inputs)
+        else:
+            raise NotImplementedError
+        return out
+
+    def inference(self, inputs, **kwargs):
+        if self.se_type == 'gst':
+            out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
+        elif self.se_type == 'diffusion':
+            out = self.diff_inference(inputs, kwargs['style_mel'])
         else:
             raise NotImplementedError
         return out
@@ -56,6 +85,14 @@ class StyleEncoder(nn.Module):
                 gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
             inputs = self._concat_embedding(inputs, gst_outputs)
             return inputs
+
+    def diff_forward(self, inputs, ref_mels):
+            diff_output = self.layer.forward(ref_mels)
+            return self._concat_embedding(inputs, diff_output['style']), diff_output['noises']
+
+    def diff_inference(self, inputs, ref_mels):
+            diff_output = self.layer.inference(ref_mels, infer_from = None)
+            return self._concat_embedding(inputs, diff_output['style'])
 
     def _concat_embedding(self, outputs, embedded_speakers):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)

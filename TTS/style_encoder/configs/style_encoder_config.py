@@ -6,9 +6,6 @@ class StyleEncoderConfig(Coqpit):
     """Defines the Generic Style Encoder Config
 
     Args:    
-        input_wav (str):
-            Path to the wav file used to define the style of the output speech at inference. Defaults to None.
-
         embedding_dim (int):
             Defines the size of the embedding vector dimensions. Defaults to 256.
         
@@ -22,12 +19,11 @@ class StyleEncoderConfig(Coqpit):
             Number of style token vectors. Defaults to 10.
     """
     # Style Encoder Type
-    se_type: str = "gst"
+    se_type: str = "diffusion"
 
     # Generic Style Encoder Configuration
-    input_wav: str = None
     num_mel: int = 80
-    style_embedding_dim: int = 256
+    style_embedding_dim: int = 64
     use_speaker_embedding: bool = False
 
     # GST-Specific Configs
@@ -38,14 +34,27 @@ class StyleEncoderConfig(Coqpit):
     # VAE-SE-Specific Configs
     vae_latent_dim: int = 256
 
+    # Diffusion-specific Configs
+    diff_num_timesteps: int = 1000 
+    diff_schedule_type: str = 'cosine'
+    diff_K_step: int =  51 
+    diff_loss_type: str = 'l1' 
+    diff_use_diff_output: bool = False
+    diff_ref_online: bool = True 
+    diff_step_dim: int = 64
+    diff_in_out_ch: int = 1 
+    diff_num_heads: int = 1 
+    diff_hidden_channels: int = 128 
+    diff_num_blocks: int = 5
+    diff_dropout: int = 0.1
+
     def check_values(
         self,
     ):
         """Check config fields"""
         c = asdict(self)
         super().check_values()
-        check_argument("se_type", c, restricted=True, enum_list=["gst", "vae_se"])
-        check_argument("input_wav", c, restricted=False)
+        check_argument("se_type", c, restricted=True, enum_list=["gst", "vae_se", "diffusion"])
         check_argument("num_mel", c, restricted=False)
         check_argument("style_embedding_dim", c, restricted=True, min_val=0, max_val=1000)
         check_argument("use_speaker_embedding", c, restricted=False)
@@ -53,3 +62,21 @@ class StyleEncoderConfig(Coqpit):
         check_argument("gst_num_heads", c, restricted=True, min_val=2, max_val=10)
         check_argument("gst_num_style_tokens", c, restricted=True, min_val=1, max_val=1000)
         check_argument("vae_latent_dim", c, restricted=True, min_val=0, max_val=1000)
+        check_argument("diff_num_timesteps", c, restricted=True, min_val=0, max_val=5000)
+        check_argument("diff_schedule_type", c, restricted=True, enum_list=["cosine", "linear"])
+        check_argument("diff__step", c, restricted=True, min_val=0, max_val=self.num_timesteps)
+        check_argument("diff_loss_type", c, restricted=True, enum_list=["l1", "mse"])
+        check_argument("diff_use_diff_output", c, restricted=True, enum_list=[True, False])
+        check_argument("diff_ref_online", c, restricted=True, enum_list=[True, False])
+        check_argument("diff_step_dim", c, restricted=True, min_val=0, max_val=1000)
+        check_argument("diff_in_out_ch", c, restricted=True, min_val=1, max_val=1)
+        check_argument("diff_num_heads", c, restricted=False)
+        check_argument("diff_hidden_channels", c, restricted=True, min_val=0, max_val=2048)
+        check_argument("diff_num_blocks", c, restricted=True, min_val=0, max_val=100)
+        check_argument("diff_dropout", c, restricted=False)
+        
+
+
+
+
+

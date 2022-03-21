@@ -6,7 +6,7 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 
-from TTS.tts.layers.losses import TacotronLoss
+from TTS.tts.layers.losses import StyleTacotronLoss
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.utils.generic_utils import format_aux_input
@@ -104,7 +104,7 @@ class BaseTacotron(BaseTTS):
 
     def get_criterion(self) -> nn.Module:
         """Get the model criterion used in training."""
-        return TacotronLoss(self.config)
+        return StyleTacotronLoss(self.config)
 
     #############################
     # COMMON COMPUTE FUNCTIONS
@@ -150,29 +150,6 @@ class BaseTacotron(BaseTTS):
     #############################
     # EMBEDDING FUNCTIONS
     #############################
-    
-    def gst_compute_style_embedding(self, inputs, style_input, speaker_embedding=None):
-        if isinstance(style_input, dict):
-            # multiply each style token with a weight
-            query = torch.zeros(1, 1, self.style_encoder_config.embedding_dim // 2).type_as(inputs)
-            if speaker_embedding is not None:
-                query = torch.cat([query, speaker_embedding.reshape(1, 1, -1)], dim=-1)
-
-            _GST = torch.tanh(self.style_encoder_layer.style_token_layer.style_tokens)
-            gst_outputs = torch.zeros(1, 1, self.style_encoder_config.embedding_dim).type_as(inputs)
-            for k_token, v_amplifier in style_input.items():
-                key = _GST[int(k_token)].unsqueeze(0).expand(1, -1, -1)
-                gst_outputs_att = self.style_encoder_layer.style_token_layer.attention(query, key)
-                gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
-        elif style_input is None:
-            # ignore style token and return zero tensor
-            gst_outputs = torch.zeros(1, 1, self.style_encoder_config.embedding_dim).type_as(inputs)
-        else:
-            # compute style tokens
-            input_args = [style_input, speaker_embedding]
-            gst_outputs = self.style_encoder_layer(input_args)  # pylint: disable=not-callable
-        inputs = self._concat_speaker_embedding(inputs, gst_outputs)
-        return inputs
 
     @staticmethod
     def _add_speaker_embedding(outputs, embedded_speakers):

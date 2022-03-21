@@ -8,20 +8,20 @@ import torch.nn.functional as F
 
 class DiffStyleEncoder(nn.Module):
     def __init__(self, 
-        diff_num_timesteps = 1000, 
-        diff_schedule_type = 'cosine', 
-        diff_K_step = 51, 
-        diff_loss_type = 'l1', 
-        diff_use_diff_output = True,
-        ref_online = True, 
-        ref_num_mel = 80, 
-        ref_style_emb_dim = 64, 
-        den_step_dim = 64,
-        den_in_out_ch=1, 
-        den_num_heads=1, 
-        den_hidden_channels=128, 
-        den_num_blocks=5,
-        den_dropout=0.1) -> None:
+        diff_num_timesteps, 
+        diff_schedule_type, 
+        diff_K_step, 
+        diff_loss_type, 
+        diff_use_diff_output,
+        ref_online, 
+        ref_num_mel, 
+        ref_style_emb_dim, 
+        den_step_dim,
+        den_in_out_ch, 
+        den_num_heads, 
+        den_hidden_channels, 
+        den_num_blocks,
+        den_dropout) -> None:
         super().__init__()
         to_torch = partial(torch.tensor, dtype=torch.float32)
 
@@ -119,79 +119,74 @@ class DiffStyleEncoder(nn.Module):
                 extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
         )
 
-    # Compute Loss between the pred noise and real noise
-    def p_losses(self, x_start, t, noise=None, nonpadding=None):
-        noise = default(noise, lambda: torch.randn_like(x_start))
+    # Compute Diff Noises (Prediction and Target)
+    def p_pred(self, x_start, t, noise=None, nonpadding=None):
+        noise_target = default(noise, lambda: torch.randn_like(x_start))
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
         noise_pred = self.denoiser(x_noisy, t)
+        return {'noise_pred':noise_pred, 'noise_target':noise_target}
 
-        if self.loss_type == 'l1':
-            if nonpadding is not None:
-                loss = ((noise - noise_pred).abs() * nonpadding.unsqueeze(1)).mean()
-            else:
-                # print('are you sure w/o nonpadding?')
-                loss = (noise - noise_pred).abs().mean()
-        elif self.loss_type == 'l2':
-            loss = F.mse_loss(noise, noise_pred)
+    def forward(self, mel_in):
+        ret = {}
+        b, *_, device = *mel_in.shape, mel_in.device
+
+        # Ref-Mel-Spec -> Style Embedding
+        if self.online:
+            z = self.ref_encoder(mel_in).unsqueeze(1)
         else:
-            raise NotImplementedError()
-        return loss
+            with torch.no_grad():
+                z = self.ref_encoder(mel_in).unsqueeze(1)
+        ret['style'] = z
+        
+        # Compute Loss
+        t = torch.randint(0, self.num_timesteps, (b,), device=device).long() # Sample a batch of t from U[0,T]
+        z_iso = z.detach().requires_grad_()
+        ret['noises'] = self.p_pred(z_iso, t)
 
-    def forward(self, mel_in, infer, infer_from):
+        # Iterate the Denoiser from t to 0 for reconstruction
+        if self.use_diff_out:
+            x = z
+            # Iterate in Batch
+            for i in range(0,b):
+                x_start = x[i].unsqueeze(0)         # Add fictional batch_size = 1
+                for j in reversed(range(0, t[i])):
+                    x_start = self.p_sample(x_start, torch.full((1,), j, device=device, dtype=torch.long))
+                x[i] = x_start
+            ret['style'] = x
+        return ret
+    
+    @torch.no_grad()
+    def inference(self, mel_in, infer_from):
         """
         # Inference
-        #   1) Diffuse Ref.Style for :start_from: steps and reconstruct
+        #   1) Diffuse Ref.Style for :infer_from: steps and reconstruct
         #   2) Generate new style reconstructing from a Gaussian 
         """
         ret = {}
         b, *_, device = *mel_in.shape, mel_in.device
 
-        # TRAINING
-        if not infer:
+        # Ref-Mel-Spec -> Style Embedding
+        z = self.ref_encoder(mel_in).unsqueeze(1)
 
-            # Ref-Mel-Spec -> Style Embedding
-            if self.online:
-                z = self.ref_encoder(mel_in).unsqueeze(1)
-            else:
-                with torch.no_grad():
-                    z = self.ref_encoder(mel_in).unsqueeze(1)
-            
-            # Compute Loss
-            t = torch.randint(0, self.num_timesteps, (b,), device=device).long() # Sample a batch of t from U[0,T]
-            ret['diff_loss'] = self.p_losses(z, t)
-
-            # Iterate the Denoiser from t to 0 for reconstruction
-            if self.use_diff_out:
-                x = z
-                for i in range(0,b):
-                    x_start = x[i].unsqueeze(0)
-                    for j in reversed(range(0, t[i])):
-                        x_start = self.p_sample(x_start, torch.full((1,), j, device=device, dtype=torch.long))
-                    x[i] = x_start
-                ret['style_out'] = x
-
-        # INFERENCE
+        # Diffuse z on the noise chain -> x
+        if isinstance(infer_from, int):
+            t = infer_from
+            x = self.q_sample(x_start=z, t=torch.tensor([t - 1], device=device).long())
+        elif isinstance(infer_from, str) and infer_from == 'gaussian':
+            t = self.num_timesteps
+            x = torch.randn(z.shape, device=device)
+        elif isinstance(infer_from, None):
+            t = self.K_step
+            x = self.q_sample(x_start=z, t=torch.tensor([t - 1], device=device).long())    
         else:
+            raise NotImplementedError
 
-            # Ref-Mel-Spec -> Style Embedding
-            with torch.no_grad():
-                z = self.ref_encoder(mel_in).unsqueeze(1)
-
-            # Diffuse z on the noise chain -> x
-            if isinstance(infer_from, int):
-                t = infer_from
-                x = self.q_sample(x_start=z, t=torch.tensor([t - 1], device=device).long())
-            elif isinstance(infer_from, str) and infer_from == 'gaussian':
-                t = self.num_timesteps
-                x = torch.randn(z.shape, device=device)
-            else:
-                raise NotImplementedError
-
-            # Iterate the Denoiser for reconstruction
-            for i in reversed(range(0, t)):
-                x = self.p_sample(x, torch.full((b,), i, device=device, dtype=torch.long))
-            ret['style_out'] = x
+        # Iterate the Denoiser for reconstruction
+        for i in reversed(range(0, t)):
+            x = self.p_sample(x, torch.full((b,), i, device=device, dtype=torch.long))
+        ret['style'] = x
         return ret
+
 
 ###########################
 #### Reference Encoder ####
