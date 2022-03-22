@@ -81,7 +81,6 @@ class DiffStyleEncoder(nn.Module):
         posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    # x_{0} = f(x_{t}, ε), ε ~ N(0,I)
     def predict_start_from_noise(self, x_t, t, noise):
         return (
                 extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t -
@@ -100,8 +99,7 @@ class DiffStyleEncoder(nn.Module):
         return model_mean, posterior_variance, posterior_log_variance
 
     # Reparametrize p_mean_variance (Given x{t} -> predict x_{t-1})
-    @torch.no_grad()
-    def p_sample(self, x, t, clip_denoised=True, repeat_noise=False):
+    def p_sample(self, x, t, clip_denoised=False, repeat_noise=False):
         b, *_, device = *x.shape, x.device
         model_mean, _, model_log_variance = self.p_mean_variance(x=x, t=t, clip_denoised=clip_denoised)
         noise = noise_like(x.shape, device, repeat_noise)
@@ -136,23 +134,29 @@ class DiffStyleEncoder(nn.Module):
                 z = self.ref_encoder(mel_in).unsqueeze(1)
         ret['style'] = z
         
-        # Compute Loss
-        t = torch.randint(0, self.num_timesteps, (b,), device=device).long() # Sample a batch of t from U[0,T]
-        z_iso = z.detach().requires_grad_()
-        ret['noises'] = self.p_pred(z_iso, t)
+        # Sample a t from U[0,T] (common for the whole batch)
+        t = torch.randint(0, self.num_timesteps, (1,), device=device).item() 
+        t_vec = torch.full((b,), t, device=device, dtype=torch.long)
 
-        # Iterate the Denoiser from t to 0 for reconstruction
+        # Initialize Noises Prediction Matrix
+        noise_target = torch.randn_like(z)
+        
+        # Calculate Diffusion Loss in Step t -> t-1
+        z_iso = z.detach().requires_grad_()
+        ret['noises'] = self.p_pred(z_iso, t_vec, noise=noise_target)
+
+        # Calculate z_{0} and pass to the TTS model for backpropagation
         if self.use_diff_out:
-            x = z
-            # Iterate in Batch
-            for i in range(0,b):
-                x_start = x[i].unsqueeze(0)         # Add fictional batch_size = 1
-                for j in reversed(range(0, t[i])):
-                    x_start = self.p_sample(x_start, torch.full((1,), j, device=device, dtype=torch.long))
-                x[i] = x_start
-            ret['style'] = x
+            # Propagate Noise in Style (z -> z_{t})
+            z = self.q_sample(z, t=torch.tensor([t-1], device=device), noise = noise_target)
+
+            # Reconstruct Style {z{t} -> z{t-1} -> ... -> z{0}}
+            for i in reversed(range(0,t)):
+                z = self.p_sample(z, t = torch.full((b,), i, device=device, dtype=torch.long))
+            ret['style'] = z
+
         return ret
-    
+
     @torch.no_grad()
     def inference(self, mel_in, infer_from):
         """
@@ -414,3 +418,12 @@ def default(val, d):
     if exists(val):
         return val
     return d() if isfunction(d) else d
+
+if __name__ == '__main__':
+    
+    from torchviz import make_dot
+    ref_in = torch.rand((32, 200, 80))
+    a = DiffStyleEncoder(100,'cosine', 'l1', True, True, 80, 64, 128, 1, 1, 128, 2, 0.1)
+
+    model = a(ref_in)['style']
+    make_dot(model, params=dict(list(a.named_parameters()))).render("rnn_torchviz", format="png")

@@ -555,8 +555,8 @@ class StyleTacotronLoss(torch.nn.Module):
 
         # style encoder loss
         if self.style_encoder_config.se_type == 'diffusion':
-            style_loss = self.criterion_se(style_encoder_output['noise_pred'], style_encoder_output['noise_target'])['diff_loss']
-            loss+= style_loss
+            style_loss = self.criterion_se(style_encoder_output['noise_pred'], style_encoder_output['noise_target'])
+            loss += style_loss * self.style_encoder_config.diff_loss_alpha
             return_dict["style_encoder_loss"] = style_loss
             
         return_dict["loss"] = loss

@@ -44,8 +44,9 @@ class StyleEncoderConfig(Coqpit):
     diff_in_out_ch: int = 1 
     diff_num_heads: int = 1 
     diff_hidden_channels: int = 128 
-    diff_num_blocks: int = 5
+    diff_num_blocks: int = 2
     diff_dropout: int = 0.1
+    diff_loss_alpha: int = 0.5
 
     def check_values(
         self,
@@ -73,7 +74,7 @@ class StyleEncoderConfig(Coqpit):
         check_argument("diff_hidden_channels", c, restricted=True, min_val=0, max_val=2048)
         check_argument("diff_num_blocks", c, restricted=True, min_val=0, max_val=100)
         check_argument("diff_dropout", c, restricted=False)
-        
+        check_argument("diff_loss_alpha", c, restricted=False)
 
 
 

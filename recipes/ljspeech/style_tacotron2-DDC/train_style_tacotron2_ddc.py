@@ -11,7 +11,6 @@ from TTS.tts.configs.style_tacotron2_config import StyleTacotronConfig
 
 # Style Encoder Imports (Config and Layer)
 from TTS.style_encoder.configs.style_encoder_config import StyleEncoderConfig
-from TTS.style_encoder.layers.gst import GST
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 

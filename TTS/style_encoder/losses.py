@@ -13,7 +13,5 @@ class DiffusionStyleEncoderLoss(torch.nn.Module):
             raise NotImplementedError
 
     def forward(self, diff_output, diff_target):
-        return_dict = {}
         diff_loss = self.criterion(diff_output, diff_target)
-        return_dict['diff_loss'] = diff_loss
-        return return_dict
+        return diff_loss
