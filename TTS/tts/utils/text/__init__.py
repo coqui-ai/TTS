@@ -29,7 +29,7 @@ _CURLY_RE = re.compile(r"(.*?)\{(.+?)\}(.*)")
 PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 
 # Table for str.translate to fix gruut/TTS phoneme mismatch
-GRUUT_TRANS_TABLE = str.maketrans("g", "É¡")
+GRUUT_TRANS_TABLE = str.maketrans("g", "ɡ")
 
 
 def text2phone(text, language, use_espeak_phonemes=False):
@@ -39,7 +39,7 @@ def text2phone(text, language, use_espeak_phonemes=False):
             language (str): language of the text
     Returns:
             ph (str): phonemes as a string seperated by "|"
-                    ph = "Éª|g|Ëˆ|z|Ã¦|m|p|É™|l"
+                    ph = "ɪ|g|ˈ|z|æ|m|p|ə|l"
     """
 
     # TO REVIEW : How to have a good implementation for this?
@@ -56,7 +56,7 @@ def text2phone(text, language, use_espeak_phonemes=False):
         phonemizer_args = {
             "remove_stress": True,
             "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
-            "ipa_major_breaks": False,  # don't replace periods with IPA â€–
+            "ipa_major_breaks": False,  # don't replace periods with IPA ‖
         }
 
         if use_espeak_phonemes:

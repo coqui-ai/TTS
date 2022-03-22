@@ -46,12 +46,12 @@ _characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? "
 _punctuations = "!'(),-.:;? "
 
 # Phonemes definition (All IPA characters)
-_vowels = "iyÉ¨Ê‰É¯uÉªÊÊŠeÃ¸É˜É™ÉµÉ¤oÉ›Å“ÉœÉžÊŒÉ”Ã¦ÉaÉ¶É‘É’áµ»"
-_non_pulmonic_consonants = "Ê˜É“Ç€É—ÇƒÊ„Ç‚É ÇÊ›"
-_pulmonic_consonants = "pbtdÊˆÉ–cÉŸkÉ¡qÉ¢Ê”É´Å‹É²É³nÉ±mÊ™rÊ€â±±É¾É½É¸Î²fvÎ¸Ã°szÊƒÊ’Ê‚ÊÃ§ÊxÉ£Ï‡ÊÄ§Ê•hÉ¦É¬É®Ê‹É¹É»jÉ°lÉ­ÊŽÊŸ"
-_suprasegmentals = "ËˆËŒËË‘"
-_other_symbols = "ÊwÉ¥ÊœÊ¢Ê¡É•Ê‘ÉºÉ§Ê²"
-_diacrilics = "ÉšËžÉ«"
+_vowels = "iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻ"
+_non_pulmonic_consonants = "ʘɓǀɗǃʄǂɠǁʛ"
+_pulmonic_consonants = "pbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟ"
+_suprasegmentals = "ˈˌːˑ"
+_other_symbols = "ʍwɥʜʢʡɕʑɺɧʲ"
+_diacrilics = "ɚ˞ɫ"
 _phonemes = _vowels + _non_pulmonic_consonants + _pulmonic_consonants + _suprasegmentals + _other_symbols + _diacrilics
 
 symbols, phonemes = make_symbols(_characters, _phonemes, _punctuations, _pad, _eos, _bos)
