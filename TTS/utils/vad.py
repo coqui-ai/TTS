@@ -18,7 +18,7 @@ def resample_wav(wav, sr, new_sr):
 def map_timestamps_to_new_sr(vad_sr, new_sr, timestamps, just_begging_end=False):
     factor = new_sr / vad_sr
     new_timestamps = []
-    if just_begging_end:
+    if just_begging_end and timestamps:
         # get just the start and end timestamps
         new_dict = {'start': int(timestamps[0]['start']*factor), 'end': int(timestamps[-1]['end']*factor)}
         new_timestamps.append(new_dict)
@@ -64,8 +64,12 @@ def remove_silence(model_and_utils, audio_path, out_path, vad_sample_rate=8000, 
     # map the current speech_timestamps to the sample rate of the ground truth audio
     new_speech_timestamps = map_timestamps_to_new_sr(vad_sample_rate, gt_sample_rate, speech_timestamps, trim_just_beginning_and_end)
 
-    # save audio
-    save_audio(out_path,
-            collect_chunks(new_speech_timestamps, wav), sampling_rate=gt_sample_rate)
+    # if have speech timestamps else save the wav
+    if new_speech_timestamps:
+        wav = collect_chunks(new_speech_timestamps, wav)
+    else:
+        print(f"> The file {audio_path} probably does not have speech please check it !!")
 
+    # save audio
+    save_audio(out_path, wav, sampling_rate=gt_sample_rate)
     return out_path
