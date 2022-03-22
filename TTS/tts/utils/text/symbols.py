@@ -7,6 +7,7 @@ through Unidecode. For other data, you can modify _characters. See TRAINING_DATA
 """
 
 
+
 def make_symbols(
     characters,
     phonemes=None,
@@ -15,10 +16,14 @@ def make_symbols(
     eos="~",
     bos="^",
     unique=True,
+    split_by_space = False,
 ):  # pylint: disable=redefined-outer-name
     """Function to create symbols and phonemes
     TODO: create phonemes_to_id and symbols_to_id dicts here."""
-    _symbols = list(characters)
+    if(split_by_space):
+        _symbols = characters.split(" ")
+    else:
+        _symbols = list(characters)
     _symbols = [bos] + _symbols if len(bos) > 0 and bos is not None else _symbols
     _symbols = [eos] + _symbols if len(bos) > 0 and eos is not None else _symbols
     _symbols = [pad] + _symbols if len(bos) > 0 and pad is not None else _symbols
@@ -34,7 +39,6 @@ def make_symbols(
         # _symbols += _arpabet
     return _symbols, _phonemes
 
-
 _pad = "_"
 _eos = "~"
 _bos = "^"
@@ -42,12 +46,12 @@ _characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? "
 _punctuations = "!'(),-.:;? "
 
 # Phonemes definition (All IPA characters)
-_vowels = "iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻ"
-_non_pulmonic_consonants = "ʘɓǀɗǃʄǂɠǁʛ"
-_pulmonic_consonants = "pbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟ"
-_suprasegmentals = "ˈˌːˑ"
-_other_symbols = "ʍwɥʜʢʡɕʑɺɧʲ"
-_diacrilics = "ɚ˞ɫ"
+_vowels = "iyÉ¨Ê‰É¯uÉªÊÊŠeÃ¸É˜É™ÉµÉ¤oÉ›Å“ÉœÉžÊŒÉ”Ã¦ÉaÉ¶É‘É’áµ»"
+_non_pulmonic_consonants = "Ê˜É“Ç€É—ÇƒÊ„Ç‚É ÇÊ›"
+_pulmonic_consonants = "pbtdÊˆÉ–cÉŸkÉ¡qÉ¢Ê”É´Å‹É²É³nÉ±mÊ™rÊ€â±±É¾É½É¸Î²fvÎ¸Ã°szÊƒÊ’Ê‚ÊÃ§ÊxÉ£Ï‡ÊÄ§Ê•hÉ¦É¬É®Ê‹É¹É»jÉ°lÉ­ÊŽÊŸ"
+_suprasegmentals = "ËˆËŒËË‘"
+_other_symbols = "ÊwÉ¥ÊœÊ¢Ê¡É•Ê‘ÉºÉ§Ê²"
+_diacrilics = "ÉšËžÉ«"
 _phonemes = _vowels + _non_pulmonic_consonants + _pulmonic_consonants + _suprasegmentals + _other_symbols + _diacrilics
 
 symbols, phonemes = make_symbols(_characters, _phonemes, _punctuations, _pad, _eos, _bos)
