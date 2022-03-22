@@ -38,16 +38,20 @@ style_config = StyleEncoderConfig()
 # Pass the Encoder Config to the Model Config
 config = StyleTacotronConfig( 
     style_encoder_config=style_config,
+    num_eval_loader_workers=0,
+    use_noise_augment=False,
     audio=audio_config,
-    batch_size=64,
-    eval_batch_size=16,
+    batch_size=32,
+    batch_group_size=4,
+    min_seq_len=2,
+    max_seq_len=400,
+    eval_batch_size=1,
     num_loader_workers=4,
-    num_eval_loader_workers=4,
     run_eval=True,
-    test_delay_epochs=-1,
+    test_delay_epochs=10,
     r=6,
     gradual_training=[[0, 6, 64], [10000, 4, 32], [50000, 3, 32], [100000, 2, 32]],
-    double_decoder_consistency=True,
+    double_decoder_consistency=False,
     epochs=1000,
     text_cleaner="phoneme_cleaners",
     use_phonemes=True,
@@ -58,6 +62,14 @@ config = StyleTacotronConfig(
     mixed_precision=False,
     output_path=output_path,
     datasets=[dataset_config],
+    scheduler_after_epoch=False,
+    model_param_stats=False,
+    save_step=5000,
+    checkpoint=True,
+    keep_all_best=False,
+    keep_after=10000,
+    plot_step=100,
+
 )
 
 # init audio processor
