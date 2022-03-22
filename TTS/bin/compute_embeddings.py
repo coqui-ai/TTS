@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
     """
     Example runs:
-    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth.tar speaker_encoder_config.json  dataset_config.json embeddings_output_path/
+    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth speaker_encoder_config.json  dataset_config.json embeddings_output_path/
     """,
     formatter_class=RawTextHelpFormatter,
 )
