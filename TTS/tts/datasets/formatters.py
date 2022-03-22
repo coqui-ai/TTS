@@ -421,7 +421,7 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             items.append([text, wav_file, speaker_name])
     return items
 
-def cpqd_read(root_path, meta_file):
+def cpqd_read(root_path, meta_file, **kwargs):
     '''
         Generic reader for files with multi-speaker
 
