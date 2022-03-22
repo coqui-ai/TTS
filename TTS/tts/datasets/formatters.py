@@ -420,3 +420,65 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             text = cols[2].replace(" ", "")
             items.append([text, wav_file, speaker_name])
     return items
+
+def cpqd_read(root_path, meta_file):
+    '''
+        Generic reader for files with multi-speaker
+
+        Input file must be a textual file separated by ";" with "\n" breaklines,
+        and the columns must be:
+
+        wav_file path ; text ; speaker_name
+        The output will be:
+
+        [text, wav_path, speaker_name]
+
+    '''
+    
+    meta_path = os.path.join(root_path, meta_file)
+
+    items = []
+
+    with open(meta_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            cols = line.split(';')
+            if(cols[0] == 'phonetic_transcription'): # It indicates that the first row is the header so we need to skip
+                continue
+            wav_file = cols[1]
+            text = cols[0]
+            speaker_name = cols[2][:-1] # The last char is always "\n" since after this line is a breakline
+            items.append([text,wav_file,speaker_name])
+
+    return items
+
+
+
+def cpqd_read_ljspeech(root_path, meta_file):
+    '''
+        Generic reader for files with multi-speaker
+
+        Input file must be a textual file separated by "|" with "\n" breaklines,
+        and the columns must be:
+
+        wav_file path | text | speaker_name
+        The output will be:
+
+        [text, wav_path, speaker_name]
+
+    '''
+    
+    meta_path = os.path.join(root_path, meta_file)
+
+    items = []
+
+    with open(meta_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            cols = line.split('|')
+            if(cols[0] == 'phonetic_transcription'): # It indicates that the first row is the header so we need to skip
+                continue
+            wav_file = cols[1]
+            text = cols[0]
+            speaker_name = cols[2][:-1] # The last char is always "\n" since after this line is a breakline
+            items.append([text,wav_file,speaker_name])
+
+    return items

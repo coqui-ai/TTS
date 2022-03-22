@@ -75,6 +75,10 @@ class CharactersConfig(Coqpit):
         unique (bool):
             remove any duplicate characters in the character lists. It is a bandaid for compatibility with the old
             models trained with character lists with duplicates.
+        
+        split_by_space (bool):
+            whether to use space of not to split the characters
+
     """
 
     pad: str = None
@@ -84,6 +88,7 @@ class CharactersConfig(Coqpit):
     punctuations: str = None
     phonemes: str = None
     unique: bool = True  # for backwards compatibility of models trained with char sets with duplicates
+    split_by_space: bool = False	
 
     def check_values(
         self,
@@ -96,6 +101,7 @@ class CharactersConfig(Coqpit):
         check_argument("characters", c, prerequest="characters", restricted=True)
         check_argument("phonemes", c, restricted=True)
         check_argument("punctuations", c, prerequest="characters", restricted=True)
+
 
 
 @dataclass

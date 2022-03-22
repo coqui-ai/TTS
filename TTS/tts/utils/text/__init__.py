@@ -5,7 +5,6 @@ import re
 from typing import Dict, List
 
 import gruut
-from gruut_ipa import IPA
 
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.chinese_mandarin.phonemizer import chinese_text_to_phonemes
@@ -30,17 +29,17 @@ _CURLY_RE = re.compile(r"(.*?)\{(.+?)\}(.*)")
 PHONEME_PUNCTUATION_PATTERN = r"[" + _punctuations.replace(" ", "") + "]+"
 
 # Table for str.translate to fix gruut/TTS phoneme mismatch
-GRUUT_TRANS_TABLE = str.maketrans("g", "ɡ")
+GRUUT_TRANS_TABLE = str.maketrans("g", "É¡")
 
 
-def text2phone(text, language, use_espeak_phonemes=False, keep_stress=False):
+def text2phone(text, language, use_espeak_phonemes=False):
     """Convert graphemes to phonemes.
     Parameters:
             text (str): text to phonemize
             language (str): language of the text
     Returns:
             ph (str): phonemes as a string seperated by "|"
-                    ph = "ɪ|g|ˈ|z|æ|m|p|ə|l"
+                    ph = "Éª|g|Ëˆ|z|Ã¦|m|p|É™|l"
     """
 
     # TO REVIEW : How to have a good implementation for this?
@@ -52,44 +51,36 @@ def text2phone(text, language, use_espeak_phonemes=False, keep_stress=False):
         ph = japanese_text_to_phonemes(text)
         return ph
 
-    if not gruut.is_language_supported(language):
-        raise ValueError(f" [!] Language {language} is not supported for phonemization.")
+    if gruut.is_language_supported(language):
+        # Use gruut for phonemization
+        phonemizer_args = {
+            "remove_stress": True,
+            "ipa_minor_breaks": False,  # don't replace commas/semi-colons with IPA |
+            "ipa_major_breaks": False,  # don't replace periods with IPA â€–
+        }
 
-    # Use gruut for phonemization
-    ph_list = []
-    for sentence in gruut.sentences(text, lang=language, espeak=use_espeak_phonemes):
-        for word in sentence:
-            if word.is_break:
-                # Use actual character for break phoneme (e.g., comma)
-                if ph_list:
-                    # Join with previous word
-                    ph_list[-1].append(word.text)
-                else:
-                    # First word is punctuation
-                    ph_list.append([word.text])
-            elif word.phonemes:
-                # Add phonemes for word
-                word_phonemes = []
+        if use_espeak_phonemes:
+            # Use a lexicon/g2p model train on eSpeak IPA instead of gruut IPA.
+            # This is intended for backwards compatibility with TTS<=v0.0.13
+            # pre-trained models.
+            phonemizer_args["model_prefix"] = "espeak"
 
-                for word_phoneme in word.phonemes:
-                    if not keep_stress:
-                        # Remove primary/secondary stress
-                        word_phoneme = IPA.without_stress(word_phoneme)
+        ph_list = gruut.text_to_phonemes(
+            text,
+            lang=language,
+            return_format="word_phonemes",
+            phonemizer_args=phonemizer_args,
+        )
 
-                    word_phoneme = word_phoneme.translate(GRUUT_TRANS_TABLE)
+        # Join and re-split to break apart dipthongs, suprasegmentals, etc.
+        ph_words = ["|".join(word_phonemes) for word_phonemes in ph_list]
+        ph = "| ".join(ph_words)
 
-                    if word_phoneme:
-                        # Flatten phonemes
-                        word_phonemes.extend(word_phoneme)
+        # Fix a few phonemes
+        ph = ph.translate(GRUUT_TRANS_TABLE)
+        return ph
 
-                if word_phonemes:
-                    ph_list.append(word_phonemes)
-
-    # Join and re-split to break apart dipthongs, suprasegmentals, etc.
-    ph_words = ["|".join(word_phonemes) for word_phonemes in ph_list]
-    ph = "| ".join(ph_words)
-
-    return ph
+    raise ValueError(f" [!] Language {language} is not supported for phonemization.")
 
 
 def intersperse(sequence, token):
@@ -181,6 +172,7 @@ def sequence_to_phoneme(sequence: List, tp: Dict = None, add_blank=False, custom
     return result.replace("}{", " ")
 
 
+
 def text_to_sequence(
     text: str, cleaner_names: List[str], custom_symbols: List[str] = None, tp: Dict = None, add_blank: bool = False
 ) -> List[int]:
@@ -211,8 +203,12 @@ def text_to_sequence(
     while text:
         m = _CURLY_RE.match(text)
         if not m:
-            sequence += _symbols_to_sequence(_clean_text(text, cleaner_names))
-            break
+            if(tp.split_by_space): # If true needs to process splitted by space
+                sequence += _symbols_to_sequence(_clean_text(text, cleaner_names).split(" "))
+                break
+            else:
+                sequence += _symbols_to_sequence(_clean_text(text, cleaner_names))
+                break
         sequence += _symbols_to_sequence(_clean_text(m.group(1), cleaner_names))
         sequence += _arpabet_to_sequence(m.group(2))
         text = m.group(3)
@@ -243,9 +239,16 @@ def sequence_to_text(sequence: List, tp: Dict = None, add_blank=False, custom_sy
             # Enclose ARPAbet back in curly braces:
             if len(s) > 1 and s[0] == "@":
                 s = "{%s}" % s[1:]
-            result += s
-    return result.replace("}{", " ")
+            
+            if tp.split_by_space: # if true, must have space in every character
+                result += ' ' + s
+            else:
+                result += s
 
+    if tp.split_by_space: # If true, return from 1 position to N, result['0'] is ' '.
+        return result.replace("}{", " ")[1:]
+    else:
+        return result.replace("}{", " ")
 
 def _clean_text(text, cleaner_names):
     for name in cleaner_names:
