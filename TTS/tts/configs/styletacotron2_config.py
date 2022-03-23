@@ -6,7 +6,7 @@ from TTS.style_encoder.configs.style_encoder_config import StyleEncoderConfig
 
 
 @dataclass
-class StyleTacotron2Config(BaseTTSConfig):
+class Styletacotron2Config(BaseTTSConfig):
     """Defines parameters for Tacotron based models.
 
     Example:

@@ -7,7 +7,7 @@ from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
 from TTS.tts.models.styletacotron2 import StyleTacotron2
-from TTS.tts.configs.style_tacotron2_config import StyleTacotronConfig
+from TTS.tts.configs.styletacotron2_config import StyleTacotron2Config
 
 # Style Encoder Imports (Config and Layer)
 from TTS.style_encoder.configs.style_encoder_config import StyleEncoderConfig
