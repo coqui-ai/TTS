@@ -9,6 +9,9 @@ from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
+import sys
+
+sys.path.insert(1, '/workspace/coqui-tts')
 
 def main():
     """Run `tts` model training directly by a `config.json` file."""
