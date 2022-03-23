@@ -1010,7 +1010,7 @@ class Trainer:
         except KeyboardInterrupt:
             self.callbacks.on_keyboard_interrupt(self)
             # if the output folder is empty remove the run.
-            remove_experiment_folder(self.output_path)
+            # remove_experiment_folder(self.output_path)
             # clear the DDP processes
             if self.num_gpus > 1:
                 dist.destroy_process_group()
@@ -1023,7 +1023,7 @@ class Trainer:
             except SystemExit:
                 os._exit(0)  # pylint: disable=protected-access
         except BaseException:  # pylint: disable=broad-except
-            remove_experiment_folder(self.output_path)
+            # remove_experiment_folder(self.output_path)
             traceback.print_exc()
             sys.exit(1)
 
