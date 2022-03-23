@@ -44,6 +44,8 @@ style:	## update code style.
 
 lint:	## run pylint linter.
 	pylint ${target_dirs}
+	black ${target_dirs} --check
+	isort ${target_dirs} --check-only
 
 system-deps:	## install linux system deps
 	sudo apt-get install -y libsndfile1-dev
