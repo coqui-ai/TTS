@@ -1,6 +1,10 @@
 import os
 import torch
 
+import sys
+
+sys.path.insert(1, '/workspace/coqui-tts')
+
 from TTS.config import check_config_and_model_args, get_from_config_or_model_args, load_config, register_config
 from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.datasets import load_tts_samples
@@ -9,9 +13,7 @@ from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
-import sys
 
-sys.path.insert(1, '/workspace/coqui-tts')
 
 def main():
     """Run `tts` model training directly by a `config.json` file."""
