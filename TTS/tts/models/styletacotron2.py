@@ -16,7 +16,7 @@ from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 # Import Style Encoder
 from TTS.style_encoder.style_encoder import StyleEncoder
 
-class StyleTacotron2(BaseTacotron):
+class Styletacotron2(BaseTacotron):
     """Tacotron2 model implementation inherited from :class:`TTS.tts.models.base_tacotron.BaseTacotron`.
 
     Paper::
