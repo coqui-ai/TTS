@@ -1304,11 +1304,7 @@ class Vits(BaseTTS):
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
-        if (
-            self.language_manager is not None
-            and self.language_manager.ids
-            and self.args.use_language_embedding
-        ):
+        if self.language_manager is not None and self.language_manager.ids and self.args.use_language_embedding:
             language_ids = [self.language_manager.ids[ln] for ln in batch["language_names"]]
 
         if language_ids is not None:

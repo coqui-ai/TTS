@@ -12,13 +12,11 @@ from TTS.utils.audio import AudioProcessor
 
 
 class BaseIDManager:
-    """ Base `ID` Manager class. Every new `ID` manager must inherit this.
+    """Base `ID` Manager class. Every new `ID` manager must inherit this.
     It defines common `ID` manager specific functions.
     """
-    def __init__(
-        self,
-        id_file_path: str = ""
-    ):
+
+    def __init__(self, id_file_path: str = ""):
         self.ids = {}
 
         if id_file_path:
@@ -85,10 +83,12 @@ class BaseIDManager:
         ids = {name: i for i, name in enumerate(classes)}
         return ids
 
+
 class EmbeddingManager(BaseIDManager):
-    """ Base `Embedding` Manager class. Every new `Embedding` manager must inherit this.
+    """Base `Embedding` Manager class. Every new `Embedding` manager must inherit this.
     It defines common `Embedding` manager specific functions.
     """
+
     def __init__(
         self,
         embedding_file_path: str = "",
@@ -225,7 +225,9 @@ class EmbeddingManager(BaseIDManager):
         """
         self.encoder_config = load_config(config_path)
         self.encoder = setup_encoder_model(self.encoder_config)
-        self.encoder_criterion = self.encoder.load_checkpoint(self.encoder_config, model_path, eval=True, use_cuda=self.use_cuda)
+        self.encoder_criterion = self.encoder.load_checkpoint(
+            self.encoder_config, model_path, eval=True, use_cuda=self.use_cuda
+        )
         self.encoder_ap = AudioProcessor(**self.encoder_config.audio)
 
     def compute_embedding_from_clip(self, wav_file: Union[str, List[str]]) -> list:

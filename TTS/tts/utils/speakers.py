@@ -10,6 +10,7 @@ from coqpit import Coqpit
 from TTS.config import get_from_config_or_model_args_with_default
 from TTS.tts.utils.managers import EmbeddingManager
 
+
 class SpeakerManager(EmbeddingManager):
     """Manage the speakers for multi-speaker 🐸TTS models. Load a datafile and parse the information
     in a way that can be queried by speaker or clip.
@@ -64,8 +65,8 @@ class SpeakerManager(EmbeddingManager):
             id_file_path=speaker_id_file_path,
             encoder_model_path=encoder_model_path,
             encoder_config_path=encoder_config_path,
-            use_cuda=use_cuda
-            )
+            use_cuda=use_cuda,
+        )
 
         if data_items:
             self.set_ids_from_data(data_items, parse_key="speaker_name")
