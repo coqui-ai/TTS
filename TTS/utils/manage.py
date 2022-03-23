@@ -3,8 +3,8 @@ import json
 import os
 import zipfile
 from pathlib import Path
-from typing import Tuple
 from shutil import copyfile, rmtree
+from typing import Tuple
 
 import requests
 
@@ -144,7 +144,7 @@ class ModelManager(object):
         output_model_path, output_config_path = self._find_files(output_path)
         return output_model_path, output_config_path, model_item
 
-    def _find_files(self, output_path:str) -> Tuple[str, str]:
+    def _find_files(self, output_path: str) -> Tuple[str, str]:
         """Find the model and config files in the output path
 
         Args:
