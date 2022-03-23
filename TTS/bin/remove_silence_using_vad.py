@@ -4,6 +4,7 @@ import os
 import pathlib
 
 from tqdm import tqdm
+
 from TTS.utils.vad import get_vad_model_and_utils, remove_silence
 
 
@@ -16,7 +17,13 @@ def adjust_path_and_remove_silence(audio_path):
     # create all directory structure
     pathlib.Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     # remove the silence and save the audio
-    output_path = remove_silence(model_and_utils, audio_path, output_path, trim_just_beginning_and_end=args.trim_just_beginning_and_end, use_cuda=args.use_cuda)
+    output_path = remove_silence(
+        model_and_utils,
+        audio_path,
+        output_path,
+        trim_just_beginning_and_end=args.trim_just_beginning_and_end,
+        use_cuda=args.use_cuda,
+    )
 
     return output_path
 
