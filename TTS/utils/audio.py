@@ -371,7 +371,9 @@ class AudioProcessor(object):
             self.hop_length = hop_length
             self.win_length = win_length
         assert min_level_db != 0.0, " [!] min_level_db is 0"
-        assert self.win_length <= self.fft_size, f" [!] win_length cannot be larger than fft_size - {self.win_length} vs {self.fft_size}"
+        assert (
+            self.win_length <= self.fft_size
+        ), f" [!] win_length cannot be larger than fft_size - {self.win_length} vs {self.fft_size}"
         members = vars(self)
         if verbose:
             print(" > Setting up Audio Processor...")
