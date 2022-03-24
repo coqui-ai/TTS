@@ -706,7 +706,6 @@ class Vits(BaseTTS):
             torch.nn.init.xavier_uniform_(self.emb_l.weight)
         else:
             self.embedded_language_dim = 0
-            self.emb_l = None
 
     def get_aux_input(self, aux_input: Dict):
         sid, g, lid = self._set_cond_input(aux_input)
