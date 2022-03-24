@@ -659,28 +659,28 @@ class Vits(BaseTTS):
 
         # TODO: make this a function
         if self.args.use_speaker_encoder_as_loss:
-            if self.speaker_manager.encoder is None and (
+            if self.speaker_manager.speaker_encoder is None and (
                 not self.args.speaker_encoder_model_path or not self.args.speaker_encoder_config_path
             ):
                 raise RuntimeError(
                     " [!] To use the speaker consistency loss (SCL) you need to specify speaker_encoder_model_path and speaker_encoder_config_path !!"
                 )
 
-            self.speaker_manager.encoder.eval()
+            self.speaker_manager.speaker_encoder.eval()
             print(" > External Speaker Encoder Loaded !!")
 
             if (
-                hasattr(self.speaker_manager.encoder, "audio_config")
-                and self.config.audio["sample_rate"] != self.speaker_manager.encoder.audio_config["sample_rate"]
+                hasattr(self.speaker_manager.speaker_encoder, "audio_config")
+                and self.config.audio["sample_rate"] != self.speaker_manager.speaker_encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
                     orig_freq=self.audio_config["sample_rate"],
-                    new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
+                    new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
                 )
             # pylint: disable=W0101,W0105
             self.audio_transform = torchaudio.transforms.Resample(
                 orig_freq=self.config.audio.sample_rate,
-                new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
+                new_freq=self.speaker_manager.speaker_encoder.audio_config["sample_rate"],
             )
 
     def _init_speaker_embedding(self):
@@ -818,7 +818,6 @@ class Vits(BaseTTS):
         y: torch.tensor,
         y_lengths: torch.tensor,
         waveform: torch.tensor,
-        waveform_spec: torch.tensor,
         aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
     ) -> Dict:
         """Forward pass of the model.
@@ -884,26 +883,22 @@ class Vits(BaseTTS):
         m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
         logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
 
+        if self.args.TTS_part_sample_rate and self.args.interpolate_z:
+            z = z.unsqueeze(0) # pylint: disable=not-callable
+            z = torch.nn.functional.interpolate(
+                z, scale_factor=[1, self.interpolate_factor], mode='nearest').squeeze(0)
+            y_lengths = y_lengths * self.interpolate_factor
+
         # select a random feature segment for the waveform decoder
         z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size, let_short_samples=True, pad_short=True)
 
-        wav_seg2 = segment(
-            waveform_spec,
-            slice_ids * self.config.audio.hop_length,
-            self.spec_segment_size * self.config.audio.hop_length,
-            pad_short=True,
-        )
-        if self.args.TTS_part_sample_rate:
-            slice_ids = slice_ids * int(self.interpolate_factor)
-            spec_segment_size = self.spec_segment_size * int(self.interpolate_factor)
-            if self.args.interpolate_z:
-                z_slice = z_slice.unsqueeze(0) # pylint: disable=not-callable
-                z_slice = torch.nn.functional.interpolate(
-                    z_slice, scale_factor=[1, self.interpolate_factor], mode='nearest').squeeze(0)
-        else:
-            spec_segment_size = self.spec_segment_size
-
         o = self.waveform_decoder(z_slice.detach() if self.args.detach_z_vocoder else z_slice, g=g)
+
+        if self.args.TTS_part_sample_rate and not self.args.interpolate_z:
+            slice_ids = slice_ids * int(self.interpolate_factor)
+            spec_segment_size = self.args.spec_segment_size * int(self.interpolate_factor)
+        else:
+            spec_segment_size = self.args.spec_segment_size
 
         wav_seg = segment(
             waveform,
@@ -912,7 +907,7 @@ class Vits(BaseTTS):
             pad_short=True,
         )
 
-        if self.args.use_speaker_encoder_as_loss and self.speaker_manager.encoder is not None:
+        if self.args.use_speaker_encoder_as_loss and self.speaker_manager.speaker_encoder is not None:
             # concate generated and GT waveforms
             wavs_batch = torch.cat((wav_seg, o), dim=0)
 
@@ -921,7 +916,7 @@ class Vits(BaseTTS):
             if self.audio_transform is not None:
                 wavs_batch = self.audio_transform(wavs_batch)
 
-            pred_embs = self.speaker_manager.encoder.forward(wavs_batch, l2_norm=True)
+            pred_embs = self.speaker_manager.speaker_encoder.forward(wavs_batch, l2_norm=True)
 
             # split generated and GT speaker embeddings
             gt_spk_emb, syn_spk_emb = torch.chunk(pred_embs, 2, dim=0)
@@ -1097,12 +1092,12 @@ class Vits(BaseTTS):
         self._freeze_layers()
 
         mel_lens = batch["mel_lens"]
-        spec_lens = batch["spec_lens"]
 
         if optimizer_idx == 0:
             tokens = batch["tokens"]
             token_lenghts = batch["token_lens"]
             spec = batch["spec"]
+            spec_lens = batch["spec_lens"]
 
             d_vectors = batch["d_vectors"]
             speaker_ids = batch["speaker_ids"]
@@ -1116,7 +1111,6 @@ class Vits(BaseTTS):
                 spec,
                 spec_lens,
                 waveform,
-                batch["waveform_spec"],
                 aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
             )
 
@@ -1141,14 +1135,16 @@ class Vits(BaseTTS):
 
             # compute melspec segment
             with autocast(enabled=False):
-       
-                if self.args.TTS_part_sample_rate:
-                    spec_segment_size = self.spec_segment_size * int(self.interpolate_factor)
+
+                if self.args.TTS_part_sample_rate and  not self.args.interpolate_z:
+                    slice_ids = self.model_outputs_cache["slice_ids"] * int(self.interpolate_factor)
+                    spec_segment_size = self.args.spec_segment_size * int(self.interpolate_factor)
                 else:
-                    spec_segment_size = self.spec_segment_size
+                    spec_segment_size = self.args.spec_segment_size
+                    slice_ids = self.model_outputs_cache["slice_ids"]
 
                 mel_slice = segment(
-                    mel.float(), self.model_outputs_cache["slice_ids"], spec_segment_size, pad_short=True
+                    mel.float(), slice_ids, spec_segment_size, pad_short=True
                 )
                 mel_slice_hat = wav_to_mel(
                     y=self.model_outputs_cache["model_outputs"].float(),
@@ -1176,7 +1172,7 @@ class Vits(BaseTTS):
                     logs_q=self.model_outputs_cache["logs_q"].float(),
                     m_p=self.model_outputs_cache["m_p"].float(),
                     logs_p=self.model_outputs_cache["logs_p"].float(),
-                    z_len=spec_lens,
+                    z_len=mel_lens,
                     scores_disc_fake=scores_disc_fake,
                     feats_disc_fake=feats_disc_fake,
                     feats_disc_real=feats_disc_real,
@@ -1262,18 +1258,18 @@ class Vits(BaseTTS):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embeddings()
+                    d_vector = self.speaker_manager.get_random_d_vector()
                 else:
-                    d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
+                    d_vector = self.speaker_manager.get_mean_d_vector(speaker_name, num_samples=None, randomize=False)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
-                    speaker_id = self.speaker_manager.get_random_id()
+                    speaker_id = self.speaker_manager.get_random_speaker_id()
                 else:
-                    speaker_id = self.speaker_manager.ids[speaker_name]
+                    speaker_id = self.speaker_manager.speaker_ids[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
-            language_id = self.language_manager.ids[language_name]
+            language_id = self.language_manager.language_id_mapping[language_name]
 
         return {
             "text": text,
@@ -1328,22 +1324,26 @@ class Vits(BaseTTS):
         d_vectors = None
 
         # get numerical speaker ids from speaker names
-        if self.speaker_manager is not None and self.speaker_manager.ids and self.args.use_speaker_embedding:
-            speaker_ids = [self.speaker_manager.ids[sn] for sn in batch["speaker_names"]]
+        if self.speaker_manager is not None and self.speaker_manager.speaker_ids and self.args.use_speaker_embedding:
+            speaker_ids = [self.speaker_manager.speaker_ids[sn] for sn in batch["speaker_names"]]
 
         if speaker_ids is not None:
             speaker_ids = torch.LongTensor(speaker_ids)
             batch["speaker_ids"] = speaker_ids
 
         # get d_vectors from audio file names
-        if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
-            d_vector_mapping = self.speaker_manager.embeddings
+        if self.speaker_manager is not None and self.speaker_manager.d_vectors and self.args.use_d_vector_file:
+            d_vector_mapping = self.speaker_manager.d_vectors
             d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_files"]]
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
-        if self.language_manager is not None and self.language_manager.ids and self.args.use_language_embedding:
-            language_ids = [self.language_manager.ids[ln] for ln in batch["language_names"]]
+        if (
+            self.language_manager is not None
+            and self.language_manager.language_id_mapping
+            and self.args.use_language_embedding
+        ):
+            language_ids = [self.language_manager.language_id_mapping[ln] for ln in batch["language_names"]]
 
         if language_ids is not None:
             language_ids = torch.LongTensor(language_ids)
@@ -1364,34 +1364,20 @@ class Vits(BaseTTS):
 
         # compute spectrograms
         batch["spec"] = wav_to_spec(wav, ac.fft_size, ac.hop_length, ac.win_length, center=False)
-
-        if self.args.TTS_part_sample_rate:
-            # recompute spec with high sampling rate to the loss
-            spec_mel = wav_to_spec(batch["waveform"], ac.fft_size, ac.hop_length, ac.win_length, center=False)
-        else:
-            spec_mel = batch["spec"]
-
-
         batch["mel"] = spec_to_mel(
-            spec=spec_mel,
+            spec=batch["spec"],
             n_fft=ac.fft_size,
             num_mels=ac.num_mels,
             sample_rate=ac.sample_rate,
             fmin=ac.mel_fmin,
             fmax=ac.mel_fmax,
         )
-
-        batch["waveform_spec"] = wav
-
-        if not self.args.TTS_part_sample_rate:
-            assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
+        assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
 
         # compute spectrogram frame lengths
         batch["spec_lens"] = (batch["spec"].shape[2] * batch["waveform_rel_lens"]).int()
         batch["mel_lens"] = (batch["mel"].shape[2] * batch["waveform_rel_lens"]).int()
-        
-        if not self.args.TTS_part_sample_rate:
-            assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
+        assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
 
         # zero the padding frames
         batch["spec"] = batch["spec"] * sequence_mask(batch["spec_lens"]).unsqueeze(1)
@@ -1545,7 +1531,7 @@ class Vits(BaseTTS):
         language_manager = LanguageManager.init_from_config(config)
 
         if config.model_args.speaker_encoder_model_path:
-            speaker_manager.init_encoder(
+            speaker_manager.init_speaker_encoder(
                 config.model_args.speaker_encoder_model_path, config.model_args.speaker_encoder_config_path
             )
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager)
