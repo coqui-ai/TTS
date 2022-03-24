@@ -818,7 +818,6 @@ class Vits(BaseTTS):
         y: torch.tensor,
         y_lengths: torch.tensor,
         waveform: torch.tensor,
-        waveform_spec: torch.tensor,
         aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
     ) -> Dict:
         """Forward pass of the model.
@@ -884,26 +883,22 @@ class Vits(BaseTTS):
         m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
         logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
 
+        if self.args.TTS_part_sample_rate and self.args.interpolate_z:
+            z = z.unsqueeze(0) # pylint: disable=not-callable
+            z = torch.nn.functional.interpolate(
+                z, scale_factor=[1, self.interpolate_factor], mode='nearest').squeeze(0)
+            y_lengths = y_lengths * self.interpolate_factor
+
         # select a random feature segment for the waveform decoder
         z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size, let_short_samples=True, pad_short=True)
 
-        wav_seg2 = segment(
-            waveform_spec,
-            slice_ids * self.config.audio.hop_length,
-            self.spec_segment_size * self.config.audio.hop_length,
-            pad_short=True,
-        )
-        if self.args.TTS_part_sample_rate:
-            slice_ids = slice_ids * int(self.interpolate_factor)
-            spec_segment_size = self.spec_segment_size * int(self.interpolate_factor)
-            if self.args.interpolate_z:
-                z_slice = z_slice.unsqueeze(0) # pylint: disable=not-callable
-                z_slice = torch.nn.functional.interpolate(
-                    z_slice, scale_factor=[1, self.interpolate_factor], mode='nearest').squeeze(0)
-        else:
-            spec_segment_size = self.spec_segment_size
-
         o = self.waveform_decoder(z_slice.detach() if self.args.detach_z_vocoder else z_slice, g=g)
+
+        if self.args.TTS_part_sample_rate and not self.args.interpolate_z:
+            slice_ids = slice_ids * int(self.interpolate_factor)
+            spec_segment_size = self.args.spec_segment_size * int(self.interpolate_factor)
+        else:
+            spec_segment_size = self.args.spec_segment_size
 
         wav_seg = segment(
             waveform,
@@ -911,11 +906,6 @@ class Vits(BaseTTS):
             spec_segment_size * self.config.audio.hop_length,
             pad_short=True,
         )
-
-        # print(o.shape, wav_seg.shape, spec_segment_size, self.spec_segment_size)
-        # self.ap.save_wav(wav_seg[0].squeeze(0).detach().cpu().numpy(), "/raid/edresson/dev/wav_GT_44khz.wav", sr=self.ap.sample_rate)
-        # self.ap.save_wav(wav_seg2[0].squeeze(0).detach().cpu().numpy(), "/raid/edresson/dev/wav_GT_22khz.wav", sr=self.args.TTS_part_sample_rate)
-        # self.ap.save_wav(o[0].squeeze(0).detach().cpu().numpy(), "/raid/edresson/dev/wav_gen_44khz_test_model_output.wav", sr=self.ap.sample_rate)
 
         if self.args.use_speaker_encoder_as_loss and self.speaker_manager.speaker_encoder is not None:
             # concate generated and GT waveforms
@@ -1102,12 +1092,12 @@ class Vits(BaseTTS):
         self._freeze_layers()
 
         mel_lens = batch["mel_lens"]
-        spec_lens = batch["spec_lens"]
 
         if optimizer_idx == 0:
             tokens = batch["tokens"]
             token_lenghts = batch["token_lens"]
             spec = batch["spec"]
+            spec_lens = batch["spec_lens"]
 
             d_vectors = batch["d_vectors"]
             speaker_ids = batch["speaker_ids"]
@@ -1121,7 +1111,6 @@ class Vits(BaseTTS):
                 spec,
                 spec_lens,
                 waveform,
-                batch["waveform_spec"],
                 aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
             )
 
@@ -1146,14 +1135,16 @@ class Vits(BaseTTS):
 
             # compute melspec segment
             with autocast(enabled=False):
-       
-                if self.args.TTS_part_sample_rate:
-                    spec_segment_size = self.spec_segment_size * int(self.interpolate_factor)
+
+                if self.args.TTS_part_sample_rate and  not self.args.interpolate_z:
+                    slice_ids = self.model_outputs_cache["slice_ids"] * int(self.interpolate_factor)
+                    spec_segment_size = self.args.spec_segment_size * int(self.interpolate_factor)
                 else:
-                    spec_segment_size = self.spec_segment_size
+                    spec_segment_size = self.args.spec_segment_size
+                    slice_ids = self.model_outputs_cache["slice_ids"]
 
                 mel_slice = segment(
-                    mel.float(), self.model_outputs_cache["slice_ids"], spec_segment_size, pad_short=True
+                    mel.float(), slice_ids, spec_segment_size, pad_short=True
                 )
                 mel_slice_hat = wav_to_mel(
                     y=self.model_outputs_cache["model_outputs"].float(),
@@ -1181,7 +1172,7 @@ class Vits(BaseTTS):
                     logs_q=self.model_outputs_cache["logs_q"].float(),
                     m_p=self.model_outputs_cache["m_p"].float(),
                     logs_p=self.model_outputs_cache["logs_p"].float(),
-                    z_len=spec_lens,
+                    z_len=mel_lens,
                     scores_disc_fake=scores_disc_fake,
                     feats_disc_fake=feats_disc_fake,
                     feats_disc_real=feats_disc_real,
@@ -1373,34 +1364,20 @@ class Vits(BaseTTS):
 
         # compute spectrograms
         batch["spec"] = wav_to_spec(wav, ac.fft_size, ac.hop_length, ac.win_length, center=False)
-
-        if self.args.TTS_part_sample_rate:
-            # recompute spec with high sampling rate to the loss
-            spec_mel = wav_to_spec(batch["waveform"], ac.fft_size, ac.hop_length, ac.win_length, center=False)
-        else:
-            spec_mel = batch["spec"]
-
-
         batch["mel"] = spec_to_mel(
-            spec=spec_mel,
+            spec=batch["spec"],
             n_fft=ac.fft_size,
             num_mels=ac.num_mels,
             sample_rate=ac.sample_rate,
             fmin=ac.mel_fmin,
             fmax=ac.mel_fmax,
         )
-
-        batch["waveform_spec"] = wav
-
-        if not self.args.TTS_part_sample_rate:
-            assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
+        assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
 
         # compute spectrogram frame lengths
         batch["spec_lens"] = (batch["spec"].shape[2] * batch["waveform_rel_lens"]).int()
         batch["mel_lens"] = (batch["mel"].shape[2] * batch["waveform_rel_lens"]).int()
-        
-        if not self.args.TTS_part_sample_rate:
-            assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
+        assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
 
         # zero the padding frames
         batch["spec"] = batch["spec"] * sequence_mask(batch["spec_lens"]).unsqueeze(1)
