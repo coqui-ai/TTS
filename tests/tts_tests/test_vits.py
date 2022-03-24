@@ -79,25 +79,25 @@ class TestVits(unittest.TestCase):
         model = Vits(args)
         self.assertEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, 0)
-        self.assertEqual(model.emb_l, None)
+        assertHasNotAttr(self, model, "emb_l")
 
         args = VitsArgs(language_ids_file=LANG_FILE)
         model = Vits(args)
         self.assertNotEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, 0)
-        self.assertEqual(model.emb_l, None)
+        assertHasNotAttr(self, model, "emb_l")
 
         args = VitsArgs(language_ids_file=LANG_FILE, use_language_embedding=True)
         model = Vits(args)
         self.assertNotEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, args.embedded_language_dim)
-        self.assertNotEqual(model.emb_l, None)
+        assertHasAttr(self, model, "emb_l")
 
         args = VitsArgs(language_ids_file=LANG_FILE, use_language_embedding=True, embedded_language_dim=102)
         model = Vits(args)
         self.assertNotEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, args.embedded_language_dim)
-        self.assertNotEqual(model.emb_l, None)
+        assertHasAttr(self, model, "emb_l")
 
     def test_get_aux_input(self):
         aux_input = {"speaker_ids": None, "style_wav": None, "d_vectors": None, "language_ids": None}
