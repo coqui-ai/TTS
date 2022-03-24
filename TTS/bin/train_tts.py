@@ -95,7 +95,7 @@ def main():
         train_samples=train_samples,
         eval_samples=eval_samples,
         training_assets={"audio_processor": ap},
-        parse_command_line_args=False,
+        parse_command_line_args=True, #Change to allow control via command line
     )
     trainer.fit()
 
