@@ -112,6 +112,9 @@ class Synthesizer(object):
         self.use_phonemes = self.tts_config.use_phonemes
         self.tts_model = setup_tts_model(config=self.tts_config)
 
+        if self.use_phonemes and self.tts_config["phonemizer"] is None:
+            raise ValueError("Phonemizer is not defined in the TTS config.")
+
         if not self.encoder_checkpoint:
             self._set_speaker_encoder_paths_from_tts_config()
 

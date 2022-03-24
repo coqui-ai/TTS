@@ -191,6 +191,7 @@ class TTSTokenizer:
                     phonemizer = get_phonemizer_by_name(
                         DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs
                     )
+                    new_config.phonemizer = phonemizer.name()
                 except KeyError as e:
                     raise ValueError(
                         f"""No phonemizer found for language {config.phoneme_language}.
