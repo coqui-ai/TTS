@@ -27,6 +27,11 @@ class BWE(BaseTrainerModel):
             num_blocks=self.args.num_blocks_wn,
         )
 
+    def init_from_config(config: Coqpit):
+        from TTS.utils.audio import AudioProcessor
+        ap = AudioProcessor.init_from_config(config)
+        return BWE(config, ap)
+
     def forward(self, x):
         outputs = {
             "y_hat": self.generator(x),
