@@ -57,7 +57,7 @@ def main():
     # init the trainer and 🚀
     trainer = Trainer(
         train_args,
-        config,
+        model.config,
         config.output_path,
         model=model,
         train_samples=train_samples,
