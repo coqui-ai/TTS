@@ -1,7 +1,7 @@
 import glob
+import json
 import os
 import shutil
-import json
 
 from trainer import get_last_checkpoint
 
@@ -101,11 +101,11 @@ continue_speakers_path = config.d_vector_file
 continue_languages_path = os.path.join(continue_path, "language_ids.json")
 
 # Check integrity of the config
-with open(continue_config_path, "r") as f:
+with open(continue_config_path, "r", encoding="utf-8") as f:
     config_loaded = json.load(f)
-assert config_loaded['characters'] != None
-assert config_loaded['output_path'] in continue_path 
-assert config_loaded['test_delay_epochs'] == 0
+assert config_loaded["characters"] is not None
+assert config_loaded["output_path"] in continue_path
+assert config_loaded["test_delay_epochs"] == 0
 
 # Load the model and run inference
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --language_ids_file_path {continue_languages_path} --language_idx {languae_id} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
