@@ -4,9 +4,8 @@ from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
-from TTS.enhancer.config import BaseEnhancerConfig
-from TTS.tts.datasets import load_tts_samples
-from TTS.enhancer.models import BWE, BWEArgs
+from TTS.enhancer.config.base_enhancer_config import BaseEnhancerConfig
+from TTS.enhancer.models.bwe import BWE, BWEArgs
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname("/home/julian/workspace/train")
@@ -17,14 +16,11 @@ dataset_config = BaseDatasetConfig(
 
 audio_config = BaseAudioConfig(
     sample_rate=48000,
-    win_length=2048,
-    hop_length=512,
     num_mels=128,
     preemphasis=0.0,
     ref_level_db=20,
     log_func="np.log",
     do_trim_silence=False,
-    trim_db=23.0,
     mel_fmin=0,
     mel_fmax=None,
     spec_gain=1.0,

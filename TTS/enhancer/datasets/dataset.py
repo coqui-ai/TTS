@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from TTS.encoder.utils.generic_utils import AugmentWAV
 
 
-class EncoderDataset(Dataset):
+class EnhancerDataset(Dataset):
     def __init__(
         self,
         config,

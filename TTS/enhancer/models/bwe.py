@@ -2,7 +2,13 @@ from coqpit import Coqpit
 from torch import nn
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
+from dataclasses import dataclass
+from typing import Dict, List, Tuple, Union
+from TTS.enhancer.datasets.dataset import EnhancerDataset
+import torch.distributed as dist
+from torch.utils.data import DataLoader
 
+@dataclass
 class BWEArgs(Coqpit):
     num_channel_wn: int = 128
     dilation_rate_wn: int = 3
@@ -38,6 +44,12 @@ class BWE(BaseTrainerModel):
         }
         return outputs
 
+    def inference(self, x):
+        outputs = {
+            "y_hat": self.generator(x),
+        }
+        return outputs
+
     def train_step(self, batch: dict, criterion: nn.Module):
         x = batch["input_wav"]
         y = batch["target_wav"]
@@ -48,4 +60,44 @@ class BWE(BaseTrainerModel):
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    
+    def get_data_loader(
+        self,
+        config: Coqpit,
+        assets: Dict,
+        is_eval: bool,
+        samples: Union[List[Dict], List[List]],
+        verbose: bool,
+        num_gpus: int,
+        rank: int = None,
+    ) -> "DataLoader":
+        if is_eval and not config.run_eval:
+            loader = None
+        else:
+            # init dataloader
+            dataset = EnhancerDataset(
+                config,
+                self.ap,
+                samples,
+                voice_len=1.6,
+                augmentation_config=config.augmentation_config,
+                use_torch_spec=None,
+            )
+
+            # wait all the DDP process to be ready
+            if num_gpus > 1:
+                dist.barrier()
+
+            # get samplers
+            sampler = self.get_sampler(config, dataset, num_gpus)
+
+            loader = DataLoader(
+                dataset,
+                batch_size=config.eval_batch_size if is_eval else config.batch_size,
+                shuffle=True,  # shuffle is done in the dataset.
+                drop_last=False,  # setting this False might cause issues in AMP training.
+                sampler=sampler,
+                collate_fn=dataset.collate_fn,
+                num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
+                pin_memory=False,
+            )
+        return loader
