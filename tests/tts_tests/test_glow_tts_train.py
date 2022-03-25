@@ -1,6 +1,7 @@
 import glob
 import os
 import shutil
+import json
 
 from trainer import get_last_checkpoint
 
@@ -55,6 +56,14 @@ continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 
+# Check integrity of the config
+with open(continue_config_path, "r") as f:
+    config_loaded = json.load(f)
+assert config_loaded['characters'] != None
+assert config_loaded['output_path'] in continue_path 
+assert config_loaded['test_delay_epochs'] == 0
+
+# Load the model and run inference
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
 run_cli(inference_command)
 
