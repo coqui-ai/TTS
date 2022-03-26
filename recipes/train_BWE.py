@@ -7,6 +7,7 @@ from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.enhancer.config.base_enhancer_config import BaseEnhancerConfig
 from TTS.enhancer.models.bwe import BWE, BWEArgs
 from TTS.utils.audio import AudioProcessor
+from TTS.tts.datasets import load_tts_samples
 
 output_path = os.path.dirname("/home/julian/workspace/train")
 
@@ -53,9 +54,15 @@ config = BaseEnhancerConfig(
     output_path=output_path,
     datasets=[dataset_config],
     audio_augmentation={
-        "data_augmentation_p":0.5,
+        "p": 0.5,
         "additive":{
-            "sounds_path": "/media/julian/Workdisk/datasets/musan/noise"
+            "sounds_path": "/media/julian/Workdisk/datasets/musan/",
+            "noise": {
+                "min_snr_in_db": 0,
+                "max_snr_in_db": 25,
+                "min_num_noises": 1,
+                "max_num_noises": 1
+            },
         }
     }
 )
@@ -64,6 +71,9 @@ config = BaseEnhancerConfig(
 # Audio processor is used for feature extraction and audio I/O.
 # It mainly serves to the dataloader and the training loggers.
 ap = AudioProcessor.init_from_config(config)
+
+#
+train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True, eval_split_max_size=config.eval_split_max_size, eval_split_size=config.eval_split_size)
 
 # init model
 model = BWE(config, ap)
@@ -74,5 +84,8 @@ trainer = Trainer(
     config,
     output_path,
     model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples,
 )
+
 trainer.fit()

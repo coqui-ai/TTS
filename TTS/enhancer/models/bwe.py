@@ -1,12 +1,16 @@
 from coqpit import Coqpit
 from torch import nn
+import torch
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 from TTS.enhancer.datasets.dataset import EnhancerDataset
 import torch.distributed as dist
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
+from trainer.torch import DistributedSampler, DistributedSamplerWrapper
+from trainer.trainer_utils import get_optimizer, get_scheduler
+import torch
 
 @dataclass
 class BWEArgs(Coqpit):
@@ -31,6 +35,7 @@ class BWE(BaseTrainerModel):
             kernel_size=1,
             dilation_rate=self.args.dilation_rate_wn,
             num_blocks=self.args.num_blocks_wn,
+            num_layers=self.args.num_layers_wn,
         )
 
     def init_from_config(config: Coqpit):
@@ -78,8 +83,7 @@ class BWE(BaseTrainerModel):
                 config,
                 self.ap,
                 samples,
-                voice_len=1.6,
-                augmentation_config=config.augmentation_config,
+                augmentation_config=config.audio_augmentation,
                 use_torch_spec=None,
             )
 
@@ -101,3 +105,41 @@ class BWE(BaseTrainerModel):
                 pin_memory=False,
             )
         return loader
+
+    def load_checkpoint(
+        self,
+        config,
+        checkpoint_path,
+        eval=False,
+        strict=True,
+    ):  # pylint: disable=unused-argument, redefined-builtin
+        """Load the model checkpoint and setup for training or inference"""
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"], strict=strict)
+        if eval:
+            self.eval()
+            assert not self.training
+
+    def get_optimizer(self) -> List:
+        return get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, self)
+
+    def get_lr(self) -> List:
+        return self.config.lr
+
+    def get_scheduler(self, optimizer) -> List:
+        return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+
+    def get_criterion(self):
+        from TTS.tts.layers.losses import (  # pylint: disable=import-outside-toplevel
+            L1LossMasked
+        )
+        return L1LossMasked(False)
+
+    def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
+        sampler = None
+        # sampler for DDP
+        if sampler is None:
+            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        else:  # If a sampler is already defined use this sampler and DDP sampler together
+            sampler = DistributedSamplerWrapper(sampler) if num_gpus > 1 else sampler
+        return sampler

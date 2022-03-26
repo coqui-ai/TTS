@@ -2,7 +2,7 @@ import random
 
 import torch
 from torch.utils.data import Dataset
-
+from librosa.core import load, resample
 from TTS.encoder.utils.generic_utils import AugmentWAV
 
 
@@ -12,9 +12,6 @@ class EnhancerDataset(Dataset):
         config,
         ap,
         meta_data,
-        voice_len=1.6,
-        num_classes_in_batch=64,
-        num_utter_per_class=10,
         verbose=False,
         augmentation_config=None,
         use_torch_spec=None,
@@ -30,14 +27,11 @@ class EnhancerDataset(Dataset):
         self.config = config
         self.items = meta_data
         self.sample_rate = ap.sample_rate
-        self.seq_len = int(voice_len * self.sample_rate)
-        self.num_utter_per_class = num_utter_per_class
         self.ap = ap
         self.verbose = verbose
         self.use_torch_spec = use_torch_spec
-        self.classes, self.items = self.__parse_items()
-
-        self.classname_to_classid = {key: i for i, key in enumerate(self.classes)}
+        self.input_sr = self.config.input_sr
+        self.target_sr = self.config.target_sr
 
         # Data Augmentation
         self.augmentator = None
@@ -47,101 +41,41 @@ class EnhancerDataset(Dataset):
             if self.data_augmentation_p and ("additive" in augmentation_config or "rir" in augmentation_config):
                 self.augmentator = AugmentWAV(ap, augmentation_config)
 
-            if "gaussian" in augmentation_config.keys():
-                self.gaussian_augmentation_config = augmentation_config["gaussian"]
-
         if self.verbose:
             print("\n > DataLoader initialization")
-            print(f" | > Classes per Batch: {num_classes_in_batch}")
             print(f" | > Number of instances : {len(self.items)}")
-            print(f" | > Sequence length: {self.seq_len}")
-            print(f" | > Num Classes: {len(self.classes)}")
-            print(f" | > Classes: {self.classes}")
-
-    def load_wav(self, filename):
-        audio = self.ap.load_wav(filename, sr=self.ap.sample_rate)
-        return audio
-
-    def __parse_items(self):
-        class_to_utters = {}
-        for item in self.items:
-            path_ = item["audio_file"]
-            class_name = item[self.config.class_name_key]
-            if class_name in class_to_utters.keys():
-                class_to_utters[class_name].append(path_)
-            else:
-                class_to_utters[class_name] = [
-                    path_,
-                ]
-
-        # skip classes with number of samples >= self.num_utter_per_class
-        class_to_utters = {k: v for (k, v) in class_to_utters.items() if len(v) >= self.num_utter_per_class}
-
-        classes = list(class_to_utters.keys())
-        classes.sort()
-
-        new_items = []
-        for item in self.items:
-            path_ = item["audio_file"]
-            class_name = item["emotion_name"] if self.config.model == "emotion_encoder" else item["speaker_name"]
-            # ignore filtered classes
-            if class_name not in classes:
-                continue
-            # ignore small audios
-            if self.load_wav(path_).shape[0] - self.seq_len <= 0:
-                continue
-
-            new_items.append({"wav_file_path": path_, "class_name": class_name})
-
-        return classes, new_items
+            print(f" | > Input sample rate : {self.input_sr}")
+            print(f" | > Target sample rate : {self.target_sr}")
 
     def __len__(self):
         return len(self.items)
 
-    def get_num_classes(self):
-        return len(self.classes)
-
-    def get_class_list(self):
-        return self.classes
-
-    def set_classes(self, classes):
-        self.classes = classes
-        self.classname_to_classid = {key: i for i, key in enumerate(self.classes)}
-
-    def get_map_classid_to_classname(self):
-        return dict((c_id, c_n) for c_n, c_id in self.classname_to_classid.items())
-
     def __getitem__(self, idx):
         return self.items[idx]
 
-    def collate_fn(self, batch):
-        # get the batch class_ids
-        labels = []
-        feats = []
-        for item in batch:
-            utter_path = item["wav_file_path"]
-            class_name = item["class_name"]
+    def load_audio(self, wav_path):
+        wav, sr = load(wav_path, sr=None, mono=True)
+        assert sr == self.target_sr, f"Sample rate mismatch: {sr} vs {self.target_sr}"
+        return wav
 
-            # get classid
-            class_id = self.classname_to_classid[class_name]
+    def collate_fn(self, batch):
+        input = []
+        target = []
+        for item in batch:
+            audio_path = item["audio_file"]
+
             # load wav file
-            wav = self.load_wav(utter_path)
-            offset = random.randint(0, wav.shape[0] - self.seq_len)
-            wav = wav[offset : offset + self.seq_len]
+            target_wav = self.load_audio(audio_path)
+            input_wav = resample(target_wav, self.target_sr, self.input_sr, res_type="linear")
 
             if self.augmentator is not None and self.data_augmentation_p:
                 if random.random() < self.data_augmentation_p:
-                    wav = self.augmentator.apply_one(wav)
+                    input_wav = self.augmentator.apply_one(input_wav)
+            
+            input.append(torch.tensor(input_wav, dtype=torch.float32))
+            target.append(torch.tensor(target_wav, dtype=torch.float32))
 
-            if not self.use_torch_spec:
-                mel = self.ap.melspectrogram(wav)
-                feats.append(torch.FloatTensor(mel))
-            else:
-                feats.append(torch.FloatTensor(wav))
-
-            labels.append(class_id)
-
-        feats = torch.stack(feats)
-        labels = torch.LongTensor(labels)
-
-        return feats, labels
+        return {
+            "input_wav": torch.stack(input),
+            "target_wav": torch.stack(target),
+        }

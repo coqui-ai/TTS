@@ -43,6 +43,22 @@ class BaseTrainerModel(TrainerModel):
         ...
         return outputs_dict
 
+    def format_batch(self, batch: Dict) -> Dict:
+        """Format batch returned by the data loader before sending it to the model.
+
+        If not implemented, model uses the batch as is.
+        Can be used for data augmentation, feature extraction, etc.
+        """
+        return batch
+
+    def format_batch_on_device(self, batch: Dict) -> Dict:
+        """Format batch on device before sending it to the model.
+
+        If not implemented, model uses the batch as is.
+        Can be used for data augmentation, feature extraction, etc.
+        """
+        return batch
+
     @abstractmethod
     def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True) -> None:
         """Load a model checkpoint gile and get ready for training or inference.
