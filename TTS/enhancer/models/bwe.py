@@ -73,8 +73,8 @@ class BWE(BaseTrainerModel):
         y = batch["target_wav"].unsqueeze(1)
         lens = batch["target_lens"]
         outputs = self.forward(x)
-        loss_dict = criterion(outputs["y_hat"], y, lens)
-        return outputs, loss_dict
+        loss = criterion(outputs["y_hat"], y, lens)
+        return outputs, {"loss": loss}
 
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)

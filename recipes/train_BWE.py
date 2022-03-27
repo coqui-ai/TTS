@@ -31,7 +31,7 @@ audio_config = BaseAudioConfig(
 )
 
 bweArgs = BWEArgs(
-    num_channel_wn=128,
+    num_channel_wn=32,
     dilation_rate_wn=3,
     num_blocks_wn=2,
     num_layers_wn=7,
@@ -49,6 +49,7 @@ config = BaseEnhancerConfig(
     test_delay_epochs=-1,
     epochs=1000,
     print_step=25,
+    save_step=250,
     print_eval=False,
     mixed_precision=False,
     output_path=output_path,
