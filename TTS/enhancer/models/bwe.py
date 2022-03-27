@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, Sampler
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 import torch
+from torch.nn import Upsample
 
 @dataclass
 class BWEArgs(Coqpit):
@@ -29,8 +30,15 @@ class BWE(BaseTrainerModel):
         self.config = config
         self.ap = ap
         self.args = config.model_args
+        self.input_sr = config.input_sr
+        self.target_sr = config.target_sr
+        self.scale_factor = (self.target_sr / self.input_sr, )
+
+        self.upsample = Upsample(scale_factor=self.scale_factor)
+        #self.preconv = nn.Conv1d(1, self.args.num_channel_wn, kernel_size=1)
+        self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
         self.generator = WNBlocks(
-            in_channels=self.args.num_channel_wn,
+            in_channels=1,
             hidden_channels=self.args.num_channel_wn,
             kernel_size=1,
             dilation_rate=self.args.dilation_rate_wn,
@@ -44,22 +52,28 @@ class BWE(BaseTrainerModel):
         return BWE(config, ap)
 
     def forward(self, x):
-        outputs = {
-            "y_hat": self.generator(x),
+        x = self.upsample(x)
+        x = self.generator(x)
+        x = self.postconv(x)
+        return {
+            "y_hat": x,
         }
-        return outputs
 
     def inference(self, x):
-        outputs = {
-            "y_hat": self.generator(x),
+        x = self.upsample(x.unsqueeze(1))
+        x = self.generator(x)
+        x = self.postconv(x)
+        x = x.transpose(1, 2)
+        return {
+            "y_hat": x,
         }
-        return outputs
 
     def train_step(self, batch: dict, criterion: nn.Module):
-        x = batch["input_wav"]
-        y = batch["target_wav"]
+        x = batch["input_wav"].unsqueeze(1)
+        y = batch["target_wav"].unsqueeze(1)
+        lens = batch["target_lens"]
         outputs = self.forward(x)
-        loss_dict = criterion(outputs["y_hat"], y)
+        loss_dict = criterion(outputs["y_hat"], y, lens)
         return outputs, loss_dict
 
     def eval_step(self, batch: dict, criterion: nn.Module):

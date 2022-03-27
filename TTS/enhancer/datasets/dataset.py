@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import Dataset
 from librosa.core import load, resample
 from TTS.encoder.utils.generic_utils import AugmentWAV
+from torch.nn.utils.rnn import pad_sequence
 
 
 class EnhancerDataset(Dataset):
@@ -60,7 +61,9 @@ class EnhancerDataset(Dataset):
 
     def collate_fn(self, batch):
         input = []
+        input_lens = []
         target = []
+        target_lens = []
         for item in batch:
             audio_path = item["audio_file"]
 
@@ -71,11 +74,14 @@ class EnhancerDataset(Dataset):
             if self.augmentator is not None and self.data_augmentation_p:
                 if random.random() < self.data_augmentation_p:
                     input_wav = self.augmentator.apply_one(input_wav)
-            
+            input_lens.append(len(input_wav))
+            target_lens.append(len(target_wav))
             input.append(torch.tensor(input_wav, dtype=torch.float32))
             target.append(torch.tensor(target_wav, dtype=torch.float32))
 
         return {
-            "input_wav": torch.stack(input),
-            "target_wav": torch.stack(target),
+            "input_wav": pad_sequence(input, batch_first=True),
+            "target_wav": pad_sequence(target, batch_first=True),
+            "input_lens": torch.tensor(input_lens, dtype=torch.int32),
+            "target_lens": torch.tensor(target_lens, dtype=torch.int32),
         }
