@@ -63,6 +63,9 @@ class WN(torch.nn.Module):
         if c_in_channels > 0:
             cond_layer = torch.nn.Conv1d(c_in_channels, 2 * hidden_channels * num_layers, 1)
             self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name="weight")
+        # init proj layer
+        if self.in_channels != self.hidden_channels:
+            self.proj_layer = torch.nn.Conv1d(self.in_channels, self.hidden_channels, 1)
         # intermediate layers
         for i in range(num_layers):
             dilation = dilation_rate**i
@@ -91,6 +94,8 @@ class WN(torch.nn.Module):
         x_mask = 1.0 if x_mask is None else x_mask
         if g is not None:
             g = self.cond_layer(g)
+        if self.in_channels != self.hidden_channels:
+            x = self.proj_layer(x)
         for i in range(self.num_layers):
             x_in = self.in_layers[i](x)
             x_in = self.dropout(x_in)
