@@ -72,7 +72,7 @@ class EnhancerDataset(Dataset):
             # Make sure that the length of the wav is a multiple of 3
             if len(target_wav) %3 != 0:
                 target_wav = target_wav[:-(len(target_wav) % 3)]
-            input_wav = resample(target_wav, self.target_sr, self.input_sr, res_type="linear")
+            input_wav = resample(target_wav, self.target_sr, self.input_sr, res_type="zero_order_hold")
 
             if self.augmentator is not None and self.data_augmentation_p:
                 if random.random() < self.data_augmentation_p:

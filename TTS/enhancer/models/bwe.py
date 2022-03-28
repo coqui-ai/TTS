@@ -12,6 +12,7 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 import torch
 from torch.nn import Upsample
+from TTS.enhancer.layers.losses import BWELoss
 
 @dataclass
 class BWEArgs(Coqpit):
@@ -74,7 +75,7 @@ class BWE(BaseTrainerModel):
         lens = batch["target_lens"]
         outputs = self.forward(x)
         loss = criterion(outputs["y_hat"], y, lens)
-        return outputs, {"loss": loss}
+        return outputs, loss
 
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
@@ -144,10 +145,7 @@ class BWE(BaseTrainerModel):
         return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
 
     def get_criterion(self):
-        from TTS.tts.layers.losses import (  # pylint: disable=import-outside-toplevel
-            L1LossMasked
-        )
-        return L1LossMasked(False)
+        return BWELoss()
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None
