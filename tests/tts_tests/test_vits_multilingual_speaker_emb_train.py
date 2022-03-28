@@ -76,12 +76,7 @@ config.model_args.TTS_part_sample_rate = 11025
 config.model_args.interpolate_z = True
 config.model_args.detach_z_vocoder = True
 
-config.model_args.upsample_rates_decoder = [
-            8,
-            8,
-            2,
-            2
-        ]
+config.model_args.upsample_rates_decoder = [8, 8, 2, 2]
 
 config.save_json(config_path)
 
