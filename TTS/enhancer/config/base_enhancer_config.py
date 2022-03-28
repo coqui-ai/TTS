@@ -18,6 +18,8 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     eval_split_size: float = 0.01
     target_sr: int = 48000
     input_sr: int = 16000
+    segment_train: bool = True
+    segment_len: float = 1.0
     # model params
     audio_augmentation: Dict = field(default_factory=lambda: {})
     # optimizer

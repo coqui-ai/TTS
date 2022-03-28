@@ -36,7 +36,6 @@ class BWE(BaseTrainerModel):
         self.scale_factor = (self.target_sr / self.input_sr, )
 
         self.upsample = Upsample(scale_factor=self.scale_factor)
-        #self.preconv = nn.Conv1d(1, self.args.num_channel_wn, kernel_size=1)
         self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
         self.generator = WNBlocks(
             in_channels=1,
@@ -100,6 +99,7 @@ class BWE(BaseTrainerModel):
                 samples,
                 augmentation_config=config.audio_augmentation,
                 use_torch_spec=None,
+                verbose=True,
             )
 
             # wait all the DDP process to be ready
@@ -145,7 +145,8 @@ class BWE(BaseTrainerModel):
         return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
 
     def get_criterion(self):
-        return BWELoss()
+        #device = next(self.parameters()).device
+        return BWELoss("cuda:0")
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None

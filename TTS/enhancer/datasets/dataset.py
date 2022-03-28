@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from librosa.core import load, resample
 from TTS.encoder.utils.generic_utils import AugmentWAV
 from torch.nn.utils.rnn import pad_sequence
+import random
 
 
 class EnhancerDataset(Dataset):
@@ -33,6 +34,8 @@ class EnhancerDataset(Dataset):
         self.use_torch_spec = use_torch_spec
         self.input_sr = self.config.input_sr
         self.target_sr = self.config.target_sr
+        self.segment_train = self.config.segment_train
+        self.segment_len = self.config.segment_len
 
         # Data Augmentation
         self.augmentator = None
@@ -54,6 +57,25 @@ class EnhancerDataset(Dataset):
     def __getitem__(self, idx):
         return self.items[idx]
 
+    def segment_wav(self, wav):
+        """
+        Extract a random segment of segment_len from waveform.
+        Args:
+            wav (np.array): waveform.
+        Returns:
+            np.array: random segment.
+        """
+        if self.segment_train:
+            segment_len = self.segment_len * self.sample_rate
+            if segment_len > len(wav):
+                return wav
+            segment_start = random.randint(0, len(wav) - segment_len)
+            segment_end = segment_start + segment_len
+            segment = wav[segment_start:segment_end]
+            return segment
+        else:
+            return wav
+
     def load_audio(self, wav_path):
         wav, sr = load(wav_path, sr=None, mono=True)
         assert sr == self.target_sr, f"Sample rate mismatch: {sr} vs {self.target_sr}"
@@ -69,7 +91,9 @@ class EnhancerDataset(Dataset):
 
             # load wav file
             target_wav = self.load_audio(audio_path)
-            # Make sure that the length of the wav is a multiple of 3
+            # segment wav file
+            target_wav = self.segment_wav(target_wav)
+            # make sure that the length of the wav is a multiple of 3
             if len(target_wav) %3 != 0:
                 target_wav = target_wav[:-(len(target_wav) % 3)]
             input_wav = resample(target_wav, self.target_sr, self.input_sr, res_type="zero_order_hold")
@@ -77,6 +101,7 @@ class EnhancerDataset(Dataset):
             if self.augmentator is not None and self.data_augmentation_p:
                 if random.random() < self.data_augmentation_p:
                     input_wav = self.augmentator.apply_one(input_wav)
+                    
             input_lens.append(len(input_wav))
             target_lens.append(len(target_wav))
             input.append(torch.tensor(input_wav, dtype=torch.float32))
