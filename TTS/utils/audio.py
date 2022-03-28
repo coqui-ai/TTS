@@ -89,6 +89,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         power=None,
         use_htk=False,
         mel_norm="slaney",
+        device="cpu",
     ):
         super().__init__()
         self.n_fft = n_fft
@@ -105,7 +106,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         self.power = power
         self.use_htk = use_htk
         self.mel_norm = mel_norm
-        self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
+        self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False).to(device)
         self.mel_basis = None
         if use_mel:
             self._build_mel_basis()
