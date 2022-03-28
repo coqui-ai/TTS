@@ -1507,6 +1507,11 @@ class Vits(BaseTTS):
         # TODO: consider baking the speaker encoder into the model and call it from there.
         # as it is probably easier for model distribution.
         state["model"] = {k: v for k, v in state["model"].items() if "speaker_encoder" not in k}
+
+        if self.args.TTS_part_sample_rate is not None and eval:
+            # audio resampler is not used in inference time
+            self.audio_resampler = None
+
         # handle fine-tuning from a checkpoint with additional speakers
         if hasattr(self, "emb_g") and state["model"]["emb_g.weight"].shape != self.emb_g.weight.shape:
             num_new_speakers = self.emb_g.weight.shape[0] - state["model"]["emb_g.weight"].shape[0]
