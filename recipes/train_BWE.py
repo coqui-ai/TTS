@@ -33,6 +33,7 @@ audio_config = BaseAudioConfig(
 bweArgs = BWEArgs(
     num_channel_wn=128,
     dilation_rate_wn=3,
+    kernel_size_wn=3,
     num_blocks_wn=2,
     num_layers_wn=7,
 )
@@ -41,15 +42,16 @@ config = BaseEnhancerConfig(
     model_args=bweArgs,
     audio=audio_config,
     run_name="enhancer_bwe_vctk",
-    batch_size=12,
-    eval_batch_size=12,
-    num_loader_workers=16,
+    batch_size=4,
+    eval_batch_size=4,
+    num_loader_workers=12,
     num_eval_loader_workers=4,
     run_eval=True,
     test_delay_epochs=-1,
-    epochs=1000,
+    epochs=25,
     print_step=25,
-    save_step=250,
+    save_step=1000,
+    grad_clip=0.5,
     segment_train=True,
     segment_len=1,
     print_eval=False,
@@ -57,9 +59,9 @@ config = BaseEnhancerConfig(
     output_path=output_path,
     datasets=[dataset_config],
     audio_augmentation={
-        "p": 0.5,
+        "p": 0.8,
         "additive":{
-            "sounds_path": "/media/julian/Workdisk/datasets/musan/",
+            "sounds_path": "/media/julian/Workdisk/datasets/DNS-Challenge/",
             "noise": {
                 "min_snr_in_db": 0,
                 "max_snr_in_db": 25,

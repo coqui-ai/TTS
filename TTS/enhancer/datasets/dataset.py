@@ -101,7 +101,7 @@ class EnhancerDataset(Dataset):
             if self.augmentator is not None and self.data_augmentation_p:
                 if random.random() < self.data_augmentation_p:
                     input_wav = self.augmentator.apply_one(input_wav)
-                    
+             
             input_lens.append(len(input_wav))
             target_lens.append(len(target_wav))
             input.append(torch.tensor(input_wav, dtype=torch.float32))

@@ -20,12 +20,13 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     input_sr: int = 16000
     segment_train: bool = True
     segment_len: float = 1.0
+    grad_clip: float = 3.0
     # model params
     audio_augmentation: Dict = field(default_factory=lambda: {})
     # optimizer
-    optimizer: str = "AdamW"
-    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
+    optimizer: str = "Adam"
+    optimizer_params: dict = field(default_factory=lambda: {})
     # scheduler
-    lr: float = 0.0002
-    lr_scheduler: str = "ExponentialLR"
-    lr_scheduler_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
+    lr: float = 0.0001
+    lr_scheduler: str = None
+    lr_scheduler_params: dict = field(default_factory=lambda: {})

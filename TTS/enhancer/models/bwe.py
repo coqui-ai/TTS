@@ -20,6 +20,7 @@ class BWEArgs(Coqpit):
     dilation_rate_wn: int = 3
     num_blocks_wn: int = 2
     num_layers_wn: int = 7
+    kernel_size_wn: int = 3
 
 class BWE(BaseTrainerModel):
     def __init__(
@@ -40,7 +41,7 @@ class BWE(BaseTrainerModel):
         self.generator = WNBlocks(
             in_channels=1,
             hidden_channels=self.args.num_channel_wn,
-            kernel_size=1,
+            kernel_size=self.args.kernel_size_wn,
             dilation_rate=self.args.dilation_rate_wn,
             num_blocks=self.args.num_blocks_wn,
             num_layers=self.args.num_layers_wn,

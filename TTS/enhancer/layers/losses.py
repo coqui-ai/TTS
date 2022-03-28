@@ -28,17 +28,22 @@ class BWELoss(torch.nn.Module):
     def forward(self, y_hat, y, lens):
         return_dict = {}
         return_dict["l1_wavform"] = self.l1_wavform(y_hat, y, lens)
+
         with torch.no_grad():
             y_specs = [self.specs[i](y[:, 0, :]) for i in range(4)]
             y_mel = self.mel_spec(y[:, 0, :])
+
         y_hat_specs = [self.specs[i](y_hat[:, 0, :]) for i in range(4)]
         y_hat_mel = self.mel_spec(y_hat[:, 0, :])
+
         mel_lens = self.compute_lens(y_mel, lens)
         return_dict["l1_mel"] = self.l1_mel(y_hat_mel, y_mel, mel_lens)
+
         return_dict["l1_spec"] = torch.mean(torch.stack([
             self.l1_spec[i](y_hat_specs[i], y_specs[i], self.compute_lens(y_specs[i], lens))
             for i in range(4)]))
-        return_dict["loss"] = return_dict["l1_wavform"] * 10 + return_dict["l1_mel"] + return_dict["l1_spec"]
+
+        return_dict["loss"] = return_dict["l1_wavform"] + return_dict["l1_mel"] + return_dict["l1_spec"]
 
         # check if any loss is NaN
         for key, loss in return_dict.items():
