@@ -66,7 +66,7 @@ class EnhancerDataset(Dataset):
             np.array: random segment.
         """
         if self.segment_train:
-            segment_len = self.segment_len * self.sample_rate
+            segment_len = int(self.segment_len * self.sample_rate)
             if segment_len > len(wav):
                 return wav
             segment_start = random.randint(0, len(wav) - segment_len)
