@@ -58,7 +58,7 @@ class VAEStyleEncoder(nn.Module):
         z = self.reparametrize(mu, logvar)
 
         z = z.unsqueeze(1)
-        return {'z' :z , 'mean': mu, 'log_vae': logvar, 'out': out} #out will be the RE output, just to have the output if needed
+        return {'z' :z , 'mean': mu, 'log_var': logvar, 'out': out} #out will be the RE output, just to have the output if needed
 
     def reparametrize(self, mu, logvar):
         std = torch.exp(0.5*logvar)  
