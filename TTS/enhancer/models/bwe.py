@@ -1,18 +1,23 @@
 from coqpit import Coqpit
 from torch import nn
+import numpy as np
+import matplotlib.pyplot as plt
 import torch
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
+from TTS.tts.utils.visual import plot_spectrogram
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 from TTS.enhancer.datasets.dataset import EnhancerDataset
 import torch.distributed as dist
+from librosa.core import resample
 from torch.utils.data import DataLoader, Sampler
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 import torch
 from torch.nn import Upsample
 from TTS.enhancer.layers.losses import BWELoss
+import librosa
 
 @dataclass
 class BWEArgs(Coqpit):
@@ -157,3 +162,40 @@ class BWE(BaseTrainerModel):
         else:  # If a sampler is already defined use this sampler and DDP sampler together
             sampler = DistributedSamplerWrapper(sampler) if num_gpus > 1 else sampler
         return sampler
+
+    def eval_log(
+        self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
+    ) -> Tuple[Dict, np.ndarray]:
+        """Call `_log()` for evaluation."""
+        figures, audios = self._log("eval", batch, outputs)
+        logger.eval_figures(steps, figures)
+        logger.eval_audios(steps, audios, self.target_sr)
+
+    def _log(self, name: str, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
+        print(outputs)
+        y_hat = outputs["y_hat"][0].detach().squeeze(0).cpu().numpy()
+        y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
+        x = batch["input_wav"][0].detach().squeeze(0).cpu().numpy()
+        x = resample(x, 16000, 48000, res_type="zero_order_hold")
+        figures = {
+            name + "_input": self._plot_spec(x, 48000),
+            name + "_generated": self._plot_spec(y_hat, 48000),
+            name + "_target": self._plot_spec(y, 48000),
+        }
+        audios = {
+            f"{name}_input/audio": x,
+            f"{name}_generated/audio": y_hat,
+            f"{name}_target/audio": y
+        }
+        return figures, audios
+
+    @staticmethod
+    def _plot_spec(x, sr):
+        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=128, fmax=22050)
+        spec = librosa.power_to_db(spec, ref=np.max)
+        fig = plt.figure(figsize=(16, 10))
+        plt.imshow(spec, aspect="auto", origin="lower")
+        plt.colorbar()
+        plt.tight_layout()
+        plt.close()
+        return fig
