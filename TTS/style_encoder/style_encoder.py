@@ -59,7 +59,7 @@ class StyleEncoder(nn.Module):
         if self.se_type == 'gst':
             out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
         elif self.se_type == 'diffusion':
-            out = self.diff_inference(inputs, mel_in = kwargs['style_mel'], infer_from = kwargs['diff_t'])
+            out = self.diff_inference(inputs, ref_mels = kwargs['style_mel'], infer_from = kwargs['diff_t'])
         elif self.se_type == 'vae':
             out = self.vae_inference(inputs, ref_mels= kwargs['style_mel'], z = kwargs['z'])
         else:
