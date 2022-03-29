@@ -22,6 +22,6 @@ class VAEStyleEncoderLoss(torch.nn.Module):
         self.config = c  
         self.alpha_vae = 1.0 # alpha of the loss function, it will be changed while training
 
-        def forward(self, mean, log_var):
-            KL = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
-            return KL
+    def forward(self, mean, log_var):
+        KL = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
+        return KL
