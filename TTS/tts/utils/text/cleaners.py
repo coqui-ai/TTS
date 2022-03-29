@@ -143,3 +143,8 @@ def multilingual_cleaners(text):
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
     return text
+
+def no_cleaners(text):
+    """JMa: Basic pipeline that only collapses whitespace. No lowercase is done!"""
+    text = collapse_whitespace(text)
+    return text
