@@ -26,7 +26,7 @@ class StyleEncoderConfig(Coqpit):
 
     # Generic Style Encoder Configuration
     num_mel: int = 80
-    style_embedding_dim: int = 64
+    style_embedding_dim: int = 128
     use_speaker_embedding: bool = False
 
     # GST-Specific Configs
@@ -35,10 +35,11 @@ class StyleEncoderConfig(Coqpit):
     gst_num_style_tokens: int = 10
 
     # VAE-SE-Specific Configs
-    vae_latent_dim: int = 256
-    embedding_dim: int = 128
-    use_cyclical_annealing: bool = False
-    vae_loss_alpha: int = 1.0
+    vae_latent_dim: int = 128 # Dim of mean and logvar
+    embedding_dim: int = 128 # Dim of reference encoder output
+    use_cyclical_annealing: bool = True # Whether use or not annealing (recommended true), only linear implemented
+    vae_loss_alpha: int = 1.0 # Default alpha value (term of KL loss)
+    vae_cycle_period: int = 5000 # iteration period to apply a new annealing cycle
 
     # Diffusion-specific Configs
     diff_num_timesteps: int = 25 
