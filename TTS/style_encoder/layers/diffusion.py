@@ -11,7 +11,6 @@ class DiffStyleEncoder(nn.Module):
         diff_num_timesteps, 
         diff_schedule_type,
         diff_loss_type, 
-        diff_use_diff_output,
         ref_online, 
         ref_num_mel, 
         ref_style_emb_dim, 
@@ -32,7 +31,6 @@ class DiffStyleEncoder(nn.Module):
         self.denoiser = DiffNet(ref_style_emb_dim, den_step_dim, den_in_out_ch, den_num_heads, den_hidden_channels, den_num_blocks, den_dropout)
         self.num_timesteps = int(diff_num_timesteps)
         self.loss_type = diff_loss_type
-        self.use_diff_out = diff_use_diff_output
 
         # Betas
         if diff_schedule_type == 'linear':
@@ -132,7 +130,7 @@ class DiffStyleEncoder(nn.Module):
         else:
             with torch.no_grad():
                 z = self.ref_encoder(mel_in).unsqueeze(1)
-        ret['style'] = z
+        ret['ref_enc_style'] = z
         
         # Sample a t from U[0,T] (common for the whole batch)
         t = torch.randint(0, self.num_timesteps, (1,), device=device).item() 
@@ -146,14 +144,14 @@ class DiffStyleEncoder(nn.Module):
         ret['noises'] = self.p_pred(z_iso, t_vec, noise=noise_target)
 
         # Calculate z_{0} and pass to the TTS model for backpropagation
-        if self.use_diff_out:
-            # Propagate Noise in Style (z -> z_{t})
-            z = self.q_sample(z, t=torch.tensor([t-1], device=device), noise = noise_target)
+        
+        # Propagate Noise in Style (z -> z_{t})
+        z = self.q_sample(z, t=torch.tensor([t-1], device=device), noise = noise_target)
 
-            # Reconstruct Style {z{t} -> z{t-1} -> ... -> z{0}}
-            for i in reversed(range(0,t)):
-                z = self.p_sample(z, t = torch.full((b,), i, device=device, dtype=torch.long))
-            ret['style'] = z
+        # Reconstruct Style {z{t} -> z{t-1} -> ... -> z{0}}
+        for i in reversed(range(0,t)):
+            z = self.p_sample(z, t = torch.full((b,), i, device=device, dtype=torch.long))
+        ret['style'] = z
 
         return ret
 

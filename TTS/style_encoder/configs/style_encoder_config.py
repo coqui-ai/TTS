@@ -45,7 +45,6 @@ class StyleEncoderConfig(Coqpit):
     diff_num_timesteps: int = 25 
     diff_schedule_type: str = 'cosine'
     diff_loss_type: str = 'l1' 
-    diff_use_diff_output: bool = False
     diff_ref_online: bool = True 
     diff_step_dim: int = 128
     diff_in_out_ch: int = 1 
@@ -73,7 +72,6 @@ class StyleEncoderConfig(Coqpit):
         check_argument("diff_schedule_type", c, restricted=True, enum_list=["cosine", "linear"])
         check_argument("diff__step", c, restricted=True, min_val=0, max_val=self.num_timesteps)
         check_argument("diff_loss_type", c, restricted=True, enum_list=["l1", "mse"])
-        check_argument("diff_use_diff_output", c, restricted=True, enum_list=[True, False])
         check_argument("diff_ref_online", c, restricted=True, enum_list=[True, False])
         check_argument("diff_step_dim", c, restricted=True, min_val=0, max_val=1000)
         check_argument("diff_in_out_ch", c, restricted=True, min_val=1, max_val=1)
