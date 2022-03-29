@@ -6,8 +6,8 @@ from TTS.trainer import Trainer, TrainingArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
-from TTS.tts.models.styletacotron2 import StyleTacotron2
-from TTS.tts.configs.styletacotron2_config import StyleTacotron2Config
+from TTS.tts.models.styletacotron2 import Styletacotron2
+from TTS.tts.configs.styletacotron2_config import Styletacotron2Config
 
 # Style Encoder Imports (Config and Layer)
 from TTS.style_encoder.configs.style_encoder_config import StyleEncoderConfig
@@ -36,7 +36,7 @@ audio_config = BaseAudioConfig(
 style_config = StyleEncoderConfig()
 
 # Pass the Encoder Config to the Model Config
-config = StyleTacotronConfig( 
+config = Styletacotron2Config( 
     style_encoder_config=style_config,
     num_eval_loader_workers=0,
     use_noise_augment=False,
@@ -79,7 +79,7 @@ ap = AudioProcessor(**config.audio.to_dict())
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
 # init model
-model = StyleTacotron2(config)
+model = Styletacotron2(config)
 
 # init the trainer and 🚀
 trainer = Trainer(
