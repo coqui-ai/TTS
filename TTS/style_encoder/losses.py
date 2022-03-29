@@ -27,14 +27,14 @@ class VAEStyleEncoderLoss(torch.nn.Module):
         KL = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
         
         # Doing this here to not affect original training schedules of other style encoders
-        if(self.c['use_cyclical_annealing']):
+        if(self.config['use_cyclical_annealing']):
             self.step += 1   
             self.update_alphavae(self.step)
 
         return KL
 
     def update_alphavae(self, step):
-        self.alpha_vae = min(1, (step%self.c['vae_cycle_period'])/self.c['vae_cycle_period'])
+        self.alpha_vae = min(1, (step%self.config['vae_cycle_period'])/self.config['vae_cycle_period'])
         # Verbose       
-        if((step%self.c['vae_cycle_period'])/self.c['vae_cycle_period'] > 1):
+        if((step%self.config['vae_cycle_period'])/self.config['vae_cycle_period'] > 1):
             print("VAE: Cyclical annealing restarting")
