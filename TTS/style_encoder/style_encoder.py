@@ -103,13 +103,13 @@ class StyleEncoder(nn.Module):
         return outputs
 
     def vae_forward(self, inputs, ref_mels): 
-        vae_output = self.layer.foward(ref_mels)
+        vae_output = self.layer.forward(ref_mels)
         return self._concat_embedding(inputs, vae_output['z'])
     
     def vae_inference(self, inputs, ref_mels, z=None):
         if(z):
             return self._concat_embedding(inputs, z)  # If an specific z is passed it uses it
         else:
-            vae_output = self.layer.foward(ref_mels)
+            vae_output = self.layer.forward(ref_mels)
             return self._concat_embedding(inputs, vae_output['z'])
             
