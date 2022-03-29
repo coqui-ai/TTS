@@ -21,7 +21,8 @@ audio_config = BaseAudioConfig(
     preemphasis=0.0,
     ref_level_db=20,
     log_func="np.log",
-    do_trim_silence=False,
+    do_trim_silence=True,
+    trim_db=15,
     mel_fmin=0,
     mel_fmax=None,
     spec_gain=1.0,
@@ -59,11 +60,11 @@ config = BaseEnhancerConfig(
     output_path=output_path,
     datasets=[dataset_config],
     audio_augmentation={
-        "p": 0.8,
+        "p": 1,
         "additive":{
             "sounds_path": "/media/julian/Workdisk/datasets/DNS-Challenge/",
             "noise": {
-                "min_snr_in_db": 0,
+                "min_snr_in_db": 15,
                 "max_snr_in_db": 25,
                 "min_num_noises": 1,
                 "max_num_noises": 1
