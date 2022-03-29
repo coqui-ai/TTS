@@ -30,7 +30,6 @@ class StyleEncoder(nn.Module):
                 diff_num_timesteps = self.diff_num_timesteps, 
                 diff_schedule_type = self.diff_schedule_type,
                 diff_loss_type = self.diff_loss_type, 
-                diff_use_diff_output = self.diff_use_diff_output,
                 ref_online = self.diff_ref_online, 
                 ref_num_mel = self.num_mel, 
                 ref_style_emb_dim = self.style_embedding_dim, 
