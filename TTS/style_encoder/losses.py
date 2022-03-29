@@ -31,7 +31,7 @@ class VAEStyleEncoderLoss(torch.nn.Module):
         # Doing this here to not affect original training schedules of other style encoders
         if(self.config['use_cyclical_annealing']):
             self.step += 1   
-            print(self.step, self.alpha_vae)
+            # print(self.step, self.alpha_vae) Used to debug, and seems to be working
             self.update_alphavae(self.step)
 
         return KL
@@ -40,4 +40,4 @@ class VAEStyleEncoderLoss(torch.nn.Module):
         self.alpha_vae = min(1, (step%self.config['vae_cycle_period'])/self.config['vae_cycle_period'])
         # Verbose       
         if((step%self.config['vae_cycle_period'])/self.config['vae_cycle_period'] > 1):
-            print("VAE: Cyclical annealing restarting")
+            print("VAE: Cyclical annealing restarting") # This print is not working
