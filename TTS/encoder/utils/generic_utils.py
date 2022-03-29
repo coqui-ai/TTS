@@ -88,7 +88,7 @@ class AugmentWAV(object):
 
             noise_snr = random.uniform(
                 self.additive_noise_config[noise_type]["min_snr_in_db"],
-                self.additive_noise_config[noise_type]["max_num_noises"],
+                self.additive_noise_config[noise_type]["max_snr_in_db"],
             )
             noise_db = 10 * np.log10(np.mean(noiseaudio**2) + 1e-4)
             noise_wav = np.sqrt(10 ** ((clean_db - noise_db - noise_snr) / 10)) * noiseaudio
