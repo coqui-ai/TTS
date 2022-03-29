@@ -3,6 +3,7 @@ import random
 import torch
 from torch.utils.data import Dataset
 from librosa.core import load, resample
+import librosa
 from TTS.encoder.utils.generic_utils import AugmentWAV
 from torch.nn.utils.rnn import pad_sequence
 import random
@@ -79,7 +80,14 @@ class EnhancerDataset(Dataset):
     def load_audio(self, wav_path):
         wav, sr = load(wav_path, sr=None, mono=True)
         assert sr == self.target_sr, f"Sample rate mismatch: {sr} vs {self.target_sr}"
+        if self.ap.trim_silence:
+            wav = self.trim_silence(wav)
         return wav
+
+    def trim_silence(self, wav):
+        margin = int(self.ap.sample_rate * 0.01)
+        wav = wav[margin:-margin]
+        return librosa.effects.trim(wav, top_db=self.ap.trim_db, frame_length=self.ap.win_length, hop_length=self.ap.hop_length)[0]
 
     def collate_fn(self, batch):
         input = []
