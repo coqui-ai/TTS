@@ -36,6 +36,7 @@ class StyleEncoderConfig(Coqpit):
 
     # VAE-SE-Specific Configs
     vae_latent_dim: int = 256
+    embedding_dim: int = 128
     use_cyclical_annealing: bool = False
     vae_loss_alpha: int = 1.0
 
