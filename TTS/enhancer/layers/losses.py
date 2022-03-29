@@ -38,7 +38,7 @@ class BWELoss(torch.nn.Module):
         return_dict["l1_mel"] = self.l1_masked(y_hat_mel, y_mel, mel_lens)
 
         return_dict["l1_spec"] = torch.mean(torch.stack([
-            self.l1_masked[i](y_hat_specs[i], y_specs[i], self.compute_lens(y_specs[i], lens))
+            self.l1_masked(y_hat_specs[i], y_specs[i], self.compute_lens(y_specs[i], lens))
             for i in range(4)]))
 
         return_dict["loss"] = return_dict["l1_wavform"] * 50 + return_dict["l1_mel"] + return_dict["l1_spec"]
