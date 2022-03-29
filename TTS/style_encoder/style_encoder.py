@@ -2,7 +2,7 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 from TTS.style_encoder.layers.gst import GST
-from TTS.style_encoder.layers.vae_se import VAEStyleEncoder
+from TTS.style_encoder.layers.vae import VAEStyleEncoder
 from TTS.style_encoder.layers.diffusion import DiffStyleEncoder
 
 class StyleEncoder(nn.Module):
