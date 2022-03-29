@@ -19,7 +19,7 @@ class StyleEncoder(nn.Module):
                 num_heads = self.gst_num_heads,
                 num_style_tokens = self.gst_num_style_tokens,
             )
-        elif self.se_type == 'vae_se':
+        elif self.se_type == 'vae':
             self.layer = VAEStyleEncoder(
                 num_mel = self.num_mel,
                 embedding_dim = self.embedding_dim,
@@ -49,6 +49,8 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(*inputs)
         elif self.se_type == 'diffusion':
             out = self.diff_forward(*inputs)
+        elif self.se_type == 'vae':
+            out = self.vae_forward(*inputs)
         else:
             raise NotImplementedError
         return out
@@ -58,6 +60,8 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
         elif self.se_type == 'diffusion':
             out = self.diff_inference(inputs, mel_in = kwargs['style_mel'], infer_from = kwargs['diff_t'])
+        elif self.se_type == 'vae':
+            out = self.vae_inference(inputs, ref_mels= kwargs['style_mel'], z = kwargs['z'])
         else:
             raise NotImplementedError
         return out
@@ -97,3 +101,15 @@ class StyleEncoder(nn.Module):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = torch.cat([outputs, embedded_speakers_], dim=-1)
         return outputs
+
+    def vae_forward(self, inputs, ref_mels): 
+        vae_output = self.layer.foward(ref_mels)
+        return self._concat_embedding(inputs, vae_output['z'])
+    
+    def vae_inference(self, inputs, ref_mels, z=None):
+        if(z):
+            return self._concat_embedding(inputs, z)  # If an specific z is passed it uses it
+        else:
+            vae_output = self.layer.foward(ref_mels)
+            return self._concat_embedding(inputs, vae_output['z'])
+            

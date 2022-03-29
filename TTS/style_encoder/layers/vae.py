@@ -26,11 +26,11 @@ class VAEStyleEncoder(nn.Module):
 
         post_conv_height = self.calculate_post_conv_height(num_mel, 3, 2, 1, num_layers)
         self.recurrence = nn.GRU(
-            input_size=filters[-1] * post_conv_height, hidden_size=embedding_dim // 2, batch_first=True
+            input_size=filters[-1] * post_conv_height, hidden_size=embedding_dim, batch_first=True
         )
 
-        self.mu = nn.Linear(embedding_dim//2, latent_dim)
-        self.logvar = nn.Linear(embedding_dim//2, latent_dim)
+        self.mu = nn.Linear(embedding_dim, latent_dim)
+        self.logvar = nn.Linear(embedding_dim, latent_dim)
 
     def forward(self, inputs):
         batch_size = inputs.size(0)
@@ -57,7 +57,7 @@ class VAEStyleEncoder(nn.Module):
 
         z = self.reparametrize(mu, logvar)
 
-        return z ,mu, logvar, out
+        return {'z' :z , 'mean': mu, 'log_vae': logvar, 'out': out} #out will be the RE output, just to have the output if needed
 
     def reparametrize(self, mu, logvar):
         std = torch.exp(0.5*logvar)  
@@ -74,6 +74,7 @@ class VAEStyleEncoder(nn.Module):
         return height
 
 
+## Not well implemented yet
 class ModifiedReferenceEncoder(nn.Module):
     """NN module creating a fixed size prosody embedding from a spectrogram, modified to use a last linear layer and bilstm.
 

@@ -450,6 +450,8 @@ class StyleTacotronLoss(torch.nn.Module):
         # style loss
         if self.style_encoder_config.se_type == 'diffusion':
             self.criterion_se = DiffusionStyleEncoderLoss(self.style_encoder_config)
+        if self.style_encoder_config.se_type == 'vae':
+            self.criterion_se = VAEStyleEncoderLoss(self.style_encoder_config)
 
     def forward(
         self,
@@ -553,10 +555,16 @@ class StyleTacotronLoss(torch.nn.Module):
             loss += postnet_ssim_loss * self.postnet_ssim_alpha
             return_dict["postnet_ssim_loss"] = postnet_ssim_loss
 
-        # style encoder loss
+        # style encoder loss diffusion based
         if self.style_encoder_config.se_type == 'diffusion':
             style_loss = self.criterion_se(style_encoder_output['noise_pred'], style_encoder_output['noise_target'])
             loss += style_loss * self.style_encoder_config.diff_loss_alpha
+            return_dict["style_encoder_loss"] = style_loss
+        
+        # style encoder loss VAE based
+        if self.style_encoder_config.se_type == 'vae':
+            style_loss = self.criterion_se(style_encoder_output['mean'], style_encoder_output['log_var'])
+            loss += style_loss * self.criterion_se.alpha_vae
             return_dict["style_encoder_loss"] = style_loss
             
         return_dict["loss"] = loss

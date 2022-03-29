@@ -17,6 +17,9 @@ class StyleEncoderConfig(Coqpit):
 
         gst_num_style_tokens (int):
             Number of style token vectors. Defaults to 10.
+
+        se_type (str):
+            Style encoder type \in {diffusion, vae, gst, re}
     """
     # Style Encoder Type
     se_type: str = "diffusion"
@@ -33,6 +36,8 @@ class StyleEncoderConfig(Coqpit):
 
     # VAE-SE-Specific Configs
     vae_latent_dim: int = 256
+    use_cyclical_annealing: bool = False
+    vae_loss_alpha: int = 1.0
 
     # Diffusion-specific Configs
     diff_num_timesteps: int = 25 

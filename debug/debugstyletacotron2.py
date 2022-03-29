@@ -14,7 +14,7 @@ from TTS.tts.configs.shared_configs import GSTConfig
 
 # Style Tacotron Imports
 from TTS.tts.models.styletacotron2 import StyleTacotron2
-from TTS.tts.configs.style_tacotron2_config import StyleTacotronConfig
+from TTS.tts.configs.styletacotron2_config import StyleTacotronConfig
 from TTS.style_encoder.configs.style_encoder_config import StyleEncoderConfig
 
 def seed_everything(seed: int):
