@@ -93,13 +93,14 @@ trainer = Trainer(
     training_assets={"audio_processor": ap},
 )
 
-train_loader = trainer.get_train_dataloader(
-            trainer.training_assets,
-            trainer.train_samples,
-            verbose=True,
-        )
 
-batch = next(iter(train_loader))
+#train_loader = trainer.get_train_dataloader(
+#            trainer.training_assets,
+#            trainer.train_samples,
+#            verbose=True,
+#        )
+
+#batch = next(iter(train_loader))
 
 # Debug Diff Out
 #import torch
