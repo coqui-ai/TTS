@@ -1,6 +1,5 @@
 import argparse
 import os
-import torch
 from argparse import RawTextHelpFormatter
 
 import torch
@@ -68,7 +67,7 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
         embedd = encoder_manager.compute_embedding_from_clip(wav_file)
 
     if args.use_predicted_label:
-        map_classid_to_classname = getattr(encoder_manager.encoder_config, 'map_classid_to_classname', None)
+        map_classid_to_classname = getattr(encoder_manager.encoder_config, "map_classid_to_classname", None)
         if encoder_manager.encoder_criterion is not None and map_classid_to_classname is not None:
             embedding = torch.FloatTensor(embedd).unsqueeze(0)
             if encoder_manager.use_cuda:
@@ -77,9 +76,7 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
             class_id = encoder_manager.encoder_criterion.softmax.inference(embedding).item()
             class_name = map_classid_to_classname[str(class_id)]
         else:
-            raise RuntimeError(
-                    " [!] use_predicted_label is enable and predicted_labels is not available !!"
-                )
+            raise RuntimeError(" [!] use_predicted_label is enable and predicted_labels is not available !!")
 
     # create class_mapping if target dataset is defined
     class_mapping[wav_file_name] = {}

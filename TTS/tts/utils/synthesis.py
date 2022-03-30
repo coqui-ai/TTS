@@ -127,7 +127,7 @@ def synthesis(
     d_vector=None,
     language_id=None,
     emotion_id=None,
-    emotion_embedding=None
+    emotion_embedding=None,
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
     the vocoder model.

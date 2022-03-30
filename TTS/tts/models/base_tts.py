@@ -431,9 +431,12 @@ class BaseTTS(BaseTrainerModel):
 
         if hasattr(self, "emotion_manager") and self.emotion_manager is not None:
             output_path = os.path.join(trainer.output_path, "emotions.json")
-            
+
             if hasattr(trainer.config, "model_args"):
-                if trainer.config.model_args.use_emotion_embedding and not trainer.config.model_args.external_emotions_embs_file:
+                if (
+                    trainer.config.model_args.use_emotion_embedding
+                    and not trainer.config.model_args.external_emotions_embs_file
+                ):
                     self.emotion_manager.save_ids_to_file(output_path)
                     trainer.config.model_args.emotions_ids_file = output_path
                 else:
