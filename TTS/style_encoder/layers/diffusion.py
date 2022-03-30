@@ -145,8 +145,8 @@ class DiffStyleEncoder(nn.Module):
 
         # Calculate z_{0} and pass to the TTS model for backpropagation
         
-        # Propagate Noise in Style (z -> z_{t})
-        z = self.q_sample(z, t=torch.tensor([t-1], device=device), noise = noise_target)
+        # Corrupt in Style (z -> z_{t})
+        z = self.q_sample(z, t=torch.tensor([t], device=device), noise = noise_target)
 
         # Reconstruct Style {z{t} -> z{t-1} -> ... -> z{0}}
         for i in reversed(range(0,t)):
@@ -261,7 +261,7 @@ class DiffNet(nn.Module):
             Mish(),
             nn.Linear(dim * 4, dim))
         self.project_input = nn.Linear(style_emb_dim + step_emb_dim, style_emb_dim)
-        self.denoiser = FFTransformerBlock(in_out_channels, num_heads, hidden_channels_ffn, num_layers, dropout_p) 
+        self.denoiser = FFTransformerBlock(in_out_channels, style_emb_dim, num_heads, hidden_channels_ffn, num_layers, dropout_p) 
 
     def forward(self, z, diffusion_step, mask=None, g=None):
         """
@@ -273,17 +273,18 @@ class DiffNet(nn.Module):
         t = self.mlp(t)                     # [B, 1, STYLE_DIM]
         z_t = torch.cat([z, t], dim = -1)   # [B, 1, 2*STYLE_DIM] 
         z_in = self.project_input(z_t)      # [B, 1, STYLE_DIM]
-        z = self.denoiser(z_in, mask, g)    
+        z = self.denoiser(z_in, mask, g)
         return z
 
 # From Coqui
 class FFTransformerBlock(nn.Module):
-    def __init__(self, in_out_channels, num_heads, hidden_channels_ffn, num_layers, dropout_p):
+    def __init__(self, in_out_channels, style_dim, num_heads, hidden_channels_ffn, num_layers, dropout_p):
         super().__init__()
         self.fft_layers = nn.ModuleList(
             [
                 FFTransformer(
                     in_out_channels=in_out_channels,
+                    style_dim = style_dim,
                     num_heads=num_heads,
                     hidden_channels_ffn=hidden_channels_ffn,
                     dropout_p=dropout_p,
@@ -312,7 +313,7 @@ class FFTransformerBlock(nn.Module):
 
 # From Coqui
 class FFTransformer(nn.Module):
-    def __init__(self, in_out_channels, num_heads, hidden_channels_ffn=1024, kernel_size_fft=3, dropout_p=0.1):
+    def __init__(self, in_out_channels, style_dim, num_heads, hidden_channels_ffn=1024, kernel_size_fft=3, dropout_p=0.1):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(in_out_channels, num_heads, dropout=dropout_p)
 
@@ -320,25 +321,33 @@ class FFTransformer(nn.Module):
         self.conv1 = nn.Conv1d(in_out_channels, hidden_channels_ffn, kernel_size=kernel_size_fft, padding=padding)
         self.conv2 = nn.Conv1d(hidden_channels_ffn, in_out_channels, kernel_size=kernel_size_fft, padding=padding)
 
-        self.norm1 = nn.LayerNorm(in_out_channels)
-        self.norm2 = nn.LayerNorm(in_out_channels)
+        self.norm1 = nn.LayerNorm(style_dim)
+        self.norm2 = nn.LayerNorm(style_dim)
 
         self.dropout1 = nn.Dropout(dropout_p)
         self.dropout2 = nn.Dropout(dropout_p)
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
-        src = src.permute(2, 0, 1)
+        # Input = [B, 1, E]
+
+        src = src.permute(2, 0, 1)  # [E, B, 1] because attention is [SEQ_LEN, N_BATCH, E_DIM]
         src2, enc_align = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
         src = src + self.dropout1(src2)
-        src = self.norm1(src + src2)
-        # T x B x D -> B x D x T
-        src = src.permute(1, 2, 0)
+        src = src + src2
+        
+        
+        src = src.permute(2,1,0)    # [1, B, E] because we normalize along the vector
+        src = self.norm1(src)
+        
+        src = src.permute(1, 0, 2)  # [B, 1, E]
         src2 = self.conv2(F.relu(self.conv1(src)))
         src2 = self.dropout2(src2)
         src = src + src2
-        src = src.transpose(1, 2)
+        
+        src = src.transpose(1,0)    # [1, B, E] because we normalize along the vector
         src = self.norm2(src)
-        src = src.transpose(1, 2)
+
+        src = src.transpose(1,0)    # [B, 1, E] to correctly output
         return src, enc_align
 
 class SinusoidalPosEmb(nn.Module):
