@@ -52,7 +52,7 @@
                 },
                 "speedy-speech": {
                     "description": "Speedy Speech model trained on LJSpeech dataset using the Alignment Network for learning the durations.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--ljspeech--speedy_speech.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--ljspeech--speedy-speech.zip",
                     "stats_file": null,
                     "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
                     "commit": "4581e3d",
@@ -111,7 +111,7 @@
             "sam": {
                 "tacotron-DDC": {
                     "description": "Tacotron2 with Double Decoder Consistency trained with Aceenture's Sam dataset.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--sam--tacotron_DDC.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--sam--tacotron-DDC.zip",
                     "default_vocoder": "vocoder_models/en/sam/hifigan_v2",
                     "commit": "bae2ad0f",
                     "author": "Eren Gölge @erogol",
@@ -190,7 +190,7 @@
         "ja": {
             "kokoro": {
                 "tacotron2-DDC": {
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--jp--kokoro--tacotron2-DDC.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--ja--kokoro--tacotron2-DDC.zip",
                     "default_vocoder": "vocoder_models/ja/kokoro/hifigan_v1",
                     "description": "Tacotron2 with Double Decoder Consistency trained with Kokoro Speech Dataset.",
                     "author": "@kaiidams",
@@ -274,7 +274,7 @@
             },
             "ljspeech": {
                 "multiband-melgan": {
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--ljspeech--mulitband-melgan.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--ljspeech--multiband-melgan.zip",
                     "commit": "ea976b0",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
@@ -282,7 +282,7 @@
                 },
                 "hifigan_v2": {
                     "description": "HiFiGAN_v2 LJSpeech vocoder from https://arxiv.org/abs/2010.05646.",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_model--en--ljspeech-hifigan_v2.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--ljspeech--hifigan_v2.zip",
                     "commit": "bae2ad0f",
                     "author": "@erogol",
                     "license": "",
@@ -300,7 +300,7 @@
             "vctk": {
                 "hifigan_v2": {
                     "description": "Finetuned and intended to be used with tts_models/en/vctk/sc-glow-tts",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_model--en--vctk--hifigan_v2.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--vctk--hifigan_v2.zip",
                     "commit": "2f07160",
                     "author": "Edresson Casanova",
                     "license": "",
