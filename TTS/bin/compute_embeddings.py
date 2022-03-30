@@ -86,6 +86,10 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     class_mapping[wav_file_name]["name"] = class_name
     class_mapping[wav_file_name]["embedding"] = embedd
 
+if args.old_file:
+    # merge the embeddings dict
+    class_mapping = {**encoder_manager.embeddings, **class_mapping}
+
 if class_mapping:
     # save class_mapping if target dataset is defined
     if ".json" not in args.output_path or ".pth" not in args.output_path:
