@@ -47,7 +47,7 @@ wav_files = meta_data_train + meta_data_eval
 encoder_manager = EmbeddingManager(
     encoder_model_path=args.model_path,
     encoder_config_path=args.config_path,
-    d_vectors_file_path=args.old_file,
+    embedding_file_path=args.old_file,
     use_cuda=args.use_cuda,
 )
 
@@ -88,6 +88,10 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     class_mapping[wav_file_name] = {}
     class_mapping[wav_file_name]["name"] = class_name
     class_mapping[wav_file_name]["embedding"] = embedd
+
+if args.old_file:
+    # merge the embeddings dict
+    class_mapping = {**encoder_manager.embeddings, **class_mapping}
 
 if class_mapping:
     # save class_mapping if target dataset is defined
