@@ -676,6 +676,7 @@ class Vits(BaseTTS):
                 raise RuntimeError(
                     " [!] To use the speaker consistency loss (SCL) you need to specify encoder_model_path and encoder_config_path !!"
                 )
+
             # load encoder
             self.speaker_manager.init_encoder(self.args.encoder_model_path, self.args.encoder_config_path)
             self.speaker_manager.encoder.eval()
@@ -1095,7 +1096,9 @@ class Vits(BaseTTS):
         return outputs
 
     @torch.no_grad()
-    def inference_voice_conversion(self, reference_wav, speaker_id=None, d_vector=None, reference_speaker_id=None, reference_d_vector=None):
+    def inference_voice_conversion(
+        self, reference_wav, speaker_id=None, d_vector=None, reference_speaker_id=None, reference_d_vector=None
+    ):
         """Inference for voice conversion
 
         Args:
@@ -1106,7 +1109,13 @@ class Vits(BaseTTS):
             reference_d_vector (Tensor): d_vector embedding of the reference_wav speaker. Tensor of shape `[B, C]`
         """
         # compute spectrograms
-        y = wav_to_spec(reference_wav, self.config.audio.fft_size, self.config.audio.hop_length, self.config.audio.win_length, center=False).transpose(1, 2)
+        y = wav_to_spec(
+            reference_wav,
+            self.config.audio.fft_size,
+            self.config.audio.hop_length,
+            self.config.audio.win_length,
+            center=False,
+        ).transpose(1, 2)
         y_lengths = torch.tensor([y.size(-1)]).to(y.device)
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
@@ -1346,6 +1355,7 @@ class Vits(BaseTTS):
                 else:
                     emotion_id = self.emotion_manager.ids[emotion_name]
 
+
         return {
             "text": text,
             "speaker_id": speaker_id,
@@ -1419,12 +1429,8 @@ class Vits(BaseTTS):
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
-        if (
-            self.language_manager is not None
-            and self.language_manager.ids
-            and self.args.use_language_embedding
-        ):
-            language_ids = [self.language_manager.ids[ln] for ln in batch["f"]]
+        if self.language_manager is not None and self.language_manager.ids and self.args.use_language_embedding:
+            language_ids = [self.language_manager.ids[ln] for ln in batch["language_names"]]
 
         if language_ids is not None:
             language_ids = torch.LongTensor(language_ids)

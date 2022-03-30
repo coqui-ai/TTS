@@ -147,7 +147,7 @@ def setup_encoder_model(config: "Coqpit"):
 
 
 def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_step, epoch):
-    checkpoint_path = "checkpoint_{}.pth.tar".format(current_step)
+    checkpoint_path = "checkpoint_{}.pth".format(current_step)
     checkpoint_path = os.path.join(out_path, checkpoint_path)
     print(" | | > Checkpoint saving : {}".format(checkpoint_path))
 
@@ -177,7 +177,7 @@ def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path
             "date": datetime.date.today().strftime("%B %d, %Y"),
         }
         best_loss = model_loss
-        bestmodel_path = "best_model.pth.tar"
+        bestmodel_path = "best_model.pth"
         bestmodel_path = os.path.join(out_path, bestmodel_path)
         print("\n > BEST MODEL ({0:.5f}) : {1:}".format(model_loss, bestmodel_path))
         save_fsspec(state, bestmodel_path)

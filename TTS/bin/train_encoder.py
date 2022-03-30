@@ -9,6 +9,7 @@ import traceback
 import torch
 from torch.utils.data import DataLoader
 from trainer.torch import NoamLR
+from trainer.trainer_utils import get_optimizer
 
 from TTS.encoder.dataset import EncoderDataset
 from TTS.encoder.utils.generic_utils import save_best_model, save_checkpoint, setup_encoder_model
@@ -19,7 +20,6 @@ from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder
 from TTS.utils.io import copy_model_files
-from trainer.trainer_utils import get_optimizer
 from TTS.utils.training import check_update
 
 torch.backends.cudnn.enabled = True
@@ -52,16 +52,21 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
     sampler = PerfectBatchSampler(
         dataset.items,
         classes,
-        batch_size=num_classes_in_batch*num_utter_per_class, # total batch size
+        batch_size=num_classes_in_batch * num_utter_per_class,  # total batch size
         num_classes_in_batch=num_classes_in_batch,
         num_gpus=1,
         shuffle=not is_val,
-        drop_last=True)
+        drop_last=True,
+    )
 
     if len(classes) < num_classes_in_batch:
         if is_val:
-            raise RuntimeError(f"config.eval_num_classes_in_batch ({num_classes_in_batch}) need to be <= {len(classes)} (Number total of Classes in the Eval dataset) !")
-        raise RuntimeError(f"config.num_classes_in_batch ({num_classes_in_batch}) need to be <= {len(classes)} (Number total of Classes in the Train dataset) !")
+            raise RuntimeError(
+                f"config.eval_num_classes_in_batch ({num_classes_in_batch}) need to be <= {len(classes)} (Number total of Classes in the Eval dataset) !"
+            )
+        raise RuntimeError(
+            f"config.num_classes_in_batch ({num_classes_in_batch}) need to be <= {len(classes)} (Number total of Classes in the Train dataset) !"
+        )
 
     # set the classes to avoid get wrong class_id when the number of training and eval classes are not equal
     if is_val:
@@ -76,6 +81,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
 
     return loader, classes, dataset.get_map_classid_to_classname()
 
+
 def evaluation(model, criterion, data_loader, global_step):
     eval_loss = 0
     for _, data in enumerate(data_loader):
@@ -84,8 +90,12 @@ def evaluation(model, criterion, data_loader, global_step):
             inputs, labels = data
 
             # agroup samples of each class in the batch. perfect sampler produces [3,2,1,3,2,1] we need [3,3,2,2,1,1]
-            labels = torch.transpose(labels.view(c.eval_num_utter_per_class, c.eval_num_classes_in_batch), 0, 1).reshape(labels.shape)
-            inputs = torch.transpose(inputs.view(c.eval_num_utter_per_class, c.eval_num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
+            labels = torch.transpose(
+                labels.view(c.eval_num_utter_per_class, c.eval_num_classes_in_batch), 0, 1
+            ).reshape(labels.shape)
+            inputs = torch.transpose(
+                inputs.view(c.eval_num_utter_per_class, c.eval_num_classes_in_batch, -1), 0, 1
+            ).reshape(inputs.shape)
 
             # dispatch data to GPU
             if use_cuda:
@@ -96,19 +106,22 @@ def evaluation(model, criterion, data_loader, global_step):
             outputs = model(inputs)
 
             # loss computation
-            loss = criterion(outputs.view(c.eval_num_classes_in_batch, outputs.shape[0] // c.eval_num_classes_in_batch, -1), labels)
+            loss = criterion(
+                outputs.view(c.eval_num_classes_in_batch, outputs.shape[0] // c.eval_num_classes_in_batch, -1), labels
+            )
 
             eval_loss += loss.item()
 
-    eval_avg_loss = eval_loss/len(data_loader)
+    eval_avg_loss = eval_loss / len(data_loader)
     # save stats
     dashboard_logger.eval_stats(global_step, {"loss": eval_avg_loss})
     # plot the last batch in the evaluation
     figures = {
-            "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), c.num_classes_in_batch),
+        "UMAP Plot": plot_embeddings(outputs.detach().cpu().numpy(), c.num_classes_in_batch),
     }
     dashboard_logger.eval_figures(global_step, figures)
     return eval_avg_loss
+
 
 def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader, global_step):
     model.train()
@@ -124,8 +137,12 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
             # setup input data
             inputs, labels = data
             # agroup samples of each class in the batch. perfect sampler produces [3,2,1,3,2,1] we need [3,3,2,2,1,1]
-            labels = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(labels.shape)
-            inputs = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
+            labels = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(
+                labels.shape
+            )
+            inputs = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(
+                inputs.shape
+            )
             # ToDo: move it to a unit test
             # labels_converted = torch.transpose(labels.view(c.num_utter_per_class, c.num_classes_in_batch), 0, 1).reshape(labels.shape)
             # inputs_converted = torch.transpose(inputs.view(c.num_utter_per_class, c.num_classes_in_batch, -1), 0, 1).reshape(inputs.shape)
@@ -157,7 +174,9 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
             outputs = model(inputs)
 
             # loss computation
-            loss = criterion(outputs.view(c.num_classes_in_batch, outputs.shape[0] // c.num_classes_in_batch, -1), labels)
+            loss = criterion(
+                outputs.view(c.num_classes_in_batch, outputs.shape[0] // c.num_classes_in_batch, -1), labels
+            )
             loss.backward()
             grad_norm, _ = check_update(model, c.grad_clip)
             optimizer.step()
@@ -211,7 +230,7 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
         print(
             ">>> Epoch:{}  AvgLoss: {:.5f} GradNorm:{:.5f}  "
             "EpochTime:{:.2f} AvGLoaderTime:{:.2f} ".format(
-                epoch, tot_loss/len(data_loader), grad_norm, epoch_time, avg_loader_time
+                epoch, tot_loss / len(data_loader), grad_norm, epoch_time, avg_loader_time
             ),
             flush=True,
         )
@@ -222,10 +241,8 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
             print("\n\n")
             print("--> EVAL PERFORMANCE")
             print(
-            "   | > Epoch:{}  AvgLoss: {:.5f} ".format(
-                epoch, eval_loss
-            ),
-            flush=True,
+                "   | > Epoch:{}  AvgLoss: {:.5f} ".format(epoch, eval_loss),
+                flush=True,
             )
             # save the best checkpoint
             best_loss = save_best_model(model, optimizer, criterion, eval_loss, best_loss, OUT_PATH, global_step, epoch)
@@ -262,7 +279,9 @@ def main(args):  # pylint: disable=redefined-outer-name
         copy_model_files(c, OUT_PATH)
 
     if args.restore_path:
-        criterion, args.restore_step = model.load_checkpoint(c, args.restore_path, eval=False, use_cuda=use_cuda, criterion=criterion)
+        criterion, args.restore_step = model.load_checkpoint(
+            c, args.restore_path, eval=False, use_cuda=use_cuda, criterion=criterion
+        )
         print(" > Model restored from step %d" % args.restore_step, flush=True)
     else:
         args.restore_step = 0

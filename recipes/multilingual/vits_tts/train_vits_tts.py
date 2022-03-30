@@ -6,12 +6,11 @@ from trainer import Trainer, TrainerArgs
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
-from TTS.tts.models.vits import CharactersConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.vits import Vits, VitsArgs
+from TTS.tts.models.vits import CharactersConfig, Vits, VitsArgs
 from TTS.tts.utils.languages import LanguageManager
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
@@ -110,7 +109,12 @@ config.from_dict(config.to_dict())
 ap = AudioProcessor(**config.audio.to_dict())
 
 # load training samples
-train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+train_samples, eval_samples = load_tts_samples(
+    dataset_config,
+    eval_split=True,
+    eval_split_max_size=config.eval_split_max_size,
+    eval_split_size=config.eval_split_size,
+)
 
 # init speaker manager for multi-speaker training
 # it maps speaker-id to speaker-name in the model and data-loader
@@ -131,11 +135,6 @@ model = Vits(config, ap, tokenizer, speaker_manager, language_manager)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainerArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 trainer.fit()

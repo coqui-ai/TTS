@@ -214,8 +214,8 @@ class Synthesizer(object):
 
         if not text and not reference_wav:
             raise ValueError(
-                    "You need to define either `text` (for sythesis) or a `reference_wav` (for voice conversion) to use the Coqui TTS API."
-                )
+                "You need to define either `text` (for sythesis) or a `reference_wav` (for voice conversion) to use the Coqui TTS API."
+            )
 
         if text:
             sens = self.split_into_sentences(text)
@@ -228,8 +228,10 @@ class Synthesizer(object):
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "ids"):
             if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
-                    # get the average speaker embedding from the saved embeddings.
-                    speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
+                    # get the average speaker embedding from the saved d_vectors.
+                    speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
+                        speaker_name, num_samples=None, randomize=False
+                    )
                     speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
@@ -354,26 +356,32 @@ class Synthesizer(object):
             if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "speaker_ids"):
                 if reference_speaker_name and isinstance(reference_speaker_name, str):
                     if self.tts_config.use_d_vector_file:
-                        # get the speaker embedding from the saved embeddings.
-                        reference_speaker_embedding = self.tts_model.speaker_manager.get_embeddings_by_name(reference_speaker_name)[0]
-                        reference_speaker_embedding = np.array(reference_speaker_embedding)[None, :]  # [1 x embedding_dim]
+                        # get the speaker embedding from the saved d_vectors.
+                        reference_speaker_embedding = self.tts_model.speaker_manager.get_embeddings_by_name(
+                            reference_speaker_name
+                        )[0]
+                        reference_speaker_embedding = np.array(reference_speaker_embedding)[
+                            None, :
+                        ]  # [1 x embedding_dim]
                     else:
                         # get speaker idx from the speaker name
                         reference_speaker_id = self.tts_model.speaker_manager.ids[reference_speaker_name]
                 else:
-                    reference_speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(reference_wav)
+                    reference_speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(
+                        reference_wav
+                    )
 
             outputs = transfer_voice(
-                    model=self.tts_model,
-                    CONFIG=self.tts_config,
-                    use_cuda=self.use_cuda,
-                    reference_wav=reference_wav,
-                    speaker_id=speaker_id,
-                    d_vector=speaker_embedding,
-                    use_griffin_lim=use_gl,
-                    reference_speaker_id=reference_speaker_id,
-                    reference_d_vector=reference_speaker_embedding
-                )
+                model=self.tts_model,
+                CONFIG=self.tts_config,
+                use_cuda=self.use_cuda,
+                reference_wav=reference_wav,
+                speaker_id=speaker_id,
+                d_vector=speaker_embedding,
+                use_griffin_lim=use_gl,
+                reference_speaker_id=reference_speaker_id,
+                reference_d_vector=reference_speaker_embedding,
+            )
             waveform = outputs
             if not use_gl:
                 mel_postnet_spec = outputs[0].detach().cpu().numpy()

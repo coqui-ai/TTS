@@ -12,7 +12,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.audio import AudioProcessor
 
 encoder_config_path = os.path.join(get_tests_input_path(), "test_speaker_encoder_config.json")
-encoder_model_path = os.path.join(get_tests_input_path(), "checkpoint_0.pth.tar")
+encoder_model_path = os.path.join(get_tests_input_path(), "checkpoint_0.pth")
 sample_wav_path = os.path.join(get_tests_input_path(), "../data/ljspeech/wavs/LJ001-0001.wav")
 sample_wav_path2 = os.path.join(get_tests_input_path(), "../data/ljspeech/wavs/LJ001-0002.wav")
 d_vectors_file_path = os.path.join(get_tests_input_path(), "../data/dummy_speakers.json")

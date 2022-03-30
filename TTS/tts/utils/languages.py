@@ -1,5 +1,6 @@
 import os
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 
 import fsspec
 import numpy as np
@@ -8,6 +9,7 @@ from coqpit import Coqpit
 
 from TTS.config import check_config_and_model_args
 from TTS.tts.utils.managers import BaseIDManager
+
 
 class LanguageManager(BaseIDManager):
     """Manage the languages for multi-lingual 🐸TTS models. Load a datafile and parse the information

@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 
 from TTS.encoder.utils.generic_utils import AugmentWAV
 
+
 class EncoderDataset(Dataset):
     def __init__(
         self,
@@ -57,7 +58,6 @@ class EncoderDataset(Dataset):
             print(f" | > Num Classes: {len(self.classes)}")
             print(f" | > Classes: {self.classes}")
 
-
     def load_wav(self, filename):
         audio = self.ap.load_wav(filename, sr=self.ap.sample_rate)
         return audio
@@ -75,9 +75,7 @@ class EncoderDataset(Dataset):
                 ]
 
         # skip classes with number of samples >= self.num_utter_per_class
-        class_to_utters = {
-            k: v for (k, v) in class_to_utters.items() if len(v) >= self.num_utter_per_class
-        }
+        class_to_utters = {k: v for (k, v) in class_to_utters.items() if len(v) >= self.num_utter_per_class}
 
         classes = list(class_to_utters.keys())
         classes.sort()
@@ -105,10 +103,10 @@ class EncoderDataset(Dataset):
 
     def get_class_list(self):
         return self.classes
+
     def set_classes(self, classes):
         self.classes = classes
         self.classname_to_classid = {key: i for i, key in enumerate(self.classes)}
-
 
     def get_map_classid_to_classname(self):
         return dict((c_id, c_n) for c_n, c_id in self.classname_to_classid.items())

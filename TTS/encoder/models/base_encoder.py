@@ -1,12 +1,13 @@
+import numpy as np
 import torch
 import torchaudio
-import numpy as np
+from coqpit import Coqpit
 from torch import nn
 
-from TTS.utils.io import load_fsspec
 from TTS.encoder.losses import AngleProtoLoss, GE2ELoss, SoftmaxAngleProtoLoss
 from TTS.utils.generic_utils import set_init_dict
-from coqpit import Coqpit
+from TTS.utils.io import load_fsspec
+
 
 class PreEmphasis(nn.Module):
     def __init__(self, coefficient=0.97):
@@ -20,6 +21,7 @@ class PreEmphasis(nn.Module):
         x = torch.nn.functional.pad(x.unsqueeze(1), (1, 0), "reflect")
         return torch.nn.functional.conv1d(x, self.filter).squeeze(1)
 
+
 class BaseEncoder(nn.Module):
     """Base `encoder` class. Every new `encoder` model must inherit this.
 
@@ -32,31 +34,31 @@ class BaseEncoder(nn.Module):
 
     def get_torch_mel_spectrogram_class(self, audio_config):
         return torch.nn.Sequential(
-                PreEmphasis(audio_config["preemphasis"]),
-                # TorchSTFT(
-                #     n_fft=audio_config["fft_size"],
-                #     hop_length=audio_config["hop_length"],
-                #     win_length=audio_config["win_length"],
-                #     sample_rate=audio_config["sample_rate"],
-                #     window="hamming_window",
-                #     mel_fmin=0.0,
-                #     mel_fmax=None,
-                #     use_htk=True,
-                #     do_amp_to_db=False,
-                #     n_mels=audio_config["num_mels"],
-                #     power=2.0,
-                #     use_mel=True,
-                #     mel_norm=None,
-                # )
-                torchaudio.transforms.MelSpectrogram(
-                    sample_rate=audio_config["sample_rate"],
-                    n_fft=audio_config["fft_size"],
-                    win_length=audio_config["win_length"],
-                    hop_length=audio_config["hop_length"],
-                    window_fn=torch.hamming_window,
-                    n_mels=audio_config["num_mels"],
-                )
-            )
+            PreEmphasis(audio_config["preemphasis"]),
+            # TorchSTFT(
+            #     n_fft=audio_config["fft_size"],
+            #     hop_length=audio_config["hop_length"],
+            #     win_length=audio_config["win_length"],
+            #     sample_rate=audio_config["sample_rate"],
+            #     window="hamming_window",
+            #     mel_fmin=0.0,
+            #     mel_fmax=None,
+            #     use_htk=True,
+            #     do_amp_to_db=False,
+            #     n_mels=audio_config["num_mels"],
+            #     power=2.0,
+            #     use_mel=True,
+            #     mel_norm=None,
+            # )
+            torchaudio.transforms.MelSpectrogram(
+                sample_rate=audio_config["sample_rate"],
+                n_fft=audio_config["fft_size"],
+                win_length=audio_config["win_length"],
+                hop_length=audio_config["hop_length"],
+                window_fn=torch.hamming_window,
+                n_mels=audio_config["num_mels"],
+            ),
+        )
 
     @torch.no_grad()
     def inference(self, x, l2_norm=True):
@@ -104,7 +106,9 @@ class BaseEncoder(nn.Module):
             raise Exception("The %s  not is a loss supported" % c.loss)
         return criterion
 
-    def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False, use_cuda: bool = False, criterion=None):
+    def load_checkpoint(
+        self, config: Coqpit, checkpoint_path: str, eval: bool = False, use_cuda: bool = False, criterion=None
+    ):
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         try:
             self.load_state_dict(state["model"])
@@ -127,7 +131,12 @@ class BaseEncoder(nn.Module):
                 print(" > Criterion load ignored because of:", error)
 
         # instance and load the criterion for the encoder classifier in inference time
-        if eval and criterion is None and "criterion" in state and getattr(config, 'map_classid_to_classname', None) is not None:
+        if (
+            eval
+            and criterion is None
+            and "criterion" in state
+            and getattr(config, "map_classid_to_classname", None) is not None
+        ):
             criterion = self.get_criterion(config, len(config.map_classid_to_classname))
             criterion.load_state_dict(state["criterion"])
 

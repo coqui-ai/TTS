@@ -7,15 +7,15 @@ import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
+from torch.utils.data.sampler import WeightedRandomSampler
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_balancer_weights
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_balancer_weights, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
-from torch.utils.data.sampler import WeightedRandomSampler
 
 # pylint: skip-file
 
@@ -258,7 +258,7 @@ class BaseTTS(BaseTrainerModel):
         # sampler for DDP
         if sampler is None:
             sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        else: # If a sampler is already defined use this sampler and DDP sampler together
+        else:  # If a sampler is already defined use this sampler and DDP sampler together
             sampler = DistributedSamplerWrapper(sampler) if num_gpus > 1 else sampler
 
         return sampler
@@ -279,9 +279,7 @@ class BaseTTS(BaseTrainerModel):
             # setup multi-speaker attributes
             if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
                 if hasattr(config, "model_args"):
-                    speaker_id_mapping = (
-                        self.speaker_manager.ids if config.model_args.use_speaker_embedding else None
-                    )
+                    speaker_id_mapping = self.speaker_manager.ids if config.model_args.use_speaker_embedding else None
                     d_vector_mapping = self.speaker_manager.embeddings if config.model_args.use_d_vector_file else None
                     config.use_d_vector_file = config.model_args.use_d_vector_file
                 else:
@@ -293,9 +291,7 @@ class BaseTTS(BaseTrainerModel):
 
             # setup multi-lingual attributes
             if hasattr(self, "language_manager") and self.language_manager is not None:
-                language_id_mapping = (
-                    self.language_manager.ids if self.args.use_language_embedding else None
-                )
+                language_id_mapping = self.language_manager.ids if self.args.use_language_embedding else None
             else:
                 language_id_mapping = None
 
