@@ -65,9 +65,8 @@ class SpeakerManager(EmbeddingManager):
             id_file_path=speaker_id_file_path,
             encoder_model_path=encoder_model_path,
             encoder_config_path=encoder_config_path,
-            use_cuda=use_cuda
-            )
-
+            use_cuda=use_cuda,
+        )
 
         if data_items:
             self.set_ids_from_data(data_items, parse_key="speaker_name")

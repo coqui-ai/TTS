@@ -22,10 +22,10 @@ from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
+from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
-from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -666,8 +666,8 @@ class Vits(BaseTTS):
     def init_consistency_loss(self):
         if self.args.use_speaker_encoder_as_loss and self.args.use_emotion_encoder_as_loss:
             raise RuntimeError(
-                    " [!] The use of speaker consistency loss (SCL) and emotion consistency loss (ECL) together is not supported, please disable one of those !!"
-                )
+                " [!] The use of speaker consistency loss (SCL) and emotion consistency loss (ECL) together is not supported, please disable one of those !!"
+            )
 
         if self.args.use_speaker_encoder_as_loss:
             if self.speaker_manager.encoder is None and (
@@ -773,8 +773,14 @@ class Vits(BaseTTS):
 
     def get_aux_input(self, aux_input: Dict):
         sid, g, lid, eid, eg = self._set_cond_input(aux_input)
-        return {"speaker_ids": sid, "style_wav": None, "d_vectors": g, "language_ids": lid,
-                "emotion_embeddings": eg, "emotion_ids": eid}
+        return {
+            "speaker_ids": sid,
+            "style_wav": None,
+            "d_vectors": g,
+            "language_ids": lid,
+            "emotion_embeddings": eg,
+            "emotion_ids": eid,
+        }
 
     def _freeze_layers(self):
         if self.args.freeze_encoder:
@@ -886,7 +892,13 @@ class Vits(BaseTTS):
         y: torch.tensor,
         y_lengths: torch.tensor,
         waveform: torch.tensor,
-        aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None, "emotion_embeddings": None, "emotion_ids": None},
+        aux_input={
+            "d_vectors": None,
+            "speaker_ids": None,
+            "language_ids": None,
+            "emotion_embeddings": None,
+            "emotion_ids": None,
+        },
     ) -> Dict:
         """Forward pass of the model.
 
@@ -940,7 +952,7 @@ class Vits(BaseTTS):
             if g is None:
                 g = eg
             else:
-                g = torch.cat([g, eg], dim=1) # [b, h1+h2, 1]
+                g = torch.cat([g, eg], dim=1)  # [b, h1+h2, 1]
 
         # language embedding
         lang_emb = None
@@ -974,7 +986,9 @@ class Vits(BaseTTS):
         )
 
         if self.args.use_speaker_encoder_as_loss or self.args.use_emotion_encoder_as_loss:
-            encoder = self.speaker_manager.encoder if self.args.use_speaker_encoder_as_loss else self.emotion_manager.encoder
+            encoder = (
+                self.speaker_manager.encoder if self.args.use_speaker_encoder_as_loss else self.emotion_manager.encoder
+            )
             # concate generated and GT waveforms
             wavs_batch = torch.cat((wav_seg, o), dim=0)
 
@@ -1018,7 +1032,16 @@ class Vits(BaseTTS):
         return torch.tensor(x.shape[1:2]).to(x.device)
 
     def inference(
-        self, x, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "emotion_embeddings": None, "emotion_ids": None}
+        self,
+        x,
+        aux_input={
+            "x_lengths": None,
+            "d_vectors": None,
+            "speaker_ids": None,
+            "language_ids": None,
+            "emotion_embeddings": None,
+            "emotion_ids": None,
+        },
     ):  # pylint: disable=dangerous-default-value
         """
         Note:
@@ -1054,7 +1077,7 @@ class Vits(BaseTTS):
             if g is None:
                 g = eg
             else:
-                g = torch.cat([g, eg], dim=1) # [b, h1+h2, 1]
+                g = torch.cat([g, eg], dim=1)  # [b, h1+h2, 1]
 
         # language embedding
         lang_emb = None
@@ -1187,8 +1210,13 @@ class Vits(BaseTTS):
                 spec,
                 spec_lens,
                 waveform,
-                aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids,
-                            "emotion_embeddings": emotion_embeddings, "emotion_ids": emotion_ids},
+                aux_input={
+                    "d_vectors": d_vectors,
+                    "speaker_ids": speaker_ids,
+                    "language_ids": language_ids,
+                    "emotion_embeddings": emotion_embeddings,
+                    "emotion_ids": emotion_ids,
+                },
             )
 
             # cache tensors for the generator pass
@@ -1246,7 +1274,8 @@ class Vits(BaseTTS):
                     feats_disc_fake=feats_disc_fake,
                     feats_disc_real=feats_disc_real,
                     loss_duration=self.model_outputs_cache["loss_duration"],
-                    use_encoder_consistency_loss=self.args.use_speaker_encoder_as_loss or self.args.use_emotion_encoder_as_loss,
+                    use_encoder_consistency_loss=self.args.use_speaker_encoder_as_loss
+                    or self.args.use_emotion_encoder_as_loss,
                     gt_cons_emb=self.model_outputs_cache["gt_cons_emb"],
                     syn_cons_emb=self.model_outputs_cache["syn_cons_emb"],
                 )
@@ -1348,13 +1377,14 @@ class Vits(BaseTTS):
                 if emotion_name is None:
                     emotion_embedding = self.emotion_manager.get_random_embeddings()
                 else:
-                    emotion_embedding = self.emotion_manager.get_mean_embedding(emotion_name, num_samples=None, randomize=False)
+                    emotion_embedding = self.emotion_manager.get_mean_embedding(
+                        emotion_name, num_samples=None, randomize=False
+                    )
             elif config.use_emotion_embedding:
                 if emotion_name is None:
                     emotion_id = self.emotion_manager.get_random_id()
                 else:
                     emotion_id = self.emotion_manager.ids[emotion_name]
-
 
         return {
             "text": text,
@@ -1364,7 +1394,7 @@ class Vits(BaseTTS):
             "language_id": language_id,
             "language_name": language_name,
             "emotion_embedding": emotion_embedding,
-            "emotion_ids": emotion_id
+            "emotion_ids": emotion_id,
         }
 
     @torch.no_grad()
@@ -1436,7 +1466,11 @@ class Vits(BaseTTS):
             language_ids = torch.LongTensor(language_ids)
 
         # get emotion embedding
-        if self.emotion_manager is not None and self.emotion_manager.embeddings and self.args.use_external_emotions_embeddings:
+        if (
+            self.emotion_manager is not None
+            and self.emotion_manager.embeddings
+            and self.args.use_external_emotions_embeddings
+        ):
             emotion_mapping = self.emotion_manager.embeddings
             emotion_embeddings = [emotion_mapping[w]["embedding"] for w in batch["audio_files"]]
             emotion_embeddings = torch.FloatTensor(emotion_embeddings)
@@ -1627,13 +1661,9 @@ class Vits(BaseTTS):
         emotion_manager = EmotionManager.init_from_config(config)
 
         if config.model_args.encoder_model_path and speaker_manager is not None:
-            speaker_manager.init_encoder(
-                config.model_args.encoder_model_path, config.model_args.encoder_config_path
-            )
+            speaker_manager.init_encoder(config.model_args.encoder_model_path, config.model_args.encoder_config_path)
         elif config.model_args.encoder_model_path and emotion_manager is not None:
-            emotion_manager.init_encoder(
-                config.model_args.encoder_model_path, config.model_args.encoder_config_path
-            )
+            emotion_manager.init_encoder(config.model_args.encoder_model_path, config.model_args.encoder_config_path)
 
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager, emotion_manager=emotion_manager)
 

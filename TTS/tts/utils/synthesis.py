@@ -124,7 +124,7 @@ def synthesis(
     d_vector=None,
     language_id=None,
     emotion_id=None,
-    emotion_embedding=None
+    emotion_embedding=None,
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
     the vocoder model.
@@ -193,7 +193,16 @@ def synthesis(
     text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
     text_inputs = text_inputs.unsqueeze(0)
     # synthesize voice
-    outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id, emotion_id=emotion_id, emotion_embedding=emotion_embedding)
+    outputs = run_model_torch(
+        model,
+        text_inputs,
+        speaker_id,
+        style_mel,
+        d_vector=d_vector,
+        language_id=language_id,
+        emotion_id=emotion_id,
+        emotion_embedding=emotion_embedding,
+    )
     model_outputs = outputs["model_outputs"]
     model_outputs = model_outputs[0].data.cpu().numpy()
     alignments = outputs["alignments"]

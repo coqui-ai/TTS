@@ -319,7 +319,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         args.speaker_wav,
         reference_wav=args.reference_wav,
         reference_speaker_name=args.reference_speaker_idx,
-        emotion_name=args.emotion_idx
+        emotion_name=args.emotion_idx,
     )
 
     # save the results

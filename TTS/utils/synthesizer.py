@@ -121,26 +121,42 @@ class Synthesizer(object):
         if use_cuda:
             self.tts_model.cuda()
 
-        if self.encoder_checkpoint and hasattr(self.tts_model, "speaker_manager") and self.tts_model.speaker_manager is not None:
+        if (
+            self.encoder_checkpoint
+            and hasattr(self.tts_model, "speaker_manager")
+            and self.tts_model.speaker_manager is not None
+        ):
             self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config)
 
-        if self.tts_emotions_file and hasattr(self.tts_model, "emotion_manager") and self.tts_model.emotion_manager is not None:
-            if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (getattr(self.tts_config, "model_args", None) and getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False)):
+        if (
+            self.tts_emotions_file
+            and hasattr(self.tts_model, "emotion_manager")
+            and self.tts_model.emotion_manager is not None
+        ):
+            if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (
+                getattr(self.tts_config, "model_args", None)
+                and getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False)
+            ):
                 self.tts_model.emotion_manager.load_embeddings_from_file(self.tts_emotions_file)
             else:
                 self.tts_model.emotion_manager.load_ids_from_file(self.tts_emotions_file)
 
-        if self.tts_speakers_file and hasattr(self.tts_model, "speaker_manager") and self.tts_model.speaker_manager is not None:
-            if getattr(self.tts_config, "use_d_vector_file", False) or (getattr(self.tts_config, "model_args", None) and getattr(self.tts_config.model_args, "use_d_vector_file", False)):
+        if (
+            self.tts_speakers_file
+            and hasattr(self.tts_model, "speaker_manager")
+            and self.tts_model.speaker_manager is not None
+        ):
+            if getattr(self.tts_config, "use_d_vector_file", False) or (
+                getattr(self.tts_config, "model_args", None)
+                and getattr(self.tts_config.model_args, "use_d_vector_file", False)
+            ):
                 self.tts_model.speaker_manager.load_embeddings_from_file(self.tts_speakers_file)
             else:
                 self.tts_model.speaker_manager.load_ids_from_file(self.tts_speakers_file)
 
     def _set_speaker_encoder_paths_from_tts_config(self):
         """Set the encoder paths from the tts model config for models with speaker encoders."""
-        if hasattr(self.tts_config, "model_args") and hasattr(
-            self.tts_config.model_args, "encoder_config_path"
-        ):
+        if hasattr(self.tts_config, "model_args") and hasattr(self.tts_config.model_args, "encoder_config_path"):
             self.encoder_checkpoint = self.tts_config.model_args.encoder_model_path
             self.encoder_config = self.tts_config.model_args.encoder_config_path
 
@@ -273,11 +289,18 @@ class Synthesizer(object):
 
         # handle emotion
         emotion_embedding, emotion_id = None, None
-        if self.tts_emotions_file or (getattr(self.tts_model, "emotion_manager", None) and getattr(self.tts_model.emotion_manager, "ids", None)):
+        if self.tts_emotions_file or (
+            getattr(self.tts_model, "emotion_manager", None) and getattr(self.tts_model.emotion_manager, "ids", None)
+        ):
             if emotion_name and isinstance(emotion_name, str):
-                if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (getattr(self.tts_config, "model_args", None) and getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False)):
+                if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (
+                    getattr(self.tts_config, "model_args", None)
+                    and getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False)
+                ):
                     # get the average speaker embedding from the saved embeddings.
-                    emotion_embedding = self.tts_model.emotion_manager.get_mean_embedding(emotion_name, num_samples=None, randomize=False)
+                    emotion_embedding = self.tts_model.emotion_manager.get_mean_embedding(
+                        emotion_name, num_samples=None, randomize=False
+                    )
                     emotion_embedding = np.array(emotion_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
