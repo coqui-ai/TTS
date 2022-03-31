@@ -20,7 +20,7 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     input_sr: int = 16000
     segment_train: bool = True
     segment_len: float = 1.0
-    grad_clip: float = 3.0
+    grad_clip: List[float] = field(default_factory=lambda: [3.0, 3.0])
     # model params
     audio_augmentation: Dict = field(default_factory=lambda: {})
     # optimizer
@@ -31,5 +31,5 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     lr_scheduler: str = None
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # gan
-    steps_to_start_discriminator: int = 100000
-    
+    steps_to_start_discriminator: int = 20000
+

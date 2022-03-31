@@ -106,7 +106,6 @@ class BWE(BaseTrainerModel):
 
         if optimizer_idx == 1:
             if self.train_disc:
-                x_d = x.clone()
                 y_d = y.clone()
                 y_hat = self.y_hat_g
                 scores_fake, feats_fake = self.disc_forward(y_hat.detach())
@@ -116,8 +115,11 @@ class BWE(BaseTrainerModel):
 
         return outputs, loss_dict
 
-    def eval_step(self, batch: dict, criterion: nn.Module):
-        return self.train_step(batch, criterion)
+    @torch.no_grad()
+    def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
+        self.train_disc = True # Avoid a bug in the Training with the missing discriminator loss
+        out = self.train_step(batch, criterion, optimizer_idx)
+        return out
 
     def get_data_loader(
         self,
@@ -213,7 +215,7 @@ class BWE(BaseTrainerModel):
 
     def _log(self, name: str, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
         print(outputs)
-        y_hat = outputs["y_hat"][0].detach().squeeze(0).cpu().numpy()
+        y_hat = outputs[0]["y_hat"][0].detach().squeeze(0).cpu().numpy()
         y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
         x = batch["input_wav"][0].detach().squeeze(0).cpu().numpy()
         x = resample(x, 16000, 48000, res_type="zero_order_hold")

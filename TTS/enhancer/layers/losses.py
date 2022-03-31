@@ -31,6 +31,7 @@ class BWEGeneratorLoss(torch.nn.Module):
 
         # Waveform loss
         return_dict["l1_wavform"] = self.l1_masked(y_hat, y, lens)
+        return_dict["loss"] = return_dict["l1_wavform"] * 50
 
         # Compute spectrograms
         y_specs = [self.specs[i](y[:, 0, :]) for i in range(4)]
@@ -42,25 +43,23 @@ class BWEGeneratorLoss(torch.nn.Module):
         # Spectrogram loss
         mel_lens = self.compute_lens(y_mel, lens)
         return_dict["l1_mel"] = self.l1_masked(y_hat_mel, y_mel, mel_lens)
+        return_dict["loss"] = return_dict["l1_mel"]
 
         return_dict["l1_spec"] = torch.mean(torch.stack([
             self.l1_masked(y_hat_specs[i], y_specs[i], self.compute_lens(y_specs[i], lens))
             for i in range(4)]))
+        return_dict["loss"] += return_dict["l1_spec"]
 
-        # Feature matching loss
-        feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
-        return_dict["G_feat_match_loss"] = feat_match_loss
+        if scores_fake is not None and feats_fake is not None and feats_real is not None:
+            # Feature matching loss
+            feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
+            return_dict["feat_match"] = feat_match_loss
+            return_dict["loss"] += feat_match_loss * 108
 
-        # MSE adversarial loss
-        mse_fake_loss = _apply_G_adv_loss(scores_fake, self.mse_loss)
-        return_dict["G_mse_fake_loss"] = mse_fake_loss
-        
-        # Total loss
-        return_dict["loss"] = (return_dict["l1_wavform"] * 50 
-            + return_dict["l1_mel"] 
-            + return_dict["l1_spec"]
-            + return_dict["feat_match"] * 108
-            + return_dict["G_mse_fake"] * 2.5)
+            # MSE adversarial loss
+            mse_fake_loss = _apply_G_adv_loss(scores_fake, self.mse_loss)
+            return_dict["G_mse_fake"] = mse_fake_loss
+            return_dict["loss"] += return_dict["G_mse_fake"] * 2.5
 
         # check if any loss is NaN
         for key, loss in return_dict.items():
@@ -84,11 +83,8 @@ class BWEDiscriminatorLoss(torch.nn.Module):
         mse_D_loss, mse_D_real_loss, mse_D_fake_loss = _apply_D_loss(
             scores_fake=scores_fake, scores_real=scores_real, loss_func=self.mse_loss
         )
-        return_dict["D_mse_gan_loss"] = mse_D_loss
-        return_dict["D_mse_gan_real_loss"] = mse_D_real_loss
-        return_dict["D_mse_gan_fake_loss"] = mse_D_fake_loss
-
-        return_dict["loss"] = (return_dict["D_mse_gan_loss"] 
-            + return_dict["D_mse_gan_real_loss"] 
-            + return_dict["D_mse_gan_fake_loss"])
+        return_dict["D_mse"] = mse_D_loss
+        return_dict["D_mse_real"] = mse_D_real_loss
+        return_dict["D_mse_fake"] = mse_D_fake_loss
+        return_dict["loss"] = return_dict["D_mse"] 
         return return_dict
