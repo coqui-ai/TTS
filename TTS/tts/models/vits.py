@@ -623,6 +623,7 @@ class Vits(BaseTTS):
             self.args.kernel_size_text_encoder,
             self.args.dropout_p_text_encoder,
             language_emb_dim=self.embedded_language_dim,
+            emotion_emb_dim=self.args.emotion_embedding_dim,
         )
 
         self.posterior_encoder = PosteriorEncoder(
@@ -646,7 +647,7 @@ class Vits(BaseTTS):
 
         if self.args.use_sdp:
             self.duration_predictor = StochasticDurationPredictor(
-                self.args.hidden_channels,
+                self.args.hidden_channels + self.args.emotion_embedding_dim,
                 192,
                 3,
                 self.args.dropout_p_duration_predictor,
@@ -656,7 +657,7 @@ class Vits(BaseTTS):
             )
         else:
             self.duration_predictor = DurationPredictor(
-                self.args.hidden_channels,
+                self.args.hidden_channels + self.args.emotion_embedding_dim,
                 256,
                 3,
                 self.args.dropout_p_duration_predictor,
@@ -1049,7 +1050,7 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg)
 
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
@@ -1179,7 +1180,7 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg)
 
         if self.args.use_sdp:
             logw = self.duration_predictor(
@@ -1816,9 +1817,8 @@ class Vits(BaseTTS):
 
         if config.model_args.encoder_model_path and speaker_manager is not None:
             speaker_manager.init_encoder(config.model_args.encoder_model_path, config.model_args.encoder_config_path)
-        elif config.model_args.encoder_model_path and emotion_manager is not None:
+        if config.model_args.encoder_model_path and emotion_manager is not None:
             emotion_manager.init_encoder(config.model_args.encoder_model_path, config.model_args.encoder_config_path)
-
         return Vits(new_config, ap, tokenizer, speaker_manager, language_manager, emotion_manager=emotion_manager)
 
 
