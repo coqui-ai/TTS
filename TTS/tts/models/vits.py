@@ -279,7 +279,7 @@ class VitsDataset(TTSDataset):
             "waveform_lens": wav_lens,  # (B)
             "waveform_rel_lens": wav_rel_lens,
             "speaker_names": batch["speaker_name"],
-            "f": batch["language_name"],
+            "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
         }
