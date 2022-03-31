@@ -72,7 +72,7 @@ class TestVits(unittest.TestCase):
 
         args = VitsArgs(d_vector_dim=101, use_d_vector_file=True)
         model = Vits(args)
-        self.assertEqual(model.embedded_speaker_dim, 101)
+        self.assertEqual(model.cond_embedding_dim, 101)
 
     def test_init_multilingual(self):
         args = VitsArgs(language_ids_file=None, use_language_embedding=False)
@@ -163,11 +163,11 @@ class TestVits(unittest.TestCase):
             output_dict["waveform_seg"].shape[2], config.model_args.spec_segment_size * config.audio["hop_length"]
         )
         if encoder_config:
-            self.assertEqual(output_dict["gt_spk_emb"].shape, (batch_size, encoder_config.model_params["proj_dim"]))
-            self.assertEqual(output_dict["syn_spk_emb"].shape, (batch_size, encoder_config.model_params["proj_dim"]))
+            self.assertEqual(output_dict["gt_cons_emb"].shape, (batch_size, encoder_config.model_params["proj_dim"]))
+            self.assertEqual(output_dict["syn_cons_emb"].shape, (batch_size, encoder_config.model_params["proj_dim"]))
         else:
-            self.assertEqual(output_dict["gt_spk_emb"], None)
-            self.assertEqual(output_dict["syn_spk_emb"], None)
+            self.assertEqual(output_dict["gt_cons_emb"], None)
+            self.assertEqual(output_dict["syn_cons_emb"], None)
 
     def test_forward(self):
         num_speakers = 0
@@ -573,4 +573,4 @@ class TestVits(unittest.TestCase):
         model = Vits.init_from_config(config, verbose=False).to(device)
         self.assertTrue(model.num_speakers == 1)
         self.assertTrue(not hasattr(model, "emb_g"))
-        self.assertTrue(model.embedded_speaker_dim == config.d_vector_dim)
+        self.assertTrue(model.cond_embedding_dim == config.d_vector_dim)
