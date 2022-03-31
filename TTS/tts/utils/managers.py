@@ -134,7 +134,6 @@ class EmbeddingManager(BaseIDManager):
             file_path (str): Path to the target json file.
         """
         self.embeddings = self._load_json(file_path)
-
         speakers = sorted({x["name"] for x in self.embeddings.values()})
         self.ids = {name: i for i, name in enumerate(speakers)}
 
