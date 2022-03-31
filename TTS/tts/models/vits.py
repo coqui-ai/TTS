@@ -722,8 +722,6 @@ class Vits(BaseTTS):
                 raise RuntimeError(
                     " [!] To use the speaker consistency loss (SCL) you need to specify encoder_model_path and encoder_config_path !!"
                 )
-            # load encoder
-            self.speaker_manager.init_encoder(self.args.encoder_model_path, self.args.encoder_config_path)
             self.speaker_manager.encoder.eval()
             print(" > External Speaker Encoder Loaded !!")
 
@@ -744,8 +742,7 @@ class Vits(BaseTTS):
                 raise RuntimeError(
                     " [!] To use the emotion consistency loss (ECL) you need to specify encoder_model_path and encoder_config_path !!"
                 )
-            # load encoder
-            self.emotion_manager.init_encoder(self.args.encoder_model_path, self.args.encoder_config_path)
+
             self.emotion_manager.encoder.eval()
             print(" > External Emotion Encoder Loaded !!")
 
