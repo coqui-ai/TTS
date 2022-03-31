@@ -386,6 +386,8 @@ class TestVits(unittest.TestCase):
         batch["d_vectors"] = None
         batch["speaker_ids"] = None
         batch["language_ids"] = None
+        batch["emotion_embeddings"] = None
+        batch["emotion_ids"] = None
         return batch
 
     def test_train_step(self):
