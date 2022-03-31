@@ -396,6 +396,52 @@ def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=Non
     return items
 
 
+def esd(root_path, meta_files, ignored_speakers=None):
+    """Emotional Speech Dataset (ESD): https://github.com/HLTSingapore/Emotional-Speech-Data"""
+    items = []
+    if meta_files is None or meta_files == "":
+        raise ValueError(
+            "You need to specify the partitions to load. Available partitions: 'train', 'evaluation', and 'test'"
+        )
+
+    if isinstance(meta_files, str):
+        meta_files = [meta_files]
+
+    txt_files = glob(os.path.join(root_path, "**/*.txt"), recursive=True)
+
+    for meta_file in txt_files:
+        speaker_id, _ = os.path.relpath(meta_file, root_path).split(os.sep)
+
+        # ignore speakers
+        if isinstance(ignored_speakers, list):
+            if speaker_id in ignored_speakers:
+                continue
+
+        with open(meta_file, "r", encoding="latin-1") as file_text:
+            try:
+                metadata = file_text.readlines()
+            except Exception as e:
+                print(f"The file {meta_file} break the import with the following error: ")
+                raise e
+
+        for data in metadata:
+            # this dataset have problems with csv separator, some files use just space others \t
+            data = data.replace("\n", "").replace("\t", " ")
+            if not data:
+                continue
+            splits = data.split(" ")
+
+            file_id = splits[0]
+            emotion_id = splits[-1]
+            # all except the first and last position is the sentence
+            text = " ".join(splits[1:-1])
+            for split in meta_files:
+                wav_file = os.path.join(root_path, speaker_id, emotion_id, split, file_id + ".wav")
+                if os.path.exists(wav_file):
+                    items.append({"text": text, "audio_file": wav_file, "speaker_name": "ESD_" + speaker_id})
+    return items
+
+
 def open_bible(root_path, meta_files="train", ignore_digits_sentences=True, ignored_speakers=None):
     """ToDo: Refer the paper when available"""
     items = []
