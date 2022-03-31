@@ -86,7 +86,7 @@ class TestGlowTTS(unittest.TestCase):
         model = GlowTTS(config)
         model.speaker_manager = speaker_manager
         model.init_multispeaker(config)
-        self.assertEqual(model.c_in_channels, speaker_manager.d_vector_dim)
+        self.assertEqual(model.c_in_channels, speaker_manager.embedding_dim)
         self.assertEqual(model.num_speakers, speaker_manager.num_speakers)
 
     def test_unlock_act_norm_layers(self):

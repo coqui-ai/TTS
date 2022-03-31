@@ -1,6 +1,5 @@
-import json
 import os
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import fsspec
 import numpy as np
@@ -8,9 +7,10 @@ import torch
 from coqpit import Coqpit
 
 from TTS.config import check_config_and_model_args
+from TTS.tts.utils.managers import BaseIDManager
 
 
-class LanguageManager:
+class LanguageManager(BaseIDManager):
     """Manage the languages for multi-lingual 🐸TTS models. Load a datafile and parse the information
     in a way that can be queried by language.
 
@@ -25,37 +25,23 @@ class LanguageManager:
         >>> language_id_mapper = manager.language_ids
     """
 
-    language_id_mapping: Dict = {}
-
     def __init__(
         self,
         language_ids_file_path: str = "",
         config: Coqpit = None,
     ):
-        self.language_id_mapping = {}
-        if language_ids_file_path:
-            self.set_language_ids_from_file(language_ids_file_path)
+        super().__init__(id_file_path=language_ids_file_path)
 
         if config:
             self.set_language_ids_from_config(config)
 
-    @staticmethod
-    def _load_json(json_file_path: str) -> Dict:
-        with fsspec.open(json_file_path, "r") as f:
-            return json.load(f)
-
-    @staticmethod
-    def _save_json(json_file_path: str, data: dict) -> None:
-        with fsspec.open(json_file_path, "w") as f:
-            json.dump(data, f, indent=4)
-
     @property
     def num_languages(self) -> int:
-        return len(list(self.language_id_mapping.keys()))
+        return len(list(self.ids.keys()))
 
     @property
     def language_names(self) -> List:
-        return list(self.language_id_mapping.keys())
+        return list(self.ids.keys())
 
     @staticmethod
     def parse_language_ids_from_config(c: Coqpit) -> Dict:
@@ -79,25 +65,24 @@ class LanguageManager:
         """Set language IDs from config samples.
 
         Args:
-            items (List): Data sampled returned by `load_meta_data()`.
+            c (Coqpit): Config.
         """
-        self.language_id_mapping = self.parse_language_ids_from_config(c)
+        self.ids = self.parse_language_ids_from_config(c)
 
-    def set_language_ids_from_file(self, file_path: str) -> None:
-        """Load language ids from a json file.
+    @staticmethod
+    def parse_ids_from_data(items: List, parse_key: str) -> Any:
+        raise NotImplementedError
 
-        Args:
-            file_path (str): Path to the target json file.
-        """
-        self.language_id_mapping = self._load_json(file_path)
+    def set_ids_from_data(self, items: List, parse_key: str) -> Any:
+        raise NotImplementedError
 
-    def save_language_ids_to_file(self, file_path: str) -> None:
+    def save_ids_to_file(self, file_path: str) -> None:
         """Save language IDs to a json file.
 
         Args:
             file_path (str): Path to the output file.
         """
-        self._save_json(file_path, self.language_id_mapping)
+        self._save_json(file_path, self.ids)
 
     @staticmethod
     def init_from_config(config: Coqpit) -> "LanguageManager":

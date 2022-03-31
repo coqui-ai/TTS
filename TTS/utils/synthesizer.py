@@ -122,7 +122,7 @@ class Synthesizer(object):
             self.tts_model.cuda()
 
         if self.encoder_checkpoint and hasattr(self.tts_model, "speaker_manager"):
-            self.tts_model.speaker_manager.init_speaker_encoder(self.encoder_checkpoint, self.encoder_config)
+            self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config)
 
     def _set_speaker_encoder_paths_from_tts_config(self):
         """Set the encoder paths from the tts model config for models with speaker encoders."""
@@ -212,17 +212,17 @@ class Synthesizer(object):
         # handle multi-speaker
         speaker_embedding = None
         speaker_id = None
-        if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "speaker_ids"):
+        if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "ids"):
             if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
                     # get the average speaker embedding from the saved d_vectors.
-                    speaker_embedding = self.tts_model.speaker_manager.get_mean_d_vector(
+                    speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
                         speaker_name, num_samples=None, randomize=False
                     )
                     speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
-                    speaker_id = self.tts_model.speaker_manager.speaker_ids[speaker_name]
+                    speaker_id = self.tts_model.speaker_manager.ids[speaker_name]
 
             elif not speaker_name and not speaker_wav:
                 raise ValueError(
@@ -244,7 +244,7 @@ class Synthesizer(object):
             hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
         ):
             if language_name and isinstance(language_name, str):
-                language_id = self.tts_model.language_manager.language_id_mapping[language_name]
+                language_id = self.tts_model.language_manager.ids[language_name]
 
             elif not language_name:
                 raise ValueError(
@@ -260,7 +260,7 @@ class Synthesizer(object):
 
         # compute a new d_vector from the given clip.
         if speaker_wav is not None:
-            speaker_embedding = self.tts_model.speaker_manager.compute_d_vector_from_clip(speaker_wav)
+            speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)
 
         use_gl = self.vocoder_model is None
 
@@ -319,7 +319,7 @@ class Synthesizer(object):
                 if reference_speaker_name and isinstance(reference_speaker_name, str):
                     if self.tts_config.use_d_vector_file:
                         # get the speaker embedding from the saved d_vectors.
-                        reference_speaker_embedding = self.tts_model.speaker_manager.get_d_vectors_by_speaker(
+                        reference_speaker_embedding = self.tts_model.speaker_manager.get_embeddings_by_name(
                             reference_speaker_name
                         )[0]
                         reference_speaker_embedding = np.array(reference_speaker_embedding)[
@@ -327,9 +327,9 @@ class Synthesizer(object):
                         ]  # [1 x embedding_dim]
                     else:
                         # get speaker idx from the speaker name
-                        reference_speaker_id = self.tts_model.speaker_manager.speaker_ids[reference_speaker_name]
+                        reference_speaker_id = self.tts_model.speaker_manager.ids[reference_speaker_name]
                 else:
-                    reference_speaker_embedding = self.tts_model.speaker_manager.compute_d_vector_from_clip(
+                    reference_speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(
                         reference_wav
                     )
 

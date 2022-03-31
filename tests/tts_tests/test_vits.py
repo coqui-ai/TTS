@@ -7,7 +7,7 @@ from trainer.logging.tensorboard_logger import TensorboardLogger
 
 from tests import assertHasAttr, assertHasNotAttr, get_tests_data_path, get_tests_input_path, get_tests_output_path
 from TTS.config import load_config
-from TTS.encoder.utils.generic_utils import setup_speaker_encoder_model
+from TTS.encoder.utils.generic_utils import setup_encoder_model
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.models.vits import Vits, VitsArgs, amp_to_db, db_to_amp, load_audio, spec_to_mel, wav_to_mel, wav_to_spec
 from TTS.tts.utils.speakers import SpeakerManager
@@ -242,9 +242,9 @@ class TestVits(unittest.TestCase):
 
         speaker_encoder_config = load_config(SPEAKER_ENCODER_CONFIG)
         speaker_encoder_config.model_params["use_torch_spec"] = True
-        speaker_encoder = setup_speaker_encoder_model(speaker_encoder_config).to(device)
+        speaker_encoder = setup_encoder_model(speaker_encoder_config).to(device)
         speaker_manager = SpeakerManager()
-        speaker_manager.speaker_encoder = speaker_encoder
+        speaker_manager.encoder = speaker_encoder
 
         args = VitsArgs(
             language_ids_file=LANG_FILE,
