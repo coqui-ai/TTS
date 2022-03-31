@@ -5,6 +5,8 @@ class DiffusionStyleEncoderLoss(torch.nn.Module):
         super().__init__()
         self.config = c
         
+        print("Diffusion report - Using alpha loss: ", self.config.diff_alpha_loss)
+
         if self.config.diff_loss_type == 'l1':
             self.criterion = torch.nn.L1Loss()
         elif self.config.diff_loss_type == 'mse':

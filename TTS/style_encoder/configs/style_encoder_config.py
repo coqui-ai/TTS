@@ -38,7 +38,7 @@ class StyleEncoderConfig(Coqpit):
     vae_latent_dim: int = 128 # Dim of mean and logvar
     embedding_dim: int = 128 # Dim of reference encoder output
     use_cyclical_annealing: bool = True # Whether use or not annealing (recommended true), only linear implemented
-    vae_loss_alpha: int = 1.0 # Default alpha value (term of KL loss)
+    vae_loss_alpha: float = 1.0 # Default alpha value (term of KL loss)
     vae_cycle_period: int = 5000 # iteration period to apply a new annealing cycle
 
     # Diffusion-specific Configs
@@ -51,8 +51,8 @@ class StyleEncoderConfig(Coqpit):
     diff_num_heads: int = 1 
     diff_hidden_channels: int = 128 
     diff_num_blocks: int = 5
-    diff_dropout: int = 0.1
-    diff_loss_alpha: int = 0.75
+    diff_dropout: float = 0.1
+    diff_loss_alpha: float = 0.75
 
     def check_values(
         self,
