@@ -214,7 +214,6 @@ class BWE(BaseTrainerModel):
         logger.eval_audios(steps, audios, self.target_sr)
 
     def _log(self, name: str, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
-        print(outputs)
         y_hat = outputs[0]["y_hat"][0].detach().squeeze(0).cpu().numpy()
         y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
         x = batch["input_wav"][0].detach().squeeze(0).cpu().numpy()
