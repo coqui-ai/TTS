@@ -30,3 +30,6 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     lr: float = 0.0001
     lr_scheduler: str = None
     lr_scheduler_params: dict = field(default_factory=lambda: {})
+    # gan
+    steps_to_start_discriminator: int = 100000
+    

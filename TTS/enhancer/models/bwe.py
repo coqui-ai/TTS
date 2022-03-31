@@ -16,8 +16,9 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 import torch
 from torch.nn import Upsample
-from TTS.enhancer.layers.losses import BWELoss
+from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
 import librosa
+from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleDiscriminator
 
 @dataclass
 class BWEArgs(Coqpit):
@@ -40,6 +41,7 @@ class BWE(BaseTrainerModel):
         self.input_sr = config.input_sr
         self.target_sr = config.target_sr
         self.scale_factor = (self.target_sr / self.input_sr, )
+        self.train_disc = False
 
         self.upsample = Upsample(scale_factor=self.scale_factor)
         self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
@@ -51,13 +53,18 @@ class BWE(BaseTrainerModel):
             num_blocks=self.args.num_blocks_wn,
             num_layers=self.args.num_layers_wn,
         )
+        self.waveform_disc = MelganMultiscaleDiscriminator(
+            downsample_factors=(2, 2, 2),
+            base_channels=16,
+            max_channels=1024,
+        )
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
         ap = AudioProcessor.init_from_config(config)
         return BWE(config, ap)
 
-    def forward(self, x):
+    def gen_forward(self, x):
         x = self.upsample(x)
         x = self.generator(x)
         x = self.postconv(x)
@@ -65,22 +72,49 @@ class BWE(BaseTrainerModel):
             "y_hat": x,
         }
 
-    def inference(self, x):
-        x = self.upsample(x.unsqueeze(1))
-        x = self.generator(x)
-        x = self.postconv(x)
-        x = x.transpose(1, 2)
-        return {
-            "y_hat": x,
-        }
+    def disc_forward(self, x):
+        return self.waveform_disc(x)
 
-    def train_step(self, batch: dict, criterion: nn.Module):
+    def forward(self, x):
+        return self.gen_forward(x)
+
+    def inference(self, x):
+        x = x.unsqueeze(1)
+        x = self.gen_forward(x)
+        return x
+
+    def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
+        outputs = {}
+        loss_dict = {}
         x = batch["input_wav"].unsqueeze(1)
         y = batch["target_wav"].unsqueeze(1)
         lens = batch["target_lens"]
-        outputs = self.forward(x)
-        loss = criterion(outputs["y_hat"], y, lens)
-        return outputs, loss
+
+        if optimizer_idx not in [0, 1]:
+            raise ValueError(" [!] Unexpected `optimizer_idx`.")
+
+        if optimizer_idx == 0:
+            y_hat = self.gen_forward(x)["y_hat"]
+            self.y_hat_g = y_hat
+            scores_fake, feats_fake, feats_real = None, None, None
+            if self.train_disc:
+                scores_fake, feats_fake = self.disc_forward(y_hat)
+                with torch.no_grad():
+                    _, feats_real = self.disc_forward(y)
+            loss_dict = criterion[optimizer_idx](y_hat, y, lens, scores_fake, feats_fake, feats_real)
+            outputs = {"y_hat": y_hat}
+
+        if optimizer_idx == 1:
+            if self.train_disc:
+                x_d = x.clone()
+                y_d = y.clone()
+                y_hat = self.y_hat_g
+                scores_fake, feats_fake = self.disc_forward(y_hat.detach())
+                scores_real, feats_real = self.disc_forward(y_d)
+                loss_dict = criterion[optimizer_idx](scores_fake, scores_real)
+                outputs = {"model_outputs": y_hat}
+
+        return outputs, loss_dict
 
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
@@ -142,17 +176,23 @@ class BWE(BaseTrainerModel):
             assert not self.training
 
     def get_optimizer(self) -> List:
-        return get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, self)
+        gen_params = list(self.generator.parameters()) + list(self.postconv.parameters())
+        optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=gen_params)
+        disc_params = list(self.waveform_disc.parameters())
+        optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=disc_params)
+        return [optimizer_gen, optimizer_disc]
 
     def get_lr(self) -> List:
-        return self.config.lr
+        return [self.config.lr, self.config.lr]
 
     def get_scheduler(self, optimizer) -> List:
-        return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+        gen_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+        disc_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+        return [gen_scheduler, disc_scheduler]
 
     def get_criterion(self):
         #device = next(self.parameters()).device
-        return BWELoss("cuda:0")
+        return [BWEGeneratorLoss("cuda:0"), BWEDiscriminatorLoss()]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None
@@ -199,3 +239,11 @@ class BWE(BaseTrainerModel):
         plt.tight_layout()
         plt.close()
         return fig
+
+    def on_train_step_start(self, trainer) -> None:
+        """Enable the discriminator training based on `steps_to_start_discriminator`
+
+        Args:
+            trainer (Trainer): Trainer object.
+        """
+        self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator

@@ -2,8 +2,9 @@ from typing import Type
 import torch
 from TTS.utils.audio import TorchSTFT
 from TTS.tts.layers.losses import L1LossMasked
+from TTS.vocoder.layers.losses import MelganFeatureLoss, MSEGLoss, MSEDLoss, _apply_G_adv_loss, _apply_D_loss
 
-class BWELoss(torch.nn.Module):
+class BWEGeneratorLoss(torch.nn.Module):
     def __init__(self, device):
         super().__init__()
         self.l1_masked= L1LossMasked(False)
@@ -22,18 +23,23 @@ class BWELoss(torch.nn.Module):
                             n_mels=128,
                             device=device,
                             do_amp_to_db=True)
+        self.feat_match_loss = MelganFeatureLoss()
+        self.mse_loss = MSEGLoss()
 
-    def forward(self, y_hat, y, lens):
+    def forward(self, y_hat, y, lens, scores_fake=None, feats_fake=None, feats_real=None):
         return_dict = {}
+
+        # Waveform loss
         return_dict["l1_wavform"] = self.l1_masked(y_hat, y, lens)
 
-        with torch.no_grad():
-            y_specs = [self.specs[i](y[:, 0, :]) for i in range(4)]
-            y_mel = self.mel_spec(y[:, 0, :])
+        # Compute spectrograms
+        y_specs = [self.specs[i](y[:, 0, :]) for i in range(4)]
+        y_mel = self.mel_spec(y[:, 0, :])
 
         y_hat_specs = [self.specs[i](y_hat[:, 0, :]) for i in range(4)]
         y_hat_mel = self.mel_spec(y_hat[:, 0, :])
 
+        # Spectrogram loss
         mel_lens = self.compute_lens(y_mel, lens)
         return_dict["l1_mel"] = self.l1_masked(y_hat_mel, y_mel, mel_lens)
 
@@ -41,7 +47,20 @@ class BWELoss(torch.nn.Module):
             self.l1_masked(y_hat_specs[i], y_specs[i], self.compute_lens(y_specs[i], lens))
             for i in range(4)]))
 
-        return_dict["loss"] = return_dict["l1_wavform"] * 50 + return_dict["l1_mel"] + return_dict["l1_spec"]
+        # Feature matching loss
+        feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
+        return_dict["G_feat_match_loss"] = feat_match_loss
+
+        # MSE adversarial loss
+        mse_fake_loss = _apply_G_adv_loss(scores_fake, self.mse_loss)
+        return_dict["G_mse_fake_loss"] = mse_fake_loss
+        
+        # Total loss
+        return_dict["loss"] = (return_dict["l1_wavform"] * 50 
+            + return_dict["l1_mel"] 
+            + return_dict["l1_spec"]
+            + return_dict["feat_match"] * 108
+            + return_dict["G_mse_fake"] * 2.5)
 
         # check if any loss is NaN
         for key, loss in return_dict.items():
@@ -53,3 +72,23 @@ class BWELoss(torch.nn.Module):
         BS = wav_lens.shape[0]
         max_len = torch.max(wav_lens)
         return torch.stack([ spec.shape[-1] * wav_lens[i] / max_len  for i in range(BS)])
+
+
+class BWEDiscriminatorLoss(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mse_loss = MSEDLoss()
+
+    def forward(self, scores_fake, scores_real):
+        return_dict = {}
+        mse_D_loss, mse_D_real_loss, mse_D_fake_loss = _apply_D_loss(
+            scores_fake=scores_fake, scores_real=scores_real, loss_func=self.mse_loss
+        )
+        return_dict["D_mse_gan_loss"] = mse_D_loss
+        return_dict["D_mse_gan_real_loss"] = mse_D_real_loss
+        return_dict["D_mse_gan_fake_loss"] = mse_D_fake_loss
+
+        return_dict["loss"] = (return_dict["D_mse_gan_loss"] 
+            + return_dict["D_mse_gan_real_loss"] 
+            + return_dict["D_mse_gan_fake_loss"])
+        return return_dict
