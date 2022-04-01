@@ -26,10 +26,10 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     # optimizer
     optimizer: str = "Adam"
     optimizer_params: dict = field(default_factory=lambda: {})
+    target_loss: str = "loss_0"
     # scheduler
     lr: float = 0.0001
     lr_scheduler: str = None
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # gan
     steps_to_start_discriminator: int = 20000
-
