@@ -40,6 +40,7 @@ class StyleEncoderConfig(Coqpit):
     use_cyclical_annealing: bool = True # Whether use or not annealing (recommended true), only linear implemented
     vae_loss_alpha: float = 1.0 # Default alpha value (term of KL loss)
     vae_cycle_period: int = 5000 # iteration period to apply a new annealing cycle
+    use_nonlinear_proj: bool = False # Whether use or not a linear + tanh before agg in TTS encoder outputs
 
     # Diffusion-specific Configs
     diff_num_timesteps: int = 25 

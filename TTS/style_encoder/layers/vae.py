@@ -9,7 +9,7 @@ class VAEStyleEncoder(nn.Module):
     outputs: [batch_size, embedding_dim]
     """
 
-    def __init__(self, num_mel, embedding_dim, latent_dim):
+    def __init__(self, num_mel, embedding_dim, latent_dim, use_nonlinear_proj = False):
 
         super().__init__()
         self.num_mel = num_mel
@@ -31,6 +31,13 @@ class VAEStyleEncoder(nn.Module):
 
         self.mu = nn.Linear(embedding_dim, latent_dim)
         self.logvar = nn.Linear(embedding_dim, latent_dim)
+
+        self.use_nonlinear_proj = use_nonlinear_proj
+
+        if(self.use_nonlinear_proj):
+            self.proj = nn.Linear(latent_dim, latent_dim)
+            nn.init.xavier_normal_(self.proj.weight) # Good init for projection
+            self.proj.bias.data.zero_() # Not random bias to "move" z
 
     def forward(self, inputs):
         batch_size = inputs.size(0)
@@ -58,7 +65,10 @@ class VAEStyleEncoder(nn.Module):
         z = self.reparametrize(mu, logvar)
 
         z = z.unsqueeze(1)
-        
+
+        if(self.use_nonlinear_proj):
+            z = torch.tanh(self.proj(z))
+
         return {'z' :z , 'mean': mu, 'log_var': logvar, 'out': out} #out will be the RE output, just to have the output if needed
 
     def reparametrize(self, mu, logvar):
