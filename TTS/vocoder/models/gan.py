@@ -203,9 +203,9 @@ class GAN(BaseVocoder):
         self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
     ) -> Tuple[Dict, np.ndarray]:
         """Call `_log()` for training."""
-        figures, audios = self._log("eval", self.ap, batch, outputs)
-        logger.eval_figures(steps, figures)
-        logger.eval_audios(steps, audios, self.ap.sample_rate)
+        figures, audios = self._log("train", self.ap, batch, outputs)
+        logger.train_figures(steps, figures)
+        logger.train_audios(steps, audios, self.ap.sample_rate)
 
     @torch.no_grad()
     def eval_step(self, batch: Dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
