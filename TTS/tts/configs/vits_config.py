@@ -116,12 +116,8 @@ class VitsConfig(BaseTTSConfig):
     dur_loss_alpha: float = 1.0
     speaker_encoder_loss_alpha: float = 1.0
 
-    # data loader params
-    return_wav: bool = True
-    compute_linear_spec: bool = True
-
     # overrides
-    r: int = 1  # DO NOT CHANGE
+    # r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
 
     # testing
@@ -137,6 +133,7 @@ class VitsConfig(BaseTTSConfig):
 
     # multi-speaker settings
     # use speaker embedding layer
+    # TODO: keep this only in VitsArgs
     num_speakers: int = 0
     use_speaker_embedding: bool = False
     speakers_file: str = None
