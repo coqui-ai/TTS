@@ -155,7 +155,13 @@ class Synthesizer(object):
         Returns:
             List[str]: list of sentences.
         """
-        return self.seg.segment(text)
+        # JMa
+        # WA: fix glottal stop (!): "ahoj, !", "ahoj." => "ahoj, !ahoj."
+        #     Exclamation mark (!) at the end of the sentence should not be affected.
+        # return self.seg.segment(text)
+        sents = self.seg.segment(text)
+        split_text = " ".join(sents)
+        return [split_text.replace("! ", "!")]
 
     def save_wav(self, wav: List[int], path: str) -> None:
         """Save the waveform as a file.
