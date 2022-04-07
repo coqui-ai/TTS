@@ -270,6 +270,13 @@ class Tacotron(BaseTacotron):
         }
         return outputs
 
+    def before_main_optimizer_step(self, loss_dict, optimizer) -> None:
+        # Extracting custom training specific operations for capacitron
+        # from the trainer
+        if self.use_capacitron_vae:
+            loss_dict["capacitron_vae_beta_loss"].backward()
+            optimizer.first_step()
+
     def train_step(self, batch: Dict, criterion: torch.nn.Module) -> Tuple[Dict, Dict]:
         """Perform a single training step by fetching the right set of samples from the batch.
 
@@ -339,6 +346,18 @@ class Tacotron(BaseTacotron):
     def get_scheduler(self, optimizer: object):
         opt = optimizer.primary_optimizer if self.use_capacitron_vae else self.get_optimizer()
         return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, opt)
+
+    def apply_gradient_clipping(self, model_params, grad_clip):
+        if self.use_capacitron_vae:
+            # Capacitron model specific gradient clipping
+            model_params_to_clip = []
+            for name, param in model_params:
+                if param.requires_grad:
+                    if name != "capacitron_vae_layer.beta":
+                        model_params_to_clip.append(param)
+        else:
+            model_params_to_clip = model_params
+        return torch.nn.utils.clip_grad_norm_(model_params, grad_clip)
 
     def _create_logs(self, batch, outputs, ap):
         postnet_outputs = outputs["model_outputs"]
