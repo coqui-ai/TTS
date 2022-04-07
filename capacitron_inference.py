@@ -9,8 +9,8 @@ from TTS.utils.synthesizer import Synthesizer
 prior = False
 
 # If posterior, define the reference wav and text here
-capacitron_reference_wav = None if prior else "reference_path"
-capacitron_reference_text = None if prior else "transcription of the reference wav"
+capacitron_style_wav = None if prior else "reference_path"
+capacitron_style_text = None if prior else "transcription of the reference wav"
 
 model = "coqui_tts-December-03-2021_12+40AM-4d4f6160"
 config_path = "/home/big-boy/Models/CPR/{}/config.json".format(model)
@@ -54,7 +54,7 @@ def main():
     print(" > Text: {}".format(text))
 
     # kick it
-    wav = synthesizer.tts(text, speaker_idx, speaker_wav, reference_wav=capacitron_reference_wav, reference_text=capacitron_reference_text)
+    wav = synthesizer.tts(text, speaker_idx, speaker_wav, style_wav=capacitron_style_wav, style_text=capacitron_style_text)
 
     # save the results
     print(" > Saving output to {}".format(out_path))

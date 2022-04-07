@@ -225,9 +225,9 @@ class Tacotron(BaseTacotron):
             # B x gst_dim
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
         if self.capacitron_vae and self.use_capacitron_vae:
-            if aux_input["reference_text"] is not None:
-                reference_text_embedding = self.embedding(aux_input["reference_text"])
-                reference_text_length = torch.tensor([reference_text_embedding.size(1)], dtype=torch.int64).to(
+            if aux_input["style_text"] is not None:
+                style_text_embedding = self.embedding(aux_input["style_text"])
+                style_text_length = torch.tensor([style_text_embedding.size(1)], dtype=torch.int64).to(
                     encoder_outputs.device
                 )  # pylint: disable=not-callable
             reference_mel_length = (
@@ -241,8 +241,8 @@ class Tacotron(BaseTacotron):
                 reference_mel_info=[aux_input["reference_mel"], reference_mel_length]
                 if aux_input["reference_mel"] is not None
                 else None,
-                text_info=[reference_text_embedding, reference_text_length]
-                if aux_input["reference_text"] is not None
+                text_info=[style_text_embedding, style_text_length]
+                if aux_input["style_text"] is not None
                 else None,
                 speaker_embedding=aux_input["d_vectors"]
                 if self.capacitron_vae.capacitron_use_speaker_embedding
