@@ -15,7 +15,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.capacitron_optimizer import CapacitronOptimizer
-from TTS.utils.trainer_utils import get_optimizer, get_scheduler
+from trainer.trainer_utils import get_optimizer, get_scheduler
 
 
 class Tacotron(BaseTacotron):
@@ -351,16 +351,18 @@ class Tacotron(BaseTacotron):
         return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, opt)
 
     def apply_gradient_clipping(self, model_params, grad_clip):
+        # Capacitron need to filter out params based on name,
+        # so not doing anything with model_params here
         if self.use_capacitron_vae:
             # Capacitron model specific gradient clipping
             model_params_to_clip = []
-            for name, param in model_params:
+            for name, param in self.named_parameters():
                 if param.requires_grad:
                     if name != "capacitron_vae_layer.beta":
                         model_params_to_clip.append(param)
         else:
             model_params_to_clip = model_params
-        return torch.nn.utils.clip_grad_norm_(model_params, grad_clip)
+        return torch.nn.utils.clip_grad_norm_(model_params_to_clip, grad_clip)
 
     def _create_logs(self, batch, outputs, ap):
         postnet_outputs = outputs["model_outputs"]

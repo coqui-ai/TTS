@@ -1,6 +1,6 @@
 from typing import Generator
 
-from TTS.utils.trainer_utils import get_optimizer
+from trainer.trainer_utils import get_optimizer
 
 
 class CapacitronOptimizer:

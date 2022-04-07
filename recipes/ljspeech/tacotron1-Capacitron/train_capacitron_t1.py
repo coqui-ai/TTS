@@ -1,17 +1,20 @@
 import os
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig, CapacitronVAEConfig
 from TTS.tts.configs.tacotron_config import TacotronConfig
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.tacotron import Tacotron
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 
+data_path = "/srv/data/"
+
 # Using LJSpeech like dataset processing for the blizzard dataset
-dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv", path="/home/data/ljspeech")
+dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv", path=data_path)
 
 audio_config = BaseAudioConfig(
     sample_rate=24000,
@@ -39,6 +42,7 @@ config = TacotronConfig(
     eval_batch_size=16,
     num_loader_workers=12,
     num_eval_loader_workers=8,
+    precompute_num_workers = 24,
     run_eval=True,
     test_delay_epochs=50,
     ga_alpha=0.0,
@@ -51,7 +55,8 @@ config = TacotronConfig(
     text_cleaner="phoneme_cleaners",
     use_phonemes=True,
     phoneme_language="en-us",
-    phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
+    phonemizer="espeak",
+    phoneme_cache_path=os.path.join(data_path, "phoneme_cache"),
     stopnet_pos_weight=15,
     print_step=50,
     print_eval=True,
@@ -73,18 +78,19 @@ config = TacotronConfig(
 
 ap = AudioProcessor(**config.audio.to_dict())
 
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
-model = Tacotron(config, speaker_manager=None)
+model = Tacotron(config, ap, tokenizer ,speaker_manager=None)
 
 trainer = Trainer(
-    TrainingArgs(),
+    TrainerArgs(),
     config,
     output_path,
     model=model,
     train_samples=train_samples,
     eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
 )
 
 # 🚀

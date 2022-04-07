@@ -1,20 +1,23 @@
 import os
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
 from TTS.tts.configs.shared_configs import BaseDatasetConfig, CapacitronVAEConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.utils.audio import AudioProcessor
 
-output_path = "/home/models/"
+output_path = os.path.dirname(os.path.abspath(__file__))
+
+data_path = "/srv/data/"
 
 # Using LJSpeech like dataset processing for the blizzard dataset
 dataset_config = BaseDatasetConfig(
     name="ljspeech",
     meta_file_train="metadata.csv",
-    path="/home/data/",
+    path=data_path,
 )
 
 audio_config = BaseAudioConfig(
@@ -43,6 +46,7 @@ config = Tacotron2Config(
     eval_batch_size=16,
     num_loader_workers=12,
     num_eval_loader_workers=8,
+    precompute_num_workers = 24,
     run_eval=True,
     test_delay_epochs=5,
     ga_alpha=0.0,
@@ -55,15 +59,14 @@ config = Tacotron2Config(
     text_cleaner="phoneme_cleaners",
     use_phonemes=True,
     phoneme_language="en-us",
-    phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
+    phonemizer="espeak",
+    phoneme_cache_path=os.path.join(data_path, "phoneme_cache"),
     stopnet_pos_weight=15,
     print_step=25,
     print_eval=True,
     mixed_precision=False,
     output_path=output_path,
     datasets=[dataset_config],
-    min_seq_len=1,
-    max_seq_len=90,
     lr=1e-3,
     lr_scheduler="StepwiseGradualLR",
     lr_scheduler_params={
@@ -75,7 +78,7 @@ config = Tacotron2Config(
             [8e4, 5e-5],
         ]
     },
-    dashboard_logger="wandb",
+    # dashboard_logger="wandb",
     # Need to experiment with these below for capacitron
     loss_masking=False,
     decoder_loss_alpha=1.0,
@@ -88,12 +91,14 @@ config = Tacotron2Config(
 
 ap = AudioProcessor(**config.audio.to_dict())
 
+tokenizer, config = TTSTokenizer.init_from_config(config)
+
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
-model = Tacotron2(config, speaker_manager=None)
+model = Tacotron2(config, ap, tokenizer, speaker_manager=None)
 
 trainer = Trainer(
-    TrainingArgs(),
+    TrainerArgs(),
     config,
     output_path,
     model=model,
