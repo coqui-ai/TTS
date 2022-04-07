@@ -36,7 +36,6 @@ class StyleEncoderConfig(Coqpit):
 
     # VAE-SE-Specific Configs
     vae_latent_dim: int = 128 # Dim of mean and logvar
-    embedding_dim: int = 128 # Dim of reference encoder output
     use_cyclical_annealing: bool = True # Whether use or not annealing (recommended true), only linear implemented
     vae_loss_alpha: float = 1.0 # Default alpha value (term of KL loss)
     vae_cycle_period: int = 5000 # iteration period to apply a new annealing cycle

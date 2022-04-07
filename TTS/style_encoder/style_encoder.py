@@ -24,7 +24,7 @@ class StyleEncoder(nn.Module):
         elif self.se_type == 'vae':
             self.layer = VAEStyleEncoder(
                 num_mel = self.num_mel,
-                embedding_dim = self.embedding_dim,
+                embedding_dim = self.style_embedding_dim,
                 latent_dim = self.vae_latent_dim,
                 use_nonlinear_proj = self.use_nonlinear_proj
             )
