@@ -3,11 +3,13 @@ from coqpit import Coqpit
 from torch import nn
 from TTS.style_encoder.layers.gst import GST
 from TTS.style_encoder.layers.vae import VAEStyleEncoder
+from TTS.style_encoder.layers.vaeflow import VAEFlowStyleEncoder
 from TTS.style_encoder.layers.diffusion import DiffStyleEncoder
 
 class StyleEncoder(nn.Module):
     def __init__(self, config:Coqpit) -> None:
         super().__init__()
+        
         # Load from Config
         for key in config:
             setattr(self, key, config[key])
@@ -25,6 +27,14 @@ class StyleEncoder(nn.Module):
                 embedding_dim = self.embedding_dim,
                 latent_dim = self.vae_latent_dim,
                 use_nonlinear_proj = self.use_nonlinear_proj
+            )
+        elif self.se_type == 'vaeflow':
+            self.layer = VAEFlowStyleEncoder(
+                num_mel = self.num_mel,
+                style_emb_dim = self.style_embedding_dim,
+                latent_dim = self.vae_latent_dim,
+                intern_dim = self.vaeflow_intern_dim,
+                number_of_flows = self.vaeflow_number_of_flows
             )
         elif self.se_type == 'diffusion':
             self.layer = DiffStyleEncoder(
@@ -49,7 +59,7 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(*inputs)
         elif self.se_type == 'diffusion':
             out = self.diff_forward(*inputs)
-        elif self.se_type == 'vae':
+        elif self.se_type == 'vae' or self.se_type == 'vaeflow':
             out = self.vae_forward(*inputs)
         else:
             raise NotImplementedError
@@ -60,7 +70,7 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
         elif self.se_type == 'diffusion':
             out = self.diff_inference(inputs, ref_mels = kwargs['style_mel'], infer_from = kwargs['diff_t'])
-        elif self.se_type == 'vae':
+        elif self.se_type == 'vae' or self.se_type == 'vaeflow':
             out = self.vae_inference(inputs, ref_mels= kwargs['style_mel'], z = kwargs['z'])
         else:
             raise NotImplementedError
@@ -104,7 +114,6 @@ class StyleEncoder(nn.Module):
 
     def vae_forward(self, inputs, ref_mels): 
         vae_output = self.layer.forward(ref_mels)
-        #print(vae_output['z'].shape, inputs.shape)
         return self._concat_embedding(inputs, vae_output['z']), {'mean': vae_output['mean'], 'log_var' : vae_output['log_var']}
     
     def vae_inference(self, inputs, ref_mels, z=None):

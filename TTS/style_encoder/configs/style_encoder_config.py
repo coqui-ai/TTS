@@ -19,7 +19,7 @@ class StyleEncoderConfig(Coqpit):
             Number of style token vectors. Defaults to 10.
 
         se_type (str):
-            Style encoder type \in {diffusion, vae, gst, re}
+            Style encoder type \in {diffusion, vae, vaeflow, gst, re}
     """
     # Style Encoder Type
     se_type: str = "diffusion"
@@ -42,6 +42,10 @@ class StyleEncoderConfig(Coqpit):
     vae_cycle_period: int = 5000 # iteration period to apply a new annealing cycle
     use_nonlinear_proj: bool = False # Whether use or not a linear + tanh before agg in TTS encoder outputs
 
+    # VAE-FLOW-Additional Configs
+    vaeflow_intern_dim: int = 300
+    vaeflow_number_of_flows: int = 16
+
     # Diffusion-specific Configs
     diff_num_timesteps: int = 25 
     diff_schedule_type: str = 'cosine'
@@ -61,7 +65,7 @@ class StyleEncoderConfig(Coqpit):
         """Check config fields"""
         c = asdict(self)
         super().check_values()
-        check_argument("se_type", c, restricted=True, enum_list=["gst", "vae", "diffusion"])
+        check_argument("se_type", c, restricted=True, enum_list=["gst", "vae", "diffusion", "vaeflow"])
         check_argument("num_mel", c, restricted=False)
         check_argument("style_embedding_dim", c, restricted=True, min_val=0, max_val=1000)
         check_argument("use_speaker_embedding", c, restricted=False)
@@ -69,6 +73,8 @@ class StyleEncoderConfig(Coqpit):
         check_argument("gst_num_heads", c, restricted=True, min_val=2, max_val=10)
         check_argument("gst_num_style_tokens", c, restricted=True, min_val=1, max_val=1000)
         check_argument("vae_latent_dim", c, restricted=True, min_val=0, max_val=1000)
+        check_argument("vaeflow_intern_dim", c, restricted=True, min_val=0, max_val=1000)
+        check_argument("vaeflow_number_of_flows", c, restricted=True, min_val=0, max_val=1000)
         check_argument("diff_num_timesteps", c, restricted=True, min_val=0, max_val=5000)
         check_argument("diff_schedule_type", c, restricted=True, enum_list=["cosine", "linear"])
         check_argument("diff__step", c, restricted=True, min_val=0, max_val=self.num_timesteps)
