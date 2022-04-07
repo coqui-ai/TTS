@@ -1,11 +1,13 @@
 import glob
+import json
 import os
 import shutil
+
+from trainer import get_last_checkpoint
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
-from TTS.utils.trainer_utils import get_last_checkpoint
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -34,8 +36,7 @@ config = VitsConfig(
     num_eval_loader_workers=0,
     text_cleaner="english_cleaners",
     use_phonemes=True,
-    use_espeak_phonemes=True,
-    phoneme_language="en",
+    phoneme_language="en-us",
     phoneme_cache_path="tests/data/ljspeech/phoneme_cache/",
     run_eval=True,
     test_delay_epochs=-1,
@@ -86,12 +87,20 @@ continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getm
 # Inference using TTS API
 continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
-out_wav_path = os.path.join(get_tests_output_path(), 'output.wav')
+out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech"
 languae_id = "en"
 continue_speakers_path = os.path.join(continue_path, "speakers.json")
 continue_languages_path = os.path.join(continue_path, "language_ids.json")
 
+# Check integrity of the config
+with open(continue_config_path, "r", encoding="utf-8") as f:
+    config_loaded = json.load(f)
+assert config_loaded["characters"] is not None
+assert config_loaded["output_path"] in continue_path
+assert config_loaded["test_delay_epochs"] == 0
+
+# Load the model and run inference
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --language_ids_file_path {continue_languages_path} --language_idx {languae_id} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
 run_cli(inference_command)
 

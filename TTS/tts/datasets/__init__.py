@@ -12,16 +12,20 @@ from TTS.tts.datasets.formatters import *
 def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
-    Args:
-        items (List[List]):
-            A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
+        Args:
+    <<<<<<< HEAD
+            items (List[List]):
+                A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
 
-        eval_split_max_size (int):
-            Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
+            eval_split_max_size (int):
+                Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
 
-        eval_split_size (float):
-            If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
-            If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
+            eval_split_size (float):
+                If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
+                If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
+    =======
+            items (List[List]): A list of samples. Each sample is a list of `[text, audio_path, speaker_id]`.
+    >>>>>>> Fix docstring
     """
     speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
@@ -33,7 +37,11 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
         else:
             eval_split_size = int(len(items) * eval_split_size)
 
-    assert eval_split_size > 0, " [!] You do not have enough samples for the evaluation set. You can work around this setting the 'eval_split_size' parameter to a minimum of {}".format(1/len(items))
+    assert (
+        eval_split_size > 0
+    ), " [!] You do not have enough samples for the evaluation set. You can work around this setting the 'eval_split_size' parameter to a minimum of {}".format(
+        1 / len(items)
+    )
     np.random.seed(0)
     np.random.shuffle(items)
     if is_multi_speaker:
@@ -52,8 +60,11 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
 
 
 def load_tts_samples(
-    datasets: Union[List[Dict], Dict], eval_split=True, formatter: Callable = None,
-    eval_split_max_size=None, eval_split_size=0.01
+    datasets: Union[List[Dict], Dict],
+    eval_split=True,
+    formatter: Callable = None,
+    eval_split_max_size=None,
+    eval_split_size=0.01,
 ) -> Tuple[List[List], List[List]]:
     """Parse the dataset from the datasets config, load the samples as a List and load the attention alignments if provided.
     If `formatter` is not None, apply the formatter to the samples else pick the formatter from the available ones based
@@ -68,7 +79,7 @@ def load_tts_samples(
 
         formatter (Callable, optional): The preprocessing function to be applied to create the list of samples. It
             must take the root_path and the meta_file name and return a list of samples in the format of
-            `[[audio_path, text, speaker_id], ...]]`. See the available formatters in `TTS.tts.dataset.formatter` as
+            `[[text, audio_path, speaker_id], ...]]`. See the available formatters in `TTS.tts.dataset.formatter` as
             example. Defaults to None.
 
         eval_split_max_size (int):

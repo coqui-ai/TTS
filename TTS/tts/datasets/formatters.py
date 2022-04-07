@@ -132,7 +132,7 @@ def ljspeech_test(root_path, meta_file, **kwargs):  # pylint: disable=unused-arg
         speaker_id = 0
         for idx, line in enumerate(ttf):
             # 2 samples per speaker to avoid eval split issues
-            if idx%2 == 0:
+            if idx % 2 == 0:
                 speaker_id += 1
             cols = line.split("|")
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
@@ -246,7 +246,7 @@ def libri_tts(root_path, meta_files=None, ignored_speakers=None):
                         continue
                 items.append({"text": text, "audio_file": wav_file, "speaker_name": f"LTTS_{speaker_name}"})
     for item in items:
-        assert os.path.exists(item[1]), f" [!] wav files don't exist - {item[1]}"
+        assert os.path.exists(item["audio_file"]), f" [!] wav files don't exist - {item['audio_file']}"
     return items
 
 
@@ -289,7 +289,52 @@ def brspeech(root_path, meta_file, ignored_speakers=None):
     return items
 
 
-def vctk(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
+def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic1", ignored_speakers=None):
+    """VCTK dataset v0.92.
+
+    URL:
+        https://datashare.ed.ac.uk/bitstream/handle/10283/3443/VCTK-Corpus-0.92.zip
+
+    This dataset has 2 recordings per speaker that are annotated with ```mic1``` and ```mic2```.
+    It is believed that (😄 ) ```mic1``` files are the same as the previous version of the dataset.
+
+    mic1:
+        Audio recorded using an omni-directional microphone (DPA 4035).
+        Contains very low frequency noises.
+        This is the same audio released in previous versions of VCTK:
+        https://doi.org/10.7488/ds/1994
+
+    mic2:
+        Audio recorded using a small diaphragm condenser microphone with
+        very wide bandwidth (Sennheiser MKH 800).
+        Two speakers, p280 and p315 had technical issues of the audio
+        recordings using MKH 800.
+    """
+    file_ext = "flac"
+    items = []
+    meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
+    for meta_file in meta_files:
+        _, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
+        file_id = txt_file.split(".")[0]
+        # ignore speakers
+        if isinstance(ignored_speakers, list):
+            if speaker_id in ignored_speakers:
+                continue
+        with open(meta_file, "r", encoding="utf-8") as file_text:
+            text = file_text.readlines()[0]
+        # p280 has no mic2 recordings
+        if speaker_id == "p280":
+            wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + f"_mic1.{file_ext}")
+        else:
+            wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + f"_{mic}.{file_ext}")
+        if os.path.exists(wav_file):
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
+        else:
+            print(f" [!] wav files don't exist - {wav_file}")
+    return items
+
+
+def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
     meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
@@ -303,25 +348,29 @@ def vctk(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
         with open(meta_file, "r", encoding="utf-8") as file_text:
             text = file_text.readlines()[0]
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
-
+        items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_old_" + speaker_id})
     return items
 
 
-def vctk_slim(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):  # pylint: disable=unused-argument
-    """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
+def open_bible(root_path, meta_files="train", ignore_digits_sentences=True, ignored_speakers=None):
+    """ToDo: Refer the paper when available"""
     items = []
-    txt_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
-    for text_file in txt_files:
-        _, speaker_id, txt_file = os.path.relpath(text_file, root_path).split(os.sep)
+    split_dir = meta_files
+    meta_files = glob(f"{os.path.join(root_path, split_dir)}/**/*.txt", recursive=True)
+    for meta_file in meta_files:
+        _, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
         file_id = txt_file.split(".")[0]
         # ignore speakers
         if isinstance(ignored_speakers, list):
             if speaker_id in ignored_speakers:
                 continue
-        wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
-        items.append([None, wav_file, "VCTK_" + speaker_id])
-
+        with open(meta_file, "r", encoding="utf-8") as file_text:
+            text = file_text.readline().replace("\n", "")
+        # ignore sentences that contains digits
+        if ignore_digits_sentences and any(map(str.isdigit, text)):
+            continue
+        wav_file = os.path.join(root_path, split_dir, speaker_id, file_id + ".flac")
+        items.append({"text": text, "audio_file": wav_file, "speaker_name": "OB_" + speaker_id})
     return items
 
 
@@ -390,6 +439,26 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
 
     with open(str(cache_to), "r", encoding="utf-8") as f:
         return [x.strip().split("|") for x in f.readlines()]
+
+
+def emotion(root_path, meta_file, ignored_speakers=None):
+    """Generic emotion dataset"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        for line in ttf:
+            if line.startswith("file_path"):
+                continue
+            cols = line.split(",")
+            wav_file = os.path.join(root_path, cols[0])
+            speaker_id = cols[1]
+            emotion_id = cols[2].replace("\n", "")
+            # ignore speakers
+            if isinstance(ignored_speakers, list):
+                if speaker_id in ignored_speakers:
+                    continue
+            items.append({"audio_file": wav_file, "speaker_name": speaker_id, "emotion_name": emotion_id})
+    return items
 
 
 def baker(root_path: str, meta_file: str, **kwargs) -> List[List[str]]:  # pylint: disable=unused-argument

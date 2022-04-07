@@ -142,7 +142,7 @@ def save_checkpoint(
     output_folder,
     **kwargs,
 ):
-    file_name = "checkpoint_{}.pth.tar".format(current_step)
+    file_name = "checkpoint_{}.pth".format(current_step)
     checkpoint_path = os.path.join(output_folder, file_name)
     print("\n > CHECKPOINT : {}".format(checkpoint_path))
     save_model(
@@ -172,7 +172,7 @@ def save_best_model(
     **kwargs,
 ):
     if current_loss < best_loss:
-        best_model_name = f"best_model_{current_step}.pth.tar"
+        best_model_name = f"best_model_{current_step}.pth"
         checkpoint_path = os.path.join(out_path, best_model_name)
         print(" > BEST MODEL : {}".format(checkpoint_path))
         save_model(
@@ -189,12 +189,12 @@ def save_best_model(
         fs = fsspec.get_mapper(out_path).fs
         # only delete previous if current is saved successfully
         if not keep_all_best or (current_step < keep_after):
-            model_names = fs.glob(os.path.join(out_path, "best_model*.pth.tar"))
+            model_names = fs.glob(os.path.join(out_path, "best_model*.pth"))
             for model_name in model_names:
                 if os.path.basename(model_name) != best_model_name:
                     fs.rm(model_name)
         # create a shortcut which always points to the currently best model
-        shortcut_name = "best_model.pth.tar"
+        shortcut_name = "best_model.pth"
         shortcut_path = os.path.join(out_path, shortcut_name)
         fs.copy(checkpoint_path, shortcut_path)
         best_loss = current_loss

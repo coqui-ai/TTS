@@ -115,6 +115,7 @@ venv.bak/
 *.swo
 
 # pytorch models
+*.pth
 *.pth.tar
 result/
 
@@ -165,3 +166,4 @@ internal/*
 *_phoneme.npy
 wandb
 depot/*
+coqui_recipes/*

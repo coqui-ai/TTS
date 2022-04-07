@@ -1,11 +1,13 @@
 import glob
+import json
 import os
 import shutil
+
+from trainer import get_last_checkpoint
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
-from TTS.utils.trainer_utils import get_last_checkpoint
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -44,7 +46,7 @@ config = VitsConfig(
         ["Be a voice, not an echo.", "ljspeech-0", None, "en"],
         ["Be a voice, not an echo.", "ljspeech-1", None, "pt-br"],
     ],
-    datasets=[dataset_config_en, dataset_config_pt],
+    datasets=[dataset_config_en, dataset_config_en, dataset_config_en, dataset_config_pt],
 )
 # set audio config
 config.audio.do_trim_silence = True
@@ -70,8 +72,11 @@ config.d_vector_dim = 256
 config.model_args.use_sdp = True
 config.use_sdp = True
 
-# deactivate language sampler
-config.use_language_weighted_sampler = False
+# activate language and speaker samplers
+config.use_language_weighted_sampler = True
+config.language_weighted_sampler_alpha = 10
+config.use_speaker_weighted_sampler = True
+config.speaker_weighted_sampler_alpha = 5
 
 config.save_json(config_path)
 
@@ -89,12 +94,20 @@ continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getm
 # Inference using TTS API
 continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
-out_wav_path = os.path.join(get_tests_output_path(), 'output.wav')
+out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
 languae_id = "en"
 continue_speakers_path = config.d_vector_file
 continue_languages_path = os.path.join(continue_path, "language_ids.json")
 
+# Check integrity of the config
+with open(continue_config_path, "r", encoding="utf-8") as f:
+    config_loaded = json.load(f)
+assert config_loaded["characters"] is not None
+assert config_loaded["output_path"] in continue_path
+assert config_loaded["test_delay_epochs"] == 0
+
+# Load the model and run inference
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --language_ids_file_path {continue_languages_path} --language_idx {languae_id} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
 run_cli(inference_command)
 

@@ -4,35 +4,6 @@ import numpy as np
 import torch
 from torch import nn
 
-from .text import phoneme_to_sequence, text_to_sequence
-
-
-def text_to_seq(text, CONFIG, custom_symbols=None, language=None):
-    text_cleaner = [CONFIG.text_cleaner]
-    # text ot phonemes to sequence vector
-    if CONFIG.use_phonemes:
-        seq = np.asarray(
-            phoneme_to_sequence(
-                text,
-                text_cleaner,
-                language if language else CONFIG.phoneme_language,
-                CONFIG.enable_eos_bos_chars,
-                tp=CONFIG.characters,
-                add_blank=CONFIG.add_blank,
-                use_espeak_phonemes=CONFIG.use_espeak_phonemes,
-                custom_symbols=custom_symbols,
-            ),
-            dtype=np.int32,
-        )
-    else:
-        seq = np.asarray(
-            text_to_sequence(
-                text, text_cleaner, tp=CONFIG.characters, add_blank=CONFIG.add_blank, custom_symbols=custom_symbols
-            ),
-            dtype=np.int32,
-        )
-    return seq
-
 
 def numpy_to_torch(np_array, dtype, cuda=False):
     if np_array is None:
@@ -151,17 +122,14 @@ def synthesis(
     text,
     CONFIG,
     use_cuda,
-    ap,
     speaker_id=None,
     style_wav=None,
     reference_wav=None,
     reference_text=None,
-    enable_eos_bos_chars=False,  # pylint: disable=unused-argument
     use_griffin_lim=False,
     do_trim_silence=False,
     d_vector=None,
     language_id=None,
-    language_name=None,
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
     the vocoder model.
@@ -178,9 +146,6 @@ def synthesis(
 
         use_cuda (bool):
             Enable/disable CUDA.
-
-        ap (TTS.tts.utils.audio.AudioProcessor):
-            The audio processor for extracting features and pre/post-processing audio.
 
         speaker_id (int):
             Speaker ID passed to the speaker embedding layer in multi-speaker model. Defaults to None.
@@ -206,28 +171,27 @@ def synthesis(
 
         language_id (int):
             Language ID passed to the language embedding layer in multi-langual model. Defaults to None.
-
-        language_name (str):
-            Language name corresponding to the language code used by the phonemizer. Defaults to None.
     """
     # GST processing
     style_mel = None
-    custom_symbols = None
-    if style_wav:
-        style_mel = compute_style_mel(style_wav, ap, cuda=use_cuda)
-    elif CONFIG.has("gst") and CONFIG.gst and not style_wav:
-        if CONFIG.gst.gst_style_input_weights:
-            style_mel = CONFIG.gst.gst_style_input_weights
+    if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
+        if isinstance(style_wav, dict):
+            style_mel = style_wav
+        else:
+            style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
+
     # Capacitron processing
     reference_mel = None
     if CONFIG.has("capacitron_vae") and CONFIG.use_capacitron_vae and reference_wav is not None:
-        reference_mel = compute_reference_mel(reference_wav, ap, cuda=use_cuda)
+        reference_mel = compute_reference_mel(reference_wav, model.ap, cuda=use_cuda)
         reference_mel = reference_mel.transpose(1, 2)  # [1, time, depth]
-    if hasattr(model, "make_symbols"):
-        custom_symbols = model.make_symbols(CONFIG)
-    # preprocess the given text
-    text_inputs = text_to_seq(text, CONFIG, custom_symbols=custom_symbols, language=language_name)
 
+    # convert text to sequence of token IDs
+    text_inputs = np.asarray(
+        model.tokenizer.text_to_ids(text, language=language_id),
+        dtype=np.int32,
+    )
+    # pass tensors to backend
     if speaker_id is not None:
         speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
 
@@ -242,13 +206,15 @@ def synthesis(
         # Capacitron reference
         reference_mel = numpy_to_torch(reference_mel, torch.float, cuda=use_cuda)
         if reference_text is not None:
-            reference_text = text_to_seq(reference_text, CONFIG, custom_symbols=custom_symbols)
+            reference_text = np.asarray(
+                model.tokenizer.text_to_ids(reference_text, language=language_id),
+                dtype=np.int32,
+            )
             reference_text = numpy_to_torch(reference_text, torch.long, cuda=use_cuda)
             reference_text = reference_text.unsqueeze(0)
 
     text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
     text_inputs = text_inputs.unsqueeze(0)
-
     # synthesize voice
     outputs = run_model_torch(
         model,
@@ -267,14 +233,15 @@ def synthesis(
     # convert outputs to numpy
     # plot results
     wav = None
-    if hasattr(model, "END2END") and model.END2END:
-        wav = model_outputs.squeeze(0)
-    else:
+    model_outputs = model_outputs.squeeze()
+    if model_outputs.ndim == 2:  # [T, C_spec]
         if use_griffin_lim:
-            wav = inv_spectrogram(model_outputs, ap, CONFIG)
+            wav = inv_spectrogram(model_outputs, model.ap, CONFIG)
             # trim silence
             if do_trim_silence:
-                wav = trim_silence(wav, ap)
+                wav = trim_silence(wav, model.ap)
+    else:  # [T,]
+        wav = model_outputs
     return_dict = {
         "wav": wav,
         "alignments": alignments,
@@ -282,3 +249,84 @@ def synthesis(
         "outputs": outputs,
     }
     return return_dict
+
+
+def transfer_voice(
+    model,
+    CONFIG,
+    use_cuda,
+    reference_wav,
+    speaker_id=None,
+    d_vector=None,
+    reference_speaker_id=None,
+    reference_d_vector=None,
+    do_trim_silence=False,
+    use_griffin_lim=False,
+):
+    """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
+    the vocoder model.
+
+    Args:
+        model (TTS.tts.models):
+            The TTS model to synthesize audio with.
+
+        CONFIG (Coqpit):
+            Model configuration.
+
+        use_cuda (bool):
+            Enable/disable CUDA.
+
+        reference_wav (str):
+            Path of reference_wav to be used to voice conversion.
+
+        speaker_id (int):
+            Speaker ID passed to the speaker embedding layer in multi-speaker model. Defaults to None.
+
+        d_vector (torch.Tensor):
+            d-vector for multi-speaker models in share :math:`[1, D]`. Defaults to None.
+
+        reference_speaker_id (int):
+            Reference Speaker ID passed to the speaker embedding layer in multi-speaker model. Defaults to None.
+
+        reference_d_vector (torch.Tensor):
+            Reference d-vector for multi-speaker models in share :math:`[1, D]`. Defaults to None.
+
+        enable_eos_bos_chars (bool):
+            enable special chars for end of sentence and start of sentence. Defaults to False.
+
+        do_trim_silence (bool):
+            trim silence after synthesis. Defaults to False.
+    """
+    # pass tensors to backend
+    if speaker_id is not None:
+        speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
+
+    if d_vector is not None:
+        d_vector = embedding_to_torch(d_vector, cuda=use_cuda)
+
+    if reference_d_vector is not None:
+        reference_d_vector = embedding_to_torch(reference_d_vector, cuda=use_cuda)
+
+    # load reference_wav audio
+    reference_wav = embedding_to_torch(model.ap.load_wav(reference_wav, sr=model.ap.sample_rate), cuda=use_cuda)
+
+    if hasattr(model, "module"):
+        _func = model.module.inference_voice_conversion
+    else:
+        _func = model.inference_voice_conversion
+    model_outputs = _func(reference_wav, speaker_id, d_vector, reference_speaker_id, reference_d_vector)
+
+    # convert outputs to numpy
+    # plot results
+    wav = None
+    model_outputs = model_outputs.squeeze()
+    if model_outputs.ndim == 2:  # [T, C_spec]
+        if use_griffin_lim:
+            wav = inv_spectrogram(model_outputs, model.ap, CONFIG)
+            # trim silence
+            if do_trim_silence:
+                wav = trim_silence(wav, model.ap)
+    else:  # [T,]
+        wav = model_outputs
+
+    return wav

@@ -1,9 +1,8 @@
 # coding: utf-8
 
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import torch
-from coqpit import Coqpit
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 
@@ -13,6 +12,7 @@ from TTS.tts.layers.tacotron.tacotron2 import Decoder, Encoder, Postnet
 from TTS.tts.models.base_tacotron import BaseTacotron
 from TTS.tts.utils.measures import alignment_diagonal_score
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.capacitron_optimizer import CapacitronOptimizer
 from TTS.utils.trainer_utils import get_optimizer, get_scheduler
@@ -43,12 +43,16 @@ class Tacotron2(BaseTacotron):
             Speaker manager for multi-speaker training. Uuse only for multi-speaker training. Defaults to None.
     """
 
-    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "Tacotron2Config",
+        ap: "AudioProcessor" = None,
+        tokenizer: "TTSTokenizer" = None,
+        speaker_manager: SpeakerManager = None,
+    ):
 
-        self.speaker_manager = speaker_manager
-        chars, self.config, _ = self.get_characters(config)
-        config.num_chars = len(chars)
+        super().__init__(config, ap, tokenizer, speaker_manager)
+
         self.decoder_output_dim = config.out_channels
 
         # pass all config fields to `self`
@@ -414,16 +418,30 @@ class Tacotron2(BaseTacotron):
         self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int
     ) -> None:  # pylint: disable=no-self-use
         """Log training progress."""
-        ap = assets["audio_processor"]
-        figures, audios = self._create_logs(batch, outputs, ap)
+        figures, audios = self._create_logs(batch, outputs, self.ap)
         logger.train_figures(steps, figures)
-        logger.train_audios(steps, audios, ap.sample_rate)
+        logger.train_audios(steps, audios, self.ap.sample_rate)
 
     def eval_step(self, batch: dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
     def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
-        ap = assets["audio_processor"]
-        figures, audios = self._create_logs(batch, outputs, ap)
+        figures, audios = self._create_logs(batch, outputs, self.ap)
         logger.eval_figures(steps, figures)
-        logger.eval_audios(steps, audios, ap.sample_rate)
+        logger.eval_audios(steps, audios, self.ap.sample_rate)
+
+    @staticmethod
+    def init_from_config(config: "Tacotron2Config", samples: Union[List[List], List[Dict]] = None):
+        """Initiate model from config
+
+        Args:
+            config (Tacotron2Config): Model config.
+            samples (Union[List[List], List[Dict]]): Training samples to parse speaker ids for training.
+                Defaults to None.
+        """
+        from TTS.utils.audio import AudioProcessor
+
+        ap = AudioProcessor.init_from_config(config)
+        tokenizer, new_config = TTSTokenizer.init_from_config(config)
+        speaker_manager = SpeakerManager.init_from_config(new_config, samples)
+        return Tacotron2(new_config, ap, tokenizer, speaker_manager)

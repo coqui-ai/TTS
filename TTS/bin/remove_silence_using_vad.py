@@ -1,51 +1,31 @@
 import argparse
 import glob
-import multiprocessing
 import os
 import pathlib
 
-from tqdm.contrib.concurrent import process_map
+from tqdm import tqdm
 
-from TTS.utils.vad import get_vad_speech_segments, read_wave, write_wave
+from TTS.utils.vad import get_vad_model_and_utils, remove_silence
 
 
-def remove_silence(filepath):
-    output_path = filepath.replace(os.path.join(args.input_dir, ""), os.path.join(args.output_dir, ""))
+def adjust_path_and_remove_silence(audio_path):
+    output_path = audio_path.replace(os.path.join(args.input_dir, ""), os.path.join(args.output_dir, ""))
     # ignore if the file exists
     if os.path.exists(output_path) and not args.force:
-        return
+        return output_path
 
     # create all directory structure
     pathlib.Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    # load wave
-    audio, sample_rate = read_wave(filepath)
+    # remove the silence and save the audio
+    output_path = remove_silence(
+        model_and_utils,
+        audio_path,
+        output_path,
+        trim_just_beginning_and_end=args.trim_just_beginning_and_end,
+        use_cuda=args.use_cuda,
+    )
 
-    # get speech segments
-    segments = get_vad_speech_segments(audio, sample_rate, aggressiveness=args.aggressiveness)
-
-    segments = list(segments)
-    num_segments = len(segments)
-    flag = False
-    # create the output wave
-    if num_segments != 0:
-        for i, segment in reversed(list(enumerate(segments))):
-            if i >= 1:
-                if not flag:
-                    concat_segment = segment
-                    flag = True
-                else:
-                    concat_segment = segment + concat_segment
-            else:
-                if flag:
-                    segment = segment + concat_segment
-                # print("Saving: ", output_path)
-                write_wave(output_path, segment, sample_rate)
-                return
-    else:
-        print("> Just Copying the file to:", output_path)
-        # if fail to remove silence just write the file
-        write_wave(output_path, audio, sample_rate)
-        return
+    return output_path
 
 
 def preprocess_audios():
@@ -54,17 +34,24 @@ def preprocess_audios():
     if not args.force:
         print("> Ignoring files that already exist in the output directory.")
 
+    if args.trim_just_beginning_and_end:
+        print("> Trimming just the beginning and the end with nonspeech parts.")
+    else:
+        print("> Trimming all nonspeech parts.")
+
     if files:
         # create threads
-        num_threads = multiprocessing.cpu_count()
-        process_map(remove_silence, files, max_workers=num_threads, chunksize=15)
+        # num_threads = multiprocessing.cpu_count()
+        # process_map(adjust_path_and_remove_silence, files, max_workers=num_threads, chunksize=15)
+        for f in tqdm(files):
+            adjust_path_and_remove_silence(f)
     else:
         print("> No files Found !")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="python remove_silence.py -i=VCTK-Corpus-bk/ -o=../VCTK-Corpus-removed-silence -g=wav48/*/*.wav -a=2"
+        description="python TTS/bin/remove_silence_using_vad.py -i=VCTK-Corpus/ -o=VCTK-Corpus-removed-silence/ -g=wav48_silence_trimmed/*/*_mic1.flac --trim_just_beginning_and_end True"
     )
     parser.add_argument("-i", "--input_dir", type=str, default="../VCTK-Corpus", help="Dataset root dir")
     parser.add_argument(
@@ -79,11 +66,20 @@ if __name__ == "__main__":
         help="path in glob format for acess wavs from input_dir. ex: wav48/*/*.wav",
     )
     parser.add_argument(
-        "-a",
-        "--aggressiveness",
-        type=int,
-        default=2,
-        help="set its aggressiveness mode, which is an integer between 0 and 3. 0 is the least aggressive about filtering out non-speech, 3 is the most aggressive.",
+        "-t",
+        "--trim_just_beginning_and_end",
+        type=bool,
+        default=True,
+        help="If True this script will trim just the beginning and end nonspeech parts. If False all nonspeech parts will be trim. Default True",
+    )
+    parser.add_argument(
+        "-c",
+        "--use_cuda",
+        type=bool,
+        default=False,
+        help="If True use cuda",
     )
     args = parser.parse_args()
+    # load the model and utils
+    model_and_utils = get_vad_model_and_utils(use_cuda=args.use_cuda)
     preprocess_audios()
