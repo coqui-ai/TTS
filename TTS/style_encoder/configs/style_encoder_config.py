@@ -29,23 +29,25 @@ class StyleEncoderConfig(Coqpit):
     style_embedding_dim: int = 128
     use_speaker_embedding: bool = False
 
-    # GST-Specific Configs
+    # GST-SE Additional Configs
     gst_style_input_weights: dict = None
     gst_num_heads: int = 4
     gst_num_style_tokens: int = 10
 
-    # VAE-SE-Specific Configs
+    # VAE-Based General Configs
     vae_latent_dim: int = 128 # Dim of mean and logvar
     use_cyclical_annealing: bool = True # Whether use or not annealing (recommended true), only linear implemented
     vae_loss_alpha: float = 1.0 # Default alpha value (term of KL loss)
     vae_cycle_period: int = 5000 # iteration period to apply a new annealing cycle
+
+    # VAE-SE Additional Configs
     use_nonlinear_proj: bool = False # Whether use or not a linear + tanh before agg in TTS encoder outputs
 
-    # VAE-FLOW-Additional Configs
+    # VAEFLOW-SE Additional Configs
     vaeflow_intern_dim: int = 300
     vaeflow_number_of_flows: int = 16
 
-    # Diffusion-specific Configs
+    # Diffusion-SE Additional Configs
     diff_num_timesteps: int = 25 
     diff_schedule_type: str = 'cosine'
     diff_loss_type: str = 'l1' 
