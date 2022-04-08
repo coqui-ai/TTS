@@ -24,7 +24,7 @@ matplotlib
 tensorboardX
 pyworld
 # coqui stack
-coqui-trainer
+trainer
 coqpit # config management
 # chinese g2p deps
 jieba
