@@ -58,9 +58,8 @@ class VAEFlowStyleEncoderLoss(torch.nn.Module):
         log_p_z = self.log_Normal_standard(z_T.squeeze(1), dim=1)
         log_q_z = self.log_Normal_diag(z_0.squeeze(1), mean, log_var, dim=1)
         
-        
         KL = (- torch.sum(log_p_z - log_q_z) )
-        print(KL.size())
+
         if(self.config['use_cyclical_annealing']):
             self.step += 1   
             self.update_alphavae(self.step)
