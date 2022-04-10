@@ -59,8 +59,10 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(*inputs)
         elif self.se_type == 'diffusion':
             out = self.diff_forward(*inputs)
-        elif self.se_type == 'vae' or self.se_type == 'vaeflow':
+        elif self.se_type == 'vae':
             out = self.vae_forward(*inputs)
+        elif self.se_type == 'vaeflow':
+            out = self.vaeflow_forward(*inputs)
         else:
             raise NotImplementedError
         return out
@@ -70,8 +72,10 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
         elif self.se_type == 'diffusion':
             out = self.diff_inference(inputs, ref_mels = kwargs['style_mel'], infer_from = kwargs['diff_t'])
-        elif self.se_type == 'vae' or self.se_type == 'vaeflow':
+        elif self.se_type == 'vae':
             out = self.vae_inference(inputs, ref_mels= kwargs['style_mel'], z = kwargs['z'])
+        elif self.se_type == 'vaeflow':
+            out = self.vaeflow_inference(inputs, ref_mels = kwargs['style_mel'], z = kwargs['z'])
         else:
             raise NotImplementedError
         return out
@@ -122,4 +126,15 @@ class StyleEncoder(nn.Module):
         else:
             vae_output = self.layer.forward(ref_mels)
             return self._concat_embedding(inputs, vae_output['z'])
+
+    def vaeflow_forward(self, inputs, ref_mels): 
+        vaeflow_output = self.layer.forward(ref_mels)
+        return self._concat_embedding(inputs, vaeflow_output['z_T']), {'mean': vaeflow_output['mean'], 'log_var' : vaeflow_output['log_var'], 'z_0' : vaeflow_output['z_0'], 'z_T' : vaeflow_output['z_T']}
+    
+    def vaeflow_inference(self, inputs, ref_mels, z=None):
+        if(z):
+            return self._concat_embedding(inputs, z)  # If an specific z is passed it uses it
+        else:
+            vaeflow_output = self.layer.forward(ref_mels)
+            return self._concat_embedding(inputs, vaeflow_output['z_T'])
             

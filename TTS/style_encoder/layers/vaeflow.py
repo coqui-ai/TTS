@@ -90,7 +90,7 @@ class VAEFlowStyleEncoder(nn.Module):
 
         # Householder Flow Pass:
         z = self.q_z_Flow(z, h_last)
-        return {'z' : z[str(self.number_of_flows)].unsqueeze_(1) , 'z_0':z['0'] , 'mean': z_q_mean, 'log_var': z_q_logvar, 'out': x} #out will be the RE output, just to have the output if needed
+        return {'z_T' : z[str(self.number_of_flows)].unsqueeze(1) , 'z_0':z['0'].unsqueeze(1) , 'mean': z_q_mean, 'log_var': z_q_logvar, 'out': x} #out will be the RE output, just to have the output if needed
 
 class HF(nn.Module):
     def __init__(self):
