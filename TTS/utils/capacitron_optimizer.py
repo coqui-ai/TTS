@@ -44,6 +44,9 @@ class CapacitronOptimizer:
         self.primary_optimizer.load_state_dict(state_dict[0])
         self.secondary_optimizer.load_state_dict(state_dict[1])
 
+    def state_dict(self):
+        return [self.primary_optimizer.state_dict, self.secondary_optimizer.state_dict]
+
     @staticmethod
     def split_model_parameters(model_params: Generator) -> list:
         primary_params = []
