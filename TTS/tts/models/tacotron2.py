@@ -259,15 +259,15 @@ class Tacotron2(BaseTacotron):
                     encoder_outputs.device
                 )  # pylint: disable=not-callable
             reference_mel_length = (
-                torch.tensor([aux_input["reference_mel"].size(1)], dtype=torch.int64).to(encoder_outputs.device)
-                if aux_input["reference_mel"] is not None
+                torch.tensor([aux_input["style_mel"].size(1)], dtype=torch.int64).to(encoder_outputs.device)
+                if aux_input["style_mel"] is not None
                 else None
             )  # pylint: disable=not-callable
             # B x capacitron_VAE_embedding_dim
             encoder_outputs, *_ = self.compute_capacitron_VAE_embedding(
                 encoder_outputs,
-                reference_mel_info=[aux_input["reference_mel"], reference_mel_length]
-                if aux_input["reference_mel"] is not None
+                reference_mel_info=[aux_input["style_mel"], reference_mel_length]
+                if aux_input["style_mel"] is not None
                 else None,
                 text_info=[style_text_embedding, style_text_length]
                 if aux_input["style_text"] is not None
