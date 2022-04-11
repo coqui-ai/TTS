@@ -16,11 +16,12 @@ class BWEGeneratorLoss(torch.nn.Module):
                         device=device,
                         do_amp_to_db=True) for i in range(4)]
         self.mel_spec = TorchSTFT(
-                            n_fft=2048, 
+                            n_fft=1024, 
                             hop_length=512, 
-                            win_length=2048, 
+                            win_length=1024, 
                             sample_rate=48000, 
                             n_mels=128,
+                            use_mel=True,
                             device=device,
                             do_amp_to_db=True)
         self.feat_match_loss = MelganFeatureLoss()

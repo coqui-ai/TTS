@@ -1,8 +1,12 @@
+from turtle import forward
 from coqpit import Coqpit
+from matplotlib.cbook import flatten
 from torch import nn
+from TTS.utils.audio import TorchSTFT
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from torch.nn import functional as F
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
 from TTS.tts.utils.visual import plot_spectrogram
@@ -27,6 +31,56 @@ class BWEArgs(Coqpit):
     num_blocks_wn: int = 2
     num_layers_wn: int = 7
     kernel_size_wn: int = 3
+
+class ConvLayerSpecDisc(nn.Module):
+    def __init__(self, kernel_size, stride, first_layer):
+        super().__init__()
+        get_padding = lambda k, d: int((k * d - d) / 2)
+        self.conv = nn.Conv2d(
+            1 if first_layer else 32, 32,
+            kernel_size,
+            stride,
+            padding=(get_padding(kernel_size[0], 1), get_padding(kernel_size[1], 1))
+        )
+        self.bn = nn.BatchNorm2d(32)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = F.leaky_relu(x)
+        x = self.bn(x)
+        return x
+class SpectralDiscriminator(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mel_spec = TorchSTFT(
+                            n_fft=1024, 
+                            hop_length=512, 
+                            win_length=1024, 
+                            sample_rate=48000, 
+                            n_mels=128,
+                            use_mel=True,
+                            device="cuda",
+                            do_amp_to_db=True)
+        self.kernel_sizes = [(7,7), (5,5), (5,5), (5,5)]
+        self.layers = nn.ModuleList([
+            ConvLayerSpecDisc(
+                self.kernel_sizes[i],
+                (1,2),
+                i == 0
+            ) for i in range(len(self.kernel_sizes))
+        ])
+        self.last_conv = nn.Conv2d(32, 1, (15,5), (15,1))
+
+    def forward(self, x):
+        feats = []
+        x = self.mel_spec(x).transpose(1,2).unsqueeze(1)
+        for disc in self.layers:
+            x = disc(x)
+            feats.append(x)
+        x = self.last_conv(x)
+        feats.append(x)
+        x = torch.flatten(x, 1, -1)
+        return x, feats
 
 class BWE(BaseTrainerModel):
     def __init__(
@@ -58,6 +112,7 @@ class BWE(BaseTrainerModel):
             base_channels=16,
             max_channels=1024,
         )
+        self.spectral_disc = SpectralDiscriminator()
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
@@ -73,7 +128,10 @@ class BWE(BaseTrainerModel):
         }
 
     def disc_forward(self, x):
-        return self.waveform_disc(x)
+        scores, feats = self.waveform_disc(x)
+        score, feats_ = self.spectral_disc(x)
+        scores.append(score)
+        return scores, feats + feats_
 
     def forward(self, x):
         return self.gen_forward(x)
