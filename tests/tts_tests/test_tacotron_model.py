@@ -277,7 +277,6 @@ class TacotronCapacitronTrainTest(unittest.TestCase):
         criterion_st = nn.BCEWithLogitsLoss().to(device)
         model = Tacotron(config).to(device)
         model.train()
-        # print(model)
         print(" > Num parameters for Tacotron with Capacitron VAE model:%s" % (count_parameters(model)))
         model_ref = copy.deepcopy(model)
         count = 0
