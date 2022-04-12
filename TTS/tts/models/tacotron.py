@@ -1,10 +1,11 @@
 # coding: utf-8
 
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 import torch
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
+from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.tts.layers.tacotron.capacitron_layers import CapacitronVAE
 from TTS.tts.layers.tacotron.gst_layers import GST
@@ -15,7 +16,6 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.capacitron_optimizer import CapacitronOptimizer
-from trainer.trainer_utils import get_optimizer, get_scheduler
 
 
 class Tacotron(BaseTacotron):
@@ -241,9 +241,7 @@ class Tacotron(BaseTacotron):
                 reference_mel_info=[aux_input["style_mel"], reference_mel_length]
                 if aux_input["style_mel"] is not None
                 else None,
-                text_info=[style_text_embedding, style_text_length]
-                if aux_input["style_text"] is not None
-                else None,
+                text_info=[style_text_embedding, style_text_length] if aux_input["style_text"] is not None else None,
                 speaker_embedding=aux_input["d_vectors"]
                 if self.capacitron_vae.capacitron_use_speaker_embedding
                 else None,

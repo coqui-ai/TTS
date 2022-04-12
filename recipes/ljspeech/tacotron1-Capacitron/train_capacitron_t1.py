@@ -1,12 +1,13 @@
 import os
 
-from TTS.config.shared_configs import BaseAudioConfig
 from trainer import Trainer, TrainerArgs
+
+from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig, CapacitronVAEConfig
 from TTS.tts.configs.tacotron_config import TacotronConfig
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.tacotron import Tacotron
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +43,7 @@ config = TacotronConfig(
     eval_batch_size=16,
     num_loader_workers=12,
     num_eval_loader_workers=8,
-    precompute_num_workers = 24,
+    precompute_num_workers=24,
     run_eval=True,
     test_delay_epochs=50,
     ga_alpha=0.0,
@@ -82,7 +83,7 @@ tokenizer, config = TTSTokenizer.init_from_config(config)
 
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
 
-model = Tacotron(config, ap, tokenizer ,speaker_manager=None)
+model = Tacotron(config, ap, tokenizer, speaker_manager=None)
 
 trainer = Trainer(
     TrainerArgs(),

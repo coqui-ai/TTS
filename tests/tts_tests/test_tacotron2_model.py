@@ -6,7 +6,7 @@ import torch
 from torch import nn, optim
 
 from tests import get_tests_input_path
-from TTS.tts.configs.shared_configs import GSTConfig, CapacitronVAEConfig
+from TTS.tts.configs.shared_configs import CapacitronVAEConfig, GSTConfig
 from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.layers.losses import MSELossMasked, TacotronLoss
 from TTS.tts.models.tacotron2 import Tacotron2
