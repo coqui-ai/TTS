@@ -272,7 +272,10 @@ class TacotronCapacitronTrainTest(unittest.TestCase):
             use_capacitron_vae=True,
             capacitron_vae=CapacitronVAEConfig(),
             optimizer="CapacitronOptimizer",
-            optimizer_params={"RAdam": {"betas": [0.9, 0.998], "weight_decay": 1e-6}, "SGD": {"lr": 1e-5, "momentum": 0.9}}
+            optimizer_params={
+                "RAdam": {"betas": [0.9, 0.998], "weight_decay": 1e-6},
+                "SGD": {"lr": 1e-5, "momentum": 0.9},
+            },
         )
 
         batch = dict({})
@@ -285,14 +288,16 @@ class TacotronCapacitronTrainTest(unittest.TestCase):
         batch["mel_lengths"] = torch.sort(batch["mel_lengths"], descending=True)[0]
         batch["mel_lengths"][0] = 120
         batch["stop_targets"] = torch.zeros(8, 120, 1).float().to(device)
-        batch["stop_target_lengths"] = torch.randint(0,120, (8,)).to(device)
+        batch["stop_target_lengths"] = torch.randint(0, 120, (8,)).to(device)
         batch["speaker_ids"] = torch.randint(0, 5, (8,)).long().to(device)
         batch["d_vectors"] = None
 
         for idx in batch["mel_lengths"]:
             batch["stop_targets"][:, int(idx.item()) :, 0] = 1.0
 
-        batch["stop_targets"] = batch["stop_targets"].view(batch["text_input"].shape[0], batch["stop_targets"].size(1) // config.r, -1)
+        batch["stop_targets"] = batch["stop_targets"].view(
+            batch["text_input"].shape[0], batch["stop_targets"].size(1) // config.r, -1
+        )
         batch["stop_targets"] = (batch["stop_targets"].sum(2) > 0.0).unsqueeze(2).float().squeeze()
 
         model = Tacotron2(config).to(device)
