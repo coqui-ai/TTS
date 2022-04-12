@@ -313,7 +313,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         args.speaker_wav,
         reference_wav=args.reference_wav,
         style_wav=args.capacitron_style_wav,
-        style_text=args.style_text,
+        style_text=args.capacitron_style_text,
         reference_speaker_name=args.reference_speaker_idx,
     )
 
