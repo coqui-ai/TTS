@@ -39,7 +39,7 @@ config = TacotronConfig(
     audio=audio_config,
     capacitron_vae=capacitron_config,
     use_capacitron_vae=True,
-    batch_size=150,
+    batch_size=128,
     eval_batch_size=16,
     num_loader_workers=12,
     num_eval_loader_workers=8,
@@ -67,6 +67,7 @@ config = TacotronConfig(
     lr=1e-3,
     lr_scheduler="StepwiseGradualLR",
     lr_scheduler_params={"gradual_learning_rates": [[0, 1e-3], [2e4, 5e-4], [4e5, 3e-4], [6e4, 1e-4], [8e4, 5e-5]]},
+    scheduler_after_epoch=False, #scheduler doesn't work without this flag
     # Need to experiment with these below for capacitron
     loss_masking=False,
     decoder_loss_alpha=1.0,

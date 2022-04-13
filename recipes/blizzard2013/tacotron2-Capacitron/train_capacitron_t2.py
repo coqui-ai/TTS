@@ -12,7 +12,7 @@ from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 
-data_path = "/srv/data/blizzard2013/segmented"
+data_path = "/srv/data/"
 
 # Using LJSpeech like dataset processing for the blizzard dataset
 dataset_config = BaseDatasetConfig(
@@ -79,6 +79,7 @@ config = Tacotron2Config(
             [8e4, 5e-5],
         ]
     },
+    scheduler_after_epoch=False, #scheduler doesn't work without this flag
     # Need to experiment with these below for capacitron
     loss_masking=False,
     decoder_loss_alpha=1.0,
