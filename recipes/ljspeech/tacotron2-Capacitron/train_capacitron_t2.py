@@ -79,7 +79,7 @@ config = Tacotron2Config(
             [8e4, 5e-5],
         ]
     },
-    scheduler_after_epoch=False, #scheduler doesn't work without this flag
+    scheduler_after_epoch=False,  # scheduler doesn't work without this flag
     # Need to experiment with these below for capacitron
     loss_masking=False,
     decoder_loss_alpha=1.0,
