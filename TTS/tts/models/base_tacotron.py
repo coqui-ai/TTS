@@ -14,7 +14,8 @@ from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.io import load_fsspec
 from TTS.utils.training import gradual_training_scheduler
-
+from TTS.tts.utils.synthesis import synthesis
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 class BaseTacotron(BaseTTS):
     """Base class shared by Tacotron and Tacotron2"""
@@ -129,6 +130,54 @@ class BaseTacotron(BaseTTS):
         tokenizer = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config)
         return BaseTacotron(config, ap, tokenizer, speaker_manager)
+
+    ##########################
+    # TEST AND LOG FUNCTIONS #
+    ##########################
+
+    def test_run(self, assets: Dict) -> Tuple[Dict, Dict]:
+        """Generic test run for `tts` models used by `Trainer`.
+
+        You can override this for a different behaviour.
+
+        Args:
+            assets (dict): A dict of training assets. For `tts` models, it must include `{'audio_processor': ap}`.
+
+        Returns:
+            Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
+        """
+        print(" | > Synthesizing test sentences.")
+        test_audios = {}
+        test_figures = {}
+        test_sentences = self.config.test_sentences
+        aux_inputs = self._get_test_aux_input()
+        for idx, sen in enumerate(test_sentences):
+            outputs_dict = synthesis(
+                self,
+                sen,
+                self.config,
+                "cuda" in str(next(self.parameters()).device),
+                speaker_id=aux_inputs["speaker_id"],
+                d_vector=aux_inputs["d_vector"],
+                style_wav=aux_inputs["style_wav"],
+                use_griffin_lim=True,
+                do_trim_silence=False,
+            )
+            test_audios["{}-audio".format(idx)] = outputs_dict["wav"]
+            test_figures["{}-prediction".format(idx)] = plot_spectrogram(
+                outputs_dict["outputs"]["model_outputs"], self.ap, output_fig=False
+            )
+            test_figures["{}-alignment".format(idx)] = plot_alignment(
+                outputs_dict["outputs"]["alignments"], output_fig=False
+            )
+        return {"figures": test_figures, "audios": test_audios}
+
+    def test_log(
+        self, outputs: dict, logger: "Logger", assets: dict, steps: int  # pylint: disable=unused-argument
+    ) -> None:
+        logger.test_audios(steps, outputs["audios"], self.ap.sample_rate)
+        logger.test_figures(steps, outputs["figures"])
+
 
     #############################
     # COMMON COMPUTE FUNCTIONS
