@@ -1,6 +1,6 @@
 import copy
 from abc import abstractmethod
-from typing import Dict
+from typing import Dict, Tuple
 
 import torch
 from coqpit import Coqpit
@@ -10,12 +10,13 @@ from TTS.tts.layers.losses import TacotronLoss
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.io import load_fsspec
 from TTS.utils.training import gradual_training_scheduler
-from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+
 
 class BaseTacotron(BaseTTS):
     """Base class shared by Tacotron and Tacotron2"""
@@ -177,7 +178,6 @@ class BaseTacotron(BaseTTS):
     ) -> None:
         logger.test_audios(steps, outputs["audios"], self.ap.sample_rate)
         logger.test_figures(steps, outputs["figures"])
-
 
     #############################
     # COMMON COMPUTE FUNCTIONS
