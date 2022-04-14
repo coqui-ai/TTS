@@ -215,6 +215,7 @@ class VitsDataset(TTSDataset):
             "token_len": len(token_ids),
             "wav": wav,
             "wav_file": wav_filename,
+            "wav_file_path": item["audio_file"],
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
         }
@@ -280,6 +281,7 @@ class VitsDataset(TTSDataset):
             "speaker_names": batch["speaker_name"],
             "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
+            "audio_files_path": batch["wav_file_path"],
             "raw_text": batch["raw_text"],
         }
 
@@ -948,6 +950,70 @@ class Vits(BaseTTS):
             return aux_input["x_lengths"]
         return torch.tensor(x.shape[1:2]).to(x.device)
 
+    def inference_with_MAS(
+        self, x, y, y_lengths, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None}
+    ):  # pylint: disable=dangerous-default-value
+        """
+        Note:
+            To run in batch mode, provide `x_lengths` else model assumes that the batch size is 1.
+
+        Shapes:
+            - x: :math:`[B, T_seq]`
+            - x_lengths: :math:`[B]`
+            - d_vectors: :math:`[B, C]`
+            - speaker_ids: :math:`[B]`
+
+        Return Shapes:
+            - model_outputs: :math:`[B, 1, T_wav]`
+            - alignments: :math:`[B, T_seq, T_dec]`
+            - z: :math:`[B, C, T_dec]`
+            - z_p: :math:`[B, C, T_dec]`
+            - m_p: :math:`[B, C, T_dec]`
+            - logs_p: :math:`[B, C, T_dec]`
+        """
+        sid, g, lid = self._set_cond_input(aux_input)
+        x_lengths = self._set_x_lengths(x, aux_input)
+
+        # speaker embedding
+        if self.args.use_speaker_embedding and sid is not None:
+            g = self.emb_g(sid).unsqueeze(-1)
+
+        # language embedding
+        lang_emb = None
+        if self.args.use_language_embedding and lid is not None:
+            lang_emb = self.emb_l(lid).unsqueeze(-1)
+
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+
+        # posterior encoder
+        z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
+
+        # flow layers
+        z_p = self.flow(z, y_mask, g=g)
+
+        # get the MAS aligment
+        _, attn = self.forward_mas({}, z_p, m_p, logs_p, x, x_mask, y_mask, g=g, lang_emb=lang_emb)
+
+        # expand prior
+        m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
+        logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
+        # get predited aligned distribution
+        z_p = m_p * y_mask
+        # reverse the decoder and predict using the aligned distribution
+        z = self.flow(z_p, y_mask, g=g, reverse=True)
+
+        if self.args.TTS_part_sample_rate and self.args.interpolate_z:
+            z = z.unsqueeze(0)  # pylint: disable=not-callable
+            z = torch.nn.functional.interpolate(z, scale_factor=[1, self.interpolate_factor], mode="nearest").squeeze(0)
+            y_mask = (
+                sequence_mask(y_lengths * self.interpolate_factor, None).to(y_mask.dtype).unsqueeze(1)
+            )  # [B, 1, T_dec_resampled]
+
+        o = self.waveform_decoder((z * y_mask)[:, :, : self.max_inference_len], g=g)
+
+        outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p}
+        return outputs
+
     def inference(
         self, x, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None}
     ):  # pylint: disable=dangerous-default-value
@@ -1505,7 +1571,8 @@ class Vits(BaseTTS):
         state["model"] = {k: v for k, v in state["model"].items() if "speaker_encoder" not in k}
 
         if self.args.TTS_part_sample_rate is not None and eval:
-            # audio resampler is not used in inference time
+            # ignore audio resampler in load checkpoint to avoid errors
+            audio_resampler_aux = self.audio_resampler
             self.audio_resampler = None
 
         # handle fine-tuning from a checkpoint with additional speakers
@@ -1518,10 +1585,14 @@ class Vits(BaseTTS):
             state["model"]["emb_g.weight"] = emb_g
         # load the model weights
         self.load_state_dict(state["model"], strict=strict)
+        # set the audio_resampler
+        if self.args.TTS_part_sample_rate is not None:
+            self.audio_resampler = audio_resampler_aux
 
         if eval:
             self.eval()
             assert not self.training
+
 
     @staticmethod
     def init_from_config(config: "VitsConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
