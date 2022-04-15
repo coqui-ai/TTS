@@ -323,6 +323,9 @@ class Tacotron2(BaseTacotron):
         speaker_ids = batch["speaker_ids"]
         d_vectors = batch["d_vectors"]
 
+        aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
+        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input)
+
         # set the [alignment] lengths wrt reduction factor for guided attention
         if mel_lengths.max() % self.decoder.r != 0:
             alignment_lengths = (
@@ -330,9 +333,6 @@ class Tacotron2(BaseTacotron):
             ) // self.decoder.r
         else:
             alignment_lengths = mel_lengths // self.decoder.r
-
-        aux_input = {"speaker_ids": speaker_ids, "d_vectors": d_vectors}
-        outputs = self.forward(text_input, text_lengths, mel_input, mel_lengths, aux_input)
 
         # compute loss
         with autocast(enabled=False):  # use float32 for the criterion
