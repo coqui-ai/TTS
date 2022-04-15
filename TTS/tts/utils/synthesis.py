@@ -72,7 +72,7 @@ def run_model_torch(
     style_mel: torch.Tensor = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
-    diff_t: int = None, 
+    diff_t = None, 
     z: torch.Tensor = None
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
@@ -282,7 +282,8 @@ def synthesis(
             speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
         
         if diff_t is not None:
-            diff_t = id_to_torch(diff_t, cuda=use_cuda)
+            if(type(diff_t) == int):
+                diff_t = id_to_torch(diff_t, cuda=use_cuda)
 
         if d_vector is not None:
             d_vector = embedding_to_torch(d_vector, cuda=use_cuda)

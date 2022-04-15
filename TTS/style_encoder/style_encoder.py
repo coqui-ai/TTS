@@ -2,6 +2,7 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 from TTS.style_encoder.layers.gst import GST
+from TTS.style_encoder.layers.re import ReferenceEncoder
 from TTS.style_encoder.layers.vae import VAEStyleEncoder
 from TTS.style_encoder.layers.vaeflow import VAEFlowStyleEncoder
 from TTS.style_encoder.layers.diffusion import DiffStyleEncoder
@@ -20,6 +21,11 @@ class StyleEncoder(nn.Module):
                 gst_embedding_dim = self.style_embedding_dim,
                 num_heads = self.gst_num_heads,
                 num_style_tokens = self.gst_num_style_tokens,
+            )
+        elif self.se_type == 're':
+            self.layer = ReferenceEncoder(
+                num_mel = self.num_mel,
+                embedding_dim = self.style_embedding_dim
             )
         elif self.se_type == 'vae':
             self.layer = VAEStyleEncoder(
@@ -57,6 +63,8 @@ class StyleEncoder(nn.Module):
     def forward(self, inputs):
         if self.se_type == 'gst':
             out = self.gst_embedding(*inputs)
+        elif self.se_type == 're':
+            out = self.re_embedding(*inputs)
         elif self.se_type == 'diffusion':
             out = self.diff_forward(*inputs)
         elif self.se_type == 'vae':
@@ -70,6 +78,8 @@ class StyleEncoder(nn.Module):
     def inference(self, inputs, **kwargs):
         if self.se_type == 'gst':
             out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
+        elif self.se_type == 're':
+            out = self.re_embedding(inputs, kwargs['style_mel'])
         elif self.se_type == 'diffusion':
             out = self.diff_inference(inputs, ref_mels = kwargs['style_mel'], infer_from = kwargs['diff_t'])
         elif self.se_type == 'vae':
@@ -94,6 +104,17 @@ class StyleEncoder(nn.Module):
                     gst_outputs_att = self.layer.style_token_layer.attention(query, key)
                     gst_outputs = gst_outputs + gst_outputs_att * v_amplifier
             elif style_input is None:
+                # ignore style token and return zero tensor
+                gst_outputs = torch.zeros(1, 1, self.style_embedding_dim).type_as(inputs)
+            else:
+                # compute style tokens
+                input_args = [style_input, speaker_embedding]
+                gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
+            inputs = self._concat_embedding(inputs, gst_outputs)
+            return inputs
+
+    def re_embedding(self, inputs, style_input, speaker_embedding=None):
+            if style_input is None:
                 # ignore style token and return zero tensor
                 gst_outputs = torch.zeros(1, 1, self.style_embedding_dim).type_as(inputs)
             else:
