@@ -113,13 +113,13 @@ class StyleEncoder(nn.Module):
             inputs = self._concat_embedding(inputs, gst_outputs)
             return inputs
 
-    def re_embedding(self, inputs, style_input, speaker_embedding=None):
+    def re_embedding(self, inputs, style_input):
             if style_input is None:
                 # ignore style token and return zero tensor
                 gst_outputs = torch.zeros(1, 1, self.style_embedding_dim).type_as(inputs)
             else:
                 # compute style tokens
-                input_args = [style_input, speaker_embedding]
+                input_args = [style_input]
                 gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
             inputs = self._concat_embedding(inputs, gst_outputs)
             return inputs
