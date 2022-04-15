@@ -169,7 +169,8 @@ class DiffStyleEncoder(nn.Module):
         z = self.ref_encoder(mel_in).unsqueeze(1)
 
         # Diffuse z on the noise chain -> x
-        assert infer_from <= self.num_timesteps, "Input t for reconstrution greater than chain length"
+        if type(infer_from) == int:
+            assert infer_from <= self.num_timesteps, "Input t for reconstrution greater than chain length"
         
         if isinstance(infer_from, int):
             t = infer_from
