@@ -281,10 +281,6 @@ def synthesis(
         if speaker_id is not None:
             speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
         
-        if diff_t is not None:
-            if(type(diff_t) == int):
-                diff_t = id_to_torch(diff_t, cuda=use_cuda)
-
         if d_vector is not None:
             d_vector = embedding_to_torch(d_vector, cuda=use_cuda)
 
