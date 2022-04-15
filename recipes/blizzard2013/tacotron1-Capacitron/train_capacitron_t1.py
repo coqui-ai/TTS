@@ -41,6 +41,7 @@ config = TacotronConfig(
     use_capacitron_vae=True,
     batch_size=128, # Tune this to your gpu
     max_audio_len=6 * 24000, # Tune this to your gpu
+    min_audio_len=0.5 * 24000,
     eval_batch_size=16,
     num_loader_workers=12,
     num_eval_loader_workers=8,
