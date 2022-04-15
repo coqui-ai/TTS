@@ -22,7 +22,7 @@ dataset_config = BaseDatasetConfig(
 )
 
 audio_config = BaseAudioConfig(
-     sample_rate=22050,
+    sample_rate=22050,
     do_trim_silence=True,
     trim_db=60.0,
     signal_norm=False,
@@ -42,8 +42,8 @@ config = Tacotron2Config(
     audio=audio_config,
     capacitron_vae=capacitron_config,
     use_capacitron_vae=True,
-    batch_size=128, # Tune this to your gpu
-    max_audio_len=6 * 22050, # Tune this to your gpu
+    batch_size=128,  # Tune this to your gpu
+    max_audio_len=6 * 22050,  # Tune this to your gpu
     min_audio_len=1 * 22050,
     eval_batch_size=16,
     num_loader_workers=12,
