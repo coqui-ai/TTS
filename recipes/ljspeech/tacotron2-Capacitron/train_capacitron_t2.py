@@ -27,7 +27,7 @@ audio_config = BaseAudioConfig(
     trim_db=60.0,
     signal_norm=False,
     mel_fmin=0.0,
-    mel_fmax=8000,
+    mel_fmax=11025,
     spec_gain=1.0,
     log_func="np.log",
     ref_level_db=20,
@@ -35,7 +35,7 @@ audio_config = BaseAudioConfig(
 )
 
 # Using the standard Capacitron config
-capacitron_config = CapacitronVAEConfig(capacitron_VAE_loss_alpha=1.0)
+capacitron_config = CapacitronVAEConfig(capacitron_VAE_loss_alpha=1.0, capacitron_capacity=50)
 
 config = Tacotron2Config(
     run_name="Capacitron-Tacotron2",
@@ -43,14 +43,14 @@ config = Tacotron2Config(
     capacitron_vae=capacitron_config,
     use_capacitron_vae=True,
     batch_size=128,  # Tune this to your gpu
-    max_audio_len=6 * 22050,  # Tune this to your gpu
+    max_audio_len=8 * 22050,  # Tune this to your gpu
     min_audio_len=1 * 22050,
     eval_batch_size=16,
-    num_loader_workers=12,
+    num_loader_workers=8,
     num_eval_loader_workers=8,
     precompute_num_workers=24,
     run_eval=True,
-    test_delay_epochs=5,
+    test_delay_epochs=25,
     ga_alpha=0.0,
     r=2,
     optimizer="CapacitronOptimizer",
@@ -67,6 +67,8 @@ config = Tacotron2Config(
     print_step=25,
     print_eval=True,
     mixed_precision=False,
+    sort_by_audio_len=True,
+    seq_len_norm=True,
     output_path=output_path,
     datasets=[dataset_config],
     lr=1e-3,
