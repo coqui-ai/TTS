@@ -44,7 +44,7 @@ class BWEGeneratorLoss(torch.nn.Module):
         # Spectrogram loss
         mel_lens = self.compute_lens(y_mel, lens)
         return_dict["l1_mel"] = self.l1_masked(y_hat_mel, y_mel, mel_lens)
-        return_dict["loss"] = return_dict["l1_mel"]
+        return_dict["loss"] += return_dict["l1_mel"]
 
         return_dict["l1_spec"] = torch.mean(torch.stack([
             self.l1_masked(y_hat_specs[i], y_specs[i], self.compute_lens(y_specs[i], lens))
