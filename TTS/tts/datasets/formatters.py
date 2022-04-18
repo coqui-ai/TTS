@@ -373,17 +373,17 @@ def esd(root_path, meta_files, ignored_speakers=None):
             if speaker_id in ignored_speakers:
                 continue
 
-        with open(meta_file, "r", encoding="latin-1") as file_text:
+        with open(meta_file, "r", encoding="utf-8") as file_text:
             try:
                 metadata = file_text.readlines()
             except Exception as e:
                 print(f"The file {meta_file} break the import with the following error: ")
                 raise e
-
         for data in metadata:
             # this dataset have problems with csv separator, some files use just space others \t
             data = data.replace("\n", "").replace("\t", " ")
             if not data:
+                print(meta_file, data)
                 continue
             splits = data.split(" ")
 
@@ -391,10 +391,12 @@ def esd(root_path, meta_files, ignored_speakers=None):
             emotion_id = splits[-1]
             # all except the first and last position is the sentence
             text = " ".join(splits[1:-1])
+
             for split in meta_files:
                 wav_file = os.path.join(root_path, speaker_id, emotion_id, split, file_id + ".wav")
                 if os.path.exists(wav_file):
                     items.append({"text": text, "audio_file": wav_file, "speaker_name": "ESD_" + speaker_id})
+
     return items
 
 
