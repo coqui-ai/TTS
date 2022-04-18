@@ -49,6 +49,7 @@ class ConvLayerSpecDisc(nn.Module):
         x = F.leaky_relu(x)
         x = self.bn(x)
         return x
+        
 class SpectralDiscriminator(nn.Module):
     def __init__(self):
         super().__init__()
@@ -238,7 +239,7 @@ class BWE(BaseTrainerModel):
     def get_optimizer(self) -> List:
         gen_params = list(self.generator.parameters()) + list(self.postconv.parameters())
         optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=gen_params)
-        disc_params = list(self.waveform_disc.parameters())
+        disc_params = list(self.waveform_disc.parameters()) + list(self.spectral_disc.parameters())
         optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=disc_params)
         return [optimizer_gen, optimizer_disc]
 
