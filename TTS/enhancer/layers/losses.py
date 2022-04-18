@@ -32,7 +32,7 @@ class BWEGeneratorLoss(torch.nn.Module):
 
         # Waveform loss
         return_dict["l1_wavform"] = self.l1_masked(y_hat, y, lens)
-        return_dict["loss"] = return_dict["l1_wavform"] * 50
+        return_dict["loss"] = return_dict["l1_wavform"] * 10
 
         # Compute spectrograms
         y_specs = [self.specs[i](y[:, 0, :]) for i in range(4)]
@@ -44,7 +44,7 @@ class BWEGeneratorLoss(torch.nn.Module):
         # Spectrogram loss
         mel_lens = self.compute_lens(y_mel, lens)
         return_dict["l1_mel"] = self.l1_masked(y_hat_mel, y_mel, mel_lens)
-        return_dict["loss"] += return_dict["l1_mel"]
+        return_dict["loss"] += return_dict["l1_mel"] / 30
 
         return_dict["l1_spec"] = torch.mean(torch.stack([
             self.l1_masked(y_hat_specs[i], y_specs[i], self.compute_lens(y_specs[i], lens))
@@ -60,7 +60,7 @@ class BWEGeneratorLoss(torch.nn.Module):
             # MSE adversarial loss
             mse_fake_loss = _apply_G_adv_loss(scores_fake, self.mse_loss)
             return_dict["G_mse_fake"] = mse_fake_loss
-            return_dict["loss"] += return_dict["G_mse_fake"] * 2.5
+            return_dict["loss"] += return_dict["G_mse_fake"] * 1
 
         # check if any loss is NaN
         for key, loss in return_dict.items():
