@@ -243,6 +243,78 @@
                     "commit": null
                 }
             }
+        },
+        "ewe": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--ewe--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "hau": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--hau--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "lin": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--lin--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "tw_akuapem": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--tw_akuapem--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "tw_asante": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--tw_asante--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "yor": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--yor--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
         }
     },
     "vocoder_models": {
