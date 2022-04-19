@@ -2,12 +2,12 @@ import os
 
 from trainer import Trainer, TrainerArgs
 
-from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig
-from TTS.tts.configs.fast_pitch_e2e_config import FastPitchE2EConfig
+from TTS.config.shared_configs import BaseDatasetConfig
+from TTS.tts.configs.fast_pitch_e2e_config import FastPitchE2eConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.forward_tts_e2e import ForwardTTSE2E, ForwardTTSE2EArgs
+from TTS.tts.models.forward_tts_e2e import ForwardTTSE2e, ForwardTTSE2eArgs, ForwardTTSE2eAudio
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.utils.audio import AudioProcessor
+
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,30 +15,26 @@ output_path = os.path.dirname(os.path.abspath(__file__))
 dataset_config = BaseDatasetConfig(
     name="ljspeech",
     meta_file_train="metadata.csv",
-    # meta_file_attn_mask=os.path.join(output_path, "../LJSpeech-1.1/metadata_attn_mask.txt"),
     path=os.path.join(output_path, "../LJSpeech-1.1/"),
 )
 
-audio_config = BaseAudioConfig(
+audio_config = ForwardTTSE2eAudio(
     sample_rate=22050,
-    do_trim_silence=True,
-    trim_db=60.0,
-    signal_norm=False,
+    hop_length=256,
+    win_length=1024,
+    fft_size=1024,
     mel_fmin=0.0,
     mel_fmax=8000,
-    spec_gain=1.0,
-    log_func="np.log",
-    ref_level_db=20,
-    preemphasis=0.0,
+    pitch_fmax=640.0,
     num_mels=80,
 )
 
 # vocoder_config = HifiganConfig()
-model_args = ForwardTTSE2EArgs()
+model_args = ForwardTTSE2eArgs()
 
-config = FastPitchE2EConfig(
+config = FastPitchE2eConfig(
     run_name="fast_pitch_e2e_ljspeech",
-    run_description="don't detach vocoder input.",
+    run_description="Train like in FS2 paper.",
     model_args=model_args,
     audio=audio_config,
     batch_size=32,
@@ -63,13 +59,8 @@ config = FastPitchE2EConfig(
     output_path=output_path,
     datasets=[dataset_config],
     start_by_longest=False,
-    binary_align_loss_alpha=0.0
+    binary_align_loss_alpha=0.0,
 )
-
-# INITIALIZE THE AUDIO PROCESSOR
-# Audio processor is used for feature extraction and audio I/O.
-# It mainly serves to the dataloader and the training loggers.
-ap = AudioProcessor.init_from_config(config)
 
 # INITIALIZE THE TOKENIZER
 # Tokenizer is used to convert text to sequences of token IDs.
@@ -89,7 +80,7 @@ train_samples, eval_samples = load_tts_samples(
 )
 
 # init the model
-model = ForwardTTSE2E(config, ap, tokenizer, speaker_manager=None)
+model = ForwardTTSE2e(config=config, tokenizer=tokenizer, speaker_manager=None)
 
 # init the trainer and 🚀
 trainer = Trainer(
