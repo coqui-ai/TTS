@@ -3,9 +3,9 @@ from typing import Dict
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from TTS.utils.audio.numpy_transforms import amp_to_db, build_mel_basis, wav_to_mel
 
 from TTS.tts.utils.visual import plot_spectrogram
+from TTS.utils.audio.numpy_transforms import amp_to_db, build_mel_basis, wav_to_mel
 from TTS.utils.audio.processor import AudioProcessor
 
 
@@ -30,7 +30,13 @@ def interpolate_vocoder_input(scale_factor, spec):
     return spec
 
 
-def plot_results(y_hat: torch.tensor, y: torch.tensor, ap: AudioProcessor=None, audio_config: "Coqpit"= None,  name_prefix: str = None) -> Dict:
+def plot_results(
+    y_hat: torch.tensor,
+    y: torch.tensor,
+    ap: AudioProcessor = None,
+    audio_config: "Coqpit" = None,
+    name_prefix: str = None,
+) -> Dict:
     """Plot the predicted and the real waveform and their spectrograms.
 
     Args:

@@ -1,6 +1,6 @@
+import librosa
 import torch
 from torch import nn
-import librosa
 
 
 class TorchSTFT(nn.Module):  # pylint: disable=abstract-method

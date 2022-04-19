@@ -11,7 +11,6 @@ from torch.utils.data import Dataset
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.utils.audio.numpy_transforms import load_wav, wav_to_mel, wav_to_spec
 
-
 # to prevent too many open files error as suggested here
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
 torch.multiprocessing.set_sharing_strategy("file_system")

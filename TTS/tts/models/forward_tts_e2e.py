@@ -2,10 +2,9 @@ import os
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Dict, List, Tuple, Union
+
 import numpy as np
 import pyworld as pw
-
-
 import torch
 import torch.distributed as dist
 from coqpit import Coqpit
@@ -20,15 +19,16 @@ from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.models.base_tts import BaseTTSE2E
 from TTS.tts.models.forward_tts import ForwardTTS, ForwardTTSArgs
 from TTS.tts.models.vits import load_audio, wav_to_mel
-from TTS.utils.audio.numpy_transforms import build_mel_basis, compute_f0, mel_to_wav as mel_to_wav_numpy
 from TTS.tts.utils.helpers import rand_segments, segment, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch
+from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_spectrogram
+from TTS.utils.audio.numpy_transforms import build_mel_basis, compute_f0
+from TTS.utils.audio.numpy_transforms import db_to_amp as db_to_amp_numpy
+from TTS.utils.audio.numpy_transforms import mel_to_wav as mel_to_wav_numpy
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_spectrogram
 
 
 def id_to_torch(aux_id, cuda=False):
@@ -89,7 +89,9 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
     @staticmethod
     def _compute_and_save_pitch(config, wav_file, pitch_file=None):
         wav, _ = load_audio(wav_file)
-        f0 = compute_f0(x=wav.numpy()[0], sample_rate=config.sample_rate, hop_length=config.hop_length, pitch_fmax=config.pitch_fmax)
+        f0 = compute_f0(
+            x=wav.numpy()[0], sample_rate=config.sample_rate, hop_length=config.hop_length, pitch_fmax=config.pitch_fmax
+        )
         # skip the last F0 value to align with the spectrogram
         if wav.shape[1] % config.hop_length != 0:
             f0 = f0[:-1]
@@ -632,7 +634,9 @@ class ForwardTTSE2e(BaseTTSE2E):
             figures["alignment_hat"] = plot_alignment(alignments_hat.T, output_fig=False)
 
         # Sample audio
-        encoder_audio = mel_to_wav_numpy(mel=pred_spec.T, mel_basis=self.__mel_basis, **self.config.audio)
+        encoder_audio = mel_to_wav_numpy(
+            mel=db_to_amp_numpy(x=pred_spec.T, gain=1, base=None), mel_basis=self.__mel_basis, **self.config.audio
+        )
         audios[f"{name_prefix}/encoder_audio"] = encoder_audio
 
         # vocoder outputs
@@ -780,7 +784,9 @@ class ForwardTTSE2e(BaseTTSE2E):
         outputs = self.inference_spec_decoder(text_inputs, aux_input={"d_vectors": d_vector, "speaker_ids": speaker_id})
 
         # collect outputs
-        wav = mel_to_wav_numpy(mel=outputs["model_outputs"].cpu().numpy()[0].T, mel_basis=self.__mel_basis, **self.config.audio)
+        wav = mel_to_wav_numpy(
+            mel=outputs["model_outputs"].cpu().numpy()[0].T, mel_basis=self.__mel_basis, **self.config.audio
+        )
         alignments = outputs["alignments"]
         return_dict = {
             "wav": wav[None, :],

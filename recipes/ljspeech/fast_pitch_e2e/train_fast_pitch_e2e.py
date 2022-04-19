@@ -8,7 +8,6 @@ from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts_e2e import ForwardTTSE2e, ForwardTTSE2eArgs, ForwardTTSE2eAudio
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 
-
 output_path = os.path.dirname(os.path.abspath(__file__))
 
 # init configs
