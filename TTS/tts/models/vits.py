@@ -34,6 +34,7 @@ from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
 from TTS.tts.layers.tacotron.gst_layers import GST
+from TTS.tts.layers.generic.classifier import ReversalClassifier
 
 ##############################
 # IO / Feature extraction
@@ -645,6 +646,11 @@ class Vits(BaseTTS):
                 num_style_tokens=5,
                 gst_embedding_dim=self.args.prosody_embedding_dim,
             )
+            self.speaker_reversal_classifier = ReversalClassifier(
+                in_channels=self.args.prosody_embedding_dim,
+                out_channels=self.num_speakers,
+                hidden_channels=256,
+            )
 
         self.waveform_decoder = HifiganGenerator(
             self.args.hidden_channels,
@@ -988,8 +994,10 @@ class Vits(BaseTTS):
 
         # prosody embedding
         pros_emb = None
+        l_pros_speaker = None
         if self.args.use_prosody_encoder:
             pros_emb = self.prosody_encoder(z).transpose(1, 2)
+            _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
 
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg, pros_emb=pros_emb)
 
@@ -1063,6 +1071,7 @@ class Vits(BaseTTS):
                 "gt_cons_emb": gt_cons_emb,
                 "syn_cons_emb": syn_cons_emb,
                 "slice_ids": slice_ids,
+                "loss_spk_reversal_classifier": l_pros_speaker,
             }
         )
         return outputs
@@ -1329,6 +1338,7 @@ class Vits(BaseTTS):
                     or self.args.use_emotion_encoder_as_loss,
                     gt_cons_emb=self.model_outputs_cache["gt_cons_emb"],
                     syn_cons_emb=self.model_outputs_cache["syn_cons_emb"],
+                    loss_spk_reversal_classifier=self.model_outputs_cache["loss_spk_reversal_classifier"]
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1496,7 +1506,7 @@ class Vits(BaseTTS):
         emotion_ids = None
 
         # get numerical speaker ids from speaker names
-        if self.speaker_manager is not None and self.speaker_manager.ids and self.args.use_speaker_embedding:
+        if self.speaker_manager is not None and self.speaker_manager.ids and (self.args.use_speaker_embedding or self.args.use_prosody_encoder):
             speaker_ids = [self.speaker_manager.ids[sn] for sn in batch["speaker_names"]]
 
         if speaker_ids is not None:

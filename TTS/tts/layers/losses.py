@@ -605,6 +605,7 @@ class VitsGeneratorLoss(nn.Module):
         use_encoder_consistency_loss=False,
         gt_cons_emb=None,
         syn_cons_emb=None,
+        loss_spk_reversal_classifier=None,
     ):
         """
         Shapes:
@@ -639,6 +640,11 @@ class VitsGeneratorLoss(nn.Module):
             loss_enc = self.cosine_similarity_loss(gt_cons_emb, syn_cons_emb) * self.consistency_loss_alpha
             loss = loss + loss_enc
             return_dict["loss_consistency_enc"] = loss_enc
+
+        if loss_spk_reversal_classifier is not None:
+            loss += loss_spk_reversal_classifier
+            return_dict["loss_spk_reversal_classifier"] = loss_spk_reversal_classifier
+
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
