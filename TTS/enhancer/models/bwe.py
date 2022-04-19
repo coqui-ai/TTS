@@ -98,7 +98,6 @@ class BWE(BaseTrainerModel):
         self.scale_factor = (self.target_sr / self.input_sr, )
         self.train_disc = False
 
-        self.upsample = Upsample(scale_factor=self.scale_factor)
         self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
         self.generator = WNBlocks(
             in_channels=1,
@@ -119,6 +118,12 @@ class BWE(BaseTrainerModel):
         from TTS.utils.audio import AudioProcessor
         ap = AudioProcessor.init_from_config(config)
         return BWE(config, ap)
+
+    def upsample(self, x):
+        device = next(self.parameters()).device
+        x = x[:,0,:].cpu().detach().numpy()
+        x = resample(x, self.input_sr, self.target_sr, res_type="kaiser_best")
+        return torch.tensor(x, device=device, requires_grad=True).unsqueeze(1)
 
     def gen_forward(self, x):
         x = self.upsample(x)
@@ -276,7 +281,7 @@ class BWE(BaseTrainerModel):
         y_hat = outputs[0]["y_hat"][0].detach().squeeze(0).cpu().numpy()
         y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
         x = batch["input_wav"][0].detach().squeeze(0).cpu().numpy()
-        x = resample(x, 16000, 48000, res_type="zero_order_hold")
+        x = resample(x, 16000, 48000, res_type="kaiser_best")
         figures = {
             name + "_input": self._plot_spec(x, 48000),
             name + "_generated": self._plot_spec(y_hat, 48000),
@@ -291,7 +296,7 @@ class BWE(BaseTrainerModel):
 
     @staticmethod
     def _plot_spec(x, sr):
-        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=128, fmax=22050)
+        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=128, fmax=24000)
         spec = librosa.power_to_db(spec, ref=np.max)
         fig = plt.figure(figsize=(16, 10))
         plt.imshow(spec, aspect="auto", origin="lower")

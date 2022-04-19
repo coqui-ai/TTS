@@ -60,7 +60,7 @@ class BWEGeneratorLoss(torch.nn.Module):
             # MSE adversarial loss
             mse_fake_loss = _apply_G_adv_loss(scores_fake, self.mse_loss)
             return_dict["G_mse_fake"] = mse_fake_loss
-            return_dict["loss"] += return_dict["G_mse_fake"] * 1
+            return_dict["loss"] += return_dict["G_mse_fake"] * 2
 
         # check if any loss is NaN
         for key, loss in return_dict.items():
