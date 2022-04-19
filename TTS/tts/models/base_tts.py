@@ -15,6 +15,7 @@ from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.data import get_length_balancer_weights
 from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_balancer_weights, get_speaker_manager
+from TTS.tts.utils.emotions import get_speech_style_balancer_weights
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
@@ -258,6 +259,14 @@ class BaseTTS(BaseTrainerModel):
                 weights += get_length_balancer_weights(data_items) * alpha
             else:
                 weights = get_length_balancer_weights(data_items) * alpha
+
+        if getattr(config, "use_style_weighted_sampler", False):
+            alpha = getattr(config, "style_weighted_sampler_alpha", 1.0)
+            print(" > Using Speech Style weighted sampler with alpha:", alpha)
+            if weights is not None:
+                weights += get_speech_style_balancer_weights(data_items) * alpha
+            else:
+                weights = get_speech_style_balancer_weights(data_items) * alpha
 
         if weights is not None:
             sampler = WeightedRandomSampler(weights, len(weights))
