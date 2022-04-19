@@ -677,7 +677,7 @@ class ForwardTTS(BaseTTS):
         outputs = {
             "alignments": attn,
             "pitch": o_pitch,
-            "durations_log": o_dr_log,
+            "durations": o_dr,
             "g": g,
         }
         if skip_decoder:
