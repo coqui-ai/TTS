@@ -1,5 +1,7 @@
 import json
 import os
+import torch
+import numpy as np
 from typing import Any, List
 
 import fsspec
@@ -203,3 +205,16 @@ def get_emotion_manager(c: Coqpit, restore_path: str = None, out_path: str = Non
         else:
             emotion_manager.save_ids_to_file(out_file_path)
     return emotion_manager
+
+
+def get_speech_style_balancer_weights(items: list):
+    style_names = np.array([item["speech_style"] for item in items])
+    unique_style_names = np.unique(style_names).tolist()
+    style_ids = [unique_style_names.index(s) for s in style_names]
+    style_count = np.array([len(np.where(style_names == s)[0]) for s in unique_style_names])
+    weight_style = 1.0 / style_count
+    # get weight for each sample
+    dataset_samples_weight = np.array([weight_style[s] for s in style_ids])
+    # normalize
+    dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
+    return torch.from_numpy(dataset_samples_weight).float()
