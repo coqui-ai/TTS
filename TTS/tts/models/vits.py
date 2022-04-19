@@ -155,10 +155,10 @@ def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
 def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fmax, center=False):
     """
     Args Shapes:
-        - y : :math:`[B, 1, T]`
+        - y : :math:`[B, 1, T_y]`
 
     Return Shapes:
-        - spec : :math:`[B,C,T]`
+        - spec : :math:`[B,C,T_spec]`
     """
     y = y.squeeze(1)
 

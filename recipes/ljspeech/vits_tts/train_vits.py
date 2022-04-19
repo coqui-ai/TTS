@@ -8,7 +8,7 @@ from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.processor import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 dataset_config = BaseDatasetConfig(
@@ -37,7 +37,7 @@ config = VitsConfig(
     batch_size=32,
     eval_batch_size=16,
     batch_group_size=5,
-    num_loader_workers=0,
+    num_loader_workers=8,
     num_eval_loader_workers=4,
     run_eval=True,
     test_delay_epochs=-1,
