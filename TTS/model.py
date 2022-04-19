@@ -136,15 +136,6 @@ class BaseTrainerModel(ABC, nn.Module):
         """
         ...
 
-    @staticmethod
-    @abstractmethod
-    def init_from_config(config: Coqpit, samples: List[Dict] = None, verbose=False) -> "BaseTrainerModel":
-        """Init the model from given config.
-
-        Override this depending on your model.
-        """
-        ...
-
     @abstractmethod
     def get_data_loader(
         self, config: Coqpit, assets: Dict, is_eval: True, data_items: List, verbose: bool, num_gpus: int
