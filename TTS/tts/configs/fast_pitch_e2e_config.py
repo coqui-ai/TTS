@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
-from TTS.tts.models.forward_tts_e2e import ForwardTTSE2EArgs
+from TTS.tts.models.forward_tts_e2e import ForwardTTSE2eArgs
 
 
 @dataclass
-class FastPitchE2EConfig(BaseTTSConfig):
-    """Configure `ForwardTTS` as FastPitch model.
+class FastPitchE2eConfig(BaseTTSConfig):
+    """Configure `ForwardTTSE2e` as FastPitchE2e model.
 
     Example:
 
@@ -103,13 +103,13 @@ class FastPitchE2EConfig(BaseTTSConfig):
     """
 
     model: str = "fast_pitch_e2e_hifigan"
-    base_model: str = "forward_tts"
+    base_model: str = "forward_tts_e2e"
 
     # model specific params
-    # model_args: ForwardTTSE2EArgs = ForwardTTSE2EArgs(vocoder_config=HifiganConfig())
-    model_args: ForwardTTSE2EArgs = ForwardTTSE2EArgs()
+    # model_args: ForwardTTSE2eArgs = ForwardTTSE2eArgs(vocoder_config=HifiganConfig())
+    model_args: ForwardTTSE2eArgs = ForwardTTSE2eArgs()
 
-    # # multi-speaker settings
+    # multi-speaker settings
     # num_speakers: int = 0
     # speakers_file: str = None
     # use_speaker_embedding: bool = False
@@ -142,11 +142,19 @@ class FastPitchE2EConfig(BaseTTSConfig):
     binary_align_loss_alpha: float = 0.1
     binary_loss_warmup_epochs: int = 150
 
-    # decoder loss params
+    # dvocoder loss params
     disc_loss_alpha: float = 1.0
     gen_loss_alpha: float = 1.0
     feat_loss_alpha: float = 1.0
-    mel_loss_alpha: float = 45.0
+    mel_loss_alpha: float = 10.0
+    multi_scale_stft_loss_alpha: float = 2.5
+    multi_scale_stft_loss_params: dict = field(
+        default_factory=lambda: {
+            "n_ffts": [1024, 2048, 512],
+            "hop_lengths": [120, 240, 50],
+            "win_lengths": [600, 1200, 240],
+        }
+    )
 
     # data loader params
     return_wav: bool = True
