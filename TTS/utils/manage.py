@@ -15,8 +15,9 @@ LICENSE_URLS = {
     "cc by-nc-nd 4.0": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
     "mpl": "https://www.mozilla.org/en-US/MPL/2.0/",
     "mpl2": "https://www.mozilla.org/en-US/MPL/2.0/",
+    "mpl 2.0": "https://www.mozilla.org/en-US/MPL/2.0/",
     "mit": "https://choosealicense.com/licenses/mit/",
-    "apache2.0": "https://choosealicense.com/licenses/apache-2.0/",
+    "apache 2.0": "https://choosealicense.com/licenses/apache-2.0/",
     "apache2": "https://choosealicense.com/licenses/apache-2.0/",
     "cc-by-sa 4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
 }
