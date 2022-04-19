@@ -11,7 +11,6 @@ import requests
 from TTS.config import load_config
 from TTS.utils.generic_utils import get_user_data_dir
 
-
 LICENSE_URLS = {
     "cc by-nc-nd 4.0": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
     "mpl": "https://www.mozilla.org/en-US/MPL/2.0/",
@@ -118,7 +117,8 @@ class ModelManager(object):
                 for dataset in self.models_dict[model_type][lang]:
                     print(f" >: {model_type}/{lang}/{dataset}")
 
-    def print_model_license(self, model_item: Dict):
+    @staticmethod
+    def print_model_license(model_item: Dict):
         """Print the license of a model
 
         Args:
@@ -126,10 +126,10 @@ class ModelManager(object):
         """
         if "license" in model_item and model_item["license"].strip() != "":
             print(f" > Model's license - {model_item['license']}")
-            if model_item['license'].lower() in LICENSE_URLS:
+            if model_item["license"].lower() in LICENSE_URLS:
                 print(f" > Check {LICENSE_URLS[model_item['license'].lower()]} for more info.")
             else:
-                print(f" > Check https://opensource.org/licenses for more info.")
+                print(" > Check https://opensource.org/licenses for more info.")
         else:
             print(" > Model's license - No license information available")
 
