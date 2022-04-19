@@ -1,10 +1,10 @@
 from typing import Callable, Tuple
+
 import librosa
 import numpy as np
-
-import soundfile as sf
 import pyworld as pw
 import scipy
+import soundfile as sf
 
 # from TTS.tts.utils.helpers import StandardScaler
 
@@ -148,21 +148,15 @@ def wav_to_mel(*, y: np.ndarray = None, **kwargs) -> np.ndarray:
     return S.astype(np.float32)
 
 
-def spec_to_wav(*, spec: np.ndarray, power: float = 1.5, denorm_func: Callable = None, **kwargs) -> np.ndarray:
+def spec_to_wav(*, spec: np.ndarray, power: float = 1.5, **kwargs) -> np.ndarray:
     """Convert a spectrogram to a waveform using Griffi-Lim vocoder."""
     S = spec.copy()
-    if denorm_func is not None:
-        S = denorm_func(spec=S, **kwargs)
-    S = db_to_amp(S)
     return griffin_lim(spec=S**power, **kwargs)
 
 
-def mel_to_wav(*, mel: np.ndarray = None, power: float = 1.5, denorm_func: Callable = None, **kwargs) -> np.ndarray:
+def mel_to_wav(*, mel: np.ndarray = None, power: float = 1.5, **kwargs) -> np.ndarray:
     """Convert a melspectrogram to a waveform using Griffi-Lim vocoder."""
     S = mel.copy()
-    if denorm_func is not None:
-        S = denorm_func(spec=S, **kwargs)
-    S = db_to_amp(S)
     S = mel_to_spec(mel=S, mel_basis=kwargs["mel_basis"])  # Convert back to linear
     return griffin_lim(spec=S**power, **kwargs)
 
