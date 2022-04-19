@@ -9,7 +9,7 @@ from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits, VitsArgs
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.processor import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 dataset_config = BaseDatasetConfig(

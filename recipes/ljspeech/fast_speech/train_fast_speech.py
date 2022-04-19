@@ -7,7 +7,7 @@ from TTS.tts.configs.fast_speech_config import FastSpeechConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.processor import AudioProcessor
 from TTS.utils.manage import ModelManager
 
 output_path = os.path.dirname(os.path.abspath(__file__))

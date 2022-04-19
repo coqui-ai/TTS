@@ -10,7 +10,7 @@ from coqpit import Coqpit
 
 from TTS.config import get_from_config_or_model_args_with_default, load_config
 from TTS.encoder.utils.generic_utils import setup_speaker_encoder_model
-from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.processor import AudioProcessor
 
 
 class SpeakerManager:

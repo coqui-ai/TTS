@@ -9,7 +9,7 @@ from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.glow_tts import GlowTTS
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.processor import AudioProcessor
 
 # set experiment paths
 output_path = os.path.dirname(os.path.abspath(__file__))

@@ -7,7 +7,7 @@ from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.align_tts import AlignTTS
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.processor import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 

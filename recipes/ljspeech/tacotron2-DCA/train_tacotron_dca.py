@@ -8,7 +8,7 @@ from TTS.tts.configs.tacotron2_config import Tacotron2Config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.tacotron2 import Tacotron2
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.processor import AudioProcessor
 
 # from TTS.tts.datasets.tokenizer import Tokenizer
 
