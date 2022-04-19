@@ -103,13 +103,14 @@ def load_tts_samples(
         meta_file_val = dataset["meta_file_val"]
         ignored_speakers = dataset["ignored_speakers"]
         language = dataset["language"]
+        speech_style = dataset["speech_style"]
 
         # setup the right data processor
         if formatter is None:
             formatter = _get_formatter_by_name(name)
         # load train set
         meta_data_train = formatter(root_path, meta_file_train, ignored_speakers=ignored_speakers)
-        meta_data_train = [{**item, **{"language": language}} for item in meta_data_train]
+        meta_data_train = [{**item, **{"language": language, "speech_style": speech_style}} for item in meta_data_train]
 
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set

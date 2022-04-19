@@ -222,6 +222,7 @@ class BaseDatasetConfig(Coqpit):
     meta_file_train: str = ""
     ignored_speakers: List[str] = None
     language: str = ""
+    speech_style: str = ""
     meta_file_val: str = ""
     meta_file_attn_mask: str = ""
 

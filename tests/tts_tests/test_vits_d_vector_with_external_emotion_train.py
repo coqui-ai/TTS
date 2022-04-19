@@ -45,6 +45,7 @@ config.model_args.d_vector_dim = 256
 config.model_args.use_external_emotions_embeddings = True
 config.model_args.use_emotion_embedding = False
 config.model_args.emotion_embedding_dim = 256
+config.model_args.emotion_just_encoder = True
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
 
 # consistency loss

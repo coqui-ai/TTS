@@ -279,3 +279,5 @@ class BaseTTSConfig(BaseTrainingConfig):
     speaker_weighted_sampler_alpha: float = 1.0
     use_language_weighted_sampler: bool = False
     language_weighted_sampler_alpha: float = 1.0
+    use_style_weighted_sampler: bool = False
+    style_weighted_sampler_alpha: float = 1.0
