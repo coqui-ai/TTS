@@ -31,8 +31,8 @@ class BaseTTS(BaseTrainerModel):
     def __init__(
         self,
         config: Coqpit,
-        ap: "AudioProcessor",
         tokenizer: "TTSTokenizer",
+        ap: "AudioProcessor" = None,
         speaker_manager: SpeakerManager = None,
         language_manager: LanguageManager = None,
     ):
@@ -314,7 +314,7 @@ class BaseTTS(BaseTrainerModel):
                 compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
                 samples=samples,
-                ap=self.ap,
+                audio_config=self.config.audio,
                 return_wav=config.return_wav if "return_wav" in config else False,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_text_len=config.min_text_len,
