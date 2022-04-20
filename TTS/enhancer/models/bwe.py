@@ -23,6 +23,7 @@ from torch.nn import Upsample
 from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
 import librosa
 from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleDiscriminator
+from TTS.vocoder.models.hifigan_discriminator import HifiganDiscriminator
 
 @dataclass
 class BWEArgs(Coqpit):
@@ -107,12 +108,13 @@ class BWE(BaseTrainerModel):
             num_blocks=self.args.num_blocks_wn,
             num_layers=self.args.num_layers_wn,
         )
-        self.waveform_disc = MelganMultiscaleDiscriminator(
-            downsample_factors=(2, 2, 2),
-            base_channels=16,
-            max_channels=1024,
-        )
-        self.spectral_disc = SpectralDiscriminator()
+        # self.waveform_disc = MelganMultiscaleDiscriminator(
+        #     downsample_factors=(2, 2, 2),
+        #     base_channels=16,
+        #     max_channels=1024,
+        # )
+        # self.spectral_disc = SpectralDiscriminator()
+        self.hifigan_disc = HifiganDiscriminator()
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
@@ -134,10 +136,10 @@ class BWE(BaseTrainerModel):
         }
 
     def disc_forward(self, x):
-        scores, feats = self.waveform_disc(x)
-        score, feats_ = self.spectral_disc(x)
-        scores.append(score)
-        return scores, feats + feats_
+        # scores, feats = self.waveform_disc(x)
+        # score, feats_ = self.spectral_disc(x)
+        # scores.append(score)
+        return self.hifigan_disc(x) #scores, feats + feats_
 
     def forward(self, x):
         return self.gen_forward(x)
@@ -244,7 +246,7 @@ class BWE(BaseTrainerModel):
     def get_optimizer(self) -> List:
         gen_params = list(self.generator.parameters()) + list(self.postconv.parameters())
         optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=gen_params)
-        disc_params = list(self.waveform_disc.parameters()) + list(self.spectral_disc.parameters())
+        disc_params = list(self.hifigan_disc.parameters())
         optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=disc_params)
         return [optimizer_gen, optimizer_disc]
 
