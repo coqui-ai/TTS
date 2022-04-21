@@ -81,17 +81,11 @@ class MultiPeriodDiscriminator(torch.nn.Module):
     Periods are suggested to be prime numbers to reduce the overlap between each discriminator.
     """
 
-    def __init__(self, use_spectral_norm=False):
+    def __init__(self, periods, use_spectral_norm=False):
         super().__init__()
-        self.discriminators = nn.ModuleList(
-            [
-                DiscriminatorP(2, use_spectral_norm=use_spectral_norm),
-                DiscriminatorP(3, use_spectral_norm=use_spectral_norm),
-                DiscriminatorP(5, use_spectral_norm=use_spectral_norm),
-                DiscriminatorP(7, use_spectral_norm=use_spectral_norm),
-                DiscriminatorP(11, use_spectral_norm=use_spectral_norm),
-            ]
-        )
+        self.discriminators = nn.ModuleList([
+            DiscriminatorP(p, use_spectral_norm=use_spectral_norm) for p in periods
+        ])
 
     def forward(self, x):
         """
@@ -198,9 +192,9 @@ class MultiScaleDiscriminator(torch.nn.Module):
 class HifiganDiscriminator(nn.Module):
     """HiFiGAN discriminator wrapping MPD and MSD."""
 
-    def __init__(self):
+    def __init__(self, periods=[2,3,5,7,11]):
         super().__init__()
-        self.mpd = MultiPeriodDiscriminator()
+        self.mpd = MultiPeriodDiscriminator(periods)
         self.msd = MultiScaleDiscriminator()
 
     def forward(self, x):
