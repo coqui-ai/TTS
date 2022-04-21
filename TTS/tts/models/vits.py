@@ -632,7 +632,10 @@ class Vits(BaseTTS):
         )
 
         if self.args.init_discriminator:
-            self.disc = VitsDiscriminator(periods=self.args.periods_multi_period_discriminator, use_spectral_norm=self.args.use_spectral_norm_disriminator)
+            self.disc = VitsDiscriminator(
+                periods=self.args.periods_multi_period_discriminator,
+                use_spectral_norm=self.args.use_spectral_norm_disriminator,
+            )
 
         if self.args.TTS_part_sample_rate:
             self.interpolate_factor = self.config.audio["sample_rate"] / self.args.TTS_part_sample_rate

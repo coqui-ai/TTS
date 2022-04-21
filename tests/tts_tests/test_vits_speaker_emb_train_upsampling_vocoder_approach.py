@@ -6,28 +6,11 @@ import shutil
 from trainer import get_last_checkpoint
 
 from tests import get_device_id, get_tests_output_path, run_cli
-from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
-
-dataset_config_en = BaseDatasetConfig(
-    name="ljspeech",
-    meta_file_train="metadata.csv",
-    meta_file_val="metadata.csv",
-    path="tests/data/ljspeech",
-    language="en",
-)
-
-dataset_config_pt = BaseDatasetConfig(
-    name="ljspeech",
-    meta_file_train="metadata.csv",
-    meta_file_val="metadata.csv",
-    path="tests/data/ljspeech",
-    language="pt-br",
-)
 
 config = VitsConfig(
     batch_size=2,
@@ -44,32 +27,26 @@ config = VitsConfig(
     print_step=1,
     print_eval=True,
     test_sentences=[
-        ["Be a voice, not an echo.", "ljspeech", None, "en"],
-        ["Be a voice, not an echo.", "ljspeech", None, "pt-br"],
+        ["Be a voice, not an echo.", "ljspeech-1"],
     ],
-    datasets=[dataset_config_en, dataset_config_pt],
 )
 # set audio config
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 
-# active multilingual mode
-config.model_args.use_language_embedding = True
-config.use_language_embedding = True
-# active multispeaker mode
+# active multispeaker d-vec mode
 config.model_args.use_speaker_embedding = True
-config.use_speaker_embedding = True
-
-# deactivate multispeaker d-vec mode
 config.model_args.use_d_vector_file = False
-config.use_d_vector_file = False
+config.model_args.d_vector_file = None
+config.model_args.d_vector_dim = 256
 
-# duration predictor
-config.model_args.use_sdp = False
-config.use_sdp = False
 
-# active language sampler
-config.use_language_weighted_sampler = True
+# test upsample
+config.model_args.TTS_part_sample_rate = 11025
+config.model_args.interpolate_z = False
+config.model_args.upsample_rates_decoder = [8, 8, 4, 2]
+config.model_args.periods_multi_period_discriminator = [2, 3, 5, 7]
+
 
 config.save_json(config_path)
 
@@ -77,6 +54,11 @@ config.save_json(config_path)
 command_train = (
     f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --config_path {config_path} "
     f"--coqpit.output_path {output_path} "
+    "--coqpit.datasets.0.name ljspeech_test "
+    "--coqpit.datasets.0.meta_file_train metadata.csv "
+    "--coqpit.datasets.0.meta_file_val metadata.csv "
+    "--coqpit.datasets.0.path tests/data/ljspeech "
+    "--coqpit.datasets.0.meta_file_attn_mask tests/data/ljspeech/metadata_attn_mask.txt "
     "--coqpit.test_delay_epochs 0"
 )
 run_cli(command_train)
@@ -88,10 +70,8 @@ continue_path = max(glob.glob(os.path.join(output_path, "*/")), key=os.path.getm
 continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
-speaker_id = "ljspeech"
-languae_id = "en"
+speaker_id = "ljspeech-1"
 continue_speakers_path = os.path.join(continue_path, "speakers.json")
-continue_languages_path = os.path.join(continue_path, "language_ids.json")
 
 # Check integrity of the config
 with open(continue_config_path, "r", encoding="utf-8") as f:
@@ -101,7 +81,7 @@ assert config_loaded["output_path"] in continue_path
 assert config_loaded["test_delay_epochs"] == 0
 
 # Load the model and run inference
-inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --language_ids_file_path {continue_languages_path} --language_idx {languae_id} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
+inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
 run_cli(inference_command)
 
 # restore the model and continue training for one more epoch
