@@ -362,6 +362,9 @@ class VitsArgs(Coqpit):
         upsample_kernel_sizes_decoder (List[int]):
             Kernel sizes for each upsampling layer of the decoder network. Defaults to `[16, 16, 4, 4]`.
 
+        periods_multi_period_discriminator (List[int]):
+            Periods values for Vits Multi-Period Discriminator. Defaults to `[2, 3, 5, 7, 11]`.
+
         use_sdp (bool):
             Use Stochastic Duration Predictor. Defaults to True.
 
@@ -475,6 +478,7 @@ class VitsArgs(Coqpit):
     upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
     upsample_initial_channel_decoder: int = 512
     upsample_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
+    periods_multi_period_discriminator: List[int] = field(default_factory=lambda: [2, 3, 5, 7, 11])
     use_sdp: bool = True
     noise_scale: float = 1.0
     inference_noise_scale: float = 0.667
@@ -628,7 +632,7 @@ class Vits(BaseTTS):
         )
 
         if self.args.init_discriminator:
-            self.disc = VitsDiscriminator(use_spectral_norm=self.args.use_spectral_norm_disriminator)
+            self.disc = VitsDiscriminator(periods=self.args.periods_multi_period_discriminator, use_spectral_norm=self.args.use_spectral_norm_disriminator)
 
         if self.args.TTS_part_sample_rate:
             self.interpolate_factor = self.config.audio["sample_rate"] / self.args.TTS_part_sample_rate

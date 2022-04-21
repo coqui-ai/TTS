@@ -73,10 +73,11 @@ config.use_language_weighted_sampler = True
 
 # test upsample
 config.model_args.TTS_part_sample_rate = 11025
-config.model_args.interpolate_z = True
+config.model_args.interpolate_z = False
 config.model_args.detach_z_vocoder = True
 
-config.model_args.upsample_rates_decoder = [8, 8, 2, 2]
+config.model_args.upsample_rates_decoder = [8, 8, 4, 2]
+config.model_args.periods_multi_period_discriminator = [2, 3, 5, 7, 11, 13, 17, 19, 23]
 
 config.save_json(config_path)
 
