@@ -1,5 +1,3 @@
-import os
-
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
@@ -29,8 +27,8 @@ config = HifiganConfig(
     run_eval=True,
     test_delay_epochs=5,
     epochs=1000,
-    seq_len=32*audio_config.hop_length,
-    generator_model_params= {
+    seq_len=32 * audio_config.hop_length,
+    generator_model_params={
         "upsample_factors": [8, 8, 4, 2],
         "upsample_kernel_sizes": [16, 16, 8, 4],
         "upsample_initial_channel": 512,
@@ -38,7 +36,7 @@ config = HifiganConfig(
         "resblock_dilation_sizes": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
         "resblock_type": "1",
     },
-    l1_spec_loss_params = {
+    l1_spec_loss_params={
         "use_mel": True,
         "sample_rate": 48000,
         "n_fft": 2048,
@@ -48,9 +46,7 @@ config = HifiganConfig(
         "mel_fmin": 0,
         "mel_fmax": 24000,
     },
-    discriminator_model_params = {
-        "periods": [2, 3, 5, 7, 11, 17, 29]
-    },
+    discriminator_model_params={"periods": [2, 3, 5, 7, 11, 17, 29]},
     pad_short=2000,
     use_noise_augment=True,
     eval_split_size=10,
