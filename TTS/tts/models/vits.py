@@ -511,7 +511,6 @@ class VitsArgs(Coqpit):
     freeze_waveform_decoder: bool = False
     TTS_part_sample_rate: int = None
     interpolate_z: bool = True
-    detach_z_vocoder: bool = False
 
 
 class Vits(BaseTTS):
@@ -906,7 +905,7 @@ class Vits(BaseTTS):
         else:
             spec_segment_size = self.spec_segment_size
 
-        o = self.waveform_decoder(z_slice.detach() if self.args.detach_z_vocoder else z_slice, g=g)
+        o = self.waveform_decoder(z_slice, g=g)
 
         wav_seg = segment(
             waveform,
