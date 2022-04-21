@@ -859,7 +859,11 @@ class AudioProcessor(object):
             path (str): Path to a output file.
             sr (int, optional): Sampling rate used for saving to the file. Defaults to None.
         """
-        wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
+        if self.do_rms_norm:
+            wav_norm = self.rms_volume_norm(wav, self.db_level) * 32767
+        else:
+            wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
+
         scipy.io.wavfile.write(path, sr if sr else self.sample_rate, wav_norm.astype(np.int16))
 
     def get_duration(self, filename: str) -> float:
