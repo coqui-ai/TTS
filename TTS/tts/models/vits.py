@@ -454,6 +454,18 @@ class VitsArgs(Coqpit):
 
         freeze_waveform_decoder (bool):
             Freeze the waveform decoder weigths during training. Defaults to False.
+
+        TTS_part_sample_rate (int):
+            If not None this sample rate will be used for training the Posterior Encoder,
+            flow, text_encoder and duration predictor. The decoder part (vocoder) will be
+            trained with the `config.audio.audio.sample_rate`. Defaults to None.
+
+        interpolate_z (bool):
+            If `TTS_part_sample_rate` not None and  this parameter True the nearest interpolation
+            will be used to upsampling the latent variable z with the sampling rate `TTS_part_sample_rate`
+            to the `config.audio.audio.sample_rate`. If it is False you will need to add extra
+            `upsample_rates_decoder` to match the shape. Defaults to True.
+
     """
 
     num_chars: int = 100
