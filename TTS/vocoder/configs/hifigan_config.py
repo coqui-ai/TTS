@@ -104,7 +104,12 @@ class HifiganConfig(BaseGANVocoderConfig):
             "resblock_type": "1",
         }
     )
-    discriminator_model_params: dict = field(default_factory=lambda: {"periods": [2, 3, 5, 7, 11]})
+    discriminator_model_params: dict = field(
+        default_factory=lambda: {
+            "periods": [2, 3, 5, 7, 11],
+            "pool_sizes": [2, 2],
+        }
+    )
 
     # LOSS PARAMETERS - overrides
     use_stft_loss: bool = False

@@ -103,7 +103,9 @@ def setup_discriminator(c):
         MyModel = importlib.import_module("TTS.vocoder.models." + c.discriminator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
     if c.discriminator_model in "hifigan_discriminator":
-        model = MyModel(periods=c.discriminator_model_params["periods"])
+        model = MyModel(
+            periods=c.discriminator_model_params["periods"], pool_sizes=c.discriminator_model_params["pool_sizes"]
+        )
     if c.discriminator_model in "random_window_discriminator":
         model = MyModel(
             cond_channels=c.audio["num_mels"],

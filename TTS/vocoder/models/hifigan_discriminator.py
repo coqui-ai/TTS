@@ -156,16 +156,12 @@ class MultiScaleDiscriminator(torch.nn.Module):
     It is similar to `MultiScaleMelganDiscriminator` but specially tailored for HiFiGAN as in the paper.
     """
 
-    def __init__(self):
+    def __init__(self, pool_sizes=(2, 2)):
         super().__init__()
         self.discriminators = nn.ModuleList(
-            [
-                DiscriminatorS(use_spectral_norm=True),
-                DiscriminatorS(),
-                DiscriminatorS(),
-            ]
+            [DiscriminatorS(use_spectral_norm=True)] + [DiscriminatorS() for _ in range(len(pool_sizes))]
         )
-        self.meanpools = nn.ModuleList([nn.AvgPool1d(4, 2, padding=2), nn.AvgPool1d(4, 2, padding=2)])
+        self.meanpools = nn.ModuleList([nn.AvgPool1d(4, size, padding=2) for size in pool_sizes])
 
     def forward(self, x):
         """
@@ -190,10 +186,10 @@ class MultiScaleDiscriminator(torch.nn.Module):
 class HifiganDiscriminator(nn.Module):
     """HiFiGAN discriminator wrapping MPD and MSD."""
 
-    def __init__(self, periods):
+    def __init__(self, periods, pool_sizes):
         super().__init__()
         self.mpd = MultiPeriodDiscriminator(periods=periods)
-        self.msd = MultiScaleDiscriminator()
+        self.msd = MultiScaleDiscriminator(pool_sizes=pool_sizes)
 
     def forward(self, x):
         """
