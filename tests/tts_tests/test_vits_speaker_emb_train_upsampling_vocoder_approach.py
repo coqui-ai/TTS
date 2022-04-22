@@ -42,7 +42,7 @@ config.model_args.d_vector_dim = 256
 
 
 # test upsample
-config.model_args.TTS_part_sample_rate = 11025
+config.model_args.encoder_sample_rate = 11025
 config.model_args.interpolate_z = False
 config.model_args.upsample_rates_decoder = [8, 8, 4, 2]
 config.model_args.periods_multi_period_discriminator = [2, 3, 5, 7]
