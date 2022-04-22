@@ -474,31 +474,6 @@ class ForwardTTSE2e(BaseTTSE2E):
         model_outputs = {**encoder_outputs}
         return model_outputs
 
-    @staticmethod
-    def init_from_config(config: "ForwardTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False):
-        """Initiate model from config
-
-        Args:
-            config (ForwardTTSE2eConfig): Model config.
-            samples (Union[List[List], List[Dict]]): Training samples to parse speaker ids for training.
-                Defaults to None.
-        """
-        from TTS.utils.audio.processor import AudioProcessor
-
-        tokenizer, new_config = TTSTokenizer.init_from_config(config)
-        speaker_manager = SpeakerManager.init_from_config(config, samples)
-        # language_manager = LanguageManager.init_from_config(config)
-        return ForwardTTSE2e(config=new_config, tokenizer=tokenizer, speaker_manager=speaker_manager)
-
-    def load_checkpoint(
-        self, config, checkpoint_path, eval=False
-    ):  # pylint: disable=unused-argument, redefined-builtin
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
-        self.load_state_dict(state["model"])
-        if eval:
-            self.eval()
-            assert not self.training
-
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         if optimizer_idx == 0:
             tokens = batch["text_input"]
@@ -1000,3 +975,51 @@ class ForwardTTSE2e(BaseTTSE2E):
             mel_fmax=self.config.audio.mel_fmax,
             mel_fmin=self.config.audio.mel_fmin,
         )
+
+    @staticmethod
+    def init_from_config(config: "ForwardTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False):
+        """Initiate model from config
+
+        Args:
+            config (ForwardTTSE2eConfig): Model config.
+            samples (Union[List[List], List[Dict]]): Training samples to parse speaker ids for training.
+                Defaults to None.
+        """
+        from TTS.utils.audio.processor import AudioProcessor
+
+        tokenizer, new_config = TTSTokenizer.init_from_config(config)
+        speaker_manager = SpeakerManager.init_from_config(config, samples)
+        # language_manager = LanguageManager.init_from_config(config)
+        return ForwardTTSE2e(config=new_config, tokenizer=tokenizer, speaker_manager=speaker_manager)
+
+    def load_checkpoint(
+        self, config, checkpoint_path, eval=False
+    ):
+        """Load model from a checkpoint created by the 👟"""
+        # pylint: disable=unused-argument, redefined-builtin
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        self.load_state_dict(state["model"])
+        if eval:
+            self.eval()
+            assert not self.training
+
+    def get_state_dict(self):
+        """Custom state dict of the model with all the necessary components for inference."""
+        save_state = {
+            "config": self.config.to_dict(),
+            "args": self.args.to_dict(),
+            "model": self.state_dict
+        }
+
+        if hasattr(self, "emb_g"):
+            save_state["speaker_ids"] = self.speaker_manager.speaker_ids
+
+        if self.args.use_d_vector_file:
+            # TODO: implement saving of d_vectors
+            ...
+        return save_state
+
+    def save(self, config, checkpoint_path):
+        """Save model to a file."""
+        save_state = self.get_state_dict(config, checkpoint_path)
+        torch.save(save_state, checkpoint_path)
