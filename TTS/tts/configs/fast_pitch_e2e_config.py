@@ -102,7 +102,7 @@ class FastPitchE2eConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-    model: str = "fast_pitch_e2e_hifigan"
+    model: str = "fast_pitch_e2e"
     base_model: str = "forward_tts_e2e"
 
     # model specific params

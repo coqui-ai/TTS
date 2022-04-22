@@ -76,10 +76,9 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         precompute_num_workers=0,
         normalize_f0=True,
     ):
-        self.audio_config = audio_config
         super().__init__(
             samples=samples,
-            ap=None,
+            audio_config=audio_config,
             verbose=verbose,
             cache_path=cache_path,
             precompute_num_workers=precompute_num_workers,
@@ -87,13 +86,13 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         )
 
     @staticmethod
-    def _compute_and_save_pitch(config, wav_file, pitch_file=None):
+    def _compute_and_save_pitch(audio_config, wav_file, pitch_file=None):
         wav, _ = load_audio(wav_file)
         f0 = compute_f0(
-            x=wav.numpy()[0], sample_rate=config.sample_rate, hop_length=config.hop_length, pitch_fmax=config.pitch_fmax
+            x=wav.numpy()[0], sample_rate=audio_config.sample_rate, hop_length=audio_config.hop_length, pitch_fmax=audio_config.pitch_fmax
         )
         # skip the last F0 value to align with the spectrogram
-        if wav.shape[1] % config.hop_length != 0:
+        if wav.shape[1] % audio_config.hop_length != 0:
             f0 = f0[:-1]
         if pitch_file:
             np.save(pitch_file, f0)
@@ -105,7 +104,7 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         """
         pitch_file = self.create_pitch_file_path(wav_file, self.cache_path)
         if not os.path.exists(pitch_file):
-            pitch = self._compute_and_save_pitch(self.audio_config, wav_file, pitch_file)
+            pitch = self._compute_and_save_pitch(audio_config=self.audio_config, wav_file=wav_file, pitch_file=pitch_file)
         else:
             pitch = np.load(pitch_file)
         return pitch.astype(np.float32)
@@ -117,13 +116,12 @@ class ForwardTTSE2eDataset(TTSDataset):
         compute_f0 = kwargs.pop("compute_f0", False)
         kwargs["compute_f0"] = False
 
-        self.audio_config = kwargs["audio_config"]
-        del kwargs["audio_config"]
-
         super().__init__(*args, **kwargs)
 
         self.compute_f0 = compute_f0
         self.pad_id = self.tokenizer.characters.pad_id
+        self.audio_config = kwargs["audio_config"]
+
         if self.compute_f0:
             self.f0_dataset = ForwardTTSE2eF0Dataset(
                 audio_config=self.audio_config,

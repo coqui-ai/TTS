@@ -9,7 +9,7 @@ import tqdm
 from torch.utils.data import Dataset
 
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
-from TTS.utils.audio.numpy_transforms import load_wav, wav_to_mel, wav_to_spec
+from TTS.utils.audio.numpy_transforms import compute_f0, load_wav, wav_to_mel, wav_to_spec
 
 # to prevent too many open files error as suggested here
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
@@ -647,14 +647,14 @@ class F0Dataset:
     def __init__(
         self,
         samples: Union[List[List], List[Dict]],
-        ap: "AudioProcessor",
+        audio_config: "AudioConfig",
         verbose=False,
         cache_path: str = None,
         precompute_num_workers=0,
         normalize_f0=True,
     ):
         self.samples = samples
-        self.audio_config = ap
+        self.audio_config = audio_config
         self.verbose = verbose
         self.cache_path = cache_path
         self.normalize_f0 = normalize_f0
@@ -711,9 +711,9 @@ class F0Dataset:
         return pitch_file
 
     @staticmethod
-    def _compute_and_save_pitch(ap, wav_file, pitch_file=None):
-        wav = ap.load_wav(wav_file)
-        pitch = ap.compute_f0(wav)
+    def _compute_and_save_pitch(audio_config, wav_file, pitch_file=None):
+        wav = load_wav(wav_file)
+        pitch = compute_f0(x=wav, pitch_fmax=audio_config.pitch_fmax, hop_length=audio_config.hop_length, sample_rate=audio_config.sample_rate)
         if pitch_file:
             np.save(pitch_file, pitch)
         return pitch
