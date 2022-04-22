@@ -164,6 +164,7 @@ class BaseGANVocoderConfig(BaseVocoderConfig):
             "mel_fmax": None,
         }
     )
+    log_with_spec_loss_params: bool = False
 
     target_loss: str = "loss_0"  # loss value to pick the best model to save after each epoch
 

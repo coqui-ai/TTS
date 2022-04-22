@@ -43,6 +43,7 @@ class GAN(BaseVocoder):
         self.train_disc = False  # if False, train only the generator.
         self.y_hat_g = None  # the last generator prediction to be passed onto the discriminator
         self.ap = ap
+        self.log_ap = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Run the generator's forward pass.
@@ -203,7 +204,7 @@ class GAN(BaseVocoder):
         self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
     ) -> Tuple[Dict, np.ndarray]:
         """Call `_log()` for training."""
-        figures, audios = self._log("eval", self.ap, batch, outputs)
+        figures, audios = self._log("train", self.get_log_ap(), batch, outputs)
         logger.eval_figures(steps, figures)
         logger.eval_audios(steps, audios, self.ap.sample_rate)
 
@@ -216,7 +217,7 @@ class GAN(BaseVocoder):
         self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int  # pylint: disable=unused-argument
     ) -> Tuple[Dict, np.ndarray]:
         """Call `_log()` for evaluation."""
-        figures, audios = self._log("eval", self.ap, batch, outputs)
+        figures, audios = self._log("eval", self.get_log_ap(), batch, outputs)
         logger.eval_figures(steps, figures)
         logger.eval_audios(steps, audios, self.ap.sample_rate)
 
@@ -365,3 +366,21 @@ class GAN(BaseVocoder):
     def init_from_config(config: Coqpit, verbose=True) -> "GAN":
         ap = AudioProcessor.init_from_config(config, verbose=verbose)
         return GAN(config, ap=ap)
+
+    def get_log_ap(self):
+        if self.config.log_with_spec_loss_params and self.log_ap is None:
+            self.log_ap = AudioProcessor(
+                verbose=False,
+                fft_size=self.config.l1_spec_loss_params["n_fft"],
+                hop_length=self.config.l1_spec_loss_params["hop_length"],
+                win_length=self.config.l1_spec_loss_params["win_length"],
+                use_mel=self.config.l1_spec_loss_params["use_mel"],
+                sample_rate=self.config.l1_spec_loss_params["sample_rate"],
+                num_mels=self.config.l1_spec_loss_params["n_mels"],
+                mel_fmin=self.config.l1_spec_loss_params["mel_fmin"],
+                mel_fmax=self.config.l1_spec_loss_params["mel_fmax"],
+            )
+        if self.config.log_with_spec_loss_params:
+            return self.log_ap
+        else:
+            return self.ap
