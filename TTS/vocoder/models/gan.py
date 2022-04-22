@@ -382,5 +382,4 @@ class GAN(BaseVocoder):
             )
         if self.config.log_with_spec_loss_params:
             return self.log_ap
-        else:
-            return self.ap
+        return self.ap
