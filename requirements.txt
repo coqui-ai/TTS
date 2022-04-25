@@ -1,5 +1,5 @@
 # core deps
-numpy==1.19.5
+numpy==1.22.3
 cython
 scipy>=1.4.0
 torch>=1.7
