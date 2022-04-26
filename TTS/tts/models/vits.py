@@ -1569,10 +1569,17 @@ class Vits(BaseTTS):
         from TTS.utils.audio import AudioProcessor
 
         upsample_rate = torch.prod(torch.as_tensor(config.model_args.upsample_rates_decoder)).item()
+
         if not config.model_args.encoder_sample_rate:
             assert (
                 upsample_rate == config.audio.hop_length
             ), f" [!] Product of upsample rates must be equal to the hop length - {upsample_rate} vs {config.audio.hop_length}"
+        else:
+            encoder_to_vocoder_upsampling_factor = config.audio.sample_rate / config.model_args.encoder_sample_rate
+            effective_hop_length = config.audio.hop_length * encoder_to_vocoder_upsampling_factor
+            assert (
+                upsample_rate == effective_hop_length
+            ), f" [!] Product of upsample rates must be equal to the hop length - {upsample_rate} vs {effective_hop_length}"
 
         ap = AudioProcessor.init_from_config(config, verbose=verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
