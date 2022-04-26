@@ -25,7 +25,8 @@ tensorboardX
 pyworld
 # coqui stack
 trainer
-coqpit # config management
+# config management
+coqpit>=0.0.16
 # chinese g2p deps
 jieba
 pypinyin
