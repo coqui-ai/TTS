@@ -86,7 +86,7 @@
         "mel_fmax": null
     },
 
-    "target_loss": "avg_G_loss",  // loss value to pick the best model to save after each epoch
+    "target_loss": "G_avg_loss",  // loss value to pick the best model to save after each epoch
 
     // DISCRIMINATOR
     "discriminator_model": "melgan_multiscale_discriminator",

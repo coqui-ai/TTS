@@ -9,8 +9,8 @@
 #               ,+++*.    . .*++,          ,++*.      .*+++*
 #              *+,   .,*++**.                  .**++**.   ,+*
 #             .+*                                          *+,
-#             *+.                                          .+*
-#             *+*              +++        +++              *+*
+#             *+.                   Coqui                  .+*
+#             *+*              +++   TTS  +++              *+*
 #             .+++*.            .          .             *+++.
 #              ,+* *+++*...                       ...*+++* *+,
 #               .++.    .""""+++++++****+++++++"""".     ++.
@@ -34,8 +34,6 @@ from setuptools import Extension, find_packages, setup
 if LooseVersion(sys.version) < LooseVersion("3.6") or LooseVersion(sys.version) > LooseVersion("3.10"):
     raise RuntimeError("TTS requires python >= 3.6 and <=3.10 " "but your Python version is {}".format(sys.version))
 
-
-cwd = os.path.dirname(os.path.abspath(__file__))
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(cwd, "TTS", "VERSION")) as fin:
@@ -65,9 +63,7 @@ with open(os.path.join(cwd, "requirements.notebooks.txt"), "r") as f:
     requirements_notebooks = f.readlines()
 with open(os.path.join(cwd, "requirements.dev.txt"), "r") as f:
     requirements_dev = f.readlines()
-with open(os.path.join(cwd, "requirements.tf.txt"), "r") as f:
-    requirements_tf = f.readlines()
-requirements_all = requirements_dev + requirements_notebooks + requirements_tf
+requirements_all = requirements_dev + requirements_notebooks
 
 with open("README.md", "r", encoding="utf-8") as readme_file:
     README = readme_file.read()
@@ -116,7 +112,6 @@ setup(
         "all": requirements_all,
         "dev": requirements_dev,
         "notebooks": requirements_notebooks,
-        "tf": requirements_tf,
     },
     python_requires=">=3.6.0, <3.10",
     entry_points={"console_scripts": ["tts=TTS.bin.synthesize:main", "tts-server = TTS.server.server:main"]},

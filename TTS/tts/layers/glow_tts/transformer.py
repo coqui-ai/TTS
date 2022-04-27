@@ -88,7 +88,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         # relative positional encoding layers
         if rel_attn_window_size is not None:
             n_heads_rel = 1 if heads_share else num_heads
-            rel_stddev = self.k_channels ** -0.5
+            rel_stddev = self.k_channels**-0.5
             emb_rel_k = nn.Parameter(
                 torch.randn(n_heads_rel, rel_attn_window_size * 2 + 1, self.k_channels) * rel_stddev
             )
@@ -235,7 +235,7 @@ class RelativePositionMultiHeadAttention(nn.Module):
         batch, heads, length, _ = x.size()
         # padd along column
         x = F.pad(x, [0, length - 1, 0, 0, 0, 0, 0, 0])
-        x_flat = x.view([batch, heads, length ** 2 + length * (length - 1)])
+        x_flat = x.view([batch, heads, length**2 + length * (length - 1)])
         # add 0's in the beginning that will skew the elements after reshape
         x_flat = F.pad(x_flat, [length, 0, 0, 0, 0, 0])
         x_final = x_flat.view([batch, heads, length, 2 * length])[:, :, :, 1:]

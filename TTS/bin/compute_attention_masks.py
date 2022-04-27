@@ -11,7 +11,7 @@ from tqdm import tqdm
 from TTS.config import load_config
 from TTS.tts.datasets.TTSDataset import TTSDataset
 from TTS.tts.models import setup_model
-from TTS.tts.utils.text.symbols import make_symbols, phonemes, symbols
+from TTS.tts.utils.text.characters import make_symbols, phonemes, symbols
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_checkpoint
 
@@ -25,7 +25,7 @@ These masks can be used for different purposes including training a TTS model wi
         """
 Example run:
     CUDA_VISIBLE_DEVICE="0" python TTS/bin/compute_attention_masks.py
-        --model_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/checkpoint_200000.pth.tar
+        --model_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/checkpoint_200000.pth
         --config_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/config.json
         --dataset_metafile metadata.csv
         --data_path /root/LJSpeech-1.1/

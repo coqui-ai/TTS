@@ -35,6 +35,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git make gcc
+          sudo apt-get install espeak espeak-ng
           make system-deps
       - name: Install/upgrade Python setup deps
         run: python3 -m pip install --upgrade pip setuptools wheel

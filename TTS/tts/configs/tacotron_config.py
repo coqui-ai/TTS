@@ -83,6 +83,8 @@ class TacotronConfig(BaseTTSConfig):
         ddc_r (int):
             reduction rate used by the coarse decoder when `double_decoder_consistency` is in use. Set this
             as a multiple of the `r` value. Defaults to 6.
+        speakers_file (str):
+            Path to the speaker mapping file for the Speaker Manager. Defaults to None.
         use_speaker_embedding (bool):
             enable / disable using speaker embeddings for multi-speaker models. If set True, the model is
             in the multi-speaker mode. Defaults to False.
@@ -176,6 +178,7 @@ class TacotronConfig(BaseTTSConfig):
     ddc_r: int = 6
 
     # multi-speaker settings
+    speakers_file: str = None
     use_speaker_embedding: bool = False
     speaker_embedding_dim: int = 512
     use_d_vector_file: bool = False

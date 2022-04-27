@@ -26,6 +26,7 @@ if __name__ == "__main__":
                                 --input_dir /root/LJSpeech-1.1/
                                 --output_sr 22050
                                 --output_dir /root/resampled_LJSpeech-1.1/
+                                --file_ext wav
                                 --n_jobs 24
                     """,
         formatter_class=RawTextHelpFormatter,
@@ -56,6 +57,14 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--file_ext",
+        type=str,
+        default="wav",
+        required=False,
+        help="Extension of the audio files to resample",
+    )
+
+    parser.add_argument(
         "--n_jobs", type=int, default=None, help="Number of threads to use, by default it uses all cores"
     )
 
@@ -67,7 +76,7 @@ if __name__ == "__main__":
         args.input_dir = args.output_dir
 
     print("Resampling the audio files...")
-    audio_files = glob.glob(os.path.join(args.input_dir, "**/*.wav"), recursive=True)
+    audio_files = glob.glob(os.path.join(args.input_dir, f"**/*.{args.file_ext}"), recursive=True)
     print(f"Found {len(audio_files)} files...")
     audio_files = list(zip(audio_files, len(audio_files) * [args.output_sr]))
     with Pool(processes=args.n_jobs) as p:

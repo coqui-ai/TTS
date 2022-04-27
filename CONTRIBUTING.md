@@ -26,7 +26,8 @@ If you like to contribute code, squash a bug but if you don't know where to star
     We list all the target improvements for the next version. You can pick one of them and start contributing.
 
 - Also feel free to suggest new features, ideas and models. We're always open for new things.
-#####Call for sharing language models
+
+## Call for sharing language models
 If possible, please consider sharing your pre-trained models in any language (if the licences allow for you to do so). We will include them in our model catalogue for public use and give the proper attribution, whether it be your name, company, website or any other source specified.
 
 This model can be shared in two ways:
@@ -36,6 +37,7 @@ This model can be shared in two ways:
 Models are served under `.models.json` file and any model is available under TTS CLI or Server end points.
 
 Either way you choose, please make sure you send the models [here](https://github.com/coqui-ai/TTS/issues/380). 
+
 ## Sending a ✨**PR**✨
 
 If you have a new feature, a model to implement, or a bug to squash, go ahead and send a ✨**PR**✨.

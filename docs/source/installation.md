@@ -12,12 +12,6 @@ You can install from PyPI as follows:
 pip install TTS  # from PyPI
 ```
 
-By default, this only installs the requirements for PyTorch. To install the tensorflow dependencies as well, use the `tf` extra.
-
-```bash
-pip install TTS[tf]
-```
-
 Or install from Github:
 
 ```bash

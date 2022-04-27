@@ -1,12 +1,16 @@
+"""Set of default text cleaners"""
+# TODO: pick the cleaner for languages dynamically
+
 import re
 
 from anyascii import anyascii
 
 from TTS.tts.utils.text.chinese_mandarin.numbers import replace_numbers_to_characters_in_text
 
-from .abbreviations import abbreviations_en, abbreviations_fr
-from .number_norm import normalize_numbers
-from .time import expand_time_english
+from .english.abbreviations import abbreviations_en
+from .english.number_norm import normalize_numbers as en_normalize_numbers
+from .english.time_norm import expand_time_english
+from .french.abbreviations import abbreviations_fr
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r"\s+")
@@ -20,10 +24,6 @@ def expand_abbreviations(text, lang="en"):
     for regex, replacement in _abbreviations:
         text = re.sub(regex, replacement, text)
     return text
-
-
-def expand_numbers(text):
-    return normalize_numbers(text)
 
 
 def lowercase(text):
@@ -92,7 +92,17 @@ def english_cleaners(text):
     # text = convert_to_ascii(text)
     text = lowercase(text)
     text = expand_time_english(text)
-    text = expand_numbers(text)
+    text = en_normalize_numbers(text)
+    text = expand_abbreviations(text)
+    text = replace_symbols(text)
+    text = remove_aux_symbols(text)
+    text = collapse_whitespace(text)
+    return text
+
+
+def phoneme_cleaners(text):
+    """Pipeline for phonemes mode, including number and abbreviation expansion."""
+    text = en_normalize_numbers(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
     text = remove_aux_symbols(text)
@@ -123,17 +133,6 @@ def portuguese_cleaners(text):
 def chinese_mandarin_cleaners(text: str) -> str:
     """Basic pipeline for chinese"""
     text = replace_numbers_to_characters_in_text(text)
-    return text
-
-
-def phoneme_cleaners(text):
-    """Pipeline for phonemes mode, including number and abbreviation expansion."""
-    text = expand_numbers(text)
-    # text = convert_to_ascii(text)
-    text = expand_abbreviations(text)
-    text = replace_symbols(text)
-    text = remove_aux_symbols(text)
-    text = collapse_whitespace(text)
     return text
 
 

@@ -67,7 +67,7 @@ def get_experiment_folder_path(root_path, model_name):
 def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
     fs = fsspec.get_mapper(experiment_path).fs
-    checkpoint_files = fs.glob(experiment_path + "/*.pth.tar")
+    checkpoint_files = fs.glob(experiment_path + "/*.pth")
     if not checkpoint_files:
         if fs.exists(experiment_path):
             fs.rm(experiment_path, recursive=True)
@@ -93,6 +93,33 @@ def find_module(module_path: str, module_name: str) -> object:
     module = importlib.import_module(module_path + "." + module_name)
     class_name = to_camel(module_name)
     return getattr(module, class_name)
+
+
+def import_class(module_path: str) -> object:
+    """Import a class from a module path.
+
+    Args:
+        module_path (str): The module path of the class.
+
+    Returns:
+        object: The imported class.
+    """
+    class_name = module_path.split(".")[-1]
+    module_path = ".".join(module_path.split(".")[:-1])
+    module = importlib.import_module(module_path)
+    return getattr(module, class_name)
+
+
+def get_import_path(obj: object) -> str:
+    """Get the import path of a class.
+
+    Args:
+        obj (object): The class object.
+
+    Returns:
+        str: The import path of the class.
+    """
+    return ".".join([type(obj).__module__, type(obj).__name__])
 
 
 def get_user_data_dir(appname):

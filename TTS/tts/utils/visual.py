@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from TTS.tts.utils.text import phoneme_to_sequence, sequence_to_phoneme
-
 matplotlib.use("Agg")
 
 
@@ -89,12 +87,46 @@ def plot_pitch(pitch, spectrogram, ap=None, fig_size=(30, 10), output_fig=False)
     return fig
 
 
+def plot_avg_pitch(pitch, chars, fig_size=(30, 10), output_fig=False):
+    """Plot pitch curves on top of the input characters.
+
+    Args:
+        pitch (np.array): Pitch values.
+        chars (str): Characters to place to the x-axis.
+
+    Shapes:
+        pitch: :math:`(T,)`
+    """
+    old_fig_size = plt.rcParams["figure.figsize"]
+    if fig_size is not None:
+        plt.rcParams["figure.figsize"] = fig_size
+
+    fig, ax = plt.subplots()
+
+    x = np.array(range(len(chars)))
+    my_xticks = chars
+    plt.xticks(x, my_xticks)
+
+    ax.set_xlabel("characters")
+    ax.set_ylabel("freq")
+
+    ax2 = ax.twinx()
+    ax2.plot(pitch, linewidth=5.0, color="red")
+    ax2.set_ylabel("F0")
+
+    plt.rcParams["figure.figsize"] = old_fig_size
+    if not output_fig:
+        plt.close()
+    return fig
+
+
 def visualize(
     alignment,
     postnet_output,
     text,
     hop_length,
     CONFIG,
+    tokenizer,
     stop_tokens=None,
     decoder_output=None,
     output_path=None,
@@ -117,14 +149,8 @@ def visualize(
     plt.ylabel("Encoder timestamp", fontsize=label_fontsize)
     # compute phoneme representation and back
     if CONFIG.use_phonemes:
-        seq = phoneme_to_sequence(
-            text,
-            [CONFIG.text_cleaner],
-            CONFIG.phoneme_language,
-            CONFIG.enable_eos_bos_chars,
-            tp=CONFIG.characters if "characters" in CONFIG.keys() else None,
-        )
-        text = sequence_to_phoneme(seq, tp=CONFIG.characters if "characters" in CONFIG.keys() else None)
+        seq = tokenizer.text_to_ids(text)
+        text = tokenizer.ids_to_text(seq)
         print(text)
     plt.yticks(range(len(text)), list(text))
     plt.colorbar()

@@ -26,6 +26,15 @@ test_aux:	## run aux tests.
 test_zoo:	## run zoo tests.
 	nosetests tests.zoo_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.zoo_tests --nologcapture --with-id
 
+inference_tests: ## run inference tests.
+	nosetests tests.inference_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.inference_tests --nologcapture --with-id
+
+data_tests: ## run data tests.
+	nosetests tests.data_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.data_tests --nologcapture --with-id
+
+test_text: ## run text tests.
+	nosetests tests.text_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.text_tests --nologcapture --with-id
+
 test_failed:  ## only run tests failed the last time.
 	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --failed
 
@@ -35,13 +44,14 @@ style:	## update code style.
 
 lint:	## run pylint linter.
 	pylint ${target_dirs}
+	black ${target_dirs} --check
+	isort ${target_dirs} --check-only
 
 system-deps:	## install linux system deps
 	sudo apt-get install -y libsndfile1-dev
 
 dev-deps:  ## install development deps
 	pip install -r requirements.dev.txt
-	pip install -r requirements.tf.txt
 
 doc-deps:  ## install docs dependencies
 	pip install -r docs/requirements.txt

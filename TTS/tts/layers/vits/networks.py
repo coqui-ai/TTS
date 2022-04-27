@@ -57,7 +57,7 @@ class TextEncoder(nn.Module):
 
         self.emb = nn.Embedding(n_vocab, hidden_channels)
 
-        nn.init.normal_(self.emb.weight, 0.0, hidden_channels ** -0.5)
+        nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
 
         if language_emb_dim:
             hidden_channels += language_emb_dim
@@ -83,6 +83,7 @@ class TextEncoder(nn.Module):
             - x: :math:`[B, T]`
             - x_length: :math:`[B]`
         """
+        assert x.shape[0] == x_lengths.shape[0]
         x = self.emb(x) * math.sqrt(self.hidden_channels)  # [b, t, h]
 
         # concat the lang emb in embedding chars
@@ -90,7 +91,7 @@ class TextEncoder(nn.Module):
             x = torch.cat((x, lang_emb.transpose(2, 1).expand(x.size(0), x.size(1), -1)), dim=-1)
 
         x = torch.transpose(x, 1, -1)  # [b, h, t]
-        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
+        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)  # [b, 1, t]
 
         x = self.encoder(x * x_mask, x_mask)
         stats = self.proj(x) * x_mask
@@ -136,6 +137,9 @@ class ResidualCouplingBlock(nn.Module):
 
     def forward(self, x, x_mask, g=None, reverse=False):
         """
+        Note:
+            Set `reverse` to True for inference.
+
         Shapes:
             - x: :math:`[B, C, T]`
             - x_mask: :math:`[B, 1, T]`
@@ -209,6 +213,9 @@ class ResidualCouplingBlocks(nn.Module):
 
     def forward(self, x, x_mask, g=None, reverse=False):
         """
+        Note:
+            Set `reverse` to True for inference.
+
         Shapes:
             - x: :math:`[B, C, T]`
             - x_mask: :math:`[B, 1, T]`
