@@ -89,6 +89,7 @@ class GAN(BaseVocoder):
         if optimizer_idx not in [0, 1]:
             raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
+        
         if optimizer_idx == 0:
             # DISCRIMINATOR optimization
 
