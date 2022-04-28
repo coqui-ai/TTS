@@ -65,6 +65,8 @@ class CapacitronVAEConfig(Coqpit):
         capacitron_VAE_loss_alpha (float):
             Weight for the VAE loss of the Tacotron model. If set less than or equal to zero, it disables the
             corresponding loss function. Defaults to 0.25
+        capacitron_grad_clip (float):
+            Gradient clipping value for all gradients except beta. Defaults to 5.0
     """
 
     capacitron_loss_alpha: int = 1
@@ -74,6 +76,7 @@ class CapacitronVAEConfig(Coqpit):
     capacitron_text_summary_embedding_dim: int = 128
     capacitron_use_speaker_embedding: bool = False
     capacitron_VAE_loss_alpha: float = 0.25
+    capacitron_grad_clip: float = 5.0
 
     def check_values(
         self,
@@ -86,6 +89,7 @@ class CapacitronVAEConfig(Coqpit):
         check_argument("capacitron_use_speaker_embedding", c, restricted=False)
         check_argument("capacitron_text_summary_embedding_dim", c, restricted=False, min_val=16, max_val=512)
         check_argument("capacitron_VAE_loss_alpha", c, restricted=False)
+        check_argument("capacitron_grad_clip", c, restricted=False)
 
 
 @dataclass

@@ -12,7 +12,7 @@ from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 
-data_path = "/srv/data/"
+data_path = "/srv/data/blizzard2013/segmented"
 
 # Using LJSpeech like dataset processing for the blizzard dataset
 dataset_config = BaseDatasetConfig(
@@ -28,7 +28,7 @@ audio_config = BaseAudioConfig(
     signal_norm=True,
     mel_fmin=80.0,
     mel_fmax=12000,
-    spec_gain=20.0,
+    spec_gain=25.0,
     log_func="np.log10",
     ref_level_db=20,
     preemphasis=0.0,
@@ -43,9 +43,9 @@ config = Tacotron2Config(
     audio=audio_config,
     capacitron_vae=capacitron_config,
     use_capacitron_vae=True,
-    batch_size=128,  # Tune this to your gpu
+    batch_size=246,  # Tune this to your gpu
     max_audio_len=6 * 24000,  # Tune this to your gpu
-    min_audio_len=0.5 * 24000,
+    min_audio_len=1 * 24000,
     eval_batch_size=16,
     num_loader_workers=12,
     num_eval_loader_workers=8,
@@ -57,6 +57,7 @@ config = Tacotron2Config(
     optimizer="CapacitronOptimizer",
     optimizer_params={"RAdam": {"betas": [0.9, 0.998], "weight_decay": 1e-6}, "SGD": {"lr": 1e-5, "momentum": 0.9}},
     attention_type="dynamic_convolution",
+    grad_clip=0.0, # Important! We overwrite the standard grad_clip with capacitron_grad_clip
     double_decoder_consistency=False,
     epochs=1000,
     text_cleaner="phoneme_cleaners",
@@ -82,6 +83,9 @@ config = Tacotron2Config(
         ]
     },
     scheduler_after_epoch=False,  # scheduler doesn't work without this flag
+    # dashboard_logger='wandb',
+    # sort_by_audio_len=True,
+    seq_len_norm=True,
     # Need to experiment with these below for capacitron
     loss_masking=False,
     decoder_loss_alpha=1.0,
