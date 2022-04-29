@@ -281,6 +281,7 @@ class TacotronLoss(torch.nn.Module):
     def __init__(self, c, ga_sigma=0.4):
         super().__init__()
         self.stopnet_pos_weight = c.stopnet_pos_weight
+        self.mask_stop_loss = c.mask_stop_loss
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -288,6 +289,7 @@ class TacotronLoss(torch.nn.Module):
         self.postnet_alpha = c.postnet_loss_alpha
         self.decoder_ssim_alpha = c.decoder_ssim_alpha
         self.postnet_ssim_alpha = c.postnet_ssim_alpha
+        self.stopnet_alpha = c.stopnet_alpha
         self.config = c
 
         # postnet and decoder loss
@@ -348,12 +350,12 @@ class TacotronLoss(torch.nn.Module):
         return_dict["decoder_loss"] = decoder_loss
         return_dict["postnet_loss"] = postnet_loss
 
-        stop_loss = (
-            self.criterion_st(stopnet_output, stopnet_target, stop_target_length)
-            if self.config.stopnet
-            else torch.zeros(1)
-        )
-        loss += stop_loss
+        if self.config.stopnet:
+            length = stop_target_length if self.mask_stop_loss else None
+            stop_loss = self.criterion_st(stopnet_output, stopnet_target, length)
+            loss += self.stopnet_alpha * stop_loss
+        else:
+            stop_loss = torch.zeros(1)
         return_dict["stopnet_loss"] = stop_loss
 
         # backward decoder loss (if enabled)

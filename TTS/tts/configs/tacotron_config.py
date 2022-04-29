@@ -123,7 +123,6 @@ class TacotronConfig(BaseTTSConfig):
             Weight for the postnet differential loss of the Tacotron model. If set less than or equal to zero, it disables the
             corresponding loss function. Defaults to 0.25
         decoder_diff_spec_alpha (float):
-
             Weight for the decoder differential loss of the Tacotron model. If set less than or equal to zero, it disables the
             corresponding loss function. Defaults to 0.25
         decoder_ssim_alpha (float):
@@ -135,6 +134,8 @@ class TacotronConfig(BaseTTSConfig):
         ga_alpha (float):
             Weight for the guided attention loss. If set less than or equal to zero, it disables the corresponding loss
             function. Defaults to 5.
+        stopnet_alpha (float):
+            Weight for the guided attention loss. Defaults to 100.0
     """
 
     model: str = "tacotron"
@@ -155,6 +156,7 @@ class TacotronConfig(BaseTTSConfig):
     stopnet: bool = True
     separate_stopnet: bool = True
     stopnet_pos_weight: float = 10.0
+    mask_stop_loss: bool = False
     max_decoder_steps: int = 500
     encoder_in_features: int = 256
     decoder_in_features: int = 256
@@ -203,6 +205,7 @@ class TacotronConfig(BaseTTSConfig):
     decoder_ssim_alpha: float = 0.25
     postnet_ssim_alpha: float = 0.25
     ga_alpha: float = 5.0
+    stopnet_alpha: float = 100.0
 
     # testing
     test_sentences: List[str] = field(
