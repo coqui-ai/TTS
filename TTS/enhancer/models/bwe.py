@@ -1,6 +1,7 @@
 from turtle import forward
 from coqpit import Coqpit
 from matplotlib.cbook import flatten
+import torchaudio
 from torch import nn
 from TTS.utils.audio import TorchSTFT
 import numpy as np
@@ -98,6 +99,14 @@ class BWE(BaseTrainerModel):
         self.scale_factor = (self.target_sr / self.input_sr, )
         self.train_disc = False
 
+        self.resample_up = torchaudio.transforms.Resample(
+                self.input_sr,
+                self.target_sr,
+                lowpass_filter_width=64,
+                rolloff=0.9475937167399596,
+                resampling_method="kaiser_window",
+                beta=14.769656459379492,
+            )
         self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
         self.generator = WNBlocks(
             in_channels=1,
@@ -119,14 +128,9 @@ class BWE(BaseTrainerModel):
         ap = AudioProcessor.init_from_config(config)
         return BWE(config, ap)
 
-    def upsample(self, x):
-        device = next(self.parameters()).device
-        x = x[:,0,:].cpu().detach().numpy()
-        x = resample(x, self.input_sr, self.target_sr, res_type="kaiser_best")
-        return torch.tensor(x, device=device, requires_grad=True).unsqueeze(1)
-
     def gen_forward(self, x):
-        x = self.upsample(x)
+        with torch.no_grad():
+            x = self.resample_up(x)
         x = self.generator(x)
         x = self.postconv(x)
         return {
@@ -142,10 +146,9 @@ class BWE(BaseTrainerModel):
     def forward(self, x):
         return self.gen_forward(x)
 
+    @torch.no_grad()
     def inference(self, x):
-        x = x.unsqueeze(1)
-        x = self.gen_forward(x)
-        return x
+        return self.gen_forward(x.unsqueeze(1))
 
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         outputs = {}
@@ -157,11 +160,11 @@ class BWE(BaseTrainerModel):
         if optimizer_idx not in [0, 1]:
             raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
+        scores_fake, feats_fake, feats_real = None, None, None
         if optimizer_idx == 0:
             y_hat = self.gen_forward(x)["y_hat"]
 
             self.y_hat_g = y_hat
-            scores_fake, feats_fake, feats_real = None, None, None
 
             if self.train_disc:
                 y_d = y.clone()
