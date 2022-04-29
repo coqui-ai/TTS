@@ -31,7 +31,7 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
             enable / disable in memory caching of the computed features. It can cause OOM error if the system RAM is
             not large enough. Defaults to True.
         steps_to_start_discriminator (int):
-            Number of steps required to start training the discriminator. Defaults to 0.
+            Number of steps required to start training the discriminator. Defaults to 100k.
         use_stft_loss (bool):`
             enable / disable use of STFT loss originally used by ParallelWaveGAN model. Defaults to True.
         use_subband_stft (bool):
@@ -48,31 +48,31 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
         stft_loss_params (dict): STFT loss parameters. Default to
             `{"n_ffts": [1024, 2048, 512], "hop_lengths": [120, 240, 50], "win_lengths": [600, 1200, 240]}`
         stft_loss_weight (float): STFT loss weight that multiplies the computed loss before summing up the total
-            model loss. Defaults to 0.5.
+            model loss. Defaults to 1.0.
         subband_stft_loss_weight (float):
             Subband STFT loss weight that multiplies the computed loss before summing up the total loss. Defaults to 0.
         mse_G_loss_weight (float):
-            MSE generator loss weight that multiplies the computed loss before summing up the total loss. faults to 2.5.
+            MSE generator loss weight that multiplies the computed loss before summing up the total loss. Defaults to 4.0.
         hinge_G_loss_weight (float):
             Hinge generator loss weight that multiplies the computed loss before summing up the total loss. Defaults to 0.
         feat_match_loss_weight (float):
-            Feature matching loss weight that multiplies the computed loss before summing up the total loss. faults to 0.
+            Feature matching loss weight that multiplies the computed loss before summing up the total loss. Defaults to 0.
         l1_spec_loss_weight (float):
             L1 spectrogram loss weight that multiplies the computed loss before summing up the total loss. Defaults to 0.
         lr_gen (float):
-            Generator model initial learning rate. Defaults to 0.0002.
+            Generator model initial learning rate. Defaults to 0.0001.
         lr_disc (float):
-            Discriminator model initial learning rate. Defaults to 0.0002.
+            Discriminator model initial learning rate. Defaults to 0.00005.
         optimizer (torch.optim.Optimizer):
             Optimizer used for the training. Defaults to `AdamW`.
         optimizer_params (dict):
             Optimizer kwargs. Defaults to `{"betas": [0.8, 0.99], "weight_decay": 0.0}`
         lr_scheduler_gen (torch.optim.Scheduler):
-            Learning rate scheduler for the generator. Defaults to `ExponentialLR`.
+            Learning rate scheduler for the generator. Defaults to `StepLR`.
         lr_scheduler_gen_params (dict):
             Parameters for the generator learning rate scheduler. Defaults to `{"gamma": 0.5, "step_size": 200000, "last_epoch": -1}`.
         lr_scheduler_disc (torch.optim.Scheduler):
-            Learning rate scheduler for the discriminator. Defaults to `ExponentialLR`.
+            Learning rate scheduler for the discriminator. Defaults to `StepLR`.
         lr_scheduler_dict_params (dict):
             Parameters for the discriminator learning rate scheduler. Defaults to `{"gamma": 0.5, "step_size": 200000, "last_epoch": -1}`.
     """
@@ -88,12 +88,13 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
     )
 
     # Training - overrides
-    batch_size: int = 6
+    # If you increase batch_size, please decrease steps_to_start_discriminator and increase lr_scheduler accordingly
+    batch_size: int = 8
     seq_len: int = 25600
     pad_short: int = 2000
     use_noise_augment: bool = False
     use_cache: bool = True
-    steps_to_start_discriminator: int = 200000
+    steps_to_start_discriminator: int = 100000
 
     # LOSS PARAMETERS - overrides
     use_stft_loss: bool = True
@@ -112,22 +113,27 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
     )
 
     # loss weights - overrides
-    stft_loss_weight: float = 0.5
+    stft_loss_weight: float = 1.0
     subband_stft_loss_weight: float = 0
-    mse_G_loss_weight: float = 2.5
+    mse_G_loss_weight: float = 4.0
     hinge_G_loss_weight: float = 0
     feat_match_loss_weight: float = 0
     l1_spec_loss_weight: float = 0
 
     # optimizer overrides
-    lr_gen: float = 0.0002  # Initial learning rate.
-    lr_disc: float = 0.0002  # Initial learning rate.
+    lr_gen: float = 0.0001  # Initial learning rate.
+    lr_disc: float = 0.00005  # Initial learning rate.
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "weight_decay": 0.0})
-    lr_scheduler_gen: str = "StepLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
+    # Original paper seems to be StepLR but you can also use ExponentialLR
+    lr_scheduler_gen: str = "StepLR"
     lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1})
-    lr_scheduler_disc: str = "StepLR"  # one of the schedulers from https:#pytorch.org/docs/stable/optim.html
-    lr_scheduler_disc_params: dict = field(
-        default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1}
-    )
-    scheduler_after_epoch: bool = False
+    lr_scheduler_disc: str = "StepLR"
+    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.5, "step_size": 200000, "last_epoch": -1})
+
+    # lr_scheduler_gen: str = "ExponentialLR"  # one of the schedulers from https://pytorch.org/docs/stable/optim.html
+    # lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.5**(1/200000), "last_epoch": -1})
+    # lr_scheduler_disc: str = "ExponentialLR"  # one of the schedulers from https://pytorch.org/docs/stable/optim.html
+    # lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.5**(1/200000), "last_epoch": -1})
+
+    scheduler_after_epoch = False
