@@ -247,13 +247,13 @@ class BWE(BaseTrainerModel):
 
     def get_optimizer(self) -> List:
         disc_params = list(self.waveform_disc.parameters()) + list(self.spectral_disc.parameters())
-        optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=disc_params)
+        optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, parameters=disc_params)
         gen_params = list(self.generator.parameters()) + list(self.postconv.parameters())
-        optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=gen_params)
+        optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_params)
         return [optimizer_disc, optimizer_gen]
 
     def get_lr(self) -> List:
-        return [self.config.lr, self.config.lr]
+        return [self.config.lr_disc, self.config.lr_gen]
 
     def get_scheduler(self, optimizer) -> List:
         disc_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)

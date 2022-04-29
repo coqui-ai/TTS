@@ -28,7 +28,8 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     optimizer_params: dict = field(default_factory=lambda: {})
     target_loss: str = "loss_0"
     # scheduler
-    lr: float = 0.0001
+    lr_disc: float = 0.001
+    lr_gen: float =  0.00001
     lr_scheduler: str = None
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # gan
