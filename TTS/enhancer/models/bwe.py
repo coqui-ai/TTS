@@ -159,23 +159,27 @@ class BWE(BaseTrainerModel):
 
         if optimizer_idx == 0:
             y_hat = self.gen_forward(x)["y_hat"]
+
             self.y_hat_g = y_hat
             scores_fake, feats_fake, feats_real = None, None, None
+
             if self.train_disc:
-                scores_fake, feats_fake = self.disc_forward(y_hat)
-                with torch.no_grad():
-                    _, feats_real = self.disc_forward(y)
-            loss_dict = criterion[optimizer_idx](y_hat, y, lens, scores_fake, feats_fake, feats_real)
-            outputs = {"y_hat": y_hat}
+                y_d = y.clone()
+
+                scores_fake, feats_fake = self.disc_forward(y_hat.detach())
+                scores_real, feats_real = self.disc_forward(y_d)
+
+                loss_dict = criterion[optimizer_idx](scores_fake, scores_real)
+                outputs = {"model_outputs": y_hat}
 
         if optimizer_idx == 1:
             if self.train_disc:
-                y_d = y.clone()
-                y_hat = self.y_hat_g
-                scores_fake, feats_fake = self.disc_forward(y_hat.detach())
-                scores_real, feats_real = self.disc_forward(y_d)
-                loss_dict = criterion[optimizer_idx](scores_fake, scores_real)
-                outputs = {"model_outputs": y_hat}
+                scores_fake, feats_fake = self.disc_forward(self.y_hat_g)
+                with torch.no_grad():
+                    _, feats_real = self.disc_forward(y)
+
+            loss_dict = criterion[optimizer_idx](self.y_hat_g, y, lens, scores_fake, feats_fake, feats_real)
+            outputs = {"model_outputs": self.y_hat_g}
 
         return outputs, loss_dict
 
@@ -242,23 +246,23 @@ class BWE(BaseTrainerModel):
             assert not self.training
 
     def get_optimizer(self) -> List:
+        disc_params = list(self.waveform_disc.parameters()) + list(self.spectral_disc.parameters())
+        optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=disc_params)
         gen_params = list(self.generator.parameters()) + list(self.postconv.parameters())
         optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=gen_params)
-        disc_params = list(self.hifigan_disc.parameters())
-        optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, parameters=disc_params)
-        return [optimizer_gen, optimizer_disc]
+        return [optimizer_disc, optimizer_gen]
 
     def get_lr(self) -> List:
         return [self.config.lr, self.config.lr]
 
     def get_scheduler(self, optimizer) -> List:
-        gen_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
         disc_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
-        return [gen_scheduler, disc_scheduler]
+        gen_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+        return [disc_scheduler, gen_scheduler]
 
     def get_criterion(self):
         #device = next(self.parameters()).device
-        return [BWEGeneratorLoss("cuda:0"), BWEDiscriminatorLoss()]
+        return [BWEDiscriminatorLoss(), BWEGeneratorLoss("cuda:0")]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None
