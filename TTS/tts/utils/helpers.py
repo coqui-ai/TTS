@@ -180,10 +180,10 @@ def maximum_path(value, mask):
 def maximum_path_cython(value, mask):
     """Cython optimised version.
     Shapes:
-        - value: :math:`[B, T_en, T_de]`
-        - mask: :math:`[B, T_en, T_de]`
+        - value: :math:`[B, T_de, T_en]`
+        - mask: :math:`[B, T_de, T_en]`
     """
-    value = value * mask
+    # value = value * mask
     device = value.device
     dtype = value.dtype
     value = value.data.cpu().numpy().astype(np.float32)

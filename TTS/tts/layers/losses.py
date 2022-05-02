@@ -570,8 +570,8 @@ class VitsGeneratorLoss(nn.Module):
     @staticmethod
     def kl_loss(z_p, logs_q, m_p, logs_p, z_mask):
         """
-        z_p, logs_q: [b, h, t_t]
-        m_p, logs_p: [b, h, t_t]
+        z_p, logs_q: [B, C, T_de]
+        m_p, logs_p: [B, C, T_de]
         """
         z_p = z_p.float()
         logs_q = logs_q.float()
