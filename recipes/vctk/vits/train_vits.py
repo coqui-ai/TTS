@@ -17,12 +17,7 @@ dataset_config = BaseDatasetConfig(
 
 
 audio_config = VitsAudioConfig(
-    sample_rate=22050,
-    win_length=1024,
-    hop_length=256,
-    num_mels=80,
-    mel_fmin=0,
-    mel_fmax=None
+    sample_rate=22050, win_length=1024, hop_length=256, num_mels=80, mel_fmin=0, mel_fmax=None
 )
 
 vitsArgs = VitsArgs(
@@ -52,7 +47,7 @@ config = VitsConfig(
     max_text_len=325,  # change this if you have a larger VRAM than 16GB
     output_path=output_path,
     datasets=[dataset_config],
-    cudnn_benchmark=False
+    cudnn_benchmark=False,
 )
 
 # INITIALIZE THE AUDIO PROCESSOR

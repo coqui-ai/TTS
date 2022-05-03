@@ -204,6 +204,7 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
 # CONFIGS
 #############################
 
+
 class VitsAudioConfig(Coqpit):
     sample_rate: int = 22050
     win_length: int = 1024
@@ -211,6 +212,7 @@ class VitsAudioConfig(Coqpit):
     num_mels: int = 80
     mel_fmin: int = 0
     mel_fmax: int = None
+
 
 ##############################
 # DATASET
