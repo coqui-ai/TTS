@@ -204,7 +204,7 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
 # CONFIGS
 #############################
 
-
+@dataclass
 class VitsAudioConfig(Coqpit):
     sample_rate: int = 22050
     win_length: int = 1024
