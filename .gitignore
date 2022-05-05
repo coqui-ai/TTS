@@ -115,6 +115,7 @@ venv.bak/
 *.swo
 
 # pytorch models
+*.pth
 *.pth.tar
 result/
 

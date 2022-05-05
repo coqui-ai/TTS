@@ -189,6 +189,12 @@ class SoftmaxLoss(nn.Module):
 
         return L
 
+    def inference(self, embedding):
+        x = self.fc(embedding)
+        activations = torch.nn.functional.softmax(x, dim=1).squeeze(0)
+        class_id = torch.argmax(activations)
+        return class_id
+
 
 class SoftmaxAngleProtoLoss(nn.Module):
     """

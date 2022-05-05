@@ -1,4 +1,4 @@
-name: tts-tests
+name: text-tests
 
 on:
   push:

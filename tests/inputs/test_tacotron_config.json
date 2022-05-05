@@ -61,8 +61,8 @@
     "reinit_layers": [],    // give a list of layer names to restore from the given checkpoint. If not defined, it reloads all heuristically matching layers.
 
     // TRAINING
-    "batch_size": 1,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
-    "eval_batch_size":1,
+    "batch_size": 8,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "eval_batch_size": 8,
     "r": 7,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
     "gradual_training": [[0, 7, 4], [1, 5, 2]], //set gradual training steps [first_step, r, batch_size]. If it is null, gradual training is disabled. For Tacotron, you might need to reduce the 'batch_size' as you proceeed.
     "loss_masking": true,         // enable / disable loss masking against the sequence padding.

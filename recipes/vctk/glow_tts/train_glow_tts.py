@@ -69,12 +69,17 @@ tokenizer, config = TTSTokenizer.init_from_config(config)
 # You can define your custom sample loader returning the list of samples.
 # Or define your custom formatter and pass it to the `load_tts_samples`.
 # Check `TTS.tts.datasets.load_tts_samples` for more details.
-train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
+train_samples, eval_samples = load_tts_samples(
+    dataset_config,
+    eval_split=True,
+    eval_split_max_size=config.eval_split_max_size,
+    eval_split_size=config.eval_split_size,
+)
 
 # init speaker manager for multi-speaker training
 # it maps speaker-id to speaker-name in the model and data-loader
 speaker_manager = SpeakerManager()
-speaker_manager.set_speaker_ids_from_data(train_samples + eval_samples)
+speaker_manager.set_ids_from_data(train_samples + eval_samples, parse_key="speaker_name")
 config.num_speakers = speaker_manager.num_speakers
 
 # init model

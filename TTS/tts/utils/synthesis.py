@@ -205,3 +205,84 @@ def synthesis(
         "outputs": outputs,
     }
     return return_dict
+
+
+def transfer_voice(
+    model,
+    CONFIG,
+    use_cuda,
+    reference_wav,
+    speaker_id=None,
+    d_vector=None,
+    reference_speaker_id=None,
+    reference_d_vector=None,
+    do_trim_silence=False,
+    use_griffin_lim=False,
+):
+    """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
+    the vocoder model.
+
+    Args:
+        model (TTS.tts.models):
+            The TTS model to synthesize audio with.
+
+        CONFIG (Coqpit):
+            Model configuration.
+
+        use_cuda (bool):
+            Enable/disable CUDA.
+
+        reference_wav (str):
+            Path of reference_wav to be used to voice conversion.
+
+        speaker_id (int):
+            Speaker ID passed to the speaker embedding layer in multi-speaker model. Defaults to None.
+
+        d_vector (torch.Tensor):
+            d-vector for multi-speaker models in share :math:`[1, D]`. Defaults to None.
+
+        reference_speaker_id (int):
+            Reference Speaker ID passed to the speaker embedding layer in multi-speaker model. Defaults to None.
+
+        reference_d_vector (torch.Tensor):
+            Reference d-vector for multi-speaker models in share :math:`[1, D]`. Defaults to None.
+
+        enable_eos_bos_chars (bool):
+            enable special chars for end of sentence and start of sentence. Defaults to False.
+
+        do_trim_silence (bool):
+            trim silence after synthesis. Defaults to False.
+    """
+    # pass tensors to backend
+    if speaker_id is not None:
+        speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
+
+    if d_vector is not None:
+        d_vector = embedding_to_torch(d_vector, cuda=use_cuda)
+
+    if reference_d_vector is not None:
+        reference_d_vector = embedding_to_torch(reference_d_vector, cuda=use_cuda)
+
+    # load reference_wav audio
+    reference_wav = embedding_to_torch(model.ap.load_wav(reference_wav, sr=model.ap.sample_rate), cuda=use_cuda)
+
+    if hasattr(model, "module"):
+        _func = model.module.inference_voice_conversion
+    else:
+        _func = model.inference_voice_conversion
+    model_outputs = _func(reference_wav, speaker_id, d_vector, reference_speaker_id, reference_d_vector)
+
+    # convert outputs to numpy
+    # plot results
+    wav = None
+    model_outputs = model_outputs.squeeze()
+    if model_outputs.ndim == 2:  # [T, C_spec]
+        if use_griffin_lim:
+            wav = inv_spectrogram(model_outputs, model.ap, CONFIG)
+            # trim silence
+            if do_trim_silence:
+                wav = trim_silence(wav, model.ap)
+    else:  # [T,]
+        wav = model_outputs
+
+    return wav

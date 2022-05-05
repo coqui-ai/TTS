@@ -24,8 +24,8 @@ matplotlib
 tensorboardX
 pyworld
 # coqui stack
-coqui-trainer
-coqpit                                          # config managemenr
+trainer
+coqpit # config management
 # chinese g2p deps
 jieba
 pypinyin
@@ -33,6 +33,4 @@ pypinyin
 mecab-python3==1.0.3
 unidic-lite==1.0.8
 # gruut+supported langs
-gruut[cs,de,es,fr,it,nl,pt,ru,sv]~=2.0.0
-# others
-webrtcvad # for VAD
+gruut[cs,de,es,fr,it,nl,pt,ru,sv]==2.2.3

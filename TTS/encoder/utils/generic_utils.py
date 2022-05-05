@@ -3,58 +3,13 @@ import glob
 import os
 import random
 import re
-from multiprocessing import Manager
 
 import numpy as np
 from scipy import signal
 
-from TTS.speaker_encoder.models.lstm import LSTMSpeakerEncoder
-from TTS.speaker_encoder.models.resnet import ResNetSpeakerEncoder
+from TTS.encoder.models.lstm import LSTMSpeakerEncoder
+from TTS.encoder.models.resnet import ResNetSpeakerEncoder
 from TTS.utils.io import save_fsspec
-
-
-class Storage(object):
-    def __init__(self, maxsize, storage_batchs, num_speakers_in_batch, num_threads=8):
-        # use multiprocessing for threading safe
-        self.storage = Manager().list()
-        self.maxsize = maxsize
-        self.num_speakers_in_batch = num_speakers_in_batch
-        self.num_threads = num_threads
-        self.ignore_last_batch = False
-
-        if storage_batchs >= 3:
-            self.ignore_last_batch = True
-
-        # used for fast random sample
-        self.safe_storage_size = self.maxsize - self.num_threads
-        if self.ignore_last_batch:
-            self.safe_storage_size -= self.num_speakers_in_batch
-
-    def __len__(self):
-        return len(self.storage)
-
-    def full(self):
-        return len(self.storage) >= self.maxsize
-
-    def append(self, item):
-        # if storage is full, remove an item
-        if self.full():
-            self.storage.pop(0)
-
-        self.storage.append(item)
-
-    def get_random_sample(self):
-        # safe storage size considering all threads remove one item from storage in same time
-        storage_size = len(self.storage) - self.num_threads
-
-        if self.ignore_last_batch:
-            storage_size -= self.num_speakers_in_batch
-
-        return self.storage[random.randint(0, storage_size)]
-
-    def get_random_sample_fast(self):
-        """Call this method only when storage is full"""
-        return self.storage[random.randint(0, self.safe_storage_size)]
 
 
 class AugmentWAV(object):
@@ -170,7 +125,7 @@ def to_camel(text):
     return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
 
 
-def setup_speaker_encoder_model(config: "Coqpit"):
+def setup_encoder_model(config: "Coqpit"):
     if config.model_params["model_name"].lower() == "lstm":
         model = LSTMSpeakerEncoder(
             config.model_params["input_dim"],
@@ -192,7 +147,7 @@ def setup_speaker_encoder_model(config: "Coqpit"):
 
 
 def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_step, epoch):
-    checkpoint_path = "checkpoint_{}.pth.tar".format(current_step)
+    checkpoint_path = "checkpoint_{}.pth".format(current_step)
     checkpoint_path = os.path.join(out_path, checkpoint_path)
     print(" | | > Checkpoint saving : {}".format(checkpoint_path))
 
@@ -209,7 +164,7 @@ def save_checkpoint(model, optimizer, criterion, model_loss, out_path, current_s
     save_fsspec(state, checkpoint_path)
 
 
-def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path, current_step):
+def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path, current_step, epoch):
     if model_loss < best_loss:
         new_state_dict = model.state_dict()
         state = {
@@ -217,11 +172,12 @@ def save_best_model(model, optimizer, criterion, model_loss, best_loss, out_path
             "optimizer": optimizer.state_dict(),
             "criterion": criterion.state_dict(),
             "step": current_step,
+            "epoch": epoch,
             "loss": model_loss,
             "date": datetime.date.today().strftime("%B %d, %Y"),
         }
         best_loss = model_loss
-        bestmodel_path = "best_model.pth.tar"
+        bestmodel_path = "best_model.pth"
         bestmodel_path = os.path.join(out_path, bestmodel_path)
         print("\n > BEST MODEL ({0:.5f}) : {1:}".format(model_loss, bestmodel_path))
         save_fsspec(state, bestmodel_path)

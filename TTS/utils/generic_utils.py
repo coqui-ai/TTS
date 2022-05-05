@@ -67,7 +67,7 @@ def get_experiment_folder_path(root_path, model_name):
 def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
     fs = fsspec.get_mapper(experiment_path).fs
-    checkpoint_files = fs.glob(experiment_path + "/*.pth.tar")
+    checkpoint_files = fs.glob(experiment_path + "/*.pth")
     if not checkpoint_files:
         if fs.exists(experiment_path):
             fs.rm(experiment_path, recursive=True)
