@@ -1,5 +1,5 @@
 black
 coverage
 isort
-nose
+pytest
 pylint==2.10.2
