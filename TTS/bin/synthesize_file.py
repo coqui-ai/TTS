@@ -286,7 +286,7 @@ def main():
             uname = words[0]
             sent_beg = 1
         else:
-            uname = args.out_name+str(ix)
+            uname = "{}{:03d}".format(args.out_name, ix)
             sent_beg = 0
         # Prepare output path
         out_path = PurePath(args.out_dir, "{}.wav".format(uname))
@@ -296,7 +296,7 @@ def main():
 
         # Prepare text to synthesize
         text = " ".join(words[sent_beg:sent_end])
-        print(" > Text #{:02d}: {} --> {}".format(ix, text, out_path))
+        print(" > Text #{:03d}: {} --> {}".format(ix, text, out_path))
 
         # kick it
         wav = synthesizer.tts(text, args.speaker_idx, args.speaker_wav, args.gst_style)
