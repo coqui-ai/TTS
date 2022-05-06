@@ -54,7 +54,8 @@ config = Hifigan2Config(
     target_sr=16000,
     input_sr=16000,
     segment_train=True,
-    segment_len=1.25,
+    segment_len=2.5,
+    cudnn_benchmark=False,
     epochs=25,
     print_step=25,
     save_step=10000,
@@ -66,8 +67,22 @@ config = Hifigan2Config(
         "p": 1,
         "additive": {
             "sounds_path": "/media/julian/Workdisk/datasets/DNS-Challenge/",
-            "noise": {"min_snr_in_db": 15, "max_snr_in_db": 25, "min_num_noises": 1, "max_num_noises": 1},
+            "noise": {"min_snr_in_db": 15, "max_snr_in_db": 35, "min_num_noises": 1, "max_num_noises": 1},
         },
+        "rir": { 
+            "rir_path": "/media/julian/Datasets/RIRS_NOISES",
+            "conv_mode": "full"
+        },
+        "EQ": {
+            "min_snr_in_db": -12,
+            "max_snr_in_db": 12,
+            "p": 0.7
+        },
+        "gaussian": {
+            "min_snr_in_db": 15,
+            "max_snr_in_db": 45,
+            "p": 0.5
+        }
     },
 )
 

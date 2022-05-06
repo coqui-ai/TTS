@@ -13,15 +13,15 @@ from TTS.vocoder.layers.losses import (
 
 
 class BWEGeneratorLoss(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, n_scale_STFTLoss=4, sr=48000, n_fft=2024, hop_length=512, n_mels=128):
         super().__init__()
         self.l1_masked = L1LossMasked(False)
         self.stft_loss = MultiScaleSTFTLoss(
-            n_ffts=tuple(512 * 2**i for i in range(4)),
-            hop_lengths=tuple(int(512 * 2**i / 4) for i in range(4)),
-            win_lengths=tuple(512 * 2**i for i in range(4)),
+            n_ffts=tuple(512 * 2**i for i in range(n_scale_STFTLoss)),
+            hop_lengths=tuple(int(512 * 2**i / 4) for i in range(n_scale_STFTLoss)),
+            win_lengths=tuple(512 * 2**i for i in range(n_scale_STFTLoss)),
         )
-        self.mel_loss = L1SpecLoss(48000, 2024, 512, 2024, mel_fmin=0, mel_fmax=24000, n_mels=128, use_mel=True)
+        self.mel_loss = L1SpecLoss(sr, n_fft, hop_length, n_fft, mel_fmin=0, mel_fmax=sr//2, n_mels=n_mels, use_mel=True)
         self.feat_match_loss = MelganFeatureLoss()
         self.mse_loss = MSEGLoss()
         self.pred_l1_loss = torch.nn.L1Loss()
@@ -43,7 +43,7 @@ class BWEGeneratorLoss(torch.nn.Module):
         if mfcc is not None and mfcc_hat is not None:
             return_dict["pred_l1_loss"] = self.pred_l1_loss(y_hat, y)
             return_dict["pred_l2_loss"] = self.pred_l2_loss(y_hat, y)
-            return_dict["loss"] += return_dict["pred_l1_loss"] + return_dict["pred_l2_loss"]
+            return_dict["loss"] += (return_dict["pred_l1_loss"] + return_dict["pred_l2_loss"]) * 1
 
         if scores_fake is not None and feats_fake is not None and feats_real is not None:
             # Feature matching loss

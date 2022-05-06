@@ -10,6 +10,7 @@ from scipy import signal
 from TTS.encoder.models.lstm import LSTMSpeakerEncoder
 from TTS.encoder.models.resnet import ResNetSpeakerEncoder
 from TTS.utils.io import save_fsspec
+from audiomentations import Compose, AddGaussianSNR, SevenBandParametricEQ
 
 
 class AugmentWAV(object):
@@ -55,6 +56,18 @@ class AugmentWAV(object):
                 self.use_rir = True
 
             print(f" | > Using RIR Noise Augmentation: with {len(self.rir_files)} audios instances")
+
+
+        self.additional_functions = []
+        if "EQ" in augmentation_config.keys():
+            self.additional_functions.append(SevenBandParametricEQ(min_gain_db=augmentation_config["EQ"]["min_snr_in_db"], max_gain_db=augmentation_config["EQ"]["max_snr_in_db"], p=augmentation_config["EQ"]["p"]))
+
+        if "gaussian" in augmentation_config.keys():
+            self.additional_functions.append(AddGaussianSNR(min_snr_in_db=augmentation_config["gaussian"]["min_snr_in_db"], max_snr_in_db=augmentation_config["gaussian"]["max_snr_in_db"], p=augmentation_config["gaussian"]["p"]))
+
+        if len(self.additional_functions) > 0:
+            print(f" | > Using {len(self.additional_functions)} Additional Augmentation")
+            self.additional_augment = Compose(self.additional_functions)
 
         self.create_augmentation_global_list()
 
@@ -113,6 +126,8 @@ class AugmentWAV(object):
         return signal.convolve(audio, rir, mode=self.rir_config["conv_mode"])[:audio_len]
 
     def apply_one(self, audio):
+        if len(self.additional_functions) > 0:
+            audio = self.additional_augment(samples=audio, sample_rate=self.ap.sample_rate)
         noise_type = random.choice(self.global_noise_list)
         if noise_type == "RIR_AUG":
             return self.reverberate(audio)

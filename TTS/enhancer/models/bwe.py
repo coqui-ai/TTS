@@ -132,7 +132,6 @@ class BWE(BaseTrainerModel):
 
             loss_dict = criterion[optimizer_idx](self.y_hat_g, y, lens, scores_fake, feats_fake, feats_real)
             outputs = {"model_outputs": self.y_hat_g}
-
         return outputs, loss_dict
 
     @torch.no_grad()
@@ -160,7 +159,6 @@ class BWE(BaseTrainerModel):
                 self.ap,
                 samples,
                 augmentation_config=config.audio_augmentation,
-                use_torch_spec=None,
                 verbose=True,
             )
 
@@ -212,8 +210,8 @@ class BWE(BaseTrainerModel):
         return [self.config.lr_disc, self.config.lr_gen]
 
     def get_scheduler(self, optimizer) -> List:
-        disc_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
-        gen_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+        disc_scheduler = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
+        gen_scheduler = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
         return [disc_scheduler, gen_scheduler]
 
     def get_criterion(self):

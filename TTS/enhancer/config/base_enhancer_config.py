@@ -24,13 +24,15 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     # model params
     audio_augmentation: Dict = field(default_factory=lambda: {})
     # optimizer
-    optimizer: str = "Adam"
-    optimizer_params: dict = field(default_factory=lambda: {})
+    optimizer: str = "AdamW"
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
     target_loss: str = "loss_0"
     # scheduler
     lr_disc: float = 0.001
-    lr_gen: float = 0.0001
-    lr_scheduler: str = None
-    lr_scheduler_params: dict = field(default_factory=lambda: {})
+    lr_gen: float = 0.001
+    lr_scheduler_gen: str = "ExponentialLR"
+    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
+    lr_scheduler_disc: str = "ExponentialLR"
+    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
     # gan
     steps_to_start_discriminator: int = 50000

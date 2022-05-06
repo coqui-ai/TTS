@@ -57,6 +57,7 @@ class HifiGAN2(BaseTrainerModel):
         self.wav2MFCC = torchaudio.transforms.MFCC(
             config.target_sr,
             n_mfcc=self.args.n_mfcc,
+            log_mels=True,
         )
         self.wav2mel = torchaudio.transforms.MelSpectrogram(
             config.target_sr,
@@ -81,7 +82,12 @@ class HifiGAN2(BaseTrainerModel):
             base_channels=16,
             max_channels=1024,
         )
-        self.spectral_disc = SpectralDiscriminator(sample_rate=self.target_sr, n_mels=self.args.n_mels)
+        self.spectral_disc = SpectralDiscriminator(
+            sample_rate=self.target_sr, 
+            n_mels=self.args.n_mels,
+            n_fft=512,
+            hop_length=160,
+        )
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
@@ -132,9 +138,9 @@ class HifiGAN2(BaseTrainerModel):
         scores_fake, feats_fake, feats_real = None, None, None
         if optimizer_idx == 0:
             self.pred_mfcc = self.predictor(input_mel)
-            outputs = self.gen_forward(x, self.pred_mfcc.detach() if self.detach_predictor_output else self.pred_mfcc)
+            output = self.gen_forward(x, self.pred_mfcc.detach() if self.detach_predictor_output else self.pred_mfcc)
 
-            self.y_hat_g = outputs["y_hat"]
+            self.y_hat_g = output["y_hat"]
 
             if self.train_disc:
                 y_d = y.clone()
@@ -143,6 +149,7 @@ class HifiGAN2(BaseTrainerModel):
                 scores_real, feats_real = self.disc_forward(y_d)
 
                 loss_dict = criterion[optimizer_idx](scores_fake, scores_real)
+                outputs = output
 
         if optimizer_idx == 1:
             if self.train_disc:
@@ -160,8 +167,7 @@ class HifiGAN2(BaseTrainerModel):
                 mfcc=target_mfcc,
                 mfcc_hat=self.pred_mfcc,
             )
-            outputs = None
-
+            outputs = {"y_hat": self.y_hat_g}
         return outputs, loss_dict
 
     @torch.no_grad()
@@ -242,12 +248,12 @@ class HifiGAN2(BaseTrainerModel):
         return [self.config.lr_disc, self.config.lr_gen]
 
     def get_scheduler(self, optimizer) -> List:
-        disc_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
-        gen_scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+        disc_scheduler = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
+        gen_scheduler = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
         return [disc_scheduler, gen_scheduler]
 
     def get_criterion(self):
-        return [BWEDiscriminatorLoss(), BWEGeneratorLoss()]
+        return [BWEDiscriminatorLoss(), BWEGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=512, hop_length=160)]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None
@@ -267,7 +273,6 @@ class HifiGAN2(BaseTrainerModel):
         logger.eval_audios(steps, audios, self.target_sr)
 
     def _log(self, name: str, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
-        print(outputs[0])
         y_hat = outputs[0]["y_hat"][0].detach().squeeze(0).cpu().numpy()
         mfcc_hat = outputs[0]["mfcc_hat"][0].detach().squeeze(0).cpu().numpy()
         y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
@@ -285,7 +290,7 @@ class HifiGAN2(BaseTrainerModel):
 
     @staticmethod
     def _plot_spec(x, sr):
-        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=80)
+        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=80, n_fft=512, hop_length=160)
         spec = librosa.power_to_db(spec, ref=np.max)
         fig = plt.figure(figsize=(16, 10))
         plt.imshow(spec, aspect="auto", origin="lower")

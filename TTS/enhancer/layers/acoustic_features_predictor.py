@@ -16,7 +16,7 @@ class ConvNormLayer(nn.Module):
         if self.activattion == "relu":
             x = F.relu(x)
         elif self.activattion == "tanh":
-            x = F.tanh(x)
+            x = torch.tanh(x)
         elif self.activattion == "none":
             pass
         else:
