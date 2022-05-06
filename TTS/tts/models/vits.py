@@ -204,6 +204,7 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
 # CONFIGS
 #############################
 
+
 @dataclass
 class VitsAudioConfig(Coqpit):
     fft_size: int = 1024
