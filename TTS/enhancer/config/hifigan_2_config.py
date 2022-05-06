@@ -3,7 +3,6 @@ from typing import Dict, List
 
 from coqpit import MISSING
 from torch import detach
-from TTS.enhancer.models.bwe import BWEArgs
 
 from TTS.enhancer.config.base_enhancer_config import BaseEnhancerConfig
 

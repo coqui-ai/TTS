@@ -1,15 +1,25 @@
 import torch
+
 from TTS.tts.layers.losses import L1LossMasked
-from TTS.vocoder.layers.losses import MelganFeatureLoss, MSEGLoss, MSEDLoss, _apply_G_adv_loss, _apply_D_loss, MultiScaleSTFTLoss, L1SpecLoss
+from TTS.vocoder.layers.losses import (
+    L1SpecLoss,
+    MelganFeatureLoss,
+    MSEDLoss,
+    MSEGLoss,
+    MultiScaleSTFTLoss,
+    _apply_D_loss,
+    _apply_G_adv_loss,
+)
+
 
 class BWEGeneratorLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.l1_masked = L1LossMasked(False)
         self.stft_loss = MultiScaleSTFTLoss(
-            n_ffts=tuple(512*2**i for i in range(4)), 
-            hop_lengths=tuple(int(512*2**i/4) for i in range(4)), 
-            win_lengths=tuple(512*2**i for i in range(4))
+            n_ffts=tuple(512 * 2**i for i in range(4)),
+            hop_lengths=tuple(int(512 * 2**i / 4) for i in range(4)),
+            win_lengths=tuple(512 * 2**i for i in range(4)),
         )
         self.mel_loss = L1SpecLoss(48000, 2024, 512, 2024, mel_fmin=0, mel_fmax=24000, n_mels=128, use_mel=True)
         self.feat_match_loss = MelganFeatureLoss()
@@ -33,7 +43,7 @@ class BWEGeneratorLoss(torch.nn.Module):
         if mfcc is not None and mfcc_hat is not None:
             return_dict["pred_l1_loss"] = self.pred_l1_loss(y_hat, y)
             return_dict["pred_l2_loss"] = self.pred_l2_loss(y_hat, y)
-            return_dict["loss"] += (return_dict["pred_l1_loss"] + return_dict["pred_l2_loss"])
+            return_dict["loss"] += return_dict["pred_l1_loss"] + return_dict["pred_l2_loss"]
 
         if scores_fake is not None and feats_fake is not None and feats_real is not None:
             # Feature matching loss
@@ -66,5 +76,5 @@ class BWEDiscriminatorLoss(torch.nn.Module):
         return_dict["D_mse"] = mse_D_loss
         return_dict["D_mse_real"] = mse_D_real_loss
         return_dict["D_mse_fake"] = mse_D_fake_loss
-        return_dict["loss"] = return_dict["D_mse"] 
+        return_dict["loss"] = return_dict["D_mse"]
         return return_dict

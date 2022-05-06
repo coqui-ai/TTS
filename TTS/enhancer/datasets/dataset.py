@@ -1,12 +1,12 @@
 import random
 
-import torch
-from torch.utils.data import Dataset
-from librosa.core import load, resample
 import librosa
-from TTS.encoder.utils.generic_utils import AugmentWAV
+import torch
+from librosa.core import load, resample
 from torch.nn.utils.rnn import pad_sequence
-import random
+from torch.utils.data import Dataset
+
+from TTS.encoder.utils.generic_utils import AugmentWAV
 
 
 class EnhancerDataset(Dataset):
@@ -85,7 +85,9 @@ class EnhancerDataset(Dataset):
     def trim_silence(self, wav):
         margin = int(self.ap.sample_rate * 0.01)
         wav = wav[margin:-margin]
-        return librosa.effects.trim(wav, top_db=self.ap.trim_db, frame_length=self.ap.win_length, hop_length=self.ap.hop_length)[0]
+        return librosa.effects.trim(
+            wav, top_db=self.ap.trim_db, frame_length=self.ap.win_length, hop_length=self.ap.hop_length
+        )[0]
 
     def collate_fn(self, batch):
         input = []
@@ -100,14 +102,16 @@ class EnhancerDataset(Dataset):
             # segment wav file
             target_wav = self.segment_wav(target_wav)
             # make sure that the length of the wav is a multiple of 3
-            if len(target_wav) %3 != 0:
-                target_wav = target_wav[:-(len(target_wav) % 3)]
-            input_wav = resample(target_wav, orig_sr=self.target_sr, target_sr=self.input_sr, res_type="zero_order_hold")
+            if len(target_wav) % 3 != 0:
+                target_wav = target_wav[: -(len(target_wav) % 3)]
+            input_wav = resample(
+                target_wav, orig_sr=self.target_sr, target_sr=self.input_sr, res_type="zero_order_hold"
+            )
 
             if self.augmentator is not None and self.data_augmentation_p:
                 if random.random() < self.data_augmentation_p:
                     input_wav = self.augmentator.apply_one(input_wav)
-             
+
             input_lens.append(len(input_wav))
             target_lens.append(len(target_wav))
             input.append(torch.tensor(input_wav, dtype=torch.float32))

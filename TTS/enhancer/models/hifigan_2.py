@@ -1,31 +1,33 @@
-from turtle import forward
-from coqpit import Coqpit
-from matplotlib.cbook import flatten
-import torchaudio
-from torch import nn
-from TTS.utils.audio import TorchSTFT
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-from torch.nn import functional as F
-from TTS.model import BaseTrainerModel
-from TTS.tts.layers.generic.wavenet import WNBlocks
-from TTS.tts.utils.visual import plot_spectrogram
 from dataclasses import dataclass
+from turtle import forward
 from typing import Dict, List, Tuple, Union
-from TTS.enhancer.datasets.dataset import EnhancerDataset
-from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
-from TTS.enhancer.layers.acoustic_features_predictor import AcousticFeaturesPredictor
+
+import librosa
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 import torch.distributed as dist
+import torchaudio
+from coqpit import Coqpit
 from librosa.core import resample
+from matplotlib.cbook import flatten
+from torch import nn
+from torch.nn import Upsample
+from torch.nn import functional as F
 from torch.utils.data import DataLoader, Sampler
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
-import torch
-from torch.nn import Upsample
+
+from TTS.enhancer.datasets.dataset import EnhancerDataset
+from TTS.enhancer.layers.acoustic_features_predictor import AcousticFeaturesPredictor
 from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
-import librosa
+from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
+from TTS.model import BaseTrainerModel
+from TTS.tts.layers.generic.wavenet import WNBlocks
+from TTS.tts.utils.visual import plot_spectrogram
+from TTS.utils.audio import TorchSTFT
 from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleDiscriminator
+
 
 @dataclass
 class HifiGAN2Args(Coqpit):
@@ -83,17 +85,15 @@ class HifiGAN2(BaseTrainerModel):
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
+
         ap = AudioProcessor.init_from_config(config)
         return HifiGAN2(config, ap)
 
     def gen_forward(self, x, cond):
-        g = torch.nn.functional.interpolate(cond, size=(x.shape[2]), mode='linear')
+        g = torch.nn.functional.interpolate(cond, size=(x.shape[2]), mode="linear")
         x = self.generator(x, g=g)
         x = self.postconv(x)
-        return {
-            "y_hat": x,
-            "mfcc_hat": cond
-        }
+        return {"y_hat": x, "mfcc_hat": cond}
 
     def disc_forward(self, x):
         scores, feats = self.waveform_disc(x)
@@ -132,10 +132,7 @@ class HifiGAN2(BaseTrainerModel):
         scores_fake, feats_fake, feats_real = None, None, None
         if optimizer_idx == 0:
             self.pred_mfcc = self.predictor(input_mel)
-            outputs = self.gen_forward(
-                x,
-                self.pred_mfcc.detach() if self.detach_predictor_output else self.pred_mfcc
-            )
+            outputs = self.gen_forward(x, self.pred_mfcc.detach() if self.detach_predictor_output else self.pred_mfcc)
 
             self.y_hat_g = outputs["y_hat"]
 
@@ -161,7 +158,7 @@ class HifiGAN2(BaseTrainerModel):
                 feats_fake=feats_fake,
                 feats_real=feats_real,
                 mfcc=target_mfcc,
-                mfcc_hat=self.pred_mfcc
+                mfcc_hat=self.pred_mfcc,
             )
             outputs = None
 
@@ -169,7 +166,7 @@ class HifiGAN2(BaseTrainerModel):
 
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
-        self.train_disc = True # Avoid a bug in the Training with the missing discriminator loss
+        self.train_disc = True  # Avoid a bug in the Training with the missing discriminator loss
         out = self.train_step(batch, criterion, optimizer_idx)
         return out
 
@@ -230,9 +227,15 @@ class HifiGAN2(BaseTrainerModel):
 
     def get_optimizer(self) -> List:
         disc_params = list(self.waveform_disc.parameters()) + list(self.spectral_disc.parameters())
-        optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, parameters=disc_params)
-        gen_params = list(self.generator.parameters()) + list(self.postconv.parameters()) + list(self.predictor.parameters())
-        optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_params)
+        optimizer_disc = get_optimizer(
+            self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, parameters=disc_params
+        )
+        gen_params = (
+            list(self.generator.parameters()) + list(self.postconv.parameters()) + list(self.predictor.parameters())
+        )
+        optimizer_gen = get_optimizer(
+            self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_params
+        )
         return [optimizer_disc, optimizer_gen]
 
     def get_lr(self) -> List:
@@ -277,11 +280,7 @@ class HifiGAN2(BaseTrainerModel):
             name + "_mfcc_target": self._plot_mfcc(mfcc),
             name + "_mfcc_generated": self._plot_mfcc(mfcc_hat),
         }
-        audios = {
-            f"{name}_input/audio": x,
-            f"{name}_generated/audio": y_hat,
-            f"{name}_target/audio": y
-        }
+        audios = {f"{name}_input/audio": x, f"{name}_generated/audio": y_hat, f"{name}_target/audio": y}
         return figures, audios
 
     @staticmethod

@@ -2,9 +2,9 @@ from dataclasses import asdict, dataclass, field
 from typing import Dict, List
 
 from coqpit import MISSING
-from TTS.enhancer.models.bwe import BWEArgs
 
 from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig, BaseTrainingConfig
+from TTS.enhancer.models.bwe import BWEArgs
 
 
 @dataclass
@@ -29,7 +29,7 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     target_loss: str = "loss_0"
     # scheduler
     lr_disc: float = 0.001
-    lr_gen: float =  0.0001
+    lr_gen: float = 0.0001
     lr_scheduler: str = None
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # gan

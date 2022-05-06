@@ -1,25 +1,27 @@
-from coqpit import Coqpit
-import torchaudio
-from torch import nn
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-from torch.nn import functional as F
-from TTS.model import BaseTrainerModel
-from TTS.tts.layers.generic.wavenet import WNBlocks
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
-from TTS.enhancer.datasets.dataset import EnhancerDataset
-from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
+
+import librosa
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 import torch.distributed as dist
+import torchaudio
+from coqpit import Coqpit
 from librosa.core import resample
+from torch import nn
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
-import torch
+
+from TTS.enhancer.datasets.dataset import EnhancerDataset
 from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
-import librosa
+from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
+from TTS.model import BaseTrainerModel
+from TTS.tts.layers.generic.wavenet import WNBlocks
 from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleDiscriminator
+
 
 @dataclass
 class BWEArgs(Coqpit):
@@ -28,6 +30,7 @@ class BWEArgs(Coqpit):
     num_blocks_wn: int = 2
     num_layers_wn: int = 7
     kernel_size_wn: int = 3
+
 
 class BWE(BaseTrainerModel):
     def __init__(
@@ -41,17 +44,17 @@ class BWE(BaseTrainerModel):
         self.args = config.model_args
         self.input_sr = config.input_sr
         self.target_sr = config.target_sr
-        self.scale_factor = (self.target_sr / self.input_sr, )
+        self.scale_factor = (self.target_sr / self.input_sr,)
         self.train_disc = False
 
         self.resample_up = torchaudio.transforms.Resample(
-                self.input_sr,
-                self.target_sr,
-                lowpass_filter_width=64,
-                rolloff=0.9475937167399596,
-                resampling_method="kaiser_window",
-                beta=14.769656459379492,
-            )
+            self.input_sr,
+            self.target_sr,
+            lowpass_filter_width=64,
+            rolloff=0.9475937167399596,
+            resampling_method="kaiser_window",
+            beta=14.769656459379492,
+        )
         self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
         self.generator = WNBlocks(
             in_channels=1,
@@ -70,6 +73,7 @@ class BWE(BaseTrainerModel):
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
+
         ap = AudioProcessor.init_from_config(config)
         return BWE(config, ap)
 
@@ -133,7 +137,7 @@ class BWE(BaseTrainerModel):
 
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
-        self.train_disc = True # Avoid a bug in the Training with the missing discriminator loss
+        self.train_disc = True  # Avoid a bug in the Training with the missing discriminator loss
         out = self.train_step(batch, criterion, optimizer_idx)
         return out
 
@@ -195,9 +199,13 @@ class BWE(BaseTrainerModel):
 
     def get_optimizer(self) -> List:
         disc_params = list(self.waveform_disc.parameters()) + list(self.spectral_disc.parameters())
-        optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, parameters=disc_params)
+        optimizer_disc = get_optimizer(
+            self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, parameters=disc_params
+        )
         gen_params = list(self.generator.parameters()) + list(self.postconv.parameters())
-        optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_params)
+        optimizer_gen = get_optimizer(
+            self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_params
+        )
         return [optimizer_disc, optimizer_gen]
 
     def get_lr(self) -> List:
@@ -209,7 +217,7 @@ class BWE(BaseTrainerModel):
         return [disc_scheduler, gen_scheduler]
 
     def get_criterion(self):
-        #device = next(self.parameters()).device
+        # device = next(self.parameters()).device
         return [BWEDiscriminatorLoss(), BWEGeneratorLoss()]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
@@ -239,11 +247,7 @@ class BWE(BaseTrainerModel):
             name + "_generated": self._plot_spec(y_hat, 48000),
             name + "_target": self._plot_spec(y, 48000),
         }
-        audios = {
-            f"{name}_input/audio": x,
-            f"{name}_generated/audio": y_hat,
-            f"{name}_target/audio": y
-        }
+        audios = {f"{name}_input/audio": x, f"{name}_generated/audio": y_hat, f"{name}_target/audio": y}
         return figures, audios
 
     @staticmethod

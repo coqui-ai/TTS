@@ -3,11 +3,11 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.enhancer.config.hifigan_2_config import Hifigan2Config
 from TTS.enhancer.models.hifigan_2 import HifiGAN2, HifiGAN2Args
-from TTS.utils.audio import AudioProcessor
+from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
+from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname("/home/julian/workspace/train")
 
@@ -53,7 +53,7 @@ config = Hifigan2Config(
     test_delay_epochs=-1,
     target_sr=16000,
     input_sr=16000,
-    segment_train= True,
+    segment_train=True,
     segment_len=1.25,
     epochs=25,
     print_step=25,
@@ -64,16 +64,11 @@ config = Hifigan2Config(
     datasets=[dataset_config],
     audio_augmentation={
         "p": 1,
-        "additive":{
+        "additive": {
             "sounds_path": "/media/julian/Workdisk/datasets/DNS-Challenge/",
-            "noise": {
-                "min_snr_in_db": 15,
-                "max_snr_in_db": 25,
-                "min_num_noises": 1,
-                "max_num_noises": 1
-            },
-        }
-    }
+            "noise": {"min_snr_in_db": 15, "max_snr_in_db": 25, "min_num_noises": 1, "max_num_noises": 1},
+        },
+    },
 )
 
 # INITIALIZE THE AUDIO PROCESSOR
@@ -82,7 +77,12 @@ config = Hifigan2Config(
 ap = AudioProcessor.init_from_config(config)
 
 #
-train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True, eval_split_max_size=config.eval_split_max_size, eval_split_size=config.eval_split_size)
+train_samples, eval_samples = load_tts_samples(
+    dataset_config,
+    eval_split=True,
+    eval_split_max_size=config.eval_split_max_size,
+    eval_split_size=config.eval_split_size,
+)
 
 # init model
 model = HifiGAN2(config, ap)

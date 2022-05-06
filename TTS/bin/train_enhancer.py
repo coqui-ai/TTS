@@ -4,9 +4,8 @@ from dataclasses import dataclass, field
 from trainer import Trainer, TrainerArgs
 
 from TTS.config import load_config, register_config
-from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models import setup_model
 from TTS.enhancer.models.bwe import BWE
+from TTS.tts.datasets import load_tts_samples
 
 
 @dataclass
