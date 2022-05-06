@@ -1,35 +1,44 @@
+from turtle import forward
 from coqpit import Coqpit
+from matplotlib.cbook import flatten
 import torchaudio
 from torch import nn
+from TTS.utils.audio import TorchSTFT
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.nn import functional as F
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
+from TTS.tts.utils.visual import plot_spectrogram
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 from TTS.enhancer.datasets.dataset import EnhancerDataset
 from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
+from TTS.enhancer.layers.acoustic_features_predictor import AcousticFeaturesPredictor
 import torch.distributed as dist
 from librosa.core import resample
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 import torch
+from torch.nn import Upsample
 from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
 import librosa
 from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleDiscriminator
 
 @dataclass
-class BWEArgs(Coqpit):
+class HifiGAN2Args(Coqpit):
     num_channel_wn: int = 128
     dilation_rate_wn: int = 3
     num_blocks_wn: int = 2
     num_layers_wn: int = 7
     kernel_size_wn: int = 3
+    n_mfcc: int = 18
+    n_mels: int = 80
 
-class BWE(BaseTrainerModel):
+
+class HifiGAN2(BaseTrainerModel):
     def __init__(
         self,
         config: Coqpit,
@@ -41,18 +50,20 @@ class BWE(BaseTrainerModel):
         self.args = config.model_args
         self.input_sr = config.input_sr
         self.target_sr = config.target_sr
-        self.scale_factor = (self.target_sr / self.input_sr, )
         self.train_disc = False
-
-        self.resample_up = torchaudio.transforms.Resample(
-                self.input_sr,
-                self.target_sr,
-                lowpass_filter_width=64,
-                rolloff=0.9475937167399596,
-                resampling_method="kaiser_window",
-                beta=14.769656459379492,
-            )
-        self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
+        self.detach_predictor_output = config.detach_predictor_output
+        self.wav2MFCC = torchaudio.transforms.MFCC(
+            config.target_sr,
+            n_mfcc=self.args.n_mfcc,
+        )
+        self.wav2mel = torchaudio.transforms.MelSpectrogram(
+            config.target_sr,
+            n_mels=self.args.n_mels,
+            n_fft=512,
+            hop_length=160,
+            win_length=512,
+        )
+        self.predictor = AcousticFeaturesPredictor()
         self.generator = WNBlocks(
             in_channels=1,
             hidden_channels=self.args.num_channel_wn,
@@ -60,26 +71,28 @@ class BWE(BaseTrainerModel):
             dilation_rate=self.args.dilation_rate_wn,
             num_blocks=self.args.num_blocks_wn,
             num_layers=self.args.num_layers_wn,
+            c_in_channels=self.args.n_mfcc,
         )
+        self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
         self.waveform_disc = MelganMultiscaleDiscriminator(
             downsample_factors=(2, 2, 2),
             base_channels=16,
             max_channels=1024,
         )
-        self.spectral_disc = SpectralDiscriminator()
+        self.spectral_disc = SpectralDiscriminator(sample_rate=self.target_sr, n_mels=self.args.n_mels)
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
         ap = AudioProcessor.init_from_config(config)
-        return BWE(config, ap)
+        return HifiGAN2(config, ap)
 
-    def gen_forward(self, x):
-        with torch.no_grad():
-            x = self.resample_up(x)
-        x = self.generator(x)
+    def gen_forward(self, x, cond):
+        g = torch.nn.functional.interpolate(cond, size=(x.shape[2]), mode='linear')
+        x = self.generator(x, g=g)
         x = self.postconv(x)
         return {
             "y_hat": x,
+            "mfcc_hat": cond
         }
 
     def disc_forward(self, x):
@@ -89,36 +102,50 @@ class BWE(BaseTrainerModel):
         return scores, feats + feats_
 
     def forward(self, x):
-        return self.gen_forward(x)
+        cond = self.predictor(x)
+        return self.gen_forward(x, cond)
 
     @torch.no_grad()
     def inference(self, x):
-        return self.gen_forward(x.unsqueeze(1))
+        cond = self.predictor(x)
+        return self.gen_forward(x.unsqueeze(1), cond)
+
+    @torch.no_grad()
+    def format_batch_on_device(self, batch):
+        x = batch["input_wav"]
+        y = batch["target_wav"]
+        batch["input_mel"] = self.wav2mel(x)
+        batch["target_mfcc"] = self.wav2MFCC(y)
+        return batch
 
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         outputs = {}
         loss_dict = {}
         x = batch["input_wav"].unsqueeze(1)
         y = batch["target_wav"].unsqueeze(1)
-        lens = batch["target_lens"]
+        input_mel = batch["input_mel"]
+        target_mfcc = batch["target_mfcc"]
 
         if optimizer_idx not in [0, 1]:
             raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
         scores_fake, feats_fake, feats_real = None, None, None
         if optimizer_idx == 0:
-            y_hat = self.gen_forward(x)["y_hat"]
+            self.pred_mfcc = self.predictor(input_mel)
+            outputs = self.gen_forward(
+                x,
+                self.pred_mfcc.detach() if self.detach_predictor_output else self.pred_mfcc
+            )
 
-            self.y_hat_g = y_hat
+            self.y_hat_g = outputs["y_hat"]
 
             if self.train_disc:
                 y_d = y.clone()
 
-                scores_fake, feats_fake = self.disc_forward(y_hat.detach())
+                scores_fake, feats_fake = self.disc_forward(self.y_hat_g.detach())
                 scores_real, feats_real = self.disc_forward(y_d)
 
                 loss_dict = criterion[optimizer_idx](scores_fake, scores_real)
-                outputs = {"model_outputs": y_hat}
 
         if optimizer_idx == 1:
             if self.train_disc:
@@ -126,8 +153,17 @@ class BWE(BaseTrainerModel):
                 with torch.no_grad():
                     _, feats_real = self.disc_forward(y)
 
-            loss_dict = criterion[optimizer_idx](self.y_hat_g, y, lens, scores_fake, feats_fake, feats_real)
-            outputs = {"model_outputs": self.y_hat_g}
+            loss_dict = criterion[optimizer_idx](
+                self.y_hat_g,
+                y,
+                None,
+                scores_fake=scores_fake,
+                feats_fake=feats_fake,
+                feats_real=feats_real,
+                mfcc=target_mfcc,
+                mfcc_hat=self.pred_mfcc
+            )
+            outputs = None
 
         return outputs, loss_dict
 
@@ -156,7 +192,6 @@ class BWE(BaseTrainerModel):
                 self.ap,
                 samples,
                 augmentation_config=config.audio_augmentation,
-                use_torch_spec=None,
                 verbose=True,
             )
 
@@ -196,7 +231,7 @@ class BWE(BaseTrainerModel):
     def get_optimizer(self) -> List:
         disc_params = list(self.waveform_disc.parameters()) + list(self.spectral_disc.parameters())
         optimizer_disc = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, parameters=disc_params)
-        gen_params = list(self.generator.parameters()) + list(self.postconv.parameters())
+        gen_params = list(self.generator.parameters()) + list(self.postconv.parameters()) + list(self.predictor.parameters())
         optimizer_gen = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_params)
         return [optimizer_disc, optimizer_gen]
 
@@ -209,7 +244,6 @@ class BWE(BaseTrainerModel):
         return [disc_scheduler, gen_scheduler]
 
     def get_criterion(self):
-        #device = next(self.parameters()).device
         return [BWEDiscriminatorLoss(), BWEGeneratorLoss()]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
@@ -230,14 +264,18 @@ class BWE(BaseTrainerModel):
         logger.eval_audios(steps, audios, self.target_sr)
 
     def _log(self, name: str, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
+        print(outputs[0])
         y_hat = outputs[0]["y_hat"][0].detach().squeeze(0).cpu().numpy()
+        mfcc_hat = outputs[0]["mfcc_hat"][0].detach().squeeze(0).cpu().numpy()
         y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
         x = batch["input_wav"][0].detach().squeeze(0).cpu().numpy()
-        x = resample(x, 16000, 48000, res_type="kaiser_best")
+        mfcc = batch["target_mfcc"][0].detach().squeeze(0).cpu().numpy()
         figures = {
-            name + "_input": self._plot_spec(x, 48000),
-            name + "_generated": self._plot_spec(y_hat, 48000),
-            name + "_target": self._plot_spec(y, 48000),
+            name + "_mel_input": self._plot_spec(x, self.target_sr),
+            name + "_mel_generated": self._plot_spec(y_hat, self.target_sr),
+            name + "_mel_target": self._plot_spec(y, self.target_sr),
+            name + "_mfcc_target": self._plot_mfcc(mfcc),
+            name + "_mfcc_generated": self._plot_mfcc(mfcc_hat),
         }
         audios = {
             f"{name}_input/audio": x,
@@ -248,10 +286,19 @@ class BWE(BaseTrainerModel):
 
     @staticmethod
     def _plot_spec(x, sr):
-        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=128, fmax=24000)
+        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=80)
         spec = librosa.power_to_db(spec, ref=np.max)
         fig = plt.figure(figsize=(16, 10))
         plt.imshow(spec, aspect="auto", origin="lower")
+        plt.colorbar()
+        plt.tight_layout()
+        plt.close()
+        return fig
+
+    @staticmethod
+    def _plot_mfcc(mfcc):
+        fig = plt.figure(figsize=(16, 10))
+        plt.imshow(mfcc, aspect="auto", origin="lower")
         plt.colorbar()
         plt.tight_layout()
         plt.close()

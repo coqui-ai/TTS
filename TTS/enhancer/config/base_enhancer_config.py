@@ -33,4 +33,4 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     lr_scheduler: str = None
     lr_scheduler_params: dict = field(default_factory=lambda: {})
     # gan
-    steps_to_start_discriminator: int = 20000
+    steps_to_start_discriminator: int = 50000

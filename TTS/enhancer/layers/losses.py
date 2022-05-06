@@ -1,6 +1,4 @@
-from typing import Type
 import torch
-from TTS.utils.audio import TorchSTFT
 from TTS.tts.layers.losses import L1LossMasked
 from TTS.vocoder.layers.losses import MelganFeatureLoss, MSEGLoss, MSEDLoss, _apply_G_adv_loss, _apply_D_loss, MultiScaleSTFTLoss, L1SpecLoss
 
@@ -16,22 +14,31 @@ class BWEGeneratorLoss(torch.nn.Module):
         self.mel_loss = L1SpecLoss(48000, 2024, 512, 2024, mel_fmin=0, mel_fmax=24000, n_mels=128, use_mel=True)
         self.feat_match_loss = MelganFeatureLoss()
         self.mse_loss = MSEGLoss()
+        self.pred_l1_loss = torch.nn.L1Loss()
+        self.pred_l2_loss = torch.nn.MSELoss()
 
-    def forward(self, y_hat, y, lens, scores_fake=None, feats_fake=None, feats_real=None):
+    def forward(self, y_hat, y, lens, scores_fake=None, feats_fake=None, feats_real=None, mfcc=None, mfcc_hat=None):
         return_dict = {}
+        if lens is None:
+            lens = torch.IntTensor([y.size(1)]).to(y.device)
 
         # Waveform loss
-        return_dict["l1_wavform"] = self.l1_masked(y_hat, y, lens)
-        return_dict["loss"] = return_dict["l1_wavform"] * 10
+        return_dict["G_l1_wavform"] = self.l1_masked(y_hat, y, lens)
+        return_dict["loss"] = return_dict["G_l1_wavform"] * 10
 
         # Spectrogram losses
         return_dict["G_stft_loss_mg"], return_dict["G_stft_loss_sc"] = self.stft_loss(y_hat.squeeze(1), y.squeeze(1))
         return_dict["loss"] += (return_dict["G_stft_loss_mg"] + return_dict["G_stft_loss_sc"]) * 1
 
+        if mfcc is not None and mfcc_hat is not None:
+            return_dict["pred_l1_loss"] = self.pred_l1_loss(y_hat, y)
+            return_dict["pred_l2_loss"] = self.pred_l2_loss(y_hat, y)
+            return_dict["loss"] += (return_dict["pred_l1_loss"] + return_dict["pred_l2_loss"])
+
         if scores_fake is not None and feats_fake is not None and feats_real is not None:
             # Feature matching loss
             feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
-            return_dict["feat_match"] = feat_match_loss
+            return_dict["G_feat_match"] = feat_match_loss
             return_dict["loss"] += feat_match_loss * 108
 
             # MSE adversarial loss
