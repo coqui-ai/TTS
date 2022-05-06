@@ -17,7 +17,6 @@ class EnhancerDataset(Dataset):
         meta_data,
         verbose=False,
         augmentation_config=None,
-        use_torch_spec=None,
     ):
         """
         Args:
@@ -32,7 +31,6 @@ class EnhancerDataset(Dataset):
         self.sample_rate = ap.sample_rate
         self.ap = ap
         self.verbose = verbose
-        self.use_torch_spec = use_torch_spec
         self.input_sr = self.config.input_sr
         self.target_sr = self.config.target_sr
         self.segment_train = self.config.segment_train

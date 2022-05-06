@@ -5,7 +5,7 @@ from TTS.tts.layers.losses import L1LossMasked
 from TTS.vocoder.layers.losses import MelganFeatureLoss, MSEGLoss, MSEDLoss, _apply_G_adv_loss, _apply_D_loss, MultiScaleSTFTLoss, L1SpecLoss
 
 class BWEGeneratorLoss(torch.nn.Module):
-    def __init__(self, device):
+    def __init__(self):
         super().__init__()
         self.l1_masked = L1LossMasked(False)
         self.stft_loss = MultiScaleSTFTLoss(

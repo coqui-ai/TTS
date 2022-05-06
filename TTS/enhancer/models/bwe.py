@@ -14,6 +14,7 @@ from TTS.tts.utils.visual import plot_spectrogram
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 from TTS.enhancer.datasets.dataset import EnhancerDataset
+from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
 import torch.distributed as dist
 from librosa.core import resample
 from torch.utils.data import DataLoader, Sampler
@@ -32,57 +33,6 @@ class BWEArgs(Coqpit):
     num_blocks_wn: int = 2
     num_layers_wn: int = 7
     kernel_size_wn: int = 3
-
-class ConvLayerSpecDisc(nn.Module):
-    def __init__(self, kernel_size, stride, first_layer):
-        super().__init__()
-        get_padding = lambda k, d: int((k * d - d) / 2)
-        self.conv = nn.Conv2d(
-            1 if first_layer else 32, 32,
-            kernel_size,
-            stride,
-            padding=(get_padding(kernel_size[0], 1), get_padding(kernel_size[1], 1))
-        )
-        self.bn = nn.BatchNorm2d(32)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = F.leaky_relu(x)
-        x = self.bn(x)
-        return x
-        
-class SpectralDiscriminator(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.mel_spec = TorchSTFT(
-                            n_fft=1024, 
-                            hop_length=512, 
-                            win_length=1024, 
-                            sample_rate=48000, 
-                            n_mels=128,
-                            use_mel=True,
-                            device="cuda",
-                            do_amp_to_db=True)
-        self.kernel_sizes = [(7,7), (5,5), (5,5), (5,5)]
-        self.layers = nn.ModuleList([
-            ConvLayerSpecDisc(
-                self.kernel_sizes[i],
-                (1,2),
-                i == 0
-            ) for i in range(len(self.kernel_sizes))
-        ])
-        self.last_conv = nn.Conv2d(32, 1, (15,5), (15,1))
-
-    def forward(self, x):
-        feats = []
-        x = self.mel_spec(x).transpose(1,2).unsqueeze(1)
-        for disc in self.layers:
-            x = disc(x)
-            feats.append(x)
-        x = self.last_conv(x)
-        feats.append(x)
-        x = torch.flatten(x, 1, -1)
-        return x, feats
 
 class BWE(BaseTrainerModel):
     def __init__(
@@ -265,7 +215,7 @@ class BWE(BaseTrainerModel):
 
     def get_criterion(self):
         #device = next(self.parameters()).device
-        return [BWEDiscriminatorLoss(), BWEGeneratorLoss("cuda:0")]
+        return [BWEDiscriminatorLoss(), BWEGeneratorLoss()]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None
