@@ -1,4 +1,7 @@
+import bisect
+
 import numpy as np
+import torch
 
 
 def _pad_data(x, length):
@@ -51,3 +54,26 @@ def prepare_stop_target(inputs, out_steps):
 
 def pad_per_step(inputs, pad_len):
     return np.pad(inputs, [[0, 0], [0, 0], [0, pad_len]], mode="constant", constant_values=0.0)
+
+
+def get_length_balancer_weights(items: list, num_buckets=10):
+    # get all durations
+    audio_lengths = np.array([item["audio_length"] for item in items])
+    # create the $num_buckets buckets classes based in the dataset max and min length
+    max_length = int(max(audio_lengths))
+    min_length = int(min(audio_lengths))
+    step = int((max_length - min_length) / num_buckets)
+    buckets_classes = [i + step for i in range(min_length, max_length, step)]
+    # add each sample in their respective length bucket
+    buckets_names = np.array(
+        [buckets_classes[bisect.bisect_left(buckets_classes, item["audio_length"])] for item in items]
+    )
+    # count and compute the weights_bucket for each sample
+    unique_buckets_names = np.unique(buckets_names).tolist()
+    bucket_ids = [unique_buckets_names.index(l) for l in buckets_names]
+    bucket_count = np.array([len(np.where(buckets_names == l)[0]) for l in unique_buckets_names])
+    weight_bucket = 1.0 / bucket_count
+    dataset_samples_weight = np.array([weight_bucket[l] for l in bucket_ids])
+    # normalize
+    dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
+    return torch.from_numpy(dataset_samples_weight).float()
