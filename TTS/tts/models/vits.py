@@ -40,6 +40,7 @@ from TTS.vocoder.utils.generic_utils import plot_results
 hann_window = {}
 mel_basis = {}
 
+
 def load_audio(file_path):
     """Load the audio file normalized in [-1, 1]
 
