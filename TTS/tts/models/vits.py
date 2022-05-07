@@ -1452,7 +1452,7 @@ class Vits(BaseTTS):
             # init dataloader
             dataset = VitsDataset(
                 samples=samples,
-                # batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
+                batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_text_len=config.min_text_len,
                 max_text_len=config.max_text_len,
                 min_audio_len=config.min_audio_len,
