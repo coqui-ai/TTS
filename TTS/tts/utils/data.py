@@ -62,8 +62,8 @@ def get_length_balancer_weights(items: list, num_buckets=10):
     # create the $num_buckets buckets classes based in the dataset max and min length
     max_length = int(max(audio_lengths))
     min_length = int(min(audio_lengths))
-    step = int((max_length - min_length) / num_buckets)
-    buckets_classes = [i + step for i in range(min_length, max_length, step)]
+    step = int((max_length - min_length) / num_buckets) + 1
+    buckets_classes = [i + step for i in range(min_length, (max_length - step) + num_buckets + 1, step)]
     # add each sample in their respective length bucket
     buckets_names = np.array(
         [buckets_classes[bisect.bisect_left(buckets_classes, item["audio_length"])] for item in items]
