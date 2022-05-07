@@ -88,6 +88,7 @@ class HifiGAN2(BaseTrainerModel):
             n_fft=512,
             hop_length=160,
         )
+        self.init_post_mfcc()
 
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
@@ -120,8 +121,8 @@ class HifiGAN2(BaseTrainerModel):
     def format_batch_on_device(self, batch):
         x = batch["input_wav"]
         y = batch["target_wav"]
-        batch["input_mel"] = self.wav2mel(x)
-        batch["target_mfcc"] = self.wav2MFCC(y)
+        batch["input_mel"] = self.wav2mel(x).to(x.device)
+        batch["target_mfcc"] = (self.lift.to(x.device) * self.wav2MFCC(y).transpose(-2, -1)).transpose(-2, -1) / 100
         return batch
 
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
@@ -307,6 +308,10 @@ class HifiGAN2(BaseTrainerModel):
         plt.tight_layout()
         plt.close()
         return fig
+
+    def init_post_mfcc(self, cep_lifter=23):
+        n = np.arange(self.args.n_mfcc)
+        self.lift = torch.tensor(1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter))
 
     def on_train_step_start(self, trainer) -> None:
         """Enable the discriminator training based on `steps_to_start_discriminator`
