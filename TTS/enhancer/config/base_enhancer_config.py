@@ -26,7 +26,7 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     # optimizer
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
-    target_loss: str = "loss_0"
+    target_loss: str = "loss_1"
     # scheduler
     lr_disc: float = 0.001
     lr_gen: float = 0.001
