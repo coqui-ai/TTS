@@ -62,9 +62,9 @@ class HifiGAN2(BaseTrainerModel):
         self.wav2mel = torchaudio.transforms.MelSpectrogram(
             config.target_sr,
             n_mels=self.args.n_mels,
-            n_fft=512,
-            hop_length=160,
-            win_length=512,
+            n_fft=800,
+            hop_length=200,
+            win_length=800,
         )
         self.predictor = AcousticFeaturesPredictor()
         self.generator = WNBlocks(
@@ -85,8 +85,8 @@ class HifiGAN2(BaseTrainerModel):
         self.spectral_disc = SpectralDiscriminator(
             sample_rate=self.target_sr, 
             n_mels=self.args.n_mels,
-            n_fft=512,
-            hop_length=160,
+            n_fft=800,
+            hop_length=200,
         )
         self.init_post_mfcc()
 
@@ -291,7 +291,7 @@ class HifiGAN2(BaseTrainerModel):
 
     @staticmethod
     def _plot_spec(x, sr):
-        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=80, n_fft=512, hop_length=160)
+        spec = librosa.feature.melspectrogram(x, sr=sr, n_mels=80, n_fft=800, hop_length=200)
         spec = librosa.power_to_db(spec, ref=np.max)
         fig = plt.figure(figsize=(16, 10))
         plt.imshow(spec, aspect="auto", origin="lower")
