@@ -315,7 +315,7 @@ class HifiGAN2(BaseTrainerModel):
 
     def init_post_mfcc(self, cep_lifter=23):
         n = np.arange(self.args.n_mfcc)
-        self.lift = torch.tensor(1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter))
+        self.lift = torch.FloatTensor(1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter))
 
     def on_train_step_start(self, trainer) -> None:
         """Enable the discriminator training based on `steps_to_start_discriminator`
