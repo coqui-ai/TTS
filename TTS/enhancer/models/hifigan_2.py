@@ -139,7 +139,11 @@ class HifiGAN2(BaseTrainerModel):
         scores_fake, feats_fake, feats_real = None, None, None
         if optimizer_idx == 0:
             self.pred_mfcc = self.predictor(input_mel)
-            output = self.gen_forward(x, self.pred_mfcc.detach() if self.detach_predictor_output else self.pred_mfcc)
+            if self.config.condition_on_GT_MFCC:
+                input_denoiser = target_mfcc
+            else:
+                input_denoiser = self.pred_mfcc.detach() if self.detach_predictor_output else self.pred_mfcc
+            output = self.gen_forward(x, input_denoiser)
 
             self.y_hat_g = output["y_hat"]
 

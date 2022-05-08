@@ -12,3 +12,4 @@ class Hifigan2Config(BaseEnhancerConfig):
     """Defines parameters for the HifiGAN 2 denoiser."""
 
     detach_predictor_output: bool = True
+    condition_on_GT_MFCC: bool = False
