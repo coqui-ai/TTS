@@ -154,7 +154,7 @@ class HifiGAN2(BaseTrainerModel):
                 scores_real, feats_real = self.disc_forward(y_d)
 
                 loss_dict = criterion[optimizer_idx](scores_fake, scores_real)
-                outputs = output
+                outputs = {"y_hat": self.y_hat_g, "mfcc_hat": self.pred_mfcc}
 
         if optimizer_idx == 1:
             if self.train_disc:
