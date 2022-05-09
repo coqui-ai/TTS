@@ -1,5 +1,5 @@
 {
-    "model": "tacotron2",
+    "model": "stylefastpitch",
     "run_name": "coqui_tts",
     "run_description": "",
     "epochs": 1000,
@@ -75,8 +75,7 @@
         "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? ",
         "punctuations": "!'(),-.:;? ",
         "phonemes": "iy\u0268\u0289\u026fu\u026a\u028f\u028ae\u00f8\u0258\u0259\u0275\u0264o\u025b\u0153\u025c\u025e\u028c\u0254\u00e6\u0250a\u0276\u0251\u0252\u1d7b\u0298\u0253\u01c0\u0257\u01c3\u0284\u01c2\u0260\u01c1\u029bpbtd\u0288\u0256c\u025fk\u0261q\u0262\u0294\u0274\u014b\u0272\u0273n\u0271m\u0299r\u0280\u2c71\u027e\u027d\u0278\u03b2fv\u03b8\u00f0sz\u0283\u0292\u0282\u0290\u00e7\u029dx\u0263\u03c7\u0281\u0127\u0295h\u0266\u026c\u026e\u028b\u0279\u027bj\u0270l\u026d\u028e\u029f\u02c8\u02cc\u02d0\u02d1\u028dw\u0265\u029c\u02a2\u02a1\u0255\u0291\u027a\u0267\u02b2\u025a\u02de\u026b",
-        "unique": true,
-        "split_by_space": false
+        "unique": true
     },
     "batch_group_size": 0,
     "loss_masking": true,
@@ -117,31 +116,15 @@
         "Prior to November 22, 1963."
     ],
     "style_encoder_config": {
-        "se_type": "vaeflow",
+        "se_type": "gst",
+        "input_wav": null,
         "num_mel": 80,
-        "style_embedding_dim": 128,
+        "style_embedding_dim": 256,
         "use_speaker_embedding": false,
         "gst_style_input_weights": null,
         "gst_num_heads": 4,
         "gst_num_style_tokens": 10,
-        "vae_latent_dim": 128,
-        "use_cyclical_annealing": true,
-        "vae_loss_alpha": 1.0,
-        "vae_cycle_period": 5000,
-        "use_nonlinear_proj": false,
-        "vaeflow_intern_dim": 300,
-        "vaeflow_number_of_flows": 16,
-        "diff_num_timesteps": 25,
-        "diff_schedule_type": "cosine",
-        "diff_loss_type": "l1",
-        "diff_ref_online": true,
-        "diff_step_dim": 128,
-        "diff_in_out_ch": 1,
-        "diff_num_heads": 1,
-        "diff_hidden_channels": 128,
-        "diff_num_blocks": 5,
-        "diff_dropout": 0.1,
-        "diff_loss_alpha": 0.75
+        "vae_latent_dim": 256
     },
     "num_speakers": 1,
     "num_chars": 130,
