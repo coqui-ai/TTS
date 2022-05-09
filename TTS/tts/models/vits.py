@@ -53,7 +53,7 @@ def get_module_weights_sum(mdl: nn.Module):
     dict_sums = {}
     for name, w in mdl.named_parameters():
         if "weight" in name:
-            value = w.sum().item()
+            value = w.data.sum().item()
             dict_sums[name] = value
     return dict_sums
 
