@@ -13,7 +13,7 @@ class BaseEnhancerConfig(BaseTrainingConfig):
 
     model_args: BWEArgs = field(default_factory=BWEArgs)
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
-    datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
+    datasets: List[str] = None
     eval_split_max_size: int = None
     eval_split_size: float = 0.01
     target_sr: int = 48000

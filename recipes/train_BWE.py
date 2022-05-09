@@ -5,15 +5,11 @@ from trainer import Trainer, TrainerArgs
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.enhancer.config.base_enhancer_config import BaseEnhancerConfig
 from TTS.enhancer.models.bwe import BWE, BWEArgs
-from TTS.tts.configs.shared_configs import BaseDatasetConfig
-from TTS.tts.datasets import load_tts_samples
+from TTS.enhancer.datasets.dataset import load_wav_data
+
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname("/home/julian/workspace/train")
-
-dataset_config = BaseDatasetConfig(
-    name="vctk", meta_file_train="", language="en-us", path="/media/julian/Workdisk/datasets/VCTK-Corpus-48"
-)
 
 audio_config = BaseAudioConfig(
     sample_rate=48000,
@@ -57,7 +53,7 @@ config = BaseEnhancerConfig(
     print_eval=False,
     mixed_precision=False,
     output_path=output_path,
-    datasets=[dataset_config],
+    datasets=["/media/julian/Datasets/VCTK-VAD-16kHz/"],
     audio_augmentation={
         "p": 1,
         "additive": {
@@ -73,12 +69,7 @@ config = BaseEnhancerConfig(
 ap = AudioProcessor.init_from_config(config)
 
 #
-train_samples, eval_samples = load_tts_samples(
-    dataset_config,
-    eval_split=True,
-    eval_split_max_size=config.eval_split_max_size,
-    eval_split_size=config.eval_split_size,
-)
+train_samples, eval_samples = load_wav_data(config.datasets)
 
 # init model
 model = BWE(config, ap)

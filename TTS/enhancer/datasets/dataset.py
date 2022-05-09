@@ -1,7 +1,9 @@
 import random
-
+import os
 import librosa
 import torch
+import glob
+import numpy as np
 from librosa.core import load, resample
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
@@ -95,10 +97,8 @@ class EnhancerDataset(Dataset):
         target = []
         target_lens = []
         for item in batch:
-            audio_path = item["audio_file"]
-
             # load wav file
-            target_wav = self.load_audio(audio_path)
+            target_wav = self.load_audio(item)
             # segment wav file
             target_wav = self.segment_wav(target_wav)
             # make sure that the length of the wav is a multiple of 3
@@ -123,3 +123,14 @@ class EnhancerDataset(Dataset):
             "input_lens": torch.tensor(input_lens, dtype=torch.int32),
             "target_lens": torch.tensor(target_lens, dtype=torch.int32),
         }
+
+def load_wav_data(data_paths, eval_split_size=0.1, file_ext="wav"):
+    wav_paths = []
+    for path in data_paths:
+        tmp = glob.glob(os.path.join(path, "**", "*."+file_ext), recursive=True)
+        assert len(tmp) > 0, f" [!] {path} is empty."
+        wav_paths += tmp
+    np.random.seed(0)
+    np.random.shuffle(wav_paths)
+    split = int(len(wav_paths) * eval_split_size)
+    return wav_paths[split:], wav_paths[:split]
