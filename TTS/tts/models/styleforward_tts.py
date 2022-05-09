@@ -725,9 +725,9 @@ class StyleForwardTTS(BaseTTS):
             assert not self.training
 
     def get_criterion(self):
-        from TTS.tts.layers.losses import ForwardTTSLoss  # pylint: disable=import-outside-toplevel
+        from TTS.tts.layers.losses import StyleForwardTTSLoss  # pylint: disable=import-outside-toplevel
 
-        return ForwardTTSLoss(self.config)
+        return StyleForwardTTSLoss(self.config)
 
     def on_train_step_start(self, trainer):
         """Enable binary alignment loss when needed"""

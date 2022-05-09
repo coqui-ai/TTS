@@ -942,3 +942,130 @@ class ForwardTTSLoss(nn.Module):
 
         return_dict["loss"] = loss
         return return_dict
+
+# StyleForwardTTS loss
+class StyleForwardTTSLoss(nn.Module):
+    """Generic configurable StyleForwardTTS loss."""
+
+    def __init__(self, c):
+        super().__init__()
+
+        self.style_encoder_config = c.style_encoder_config
+        self.config = c
+
+        if c.spec_loss_type == "mse":
+            self.spec_loss = MSELossMasked(False)
+        elif c.spec_loss_type == "l1":
+            self.spec_loss = L1LossMasked(False)
+        else:
+            raise ValueError(" [!] Unknown spec_loss_type {}".format(c.spec_loss_type))
+
+        if c.duration_loss_type == "mse":
+            self.dur_loss = MSELossMasked(False)
+        elif c.duration_loss_type == "l1":
+            self.dur_loss = L1LossMasked(False)
+        elif c.duration_loss_type == "huber":
+            self.dur_loss = Huber()
+        else:
+            raise ValueError(" [!] Unknown duration_loss_type {}".format(c.duration_loss_type))
+
+        if c.model_args.use_aligner:
+            self.aligner_loss = ForwardSumLoss()
+            self.aligner_loss_alpha = c.aligner_loss_alpha
+
+        if c.model_args.use_pitch:
+            self.pitch_loss = MSELossMasked(False)
+            self.pitch_loss_alpha = c.pitch_loss_alpha
+
+        if c.use_ssim_loss:
+            self.ssim = SSIMLoss() if c.use_ssim_loss else None
+            self.ssim_loss_alpha = c.ssim_loss_alpha
+
+        # style loss
+        if self.style_encoder_config.se_type == 'diffusion':
+            self.criterion_se = DiffusionStyleEncoderLoss(self.style_encoder_config)
+        if self.style_encoder_config.se_type == 'vae':
+            self.criterion_se = VAEStyleEncoderLoss(self.style_encoder_config)
+        if self.style_encoder_config.se_type == 'vaeflow':
+            self.criterion_se = VAEFlowStyleEncoderLoss(self.style_encoder_config)
+
+        self.spec_loss_alpha = c.spec_loss_alpha
+        self.dur_loss_alpha = c.dur_loss_alpha
+        self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
+
+    @staticmethod
+    def _binary_alignment_loss(alignment_hard, alignment_soft):
+        """Binary loss that forces soft alignments to match the hard alignments as
+        explained in `https://arxiv.org/pdf/2108.10447.pdf`.
+        """
+        log_sum = torch.log(torch.clamp(alignment_soft[alignment_hard == 1], min=1e-12)).sum()
+        return -log_sum / alignment_hard.sum()
+
+    def forward(
+        self,
+        decoder_output,
+        decoder_target,
+        decoder_output_lens,
+        dur_output,
+        dur_target,
+        pitch_output,
+        pitch_target,
+        input_lens,
+        style_encoder_output,
+        alignment_logprob=None,
+        alignment_hard=None,
+        alignment_soft=None
+    ):
+        loss = 0
+        return_dict = {}
+        if hasattr(self, "ssim_loss") and self.ssim_loss_alpha > 0:
+            ssim_loss = self.ssim(decoder_output, decoder_target, decoder_output_lens)
+            loss = loss + self.ssim_loss_alpha * ssim_loss
+            return_dict["loss_ssim"] = self.ssim_loss_alpha * ssim_loss
+
+        if self.spec_loss_alpha > 0:
+            spec_loss = self.spec_loss(decoder_output, decoder_target, decoder_output_lens)
+            loss = loss + self.spec_loss_alpha * spec_loss
+            return_dict["loss_spec"] = self.spec_loss_alpha * spec_loss
+
+        if self.dur_loss_alpha > 0:
+            log_dur_tgt = torch.log(dur_target.float() + 1)
+            dur_loss = self.dur_loss(dur_output[:, :, None], log_dur_tgt[:, :, None], input_lens)
+            loss = loss + self.dur_loss_alpha * dur_loss
+            return_dict["loss_dur"] = self.dur_loss_alpha * dur_loss
+
+        if hasattr(self, "pitch_loss") and self.pitch_loss_alpha > 0:
+            pitch_loss = self.pitch_loss(pitch_output.transpose(1, 2), pitch_target.transpose(1, 2), input_lens)
+            loss = loss + self.pitch_loss_alpha * pitch_loss
+            return_dict["loss_pitch"] = self.pitch_loss_alpha * pitch_loss
+
+        if hasattr(self, "aligner_loss") and self.aligner_loss_alpha > 0:
+            aligner_loss = self.aligner_loss(alignment_logprob, input_lens, decoder_output_lens)
+            loss = loss + self.aligner_loss_alpha * aligner_loss
+            return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
+
+        if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
+            binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
+            loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
+            return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
+
+        # style encoder loss diffusion based
+        if self.style_encoder_config.se_type == 'diffusion':
+            style_loss = self.criterion_se(style_encoder_output['noise_pred'], style_encoder_output['noise_target'])
+            loss += style_loss * self.style_encoder_config.diff_loss_alpha
+            return_dict["style_encoder_loss"] = style_loss
+        
+        # style encoder loss VAE based
+        if self.style_encoder_config.se_type == 'vae':
+            style_loss = self.criterion_se(style_encoder_output['mean'], style_encoder_output['log_var'])
+            loss += style_loss * self.criterion_se.alpha_vae
+            return_dict["style_encoder_loss"] = style_loss
+
+        # style encoder loss VAE based
+        if self.style_encoder_config.se_type == 'vaeflow':
+            style_loss = self.criterion_se(style_encoder_output['z_0'], style_encoder_output['z_T'], style_encoder_output['mean'], style_encoder_output['log_var'])
+            loss += style_loss * self.criterion_se.alpha_vae
+            return_dict["style_encoder_loss"] = style_loss
+
+        return_dict["loss"] = loss
+        return return_dict
