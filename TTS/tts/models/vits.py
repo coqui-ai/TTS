@@ -890,9 +890,7 @@ class Vits(BaseTTS):
             spec_segment_size = spec_segment_size * int(self.interpolate_factor)
             # interpolate z if needed
             if self.args.interpolate_z:
-                z = torch.nn.functional.interpolate(
-                    z.unsqueeze(0), scale_factor=[1, self.interpolate_factor], mode="nearest"
-                ).squeeze(0)
+                z = torch.nn.functional.interpolate(z, scale_factor=[self.interpolate_factor], mode="linear").squeeze(0)
                 # recompute the mask if needed
                 if y_lengths is not None and y_mask is not None:
                     y_mask = (
