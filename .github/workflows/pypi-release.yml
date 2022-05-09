@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -61,10 +61,6 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: "sdist"
-          path: "dist/"
-      - uses: actions/download-artifact@v2
-        with:
-          name: "wheel-3.6"
           path: "dist/"
       - uses: actions/download-artifact@v2
         with:
