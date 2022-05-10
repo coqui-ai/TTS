@@ -27,6 +27,11 @@ class StyleEncoderConfig(Coqpit):
     # Generic Style Encoder Configuration
     num_mel: int = 80
     style_embedding_dim: int = 128
+    agg_type: str = "concat" # Can be concat or sum
+    use_proj_linear: bool = False # Whether use linear projection to decoder dim or not (specifcally useful for sum agg_style)
+    proj_dim: int = 512 # Projection dim, often the encoder output (512 is the tacotron2 default encoder output)
+    start_loss_at: int = 0 # Iteration that the style loss should start propagate 
+    use_nonlinear_proj: bool = False # Whether use or not a linear (last_dim, last_dim) + tanh before agg in TTS encoder outputs
     use_speaker_embedding: bool = False
 
     # GST-SE Additional Configs
@@ -39,9 +44,6 @@ class StyleEncoderConfig(Coqpit):
     use_cyclical_annealing: bool = True # Whether use or not annealing (recommended true), only linear implemented
     vae_loss_alpha: float = 1.0 # Default alpha value (term of KL loss)
     vae_cycle_period: int = 5000 # iteration period to apply a new annealing cycle
-
-    # VAE-SE Additional Configs
-    use_nonlinear_proj: bool = False # Whether use or not a linear + tanh before agg in TTS encoder outputs
 
     # VAEFLOW-SE Additional Configs
     vaeflow_intern_dim: int = 300
@@ -67,6 +69,7 @@ class StyleEncoderConfig(Coqpit):
         c = asdict(self)
         super().check_values()
         check_argument("se_type", c, restricted=True, enum_list=["gst", "re","vae", "diffusion", "vaeflow"])
+        check_argument("agg_type", c, restricted=True, enum_list=["sum", "concat"])
         check_argument("num_mel", c, restricted=False)
         check_argument("style_embedding_dim", c, restricted=True, min_val=0, max_val=1000)
         check_argument("use_speaker_embedding", c, restricted=False)

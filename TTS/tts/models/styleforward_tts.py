@@ -527,11 +527,17 @@ class StyleForwardTTS(BaseTTS):
             - pitch: :math:`[B, 1, T]`
         """
         g = self._set_speaker_input(aux_input)
+       
         # compute sequence masks
         y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).float()
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).float()
         # encoder pass
         o_en, x_mask, g, x_emb = self._forward_encoder(x, x_mask, g)
+
+        #Style embedding 
+        se_inputs = [o_en, y]
+        o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
+
         # duration predictor pass
         if self.args.detach_duration_predictor:
             o_dr_log = self.duration_predictor(o_en.detach(), x_mask)
@@ -576,11 +582,12 @@ class StyleForwardTTS(BaseTTS):
             "alignment_logprob": alignment_logprob,
             "x_mask": x_mask,
             "y_mask": y_mask,
+            "style_encoder_outputs": style_encoder_outputs
         }
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None}):  # pylint: disable=unused-argument
+    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, 'mel_spec': None}):  # pylint: disable=unused-argument
         """Model's inference pass.
 
         Args:
@@ -595,6 +602,11 @@ class StyleForwardTTS(BaseTTS):
         g = self._set_speaker_input(aux_input)
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).to(x.dtype).float()
+        
+        #Style embedding 
+        se_inputs = [o_en, aux_input['mel_spec']]
+        o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
+        
         # encoder pass
         o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, g)
         # duration predictor pass
@@ -613,6 +625,7 @@ class StyleForwardTTS(BaseTTS):
             "alignments": attn,
             "pitch": o_pitch,
             "durations_log": o_dr_log,
+            "style_encoder_outputs": style_encoder_outputs
         }
         return outputs
 

@@ -35,7 +35,9 @@ class BaseTacotron(BaseTTS):
         self.embedded_speakers_projected = None
 
         # init style layers
-        self.decoder_in_features += self.style_encoder_config.style_embedding_dim 
+        if(self.style_encoder_config.agg_type == 'concat'):
+            self.decoder_in_features += self.style_encoder_config.style_embedding_dim 
+
         self.style_encoder_layer = None
 
         # additional layers

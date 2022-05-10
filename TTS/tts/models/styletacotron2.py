@@ -59,7 +59,8 @@ class Styletacotron2(BaseTacotron):
             self.init_multispeaker(config)
             self.decoder_in_features += self.embedded_speaker_dim  # add speaker embedding dim
 
-        self.decoder_in_features += self.style_encoder_config.style_embedding_dim
+        if(self.style_encoder_config.agg_type == 'concat'):
+            self.decoder_in_features += self.style_encoder_config.style_embedding_dim 
 
         # embedding layer
         self.embedding = nn.Embedding(self.num_chars, 512, padding_idx=0)

@@ -15,6 +15,14 @@ class StyleEncoder(nn.Module):
         for key in config:
             setattr(self, key, config[key])
 
+        if(self.use_nonlinear_proj):
+            self.nl_proj = nn.Linear(self.style_embedding_dim, self.style_embedding_dim)
+            nn.init.xavier_normal_(self.nl_proj.weight) # Good init for projection
+
+        if(self.use_proj_linear):
+            self.proj = nn.Linear(self.style_embedding_dim, self.proj_dim)
+            nn.init.xavier_normal_(self.proj.weight) # Good init for projection
+
         if self.se_type == 'gst':
             self.layer = GST(
                 num_mel = self.num_mel,
@@ -31,8 +39,7 @@ class StyleEncoder(nn.Module):
             self.layer = VAEStyleEncoder(
                 num_mel = self.num_mel,
                 embedding_dim = self.style_embedding_dim,
-                latent_dim = self.vae_latent_dim,
-                use_nonlinear_proj = self.use_nonlinear_proj
+                latent_dim = self.vae_latent_dim
             )
         elif self.se_type == 'vaeflow':
             self.layer = VAEFlowStyleEncoder(
@@ -110,8 +117,20 @@ class StyleEncoder(nn.Module):
                 # compute style tokens
                 input_args = [style_input, speaker_embedding]
                 gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
-            inputs = self._concat_embedding(inputs, gst_outputs)
+            
+            if(self.use_nonlinear_proj):
+                gst_outputs = self.nl_proj(gst_outputs)
+               
+            if(self.use_proj_linear):
+                gst_outputs = self.proj(gst_outputs)
+
+            if(self.agg_type == 'concat'):
+                inputs = self._concat_embedding(inputs, gst_outputs)
+            else:
+                inputs = self._add_speaker_embedding(inputs, gst_outputs)
             return inputs
+
+
 
     def re_embedding(self, inputs, style_input):
             if style_input is None:
@@ -121,41 +140,124 @@ class StyleEncoder(nn.Module):
                 # compute style tokens
                 input_args = [style_input]
                 gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
-            inputs = self._concat_embedding(inputs, gst_outputs)
+            
+            if(self.use_nonlinear_proj):
+                gst_outputs = self.nl_proj(gst_outputs)
+               
+            if(self.use_proj_linear):
+                gst_outputs = self.proj(gst_outputs)
+
+            if(self.agg_type == 'concat'):
+                inputs = self._concat_embedding(inputs, gst_outputs)
+            else:
+                inputs = self._add_speaker_embedding(inputs, gst_outputs)
             return inputs
 
     def diff_forward(self, inputs, ref_mels):
             diff_output = self.layer.forward(ref_mels)
-            return self._concat_embedding(inputs, diff_output['style']), diff_output['noises']
+
+            if(self.use_nonlinear_proj):
+                diff_output = self.nl_proj(diff_output)
+               
+            if(self.use_proj_linear):
+                diff_output = self.proj(diff_output)
+
+            if(self.agg_type == 'concat'):
+                return self._concat_embedding(inputs, diff_output['style']), diff_output['noises']
+            else:
+                return self._add_speaker_embedding(inputs, diff_output['style']), diff_output['noises']
 
     def diff_inference(self, inputs, ref_mels, infer_from):
             diff_output = self.layer.inference(ref_mels, infer_from)
-            return self._concat_embedding(inputs, diff_output['style'])
+            
+            if(self.use_nonlinear_proj):
+                diff_output = self.nl_proj(diff_output)
+               
+            if(self.use_proj_linear):
+                diff_output = self.proj(diff_output)
 
+            if(self.agg_type == 'concat'):
+                return self._concat_embedding(inputs, diff_output['style'])
+            else:
+                return self._add_speaker_embedding(inputs, diff_output['style'])
+    
+
+    def vae_forward(self, inputs, ref_mels): 
+        vae_output = self.layer.forward(ref_mels)
+
+        if(self.use_nonlinear_proj):
+            vae_output = self.nl_proj(vae_output)
+            
+        if(self.use_proj_linear):
+            vae_output = self.proj(vae_output)
+
+        if(self.agg_type == 'concat'):
+            return self._concat_embedding(inputs, vae_output['z']), {'mean': vae_output['mean'], 'log_var' : vae_output['log_var']}
+        else:
+            return self._add_speaker_embedding(inputs, vae_output['z']), {'mean': vae_output['mean'], 'log_var' : vae_output['log_var']}
+    
+    def vae_inference(self, inputs, ref_mels, z=None):
+        if(z):
+            if(self.agg_type == 'concat'):
+                return self._concat_embedding(inputs, z)  # If an specific z is passed it uses it
+            else:
+                return self._add_speaker_embedding(inputs, z)
+        else:
+            vae_output = self.layer.forward(ref_mels)
+
+            if(self.use_nonlinear_proj):
+                vae_output = self.nl_proj(vae_output)
+                
+            if(self.use_proj_linear):
+                vae_output = self.proj(vae_output)
+
+            if(self.agg_type == 'concat'):
+                return self._concat_embedding(inputs, vae_output['z'])
+            else:
+                return self._add_speaker_embedding(inputs, vae_output['z'])
+
+    def vaeflow_forward(self, inputs, ref_mels): 
+        vaeflow_output = self.layer.forward(ref_mels)
+
+        if(self.use_nonlinear_proj):
+            vaeflow_output = self.nl_proj(vaeflow_output)
+            
+        if(self.use_proj_linear):
+            vaeflow_output = self.proj(vaeflow_output)
+
+        if(self.agg_type == 'concat'):
+            return self._concat_embedding(inputs, vaeflow_output['z_T']), {'mean': vaeflow_output['mean'], 'log_var' : vaeflow_output['log_var'], 'z_0' : vaeflow_output['z_0'], 'z_T' : vaeflow_output['z_T']}
+        else:
+            return self._add_speaker_embedding(inputs, vaeflow_output['z_T']), {'mean': vaeflow_output['mean'], 'log_var' : vaeflow_output['log_var'], 'z_0' : vaeflow_output['z_0'], 'z_T' : vaeflow_output['z_T']}
+
+    def vaeflow_inference(self, inputs, ref_mels, z=None):
+        if(z):
+            if(self.agg_type == 'concat'):
+                return self._concat_embedding(inputs, z)  # If an specific z is passed it uses it
+            else:
+                return self._add_speaker_embedding(inputs, z)
+        else:
+            vaeflow_output = self.layer.forward(ref_mels)
+
+            if(self.use_nonlinear_proj):
+                vaeflow_output = self.nl_proj(vaeflow_output)
+                
+            if(self.use_proj_linear):
+                vaeflow_output = self.proj(vaeflow_output)
+
+            if(self.agg_type == 'concat'):
+                return self._concat_embedding(inputs, vaeflow_output['z_T'])
+            else:
+                return self._add_speaker_embedding(inputs, vaeflow_output['z_T'])
+
+    @staticmethod
     def _concat_embedding(self, outputs, embedded_speakers):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = torch.cat([outputs, embedded_speakers_], dim=-1)
         return outputs
 
-    def vae_forward(self, inputs, ref_mels): 
-        vae_output = self.layer.forward(ref_mels)
-        return self._concat_embedding(inputs, vae_output['z']), {'mean': vae_output['mean'], 'log_var' : vae_output['log_var']}
-    
-    def vae_inference(self, inputs, ref_mels, z=None):
-        if(z):
-            return self._concat_embedding(inputs, z)  # If an specific z is passed it uses it
-        else:
-            vae_output = self.layer.forward(ref_mels)
-            return self._concat_embedding(inputs, vae_output['z'])
-
-    def vaeflow_forward(self, inputs, ref_mels): 
-        vaeflow_output = self.layer.forward(ref_mels)
-        return self._concat_embedding(inputs, vaeflow_output['z_T']), {'mean': vaeflow_output['mean'], 'log_var' : vaeflow_output['log_var'], 'z_0' : vaeflow_output['z_0'], 'z_T' : vaeflow_output['z_T']}
-    
-    def vaeflow_inference(self, inputs, ref_mels, z=None):
-        if(z):
-            return self._concat_embedding(inputs, z)  # If an specific z is passed it uses it
-        else:
-            vaeflow_output = self.layer.forward(ref_mels)
-            return self._concat_embedding(inputs, vaeflow_output['z_T'])
-            
+    @staticmethod
+    def _add_speaker_embedding(self, outputs, embedded_speakers):
+        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
+        outputs = outputs + embedded_speakers_
+        return outputs
