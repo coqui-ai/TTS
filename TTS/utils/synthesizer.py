@@ -97,10 +97,10 @@ class Synthesizer(object):
         """Load the TTS model.
 
         1. Load the model config.
-        2. Init the AudioProcessor.
-        3. Init the model from the config.
+        2. Init the model from the config.
+        3. Load the model weights.
         4. Move the model to the GPU if CUDA is enabled.
-        5. Init the speaker manager for the model.
+        5. Init the speaker manager in the model.
 
         Args:
             tts_checkpoint (str): path to the model checkpoint.
@@ -122,8 +122,7 @@ class Synthesizer(object):
             self.tts_model.cuda()
 
         if self.encoder_checkpoint and hasattr(self.tts_model, "speaker_manager"):
-            self.tts_model.speaker_manager.use_cuda = use_cuda
-            self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config)
+            self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config, use_cuda)
 
     def _set_speaker_encoder_paths_from_tts_config(self):
         """Set the encoder paths from the tts model config for models with speaker encoders."""
