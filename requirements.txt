@@ -22,7 +22,7 @@ pandas
 # deps for training
 matplotlib
 tensorboardX
-pyworld
+pyworld==0.2.10 # > 0.2.10 is not p3.10.x compatible
 # coqui stack
 trainer
 # config management
