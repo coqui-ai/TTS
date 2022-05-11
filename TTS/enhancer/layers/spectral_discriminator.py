@@ -20,7 +20,7 @@ class ConvLayerSpecDisc(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = F.leaky_relu(x)
+        x = F.leaky_relu(x) # Change for GLU
         x = self.bn(x)
         return x
 

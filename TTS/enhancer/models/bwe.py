@@ -97,7 +97,7 @@ class BWE(BaseTrainerModel):
 
     @torch.no_grad()
     def inference(self, x):
-        return self.gen_forward(x.unsqueeze(1))
+        return self.gen_forward(x.unsqueeze(1))["y_hat"]
 
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         outputs = {}

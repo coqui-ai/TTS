@@ -3,7 +3,7 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.enhancer.config.base_enhancer_config import BaseEnhancerConfig
+from TTS.enhancer.config.bwe_config import BWEConfig
 from TTS.enhancer.models.bwe import BWE, BWEArgs
 from TTS.enhancer.datasets.dataset import load_wav_data
 
@@ -35,7 +35,7 @@ bweArgs = BWEArgs(
     num_layers_wn=7,
 )
 
-config = BaseEnhancerConfig(
+config = BWEConfig(
     model_args=bweArgs,
     audio=audio_config,
     run_name="enhancer_bwe_vctk",

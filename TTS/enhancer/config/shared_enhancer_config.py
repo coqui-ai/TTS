@@ -3,15 +3,13 @@ from typing import Dict, List
 
 from coqpit import MISSING
 
-from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig, BaseTrainingConfig
-from TTS.enhancer.models.bwe import BWEArgs
+from TTS.config.shared_configs import BaseAudioConfig, BaseTrainingConfig
 
 
 @dataclass
 class BaseEnhancerConfig(BaseTrainingConfig):
     """Defines parameters for a Generic Encoder model."""
 
-    model_args: BWEArgs = field(default_factory=BWEArgs)
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
     datasets: List[str] = None
     eval_split_max_size: int = None
@@ -21,7 +19,6 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     segment_train: bool = True
     segment_len: float = 1.0
     grad_clip: List[float] = field(default_factory=lambda: [3.0, 3.0])
-    # model params
     audio_augmentation: Dict = field(default_factory=lambda: {})
     # optimizer
     optimizer: str = "AdamW"
@@ -31,8 +28,8 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     lr_disc: float = 0.001
     lr_gen: float = 0.001
     lr_scheduler_gen: str = "ExponentialLR"
-    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
+    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.995, "last_epoch": -1})
     lr_scheduler_disc: str = "ExponentialLR"
-    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
+    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.995, "last_epoch": -1})
     # gan
     steps_to_start_discriminator: int = 50000

@@ -90,6 +90,6 @@ if __name__ == "__main__":
             audio = torch.from_numpy(wav[0]).unsqueeze(0)
             if use_cuda:
                 audio = audio.cuda()
-            output = model.inference(audio)["y_hat"]
+            output = model.inference(audio)
             output = output.squeeze().cpu().detach().numpy()
             write(wav_path, output, config.target_sr)

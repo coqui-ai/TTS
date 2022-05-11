@@ -33,7 +33,7 @@ from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleD
 class HifiGAN2Args(Coqpit):
     num_channel_wn: int = 128
     dilation_rate_wn: int = 3
-    num_blocks_wn: int = 2
+    num_blocks_wn: int = 3
     num_layers_wn: int = 7
     kernel_size_wn: int = 3
     n_mfcc: int = 18
@@ -115,7 +115,7 @@ class HifiGAN2(BaseTrainerModel):
     @torch.no_grad()
     def inference(self, x):
         cond = self.predictor(x)
-        return self.gen_forward(x.unsqueeze(1), cond)
+        return self.gen_forward(x.unsqueeze(1), cond)["y_hat"]
 
     @torch.no_grad()
     def format_batch_on_device(self, batch):
