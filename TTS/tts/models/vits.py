@@ -1054,6 +1054,7 @@ class Vits(BaseTTS):
         outputs = {
             "model_outputs": o,
             "alignments": attn.squeeze(1),
+            "durations": w_ceil,
             "z": z,
             "z_p": z_p,
             "m_p": m_p,
