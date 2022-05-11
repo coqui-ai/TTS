@@ -216,17 +216,19 @@ class EmbeddingManager(BaseIDManager):
     def get_clips(self) -> List:
         return sorted(self.embeddings.keys())
 
-    def init_encoder(self, model_path: str, config_path: str) -> None:
+    def init_encoder(self, model_path: str, config_path: str, use_cuda=False) -> None:
         """Initialize a speaker encoder model.
 
         Args:
             model_path (str): Model file path.
             config_path (str): Model config file path.
+            use_cuda (bool, optional): Use CUDA. Defaults to False.
         """
+        self.use_cuda = use_cuda
         self.encoder_config = load_config(config_path)
         self.encoder = setup_encoder_model(self.encoder_config)
         self.encoder_criterion = self.encoder.load_checkpoint(
-            self.encoder_config, model_path, eval=True, use_cuda=self.use_cuda
+            self.encoder_config, model_path, eval=True, use_cuda=use_cuda
         )
         self.encoder_ap = AudioProcessor(**self.encoder_config.audio)
 
