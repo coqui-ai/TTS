@@ -66,6 +66,7 @@ class WN(torch.nn.Module):
         # init proj layer
         if self.in_channels != self.hidden_channels:
             self.proj_layer = torch.nn.Conv1d(self.in_channels, self.hidden_channels, 1)
+            self.proj_layer = torch.nn.utils.weight_norm(self.proj_layer, name="weight")
         # intermediate layers
         for i in range(num_layers):
             dilation = dilation_rate**i
