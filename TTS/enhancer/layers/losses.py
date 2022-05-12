@@ -53,7 +53,7 @@ class BWEGeneratorLoss(torch.nn.Module):
 
         if y_hat_postnet is not None:
             return_dict["G_postnet_l1_wavform"] = self.l1_masked(y_hat_postnet, y, lens)
-            return_dict["loss"] = return_dict["G_postnet_l1_wavform"] * 10
+            return_dict["loss"] += return_dict["G_postnet_l1_wavform"] * 10
             return_dict["G_postnet_stft_loss_mg"], return_dict["G_postnet_stft_loss_sc"] = self.stft_loss(
                 y_hat_postnet.squeeze(1),
                 y.squeeze(1)
