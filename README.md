@@ -104,7 +104,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 You can also help us implement more models.
 
 ## Install TTS
-🐸TTS is tested on Ubuntu 18.04 with **python >= 3.6, < 3.9**.
+🐸TTS is tested on Ubuntu 18.04 with **python >= 3.7, < 3.11.**.
 
 If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
 
