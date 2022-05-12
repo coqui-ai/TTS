@@ -48,6 +48,8 @@ class HifiGAN(BaseTrainerModel):
         self.input_sr = config.input_sr
         self.target_sr = config.target_sr
         self.train_disc = False
+        self.train_postnet = False
+        assert config.steps_to_start_discriminator >= config.steps_to_start_postnet
         self.generator = WNBlocks(
             in_channels=1,
             hidden_channels=self.args.num_channel_wn,
@@ -74,16 +76,28 @@ class HifiGAN(BaseTrainerModel):
             hop_length=256,
         )
 
+    def on_init_end(self, trainer):
+        self.generator.apply(self.init_weights)
+
+    @staticmethod
+    def init_weights(m):
+        if isinstance(m, nn.Conv1d):
+            torch.nn.init.dirac_(m.weight)
+            m.bias.data.fill_(0)
+
     def init_from_config(config: Coqpit):
         from TTS.utils.audio import AudioProcessor
 
         ap = AudioProcessor.init_from_config(config)
         return HifiGAN(config, ap)
 
-    def gen_forward(self, x):
+    def gen_forward(self, x, run_postnet=True):
         x = self.generator(x)
         x = self.postconv(x)
-        x_postnet = self.postnet(x)
+        if run_postnet:
+            x_postnet = self.postnet(x)
+        else:
+            x_postnet = x
         return {"y_hat": x, "y_hat_postnet": x_postnet}
 
     def disc_forward(self, x):
@@ -110,7 +124,7 @@ class HifiGAN(BaseTrainerModel):
 
         scores_fake, feats_fake, feats_real = None, None, None
         if optimizer_idx == 0:
-            output = self.gen_forward(x)
+            output = self.gen_forward(x, self.train_postnet)
 
             self.y_hat = output["y_hat"]
             self.y_hat_postnet = output["y_hat_postnet"]
@@ -133,7 +147,7 @@ class HifiGAN(BaseTrainerModel):
             loss_dict = criterion[optimizer_idx](
                 self.y_hat,
                 y,
-                y_hat_postnet=self.y_hat_postnet,
+                y_hat_postnet=self.y_hat_postnet if self.train_postnet else None,
                 scores_fake=scores_fake,
                 feats_fake=feats_fake,
                 feats_real=feats_real,
@@ -143,7 +157,6 @@ class HifiGAN(BaseTrainerModel):
 
     @torch.no_grad()
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
-        self.train_disc = True  # Avoid a bug in the Training with the missing discriminator loss
         out = self.train_step(batch, criterion, optimizer_idx)
         return out
 
@@ -244,8 +257,8 @@ class HifiGAN(BaseTrainerModel):
         logger.eval_audios(steps, audios, self.target_sr)
 
     def _log(self, name: str, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
-        y_hat = outputs[0]["y_hat"][0].detach().squeeze(0).cpu().numpy()
-        y_hat_postnet = outputs[0]["y_hat_postnet"][0].detach().squeeze(0).cpu().numpy()
+        y_hat = outputs[1]["y_hat"][0].detach().squeeze(0).cpu().numpy()
+        y_hat_postnet = outputs[1]["y_hat_postnet"][0].detach().squeeze(0).cpu().numpy()
         y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
         x = batch["input_wav"][0].detach().squeeze(0).cpu().numpy()
         figures = {
@@ -280,3 +293,4 @@ class HifiGAN(BaseTrainerModel):
             trainer (Trainer): Trainer object.
         """
         self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator
+        self.train_postnet = trainer.total_steps_done >= self.config.steps_to_start_postnet

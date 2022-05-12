@@ -71,7 +71,6 @@ config = HifiganConfig(
             "p": 0.3
         }
     },
-    steps_to_start_discriminator=0,
 )
 
 # INITIALIZE THE AUDIO PROCESSOR
