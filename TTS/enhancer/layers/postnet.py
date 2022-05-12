@@ -15,7 +15,6 @@ class Postnet(nn.Module):
             layers.append(nn.Conv1d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2))
             layers.append(nn.Tanh())
         layers.append(nn.Conv1d(channels, 1, kernel_size=kernel_size, padding=kernel_size // 2))
-        layers.append(nn.Tanh())
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):

@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.distributed as dist
-import torchaudio
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
@@ -78,6 +77,7 @@ class HifiGAN(BaseTrainerModel):
 
     def on_init_end(self, trainer):
         self.generator.apply(self.init_weights)
+        self.postnet.apply(self.init_weights)
 
     @staticmethod
     def init_weights(m):
