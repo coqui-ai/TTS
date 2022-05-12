@@ -1,6 +1,6 @@
 ARG BASE=nvcr.io/nvidia/pytorch:22.03-py3
 FROM ${BASE}
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv python3-wheel espeak libsndfile1-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ make  python3 python3-dev python3-pip python3-venv python3-wheel espeak espeak-ng libsndfile1-dev && rm -rf /var/lib/apt/lists/*
 RUN pip install llvmlite --ignore-installed
 
 # Create and activate virtual env
