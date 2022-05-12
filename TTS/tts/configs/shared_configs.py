@@ -232,6 +232,14 @@ class BaseTTSConfig(BaseTrainingConfig):
 
         language_weighted_sampler_alpha (float):
             Number that control the influence of the language sampler weights. Defaults to ```1.0```.
+
+        use_length_weighted_sampler (bool):
+            Enable / Disable the batch balancer by audio length. If enabled the dataset will be divided
+            into 10 buckets considering the min and max audio of the dataset. The sampler weights will be
+            computed forcing to have the same quantity of data for each bucket in each training batch. Defaults to ```False```.
+
+        length_weighted_sampler_alpha (float):
+            Number that control the influence of the length sampler weights. Defaults to ```1.0```.
     """
 
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
@@ -279,3 +287,5 @@ class BaseTTSConfig(BaseTrainingConfig):
     speaker_weighted_sampler_alpha: float = 1.0
     use_language_weighted_sampler: bool = False
     language_weighted_sampler_alpha: float = 1.0
+    use_length_weighted_sampler: bool = False
+    length_weighted_sampler_alpha: float = 1.0
