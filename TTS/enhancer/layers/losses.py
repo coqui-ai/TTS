@@ -4,8 +4,8 @@ from TTS.tts.layers.losses import L1LossMasked
 from TTS.vocoder.layers.losses import (
     L1SpecLoss,
     MelganFeatureLoss,
-    HingeDLoss,
-    HingeGLoss,
+    MSEDLoss,
+    MSEGLoss,
     MultiScaleSTFTLoss,
     _apply_D_loss,
     _apply_G_adv_loss,
@@ -23,7 +23,7 @@ class BWEGeneratorLoss(torch.nn.Module):
         )
         self.mel_loss = L1SpecLoss(sr, n_fft, hop_length, n_fft, mel_fmin=0, mel_fmax=sr//2, n_mels=n_mels, use_mel=True)
         self.feat_match_loss = MelganFeatureLoss()
-        self.gen_gan_loss = HingeGLoss()
+        self.gen_gan_loss = MSEGLoss()
         self.pred_l1_loss = torch.nn.L1Loss()
         self.pred_l2_loss = torch.nn.MSELoss()
 
@@ -86,7 +86,7 @@ class BWEGeneratorLoss(torch.nn.Module):
 class BWEDiscriminatorLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.disc_gan_loss = HingeDLoss()
+        self.disc_gan_loss = MSEDLoss()
 
     def forward(self, scores_fake, scores_real):
         return_dict = {}
