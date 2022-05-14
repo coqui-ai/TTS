@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 
 class Postnet(nn.Module):
-    def __init__(self, channels=128, kernel_size=32, n_layers=12):
+    def __init__(self, channels=128, kernel_size=33, n_layers=12):
         super().__init__()
         assert n_layers >= 2, " [!] n_layers must be greater than or equal to 2"
         assert kernel_size % 2 == 1, " [!] kernel_size must be an odd number"
