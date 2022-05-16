@@ -181,8 +181,8 @@ def synthesis(
         style_feature = compute_style_feature(style_wav, model.ap, cuda=use_cuda)
         style_feature = style_feature.transpose(1, 2)  # [1, time, depth]
 
-    if hasattr(model, 'compute_style_feature'):
-            style_feature = model.compute_style_feature(style_wav)
+    if hasattr(model, 'compute_style_feature') and style_wav is not None:
+        style_feature = model.compute_style_feature(style_wav)
 
     # convert text to sequence of token IDs
     text_inputs = np.asarray(

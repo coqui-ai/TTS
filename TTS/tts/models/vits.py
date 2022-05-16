@@ -17,7 +17,9 @@ from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
+from TTS.tts.layers.generic.classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
+from TTS.tts.layers.tacotron.gst_layers import GST
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
@@ -32,9 +34,6 @@ from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-
-from TTS.tts.layers.tacotron.gst_layers import GST
-from TTS.tts.layers.generic.classifier import ReversalClassifier
 
 ##############################
 # IO / Feature extraction
@@ -541,8 +540,7 @@ class VitsArgs(Coqpit):
     external_emotions_embs_file: str = None
     emotion_embedding_dim: int = 0
     num_emotions: int = 0
-    emotion_just_encoder: bool = False
-    
+
     # prosody encoder
     use_prosody_encoder: bool = False
     prosody_embedding_dim: int = 0
@@ -658,7 +656,7 @@ class Vits(BaseTTS):
 
         dp_cond_embedding_dim = self.cond_embedding_dim if self.args.condition_dp_on_speaker else 0
 
-        if self.args.emotion_just_encoder and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
+        if self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings:
             dp_cond_embedding_dim += self.args.emotion_embedding_dim
 
         if self.args.use_prosody_encoder:
@@ -872,12 +870,6 @@ class Vits(BaseTTS):
             if self.num_emotions > 0:
                 print(" > initialization of emotion-embedding layers.")
                 self.emb_emotion = nn.Embedding(self.num_emotions, self.args.emotion_embedding_dim)
-                if not self.args.emotion_just_encoder:
-                    self.cond_embedding_dim += self.args.emotion_embedding_dim
-
-        if self.args.use_external_emotions_embeddings:
-            if not self.args.emotion_just_encoder:
-                self.cond_embedding_dim += self.args.emotion_embedding_dim
 
     def get_aux_input(self, aux_input: Dict):
         sid, g, lid, eid, eg = self._set_cond_input(aux_input)
@@ -1076,13 +1068,6 @@ class Vits(BaseTTS):
         if self.args.use_emotion_embedding and eid is not None and eg is None:
             eg = self.emb_emotion(eid).unsqueeze(-1)  # [b, h, 1]
 
-        # concat the emotion embedding and speaker embedding
-        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and not self.args.emotion_just_encoder:
-            if g is None:
-                g = eg
-            else:
-                g = torch.cat([g, eg], dim=1)  # [b, h1+h2, 1]
-
         # language embedding
         lang_emb = None
         if self.args.use_language_embedding and lid is not None:
@@ -1097,15 +1082,15 @@ class Vits(BaseTTS):
         if self.args.use_prosody_encoder:
             pros_emb = self.prosody_encoder(z).transpose(1, 2)
             _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
-        # print("Encoder input", x.shape)
+
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg, pros_emb=pros_emb)
-        # print("X shape:", x.shape, "m_p shape:", m_p.shape, "x_mask:", x_mask.shape, "x_lengths:", x_lengths.shape)
+
         # flow layers
         z_p = self.flow(z, y_mask, g=g)
-        # print("Y mask:", y_mask.shape)
+
         # duration predictor
         g_dp = g if self.args.condition_dp_on_speaker else None
-        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and self.args.emotion_just_encoder:
+        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
             if g_dp is None:
                 g_dp = eg
             else:
@@ -1228,13 +1213,6 @@ class Vits(BaseTTS):
         if self.args.use_emotion_embedding and eid is not None and eg is None:
             eg = self.emb_emotion(eid).unsqueeze(-1)  # [b, h, 1]
 
-        # concat the emotion embedding and speaker embedding
-        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and not self.args.emotion_just_encoder:
-            if g is None:
-                g = eg
-            else:
-                g = torch.cat([g, eg], dim=1)  # [b, h1+h2, 1]
-
         # language embedding
         lang_emb = None
         if self.args.use_language_embedding and lid is not None:
@@ -1252,7 +1230,7 @@ class Vits(BaseTTS):
 
         # duration predictor
         g_dp = g if self.args.condition_dp_on_speaker else None
-        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and self.args.emotion_just_encoder:
+        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
             if g_dp is None:
                 g_dp = eg
             else:
@@ -1274,9 +1252,7 @@ class Vits(BaseTTS):
                 lang_emb=lang_emb,
             )
         else:
-            logw = self.duration_predictor(
-                x, x_mask, g=g_dp, lang_emb=lang_emb
-            )
+            logw = self.duration_predictor(x, x_mask, g=g_dp, lang_emb=lang_emb)
 
         w = torch.exp(logw) * x_mask * self.length_scale
         w_ceil = torch.ceil(w)
@@ -1297,7 +1273,6 @@ class Vits(BaseTTS):
 
         o = self.waveform_decoder((z * y_mask)[:, :, : self.max_inference_len], g=g)
 
-<<<<<<< HEAD
         outputs = {
             "model_outputs": o,
             "alignments": attn.squeeze(1),
@@ -1308,15 +1283,14 @@ class Vits(BaseTTS):
             "logs_p": logs_p,
             "y_mask": y_mask,
         }
-=======
-        outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p, "durations": w_ceil}
->>>>>>> 3a524b05... Add prosody encoder params on config
         return outputs
 
     def compute_style_feature(self, style_wav_path):
         style_wav, sr = torchaudio.load(style_wav_path)
         if sr != self.config.audio.sample_rate:
-            raise RuntimeError(" [!] Style reference need to have sampling rate equal to {self.config.audio.sample_rate} !!")
+            raise RuntimeError(
+                " [!] Style reference need to have sampling rate equal to {self.config.audio.sample_rate} !!"
+            )
         y = wav_to_spec(
             style_wav,
             self.config.audio.fft_size,
@@ -1491,7 +1465,7 @@ class Vits(BaseTTS):
                     or self.args.use_emotion_encoder_as_loss,
                     gt_cons_emb=self.model_outputs_cache["gt_cons_emb"],
                     syn_cons_emb=self.model_outputs_cache["syn_cons_emb"],
-                    loss_spk_reversal_classifier=self.model_outputs_cache["loss_spk_reversal_classifier"]
+                    loss_spk_reversal_classifier=self.model_outputs_cache["loss_spk_reversal_classifier"],
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1659,7 +1633,11 @@ class Vits(BaseTTS):
         emotion_ids = None
 
         # get numerical speaker ids from speaker names
-        if self.speaker_manager is not None and self.speaker_manager.ids and (self.args.use_speaker_embedding or self.args.use_prosody_encoder):
+        if (
+            self.speaker_manager is not None
+            and self.speaker_manager.ids
+            and (self.args.use_speaker_embedding or self.args.use_prosody_encoder)
+        ):
             speaker_ids = [self.speaker_manager.ids[sn] for sn in batch["speaker_names"]]
 
         if speaker_ids is not None:

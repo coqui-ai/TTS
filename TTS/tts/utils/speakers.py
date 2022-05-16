@@ -95,7 +95,9 @@ class SpeakerManager(EmbeddingManager):
             SpeakerEncoder: Speaker encoder object.
         """
         speaker_manager = None
-        if get_from_config_or_model_args_with_default(config, "use_speaker_embedding", False) or get_from_config_or_model_args_with_default(config, "use_prosody_encoder", False):
+        if get_from_config_or_model_args_with_default(
+            config, "use_speaker_embedding", False
+        ) or get_from_config_or_model_args_with_default(config, "use_prosody_encoder", False):
             if samples:
                 speaker_manager = SpeakerManager(data_items=samples)
             if get_from_config_or_model_args_with_default(config, "speaker_file", None):

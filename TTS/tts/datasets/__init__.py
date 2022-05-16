@@ -13,9 +13,8 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
         Args:
-    <<<<<<< HEAD
             items (List[List]):
-                A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
+                A list of samples. Each sample is a dict containing the keys "text", "audio_file", and "speaker_name".
 
             eval_split_max_size (int):
                 Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
@@ -23,9 +22,6 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
             eval_split_size (float):
                 If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
                 If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
-    =======
-            items (List[List]): A list of samples. Each sample is a list of `[text, audio_path, speaker_id]`.
-    >>>>>>> Fix docstring
     """
     speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
@@ -117,7 +113,9 @@ def load_tts_samples(
         if eval_split:
             if meta_file_val:
                 meta_data_eval = formatter(root_path, meta_file_val, ignored_speakers=ignored_speakers)
-                meta_data_eval = [{**item, **{"language": language, "speech_style": speech_style}} for item in meta_data_eval]
+                meta_data_eval = [
+                    {**item, **{"language": language, "speech_style": speech_style}} for item in meta_data_eval
+                ]
             else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train, eval_split_max_size, eval_split_size)
             meta_data_eval_all += meta_data_eval
