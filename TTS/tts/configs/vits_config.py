@@ -115,6 +115,7 @@ class VitsConfig(BaseTTSConfig):
     mel_loss_alpha: float = 45.0
     dur_loss_alpha: float = 1.0
     consistency_loss_alpha: float = 1.0
+    pitch_loss_alpha: float = 5.0
 
     # data loader params
     return_wav: bool = True
@@ -148,6 +149,10 @@ class VitsConfig(BaseTTSConfig):
     use_d_vector_file: bool = False
     d_vector_file: str = None
     d_vector_dim: int = None
+
+    # dataset configs
+    compute_f0: bool = False
+    f0_cache_path: str = None
 
     def __post_init__(self):
         for key, val in self.model_args.items():

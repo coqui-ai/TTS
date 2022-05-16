@@ -122,6 +122,7 @@ class TTSDataset(Dataset):
         self.return_wav = return_wav
         self.compute_f0 = compute_f0
         self.f0_cache_path = f0_cache_path
+        self.precompute_num_workers = precompute_num_workers
         self.min_audio_len = min_audio_len
         self.max_audio_len = max_audio_len
         self.min_text_len = min_text_len
