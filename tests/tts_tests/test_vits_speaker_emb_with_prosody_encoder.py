@@ -26,7 +26,7 @@ config = VitsConfig(
     print_step=1,
     print_eval=True,
     test_sentences=[
-        ["Be a voice, not an echo.", "ljspeech-1", None, None, "ljspeech-1"],
+        ["Be a voice, not an echo.", "ljspeech-1", "tests/data/ljspeech/wavs/LJ001-0001.wav", None, None],
     ],
 )
 # set audio config
@@ -38,11 +38,11 @@ config.model_args.use_speaker_embedding = True
 config.model_args.use_d_vector_file = False
 config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
 config.model_args.speaker_embedding_channels = 128
-config.model_args.d_vector_dim = 256
+config.model_args.d_vector_dim = 128
 
 # prosody embedding
 config.model_args.use_prosody_encoder = True
-config.model_args.prosody_embedding_dim = 256
+config.model_args.prosody_embedding_dim = 64
 
 config.save_json(config_path)
 
@@ -67,12 +67,11 @@ continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
-emotion_id = "ljspeech-3"
+style_wav_path = "tests/data/ljspeech/wavs/LJ001-0001.wav"
 continue_speakers_path = os.path.join(continue_path, "speakers.json")
-continue_emotion_path = os.path.join(continue_path, "speakers.json")
 
 
-inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --emotion_idx {emotion_id} --speakers_file_path {continue_speakers_path} --emotions_file_path {continue_emotion_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
+inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path} --gst_style {style_wav_path}"
 run_cli(inference_command)
 
 # restore the model and continue training for one more epoch

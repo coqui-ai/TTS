@@ -546,6 +546,8 @@ class VitsArgs(Coqpit):
     # prosody encoder
     use_prosody_encoder: bool = False
     prosody_embedding_dim: int = 0
+    prosody_encoder_num_heads: int = 1
+    prosody_encoder_num_tokens: int = 5
 
     detach_dp_input: bool = True
     use_language_embedding: bool = False
@@ -685,8 +687,8 @@ class Vits(BaseTTS):
         if self.args.use_prosody_encoder:
             self.prosody_encoder = GST(
                 num_mel=self.args.hidden_channels,
-                num_heads=1,
-                num_style_tokens=5,
+                num_heads=self.args.prosody_encoder_num_heads,
+                num_style_tokens=self.args.prosody_encoder_num_tokens,
                 gst_embedding_dim=self.args.prosody_embedding_dim,
             )
             self.speaker_reversal_classifier = ReversalClassifier(
@@ -916,7 +918,7 @@ class Vits(BaseTTS):
     @staticmethod
     def _set_cond_input(aux_input: Dict):
         """Set the speaker conditioning input based on the multi-speaker mode."""
-        sid, g, lid, eid, eg = None, None, None, None, None
+        sid, g, lid, eid, eg, pf = None, None, None, None, None, None
         if "speaker_ids" in aux_input and aux_input["speaker_ids"] is not None:
             sid = aux_input["speaker_ids"]
             if sid.ndim == 0:
@@ -941,7 +943,11 @@ class Vits(BaseTTS):
             if eg.ndim == 2:
                 eg = eg.unsqueeze_(0)
 
-        return sid, g, lid, eid, eg
+        if "style_feature" in aux_input and aux_input["style_feature"] is not None:
+            pf = aux_input["style_feature"]
+            if pf.ndim == 2:
+                pf = pf.unsqueeze_(0)
+        return sid, g, lid, eid, eg, pf
 
     def _set_speaker_input(self, aux_input: Dict):
         d_vectors = aux_input.get("d_vectors", None)
@@ -1061,7 +1067,7 @@ class Vits(BaseTTS):
             - syn_cons_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
         """
         outputs = {}
-        sid, g, lid, eid, eg = self._set_cond_input(aux_input)
+        sid, g, lid, eid, eg, _ = self._set_cond_input(aux_input)
         # speaker embedding
         if self.args.use_speaker_embedding and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
@@ -1091,14 +1097,14 @@ class Vits(BaseTTS):
         if self.args.use_prosody_encoder:
             pros_emb = self.prosody_encoder(z).transpose(1, 2)
             _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
-
+        # print("Encoder input", x.shape)
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg, pros_emb=pros_emb)
-
+        # print("X shape:", x.shape, "m_p shape:", m_p.shape, "x_mask:", x_mask.shape, "x_lengths:", x_lengths.shape)
         # flow layers
         z_p = self.flow(z, y_mask, g=g)
-
+        # print("Y mask:", y_mask.shape)
         # duration predictor
-        g_dp = g
+        g_dp = g if self.args.condition_dp_on_speaker else None
         if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and self.args.emotion_just_encoder:
             if g_dp is None:
                 g_dp = eg
@@ -1190,6 +1196,7 @@ class Vits(BaseTTS):
             "language_ids": None,
             "emotion_embeddings": None,
             "emotion_ids": None,
+            "style_feature": None,
         },
     ):  # pylint: disable=dangerous-default-value
         """
@@ -1210,7 +1217,7 @@ class Vits(BaseTTS):
             - m_p: :math:`[B, C, T_dec]`
             - logs_p: :math:`[B, C, T_dec]`
         """
-        sid, g, lid, eid, eg = self._set_cond_input(aux_input)
+        sid, g, lid, eid, eg, pf = self._set_cond_input(aux_input)
         x_lengths = self._set_x_lengths(x, aux_input)
 
         # speaker embedding
@@ -1233,29 +1240,42 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg)
+        # prosody embedding
+        pros_emb = None
+        if self.args.use_prosody_encoder:
+            # extract posterior encoder feature
+            pf_lengths = torch.tensor([pf.size(-1)]).to(pf.device)
+            z_pro, _, _, _ = self.posterior_encoder(pf, pf_lengths, g=g)
+            pros_emb = self.prosody_encoder(z_pro).transpose(1, 2)
+
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg, pros_emb=pros_emb)
 
         # duration predictor
+        g_dp = g if self.args.condition_dp_on_speaker else None
         if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and self.args.emotion_just_encoder:
-            if g is None:
+            if g_dp is None:
                 g_dp = eg
             else:
-                g_dp = torch.cat([g, eg], dim=1)  # [b, h1+h2, 1]
-        else:
-            g_dp = g
+                g_dp = torch.cat([g_dp, eg], dim=1)  # [b, h1+h2, 1]
+
+        if self.args.use_prosody_encoder:
+            if g_dp is None:
+                g_dp = pros_emb
+            else:
+                g_dp = torch.cat([g_dp, pros_emb], dim=1)  # [b, h1+h2, 1]
 
         if self.args.use_sdp:
             logw = self.duration_predictor(
                 x,
                 x_mask,
-                g=g_dp if self.args.condition_dp_on_speaker else None,
+                g=g_dp,
                 reverse=True,
                 noise_scale=self.inference_noise_scale_dp,
                 lang_emb=lang_emb,
             )
         else:
             logw = self.duration_predictor(
-                x, x_mask, g=g_dp if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
+                x, x_mask, g=g_dp, lang_emb=lang_emb
             )
 
         w = torch.exp(logw) * x_mask * self.length_scale
@@ -1277,6 +1297,7 @@ class Vits(BaseTTS):
 
         o = self.waveform_decoder((z * y_mask)[:, :, : self.max_inference_len], g=g)
 
+<<<<<<< HEAD
         outputs = {
             "model_outputs": o,
             "alignments": attn.squeeze(1),
@@ -1287,7 +1308,23 @@ class Vits(BaseTTS):
             "logs_p": logs_p,
             "y_mask": y_mask,
         }
+=======
+        outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p, "durations": w_ceil}
+>>>>>>> 3a524b05... Add prosody encoder params on config
         return outputs
+
+    def compute_style_feature(self, style_wav_path):
+        style_wav, sr = torchaudio.load(style_wav_path)
+        if sr != self.config.audio.sample_rate:
+            raise RuntimeError(" [!] Style reference need to have sampling rate equal to {self.config.audio.sample_rate} !!")
+        y = wav_to_spec(
+            style_wav,
+            self.config.audio.fft_size,
+            self.config.audio.hop_length,
+            self.config.audio.win_length,
+            center=False,
+        )
+        return y
 
     @torch.no_grad()
     def inference_voice_conversion(
