@@ -585,6 +585,7 @@ class AlignTTSLoss(nn.Module):
 class VitsGeneratorLoss(nn.Module):
     def __init__(self, c: Coqpit):
         super().__init__()
+        self.pitch_loss_alpha = c.pitch_loss_alpha
         self.kl_loss_alpha = c.kl_loss_alpha
         self.gen_loss_alpha = c.gen_loss_alpha
         self.feat_loss_alpha = c.feat_loss_alpha
@@ -680,6 +681,7 @@ class VitsGeneratorLoss(nn.Module):
         scores_disc_mp=None,
         feats_disc_mp=None,
         feats_disc_zp=None,
+        pitch_loss=None,
     ):
         """
         Shapes:
@@ -754,6 +756,11 @@ class VitsGeneratorLoss(nn.Module):
 
             loss += kl_vae_loss
             return_dict["loss_kl_vae"] = kl_vae_loss
+
+        if pitch_loss is not None:
+            pitch_loss = pitch_loss * self.pitch_loss_alpha
+            loss += pitch_loss
+            return_dict["pitch_loss"] = pitch_loss
 
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen

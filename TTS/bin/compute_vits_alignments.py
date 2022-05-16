@@ -74,6 +74,7 @@ def extract_aligments(
             np.save(align_file_path, alignment)
 
 
+
 def main(args):  # pylint: disable=redefined-outer-name
     # pylint: disable=global-variable-undefined
     global meta_data, speaker_manager
