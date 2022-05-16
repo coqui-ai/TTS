@@ -223,6 +223,7 @@ class Tacotron(BaseTacotron):
         encoder_outputs = self.encoder(inputs)
         if self.gst and self.use_gst:
             # B x gst_dim
+<<<<<<< HEAD
             encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
         if self.capacitron_vae and self.use_capacitron_vae:
             if aux_input["style_text"] is not None:
@@ -246,6 +247,9 @@ class Tacotron(BaseTacotron):
                 if self.capacitron_vae.capacitron_use_speaker_embedding
                 else None,
             )
+=======
+            encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_feature"], aux_input["d_vectors"])
+>>>>>>> 3a524b05... Add prosody encoder params on config
         if self.num_speakers > 1:
             if not self.use_d_vector_file:
                 # B x 1 x speaker_embed_dim
