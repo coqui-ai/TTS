@@ -215,7 +215,7 @@ class Tacotron2(BaseTacotron):
 
         if self.gst and self.use_gst:
             # B x gst_dim
-            encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_mel"], aux_input["d_vectors"])
+            encoder_outputs = self.compute_gst(encoder_outputs, aux_input["style_feature"], aux_input["d_vectors"])
 
         if self.num_speakers > 1:
             if not self.use_d_vector_file:

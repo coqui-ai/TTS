@@ -14,18 +14,18 @@ def numpy_to_torch(np_array, dtype, cuda=False):
     return tensor
 
 
-def compute_style_mel(style_wav, ap, cuda=False):
-    style_mel = torch.FloatTensor(ap.melspectrogram(ap.load_wav(style_wav, sr=ap.sample_rate))).unsqueeze(0)
+def compute_style_feature(style_wav, ap, cuda=False):
+    style_feature = torch.FloatTensor(ap.melspectrogram(ap.load_wav(style_wav, sr=ap.sample_rate))).unsqueeze(0)
     if cuda:
-        return style_mel.cuda()
-    return style_mel
+        return style_feature.cuda()
+    return style_feature
 
 
 def run_model_torch(
     model: nn.Module,
     inputs: torch.Tensor,
     speaker_id: int = None,
-    style_mel: torch.Tensor = None,
+    style_feature: torch.Tensor = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
     emotion_id: torch.Tensor = None,
@@ -37,7 +37,7 @@ def run_model_torch(
         model (nn.Module): The model to run inference.
         inputs (torch.Tensor): Input tensor with character ids.
         speaker_id (int, optional): Input speaker ids for multi-speaker models. Defaults to None.
-        style_mel (torch.Tensor, optional): Spectrograms used for voice styling . Defaults to None.
+        style_feature (torch.Tensor, optional): Spectrograms used for voice styling . Defaults to None.
         d_vector (torch.Tensor, optional): d-vector for multi-speaker models    . Defaults to None.
 
     Returns:
@@ -54,7 +54,7 @@ def run_model_torch(
             "x_lengths": input_lengths,
             "speaker_ids": speaker_id,
             "d_vectors": d_vector,
-            "style_mel": style_mel,
+            "style_feature": style_feature,
             "language_ids": language_id,
             "emotion_ids": emotion_id,
             "emotion_embeddings": emotion_embedding,
@@ -161,12 +161,17 @@ def synthesis(
             Language ID passed to the language embedding layer in multi-langual model. Defaults to None.
     """
     # GST processing
-    style_mel = None
-    if CONFIG.has("gst") and CONFIG.gst and style_wav is not None:
-        if isinstance(style_wav, dict):
-            style_mel = style_wav
-        else:
-            style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
+    style_feature = None
+    if style_wav is not None:
+        if CONFIG.has("gst") and CONFIG.gst:
+            if isinstance(style_wav, dict):
+                style_feature = style_wav
+            else:
+                style_feature = compute_style_feature(style_wav, model.ap, cuda=use_cuda)
+        if hasattr(model, 'compute_style_feature'):
+            style_feature = model.compute_style_feature(style_wav)
+
+
     # convert text to sequence of token IDs
     text_inputs = np.asarray(
         model.tokenizer.text_to_ids(text, language=language_id),
@@ -188,8 +193,8 @@ def synthesis(
     if emotion_embedding is not None:
         emotion_embedding = embedding_to_torch(emotion_embedding, cuda=use_cuda)
 
-    if not isinstance(style_mel, dict):
-        style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
+    if not isinstance(style_feature, dict):
+        style_feature = numpy_to_torch(style_feature, torch.float, cuda=use_cuda)
     text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
     text_inputs = text_inputs.unsqueeze(0)
     # synthesize voice
@@ -197,7 +202,7 @@ def synthesis(
         model,
         text_inputs,
         speaker_id,
-        style_mel,
+        style_feature,
         d_vector=d_vector,
         language_id=language_id,
         emotion_id=emotion_id,

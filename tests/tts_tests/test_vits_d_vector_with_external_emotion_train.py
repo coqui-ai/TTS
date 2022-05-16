@@ -47,7 +47,7 @@ config.model_args.use_emotion_embedding = False
 config.model_args.emotion_embedding_dim = 256
 config.model_args.emotion_just_encoder = True
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
-
+config.use_style_weighted_sampler = True
 # consistency loss
 # config.model_args.use_emotion_encoder_as_loss = True
 # config.model_args.encoder_model_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/model_se.pth.tar"
@@ -64,6 +64,13 @@ command_train = (
     "--coqpit.datasets.0.meta_file_val metadata.csv "
     "--coqpit.datasets.0.path tests/data/ljspeech "
     "--coqpit.datasets.0.meta_file_attn_mask tests/data/ljspeech/metadata_attn_mask.txt "
+    "--coqpit.datasets.0.speech_style style1 "
+    "--coqpit.datasets.1.name ljspeech_test "
+    "--coqpit.datasets.1.meta_file_train metadata.csv "
+    "--coqpit.datasets.1.meta_file_val metadata.csv "
+    "--coqpit.datasets.1.path tests/data/ljspeech "
+    "--coqpit.datasets.1.meta_file_attn_mask tests/data/ljspeech/metadata_attn_mask.txt "
+    "--coqpit.datasets.1.speech_style style2 "
     "--coqpit.test_delay_epochs 0"
 )
 run_cli(command_train)
