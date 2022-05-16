@@ -117,7 +117,9 @@ def load_tts_samples(
         if eval_split:
             if meta_file_val:
                 meta_data_eval = formatter(root_path, meta_file_val, ignored_speakers=ignored_speakers)
-                meta_data_eval = [{**item, **{"language": language, "speech_style": speech_style}} for item in meta_data_eval]
+                meta_data_eval = [
+                    {**item, **{"language": language, "speech_style": speech_style}} for item in meta_data_eval
+                ]
             else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train, eval_split_max_size, eval_split_size)
             meta_data_eval_all += meta_data_eval

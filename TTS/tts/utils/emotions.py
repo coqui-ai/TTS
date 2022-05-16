@@ -1,10 +1,10 @@
 import json
 import os
-import torch
-import numpy as np
 from typing import Any, List
 
 import fsspec
+import numpy as np
+import torch
 from coqpit import Coqpit
 
 from TTS.config import get_from_config_or_model_args_with_default
