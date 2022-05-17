@@ -502,6 +502,7 @@ class VitsArgs(Coqpit):
     external_emotions_embs_file: str = None
     emotion_embedding_dim: int = 0
     num_emotions: int = 0
+    use_text_enc_spk_reversal_classifier: bool = False
 
     # prosody encoder
     use_prosody_encoder: bool = False
@@ -646,8 +647,15 @@ class Vits(BaseTTS):
                 num_style_tokens=self.args.prosody_encoder_num_tokens,
                 gst_embedding_dim=self.args.prosody_embedding_dim,
             )
-            self.speaker_reversal_classifier = ReversalClassifier(
+            self.speaker_pros_enc_reversal_classifier = ReversalClassifier(
                 in_channels=self.args.prosody_embedding_dim,
+                out_channels=self.num_speakers,
+                hidden_channels=256,
+            )
+
+        if self.args.use_text_enc_spk_reversal_classifier:
+            self.speaker_text_enc_reversal_classifier = ReversalClassifier(
+                in_channels=self.args.hidden_channels + self.args.emotion_embedding_dim + self.args.prosody_embedding_dim,
                 out_channels=self.num_speakers,
                 hidden_channels=256,
             )
@@ -988,9 +996,14 @@ class Vits(BaseTTS):
         l_pros_speaker = None
         if self.args.use_prosody_encoder:
             pros_emb = self.prosody_encoder(z).transpose(1, 2)
-            _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
+            _, l_pros_speaker = self.speaker_pros_enc_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
 
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, emo_emb=eg, pros_emb=pros_emb)
+
+        # reversal speaker loss to force the encoder to be speaker identity free
+        l_text_speaker = None
+        if self.args.use_text_enc_spk_reversal_classifier:
+            _, l_text_speaker = self.speaker_text_enc_reversal_classifier(x.transpose(1, 2), sid, x_mask=None)
 
         # flow layers
         z_p = self.flow(z, y_mask, g=g)
@@ -1062,7 +1075,8 @@ class Vits(BaseTTS):
                 "gt_cons_emb": gt_cons_emb,
                 "syn_cons_emb": syn_cons_emb,
                 "slice_ids": slice_ids,
-                "loss_spk_reversal_classifier": l_pros_speaker,
+                "loss_prosody_enc_spk_rev_classifier": l_pros_speaker,
+                "loss_text_enc_spk_rev_classifier": l_text_speaker,
             }
         )
         return outputs
@@ -1357,7 +1371,8 @@ class Vits(BaseTTS):
                     or self.args.use_emotion_encoder_as_loss,
                     gt_cons_emb=self.model_outputs_cache["gt_cons_emb"],
                     syn_cons_emb=self.model_outputs_cache["syn_cons_emb"],
-                    loss_spk_reversal_classifier=self.model_outputs_cache["loss_spk_reversal_classifier"],
+                    loss_prosody_enc_spk_rev_classifier=self.model_outputs_cache["loss_prosody_enc_spk_rev_classifier"],
+                    loss_text_enc_spk_rev_classifier=self.model_outputs_cache["loss_text_enc_spk_rev_classifier"]
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1528,7 +1543,7 @@ class Vits(BaseTTS):
         if (
             self.speaker_manager is not None
             and self.speaker_manager.ids
-            and (self.args.use_speaker_embedding or self.args.use_prosody_encoder)
+            and (self.args.use_speaker_embedding or self.args.use_prosody_encoder or self.args.use_text_enc_spk_reversal_classifier)
         ):
             speaker_ids = [self.speaker_manager.ids[sn] for sn in batch["speaker_names"]]
 

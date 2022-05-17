@@ -533,6 +533,8 @@ class VitsGeneratorLoss(nn.Module):
         self.dur_loss_alpha = c.dur_loss_alpha
         self.mel_loss_alpha = c.mel_loss_alpha
         self.consistency_loss_alpha = c.consistency_loss_alpha
+        self.text_enc_spk_reversal_loss_alpha = c.text_enc_spk_reversal_loss_alpha
+
         self.stft = TorchSTFT(
             c.audio.fft_size,
             c.audio.hop_length,
@@ -605,7 +607,8 @@ class VitsGeneratorLoss(nn.Module):
         use_encoder_consistency_loss=False,
         gt_cons_emb=None,
         syn_cons_emb=None,
-        loss_spk_reversal_classifier=None,
+        loss_prosody_enc_spk_rev_classifier=None,
+        loss_text_enc_spk_rev_classifier=None,
     ):
         """
         Shapes:
@@ -641,9 +644,14 @@ class VitsGeneratorLoss(nn.Module):
             loss = loss + loss_enc
             return_dict["loss_consistency_enc"] = loss_enc
 
-        if loss_spk_reversal_classifier is not None:
-            loss += loss_spk_reversal_classifier
-            return_dict["loss_spk_reversal_classifier"] = loss_spk_reversal_classifier
+        if loss_prosody_enc_spk_rev_classifier is not None:
+            loss += loss_prosody_enc_spk_rev_classifier
+            return_dict["loss_prosody_enc_spk_rev_classifier"] = loss_prosody_enc_spk_rev_classifier
+
+        if loss_text_enc_spk_rev_classifier is not None:
+            loss_text_enc_spk_rev_classifier = loss_text_enc_spk_rev_classifier * self.text_enc_spk_reversal_loss_alpha
+            loss += loss_text_enc_spk_rev_classifier
+            return_dict["loss_text_enc_spk_rev_classifier"] = loss_text_enc_spk_rev_classifier
 
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
