@@ -9,7 +9,7 @@ from scipy import signal
 
 from TTS.encoder.models.lstm import LSTMSpeakerEncoder
 from TTS.encoder.models.resnet import ResNetSpeakerEncoder
-from TTS.utils.io import save_fsspec
+from trainer.io import save_fsspec
 
 
 class AugmentWAV(object):

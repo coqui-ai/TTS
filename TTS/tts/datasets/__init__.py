@@ -13,7 +13,6 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
         Args:
-    <<<<<<< HEAD
             items (List[List]):
                 A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
 
@@ -23,9 +22,6 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
             eval_split_size (float):
                 If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
                 If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
-    =======
-            items (List[List]): A list of samples. Each sample is a list of `[text, audio_path, speaker_id]`.
-    >>>>>>> Fix docstring
     """
     speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
