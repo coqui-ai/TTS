@@ -34,18 +34,18 @@ config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 
 # active multispeaker d-vec mode
-config.model_args.use_speaker_embedding = True
-config.model_args.use_d_vector_file = False
+config.model_args.use_speaker_embedding = False
+config.model_args.use_d_vector_file = True
 config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
 config.model_args.speaker_embedding_channels = 128
 config.model_args.d_vector_dim = 256
 
 # emotion
-config.model_args.use_external_emotions_embeddings = False
-config.model_args.use_emotion_embedding = True
-config.model_args.emotion_just_encoder = False
+config.model_args.use_external_emotions_embeddings = True
+config.model_args.use_emotion_embedding = False
 config.model_args.emotion_embedding_dim = 256
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
+config.model_args.use_text_enc_spk_reversal_classifier = False
 
 # consistency loss
 # config.model_args.use_emotion_encoder_as_loss = True
