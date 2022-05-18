@@ -140,6 +140,18 @@ def main():
         help="Output wav filename.",
     )
     parser.add_argument(
+        "--out_path",
+        type=str,
+        default="",
+        help="Output wav file path.",
+    )
+    parser.add_argument(
+        "--concat_audio",
+        action='store_true',
+        help="Concatenate audio to a single output file",
+        default=False
+    )
+    parser.add_argument(
         "-1", "--use_infile_label",
         action='store_true',
         help="Use in-file label (1st word) as output file name",
@@ -276,6 +288,9 @@ def main():
     with open(args.text_file, 'rt') as fr:
         lines = fr.read().splitlines()
     
+    # Resulting wav
+    tot_wav = []
+
     # RUN THE SYNTHESIS line-by-line
     for ix, line in enumerate(lines):
         # Extract words
@@ -288,22 +303,31 @@ def main():
         else:
             uname = "{}{:03d}".format(args.out_name, ix)
             sent_beg = 0
-        # Prepare output path
-        out_path = PurePath(args.out_dir, "{}.wav".format(uname))
         
         # Remove last word?
         sent_end = -1 if args.rm_last_word else len(words)
 
         # Prepare text to synthesize
         text = " ".join(words[sent_beg:sent_end])
-        print(" > Text #{:03d}: {} --> {}".format(ix, text, out_path))
 
         # kick it
         wav = synthesizer.tts(text, args.speaker_idx, args.speaker_wav, args.gst_style)
 
-        # save the results
-        # print(" > Saving output to {}".format(out_path))
-        synthesizer.save_wav(wav, out_path)
+        # Concatenate resulting wav
+        if args.concat_audio:
+            print(" > Text #{:03d}: {}".format(ix, text))
+            tot_wav.append(wav)
+        else:
+            # Save the wav for each line 
+            # print(" > Saving output to {}".format(out_path))
+            # Prepare output path
+            out_path = PurePath(args.out_dir, "{}.wav".format(uname))
+            print(" > Text #{:03d}: {} --> {}".format(ix, text, out_path))
+            synthesizer.save_wav(wav, out_path)
+    
+    if args.concat_audio:
+        print(" > Saving audio to {}".format(args.out_path))
+        synthesizer.save_wav(tot_wav, args.out_path)
 
 if __name__ == "__main__":
     main()
