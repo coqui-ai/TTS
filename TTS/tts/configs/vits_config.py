@@ -151,7 +151,7 @@ class VitsConfig(BaseTTSConfig):
     d_vector_dim: int = None
 
     # dataset configs
-    compute_f0: bool = False
+    compute_pitch: bool = False
     f0_cache_path: str = None
 
     def __post_init__(self):

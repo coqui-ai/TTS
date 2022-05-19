@@ -646,6 +646,7 @@ class VitsGeneratorLoss(nn.Module):
         if loss_spk_reversal_classifier is not None:
             loss += loss_spk_reversal_classifier
             return_dict["loss_spk_reversal_classifier"] = loss_spk_reversal_classifier
+
         if pitch_loss is not None:
             pitch_loss = pitch_loss * self.pitch_loss_alpha
             loss += pitch_loss
