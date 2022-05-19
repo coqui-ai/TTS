@@ -32,15 +32,19 @@ parser.add_argument("output_path", type=str, help="path for output speakers.json
 parser.add_argument(
     "--old_file", type=str, help="Previous speakers.json file, only compute for new audios.", default=None
 )
-parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
-parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
+parser.add_argument("--use_cuda", type=bool, help="flag to set cuda. Default False", default=False)
+parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
 
 args = parser.parse_args()
 
 c_dataset = load_config(args.config_dataset_path)
 
-meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_split=args.eval)
-wav_files = meta_data_train + meta_data_eval
+meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_split=not args.no_eval)
+
+if meta_data_eval is None:
+    wav_files = meta_data_train
+else:
+    wav_files = meta_data_train + meta_data_eval
 
 encoder_manager = SpeakerManager(
     encoder_model_path=args.model_path,

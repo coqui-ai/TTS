@@ -12,6 +12,7 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
+from TTS.tts.utils.data import get_length_balancer_weights
 from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_balancer_weights, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
@@ -249,6 +250,14 @@ class BaseTTS(BaseTrainerModel):
                 weights += get_speaker_balancer_weights(data_items) * alpha
             else:
                 weights = get_speaker_balancer_weights(data_items) * alpha
+
+        if getattr(config, "use_length_weighted_sampler", False):
+            alpha = getattr(config, "length_weighted_sampler_alpha", 1.0)
+            print(" > Using Length weighted sampler with alpha:", alpha)
+            if weights is not None:
+                weights += get_length_balancer_weights(data_items) * alpha
+            else:
+                weights = get_length_balancer_weights(data_items) * alpha
 
         if weights is not None:
             sampler = WeightedRandomSampler(weights, len(weights))

@@ -18,7 +18,8 @@
                     "description": "EK1 en-rp tacotron2 by NMStoker",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--ek1--tacotron2.zip",
                     "default_vocoder": "vocoder_models/en/ek1/wavegrad",
-                    "commit": "c802255"
+                    "commit": "c802255",
+                    "license": "apache 2.0"
                 }
             },
             "ljspeech": {
@@ -28,7 +29,7 @@
                     "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
                     "commit": "bae2ad0f",
                     "author": "Eren Gölge @erogol",
-                    "license": "",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 },
                 "tacotron2-DDC_ph": {
@@ -37,7 +38,7 @@
                     "default_vocoder": "vocoder_models/en/ljspeech/univnet",
                     "commit": "3900448",
                     "author": "Eren Gölge @erogol",
-                    "license": "",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 },
                 "glow-tts": {
@@ -57,7 +58,7 @@
                     "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
                     "commit": "4581e3d",
                     "author": "Eren Gölge @erogol",
-                    "license": "TBD",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 },
                 "tacotron2-DCA": {
@@ -75,7 +76,7 @@
                     "default_vocoder": null,
                     "commit": "3900448",
                     "author": "Eren Gölge @erogol",
-                    "license": "TBD",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 },
                 "fast_pitch": {
@@ -84,7 +85,7 @@
                     "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
                     "commit": "b27b3ba",
                     "author": "Eren Gölge @erogol",
-                    "license": "TBD",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 }
             },
@@ -95,7 +96,7 @@
                     "default_vocoder": null,
                     "commit": "3900448",
                     "author": "Eren @erogol",
-                    "license": "",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.ai"
                 },
                 "fast_pitch":{
@@ -115,7 +116,7 @@
                     "default_vocoder": "vocoder_models/en/sam/hifigan_v2",
                     "commit": "bae2ad0f",
                     "author": "Eren Gölge @erogol",
-                    "license": "",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 }
             },
@@ -182,6 +183,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--zh-CN--baker--tacotron2-DDC-GST.zip",
                     "commit": "unknown",
                     "author": "@kirianguiller",
+                    "license": "apache 2.0",
                     "default_vocoder": null
                 }
             }
@@ -191,6 +193,7 @@
                 "tacotron2-DDC": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--nl--mai--tacotron2-DDC.zip",
                     "author": "@r-dh",
+                    "license": "apache 2.0",
                     "default_vocoder": "vocoder_models/nl/mai/parallel-wavegan",
                     "stats_file": null,
                     "commit": "540d811"
@@ -203,6 +206,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--de--thorsten--tacotron2-DCA.zip",
                     "default_vocoder": "vocoder_models/de/thorsten/fullband-melgan",
                     "author": "@thorstenMueller",
+                    "license": "apache 2.0",
                     "commit": "unknown"
                 }
             }
@@ -214,6 +218,7 @@
                     "default_vocoder": "vocoder_models/ja/kokoro/hifigan_v1",
                     "description": "Tacotron2 with Double Decoder Consistency trained with Kokoro Speech Dataset.",
                     "author": "@kaiidams",
+                    "license": "apache 2.0",
                     "commit": "401fbd89"
                 }
             }
@@ -237,6 +242,7 @@
                     "default_vocoder": null,
                     "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
                     "author": "@nicolalandro",
+                    "license": "apache 2.0",
                     "commit": null
                 },
                 "vits":{
@@ -244,6 +250,7 @@
                     "default_vocoder": null,
                     "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
                     "author": "@nicolalandro",
+                    "license": "apache 2.0",
                     "commit": null
                 }
             },
@@ -253,6 +260,7 @@
                     "default_vocoder": null,
                     "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
                     "author": "@nicolalandro",
+                    "license": "apache 2.0",
                     "commit": null
                 },
                 "vits":{
@@ -260,7 +268,80 @@
                     "default_vocoder": null,
                     "description": "GlowTTS model as explained on https://github.com/coqui-ai/TTS/issues/1148.",
                     "author": "@nicolalandro",
+                    "license": "apache 2.0",
                     "commit": null
+                }
+            }
+        },
+        "ewe": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--ewe--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "hau": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--hau--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "lin": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--lin--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "tw_akuapem": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--tw_akuapem--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "tw_asante": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--tw_asante--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
+                }
+            }
+        },
+        "yor": {
+            "openbible": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.2_models/tts_models--yor--openbible--vits.zip",
+                    "default_vocoder": null,
+                    "license": "CC-BY-SA 4.0",
+                    "description": "Original work (audio and text) by Biblica available for free at www.biblica.com and open.bible.",
+                    "author": "@coqui_ai",
+                    "commit": "1b22f03"
                 }
             }
         }
@@ -289,7 +370,8 @@
                 "wavegrad": {
                     "description": "EK1 en-rp wavegrad by NMStoker",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--ek1--wavegrad.zip",
-                    "commit": "c802255"
+                    "commit": "c802255",
+                    "license": "apache 2.0"
                 }
             },
             "ljspeech": {
@@ -305,7 +387,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--ljspeech--hifigan_v2.zip",
                     "commit": "bae2ad0f",
                     "author": "@erogol",
-                    "license": "",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.ai"
                 },
                 "univnet": {
@@ -313,7 +395,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--ljspeech--univnet_v2.zip",
                     "commit": "4581e3d",
                     "author": "Eren @erogol",
-                    "license": "TBD",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.ai"
                 }
             },
@@ -333,7 +415,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--vctk--hifigan_v2.zip",
                     "commit": "2f07160",
                     "author": "Edresson Casanova",
-                    "license": "",
+                    "license": "apache 2.0",
                     "contact": ""
                 }
             },
@@ -343,7 +425,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--en--sam--hifigan_v2.zip",
                     "commit": "2f07160",
                     "author": "Eren Gölge @erogol",
-                    "license": "",
+                    "license": "apache 2.0",
                     "contact": "egolge@coqui.ai"
                 }
             }
@@ -353,6 +435,7 @@
                 "parallel-wavegan": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--nl--mai--parallel-wavegan.zip",
                     "author": "@r-dh",
+                    "license": "apache 2.0",
                     "commit": "unknown"
                 }
             }
@@ -362,11 +445,13 @@
                 "wavegrad": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--de--thorsten--wavegrad.zip",
                     "author": "@thorstenMueller",
+                    "license": "apache 2.0",
                     "commit": "unknown"
                 },
                 "fullband-melgan": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--de--thorsten--fullband-melgan.zip",
                     "author": "@thorstenMueller",
+                    "license": "apache 2.0",
                     "commit": "unknown"
                 }
             }
@@ -377,6 +462,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--ja--kokoro--hifigan_v1.zip",
                     "description": "HifiGAN model trained for kokoro dataset by @kaiidams",
                     "author": "@kaiidams",
+                    "license": "apache 2.0",
                     "commit": "3900448"
                 }
             }
