@@ -375,9 +375,7 @@ class Tacotron2(BaseTacotron):
                 if param.requires_grad:
                     if name != "capacitron_vae_layer.beta":
                         model_params_to_clip.append(param)
-        else:
-            model_params_to_clip = self.named_parameters()
-        torch.nn.utils.clip_grad_norm_(model_params_to_clip, self.capacitron_vae.capacitron_grad_clip)
+            torch.nn.utils.clip_grad_norm_(model_params_to_clip, self.capacitron_vae.capacitron_grad_clip)
 
     def _create_logs(self, batch, outputs, ap):
         """Create dashboard log information."""
