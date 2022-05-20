@@ -1,5 +1,5 @@
 import time
-from typing import List, Union
+from typing import List
 
 import numpy as np
 import pysbd
@@ -178,8 +178,9 @@ class Synthesizer(object):
         text: str = "",
         speaker_name: str = "",
         language_name: str = "",
-        speaker_wav: Union[str, List[str]] = None,
+        speaker_wav=None,
         style_wav=None,
+        style_text=None,
         reference_wav=None,
         reference_speaker_name=None,
     ) -> List[int]:
@@ -191,6 +192,7 @@ class Synthesizer(object):
             language_name (str, optional): language id for multi-language models. Defaults to "".
             speaker_wav (Union[str, List[str]], optional): path to the speaker wav. Defaults to None.
             style_wav ([type], optional): style waveform for GST. Defaults to None.
+            style_text ([type], optional): transcription of style_wav for Capacitron. Defaults to None.
             reference_wav ([type], optional): reference waveform for voice conversion. Defaults to None.
             reference_speaker_name ([type], optional): spekaer id of reference waveform. Defaults to None.
         Returns:
@@ -273,10 +275,11 @@ class Synthesizer(object):
                     CONFIG=self.tts_config,
                     use_cuda=self.use_cuda,
                     speaker_id=speaker_id,
-                    language_id=language_id,
                     style_wav=style_wav,
+                    style_text=style_text,
                     use_griffin_lim=use_gl,
                     d_vector=speaker_embedding,
+                    language_id=language_id,
                 )
                 waveform = outputs["wav"]
                 mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
