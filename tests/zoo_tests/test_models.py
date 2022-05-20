@@ -3,7 +3,7 @@ import glob
 import os
 import shutil
 
-from tests import get_tests_output_path, get_tests_data_path, run_cli
+from tests import get_tests_data_path, get_tests_output_path, run_cli
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
@@ -57,6 +57,7 @@ def test_run_all_models():
     assert len(folders) == len(model_names)
     shutil.rmtree(manager.output_prefix)
 
+
 def test_voice_conversion():
     print(" > Run voice conversion inference using YourTTS model.")
     model_name = "tts_models/multilingual/multi-dataset/your_tts"
@@ -65,6 +66,6 @@ def test_voice_conversion():
     reference_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0032.wav")
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     run_cli(
-            f"tts --model_name  {model_name}"
-            f' --out_path {output_path} --speaker_wav {speaker_wav} --reference_wav {reference_wav} --language_idx {language_id} '
+        f"tts --model_name  {model_name}"
+        f" --out_path {output_path} --speaker_wav {speaker_wav} --reference_wav {reference_wav} --language_idx {language_id} "
     )
