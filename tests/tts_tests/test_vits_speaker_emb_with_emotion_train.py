@@ -76,8 +76,8 @@ continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
 emotion_id = "ljspeech-3"
-continue_speakers_path = os.path.join(continue_path, "speakers.json")
-continue_emotion_path = os.path.join(continue_path, "speakers.json")
+continue_speakers_path = config.d_vector_file
+continue_emotion_path = os.path.join(continue_path, "emotions.json")
 
 
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --emotion_idx {emotion_id} --speakers_file_path {continue_speakers_path} --emotions_file_path {continue_emotion_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"

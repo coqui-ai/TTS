@@ -37,7 +37,9 @@ parser.add_argument(
 )
 parser.add_argument("--use_cuda", type=bool, help="flag to set cuda. Default False", default=False)
 parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
-parser.add_argument("--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False)
+parser.add_argument(
+    "--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False
+)
 
 args = parser.parse_args()
 

@@ -71,7 +71,7 @@ style_wav_path = "tests/data/ljspeech/wavs/LJ001-0001.wav"
 continue_speakers_path = os.path.join(continue_path, "speakers.json")
 
 
-inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path} --gst_style {style_wav_path}"
+inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path} --style_wav {style_wav_path}"
 run_cli(inference_command)
 
 # restore the model and continue training for one more epoch
