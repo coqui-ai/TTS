@@ -171,7 +171,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="wav file(s) to condition a multi-speaker TTS model with a Speaker Encoder. You can give multiple file paths. The d_vectors is computed as their average.",
         default=None,
     )
-    parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
+    parser.add_argument("--gst_style", help="Wav path file for GST style reference.", default=None)
     parser.add_argument(
         "--list_speaker_idxs",
         help="List available speaker ids for the defined multi-speaker model.",

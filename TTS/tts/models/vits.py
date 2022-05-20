@@ -1127,7 +1127,7 @@ class Vits(BaseTTS):
             self.config.audio.hop_length,
             self.config.audio.win_length,
             center=False,
-        ).transpose(1, 2)
+        )
         y_lengths = torch.tensor([y.size(-1)]).to(y.device)
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
@@ -1157,7 +1157,7 @@ class Vits(BaseTTS):
         else:
             raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
 
-        z, _, _, y_mask = self.posterior_encoder(y.transpose(1, 2), y_lengths, g=g_src)
+        z, _, _, y_mask = self.posterior_encoder(y, y_lengths, g=g_src)
         z_p = self.flow(z, y_mask, g=g_src)
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
         o_hat = self.waveform_decoder(z_hat * y_mask, g=g_tgt)
