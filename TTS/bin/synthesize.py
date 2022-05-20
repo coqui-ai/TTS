@@ -178,14 +178,10 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="wav file(s) to condition a multi-speaker TTS model with a Speaker Encoder. You can give multiple file paths. The d_vectors is computed as their average.",
         default=None,
     )
-    parser.add_argument("--gst_style", help="Wav path file for GST style reference.", default=None)
-<<<<<<< HEAD
+    parser.add_argument("--style_wav", type=str, help="Wav path file for prosody reference.", default=None)
     parser.add_argument(
-        "--capacitron_style_wav", type=str, help="Wav path file for Capacitron prosody reference.", default=None
+        "--capacitron_style_text", type=str, help="Transcription of the style_wav reference.", default=None
     )
-    parser.add_argument("--capacitron_style_text", type=str, help="Transcription of the reference.", default=None)
-=======
->>>>>>> 3a524b05... Add prosody encoder params on config
     parser.add_argument(
         "--list_speaker_idxs",
         help="List available speaker ids for the defined multi-speaker model.",
@@ -324,9 +320,8 @@ If you don't specify any models, then it uses LJSpeech based English model.
         args.speaker_idx,
         args.language_idx,
         args.speaker_wav,
-        style_wav=args.gst_style,
         reference_wav=args.reference_wav,
-        style_wav=args.capacitron_style_wav,
+        style_wav=args.style_wav,
         style_text=args.capacitron_style_text,
         reference_speaker_name=args.reference_speaker_idx,
         emotion_name=args.emotion_idx,

@@ -25,7 +25,9 @@ parser.add_argument("--output_path", type=str, help="Path for output `pth` or `j
 parser.add_argument("--old_file", type=str, help="Previous embedding file to only compute new audios.", default=None)
 parser.add_argument("--disable_cuda", type=bool, help="Flag to disable cuda.", default=False)
 parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
-parser.add_argument("--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False)
+parser.add_argument(
+    "--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False
+)
 
 args = parser.parse_args()
 

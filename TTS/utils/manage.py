@@ -218,8 +218,8 @@ class ModelManager(object):
         output_stats_path = os.path.join(output_path, "scale_stats.npy")
         output_d_vector_file_path = os.path.join(output_path, "speakers.json")
         output_speaker_ids_file_path = os.path.join(output_path, "speaker_ids.json")
-        speaker_encoder_config_path = os.path.join(output_path, "config_se.json")
-        speaker_encoder_model_path = self._find_speaker_encoder(output_path)
+        encoder_config_path = os.path.join(output_path, "config_se.json")
+        encoder_model_path = self._find_speaker_encoder(output_path)
 
         # update the scale_path.npy file path in the model config.json
         self._update_path("audio.stats_path", output_stats_path, config_path)

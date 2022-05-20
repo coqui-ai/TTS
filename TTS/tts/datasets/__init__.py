@@ -12,16 +12,16 @@ from TTS.tts.datasets.formatters import *
 def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
-        Args:
-            items (List[List]):
-                A list of samples. Each sample is a dict containing the keys "text", "audio_file", and "speaker_name".
+    Args:
+        items (List[List]):
+            A list of samples. Each sample is a dict containing the keys "text", "audio_file", and "speaker_name".
 
-            eval_split_max_size (int):
-                Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
+        eval_split_max_size (int):
+            Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
 
-            eval_split_size (float):
-                If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
-                If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
+        eval_split_size (float):
+            If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
+            If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
     """
     speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
