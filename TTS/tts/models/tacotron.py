@@ -336,7 +336,7 @@ class Tacotron(BaseTacotron):
         return get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr, self)
 
     def get_scheduler(self, optimizer: object):
-        opt = optimizer.primary_optimizer if self.use_capacitron_vae else self.get_optimizer()
+        opt = optimizer.primary_optimizer if self.use_capacitron_vae else optimizer
         return get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, opt)
 
     def before_gradient_clipping(self):
