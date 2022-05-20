@@ -122,7 +122,7 @@ class TestVits(unittest.TestCase):
         args = VitsArgs(num_speakers=num_speakers, use_speaker_embedding=True)
         model = Vits(args)
 
-        ref_inp = torch.randn(1, spec_len, 513)
+        ref_inp = torch.randn(1, 513, spec_len)
         ref_inp_len = torch.randint(1, spec_effective_len, (1,))
         ref_spk_id = torch.randint(1, num_speakers, (1,))
         tgt_spk_id = torch.randint(1, num_speakers, (1,))
