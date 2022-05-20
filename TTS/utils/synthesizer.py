@@ -315,7 +315,7 @@ class Synthesizer(object):
             # get the speaker embedding or speaker id for the reference wav file
             reference_speaker_embedding = None
             reference_speaker_id = None
-            if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "speaker_ids"):
+            if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "ids"):
                 if reference_speaker_name and isinstance(reference_speaker_name, str):
                     if self.tts_config.use_d_vector_file:
                         # get the speaker embedding from the saved d_vectors.
