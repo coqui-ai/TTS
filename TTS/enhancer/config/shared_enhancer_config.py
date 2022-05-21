@@ -17,6 +17,7 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     target_sr: int = 48000
     input_sr: int = 16000
     segment_train: bool = True
+    gt_augment: bool = False
     segment_len: float = 1.0
     grad_clip: List[float] = field(default_factory=lambda: [3.0, 3.0])
     audio_augmentation: Dict = field(default_factory=lambda: {})

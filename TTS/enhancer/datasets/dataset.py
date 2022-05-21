@@ -9,6 +9,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 
 from TTS.encoder.utils.generic_utils import AugmentWAV
+from audiomentations import Compose, Gain, Resample
 
 
 class EnhancerDataset(Dataset):
@@ -41,6 +42,13 @@ class EnhancerDataset(Dataset):
         # Data Augmentation
         self.augmentator = None
         self.gaussian_augmentation_config = None
+        if self.config.gt_augment:
+            self.gt_augment = Compose([
+                Gain(p=1, max_gain_in_db=6),
+                Resample(p=0.5, min_sample_rate=int(0.8 * self.target_sr), max_sample_rate=int(1.2 * self.target_sr)),
+            ])
+        else:
+            self.gt_augment = None
         if augmentation_config:
             self.data_augmentation_p = augmentation_config["p"]
             if self.data_augmentation_p and ("additive" in augmentation_config or "rir" in augmentation_config):
@@ -80,6 +88,8 @@ class EnhancerDataset(Dataset):
     def load_audio(self, wav_path):
         wav, sr = load(wav_path, sr=None, mono=True)
         assert sr == self.target_sr, f"Sample rate mismatch: {sr} vs {self.target_sr}"
+        if self.gt_augment is not None:
+            wav = self.gt_augment(wav, self.target_sr)
         if self.ap.trim_silence:
             wav = self.trim_silence(wav)
         return wav

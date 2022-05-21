@@ -14,6 +14,7 @@ class HifiganConfig(BaseEnhancerConfig):
     segment_len: float = 1.5
     steps_to_start_discriminator: int = 100_000
     steps_to_start_postnet: int = 20_000
+    gt_augment: bool = True
     lr_gen: float = 0.002
     lr_disc: float = 0.02
     lr_scheduler_gen: str = "StepLR"

@@ -26,7 +26,7 @@ from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleD
 class HifiGANArgs(Coqpit):
     num_channel_wn: int = 128
     dilation_rate_wn: int = 3
-    num_blocks_wn: int = 3
+    num_blocks_wn: int = 2
     num_layers_wn: int = 7
     kernel_size_wn: int = 3
     num_channel_postnet: int = 128

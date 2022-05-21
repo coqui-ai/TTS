@@ -32,16 +32,17 @@ config = HifiganConfig(
     model_args=bweArgs,
     audio=audio_config,
     run_name="enhancer_hifigan_vctk",
-    batch_size=16,
-    eval_batch_size=16,
+    batch_size=6,
+    eval_batch_size=6,
     num_loader_workers=4,
     num_eval_loader_workers=4,
     run_eval=True,
     test_delay_epochs=-1,
     target_sr=16000,
     input_sr=16000,
+    gt_augment=True,
     segment_train=True,
-    segment_len=1.5,
+    segment_len=2,
     cudnn_benchmark=False,
     epochs=25,
     print_step=25,
@@ -61,12 +62,12 @@ config = HifiganConfig(
             "conv_mode": "full"
         },
         "EQ": {
-            "min_snr_in_db": -12,
-            "max_snr_in_db": 12,
+            "min_snr_in_db": -10,
+            "max_snr_in_db": 10,
             "p": 0.8
         },
         "gaussian": {
-            "min_snr_in_db": 15,
+            "min_snr_in_db": 25,
             "max_snr_in_db": 45,
             "p": 0.3
         }
