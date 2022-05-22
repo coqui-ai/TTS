@@ -326,8 +326,12 @@ def main():
             synthesizer.save_wav(wav, out_path)
     
     if args.concat_audio:
+        # Concatenate resulting wav
         print(" > Saving audio to {}".format(args.out_path))
-        synthesizer.save_wav(tot_wav, args.out_path)
+        single_wav = []
+        for wav in tot_wav:
+            single_wav.extend(list(wav))
+        synthesizer.save_wav(single_wav, args.out_path)
 
 if __name__ == "__main__":
     main()
