@@ -148,9 +148,9 @@ class StyleEncoder(nn.Module):
                 gst_outputs = self.proj(gst_outputs)
 
             if(self.agg_type == 'concat'):
-                inputs = self._concat_embedding(outputs = inputs, embedded_speakers = gst_outputs)
+                inputs = self._concat_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
             else:
-                inputs = self._add_speaker_embedding(outputs = inputs, embedded_speakers = gst_outputs)
+                inputs = self._add_speaker_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
             return inputs
 
     def diff_forward(self, inputs, ref_mels):
@@ -250,6 +250,9 @@ class StyleEncoder(nn.Module):
             else:
                 return self._add_speaker_embedding(inputs, vaeflow_output['z_T'])
 
+
+    # For this two below, remember if B is batch size, L the sequence length, E is the embedding dim and D the style embed dim
+    # for tacotron2 the encoder outputs comes [B,L,E] and faspitch comes [B,E,L]
     @classmethod
     def _concat_embedding(self, outputs, embedded_speakers):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
@@ -258,7 +261,8 @@ class StyleEncoder(nn.Module):
 
     @classmethod
     def _add_speaker_embedding(self, outputs, embedded_speakers):
-        print(outputs.shape, embedded_speakers.shape)
-        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
-        outputs = outputs + embedded_speakers_
-        return outputs
+        # print(outputs.shape, embedded_speakers.shape)
+        # For fastpitch
+        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(2), -1)
+        outputs = outputs.permute(0,2,1) + embedded_speakers_
+        return outputs.permute(0,2,1)
