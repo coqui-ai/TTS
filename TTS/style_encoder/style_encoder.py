@@ -151,7 +151,7 @@ class StyleEncoder(nn.Module):
                 inputs = self._concat_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
             else:
                 inputs = self._add_speaker_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
-            return inputs
+            return inputs, gst_outputs
 
     def diff_forward(self, inputs, ref_mels):
             diff_output = self.layer.forward(ref_mels)
