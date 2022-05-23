@@ -144,7 +144,7 @@ class StyleForwardTTSArgs(Coqpit):
     d_vector_file: str = None
 
 
-class StyleForwardTTS(BaseTTS):
+class StyleforwardTTS(BaseTTS):
     """General forward TTS model implementation that uses an encoder-decoder architecture with an optional alignment
     network and a pitch predictor.
 
