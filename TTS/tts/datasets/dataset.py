@@ -565,9 +565,24 @@ class PitchExtractor:
 
     @staticmethod
     def create_pitch_file_path(wav_file, cache_path):
-        file_name = os.path.splitext(os.path.basename(wav_file))[0]
+        # Original:
+        #file_name = os.path.splitext(os.path.basename(wav_file))[0]
+
+        #print(wav_file.split('/'))        
+        # CPQD: (must getunique value by getting the concatenated file_name of the subfolders)
+        file_name = wav_file.split('/')[-6] + '_' + wav_file.split('/')[-5] + '_' + wav_file.split('/')[-4] + '_' + wav_file.split('/')[-3] + '_' + wav_file.split('/')[-2] + '_' + os.path.splitext(os.path.basename(wav_file))[0]
+	
+	# If running ljspeech must fave only the last
+        # file_name = os.path.splitext(os.path.basename(wav_file))[0]
+
+
         pitch_file = os.path.join(cache_path, file_name + "_pitch.npy")
         return pitch_file
+    #OLD
+    # def create_pitch_file_path(wav_file, cache_path):
+    #     file_name = os.path.splitext(os.path.basename(wav_file))[0]
+    #     pitch_file = os.path.join(cache_path, file_name + "_pitch.npy")
+    #     return pitch_file
 
     @staticmethod
     def _compute_and_save_pitch(ap, wav_file, pitch_file=None):
