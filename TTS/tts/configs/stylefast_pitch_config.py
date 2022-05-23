@@ -7,7 +7,7 @@ from TTS.style_encoder.configs.style_encoder_config import StyleEncoderConfig
 
 
 @dataclass
-class StyleFastPitchConfig(BaseTTSConfig):
+class StylefastPitchConfig(BaseTTSConfig):
     """Configure `ForwardTTS` as FastPitch model.
 
     Example:
