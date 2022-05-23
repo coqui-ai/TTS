@@ -177,9 +177,9 @@ class StyleEncoder(nn.Module):
                 diff_output = self.proj(diff_output)
 
             if(self.agg_type == 'concat'):
-                return self._concat_embedding(inputs, diff_output['style'])
+                return self._concat_embedding(outputs = inputs, embedded_speakers = diff_output['style'])
             else:
-                return self._add_speaker_embedding(inputs, diff_output['style'])
+                return self._add_speaker_embedding(outputs = inputs, embedded_speakers = diff_output['style'])
     
 
     def vae_forward(self, inputs, ref_mels): 
