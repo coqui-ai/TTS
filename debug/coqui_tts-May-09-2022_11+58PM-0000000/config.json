@@ -15,7 +15,7 @@
     "plot_step": 100,
     "model_param_stats": false,
     "project_name": null,
-    "log_model_step": 10000,
+    "log_model_step": null,
     "wandb_entity": null,
     "save_step": 10000,
     "checkpoint": true,
