@@ -148,9 +148,9 @@ class StyleEncoder(nn.Module):
                 gst_outputs = self.proj(gst_outputs)
 
             if(self.agg_type == 'concat'):
-                inputs = self._concat_embedding(inputs, gst_outputs)
+                inputs = self._concat_embedding(outputs = inputs, embedded_speakers = gst_outputs)
             else:
-                inputs = self._add_speaker_embedding(inputs, gst_outputs)
+                inputs = self._add_speaker_embedding(outputs = inputs, embedded_speakers = gst_outputs)
             return inputs
 
     def diff_forward(self, inputs, ref_mels):
