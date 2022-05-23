@@ -258,7 +258,7 @@ class StyleEncoder(nn.Module):
 
     @classmethod
     def _add_speaker_embedding(self, outputs, embedded_speakers):
-        print(outputs.size(0),outputs.size(1), embedded_speakers.shape)
+        print(outputs.shape, embedded_speakers.shape)
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = outputs + embedded_speakers_
         return outputs
