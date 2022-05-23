@@ -250,13 +250,13 @@ class StyleEncoder(nn.Module):
             else:
                 return self._add_speaker_embedding(inputs, vaeflow_output['z_T'])
 
-    @staticmethod
+    @classmethod
     def _concat_embedding(self, outputs, embedded_speakers):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = torch.cat([outputs, embedded_speakers_], dim=-1)
         return outputs
 
-    @staticmethod
+    @classmethod
     def _add_speaker_embedding(self, outputs, embedded_speakers):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = outputs + embedded_speakers_
