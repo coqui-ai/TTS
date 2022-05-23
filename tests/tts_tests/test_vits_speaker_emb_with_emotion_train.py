@@ -47,6 +47,8 @@ config.model_args.emotion_embedding_dim = 256
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
 config.model_args.use_text_enc_spk_reversal_classifier = False
 
+
+config.model_args.use_prosody_conditional_flow_module = True
 # consistency loss
 # config.model_args.use_emotion_encoder_as_loss = True
 # config.model_args.encoder_model_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/model_se.pth.tar"
