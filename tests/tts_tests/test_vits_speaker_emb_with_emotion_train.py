@@ -76,7 +76,7 @@ continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
 emotion_id = "ljspeech-3"
-continue_speakers_path = config.d_vector_file
+continue_speakers_path = config.model_args.d_vector_file
 continue_emotion_path = os.path.join(continue_path, "emotions.json")
 
 
