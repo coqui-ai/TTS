@@ -662,6 +662,7 @@ class StyleforwardTTS(BaseTTS):
                 alignment_logprob=outputs["alignment_logprob"] if self.use_aligner else None,
                 alignment_soft=outputs["alignment_soft"] if self.use_binary_alignment_loss else None,
                 alignment_hard=outputs["alignment_mas"] if self.use_binary_alignment_loss else None,
+                style_encoder_output=outputs['style_encoder_outputs']
             )
             # compute duration error
             durations_pred = outputs["durations"]
