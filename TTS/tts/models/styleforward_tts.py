@@ -535,9 +535,10 @@ class StyleforwardTTS(BaseTTS):
         o_en, x_mask, g, x_emb = self._forward_encoder(x, x_mask, g)
 
         #Style embedding 
-        se_inputs = [o_en, y]
+        se_inputs = [o_en.permute(0,2,1), y]
         o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
-
+        o_en = o_en.permute(0,2,1)
+        
         # duration predictor pass
         if self.args.detach_duration_predictor:
             o_dr_log = self.duration_predictor(o_en.detach(), x_mask)
@@ -603,12 +604,12 @@ class StyleforwardTTS(BaseTTS):
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).to(x.dtype).float()
         
+        # encoder pass
+        o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, g)
+            
         #Style embedding 
         se_inputs = [o_en, aux_input['mel_spec']]
         o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
-        
-        # encoder pass
-        o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, g)
         # duration predictor pass
         o_dr_log = self.duration_predictor(o_en, x_mask)
         o_dr = self.format_durations(o_dr_log, x_mask).squeeze(1)
