@@ -20,7 +20,7 @@ class GradientReversalFunction(torch.autograd.Function):
 
 
 class ReversalClassifier(nn.Module):
-    """Adversarial classifier with a gradient reversal layer.
+    """Adversarial classifier with an optional gradient reversal layer.
     Adapted from: https://github.com/Tomiinek/Multilingual_Text_to_Speech/
 
     Args:
@@ -29,20 +29,22 @@ class ReversalClassifier(nn.Module):
         hidden_channels (int): Number of hidden channels.
         gradient_clipping_bound (float): Maximal value of the gradient which flows from this module. Default: 0.25
         scale_factor (float): Scale multiplier of the reversed gradientts. Default: 1.0
+        reversal (bool): If True reversal the gradients. Default: True
     """
 
-    def __init__(self, in_channels, out_channels, hidden_channels, gradient_clipping_bounds=0.25, scale_factor=1.0):
+    def __init__(self, in_channels, out_channels, hidden_channels, gradient_clipping_bounds=0.25, scale_factor=1.0, reversal=True):
         super().__init__()
+        self.reversal = reversal
         self._lambda = scale_factor
         self._clipping = gradient_clipping_bounds
         self._out_channels = out_channels
         self._classifier = nn.Sequential(
             nn.Linear(in_channels, hidden_channels), nn.ReLU(), nn.Linear(hidden_channels, out_channels)
         )
-        self.test = nn.Linear(in_channels, hidden_channels)
 
     def forward(self, x, labels, x_mask=None):
-        x = GradientReversalFunction.apply(x, self._lambda, self._clipping)
+        if self.reversal:
+            x = GradientReversalFunction.apply(x, self._lambda, self._clipping)
         x = self._classifier(x)
         loss = self.loss(labels, x, x_mask)
         return x, loss
@@ -60,3 +62,4 @@ class ReversalClassifier(nn.Module):
         target[~input_mask] = ignore_index
 
         return nn.functional.cross_entropy(predictions.transpose(1, 2), target, ignore_index=ignore_index)
+

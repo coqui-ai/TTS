@@ -293,9 +293,9 @@ class Synthesizer(object):
 
         # handle emotion
         emotion_embedding, emotion_id = None, None
-        if self.tts_emotions_file or (
+        if not getattr(self.tts_model, "prosody_encoder", False) and (self.tts_emotions_file or (
             getattr(self.tts_model, "emotion_manager", None) and getattr(self.tts_model.emotion_manager, "ids", None)
-        ):
+        )):
             if emotion_name and isinstance(emotion_name, str):
                 if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (
                     getattr(self.tts_config, "model_args", None)

@@ -541,6 +541,7 @@ class VitsArgs(Coqpit):
     emotion_embedding_dim: int = 0
     num_emotions: int = 0
     use_text_enc_spk_reversal_classifier: bool = False
+    use_text_enc_emo_classifier: bool = False
 
     # prosody encoder
     use_prosody_encoder: bool = False
@@ -548,6 +549,7 @@ class VitsArgs(Coqpit):
     prosody_encoder_num_heads: int = 1
     prosody_encoder_num_tokens: int = 5
     use_prosody_enc_spk_reversal_classifier: bool = False
+    use_prosody_enc_emo_classifier: bool = False
 
     use_prosody_conditional_flow_module: bool = False
 
@@ -706,6 +708,13 @@ class Vits(BaseTTS):
                     out_channels=self.num_speakers,
                     hidden_channels=256,
                 )
+            if self.args.use_prosody_enc_emo_classifier:  
+                self.pros_enc_emotion_classifier = ReversalClassifier(
+                    in_channels=self.args.prosody_embedding_dim,
+                    out_channels=self.num_emotions,
+                    hidden_channels=256,
+                    reversal=False
+                )
 
         if self.args.use_prosody_conditional_flow_module:
             cond_embedding_dim = 0
@@ -730,6 +739,14 @@ class Vits(BaseTTS):
                 + dp_extra_inp_dim,
                 out_channels=self.num_speakers,
                 hidden_channels=256,
+            )
+
+        if self.args.use_text_enc_emo_classifier:
+            self.emo_text_enc_classifier = ReversalClassifier(
+                in_channels=self.args.hidden_channels,
+                out_channels=self.num_emotions,
+                hidden_channels=256,
+                reversal=False
             )
 
         self.waveform_decoder = HifiganGenerator(
@@ -1117,11 +1134,14 @@ class Vits(BaseTTS):
         # prosody embedding
         pros_emb = None
         l_pros_speaker = None
+        l_pros_emotion = None
         if self.args.use_prosody_encoder:
             pros_emb = self.prosody_encoder(z).transpose(1, 2)
             if self.args.use_prosody_enc_spk_reversal_classifier:
                 _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
-
+            if self.args.use_prosody_enc_emo_classifier:
+                _, l_pros_emotion = self.pros_enc_emotion_classifier(pros_emb.transpose(1, 2), eid, x_mask=None)
+               
         x, m_p, logs_p, x_mask = self.text_encoder(
             x,
             x_lengths,
@@ -1133,6 +1153,11 @@ class Vits(BaseTTS):
         # conditional module
         if self.args.use_prosody_conditional_flow_module:
             m_p = self.prosody_conditional_module(m_p, x_mask, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb)
+
+        # reversal speaker loss to force the encoder to be speaker identity free
+        l_text_emotion = None
+        if self.args.use_text_enc_emo_classifier:
+            _, l_text_emotion = self.emo_text_enc_classifier(m_p.transpose(1, 2), eid, x_mask=None)
 
         # reversal speaker loss to force the encoder to be speaker identity free
         l_text_speaker = None
@@ -1214,7 +1239,9 @@ class Vits(BaseTTS):
                 "syn_cons_emb": syn_cons_emb,
                 "slice_ids": slice_ids,
                 "loss_prosody_enc_spk_rev_classifier": l_pros_speaker,
+                "loss_prosody_enc_emo_classifier": l_pros_emotion,
                 "loss_text_enc_spk_rev_classifier": l_text_speaker,
+                "loss_text_enc_emo_classifier": l_text_emotion,
             }
         )
         return outputs
@@ -1531,7 +1558,9 @@ class Vits(BaseTTS):
                     gt_cons_emb=self.model_outputs_cache["gt_cons_emb"],
                     syn_cons_emb=self.model_outputs_cache["syn_cons_emb"],
                     loss_prosody_enc_spk_rev_classifier=self.model_outputs_cache["loss_prosody_enc_spk_rev_classifier"],
+                    loss_prosody_enc_emo_classifier=self.model_outputs_cache["loss_prosody_enc_emo_classifier"],
                     loss_text_enc_spk_rev_classifier=self.model_outputs_cache["loss_text_enc_spk_rev_classifier"],
+                    loss_text_enc_emo_classifier=self.model_outputs_cache["loss_text_enc_emo_classifier"],
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1737,7 +1766,7 @@ class Vits(BaseTTS):
             emotion_embeddings = [emotion_mapping[w]["embedding"] for w in batch["audio_files"]]
             emotion_embeddings = torch.FloatTensor(emotion_embeddings)
 
-        if self.emotion_manager is not None and self.emotion_manager.embeddings and self.args.use_emotion_embedding:
+        if self.emotion_manager is not None and self.emotion_manager.embeddings and (self.args.use_emotion_embedding or self.args.use_prosody_enc_emo_classifier or self.args.use_text_enc_emo_classifier):
             emotion_mapping = self.emotion_manager.embeddings
             emotion_names = [emotion_mapping[w]["name"] for w in batch["audio_files"]]
             emotion_ids = [self.emotion_manager.ids[en] for en in emotion_names]
