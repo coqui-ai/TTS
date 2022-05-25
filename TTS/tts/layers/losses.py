@@ -590,7 +590,8 @@ class VitsGeneratorLoss(nn.Module):
         self.dur_loss_alpha = c.dur_loss_alpha
         self.mel_loss_alpha = c.mel_loss_alpha
         self.consistency_loss_alpha = c.consistency_loss_alpha
-        self.text_enc_spk_reversal_loss_alpha = c.text_enc_spk_reversal_loss_alpha
+        self.emotion_classifier_alpha = c.emotion_classifier_loss_alpha
+        self.speaker_classifier_alpha = c.speaker_classifier_loss_alpha
 
         self.stft = TorchSTFT(
             c.audio.fft_size,
@@ -665,7 +666,9 @@ class VitsGeneratorLoss(nn.Module):
         gt_cons_emb=None,
         syn_cons_emb=None,
         loss_prosody_enc_spk_rev_classifier=None,
+        loss_prosody_enc_emo_classifier=None,
         loss_text_enc_spk_rev_classifier=None,
+        loss_text_enc_emo_classifier=None,
     ):
         """
         Shapes:
@@ -702,14 +705,27 @@ class VitsGeneratorLoss(nn.Module):
             return_dict["loss_consistency_enc"] = loss_enc
 
         if loss_prosody_enc_spk_rev_classifier is not None:
+            loss_prosody_enc_spk_rev_classifier = loss_prosody_enc_spk_rev_classifier * self.speaker_classifier_alpha
             loss += loss_prosody_enc_spk_rev_classifier
             return_dict["loss_prosody_enc_spk_rev_classifier"] = loss_prosody_enc_spk_rev_classifier
 
+        if loss_prosody_enc_emo_classifier is not None:
+            loss_prosody_enc_emo_classifier = loss_prosody_enc_emo_classifier * self.emotion_classifier_alpha
+            loss += loss_prosody_enc_emo_classifier
+            return_dict["loss_prosody_enc_emo_classifier"] = loss_prosody_enc_emo_classifier
+
+
         if loss_text_enc_spk_rev_classifier is not None:
-            loss_text_enc_spk_rev_classifier = loss_text_enc_spk_rev_classifier * self.text_enc_spk_reversal_loss_alpha
+            loss_text_enc_spk_rev_classifier = loss_text_enc_spk_rev_classifier * self.speaker_classifier_alpha
             loss += loss_text_enc_spk_rev_classifier
             return_dict["loss_text_enc_spk_rev_classifier"] = loss_text_enc_spk_rev_classifier
 
+        if loss_text_enc_emo_classifier is not None:
+            loss_text_enc_emo_classifier = loss_text_enc_emo_classifier * self.emotion_classifier_alpha
+            loss += loss_text_enc_emo_classifier
+            return_dict["loss_text_enc_emo_classifier"] = loss_text_enc_emo_classifier
+
+        
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl

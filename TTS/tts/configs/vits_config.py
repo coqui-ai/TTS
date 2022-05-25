@@ -115,7 +115,8 @@ class VitsConfig(BaseTTSConfig):
     mel_loss_alpha: float = 45.0
     dur_loss_alpha: float = 1.0
     consistency_loss_alpha: float = 1.0
-    text_enc_spk_reversal_loss_alpha: float = 2.0
+    speaker_classifier_loss_alpha: float = 2.0
+    emotion_classifier_loss_alpha: float = 4.0
 
     # data loader params
     return_wav: bool = True
