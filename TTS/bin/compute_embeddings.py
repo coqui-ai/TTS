@@ -31,11 +31,7 @@ parser.add_argument(
 )
 parser.add_argument("output_path", type=str, help="path for output .json file.")
 parser.add_argument("--old_file", type=str, help="Previous .json file, only compute for new audios.", default=None)
-parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
-parser.add_argument(
-    "--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False
-)
-parser.add_argument("--use_cuda", type=bool, help="flag to set cuda. Default False", default=False)
+parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=False)
 parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
 parser.add_argument(
     "--use_predicted_label", type=bool, help="If True and predicted label is available with will use it.", default=False
@@ -59,6 +55,7 @@ encoder_manager = EmbeddingManager(
     use_cuda=args.use_cuda,
 )
 
+print("Using CUDA?", args.use_cuda)
 class_name_key = encoder_manager.encoder_config.class_name_key
 
 # compute speaker embeddings

@@ -110,7 +110,7 @@ class EmbeddingManager(BaseIDManager):
             self.load_embeddings_from_file(embedding_file_path)
 
         if encoder_model_path and encoder_config_path:
-            self.init_encoder(encoder_model_path, encoder_config_path)
+            self.init_encoder(encoder_model_path, encoder_config_path, use_cuda=use_cuda)
 
     @property
     def embedding_dim(self):
