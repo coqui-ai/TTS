@@ -552,6 +552,7 @@ class VitsArgs(Coqpit):
     use_prosody_enc_emo_classifier: bool = False
 
     use_prosody_conditional_flow_module: bool = False
+    prosody_conditional_flow_module_on_decoder: bool = False
 
     detach_dp_input: bool = True
     use_language_embedding: bool = False
@@ -1150,15 +1151,6 @@ class Vits(BaseTTS):
             pros_emb=pros_emb if not self.args.use_prosody_conditional_flow_module else None
         )
 
-        # conditional module
-        if self.args.use_prosody_conditional_flow_module:
-            m_p = self.prosody_conditional_module(m_p, x_mask, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb)
-
-        # reversal speaker loss to force the encoder to be speaker identity free
-        l_text_emotion = None
-        if self.args.use_text_enc_emo_classifier:
-            _, l_text_emotion = self.emo_text_enc_classifier(m_p.transpose(1, 2), eid, x_mask=None)
-
         # reversal speaker loss to force the encoder to be speaker identity free
         l_text_speaker = None
         if self.args.use_text_enc_spk_reversal_classifier:
@@ -1166,6 +1158,24 @@ class Vits(BaseTTS):
 
         # flow layers
         z_p = self.flow(z, y_mask, g=g)
+
+        # reversal speaker loss to force the encoder to be speaker identity free
+        l_text_emotion = None
+        if self.args.use_text_enc_emo_classifier:
+            if self.args.prosody_conditional_flow_module_on_decoder:
+                _, l_text_emotion = self.emo_text_enc_classifier(z_p.transpose(1, 2), eid, x_mask=y_mask)
+
+        # conditional module
+        if self.args.use_prosody_conditional_flow_module:
+            if not self.args.prosody_conditional_flow_module_on_decoder:
+                m_p = self.prosody_conditional_module(m_p, x_mask, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb)
+            else:
+                z_p = self.prosody_conditional_module(z_p, y_mask, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb)
+
+        # reversal speaker loss to force the encoder to be speaker identity free
+        if self.args.use_text_enc_emo_classifier:
+            if not self.args.prosody_conditional_flow_module_on_decoder:
+                _, l_text_emotion = self.emo_text_enc_classifier(m_p.transpose(1, 2), eid, x_mask=x_mask)
 
         # duration predictor
         g_dp = g if self.args.condition_dp_on_speaker else None
@@ -1318,7 +1328,8 @@ class Vits(BaseTTS):
 
         # conditional module
         if self.args.use_prosody_conditional_flow_module:
-            m_p = self.prosody_conditional_module(m_p, x_mask, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb)
+            if not self.args.prosody_conditional_flow_module_on_decoder:
+                m_p = self.prosody_conditional_module(m_p, x_mask, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb)
 
         # duration predictor
         g_dp = g if self.args.condition_dp_on_speaker else None
@@ -1358,6 +1369,12 @@ class Vits(BaseTTS):
         logs_p = torch.matmul(attn.transpose(1, 2), logs_p.transpose(1, 2)).transpose(1, 2)
 
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * self.inference_noise_scale
+
+        # conditional module
+        if self.args.use_prosody_conditional_flow_module:
+            if self.args.prosody_conditional_flow_module_on_decoder:
+                z_p = self.prosody_conditional_module(z_p, y_mask, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb, reverse=True)
+
         z = self.flow(z_p, y_mask, g=g, reverse=True)
 
         # upsampling if needed
@@ -1394,7 +1411,7 @@ class Vits(BaseTTS):
 
     @torch.no_grad()
     def inference_voice_conversion(
-        self, reference_wav, speaker_id=None, d_vector=None, reference_speaker_id=None, reference_d_vector=None
+        self, reference_wav, speaker_id=None, d_vector=None, reference_speaker_id=None, reference_d_vector=None, ref_emotion=None, target_emotion=None
     ):
         """Inference for voice conversion
 
@@ -1417,10 +1434,11 @@ class Vits(BaseTTS):
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
         # print(y.shape, y_lengths.shape)
-        wav, _, _ = self.voice_conversion(y, y_lengths, speaker_cond_src, speaker_cond_tgt)
+        wav, _, _ = self.voice_conversion(y, y_lengths, speaker_cond_src, speaker_cond_tgt, ref_emotion, target_emotion)
         return wav
 
-    def voice_conversion(self, y, y_lengths, speaker_cond_src, speaker_cond_tgt):
+
+    def voice_conversion(self, y, y_lengths, speaker_cond_src, speaker_cond_tgt, ref_emotion=None, target_emotion=None):
         """Forward pass for voice conversion
 
         TODO: create an end-point for voice conversion
@@ -1441,12 +1459,30 @@ class Vits(BaseTTS):
             g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
         else:
             raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
+        # emotion embedding
+        if self.args.use_emotion_embedding and ref_emotion is not None and target_emotion is not None:
+            ge_src = self.emb_g(ref_emotion).unsqueeze(-1)
+            ge_tgt = self.emb_g(target_emotion).unsqueeze(-1)
+        elif self.args.use_external_emotions_embeddings and ref_emotion is not None and target_emotion is not None:
+            ge_src = F.normalize(ref_emotion).unsqueeze(-1)
+            ge_tgt = F.normalize(target_emotion).unsqueeze(-1)
 
         z, _, _, y_mask = self.posterior_encoder(y, y_lengths, g=g_src)
         z_p = self.flow(z, y_mask, g=g_src)
+
+        # change the emotion
+        if ge_tgt is not None and ge_tgt is not None and self.args.use_prosody_conditional_flow_module:
+            if not self.args.prosody_conditional_flow_module_on_decoder:
+                ze = self.prosody_conditional_module(z_p, y_mask, g=ge_src, reverse=True)
+                z_p = self.prosody_conditional_module(ze, y_mask, g=ge_tgt)
+            else:
+                ze = self.prosody_conditional_module(z_p, y_mask, g=ge_src)
+                z_p = self.prosody_conditional_module(ze, y_mask, g=ge_tgt, reverse=True)
+
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
         o_hat = self.waveform_decoder(z_hat * y_mask, g=g_tgt)
         return o_hat, y_mask, (z, z_p, z_hat)
+
 
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
         """Perform a single training step. Run the model forward pass and compute losses.

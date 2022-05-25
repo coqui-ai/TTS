@@ -50,16 +50,14 @@ class ReversalClassifier(nn.Module):
         return x, loss
 
     @staticmethod
-    def loss(labels, predictions, x_mask):
-        ignore_index = -100
+    def loss(labels, predictions, x_mask=None, ignore_index=-100):
         if x_mask is None:
             x_mask = torch.Tensor([predictions.size(1)]).repeat(predictions.size(0)).int().to(predictions.device)
-
-        ml = torch.max(x_mask)
-        input_mask = torch.arange(ml, device=predictions.device)[None, :] < x_mask[:, None]
-
-        target = labels.repeat(ml.int().item(), 1).transpose(0, 1)
+            ml = torch.max(x_mask)
+            input_mask = torch.arange(ml, device=predictions.device)[None, :] < x_mask[:, None]
+        else:
+            input_mask = x_mask.squeeze().bool()
+        target = labels.repeat(input_mask.size(-1), 1).transpose(0, 1).int().long()
         target[~input_mask] = ignore_index
-
         return nn.functional.cross_entropy(predictions.transpose(1, 2), target, ignore_index=ignore_index)
 

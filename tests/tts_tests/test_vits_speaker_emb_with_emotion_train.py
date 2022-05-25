@@ -49,6 +49,9 @@ config.model_args.use_text_enc_spk_reversal_classifier = False
 
 
 config.model_args.use_prosody_conditional_flow_module = True
+config.model_args.prosody_conditional_flow_module_on_decoder = True
+config.model_args.use_text_enc_emo_classifier = True
+
 # consistency loss
 # config.model_args.use_emotion_encoder_as_loss = True
 # config.model_args.encoder_model_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/model_se.pth.tar"

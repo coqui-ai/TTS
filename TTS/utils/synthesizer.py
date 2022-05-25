@@ -214,6 +214,8 @@ class Synthesizer(object):
         reference_wav=None,
         reference_speaker_name=None,
         emotion_name=None,
+        source_emotion=None,
+        target_emotion=None,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -293,7 +295,7 @@ class Synthesizer(object):
 
         # handle emotion
         emotion_embedding, emotion_id = None, None
-        if not getattr(self.tts_model, "prosody_encoder", False) and (self.tts_emotions_file or (
+        if not reference_wav and not getattr(self.tts_model, "prosody_encoder", False) and (self.tts_emotions_file or (
             getattr(self.tts_model, "emotion_manager", None) and getattr(self.tts_model.emotion_manager, "ids", None)
         )):
             if emotion_name and isinstance(emotion_name, str):
@@ -398,6 +400,32 @@ class Synthesizer(object):
                     reference_speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(
                         reference_wav
                     )
+            # get the emotions embeddings
+            # handle emotion
+            source_emotion_feature, target_emotion_feature = None, None
+            if source_emotion is not None and target_emotion is not None and not getattr(self.tts_model, "prosody_encoder", False) and (self.tts_emotions_file or (
+                getattr(self.tts_model, "emotion_manager", None) and getattr(self.tts_model.emotion_manager, "ids", None)
+            )):
+                if source_emotion and isinstance(source_emotion, str):
+                    if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (
+                        getattr(self.tts_config, "model_args", None)
+                        and getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False)
+                    ):
+                        # get the average emotion embedding from the saved embeddings.
+                        source_emotion_feature = self.tts_model.emotion_manager.get_mean_embedding(
+                            source_emotion, num_samples=None, randomize=False
+                        )
+                        source_emotion_feature = np.array(source_emotion_feature)[None, :]  # [1 x embedding_dim]
+                        # target
+                        target_emotion_feature = self.tts_model.emotion_manager.get_mean_embedding(
+                            target_emotion, num_samples=None, randomize=False
+                        )
+                        target_emotion_feature = np.array(target_emotion_feature)[None, :]  # [1 x embedding_dim]
+                    else:
+                        # get emotion idx
+                        source_emotion_feature = self.tts_model.emotion_manager.ids[source_emotion]
+                        target_emotion_feature = self.tts_model.emotion_manager.ids[target_emotion]
+
 
             outputs = transfer_voice(
                 model=self.tts_model,
@@ -409,6 +437,8 @@ class Synthesizer(object):
                 use_griffin_lim=use_gl,
                 reference_speaker_id=reference_speaker_id,
                 reference_d_vector=reference_speaker_embedding,
+                source_emotion_feature=source_emotion_feature,
+                target_emotion_feature=target_emotion_feature,
             )
             waveform = outputs
             if not use_gl:
