@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you want to cite 🐸💬, feel free to use this (but only if you loved it 😊)"
+title: "Coqui TTS"
+abstract: "A deep learning toolkit for Text-to-Speech, battle-tested in research and production"
+date-released: 2021-01-01
+authors:
+  - family-names: "Eren"
+    given-names: "Gölge"
+  - name: "The Coqui TTS Team"
+version: 1.4
+doi: 10.5281/zenodo.6334862
+license: "MPL-2.0"
+url: "https://www.coqui.ai"
+repository-code: "https://github.com/coqui-ai/TTS"
+keywords:
+  - machine learning
+  - deep learning
+  - artificial intelligence
+  - text to speech
+  - TTS

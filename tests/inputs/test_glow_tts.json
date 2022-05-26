@@ -66,8 +66,8 @@
     "use_mas": false,       // use Monotonic Alignment Search if true. Otherwise use pre-computed attention alignments.
 
     // TRAINING
-    "batch_size": 2,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
-    "eval_batch_size":1,
+    "batch_size": 8,       // Batch size for training. Lower values than 32 might cause hard to learn attention. It is overwritten by 'gradual_training'.
+    "eval_batch_size": 8,
     "r": 1,                 // Number of decoder frames to predict per iteration. Set the initial values if gradual training is enabled.
     "loss_masking": true,   // enable / disable loss masking against the sequence padding.
     "data_dep_init_iter": 1,

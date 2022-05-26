@@ -60,13 +60,13 @@ If you don't specify any models, then it uses LJSpeech based English model.
 - Run your own TTS model (Using Griffin-Lim Vocoder):
 
     ```
-    $ tts --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
     ```
 
 - Run your own TTS and Vocoder models:
     ```
-    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
-        --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
+    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth --out_path output/path/speech.wav
+        --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
     ```
 
 ### Multi-speaker Models
@@ -86,7 +86,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
 - Run your own multi-speaker TTS model:
 
     ```
-    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth.tar --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
+    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
     ```
     """
     # We remove Markdown code formatting programmatically here to allow us to copy-and-paste from main README to keep
@@ -195,11 +195,28 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="If true save raw spectogram for further (vocoder) processing in out_path.",
         default=False,
     )
-
+    parser.add_argument(
+        "--reference_wav",
+        type=str,
+        help="Reference wav file to convert in the voice of the speaker_idx or speaker_wav",
+        default=None,
+    )
+    parser.add_argument(
+        "--reference_speaker_idx",
+        type=str,
+        help="speaker ID of the reference_wav speaker (If not provided the embedding will be computed using the Speaker Encoder).",
+        default=None,
+    )
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
-    if args.text is None and not args.list_models and not args.list_speaker_idxs and not args.list_language_idxs:
+    if (
+        not args.text
+        and not args.list_models
+        and not args.list_speaker_idxs
+        and not args.list_language_idxs
+        and not args.reference_wav
+    ):
         parser.parse_args(["-h"])
 
     # load model manager
@@ -261,7 +278,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         print(
             " > Available speaker ids: (Set --speaker_idx flag to one of these values to use the multi-speaker model."
         )
-        print(synthesizer.tts_model.speaker_manager.speaker_ids)
+        print(synthesizer.tts_model.speaker_manager.ids)
         return
 
     # query langauge ids of a multi-lingual model.
@@ -269,7 +286,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         print(
             " > Available language ids: (Set --language_idx flag to one of these values to use the multi-lingual model."
         )
-        print(synthesizer.tts_model.language_manager.language_id_mapping)
+        print(synthesizer.tts_model.language_manager.ids)
         return
 
     # check the arguments against a multi-speaker model.
@@ -281,10 +298,18 @@ If you don't specify any models, then it uses LJSpeech based English model.
         return
 
     # RUN THE SYNTHESIS
-    print(" > Text: {}".format(args.text))
+    if args.text:
+        print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx, args.language_idx, args.speaker_wav)
+    wav = synthesizer.tts(
+        args.text,
+        args.speaker_idx,
+        args.language_idx,
+        args.speaker_wav,
+        reference_wav=args.reference_wav,
+        reference_speaker_name=args.reference_speaker_idx,
+    )
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))

@@ -1,6 +1,7 @@
 import os
 
-from TTS.trainer import Trainer, TrainingArgs
+from trainer import Trainer, TrainerArgs
+
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.configs import MultibandMelganConfig
 from TTS.vocoder.datasets.preprocess import load_wav_data
@@ -36,16 +37,10 @@ ap = AudioProcessor(**config.audio.to_dict())
 eval_samples, train_samples = load_wav_data(config.data_path, config.eval_split_size)
 
 # init model
-model = GAN(config)
+model = GAN(config, ap)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainingArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 trainer.fit()

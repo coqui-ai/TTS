@@ -1,0 +1,23 @@
+{% extends "!page.html" %}
+{% block scripts %}
+    {{ super() }}
+    <!-- DocsQA integration start -->
+    <script src="https://cdn.jsdelivr.net/npm/qabot@0.4"></script>
+
+    <qa-bot
+        token="qAFjWNovwHUXKKkVhy4AN6tawSwCMfdb3HJNPLVM23ACdrBGxmBNObM="
+        title="🐸💬TTS Bot"
+        description="A library for advanced Text-to-Speech generation"
+        style="bottom: calc(1.25em + 80px);"
+    >
+    <template>
+        <dl>
+            <dt>You can ask questions about TTS. Try</dt>
+            <dd>What is VITS?</dd>
+            <dd>How to train a TTS model?</dd>
+            <dd>What is the format of training data?</dd>
+        </dl>
+    </template>
+    </qa-bot>
+    <!-- DocsQA integration end -->
+{% endblock %}

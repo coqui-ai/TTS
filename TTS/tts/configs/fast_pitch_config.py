@@ -89,11 +89,11 @@ class FastPitchConfig(BaseTTSConfig):
         pitch_loss_alpha (float):
             Weight for the pitch predictor's loss. If set 0, disables the pitch predictor. Defaults to 1.0.
 
-        binary_loss_alpha (float):
+        binary_align_loss_alpha (float):
             Weight for the binary loss. If set 0, disables the binary loss. Defaults to 1.0.
 
-        binary_align_loss_start_step (int):
-            Start binary alignment loss after this many steps. Defaults to 20000.
+        binary_loss_warmup_epochs (float):
+            Number of epochs to gradually increase the binary loss impact. Defaults to 150.
 
         min_seq_len (int):
             Minimum input sequence length to be used at training.
@@ -129,12 +129,12 @@ class FastPitchConfig(BaseTTSConfig):
     duration_loss_type: str = "mse"
     use_ssim_loss: bool = True
     ssim_loss_alpha: float = 1.0
-    dur_loss_alpha: float = 1.0
     spec_loss_alpha: float = 1.0
-    pitch_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
-    binary_align_loss_alpha: float = 1.0
-    binary_align_loss_start_step: int = 20000
+    pitch_loss_alpha: float = 0.1
+    dur_loss_alpha: float = 0.1
+    binary_align_loss_alpha: float = 0.1
+    binary_loss_warmup_epochs: int = 150
 
     # overrides
     min_seq_len: int = 13
