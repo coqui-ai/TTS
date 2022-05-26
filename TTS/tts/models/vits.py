@@ -548,6 +548,7 @@ class VitsArgs(Coqpit):
     prosody_embedding_dim: int = 0
     prosody_encoder_num_heads: int = 1
     prosody_encoder_num_tokens: int = 5
+    use_prosody_encoder_z_p_input: bool = False
     use_prosody_enc_spk_reversal_classifier: bool = False
     use_prosody_enc_emo_classifier: bool = False
 
@@ -1132,17 +1133,24 @@ class Vits(BaseTTS):
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
 
+        # flow layers
+        z_p = self.flow(z, y_mask, g=g)
+
         # prosody embedding
         pros_emb = None
         l_pros_speaker = None
         l_pros_emotion = None
         if self.args.use_prosody_encoder:
-            pros_emb = self.prosody_encoder(z).transpose(1, 2)
+            if not self.args.use_prosody_encoder_z_p_input:
+                pros_emb = self.prosody_encoder(z).transpose(1, 2)
+            else:
+                pros_emb = self.prosody_encoder(z_p).transpose(1, 2)
+
             if self.args.use_prosody_enc_spk_reversal_classifier:
                 _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
             if self.args.use_prosody_enc_emo_classifier:
                 _, l_pros_emotion = self.pros_enc_emotion_classifier(pros_emb.transpose(1, 2), eid, x_mask=None)
-               
+
         x, m_p, logs_p, x_mask = self.text_encoder(
             x,
             x_lengths,
@@ -1155,9 +1163,6 @@ class Vits(BaseTTS):
         l_text_speaker = None
         if self.args.use_text_enc_spk_reversal_classifier:
             _, l_text_speaker = self.speaker_text_enc_reversal_classifier(x.transpose(1, 2), sid, x_mask=None)
-
-        # flow layers
-        z_p = self.flow(z, y_mask, g=g)
 
         # reversal speaker loss to force the encoder to be speaker identity free
         l_text_emotion = None
@@ -1315,8 +1320,12 @@ class Vits(BaseTTS):
         if self.args.use_prosody_encoder:
             # extract posterior encoder feature
             pf_lengths = torch.tensor([pf.size(-1)]).to(pf.device)
-            z_pro, _, _, _ = self.posterior_encoder(pf, pf_lengths, g=g)
-            pros_emb = self.prosody_encoder(z_pro).transpose(1, 2)
+            z_pro, _, _, z_pro_y_mask = self.posterior_encoder(pf, pf_lengths, g=g)
+            if not self.args.use_prosody_encoder_z_p_input:
+                pros_emb = self.prosody_encoder(z_pro).transpose(1, 2)
+            else:
+                z_p_inf = self.flow(z_pro, z_pro_y_mask, g=g)
+                pros_emb = self.prosody_encoder(z_p_inf).transpose(1, 2)
 
         x, m_p, logs_p, x_mask = self.text_encoder(
             x,
