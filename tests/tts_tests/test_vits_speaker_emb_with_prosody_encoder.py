@@ -49,6 +49,8 @@ config.model_args.use_prosody_enc_emo_classifier = False
 config.model_args.use_text_enc_emo_classifier = True
 config.model_args.use_prosody_encoder_z_p_input = True
 
+config.model_args.prosody_encoder_type = "vae"
+
 config.save_json(config_path)
 
 # train the model for one epoch

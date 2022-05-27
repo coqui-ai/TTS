@@ -19,10 +19,11 @@ from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.generic.classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.tacotron.gst_layers import GST
+from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
+
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
@@ -545,6 +546,7 @@ class VitsArgs(Coqpit):
 
     # prosody encoder
     use_prosody_encoder: bool = False
+    prosody_encoder_type: str = "gst"
     prosody_embedding_dim: int = 0
     prosody_encoder_num_heads: int = 1
     prosody_encoder_num_tokens: int = 5
@@ -698,11 +700,21 @@ class Vits(BaseTTS):
             )
 
         if self.args.use_prosody_encoder:
-            self.prosody_encoder = GST(
-                num_mel=self.args.hidden_channels,
-                num_heads=self.args.prosody_encoder_num_heads,
-                num_style_tokens=self.args.prosody_encoder_num_tokens,
-                gst_embedding_dim=self.args.prosody_embedding_dim,
+            if self.args.prosody_encoder_type == 'gst':
+                self.prosody_encoder = VitsGST(
+                    num_mel=self.args.hidden_channels,
+                    num_heads=self.args.prosody_encoder_num_heads,
+                    num_style_tokens=self.args.prosody_encoder_num_tokens,
+                    gst_embedding_dim=self.args.prosody_embedding_dim,
+                )
+            elif self.args.prosody_encoder_type == 'vae':
+                self.prosody_encoder = VitsVAE(
+                    num_mel=self.args.hidden_channels,
+                    capacitron_VAE_embedding_dim=self.args.prosody_embedding_dim,
+                )
+            else: 
+                raise RuntimeError(
+                f" [!] The Prosody encoder type {self.args.prosody_encoder_type} is not supported !!"
             )
             if self.args.use_prosody_enc_spk_reversal_classifier:
                 self.speaker_reversal_classifier = ReversalClassifier(
@@ -1142,9 +1154,11 @@ class Vits(BaseTTS):
         l_pros_emotion = None
         if self.args.use_prosody_encoder:
             if not self.args.use_prosody_encoder_z_p_input:
-                pros_emb = self.prosody_encoder(z).transpose(1, 2)
+                pros_emb, vae_outputs = self.prosody_encoder(z, y_lengths)
             else:
-                pros_emb = self.prosody_encoder(z_p).transpose(1, 2)
+                pros_emb, vae_outputs = self.prosody_encoder(z_p, y_lengths)
+
+            pros_emb = pros_emb.transpose(1, 2)
 
             if self.args.use_prosody_enc_spk_reversal_classifier:
                 _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
@@ -1253,6 +1267,7 @@ class Vits(BaseTTS):
                 "gt_cons_emb": gt_cons_emb,
                 "syn_cons_emb": syn_cons_emb,
                 "slice_ids": slice_ids,
+                "vae_outputs": vae_outputs,
                 "loss_prosody_enc_spk_rev_classifier": l_pros_speaker,
                 "loss_prosody_enc_emo_classifier": l_pros_emotion,
                 "loss_text_enc_spk_rev_classifier": l_text_speaker,
@@ -1322,10 +1337,12 @@ class Vits(BaseTTS):
             pf_lengths = torch.tensor([pf.size(-1)]).to(pf.device)
             z_pro, _, _, z_pro_y_mask = self.posterior_encoder(pf, pf_lengths, g=g)
             if not self.args.use_prosody_encoder_z_p_input:
-                pros_emb = self.prosody_encoder(z_pro).transpose(1, 2)
+                pros_emb, vae_outputs = self.prosody_encoder(z_pro, pf_lengths)
             else:
                 z_p_inf = self.flow(z_pro, z_pro_y_mask, g=g)
-                pros_emb = self.prosody_encoder(z_p_inf).transpose(1, 2)
+                pros_emb, vae_outputs = self.prosody_encoder(z_p_inf, pf_lengths)
+
+            pros_emb = pros_emb.transpose(1, 2)
 
         x, m_p, logs_p, x_mask = self.text_encoder(
             x,
@@ -1469,6 +1486,7 @@ class Vits(BaseTTS):
         else:
             raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
         # emotion embedding
+        ge_src, ge_tgt = None, None
         if self.args.use_emotion_embedding and ref_emotion is not None and target_emotion is not None:
             ge_src = self.emb_g(ref_emotion).unsqueeze(-1)
             ge_tgt = self.emb_g(target_emotion).unsqueeze(-1)
@@ -1602,6 +1620,7 @@ class Vits(BaseTTS):
                     or self.args.use_emotion_encoder_as_loss,
                     gt_cons_emb=self.model_outputs_cache["gt_cons_emb"],
                     syn_cons_emb=self.model_outputs_cache["syn_cons_emb"],
+                    vae_outputs=self.model_outputs_cache["vae_outputs"],
                     loss_prosody_enc_spk_rev_classifier=self.model_outputs_cache["loss_prosody_enc_spk_rev_classifier"],
                     loss_prosody_enc_emo_classifier=self.model_outputs_cache["loss_prosody_enc_emo_classifier"],
                     loss_text_enc_spk_rev_classifier=self.model_outputs_cache["loss_text_enc_spk_rev_classifier"],
