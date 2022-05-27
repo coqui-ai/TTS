@@ -216,6 +216,7 @@ class Synthesizer(object):
         emotion_name=None,
         source_emotion=None,
         target_emotion=None,
+        style_speaker_name=None,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -247,6 +248,8 @@ class Synthesizer(object):
         # handle multi-speaker
         speaker_embedding = None
         speaker_id = None
+        style_speaker_id = None
+        style_speaker_embedding = None
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "ids"):
             if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
@@ -255,9 +258,19 @@ class Synthesizer(object):
                         speaker_name, num_samples=None, randomize=False
                     )
                     speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
+
+                    if style_speaker_name is not None:
+                        style_speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
+                            style_speaker_name, num_samples=None, randomize=False
+                        )
+                        style_speaker_embedding = np.array(style_speaker_embedding)[None, :]  # [1 x embedding_dim]
+
                 else:
                     # get speaker idx from the speaker name
                     speaker_id = self.tts_model.speaker_manager.ids[speaker_name]
+
+                    if style_speaker_name is not None:
+                        style_speaker_id = self.tts_model.speaker_manager.ids[style_speaker_name]
 
             elif not speaker_name and not speaker_wav:
                 raise ValueError(
@@ -327,6 +340,9 @@ class Synthesizer(object):
         if speaker_wav is not None:
             speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)
 
+        if style_wav is not None and style_speaker_name is None:
+            style_speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(style_wav)
+
         use_gl = self.vocoder_model is None
 
         if not reference_wav:
@@ -340,6 +356,8 @@ class Synthesizer(object):
                     speaker_id=speaker_id,
                     style_wav=style_wav,
                     style_text=style_text,
+                    style_speaker_id=style_speaker_id,
+                    style_speaker_d_vector=style_speaker_embedding,
                     use_griffin_lim=use_gl,
                     d_vector=speaker_embedding,
                     language_id=language_id,
