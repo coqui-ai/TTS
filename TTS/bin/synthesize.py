@@ -179,6 +179,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         default=None,
     )
     parser.add_argument("--style_wav", type=str, help="Wav path file for prosody reference.", default=None)
+    parser.add_argument("--style_speaker_name", type=str, help="The speaker name from the style_wav. If not provide the speaker embedding will be computed using the speaker encoder.", default=None)
     parser.add_argument(
         "--capacitron_style_text", type=str, help="Transcription of the style_wav reference.", default=None
     )
@@ -325,6 +326,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         style_text=args.capacitron_style_text,
         reference_speaker_name=args.reference_speaker_idx,
         emotion_name=args.emotion_idx,
+        style_speaker_name=args.style_speaker_name,
     )
 
     # save the results

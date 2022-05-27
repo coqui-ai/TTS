@@ -981,7 +981,7 @@ class Vits(BaseTTS):
     @staticmethod
     def _set_cond_input(aux_input: Dict):
         """Set the speaker conditioning input based on the multi-speaker mode."""
-        sid, g, lid, eid, eg, pf = None, None, None, None, None, None
+        sid, g, lid, eid, eg, pf, ssid, ssg = None, None, None, None, None, None, None, None
         if "speaker_ids" in aux_input and aux_input["speaker_ids"] is not None:
             sid = aux_input["speaker_ids"]
             if sid.ndim == 0:
@@ -1010,7 +1010,18 @@ class Vits(BaseTTS):
             pf = aux_input["style_feature"]
             if pf.ndim == 2:
                 pf = pf.unsqueeze_(0)
-        return sid, g, lid, eid, eg, pf
+
+        if "style_speaker_id" in aux_input and aux_input["style_speaker_id"] is not None:
+            ssid = aux_input["style_speaker_id"]
+            if ssid.ndim == 0:
+                ssid = ssid.unsqueeze_(0)
+
+        if "style_speaker_d_vector" in aux_input and aux_input["style_speaker_d_vector"] is not None:
+            ssg = F.normalize(aux_input["style_speaker_d_vector"]).unsqueeze(-1)
+            if ssg.ndim == 2:
+                ssg = ssg.unsqueeze_(0)
+
+        return sid, g, lid, eid, eg, pf, ssid, ssg
 
     def _set_speaker_input(self, aux_input: Dict):
         d_vectors = aux_input.get("d_vectors", None)
@@ -1130,7 +1141,7 @@ class Vits(BaseTTS):
             - syn_cons_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
         """
         outputs = {}
-        sid, g, lid, eid, eg, _ = self._set_cond_input(aux_input)
+        sid, g, lid, eid, eg, _, _, _ = self._set_cond_input(aux_input)
         # speaker embedding
         if self.args.use_speaker_embedding and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
@@ -1317,7 +1328,7 @@ class Vits(BaseTTS):
             - m_p: :math:`[B, C, T_dec]`
             - logs_p: :math:`[B, C, T_dec]`
         """
-        sid, g, lid, eid, eg, pf = self._set_cond_input(aux_input)
+        sid, g, lid, eid, eg, pf, ssid, ssg = self._set_cond_input(aux_input)
         x_lengths = self._set_x_lengths(x, aux_input)
 
         # speaker embedding
@@ -1336,13 +1347,17 @@ class Vits(BaseTTS):
         # prosody embedding
         pros_emb = None
         if self.args.use_prosody_encoder:
+            # speaker embedding for the style speaker
+            if self.args.use_speaker_embedding and ssid is not None:
+                ssg = self.emb_g(ssid).unsqueeze(-1)
+
             # extract posterior encoder feature
             pf_lengths = torch.tensor([pf.size(-1)]).to(pf.device)
-            z_pro, _, _, z_pro_y_mask = self.posterior_encoder(pf, pf_lengths, g=g)
+            z_pro, _, _, z_pro_y_mask = self.posterior_encoder(pf, pf_lengths, g=ssg)
             if not self.args.use_prosody_encoder_z_p_input:
                 pros_emb, _ = self.prosody_encoder(z_pro, pf_lengths)
             else:
-                z_p_inf = self.flow(z_pro, z_pro_y_mask, g=g)
+                z_p_inf = self.flow(z_pro, z_pro_y_mask, g=ssg)
                 pros_emb, _ = self.prosody_encoder(z_p_inf, pf_lengths)
 
             pros_emb = pros_emb.transpose(1, 2)
@@ -1687,7 +1702,7 @@ class Vits(BaseTTS):
             config = self.config
 
         # extract speaker and language info
-        text, speaker_name, style_wav, language_name, emotion_name = None, None, None, None, None
+        text, speaker_name, style_wav, language_name, emotion_name, style_speaker_name = None, None, None, None, None, None
 
         if isinstance(sentence_info, list):
             if len(sentence_info) == 1:
@@ -1700,22 +1715,36 @@ class Vits(BaseTTS):
                 text, speaker_name, style_wav, language_name = sentence_info
             elif len(sentence_info) == 5:
                 text, speaker_name, style_wav, language_name, emotion_name = sentence_info
+            elif len(sentence_info) == 6:
+                text, speaker_name, style_wav, language_name, emotion_name, style_speaker_name = sentence_info
         else:
             text = sentence_info
 
+        if style_wav and style_speaker_name is None:
+            raise RuntimeError(
+                f" [!] You must to provide the style_speaker_name for the style_wav !!"
+            )
+
         # get speaker  id/d_vector
-        speaker_id, d_vector, language_id, emotion_id, emotion_embedding = None, None, None, None, None
+        speaker_id, d_vector, language_id, emotion_id, emotion_embedding, style_speaker_id, style_speaker_d_vector = None, None, None, None, None, None, None
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
                     d_vector = self.speaker_manager.get_random_embeddings()
                 else:
                     d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
+
+                if style_wav is not None:
+                    style_speaker_d_vector = self.speaker_manager.get_mean_embedding(style_speaker_name, num_samples=None, randomize=False)
+
             elif config.use_speaker_embedding:
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_id()
                 else:
                     speaker_id = self.speaker_manager.ids[speaker_name]
+
+                if style_wav is not None:
+                    style_speaker_id = self.speaker_manager.ids[style_speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
@@ -1740,6 +1769,8 @@ class Vits(BaseTTS):
             "text": text,
             "speaker_id": speaker_id,
             "style_wav": style_wav,
+            "style_speaker_id": style_speaker_id,
+            "style_speaker_d_vector": style_speaker_d_vector,
             "d_vector": d_vector,
             "language_id": language_id,
             "language_name": language_name,
@@ -1773,6 +1804,8 @@ class Vits(BaseTTS):
                 language_id=aux_inputs["language_id"],
                 emotion_embedding=aux_inputs["emotion_embedding"],
                 emotion_id=aux_inputs["emotion_ids"],
+                style_speaker_id=aux_inputs["style_speaker_id"],
+                style_speaker_d_vector=aux_inputs["style_speaker_d_vector"],
                 use_griffin_lim=True,
                 do_trim_silence=False,
             ).values()
