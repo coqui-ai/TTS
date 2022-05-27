@@ -38,6 +38,7 @@ class CapacitronVAE(nn.Module):
             # TODO: Test a multispeaker model!
             mlp_input_dimension += speaker_embedding_dim
         self.post_encoder_mlp = PostEncoderMLP(mlp_input_dimension, capacitron_VAE_embedding_dim)
+        self.prior_converted_to_device = False
 
     def forward(self, reference_mel_info=None, text_info=None, speaker_embedding=None):
         # Use reference
@@ -59,8 +60,14 @@ class CapacitronVAE(nn.Module):
             # an MLP to produce the parameteres for the approximate poterior distributions
             mu, sigma = self.post_encoder_mlp(enc_out)
             # convert to cpu because prior_distribution was created on cpu
-            mu = mu.cpu()
-            sigma = sigma.cpu()
+            # mu = mu.cpu()
+            # sigma = sigma.cpu()
+            # recreate the prior distribution on the right device
+            if not self.prior_converted_to_device:
+                self.prior_distribution = MVN(
+                    torch.zeros(mu.size(1)).to(mu.device), torch.eye(mu.size(1)).to(mu.device)
+                )
+                self.prior_converted_to_device = True
 
             # Sample from the posterior: z ~ q(z|x)
             self.approximate_posterior_distribution = MVN(mu, torch.diag_embed(sigma))
