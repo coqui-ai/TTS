@@ -592,6 +592,7 @@ class VitsGeneratorLoss(nn.Module):
         self.consistency_loss_alpha = c.consistency_loss_alpha
         self.emotion_classifier_alpha = c.emotion_classifier_loss_alpha
         self.speaker_classifier_alpha = c.speaker_classifier_loss_alpha
+        self.prosody_encoder_kl_loss_alpha = c.prosody_encoder_kl_loss_alpha
 
         self.stft = TorchSTFT(
             c.audio.fft_size,
@@ -665,6 +666,7 @@ class VitsGeneratorLoss(nn.Module):
         use_encoder_consistency_loss=False,
         gt_cons_emb=None,
         syn_cons_emb=None,
+        vae_outputs=None,
         loss_prosody_enc_spk_rev_classifier=None,
         loss_prosody_enc_emo_classifier=None,
         loss_text_enc_spk_rev_classifier=None,
@@ -725,7 +727,16 @@ class VitsGeneratorLoss(nn.Module):
             loss += loss_text_enc_emo_classifier
             return_dict["loss_text_enc_emo_classifier"] = loss_text_enc_emo_classifier
 
-        
+        if vae_outputs is not None:
+            posterior_distribution, prior_distribution = vae_outputs
+            # KL divergence term between the posterior and the prior
+            kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
+            # multiply the loss by the alpha
+            kl_vae_loss = kl_term * self.prosody_encoder_kl_loss_alpha
+
+            loss += kl_vae_loss
+            return_dict["loss_kl_vae"] = kl_vae_loss
+
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
