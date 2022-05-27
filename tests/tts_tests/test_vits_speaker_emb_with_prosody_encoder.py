@@ -52,6 +52,8 @@ config.model_args.use_prosody_encoder_z_p_input = True
 config.model_args.prosody_encoder_type = "vae"
 config.model_args.detach_prosody_enc_input = True
 
+config.mixed_precision = False
+
 config.save_json(config_path)
 
 # train the model for one epoch
