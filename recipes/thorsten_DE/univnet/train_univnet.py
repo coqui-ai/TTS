@@ -3,10 +3,10 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.downloaders import download_thorsten_de
 from TTS.vocoder.configs import UnivnetConfig
 from TTS.vocoder.datasets.preprocess import load_wav_data
 from TTS.vocoder.models.gan import GAN
-from TTS.utils.downloaders import download_thorsten_de
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 config = UnivnetConfig(
