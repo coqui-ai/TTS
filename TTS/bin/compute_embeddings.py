@@ -1,6 +1,7 @@
 import argparse
 import os
 from argparse import RawTextHelpFormatter
+import torch
 
 from tqdm import tqdm
 
@@ -22,10 +23,12 @@ parser.add_argument("config_path", type=str, help="Path to model config file.")
 parser.add_argument("config_dataset_path", type=str, help="Path to dataset config file.")
 parser.add_argument("--output_path", type=str, help="Path for output `pth` or `json` file.", default="speakers.pth")
 parser.add_argument("--old_file", type=str, help="Previous embedding file to only compute new audios.", default=None)
-parser.add_argument("--use_cuda", type=bool, help="flag to set cuda. Default False", default=False)
+parser.add_argument("--disable_cuda", type=bool, help="Flag to disable cuda.", default=False)
 parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
 
 args = parser.parse_args()
+
+use_cuda = torch.cuda.is_available() and not args.disable_cuda
 
 c_dataset = load_config(args.config_dataset_path)
 
@@ -40,7 +43,7 @@ encoder_manager = SpeakerManager(
     encoder_model_path=args.model_path,
     encoder_config_path=args.config_path,
     d_vectors_file_path=args.old_file,
-    use_cuda=args.use_cuda,
+    use_cuda=use_cuda,
 )
 
 class_name_key = encoder_manager.encoder_config.class_name_key
