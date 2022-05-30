@@ -12,20 +12,25 @@ from TTS.utils.audio import AudioProcessor
 
 
 def load_file(path:str):
-    with fsspec.open(path, "rb") as f:
-        if path.endswith(".json"):
+    if path.endswith(".json"):
+        with fsspec.open(path, "r") as f:
             return json.load(f)
-        elif path.endswith(".pth"):
+    elif path.endswith(".pth"):
+        with fsspec.open(path, "rb") as f:
             return torch.load(f, map_location="cpu")
+    else:
+        raise ValueError("Unsupported file type")
 
 
 def save_file(obj: Any, path:str):
-    with fsspec.open(path, "rb") as f:
-        if path.endswith(".json"):
+    if path.endswith(".json"):
+        with fsspec.open(path, "w") as f:
             json.dump(obj, f, indent=4)
-        elif path.endswith(".pth"):
+    elif path.endswith(".pth"):
+        with fsspec.open(path, "wb") as f:
             torch.save(obj, f)
-
+    else:
+        raise ValueError("Unsupported file type")
 
 class BaseIDManager:
     """Base `ID` Manager class. Every new `ID` manager must inherit this.
