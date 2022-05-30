@@ -11,7 +11,7 @@ from TTS.encoder.utils.generic_utils import setup_encoder_model
 from TTS.utils.audio import AudioProcessor
 
 
-def load_file(path:str):
+def load_file(path: str):
     if path.endswith(".json"):
         with fsspec.open(path, "r") as f:
             return json.load(f)
@@ -22,7 +22,7 @@ def load_file(path:str):
         raise ValueError("Unsupported file type")
 
 
-def save_file(obj: Any, path:str):
+def save_file(obj: Any, path: str):
     if path.endswith(".json"):
         with fsspec.open(path, "w") as f:
             json.dump(obj, f, indent=4)
@@ -31,6 +31,7 @@ def save_file(obj: Any, path:str):
             torch.save(obj, f)
     else:
         raise ValueError("Unsupported file type")
+
 
 class BaseIDManager:
     """Base `ID` Manager class. Every new `ID` manager must inherit this.
@@ -146,7 +147,7 @@ class EmbeddingManager(BaseIDManager):
         Args:
             file_path (str): Path to the output file.
         """
-        save_file(self.embeddings,  file_path)
+        save_file(self.embeddings, file_path)
 
     def load_embeddings_from_file(self, file_path: str) -> None:
         """Load embeddings from a json file.

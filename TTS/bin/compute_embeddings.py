@@ -1,14 +1,14 @@
 import argparse
 import os
 from argparse import RawTextHelpFormatter
-import torch
 
+import torch
 from tqdm import tqdm
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.managers import save_file
+from TTS.tts.utils.speakers import SpeakerManager
 
 parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
