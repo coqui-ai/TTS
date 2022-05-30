@@ -608,8 +608,12 @@ class StyleforwardTTS(BaseTTS):
         o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, g)
             
         #Style embedding 
-        se_inputs = [o_en, aux_input['style_mel']]
+        # se_inputs = [o_en, aux_input['style_mel']]
+        # o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
+        se_inputs = [o_en.permute(0,2,1), aux_input['style_mel']]
         o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
+        o_en = o_en.permute(0,2,1)
+        
         # duration predictor pass
         o_dr_log = self.duration_predictor(o_en, x_mask)
         o_dr = self.format_durations(o_dr_log, x_mask).squeeze(1)
