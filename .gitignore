@@ -117,6 +117,7 @@ venv.bak/
 # pytorch models
 *.pth
 *.pth.tar
+!dummy_speakers.pth
 result/
 
 # setup.py
