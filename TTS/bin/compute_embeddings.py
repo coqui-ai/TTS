@@ -7,31 +7,21 @@ from tqdm import tqdm
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.managers import save_file
 
 parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
     """
     Example runs:
-    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth speaker_encoder_config.json  dataset_config.json embeddings_output_path/
+    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth speaker_encoder_config.json  dataset_config.json
     """,
     formatter_class=RawTextHelpFormatter,
 )
 parser.add_argument("model_path", type=str, help="Path to model checkpoint file.")
-parser.add_argument(
-    "config_path",
-    type=str,
-    help="Path to model config file.",
-)
-
-parser.add_argument(
-    "config_dataset_path",
-    type=str,
-    help="Path to dataset config file.",
-)
-parser.add_argument("output_path", type=str, help="path for output speakers.json and/or speakers.npy.")
-parser.add_argument(
-    "--old_file", type=str, help="Previous speakers.json file, only compute for new audios.", default=None
-)
+parser.add_argument("config_path", type=str, help="Path to model config file.")
+parser.add_argument("config_dataset_path", type=str, help="Path to dataset config file.")
+parser.add_argument("--output_path", type=str, help="Path for output `pth` or `json` file.", default="speakers.pth")
+parser.add_argument("--old_file", type=str, help="Previous embedding file to only compute new audios.", default=None)
 parser.add_argument("--use_cuda", type=bool, help="flag to set cuda. Default False", default=False)
 parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
 
@@ -79,13 +69,13 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
 
 if speaker_mapping:
     # save speaker_mapping if target dataset is defined
-    if ".json" not in args.output_path:
-        mapping_file_path = os.path.join(args.output_path, "speakers.json")
+    if os.path.isdir(args.output_path):
+        mapping_file_path = os.path.join(args.output_path, "speakers.pth")
     else:
         mapping_file_path = args.output_path
 
-    os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
+    if os.path.dirname(mapping_file_path) != "":
+        os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
 
-    # pylint: disable=W0212
-    encoder_manager._save_json(mapping_file_path, speaker_mapping)
+    save_file(speaker_mapping, mapping_file_path)
     print("Speaker embeddings saved at:", mapping_file_path)
