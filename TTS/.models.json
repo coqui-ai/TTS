@@ -208,6 +208,13 @@
                     "author": "@thorstenMueller",
                     "license": "apache 2.0",
                     "commit": "unknown"
+                },
+                "vits": {
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.7.0_models/tts_models--de--thorsten--vits.zip",
+                    "default_vocoder": null,
+                    "author": "@thorstenMueller",
+                    "license": "apache 2.0",
+                    "commit": "unknown"
                 }
             }
         },
