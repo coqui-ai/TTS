@@ -11,6 +11,28 @@ from TTS.encoder.utils.generic_utils import setup_encoder_model
 from TTS.utils.audio import AudioProcessor
 
 
+def load_file(path: str):
+    if path.endswith(".json"):
+        with fsspec.open(path, "r") as f:
+            return json.load(f)
+    elif path.endswith(".pth"):
+        with fsspec.open(path, "rb") as f:
+            return torch.load(f, map_location="cpu")
+    else:
+        raise ValueError("Unsupported file type")
+
+
+def save_file(obj: Any, path: str):
+    if path.endswith(".json"):
+        with fsspec.open(path, "w") as f:
+            json.dump(obj, f, indent=4)
+    elif path.endswith(".pth"):
+        with fsspec.open(path, "wb") as f:
+            torch.save(obj, f)
+    else:
+        raise ValueError("Unsupported file type")
+
+
 class BaseIDManager:
     """Base `ID` Manager class. Every new `ID` manager must inherit this.
     It defines common `ID` manager specific functions.
@@ -46,7 +68,7 @@ class BaseIDManager:
         Args:
             file_path (str): Path to the file.
         """
-        self.ids = self._load_json(file_path)
+        self.ids = load_file(file_path)
 
     def save_ids_to_file(self, file_path: str) -> None:
         """Save IDs to a json file.
@@ -54,7 +76,7 @@ class BaseIDManager:
         Args:
             file_path (str): Path to the output file.
         """
-        self._save_json(file_path, self.ids)
+        save_file(self.ids, file_path)
 
     def get_random_id(self) -> Any:
         """Get a random embedding.
@@ -125,7 +147,7 @@ class EmbeddingManager(BaseIDManager):
         Args:
             file_path (str): Path to the output file.
         """
-        self._save_json(file_path, self.embeddings)
+        save_file(self.embeddings, file_path)
 
     def load_embeddings_from_file(self, file_path: str) -> None:
         """Load embeddings from a json file.
@@ -133,7 +155,7 @@ class EmbeddingManager(BaseIDManager):
         Args:
             file_path (str): Path to the target json file.
         """
-        self.embeddings = self._load_json(file_path)
+        self.embeddings = load_file(file_path)
 
         speakers = sorted({x["name"] for x in self.embeddings.values()})
         self.ids = {name: i for i, name in enumerate(speakers)}
