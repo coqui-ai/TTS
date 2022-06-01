@@ -366,7 +366,8 @@ def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=Non
         items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_old_" + speaker_id})
     return items
 
-def synpaflex(root_path, meta_files=None, wavs_path=None, ignored_speakers=None):
+
+def synpaflex(root_path, metafiles=None, **kwargs):  # pylint: disable=unused-argument
     items = []
     speaker_name = "synpaflex"
     root_path = os.path.join(root_path, "")
@@ -375,12 +376,15 @@ def synpaflex(root_path, meta_files=None, wavs_path=None, ignored_speakers=None)
         if os.sep + "wav" + os.sep in wav_file:
             txt_file = wav_file.replace("wav", "txt")
         else:
-            txt_file = os.path.join(os.path.dirname(wav_file), "txt", os.path.basename(wav_file).replace(".wav", ".txt"))
+            txt_file = os.path.join(
+                os.path.dirname(wav_file), "txt", os.path.basename(wav_file).replace(".wav", ".txt")
+            )
         if os.path.exists(txt_file) and os.path.exists(wav_file):
             with open(txt_file, "r", encoding="utf-8") as file_text:
                 text = file_text.readlines()[0]
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items
+
 
 def open_bible(root_path, meta_files="train", ignore_digits_sentences=True, ignored_speakers=None):
     """ToDo: Refer the paper when available"""
