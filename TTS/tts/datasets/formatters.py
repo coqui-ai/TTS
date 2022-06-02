@@ -285,7 +285,12 @@ def brspeech(root_path, meta_file, ignored_speakers=None):
             if isinstance(ignored_speakers, list):
                 if speaker_id in ignored_speakers:
                     continue
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+
+            if os.path.exists(wav_file):
+                items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+            else:
+                print(f" [!] wav files don't exist - {wav_file}")
+
     return items
 
 
