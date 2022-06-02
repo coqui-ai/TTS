@@ -593,6 +593,8 @@ class VitsGeneratorLoss(nn.Module):
         self.emotion_classifier_alpha = c.emotion_classifier_loss_alpha
         self.speaker_classifier_alpha = c.speaker_classifier_loss_alpha
         self.prosody_encoder_kl_loss_alpha = c.prosody_encoder_kl_loss_alpha
+        self.feat_latent_loss_alpha = c.feat_latent_loss_alpha
+        self.gen_latent_loss_alpha = c.gen_latent_loss_alpha
 
         self.stft = TorchSTFT(
             c.audio.fft_size,
@@ -671,6 +673,9 @@ class VitsGeneratorLoss(nn.Module):
         loss_prosody_enc_emo_classifier=None,
         loss_text_enc_spk_rev_classifier=None,
         loss_text_enc_emo_classifier=None,
+        scores_disc_mp=None,
+        feats_disc_mp=None,
+        feats_disc_zp=None,
         end2end_info=None,
     ):
         """
@@ -728,6 +733,18 @@ class VitsGeneratorLoss(nn.Module):
             loss += loss_text_enc_emo_classifier
             return_dict["loss_text_enc_emo_classifier"] = loss_text_enc_emo_classifier
 
+        if scores_disc_mp is not None and feats_disc_mp is not None and feats_disc_zp is not None:
+            # feature loss
+            loss_feat_latent = (
+                self.feature_loss(feats_real=feats_disc_zp, feats_generated=feats_disc_mp) * self.feat_latent_loss_alpha
+            )
+            return_dict["loss_feat_latent"] = loss_feat_latent
+            loss += return_dict["loss_feat_latent"]
+            # gen loss
+            loss_gen_latent = self.generator_loss(scores_fake=scores_disc_mp)[0] * self.gen_latent_loss_alpha
+            return_dict["loss_gen_latent"] = loss_gen_latent
+            loss += return_dict["loss_gen_latent"]
+
         if vae_outputs is not None:
             posterior_distribution, prior_distribution = vae_outputs
             # KL divergence term between the posterior and the prior
@@ -784,6 +801,8 @@ class VitsDiscriminatorLoss(nn.Module):
     def __init__(self, c: Coqpit):
         super().__init__()
         self.disc_loss_alpha = c.disc_loss_alpha
+        self.disc_latent_loss_alpha = c.disc_latent_loss_alpha
+
 
     @staticmethod
     def discriminator_loss(scores_real, scores_fake):
@@ -800,18 +819,25 @@ class VitsDiscriminatorLoss(nn.Module):
             fake_losses.append(fake_loss.item())
         return loss, real_losses, fake_losses
 
-    def forward(self, scores_disc_real, scores_disc_fake, end2end_info=None):
-        loss = 0.0
+    def forward(self, scores_disc_real, scores_disc_fake, scores_disc_zp=None, scores_disc_mp=None, end2end_info=None):
         return_dict = {}
+        return_dict["loss"] = 0.0
         loss_disc, loss_disc_real, _ = self.discriminator_loss(
             scores_real=scores_disc_real, scores_fake=scores_disc_fake
         )
         return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
-        loss = loss + return_dict["loss_disc"]
-        return_dict["loss"] = loss
+        return_dict["loss"] += return_dict["loss_disc"]
 
         for i, ldr in enumerate(loss_disc_real):
             return_dict[f"loss_disc_real_{i}"] = ldr
+
+        # latent discriminator
+        if scores_disc_zp is not None and scores_disc_mp is not None:
+            loss_disc_latent, _, _ = self.discriminator_loss(
+                scores_real=scores_disc_zp, scores_fake=scores_disc_mp
+            )
+            return_dict["loss_disc_latent"] = loss_disc_latent * self.disc_latent_loss_alpha
+            return_dict["loss"] += return_dict["loss_disc_latent"]
 
         if end2end_info is not None:
             loss_disc_end2end, loss_disc_real_end2end, _ = self.discriminator_loss(
