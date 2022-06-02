@@ -58,13 +58,16 @@ class VitsDiscriminator(nn.Module):
         use_spectral_norm (bool): if `True` swith to spectral norm instead of weight norm.
     """
 
-    def __init__(self, periods=(2, 3, 5, 7, 11), use_spectral_norm=False):
+    def __init__(self, periods=(2, 3, 5, 7, 11), use_spectral_norm=False, use_latent_disc=False):
         super().__init__()
         self.nets = nn.ModuleList()
         self.nets.append(DiscriminatorS(use_spectral_norm=use_spectral_norm))
         self.nets.extend([DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods])
+        self.disc_latent = None
+        if use_latent_disc:
+            self.disc_latent = LatentDiscriminator(use_spectral_norm=use_spectral_norm)
 
-    def forward(self, x, x_hat=None):
+    def forward(self, x, x_hat=None, m_p=None, z_p=None):
         """
         Args:
             x (Tensor): ground truth waveform.
@@ -86,4 +89,44 @@ class VitsDiscriminator(nn.Module):
                 x_hat_score, x_hat_feat = net(x_hat)
                 x_hat_scores.append(x_hat_score)
                 x_hat_feats.append(x_hat_feat)
-        return x_scores, x_feats, x_hat_scores, x_hat_feats
+
+        # variables latent disc
+        mp_scores, zp_scores, mp_feats, zp_feats = None, None, None, None
+        if self.disc_latent is not None:
+            if m_p is not None:
+                mp_scores, mp_feats = self.disc_latent(m_p.unsqueeze(1))
+            if z_p is not None:
+                zp_scores, zp_feats = self.disc_latent(z_p.unsqueeze(1))
+
+        return x_scores, x_feats, x_hat_scores, x_hat_feats, mp_scores, mp_feats, zp_scores, zp_feats
+
+
+class LatentDiscriminator(nn.Module):
+    """Discriminator with the same architecture as the Univnet SpecDiscriminator"""
+
+    def __init__(self, use_spectral_norm=False):
+        super().__init__()
+        norm_f = nn.utils.spectral_norm if use_spectral_norm else nn.utils.weight_norm
+        self.discriminators = nn.ModuleList(
+            [
+                norm_f(nn.Conv2d(1, 32, kernel_size=(3, 9), padding=(1, 4))),
+                norm_f(nn.Conv2d(32, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4))),
+                norm_f(nn.Conv2d(32, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4))),
+                norm_f(nn.Conv2d(32, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4))),
+                norm_f(nn.Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))),
+            ]
+        )
+
+        self.out = norm_f(nn.Conv2d(32, 1, 3, 1, 1))
+
+    def forward(self, y):
+        fmap = []
+        for _, d in enumerate(self.discriminators):
+            y = d(y)
+            y = torch.nn.functional.leaky_relu(y, 0.1)
+            fmap.append(y)
+
+        y = self.out(y)
+        fmap.append(y)
+
+        return torch.flatten(y, 1, -1), fmap

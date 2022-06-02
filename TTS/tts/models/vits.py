@@ -20,7 +20,7 @@ from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.generic.classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE
-from TTS.tts.layers.vits.discriminator import VitsDiscriminator
+from TTS.tts.layers.vits.discriminator import VitsDiscriminator, LatentDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 
@@ -563,6 +563,8 @@ class VitsArgs(Coqpit):
     use_end2end_loss: bool = False
     use_soft_dtw: bool = False
 
+    use_latent_discriminator: bool = False
+
     detach_dp_input: bool = True
     use_language_embedding: bool = False
     embedded_language_dim: int = 4
@@ -789,6 +791,7 @@ class Vits(BaseTTS):
             self.disc = VitsDiscriminator(
                 periods=self.args.periods_multi_period_discriminator,
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
+                use_latent_disc=self.args.use_latent_discriminator,
             )
 
     def init_multispeaker(self, config: Coqpit):
@@ -1631,13 +1634,13 @@ class Vits(BaseTTS):
             self.model_outputs_cache = outputs  # pylint: disable=attribute-defined-outside-init
 
             # compute scores and features
-            scores_disc_fake, _, scores_disc_real, _ = self.disc(
-                outputs["model_outputs"].detach(), outputs["waveform_seg"]
+            scores_disc_fake, _, scores_disc_real, _, scores_disc_mp, _, scores_disc_zp, _= self.disc(
+                outputs["model_outputs"].detach(), outputs["waveform_seg"], outputs["m_p"].detach(), outputs["z_p"].detach()
             )
 
             end2end_info = None
             if self.args.use_end2end_loss:
-                scores_disc_fake_end2end, _, scores_disc_real_end2end, _ = self.disc(
+                scores_disc_fake_end2end, _, scores_disc_real_end2end, _, _, _, _, _ = self.disc(
                     outputs["end2end_info"]["model_outputs"].detach(), self.model_outputs_cache["end2end_info"]["waveform_seg"]
                 )
                 end2end_info = {"scores_disc_real": scores_disc_real_end2end, "scores_disc_fake": scores_disc_fake_end2end}
@@ -1647,6 +1650,8 @@ class Vits(BaseTTS):
                 loss_dict = criterion[optimizer_idx](
                     scores_disc_real,
                     scores_disc_fake,
+                    scores_disc_zp,
+                    scores_disc_mp,
                     end2end_info=end2end_info,
                 )
             return outputs, loss_dict
@@ -1678,12 +1683,12 @@ class Vits(BaseTTS):
                 )
 
             # compute discriminator scores and features
-            scores_disc_fake, feats_disc_fake, _, feats_disc_real = self.disc(
-                self.model_outputs_cache["model_outputs"], self.model_outputs_cache["waveform_seg"]
+            scores_disc_fake, feats_disc_fake, _, feats_disc_real, scores_disc_mp, feats_disc_mp, _, feats_disc_zp = self.disc(
+                self.model_outputs_cache["model_outputs"], self.model_outputs_cache["waveform_seg"], self.model_outputs_cache["m_p"], self.model_outputs_cache["z_p"].detach()
             )
 
             if self.args.use_end2end_loss:
-                scores_disc_fake_end2end, feats_disc_fake_end2end, _, feats_disc_real_end2end = self.disc(
+                scores_disc_fake_end2end, feats_disc_fake_end2end, _, feats_disc_real_end2end, _, _, _, _, _ = self.disc(
                     self.model_outputs_cache["end2end_info"]["model_outputs"], self.model_outputs_cache["end2end_info"]["waveform_seg"]
                 )
                 self.model_outputs_cache["end2end_info"]["scores_disc_fake"] = scores_disc_fake_end2end
@@ -1713,6 +1718,9 @@ class Vits(BaseTTS):
                     loss_prosody_enc_emo_classifier=self.model_outputs_cache["loss_prosody_enc_emo_classifier"],
                     loss_text_enc_spk_rev_classifier=self.model_outputs_cache["loss_text_enc_spk_rev_classifier"],
                     loss_text_enc_emo_classifier=self.model_outputs_cache["loss_text_enc_emo_classifier"],
+                    scores_disc_mp=scores_disc_mp,
+                    feats_disc_mp=feats_disc_mp,
+                    feats_disc_zp=feats_disc_zp,
                     end2end_info=self.model_outputs_cache["end2end_info"],
                 )
 
