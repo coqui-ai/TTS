@@ -36,6 +36,7 @@ from TTS.tts.utils.visual import plot_alignment
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
+
 ##############################
 # IO / Feature extraction
 ##############################

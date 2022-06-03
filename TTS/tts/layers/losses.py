@@ -9,7 +9,13 @@ from torch.nn import functional
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.ssim import ssim
 from TTS.utils.audio import TorchSTFT
-
+from TTS.vocoder.layers.losses import (
+    MelganFeatureLoss,
+    MSEDLoss,
+    MSEGLoss,
+    _apply_D_loss,
+    _apply_G_adv_loss,
+)
 
 # pylint: disable=abstract-method
 # relates https://github.com/pytorch/pytorch/issues/42305
@@ -607,6 +613,9 @@ class VitsGeneratorLoss(nn.Module):
             use_mel=True,
             do_amp_to_db=True,
         )
+        if c.model_args.use_latent_discriminator:
+            self.latent_feat_match_loss = MelganFeatureLoss()
+            self.gen_latent_gan_loss = MSEGLoss()
 
     @staticmethod
     def feature_loss(feats_real, feats_generated):
@@ -735,13 +744,11 @@ class VitsGeneratorLoss(nn.Module):
 
         if scores_disc_mp is not None and feats_disc_mp is not None and feats_disc_zp is not None:
             # feature loss
-            loss_feat_latent = (
-                self.feature_loss(feats_real=feats_disc_zp, feats_generated=feats_disc_mp) * self.feat_latent_loss_alpha
-            )
+            loss_feat_latent = self.latent_feat_match_loss(feats_disc_mp, feats_disc_zp) * self.feat_latent_loss_alpha
             return_dict["loss_feat_latent"] = loss_feat_latent
             loss += return_dict["loss_feat_latent"]
             # gen loss
-            loss_gen_latent = self.generator_loss(scores_fake=scores_disc_mp)[0] * self.gen_latent_loss_alpha
+            loss_gen_latent = _apply_G_adv_loss(scores_disc_mp, self.gen_latent_gan_loss) * self.gen_latent_loss_alpha
             return_dict["loss_gen_latent"] = loss_gen_latent
             loss += return_dict["loss_gen_latent"]
 
@@ -801,7 +808,9 @@ class VitsDiscriminatorLoss(nn.Module):
     def __init__(self, c: Coqpit):
         super().__init__()
         self.disc_loss_alpha = c.disc_loss_alpha
-        self.disc_latent_loss_alpha = c.disc_latent_loss_alpha
+        if c.model_args.use_latent_discriminator:
+            self.disc_latent_loss_alpha = c.disc_latent_loss_alpha
+            self.disc_latent_gan_loss = MSEDLoss()
 
 
     @staticmethod
@@ -833,9 +842,11 @@ class VitsDiscriminatorLoss(nn.Module):
 
         # latent discriminator
         if scores_disc_zp is not None and scores_disc_mp is not None:
-            loss_disc_latent, _, _ = self.discriminator_loss(
-                scores_real=scores_disc_zp, scores_fake=scores_disc_mp
+            loss_disc_latent, loss_disc_latent_zp, loss_disc_latent_mp = _apply_D_loss(
+                scores_fake=scores_disc_mp, scores_real=scores_disc_zp, loss_func=self.disc_latent_gan_loss
             )
+            return_dict["loss_disc_latent_mp"] = loss_disc_latent_mp
+            return_dict["loss_disc_latent_zp"] = loss_disc_latent_zp
             return_dict["loss_disc_latent"] = loss_disc_latent * self.disc_latent_loss_alpha
             return_dict["loss"] += return_dict["loss_disc_latent"]
 

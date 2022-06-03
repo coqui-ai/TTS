@@ -12,8 +12,8 @@ output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
 config = VitsConfig(
-    batch_size=3,
-    eval_batch_size=3,
+    batch_size=2,
+    eval_batch_size=2,
     num_loader_workers=0,
     num_eval_loader_workers=0,
     text_cleaner="english_cleaners",
@@ -52,7 +52,7 @@ config.model_args.use_prosody_encoder_z_p_input = True
 config.model_args.prosody_encoder_type = "vae"
 config.model_args.detach_prosody_enc_input = True
 
-config.model_args.use_latent_discriminator = True
+config.model_args.use_latent_discriminator = False
 # enable end2end loss
 config.model_args.use_end2end_loss = False
 
