@@ -134,8 +134,7 @@ class ModelManager(object):
                         else:
                             print("> description : coming soon")
                         if 'default_vocoder' in self.models_dict[model_type][lang][dataset][model]:
-                            print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}") 
-                        return None
+                            print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}")
                     else:
                         print(f'> model {model} does not exist for {model_type}/{lang}/{dataset}.')
                 else:
@@ -144,6 +143,7 @@ class ModelManager(object):
                 print(f'> lang {lang} does not exist for {model_type}.')
         else:
             print(f'> model_type {model_type} does not exist in the list.')
+        return None
 
     def list_tts_models(self):
         """Print all `TTS` models and return a list of model names
