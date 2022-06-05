@@ -124,7 +124,7 @@ class ModelManager(object):
         if model_type in self.models_dict:
             if lang in self.models_dict[model_type]:
                 if dataset in self.models_dict[model_type][lang]:
-                    if model in self.models_dict[model_type][lang][model]:
+                    if model in self.models_dict[model_type][lang][dataset]:
                         print(f"> model type : {model_type}")
                         print(f"> language supported : {lang}")
                         print(f"> dataset used : {dataset}")

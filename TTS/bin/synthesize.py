@@ -273,7 +273,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     # CASE2 #info : model info of pre-trained TTS models
     if args.model_info_by_idx:
         model_query = args.model_info_by_idx
-        manager.model_info(model_query)
+        manager.model_info_by_idx(model_query)
         sys.exit()
     
     if args.model_info_by_name:
