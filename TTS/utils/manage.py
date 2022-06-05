@@ -1,3 +1,4 @@
+from genericpath import exists
 import io
 import json
 import os
@@ -5,6 +6,7 @@ import zipfile
 from pathlib import Path
 from shutil import copyfile, rmtree
 from typing import Dict, Tuple
+from black import E
 
 import requests
 
@@ -89,19 +91,19 @@ class ModelManager(object):
             model_list = self._list_models(model_type, model_count)
             models_name_list.extend(model_list)
         return models_name_list
-	
-    def model_info(self, model_query):
+
+    def model_info_by_idx(self, model_query):
         model_name_list = []
         model_type, model_query_idx = model_query.split('/')
         model_query_idx = int(model_query_idx)
-        model_count = 1
+        model_count = 0
         for lang in self.models_dict[model_type]:
             for dataset in self.models_dict[model_type][lang]:
                 for model in self.models_dict[model_type][lang][dataset]:
                     model_name_list.append(f"{model_type}/{lang}/{dataset}/{model}")
                     model_count += 1
-        if model_query_idx > model_count-1:
-            print(f"model query idx exceeds the number of available models [{model_count-1}] ")
+        if model_query_idx > model_count:
+            print(f"model query idx exceeds the number of available models [{model_count}] ")
             return None
 
         model_type,lang,dataset,model = model_name_list[model_query_idx-1].split('/')
@@ -114,8 +116,36 @@ class ModelManager(object):
             print(f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}")
         else:
             print("> description : coming soon")
+        if 'default_vocoder' in self.models_dict[model_type][lang][dataset][model]:
+            print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}") 
         return None
-		
+
+    def model_info_by_full_name(self, model_query_name):
+        model_type,lang,dataset,model = model_query_name.split('/')
+        if model_type in self.models_dict:
+            if lang in self.models_dict[model_type]:
+                if dataset in self.models_dict[model_type][lang]:
+                    if model in self.models_dict[model_type][lang][model]:
+                        print(f"> model type : {model_type}")
+                        print(f"> language supported : {lang}")
+                        print(f"> dataset used : {dataset}")
+                        print(f"> model name : {model}")
+                        if 'description' in self.models_dict[model_type][lang][dataset][model]:
+                            print(f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}")
+                        else:
+                            print("> description : coming soon")
+                        if 'default_vocoder' in self.models_dict[model_type][lang][dataset][model]:
+                            print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}") 
+                        return None
+                    else:
+                        print(f'> model {model} does not exist for {model_type}/{lang}/{dataset}.')
+                else:
+                    print(f'> dataset {dataset} does not exist for {model_type}/{lang}.')
+            else:
+                print(f'> lang {lang} does not exist for {model_type}.')
+        else:
+            print(f'> model_type {model_type} does not exist in the list.')
+
     def list_tts_models(self):
         """Print all `TTS` models and return a list of model names
 

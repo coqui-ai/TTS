@@ -38,13 +38,19 @@ If you don't specify any models, then it uses LJSpeech based English model.
     ```
     $ tts --list_models
     ```
-    
-- Query info for model idx:
+
+- Query info for model info by idx:
 
     ```
-    $ tts --model_info "<model_type>/<model_query_idx>"
+    $ tts --model_info_by_idx "<model_type>/<model_query_idx>"
     ```
-    
+
+- Query info for model info by full name:
+
+    ```
+    $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
+    ```
+
 - Run TTS with default models:
 
     ```
@@ -54,7 +60,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
 - Run a TTS model with its default vocoder model:
 
     ```
-    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
+    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>"
     ```
 
 - Run with specific TTS and vocoder models from the list:
@@ -110,12 +116,21 @@ If you don't specify any models, then it uses LJSpeech based English model.
         default=False,
         help="list available pre-trained TTS and vocoder models.",
     )
+
     parser.add_argument(
-        "--model_info",  
+        "--model_info_by_idx",  
         type=str,  
         default=None,   
         help="model info using query format: <model_type>/<model_query_idx>",
     )
+
+    parser.add_argument(
+        "--model_info_by_name",  
+        type=str,  
+        default=None,   
+        help="model info using query format: <model_type>/<language>/<dataset>/<model_name>",
+    )
+
     parser.add_argument("--text", type=str, default=None, help="Text to generate speech.")
 
     # Args for running pre-trained TTS models.
@@ -232,7 +247,8 @@ If you don't specify any models, then it uses LJSpeech based English model.
         and not args.list_speaker_idxs
         and not args.list_language_idxs
         and not args.reference_wav
-        and not args.model_info
+        and not args.model_info_by_idx
+        and not args.model_info_by_name
     ):
         parser.parse_args(["-h"])
 
@@ -249,17 +265,22 @@ If you don't specify any models, then it uses LJSpeech based English model.
     encoder_path = None
     encoder_config_path = None
 
-    # CASE1: list pre-trained TTS models
+    # CASE1 #list : list pre-trained TTS models
     if args.list_models:
         manager.list_models()
         sys.exit()
-    
+
     # CASE2 #info : model info of pre-trained TTS models
-    if args.model_info:
-        model_query = args.model_info
+    if args.model_info_by_idx:
+        model_query = args.model_info_by_idx
         manager.model_info(model_query)
         sys.exit()
-        
+    
+    if args.model_info_by_name:
+        model_query_full_name = args.model_info_by_name
+        manager.model_info_by_full_name(model_query_full_name)
+        sys.exit()
+
     # CASE3: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
