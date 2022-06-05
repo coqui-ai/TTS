@@ -89,7 +89,33 @@ class ModelManager(object):
             model_list = self._list_models(model_type, model_count)
             models_name_list.extend(model_list)
         return models_name_list
+	
+    def model_info(self, model_query):
+        model_name_list = []
+        model_type, model_query_idx = model_query.split('/')
+        model_query_idx = int(model_query_idx)
+        model_count = 1
+        for lang in self.models_dict[model_type]:
+            for dataset in self.models_dict[model_type][lang]:
+                for model in self.models_dict[model_type][lang][dataset]:
+                    model_name_list.append(f"{model_type}/{lang}/{dataset}/{model}")
+                    model_count += 1
+        if model_query_idx > model_count-1:
+            print(f"model query idx exceeds the number of available models [{model_count-1}] ")
+            return None
 
+        model_type,lang,dataset,model = model_name_list[model_query_idx-1].split('/')
+        
+        print(f"> model type : {model_type}")
+        print(f"> language supported : {lang}")
+        print(f"> dataset used : {dataset}")
+        print(f"> model name : {model}")
+        if 'description' in self.models_dict[model_type][lang][dataset][model]:
+            print(f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}")
+        else:
+            print("> description : coming soon")
+        return None
+		
     def list_tts_models(self):
         """Print all `TTS` models and return a list of model names
 
