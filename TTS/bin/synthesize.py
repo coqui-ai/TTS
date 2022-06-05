@@ -38,7 +38,13 @@ If you don't specify any models, then it uses LJSpeech based English model.
     ```
     $ tts --list_models
     ```
+    
+- Query info for model idx:
 
+    ```
+    $ tts --model_info "<model_type>/<model_query_idx>"
+    ```
+    
 - Run TTS with default models:
 
     ```
@@ -103,6 +109,12 @@ If you don't specify any models, then it uses LJSpeech based English model.
         const=True,
         default=False,
         help="list available pre-trained TTS and vocoder models.",
+    )
+    parser.add_argument(
+        "--model_info",  
+        type=str,  
+        default=None,   
+        help="model info using query format: <model_type>/<model_query_idx>",
     )
     parser.add_argument("--text", type=str, default=None, help="Text to generate speech.")
 
@@ -220,6 +232,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         and not args.list_speaker_idxs
         and not args.list_language_idxs
         and not args.reference_wav
+        and not args.model_info
     ):
         parser.parse_args(["-h"])
 
@@ -240,8 +253,14 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.list_models:
         manager.list_models()
         sys.exit()
-
-    # CASE2: load pre-trained model paths
+    
+    # CASE2 #info : model info of pre-trained TTS models
+    if args.model_info:
+        model_query = args.model_info
+        manager.model_info(model_query)
+        sys.exit()
+        
+    # CASE3: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
         args.vocoder_name = model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
@@ -249,7 +268,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.vocoder_name is not None and not args.vocoder_path:
         vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
-    # CASE3: set custom model paths
+    # CASE4: set custom model paths
     if args.model_path is not None:
         model_path = args.model_path
         config_path = args.config_path
