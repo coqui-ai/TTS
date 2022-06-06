@@ -20,7 +20,7 @@ from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.generic.classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE
-from TTS.tts.layers.vits.discriminator import VitsDiscriminator, LatentDiscriminator
+from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
@@ -556,7 +556,7 @@ class VitsArgs(Coqpit):
     use_prosody_encoder_z_p_input: bool = False
     use_prosody_enc_spk_reversal_classifier: bool = False
     use_prosody_enc_emo_classifier: bool = False
-    
+
     use_noise_scale_predictor: bool = False
 
     use_prosody_conditional_flow_module: bool = False
@@ -567,7 +567,6 @@ class VitsArgs(Coqpit):
     use_soft_dtw: bool = False
 
     use_latent_discriminator: bool = False
-    provide_hidden_dim_on_the_latent_discriminator: bool = False
 
     detach_dp_input: bool = True
     use_language_embedding: bool = False
@@ -686,10 +685,10 @@ class Vits(BaseTTS):
 
         dp_extra_inp_dim = 0
         if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and not self.args.use_prosody_conditional_flow_module and not self.args.use_noise_scale_predictor:
-                dp_extra_inp_dim += self.args.emotion_embedding_dim
+            dp_extra_inp_dim += self.args.emotion_embedding_dim
 
         if self.args.use_prosody_encoder and not self.args.use_prosody_conditional_flow_module and not self.args.use_noise_scale_predictor:
-                dp_extra_inp_dim += self.args.prosody_embedding_dim
+            dp_extra_inp_dim += self.args.prosody_embedding_dim
 
         if self.args.use_sdp:
             self.duration_predictor = StochasticDurationPredictor(
@@ -724,7 +723,7 @@ class Vits(BaseTTS):
                     num_mel=self.args.hidden_channels,
                     capacitron_VAE_embedding_dim=self.args.prosody_embedding_dim,
                 )
-            else: 
+            else:
                 raise RuntimeError(
                 f" [!] The Prosody encoder type {self.args.prosody_encoder_type} is not supported !!"
             )
@@ -734,7 +733,7 @@ class Vits(BaseTTS):
                     out_channels=self.num_speakers,
                     hidden_channels=256,
                 )
-            if self.args.use_prosody_enc_emo_classifier:  
+            if self.args.use_prosody_enc_emo_classifier:
                 self.pros_enc_emotion_classifier = ReversalClassifier(
                     in_channels=self.args.prosody_embedding_dim,
                     out_channels=self.num_emotions,
@@ -817,7 +816,7 @@ class Vits(BaseTTS):
                 periods=self.args.periods_multi_period_discriminator,
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
                 use_latent_disc=self.args.use_latent_discriminator,
-                hidden_channels=self.args.hidden_channels if self.args.provide_hidden_dim_on_the_latent_discriminator else None,
+                hidden_channels=self.args.hidden_channels,
             )
 
     def init_multispeaker(self, config: Coqpit):
@@ -952,7 +951,7 @@ class Vits(BaseTTS):
                 if value == before_dict[key]:
                     raise RuntimeError(" [!] The weights of Text Encoder was not reinit check it !")
             print(" > Text Encoder was reinit.")
-        
+
     def init_emotion(self, emotion_manager: EmotionManager):
         # pylint: disable=attribute-defined-outside-init
         """Initialize emotion modules of a model. A model can be trained either with a emotion embedding layer
@@ -1345,7 +1344,7 @@ class Vits(BaseTTS):
                     z_p_end2end = self.prosody_conditional_module(z_p_end2end, y_mask_end2end, g=eg if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) else pros_emb, reverse=True)
 
             z_end2end = self.flow(z_p_end2end, y_mask_end2end, g=g, reverse=True)
-        
+
             # interpolate z if needed
             z_end2end, _, _, y_mask_end2end = self.upsampling_z(z, y_lengths=y_lengths_end2end, y_mask=y_mask_end2end)
             # z_slice_end2end, spec_segment_size, slice_ids_end2end, _ = self.upsampling_z(z_slice_end2end, slice_ids=slice_ids_end2end)
@@ -1505,7 +1504,7 @@ class Vits(BaseTTS):
 
         m_p = torch.matmul(attn.transpose(1, 2), m_p.transpose(1, 2)).transpose(1, 2)
         logs_p = torch.matmul(attn.transpose(1, 2), logs_p.transpose(1, 2)).transpose(1, 2)
-        
+
         if self.args.use_noise_scale_predictor:
             nsp_input = torch.transpose(m_p, 1, -1)
             if self.args.use_prosody_encoder and pros_emb is not None:
@@ -1850,7 +1849,7 @@ class Vits(BaseTTS):
 
         if style_wav and style_speaker_name is None:
             raise RuntimeError(
-                f" [!] You must to provide the style_speaker_name for the style_wav !!"
+                " [!] You must to provide the style_speaker_name for the style_wav !!"
             )
 
         # get speaker  id/d_vector

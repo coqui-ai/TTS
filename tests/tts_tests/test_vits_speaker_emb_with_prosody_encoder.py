@@ -53,7 +53,6 @@ config.model_args.prosody_encoder_type = "gst"
 config.model_args.detach_prosody_enc_input = True
 
 config.model_args.use_latent_discriminator = True
-config.model_args.provide_hidden_dim_on_the_latent_discriminator = True
 config.model_args.use_noise_scale_predictor = False
 
 # enable end2end loss

@@ -60,4 +60,3 @@ class ReversalClassifier(nn.Module):
         target = labels.repeat(input_mask.size(-1), 1).transpose(0, 1).int().long()
         target[~input_mask] = ignore_index
         return nn.functional.cross_entropy(predictions.transpose(1, 2), target, ignore_index=ignore_index)
-
