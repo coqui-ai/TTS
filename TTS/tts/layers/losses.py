@@ -685,7 +685,6 @@ class VitsGeneratorLoss(nn.Module):
         scores_disc_mp=None,
         feats_disc_mp=None,
         feats_disc_zp=None,
-        end2end_info=None,
     ):
         """
         Shapes:
@@ -762,32 +761,6 @@ class VitsGeneratorLoss(nn.Module):
             loss += kl_vae_loss
             return_dict["loss_kl_vae"] = kl_vae_loss
 
-        if end2end_info is not None:
-
-            # gen loss
-            loss_gen_end2end = self.generator_loss(scores_fake=end2end_info["scores_disc_fake"])[0] * self.gen_loss_alpha
-            return_dict["loss_gen_end2end"] = loss_gen_end2end
-            loss += loss_gen_end2end
-
-            # if do not uses soft dtw
-            if end2end_info["z_predicted"] is not None:
-                # loss KL using GT durations
-                z = end2end_info["z"].float()
-                logs_q = end2end_info["logs_q"].float()
-                z_predicted = end2end_info["z_predicted"].float()
-                logs_p = end2end_info["logs_p"].float()
-                z_mask = end2end_info["z_mask"].float()
-
-                kl = logs_p - logs_q - 0.5
-                kl += 0.5 * ((z - z_predicted) ** 2) * torch.exp(-2.0 * logs_p)
-                kl = torch.sum(kl * z_mask)
-                loss_kl_end2end_gt_durations = kl / torch.sum(z_mask)
-                return_dict["loss_kl_end2end_gt_durations"] = loss_kl_end2end_gt_durations
-                loss += loss_kl_end2end_gt_durations
-            else:
-                pass
-                # ToDo: implement soft dtw
-
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
@@ -822,7 +795,7 @@ class VitsDiscriminatorLoss(nn.Module):
             fake_losses.append(fake_loss.item())
         return loss, real_losses, fake_losses
 
-    def forward(self, scores_disc_real, scores_disc_fake, scores_disc_zp=None, scores_disc_mp=None, end2end_info=None):
+    def forward(self, scores_disc_real, scores_disc_fake, scores_disc_zp=None, scores_disc_mp=None):
         return_dict = {}
         return_dict["loss"] = 0.0
         loss_disc, loss_disc_real, _ = self.discriminator_loss(
@@ -843,17 +816,6 @@ class VitsDiscriminatorLoss(nn.Module):
             return_dict["loss_disc_latent_zp"] = loss_disc_latent_zp
             return_dict["loss_disc_latent"] = loss_disc_latent * self.disc_latent_loss_alpha
             return_dict["loss"] += return_dict["loss_disc_latent"]
-
-        if end2end_info is not None:
-            loss_disc_end2end, loss_disc_real_end2end, _ = self.discriminator_loss(
-                scores_real=end2end_info["scores_disc_real"], scores_fake=end2end_info["scores_disc_fake"],
-            )
-            return_dict["loss_disc_end2end"] = loss_disc_end2end * self.disc_loss_alpha
-            return_dict["loss"] += return_dict["loss_disc_end2end"]
-
-            for i, ldr in enumerate(loss_disc_real_end2end):
-                return_dict[f"loss_disc_end2end_real_{i}"] = ldr
-
 
         return return_dict
 
