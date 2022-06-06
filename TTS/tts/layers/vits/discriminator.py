@@ -94,9 +94,9 @@ class VitsDiscriminator(nn.Module):
         mp_scores, zp_scores, mp_feats, zp_feats = None, None, None, None
         if self.disc_latent is not None:
             if m_p is not None:
-                mp_scores, mp_feats = self.disc_latent(m_p.unsqueeze(1))
+                mp_scores, mp_feats = self.disc_latent(m_p.unsqueeze(-1))
             if z_p is not None:
-                zp_scores, zp_feats = self.disc_latent(z_p.unsqueeze(1))
+                zp_scores, zp_feats = self.disc_latent(z_p.unsqueeze(-1))
 
         return x_scores, x_feats, x_hat_scores, x_hat_feats, mp_scores, mp_feats, zp_scores, zp_feats
 
@@ -107,7 +107,6 @@ class LatentDiscriminator(nn.Module):
     def __init__(self, use_spectral_norm=False, hidden_channels=None):
         super().__init__()
         norm_f = nn.utils.spectral_norm if use_spectral_norm else nn.utils.weight_norm
-        self.hidden_channels = hidden_channels
         self.discriminators = nn.ModuleList(
             [
                 norm_f(nn.Conv2d(1 if hidden_channels is None else hidden_channels, 32, kernel_size=(3, 9), padding=(1, 4))),
@@ -122,8 +121,6 @@ class LatentDiscriminator(nn.Module):
 
     def forward(self, y):
         fmap = []
-        if self.hidden_channels is not None:
-            y = y.squeeze(1).unsqueeze(-1)
         for _, d in enumerate(self.discriminators):
             y = d(y)
             y = torch.nn.functional.leaky_relu(y, 0.1)

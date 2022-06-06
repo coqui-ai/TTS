@@ -423,7 +423,7 @@ class Synthesizer(object):
             source_emotion_feature, target_emotion_feature = None, None
             if source_emotion is not None and target_emotion is not None and not getattr(self.tts_model, "prosody_encoder", False) and (self.tts_emotions_file or (
                 getattr(self.tts_model, "emotion_manager", None) and getattr(self.tts_model.emotion_manager, "ids", None)
-            )):
+            )): # pylint: disable=R0916
                 if source_emotion and isinstance(source_emotion, str):
                     if getattr(self.tts_config, "use_external_emotions_embeddings", False) or (
                         getattr(self.tts_config, "model_args", None)

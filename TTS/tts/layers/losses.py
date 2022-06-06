@@ -761,20 +761,14 @@ class VitsGeneratorLoss(nn.Module):
 
             loss += kl_vae_loss
             return_dict["loss_kl_vae"] = kl_vae_loss
-        
+
         if end2end_info is not None:
-            # do not compute feature loss because for it we need waves segments with the same length
-            '''loss_feat_end2end = (
-                self.feature_loss(feats_real=end2end_info["feats_disc_real"], feats_generated=end2end_info["feats_disc_fake"]) * self.feat_loss_alpha
-            )
-            return_dict["loss_feat_end2end"] = loss_feat_end2end
-            loss += loss_feat_end2end'''
 
             # gen loss
             loss_gen_end2end = self.generator_loss(scores_fake=end2end_info["scores_disc_fake"])[0] * self.gen_loss_alpha
             return_dict["loss_gen_end2end"] = loss_gen_end2end
             loss += loss_gen_end2end
-            
+
             # if do not uses soft dtw
             if end2end_info["z_predicted"] is not None:
                 # loss KL using GT durations
@@ -793,7 +787,7 @@ class VitsGeneratorLoss(nn.Module):
             else:
                 pass
                 # ToDo: implement soft dtw
- 
+
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
@@ -854,7 +848,7 @@ class VitsDiscriminatorLoss(nn.Module):
             loss_disc_end2end, loss_disc_real_end2end, _ = self.discriminator_loss(
                 scores_real=end2end_info["scores_disc_real"], scores_fake=end2end_info["scores_disc_fake"],
             )
-            return_dict["loss_disc_end2end"] = loss_disc_end2end * self.disc_loss_alpha 
+            return_dict["loss_disc_end2end"] = loss_disc_end2end * self.disc_loss_alpha
             return_dict["loss"] += return_dict["loss_disc_end2end"]
 
             for i, ldr in enumerate(loss_disc_real_end2end):
