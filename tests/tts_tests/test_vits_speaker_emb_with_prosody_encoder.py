@@ -49,10 +49,13 @@ config.model_args.use_prosody_enc_emo_classifier = False
 config.model_args.use_text_enc_emo_classifier = False
 config.model_args.use_prosody_encoder_z_p_input = True
 
-config.model_args.prosody_encoder_type = "vae"
+config.model_args.prosody_encoder_type = "gst"
 config.model_args.detach_prosody_enc_input = True
 
-config.model_args.use_latent_discriminator = False
+config.model_args.use_latent_discriminator = True
+config.model_args.provide_hidden_dim_on_the_latent_discriminator = True
+config.model_args.use_noise_scale_predictor = False
+
 # enable end2end loss
 config.model_args.use_end2end_loss = False
 
