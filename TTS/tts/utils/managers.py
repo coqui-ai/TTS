@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 import fsspec
 import numpy as np
 import torch
+from torch import nn
 
 from TTS.config import load_config
 from TTS.encoder.utils.generic_utils import setup_encoder_model
@@ -33,12 +34,13 @@ def save_file(obj: Any, path: str):
         raise ValueError("Unsupported file type")
 
 
-class BaseIDManager:
+class BaseIDManager(nn.Module):
     """Base `ID` Manager class. Every new `ID` manager must inherit this.
     It defines common `ID` manager specific functions.
     """
 
     def __init__(self, id_file_path: str = ""):
+        super().__init__()
         self.ids = {}
 
         if id_file_path:
