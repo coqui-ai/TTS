@@ -551,7 +551,7 @@ class VitsArgs(Coqpit):
     emotion_embedding_squeezer_input_dim: int = 0
     use_speaker_embedding_squeezer: bool = False
     speaker_embedding_squeezer_input_dim: int = 0
-    
+
     use_speaker_embedding_as_emotion: bool = False
 
     # prosody encoder
