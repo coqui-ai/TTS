@@ -546,6 +546,14 @@ class VitsArgs(Coqpit):
     use_text_enc_spk_reversal_classifier: bool = False
     use_text_enc_emo_classifier: bool = False
 
+    # emotion and speaker embedding squeezer
+    use_emotion_embedding_squeezer: bool = False
+    emotion_embedding_squeezer_input_dim: int = 0
+    use_speaker_embedding_squeezer: bool = False
+    speaker_embedding_squeezer_input_dim: int = 0
+    
+    use_speaker_embedding_as_emotion: bool = False
+
     # prosody encoder
     use_prosody_encoder: bool = False
     prosody_encoder_type: str = "gst"
@@ -676,7 +684,7 @@ class Vits(BaseTTS):
             dp_cond_embedding_dim += self.args.prosody_embedding_dim
 
         dp_extra_inp_dim = 0
-        if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and not self.args.use_noise_scale_predictor:
+        if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings or self.args.use_speaker_embedding_as_emotion) and not self.args.use_noise_scale_predictor:
             dp_extra_inp_dim += self.args.emotion_embedding_dim
 
         if self.args.use_prosody_encoder and not self.args.use_noise_scale_predictor:
@@ -753,6 +761,12 @@ class Vits(BaseTTS):
                 layer_norm_type="2",
                 rel_attn_window_size=4,
             )
+
+        if self.args.use_emotion_embedding_squeezer:
+            self.emotion_embedding_squeezer = nn.Linear(in_features=self.args.emotion_embedding_squeezer_input_dim, out_features=self.args.emotion_embedding_dim)
+
+        if self.args.use_speaker_embedding_squeezer:
+            self.speaker_embedding_squeezer = nn.Linear(in_features=self.args.speaker_embedding_squeezer_input_dim, out_features=self.cond_embedding_dim)
 
         if self.args.use_text_enc_spk_reversal_classifier:
             self.speaker_text_enc_reversal_classifier = ReversalClassifier(
@@ -1162,6 +1176,15 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
+        # squeezers
+        if self.args.use_emotion_embedding_squeezer:
+            if self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings:
+                eg = F.normalize(self.emotion_embedding_squeezer(eg.squeeze(-1))).unsqueeze(-1)
+
+        if self.args.use_speaker_embedding_squeezer:
+            if self.args.use_speaker_embedding or self.args.use_d_vector_file:
+                g = F.normalize(self.speaker_embedding_squeezer(g.squeeze(-1))).unsqueeze(-1)
+
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
 
@@ -1349,6 +1372,15 @@ class Vits(BaseTTS):
         lang_emb = None
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
+
+        # squeezers
+        if self.args.use_emotion_embedding_squeezer:
+            if self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings:
+                eg = F.normalize(self.emotion_embedding_squeezer(eg.squeeze(-1))).unsqueeze(-1)
+
+        if self.args.use_speaker_embedding_squeezer:
+            if self.args.use_speaker_embedding or self.args.use_d_vector_file:
+                g = F.normalize(self.speaker_embedding_squeezer(g.squeeze(-1))).unsqueeze(-1)
 
         # prosody embedding
         pros_emb = None
