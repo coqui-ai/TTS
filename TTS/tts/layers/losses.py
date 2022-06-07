@@ -9,13 +9,8 @@ from torch.nn import functional
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.ssim import ssim
 from TTS.utils.audio import TorchSTFT
-from TTS.vocoder.layers.losses import (
-    MelganFeatureLoss,
-    MSEDLoss,
-    MSEGLoss,
-    _apply_D_loss,
-    _apply_G_adv_loss,
-)
+from TTS.vocoder.layers.losses import MelganFeatureLoss, MSEDLoss, MSEGLoss, _apply_D_loss, _apply_G_adv_loss
+
 
 # pylint: disable=abstract-method
 # relates https://github.com/pytorch/pytorch/issues/42305
@@ -730,7 +725,6 @@ class VitsGeneratorLoss(nn.Module):
             loss += loss_prosody_enc_emo_classifier
             return_dict["loss_prosody_enc_emo_classifier"] = loss_prosody_enc_emo_classifier
 
-
         if loss_text_enc_spk_rev_classifier is not None:
             loss_text_enc_spk_rev_classifier = loss_text_enc_spk_rev_classifier * self.speaker_classifier_alpha
             loss += loss_text_enc_spk_rev_classifier
@@ -778,7 +772,6 @@ class VitsDiscriminatorLoss(nn.Module):
         if c.model_args.use_latent_discriminator:
             self.disc_latent_loss_alpha = c.disc_latent_loss_alpha
             self.disc_latent_gan_loss = MSEDLoss()
-
 
     @staticmethod
     def discriminator_loss(scores_real, scores_fake):

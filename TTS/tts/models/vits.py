@@ -19,12 +19,11 @@ from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.generic.classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE
+from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
-from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
+from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
-
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
@@ -36,7 +35,6 @@ from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-
 
 ##############################
 # IO / Feature extraction
@@ -684,7 +682,11 @@ class Vits(BaseTTS):
             dp_cond_embedding_dim += self.args.prosody_embedding_dim
 
         dp_extra_inp_dim = 0
-        if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings or self.args.use_speaker_embedding_as_emotion) and not self.args.use_noise_scale_predictor:
+        if (
+            self.args.use_emotion_embedding
+            or self.args.use_external_emotions_embeddings
+            or self.args.use_speaker_embedding_as_emotion
+        ) and not self.args.use_noise_scale_predictor:
             dp_extra_inp_dim += self.args.emotion_embedding_dim
 
         if self.args.use_prosody_encoder and not self.args.use_noise_scale_predictor:
@@ -711,22 +713,22 @@ class Vits(BaseTTS):
             )
 
         if self.args.use_prosody_encoder:
-            if self.args.prosody_encoder_type == 'gst':
+            if self.args.prosody_encoder_type == "gst":
                 self.prosody_encoder = VitsGST(
                     num_mel=self.args.hidden_channels,
                     num_heads=self.args.prosody_encoder_num_heads,
                     num_style_tokens=self.args.prosody_encoder_num_tokens,
                     gst_embedding_dim=self.args.prosody_embedding_dim,
                 )
-            elif self.args.prosody_encoder_type == 'vae':
+            elif self.args.prosody_encoder_type == "vae":
                 self.prosody_encoder = VitsVAE(
                     num_mel=self.args.hidden_channels,
                     capacitron_VAE_embedding_dim=self.args.prosody_embedding_dim,
                 )
             else:
                 raise RuntimeError(
-                f" [!] The Prosody encoder type {self.args.prosody_encoder_type} is not supported !!"
-            )
+                    f" [!] The Prosody encoder type {self.args.prosody_encoder_type} is not supported !!"
+                )
             if self.args.use_prosody_enc_spk_reversal_classifier:
                 self.speaker_reversal_classifier = ReversalClassifier(
                     in_channels=self.args.prosody_embedding_dim,
@@ -738,12 +740,16 @@ class Vits(BaseTTS):
                     in_channels=self.args.prosody_embedding_dim,
                     out_channels=self.num_emotions,
                     hidden_channels=256,
-                    reversal=False
+                    reversal=False,
                 )
 
         if self.args.use_noise_scale_predictor:
             noise_scale_predictor_input_dim = self.args.hidden_channels
-            if self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings:
+            if (
+                self.args.use_emotion_embedding
+                or self.args.use_external_emotions_embeddings
+                or self.args.use_speaker_embedding_as_emotion
+            ):
                 noise_scale_predictor_input_dim += self.args.emotion_embedding_dim
 
             if self.args.use_prosody_encoder:
@@ -763,15 +769,18 @@ class Vits(BaseTTS):
             )
 
         if self.args.use_emotion_embedding_squeezer:
-            self.emotion_embedding_squeezer = nn.Linear(in_features=self.args.emotion_embedding_squeezer_input_dim, out_features=self.args.emotion_embedding_dim)
+            self.emotion_embedding_squeezer = nn.Linear(
+                in_features=self.args.emotion_embedding_squeezer_input_dim, out_features=self.args.emotion_embedding_dim
+            )
 
         if self.args.use_speaker_embedding_squeezer:
-            self.speaker_embedding_squeezer = nn.Linear(in_features=self.args.speaker_embedding_squeezer_input_dim, out_features=self.cond_embedding_dim)
+            self.speaker_embedding_squeezer = nn.Linear(
+                in_features=self.args.speaker_embedding_squeezer_input_dim, out_features=self.cond_embedding_dim
+            )
 
         if self.args.use_text_enc_spk_reversal_classifier:
             self.speaker_text_enc_reversal_classifier = ReversalClassifier(
-                in_channels=self.args.hidden_channels
-                + dp_extra_inp_dim,
+                in_channels=self.args.hidden_channels + dp_extra_inp_dim,
                 out_channels=self.num_speakers,
                 hidden_channels=256,
             )
@@ -781,7 +790,7 @@ class Vits(BaseTTS):
                 in_channels=self.args.hidden_channels,
                 out_channels=self.num_emotions,
                 hidden_channels=256,
-                reversal=False
+                reversal=False,
             )
 
         self.waveform_decoder = HifiganGenerator(
@@ -1176,9 +1185,16 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
+        if self.args.use_speaker_embedding_as_emotion:
+            eg = g
+
         # squeezers
         if self.args.use_emotion_embedding_squeezer:
-            if self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings:
+            if (
+                self.args.use_emotion_embedding
+                or self.args.use_external_emotions_embeddings
+                or self.args.use_speaker_embedding_as_emotion
+            ):
                 eg = F.normalize(self.emotion_embedding_squeezer(eg.squeeze(-1))).unsqueeze(-1)
 
         if self.args.use_speaker_embedding_squeezer:
@@ -1200,7 +1216,7 @@ class Vits(BaseTTS):
             prosody_encoder_input = z_p if self.args.use_prosody_encoder_z_p_input else z
             pros_emb, vae_outputs = self.prosody_encoder(
                 prosody_encoder_input.detach() if self.args.detach_prosody_enc_input else prosody_encoder_input,
-                y_lengths
+                y_lengths,
             )
 
             pros_emb = pros_emb.transpose(1, 2)
@@ -1215,7 +1231,7 @@ class Vits(BaseTTS):
             x_lengths,
             lang_emb=lang_emb,
             emo_emb=eg if not self.args.use_noise_scale_predictor else None,
-            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None
+            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None,
         )
 
         # reversal speaker loss to force the encoder to be speaker identity free
@@ -1250,10 +1266,14 @@ class Vits(BaseTTS):
         if self.args.use_noise_scale_predictor:
             nsp_input = torch.transpose(m_p_expanded, 1, -1)
             if self.args.use_prosody_encoder and pros_emb is not None:
-                nsp_input = torch.cat((nsp_input, pros_emb.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1)
+                nsp_input = torch.cat(
+                    (nsp_input, pros_emb.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1
+                )
 
             if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and eg is not None:
-                nsp_input = torch.cat((nsp_input, eg.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1)
+                nsp_input = torch.cat(
+                    (nsp_input, eg.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1
+                )
 
             nsp_input = torch.transpose(nsp_input, 1, -1) * y_mask
             m_p_noise_scale = self.noise_scale_predictor(nsp_input, y_mask)
@@ -1314,7 +1334,7 @@ class Vits(BaseTTS):
                 "loss_prosody_enc_spk_rev_classifier": l_pros_speaker,
                 "loss_prosody_enc_emo_classifier": l_pros_emotion,
                 "loss_text_enc_spk_rev_classifier": l_text_speaker,
-                "loss_text_enc_emo_classifier": l_text_emotion
+                "loss_text_enc_emo_classifier": l_text_emotion,
             }
         )
         return outputs
@@ -1373,9 +1393,16 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
+        if self.args.use_speaker_embedding_as_emotion:
+            eg = g
+
         # squeezers
         if self.args.use_emotion_embedding_squeezer:
-            if self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings:
+            if (
+                self.args.use_emotion_embedding
+                or self.args.use_external_emotions_embeddings
+                or self.args.use_speaker_embedding_as_emotion
+            ):
                 eg = F.normalize(self.emotion_embedding_squeezer(eg.squeeze(-1))).unsqueeze(-1)
 
         if self.args.use_speaker_embedding_squeezer:
@@ -1399,13 +1426,12 @@ class Vits(BaseTTS):
                 pros_emb, _ = self.prosody_encoder(z_p_inf, pf_lengths)
 
             pros_emb = pros_emb.transpose(1, 2)
-
         x, m_p, logs_p, x_mask = self.text_encoder(
             x,
             x_lengths,
             lang_emb=lang_emb,
             emo_emb=eg if not self.args.use_noise_scale_predictor else None,
-            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None
+            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None,
         )
 
         # duration predictor
@@ -1448,10 +1474,14 @@ class Vits(BaseTTS):
         if self.args.use_noise_scale_predictor:
             nsp_input = torch.transpose(m_p, 1, -1)
             if self.args.use_prosody_encoder and pros_emb is not None:
-                nsp_input = torch.cat((nsp_input, pros_emb.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1)
+                nsp_input = torch.cat(
+                    (nsp_input, pros_emb.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1
+                )
 
             if (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings) and eg is not None:
-                nsp_input = torch.cat((nsp_input, eg.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1)
+                nsp_input = torch.cat(
+                    (nsp_input, eg.transpose(2, 1).expand(nsp_input.size(0), nsp_input.size(1), -1)), dim=-1
+                )
 
             nsp_input = torch.transpose(nsp_input, 1, -1) * y_mask
             m_p_noise_scale = self.noise_scale_predictor(nsp_input, y_mask)
@@ -1521,7 +1551,6 @@ class Vits(BaseTTS):
         wav, _, _ = self.voice_conversion(y, y_lengths, speaker_cond_src, speaker_cond_tgt)
         return wav
 
-
     def voice_conversion(self, y, y_lengths, speaker_cond_src, speaker_cond_tgt):
         """Forward pass for voice conversion
 
@@ -1549,7 +1578,6 @@ class Vits(BaseTTS):
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
         o_hat = self.waveform_decoder(z_hat * y_mask, g=g_tgt)
         return o_hat, y_mask, (z, z_p, z_hat)
-
 
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
         """Perform a single training step. Run the model forward pass and compute losses.
@@ -1599,18 +1627,16 @@ class Vits(BaseTTS):
             self.model_outputs_cache = outputs  # pylint: disable=attribute-defined-outside-init
 
             # compute scores and features
-            scores_disc_fake, _, scores_disc_real, _, scores_disc_mp, _, scores_disc_zp, _= self.disc(
-                outputs["model_outputs"].detach(), outputs["waveform_seg"], outputs["m_p"].detach(), outputs["z_p"].detach()
+            scores_disc_fake, _, scores_disc_real, _, scores_disc_mp, _, scores_disc_zp, _ = self.disc(
+                outputs["model_outputs"].detach(),
+                outputs["waveform_seg"],
+                outputs["m_p"].detach(),
+                outputs["z_p"].detach(),
             )
 
             # compute loss
             with autocast(enabled=False):  # use float32 for the criterion
-                loss_dict = criterion[optimizer_idx](
-                    scores_disc_real,
-                    scores_disc_fake,
-                    scores_disc_zp,
-                    scores_disc_mp
-                )
+                loss_dict = criterion[optimizer_idx](scores_disc_real, scores_disc_fake, scores_disc_zp, scores_disc_mp)
             return outputs, loss_dict
 
         if optimizer_idx == 1:
@@ -1640,8 +1666,20 @@ class Vits(BaseTTS):
                 )
 
             # compute discriminator scores and features
-            scores_disc_fake, feats_disc_fake, _, feats_disc_real, scores_disc_mp, feats_disc_mp, _, feats_disc_zp = self.disc(
-                self.model_outputs_cache["model_outputs"], self.model_outputs_cache["waveform_seg"], self.model_outputs_cache["m_p"], self.model_outputs_cache["z_p"].detach()
+            (
+                scores_disc_fake,
+                feats_disc_fake,
+                _,
+                feats_disc_real,
+                scores_disc_mp,
+                feats_disc_mp,
+                _,
+                feats_disc_zp,
+            ) = self.disc(
+                self.model_outputs_cache["model_outputs"],
+                self.model_outputs_cache["waveform_seg"],
+                self.model_outputs_cache["m_p"],
+                self.model_outputs_cache["z_p"].detach(),
             )
 
             # compute losses
@@ -1669,7 +1707,7 @@ class Vits(BaseTTS):
                     loss_text_enc_emo_classifier=self.model_outputs_cache["loss_text_enc_emo_classifier"],
                     scores_disc_mp=scores_disc_mp,
                     feats_disc_mp=feats_disc_mp,
-                    feats_disc_zp=feats_disc_zp
+                    feats_disc_zp=feats_disc_zp,
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1729,7 +1767,14 @@ class Vits(BaseTTS):
             config = self.config
 
         # extract speaker and language info
-        text, speaker_name, style_wav, language_name, emotion_name, style_speaker_name = None, None, None, None, None, None
+        text, speaker_name, style_wav, language_name, emotion_name, style_speaker_name = (
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
 
         if isinstance(sentence_info, list):
             if len(sentence_info) == 1:
@@ -1748,12 +1793,18 @@ class Vits(BaseTTS):
             text = sentence_info
 
         if style_wav and style_speaker_name is None:
-            raise RuntimeError(
-                " [!] You must to provide the style_speaker_name for the style_wav !!"
-            )
+            raise RuntimeError(" [!] You must to provide the style_speaker_name for the style_wav !!")
 
         # get speaker  id/d_vector
-        speaker_id, d_vector, language_id, emotion_id, emotion_embedding, style_speaker_id, style_speaker_d_vector = None, None, None, None, None, None, None
+        speaker_id, d_vector, language_id, emotion_id, emotion_embedding, style_speaker_id, style_speaker_d_vector = (
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
@@ -1762,7 +1813,9 @@ class Vits(BaseTTS):
                     d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
 
                 if style_wav is not None:
-                    style_speaker_d_vector = self.speaker_manager.get_mean_embedding(style_speaker_name, num_samples=None, randomize=False)
+                    style_speaker_d_vector = self.speaker_manager.get_mean_embedding(
+                        style_speaker_name, num_samples=None, randomize=False
+                    )
 
             elif config.use_speaker_embedding:
                 if speaker_name is None:
@@ -1893,7 +1946,15 @@ class Vits(BaseTTS):
             emotion_embeddings = [emotion_mapping[w]["embedding"] for w in batch["audio_files"]]
             emotion_embeddings = torch.FloatTensor(emotion_embeddings)
 
-        if self.emotion_manager is not None and self.emotion_manager.embeddings and (self.args.use_emotion_embedding or self.args.use_prosody_enc_emo_classifier or self.args.use_text_enc_emo_classifier):
+        if (
+            self.emotion_manager is not None
+            and self.emotion_manager.embeddings
+            and (
+                self.args.use_emotion_embedding
+                or self.args.use_prosody_enc_emo_classifier
+                or self.args.use_text_enc_emo_classifier
+            )
+        ):
             emotion_mapping = self.emotion_manager.embeddings
             emotion_names = [emotion_mapping[w]["name"] for w in batch["audio_files"]]
             emotion_ids = [self.emotion_manager.ids[en] for en in emotion_names]

@@ -7,8 +7,7 @@ from tqdm import tqdm
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.managers import save_file
-from TTS.tts.utils.managers import EmbeddingManager
+from TTS.tts.utils.managers import EmbeddingManager, save_file
 
 parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""

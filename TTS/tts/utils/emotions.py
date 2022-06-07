@@ -94,7 +94,11 @@ class EmotionManager(EmbeddingManager):
             EmotionEncoder: Emotion encoder object.
         """
         emotion_manager = None
-        if get_from_config_or_model_args_with_default(config, "use_emotion_embedding", False) or get_from_config_or_model_args_with_default(config, "use_prosody_enc_emo_classifier", False) or get_from_config_or_model_args_with_default(config, "use_text_enc_emo_classifier", False):
+        if (
+            get_from_config_or_model_args_with_default(config, "use_emotion_embedding", False)
+            or get_from_config_or_model_args_with_default(config, "use_prosody_enc_emo_classifier", False)
+            or get_from_config_or_model_args_with_default(config, "use_text_enc_emo_classifier", False)
+        ):
             if get_from_config_or_model_args_with_default(config, "emotions_ids_file", None):
                 emotion_manager = EmotionManager(
                     emotion_id_file_path=get_from_config_or_model_args_with_default(config, "emotions_ids_file", None)
@@ -106,7 +110,11 @@ class EmotionManager(EmbeddingManager):
                     )
                 )
 
-        if get_from_config_or_model_args_with_default(config, "use_external_emotions_embeddings", False) or get_from_config_or_model_args_with_default(config, "use_prosody_enc_emo_classifier", False) or get_from_config_or_model_args_with_default(config, "use_text_enc_emo_classifier", False):
+        if (
+            get_from_config_or_model_args_with_default(config, "use_external_emotions_embeddings", False)
+            or get_from_config_or_model_args_with_default(config, "use_prosody_enc_emo_classifier", False)
+            or get_from_config_or_model_args_with_default(config, "use_text_enc_emo_classifier", False)
+        ):
             if get_from_config_or_model_args_with_default(config, "external_emotions_embs_file", None):
                 emotion_manager = EmotionManager(
                     embeddings_file_path=get_from_config_or_model_args_with_default(

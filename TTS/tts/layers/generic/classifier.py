@@ -32,7 +32,9 @@ class ReversalClassifier(nn.Module):
         reversal (bool): If True reversal the gradients. Default: True
     """
 
-    def __init__(self, in_channels, out_channels, hidden_channels, gradient_clipping_bounds=0.25, scale_factor=1.0, reversal=True):
+    def __init__(
+        self, in_channels, out_channels, hidden_channels, gradient_clipping_bounds=0.25, scale_factor=1.0, reversal=True
+    ):
         super().__init__()
         self.reversal = reversal
         self._lambda = scale_factor

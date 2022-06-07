@@ -1,20 +1,19 @@
 import glob
-import json
 import os
 import shutil
 
 from trainer import get_last_checkpoint
 
 from tests import get_device_id, get_tests_output_path, run_cli
-from TTS.tts.configs.glow_tts_config import GlowTTSConfig
+from TTS.tts.configs.vits_config import VitsConfig
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
-config = GlowTTSConfig(
+config = VitsConfig(
     batch_size=2,
-    eval_batch_size=8,
+    eval_batch_size=2,
     num_loader_workers=0,
     num_eval_loader_workers=0,
     text_cleaner="english_cleaners",
@@ -27,13 +26,35 @@ config = GlowTTSConfig(
     print_step=1,
     print_eval=True,
     test_sentences=[
-        "Be a voice, not an echo.",
+        ["Be a voice, not an echo.", "ljspeech-1", None, None, "ljspeech-1"],
     ],
-    data_dep_init_steps=1.0,
-    use_speaker_embedding=True,
 )
+# set audio config
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
+
+# active multispeaker d-vec mode
+config.model_args.use_speaker_embedding = False
+config.model_args.use_d_vector_file = True
+config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
+config.model_args.speaker_embedding_channels = 128
+config.model_args.d_vector_dim = 256
+
+# emotion
+config.model_args.emotion_embedding_dim = 256
+
+config.model_args.use_emotion_embedding_squeezer = False
+config.model_args.emotion_embedding_squeezer_input_dim = 256
+config.model_args.use_speaker_embedding_as_emotion = True
+
+config.model_args.use_speaker_embedding_squeezer = False
+config.model_args.speaker_embedding_squeezer_input_dim = 256
+
+# consistency loss
+# config.model_args.use_emotion_encoder_as_loss = True
+# config.model_args.encoder_model_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/model_se.pth.tar"
+# config.model_args.encoder_config_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/config_se.json"
+
 config.save_json(config_path)
 
 # train the model for one epoch
@@ -57,19 +78,9 @@ continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
-continue_speakers_path = os.path.join(continue_path, "speakers.json")
-if not os.path.isfile(continue_speakers_path):
-    continue_speakers_path = continue_speakers_path.replace(".json", ".pth")
+continue_speakers_path = config.model_args.d_vector_file
 
 
-# Check integrity of the config
-with open(continue_config_path, "r", encoding="utf-8") as f:
-    config_loaded = json.load(f)
-assert config_loaded["characters"] is not None
-assert config_loaded["output_path"] in continue_path
-assert config_loaded["test_delay_epochs"] == 0
-
-# Load the model and run inference
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
 run_cli(inference_command)
 

@@ -217,7 +217,6 @@ def synthesis(
     if style_speaker_d_vector is not None:
         style_speaker_d_vector = embedding_to_torch(style_speaker_d_vector, cuda=use_cuda)
 
-
     if not isinstance(style_feature, dict):
         # GST or Capacitron style mel
         style_feature = numpy_to_torch(style_feature, torch.float, cuda=use_cuda)

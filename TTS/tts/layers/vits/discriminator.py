@@ -109,7 +109,9 @@ class LatentDiscriminator(nn.Module):
         norm_f = nn.utils.spectral_norm if use_spectral_norm else nn.utils.weight_norm
         self.discriminators = nn.ModuleList(
             [
-                norm_f(nn.Conv2d(1 if hidden_channels is None else hidden_channels, 32, kernel_size=(3, 9), padding=(1, 4))),
+                norm_f(
+                    nn.Conv2d(1 if hidden_channels is None else hidden_channels, 32, kernel_size=(3, 9), padding=(1, 4))
+                ),
                 norm_f(nn.Conv2d(32, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4))),
                 norm_f(nn.Conv2d(32, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4))),
                 norm_f(nn.Conv2d(32, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4))),
