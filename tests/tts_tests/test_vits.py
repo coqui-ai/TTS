@@ -111,6 +111,8 @@ class TestVits(unittest.TestCase):
         emotion_embedding = torch.rand(1, 128)
         d_vector = torch.rand(1, 128)
         style_feature = torch.rand(10, 128, 64)
+        style_speaker_id = torch.randint(10, (1,))
+        style_speaker_d_vector = torch.rand(1, 128)
 
         aux_input = {
             "speaker_ids": speaker_id,
@@ -120,6 +122,8 @@ class TestVits(unittest.TestCase):
             "style_feature": style_feature,
             "emotion_ids": emotion_id,
             "emotion_embeddings": emotion_embedding,
+            "style_speaker_id": style_speaker_id,
+            "style_speaker_d_vector": style_speaker_d_vector,
         }
         aux_out = model.get_aux_input(aux_input)
         self.assertEqual(aux_out["speaker_ids"].shape, speaker_id.shape)
@@ -128,6 +132,10 @@ class TestVits(unittest.TestCase):
         self.assertEqual(aux_out["emotion_ids"].shape, emotion_id.shape)
         self.assertEqual(aux_out["emotion_embeddings"].shape, emotion_embedding.unsqueeze(0).transpose(2, 1).shape)
         self.assertEqual(aux_out["style_feature"].shape, style_feature.shape)
+        self.assertEqual(aux_out["style_speaker_ids"].shape, style_speaker_id.shape)
+        self.assertEqual(
+            aux_out["style_speaker_d_vectors"].shape, style_speaker_d_vector.unsqueeze(0).transpose(2, 1).shape
+        )
 
     def test_voice_conversion(self):
         num_speakers = 10

@@ -38,16 +38,16 @@ config.model_args.use_speaker_embedding = False
 config.model_args.use_d_vector_file = True
 config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
 config.model_args.speaker_embedding_channels = 128
-config.model_args.d_vector_dim = 256
+config.model_args.d_vector_dim = 2
 
 # emotion
-config.model_args.emotion_embedding_dim = 256
+config.model_args.emotion_embedding_dim = 2
 
-config.model_args.use_emotion_embedding_squeezer = False
+config.model_args.use_emotion_embedding_squeezer = True
 config.model_args.emotion_embedding_squeezer_input_dim = 256
 config.model_args.use_speaker_embedding_as_emotion = True
 
-config.model_args.use_speaker_embedding_squeezer = False
+config.model_args.use_speaker_embedding_squeezer = True
 config.model_args.speaker_embedding_squeezer_input_dim = 256
 
 # consistency loss

@@ -972,7 +972,7 @@ class Vits(BaseTTS):
                 self.emb_emotion = nn.Embedding(self.num_emotions, self.args.emotion_embedding_dim)
 
     def get_aux_input(self, aux_input: Dict):
-        sid, g, lid, eid, eg, pf = self._set_cond_input(aux_input)
+        sid, g, lid, eid, eg, pf, ssid, ssg = self._set_cond_input(aux_input)
         return {
             "speaker_ids": sid,
             "style_wav": None,
@@ -981,6 +981,8 @@ class Vits(BaseTTS):
             "emotion_embeddings": eg,
             "emotion_ids": eid,
             "style_feature": pf,
+            "style_speaker_ids": ssid,
+            "style_speaker_d_vectors": ssg,
         }
 
     def _freeze_layers(self):
