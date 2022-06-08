@@ -97,7 +97,7 @@ class ModelManager(object):
             model_query_idx = int(model_query_idx)
         except:
             print(f'> {model_query_idx} should be an integer!')
-            return None
+            return
         model_count = 0
         if model_type in self.models_dict:
             for lang in self.models_dict[model_type]:
@@ -107,7 +107,7 @@ class ModelManager(object):
                         model_count += 1
         else:
             print(f'> model_type {model_type} does not exist in the list.')
-            return None
+            return
         if model_query_idx > model_count:
             print(f"model query idx exceeds the number of available models [{model_count}] ")
         else:
