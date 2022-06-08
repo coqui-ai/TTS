@@ -102,7 +102,6 @@ class ModelManager(object):
                     model_count += 1
         if model_query_idx > model_count:
             print(f"model query idx exceeds the number of available models [{model_count}] ")
-            return None
         model_type,lang,dataset,model = model_name_list[model_query_idx-1].split('/')
         print(f"> model type : {model_type}")
         print(f"> language supported : {lang}")
@@ -113,7 +112,7 @@ class ModelManager(object):
         else:
             print("> description : coming soon")
         if 'default_vocoder' in self.models_dict[model_type][lang][dataset][model]:
-            print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}") 
+            print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}")
 
     def model_info_by_full_name(self, model_query_name):
         model_type,lang,dataset,model = model_query_name.split('/')
