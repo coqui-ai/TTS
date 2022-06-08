@@ -122,8 +122,7 @@ class ModelManager(object):
                 print("> description : coming soon")
             if 'default_vocoder' in self.models_dict[model_type][lang][dataset][model]:
                 print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}")
-        return None
-    
+
     def model_info_by_full_name(self, model_query_name):
         model_type,lang,dataset,model = model_query_name.split('/')
         if model_type in self.models_dict:
