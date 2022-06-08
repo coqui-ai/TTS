@@ -275,7 +275,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         model_query = args.model_info_by_idx
         manager.model_info_by_idx(model_query)
         sys.exit()
-    
+
     if args.model_info_by_name:
         model_query_full_name = args.model_info_by_name
         manager.model_info_by_full_name(model_query_full_name)
