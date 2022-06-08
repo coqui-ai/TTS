@@ -7,10 +7,11 @@ from TTS.config import load_config, register_config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models import setup_model
 
+from TTS.tts.datasets import jsonfomatter
 
 @dataclass
 class TrainTTSArgs(TrainerArgs):
-    config_path: str = field(default=None, metadata={"help": "Path to the config file."})
+    config_path: str = field(default='C:\\Users\\82109\\Desktop\\TTS\\lia_config.json', metadata={"help": "Path to the config file."})
 
 
 def main():
@@ -49,6 +50,7 @@ def main():
         eval_split=True,
         eval_split_max_size=config.eval_split_max_size,
         eval_split_size=config.eval_split_size,
+        formatter=jsonfomatter
     )
 
     # init the model from config

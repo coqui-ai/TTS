@@ -14,7 +14,7 @@
    "print_step": 25,
    "print_eval": true,
    "mixed_precision": false,
-   "output_path": "C:\\Users\\82109\\Desktop\\coqui_tts\\TTS\\recipes\\ljspeech\\LJSpeech-1.1\\",
+   "output_path": "C:\\Users\\82109\\Desktop\\TTS\\recipes\\ljspeech\\LJSpeech-1.1\\",
    "test_sentences": ["Test this sentence.", "This test sentence.", "Sentence this test."],
-   "datasets":[{"name": "ljspeech", "meta_file_train":"metadata.csv", "path": "C:\\Users\\82109\\Desktop\\coqui_tts\\TTS\\recipes\\ljspeech\\LJSpeech-1.1\\"}]
+   "datasets":[{"name": "ljspeech", "meta_file_train":"metadata.csv", "path": "C:\\Users\\82109\\Desktop\\TTS\\recipes\\ljspeech\\LJSpeech-1.1\\"}]
 }

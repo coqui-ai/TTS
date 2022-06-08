@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import xml.etree.ElementTree as ET
 from glob import glob
 from pathlib import Path
@@ -121,6 +122,21 @@ def ljspeech(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             text = cols[2]
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items
+
+##########################################
+
+def jsonfomatter(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = ""
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        dic = json.load(ttf)
+        for i in dic:
+            wav_file = os.path.join(root_path, "audio", i)
+            items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
+    return items
+
+####################################################
 
 
 def ljspeech_test(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
@@ -508,3 +524,6 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             text = cols[2].replace(" ", "")
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items
+
+if __name__ == "__main__":
+    print(jsonfomatter("C:\\Users\\82109\\Desktop\\TTS\\data\\emilia", "text.json"))
