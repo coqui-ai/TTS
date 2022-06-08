@@ -118,16 +118,16 @@ If you don't specify any models, then it uses LJSpeech based English model.
     )
 
     parser.add_argument(
-        "--model_info_by_idx",  
-        type=str,  
-        default=None,   
+        "--model_info_by_idx",
+        type=str,
+        default=None,
         help="model info using query format: <model_type>/<model_query_idx>",
     )
 
     parser.add_argument(
-        "--model_info_by_name",  
-        type=str,  
-        default=None,   
+        "--model_info_by_name",
+        type=str,
+        default=None,
         help="model info using query format: <model_type>/<language>/<dataset>/<model_name>",
     )
 
