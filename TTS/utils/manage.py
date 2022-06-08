@@ -93,27 +93,38 @@ class ModelManager(object):
     def model_info_by_idx(self, model_query):
         model_name_list = []
         model_type, model_query_idx = model_query.split('/')
-        model_query_idx = int(model_query_idx)
+        try:
+            model_query_idx = int(model_query_idx)
+        except:
+            print(f'> {model_query_idx} should be an integer!')
+            return None
         model_count = 0
-        for lang in self.models_dict[model_type]:
-            for dataset in self.models_dict[model_type][lang]:
-                for model in self.models_dict[model_type][lang][dataset]:
-                    model_name_list.append(f"{model_type}/{lang}/{dataset}/{model}")
-                    model_count += 1
+        if model_type in self.models_dict:
+            for lang in self.models_dict[model_type]:
+                for dataset in self.models_dict[model_type][lang]:
+                    for model in self.models_dict[model_type][lang][dataset]:
+                        model_name_list.append(f"{model_type}/{lang}/{dataset}/{model}")
+                        model_count += 1
+        else:
+            print(f'> model_type {model_type} does not exist in the list.')
+            return None
         if model_query_idx > model_count:
             print(f"model query idx exceeds the number of available models [{model_count}] ")
-        model_type,lang,dataset,model = model_name_list[model_query_idx-1].split('/')
-        print(f"> model type : {model_type}")
-        print(f"> language supported : {lang}")
-        print(f"> dataset used : {dataset}")
-        print(f"> model name : {model}")
-        if 'description' in self.models_dict[model_type][lang][dataset][model]:
-            print(f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}")
+            return None
         else:
-            print("> description : coming soon")
-        if 'default_vocoder' in self.models_dict[model_type][lang][dataset][model]:
-            print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}")
-
+            model_type,lang,dataset,model = model_name_list[model_query_idx-1].split('/')
+            print(f"> model type : {model_type}")
+            print(f"> language supported : {lang}")
+            print(f"> dataset used : {dataset}")
+            print(f"> model name : {model}")
+            if 'description' in self.models_dict[model_type][lang][dataset][model]:
+                print(f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}")
+            else:
+                print("> description : coming soon")
+            if 'default_vocoder' in self.models_dict[model_type][lang][dataset][model]:
+                print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}")
+            return None
+    
     def model_info_by_full_name(self, model_query_name):
         model_type,lang,dataset,model = model_query_name.split('/')
         if model_type in self.models_dict:
