@@ -2249,11 +2249,7 @@ class Vits(BaseTTS):
             emotion_ids = [self.emotion_manager.ids[en] for en in emotion_names]
             emotion_ids = torch.LongTensor(emotion_ids)
 
-        if (
-            self.emotion_manager is not None
-            and self.emotion_manager.ids
-            and self.args.use_emotion_embedding
-        ):
+        if self.emotion_manager is not None and self.emotion_manager.ids and self.args.use_emotion_embedding:
             emotion_ids = torch.LongTensor([self.emotion_manager.ids[en] for en in batch["emotion_names"]])
 
         batch["language_ids"] = language_ids
