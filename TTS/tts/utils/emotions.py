@@ -51,6 +51,7 @@ class EmotionManager(EmbeddingManager):
 
     def __init__(
         self,
+        data_items: List[List[Any]] = None,
         embeddings_file_path: str = "",
         emotion_id_file_path: str = "",
         encoder_model_path: str = "",
@@ -65,6 +66,9 @@ class EmotionManager(EmbeddingManager):
             use_cuda=use_cuda,
         )
 
+        if data_items:
+            self.set_ids_from_data(data_items, parse_key="emotion_name")
+
     @property
     def num_emotions(self):
         return len(self.ids)
@@ -75,10 +79,25 @@ class EmotionManager(EmbeddingManager):
 
     @staticmethod
     def parse_ids_from_data(items: List, parse_key: str) -> Any:
-        raise NotImplementedError
+        """Parse IDs from data samples retured by `load_tts_samples()`.
+
+        Args:
+            items (list): Data sampled returned by `load_tts_samples()`.
+            parse_key (str): The key to being used to parse the data.
+        Returns:
+            Tuple[Dict]: speaker IDs.
+        """
+        classes = sorted({item[parse_key] for item in items})
+        ids = {name: i for i, name in enumerate(classes)}
+        return ids
 
     def set_ids_from_data(self, items: List, parse_key: str) -> Any:
-        raise NotImplementedError
+        """Set IDs from data samples.
+
+        Args:
+            items (List): Data sampled returned by `load_tts_samples()`.
+        """
+        self.ids = self.parse_ids_from_data(items, parse_key=parse_key)
 
     def get_emotions(self) -> List:
         return self.ids
