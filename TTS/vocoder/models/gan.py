@@ -198,8 +198,8 @@ class GAN(BaseVocoder):
         Returns:
             Tuple[Dict, Dict]: log figures and audio samples.
         """
-        #TODO: outputs[0] is coming as None need to check why 
-        y_hat = outputs[0]["model_outputs"] if outputs[0] != None else outputs[1]["model_outputs"]
+        #TODO: outputs[0] is coming as None need to check why
+        y_hat = outputs[0]["model_outputs"] if outputs[0] is not None else outputs[1]["model_outputs"]
         y = batch["waveform"]
         figures = plot_results(y_hat, y, ap, name)
         sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
