@@ -91,15 +91,20 @@ class ModelManager(object):
         return models_name_list
 
     def model_info_by_idx(self, model_query):
+        """Print the description of the model from .models.json file using model_idx
+
+        Args:
+            model_query (str): <model_tye>/<model_idx>
+        """
         model_name_list = []
         model_type, model_query_idx = model_query.split('/')
         try:
             model_query_idx = int(model_query_idx)
             if model_query_idx <= 0:
-                print(f'> model_query_idx should be a positive integer!')
+                print('> model_query_idx should be a positive integer!')
                 return
         except:
-            print(f'> model_query_idx should be an integer!')
+            print('> model_query_idx should be an integer!')
             return
         model_count = 0
         if model_type in self.models_dict:
@@ -127,6 +132,11 @@ class ModelManager(object):
                 print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}")
 
     def model_info_by_full_name(self, model_query_name):
+        """Print the description of the model from .models.json file using model_full_name
+
+        Args:
+            model_query_name (str): Format is <model_type>/<language>/<dataset>/<model_name>
+        """
         model_type,lang,dataset,model = model_query_name.split('/')
         if model_type in self.models_dict:
             if lang in self.models_dict[model_type]:
@@ -150,7 +160,6 @@ class ModelManager(object):
                 print(f'> lang {lang} does not exist for {model_type}.')
         else:
             print(f'> model_type {model_type} does not exist in the list.')
-        return None
 
     def list_tts_models(self):
         """Print all `TTS` models and return a list of model names
