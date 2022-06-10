@@ -95,8 +95,11 @@ class ModelManager(object):
         model_type, model_query_idx = model_query.split('/')
         try:
             model_query_idx = int(model_query_idx)
+            if model_query_idx <= 0:
+                print(f'> model_query_idx should be a positive integer!')
+                return
         except:
-            print(f'> {model_query_idx} should be an integer!')
+            print(f'> model_query_idx should be an integer!')
             return
         model_count = 0
         if model_type in self.models_dict:
