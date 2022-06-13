@@ -1,5 +1,6 @@
 import math
 import os
+import numpy as np
 from dataclasses import dataclass, field, replace
 from itertools import chain
 from typing import Dict, List, Tuple, Union
@@ -22,7 +23,7 @@ from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
-from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE
+from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE, ResNetProsodyEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.emotions import EmotionManager
@@ -565,6 +566,7 @@ class VitsArgs(Coqpit):
 
     use_noise_scale_predictor: bool = False
     use_latent_discriminator: bool = False
+    use_avg_feature_on_latent_discriminator: bool = False
 
     detach_dp_input: bool = True
     use_language_embedding: bool = False
@@ -724,6 +726,11 @@ class Vits(BaseTTS):
                 self.prosody_encoder = VitsVAE(
                     num_mel=self.args.hidden_channels,
                     capacitron_VAE_embedding_dim=self.args.prosody_embedding_dim,
+                )
+            elif self.args.prosody_encoder_type == "resnet":
+                self.prosody_encoder = ResNetProsodyEncoder(
+                    input_dim=self.args.hidden_channels,
+                    proj_dim=self.args.prosody_embedding_dim,
                 )
             else:
                 raise RuntimeError(
@@ -1220,7 +1227,6 @@ class Vits(BaseTTS):
                 prosody_encoder_input.detach() if self.args.detach_prosody_enc_input else prosody_encoder_input,
                 y_lengths,
             )
-
             pros_emb = pros_emb.transpose(1, 2)
 
             if self.args.use_prosody_enc_spk_reversal_classifier:
@@ -1812,12 +1818,22 @@ class Vits(BaseTTS):
                 if speaker_name is None:
                     d_vector = self.speaker_manager.get_random_embeddings()
                 else:
-                    d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
+                    if speaker_name in self.speaker_manager.ids:
+                        d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
+                    else:
+                        d_vector = self.speaker_manager.embeddings[speaker_name]["embedding"]
+
+                    d_vector = np.array(d_vector)[None, :]  # [1 x embedding_dim]
 
                 if style_wav is not None:
-                    style_speaker_d_vector = self.speaker_manager.get_mean_embedding(
-                        style_speaker_name, num_samples=None, randomize=False
-                    )
+                    if style_speaker_name in self.speaker_manager.ids:
+                        style_speaker_d_vector = self.speaker_manager.get_mean_embedding(
+                            style_speaker_name, num_samples=None, randomize=False
+                        )
+                    else:
+                        style_speaker_d_vector = self.speaker_manager.embeddings[style_speaker_name]["embedding"]
+
+                    style_speaker_d_vector = np.array(style_speaker_d_vector)[None, :]
 
             elif config.use_speaker_embedding:
                 if speaker_name is None:
@@ -1838,9 +1854,15 @@ class Vits(BaseTTS):
                 if emotion_name is None:
                     emotion_embedding = self.emotion_manager.get_random_embeddings()
                 else:
-                    emotion_embedding = self.emotion_manager.get_mean_embedding(
-                        emotion_name, num_samples=None, randomize=False
-                    )
+                    if emotion_name in self.emotion_manager.ids:
+                        emotion_embedding = self.emotion_manager.get_mean_embedding(
+                            emotion_name, num_samples=None, randomize=False
+                        )
+                    else:
+                        emotion_embedding = self.emotion_manager.embeddings[emotion_name]["embedding"]
+
+                    emotion_embedding = np.array(emotion_embedding)[None, :]
+
             elif config.use_emotion_embedding:
                 if emotion_name is None:
                     emotion_id = self.emotion_manager.get_random_id()

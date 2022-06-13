@@ -49,7 +49,7 @@ config.model_args.use_prosody_enc_emo_classifier = False
 config.model_args.use_text_enc_emo_classifier = False
 config.model_args.use_prosody_encoder_z_p_input = True
 
-config.model_args.prosody_encoder_type = "gst"
+config.model_args.prosody_encoder_type = "resnet"
 config.model_args.detach_prosody_enc_input = True
 
 config.model_args.use_latent_discriminator = True

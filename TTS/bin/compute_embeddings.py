@@ -48,7 +48,7 @@ encoder_manager = EmbeddingManager(
     use_cuda=use_cuda,
 )
 
-print("Using CUDA?", args.use_cuda)
+print("Using CUDA?", use_cuda)
 class_name_key = encoder_manager.encoder_config.class_name_key
 
 # compute speaker embeddings

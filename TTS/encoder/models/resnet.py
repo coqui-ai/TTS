@@ -163,7 +163,7 @@ class ResNetSpeakerEncoder(BaseEncoder):
         """
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
-                x.squeeze_(1)
+                x = x.squeeze(1)
                 # if you torch spec compute it otherwise use the mel spec computed by the AP
                 if self.use_torch_spec:
                     x = self.torch_spec(x)
