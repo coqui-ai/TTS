@@ -27,6 +27,7 @@ config = VitsConfig(
     print_eval=True,
     test_sentences=[
         ["Be a voice, not an echo.", "ljspeech-1", None, None, "ljspeech-1"],
+        ["Be a voice, not an echo.", "LJ001-0001.wav", None, None, "LJ001-0002.wav"],
     ],
 )
 # set audio config
@@ -82,6 +83,13 @@ continue_emotion_path = os.path.join(continue_path, "emotions.json")
 
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --emotion_idx {emotion_id} --speakers_file_path {continue_speakers_path} --emotions_file_path {continue_emotion_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
 run_cli(inference_command)
+
+# inference with one reference embedding instead of average
+speaker_id = "LJ001-0001.wav"
+emotion_id = "LJ001-0002.wav"
+inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --emotion_idx {emotion_id} --speakers_file_path {continue_speakers_path} --emotions_file_path {continue_emotion_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"
+run_cli(inference_command)
+
 
 # restore the model and continue training for one more epoch
 command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "

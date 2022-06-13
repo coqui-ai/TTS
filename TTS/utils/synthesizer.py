@@ -252,17 +252,24 @@ class Synthesizer(object):
             if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
                     # get the average speaker embedding from the saved d_vectors.
-                    speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
-                        speaker_name, num_samples=None, randomize=False
-                    )
+                    if speaker_name in self.tts_model.speaker_manager.ids:
+                        speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
+                            speaker_name, num_samples=None, randomize=False
+                        )
+                    else:
+                        speaker_embedding = self.tts_model.speaker_manager.embeddings[speaker_name]["embedding"]
+
                     speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
 
                     if style_speaker_name is not None:
-                        style_speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
-                            style_speaker_name, num_samples=None, randomize=False
-                        )
-                        style_speaker_embedding = np.array(style_speaker_embedding)[None, :]  # [1 x embedding_dim]
+                        if style_speaker_name in self.tts_model.speaker_manager.ids:
+                            style_speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
+                                style_speaker_name, num_samples=None, randomize=False
+                            )
+                        else: 
+                            style_speaker_embedding = self.tts_model.speaker_manager.embeddings[style_speaker_name]["embedding"]
 
+                        style_speaker_embedding = np.array(style_speaker_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
                     speaker_id = self.tts_model.speaker_manager.ids[speaker_name]
@@ -322,11 +329,16 @@ class Synthesizer(object):
                     getattr(self.tts_config, "model_args", None)
                     and getattr(self.tts_config.model_args, "use_external_emotions_embeddings", False)
                 ):
-                    # get the average speaker embedding from the saved embeddings.
-                    emotion_embedding = self.tts_model.emotion_manager.get_mean_embedding(
-                        emotion_name, num_samples=None, randomize=False
-                    )
+                    if emotion_name in self.tts_model.emotion_manager.ids:
+                        # get the average speaker embedding from the saved embeddings.
+                        emotion_embedding = self.tts_model.emotion_manager.get_mean_embedding(
+                            emotion_name, num_samples=None, randomize=False
+                        )
+                    else:
+                        emotion_embedding = self.tts_model.emotion_manager.embeddings[emotion_name]["embedding"]
+
                     emotion_embedding = np.array(emotion_embedding)[None, :]  # [1 x embedding_dim]
+
                 else:
                     # get speaker idx from the speaker name
                     emotion_id = self.tts_model.emotion_manager.ids[emotion_name]
