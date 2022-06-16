@@ -126,9 +126,9 @@ class LVCBlock(torch.nn.Module):
         )
 
         for i in range(conv_layers):
-            padding = (3 ** i) * int((conv_kernel_size - 1) / 2)
+            padding = (3**i) * int((conv_kernel_size - 1) / 2)
             conv = torch.nn.Conv1d(
-                in_channels, in_channels, kernel_size=conv_kernel_size, padding=padding, dilation=3 ** i
+                in_channels, in_channels, kernel_size=conv_kernel_size, padding=padding, dilation=3**i
             )
 
             self.convs.append(conv)

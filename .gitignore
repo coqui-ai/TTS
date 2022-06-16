@@ -115,7 +115,9 @@ venv.bak/
 *.swo
 
 # pytorch models
+*.pth
 *.pth.tar
+!dummy_speakers.pth
 result/
 
 # setup.py
@@ -165,5 +167,4 @@ internal/*
 *_phoneme.npy
 wandb
 depot/*
-bin
-pyvenv.cfg
+coqui_recipes/*

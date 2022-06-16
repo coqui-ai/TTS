@@ -1,16 +1,23 @@
 import os
+from dataclasses import dataclass, field
+
+from trainer import Trainer, TrainerArgs
 
 from TTS.config import load_config, register_config
-from TTS.trainer import Trainer, TrainingArgs
 from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.datasets.preprocess import load_wav_data, load_wav_feat_data
 from TTS.vocoder.models import setup_model
 
 
+@dataclass
+class TrainVocoderArgs(TrainerArgs):
+    config_path: str = field(default=None, metadata={"help": "Path to the config file."})
+
+
 def main():
     """Run `tts` model training directly by a `config.json` file."""
     # init trainer args
-    train_args = TrainingArgs()
+    train_args = TrainVocoderArgs()
     parser = train_args.init_argparse(arg_prefix="")
 
     # override trainer args from comman-line args

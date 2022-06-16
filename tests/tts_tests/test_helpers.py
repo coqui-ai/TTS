@@ -1,6 +1,6 @@
 import torch as T
 
-from TTS.tts.utils.helpers import average_over_durations, generate_path, segment, sequence_mask
+from TTS.tts.utils.helpers import average_over_durations, generate_path, rand_segments, segment, sequence_mask
 
 
 def average_over_durations_test():  # pylint: disable=no-self-use
@@ -38,6 +38,34 @@ def segment_test():
     segments = segment(x, segment_ids, segment_size=4)
     for idx, start_indx in enumerate(segment_ids):
         assert x[idx, :, start_indx : start_indx + 4].sum() == segments[idx, :, :].sum()
+
+    try:
+        segments = segment(x, segment_ids, segment_size=10)
+        raise Exception("Should have failed")
+    except:
+        pass
+
+    segments = segment(x, segment_ids, segment_size=10, pad_short=True)
+    for idx, start_indx in enumerate(segment_ids):
+        assert x[idx, :, start_indx : start_indx + 10].sum() == segments[idx, :, :].sum()
+
+
+def rand_segments_test():
+    x = T.rand(2, 3, 4)
+    x_lens = T.randint(3, 4, (2,))
+    segments, seg_idxs = rand_segments(x, x_lens, segment_size=3)
+    assert segments.shape == (2, 3, 3)
+    assert all(seg_idxs >= 0), seg_idxs
+    try:
+        segments, _ = rand_segments(x, x_lens, segment_size=5)
+        raise Exception("Should have failed")
+    except:
+        pass
+    x_lens_back = x_lens.clone()
+    segments, seg_idxs = rand_segments(x, x_lens.clone(), segment_size=5, pad_short=True, let_short_samples=True)
+    assert segments.shape == (2, 3, 5)
+    assert all(seg_idxs >= 0), seg_idxs
+    assert all(x_lens_back == x_lens)
 
 
 def generate_path_test():

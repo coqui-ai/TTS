@@ -218,7 +218,7 @@ class GuidedAttentionLoss(torch.nn.Module):
     def _make_ga_mask(ilen, olen, sigma):
         grid_x, grid_y = torch.meshgrid(torch.arange(olen).to(olen), torch.arange(ilen).to(ilen))
         grid_x, grid_y = grid_x.float(), grid_y.float()
-        return 1.0 - torch.exp(-((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma ** 2)))
+        return 1.0 - torch.exp(-((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma**2)))
 
     @staticmethod
     def _make_masks(ilens, olens):
@@ -281,6 +281,10 @@ class TacotronLoss(torch.nn.Module):
     def __init__(self, c, ga_sigma=0.4):
         super().__init__()
         self.stopnet_pos_weight = c.stopnet_pos_weight
+        self.use_capacitron_vae = c.use_capacitron_vae
+        if self.use_capacitron_vae:
+            self.capacitron_capacity = c.capacitron_vae.capacitron_capacity
+            self.capacitron_vae_loss_alpha = c.capacitron_vae.capacitron_VAE_loss_alpha
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -308,6 +312,9 @@ class TacotronLoss(torch.nn.Module):
         # pylint: disable=not-callable
         self.criterion_st = BCELossMasked(pos_weight=torch.tensor(self.stopnet_pos_weight)) if c.stopnet else None
 
+        # For dev pruposes only
+        self.criterion_capacitron_reconstruction_loss = nn.L1Loss(reduction="sum")
+
     def forward(
         self,
         postnet_output,
@@ -317,6 +324,7 @@ class TacotronLoss(torch.nn.Module):
         stopnet_output,
         stopnet_target,
         stop_target_length,
+        capacitron_vae_outputs,
         output_lens,
         decoder_b_output,
         alignments,
@@ -347,6 +355,55 @@ class TacotronLoss(torch.nn.Module):
         loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
         return_dict["decoder_loss"] = decoder_loss
         return_dict["postnet_loss"] = postnet_loss
+
+        if self.use_capacitron_vae:
+            # extract capacitron vae infos
+            posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
+
+            # KL divergence term between the posterior and the prior
+            kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
+
+            # Limit the mutual information between the data and latent space by the variational capacity limit
+            kl_capacity = kl_term - self.capacitron_capacity
+
+            # pass beta through softplus to keep it positive
+            beta = torch.nn.functional.softplus(beta)[0]
+
+            # This is the term going to the main ADAM optimiser, we detach beta because
+            # beta is optimised by a separate, SGD optimiser below
+            capacitron_vae_loss = beta.detach() * kl_capacity
+
+            # normalize the capacitron_vae_loss as in L1Loss or MSELoss.
+            # After this, both the standard loss and capacitron_vae_loss will be in the same scale.
+            # For this reason we don't need use L1Loss and MSELoss in "sum" reduction mode.
+            # Note: the batch is not considered because the L1Loss was calculated in "sum" mode
+            # divided by the batch size, So not dividing the capacitron_vae_loss by B is legitimate.
+
+            # get B T D dimension from input
+            B, T, D = mel_input.size()
+            # normalize
+            if self.config.loss_masking:
+                # if mask loss get T using the mask
+                T = output_lens.sum() / B
+
+            # Only for dev purposes to be able to compare the reconstruction loss with the values in the
+            # original Capacitron paper
+            return_dict["capaciton_reconstruction_loss"] = (
+                self.criterion_capacitron_reconstruction_loss(decoder_output, mel_input) / decoder_output.size(0)
+            ) + kl_capacity
+
+            capacitron_vae_loss = capacitron_vae_loss / (T * D)
+            capacitron_vae_loss = capacitron_vae_loss * self.capacitron_vae_loss_alpha
+
+            # This is the term to purely optimise beta and to pass into the SGD optimizer
+            beta_loss = torch.negative(beta) * kl_capacity.detach()
+
+            loss += capacitron_vae_loss
+
+            return_dict["capacitron_vae_loss"] = capacitron_vae_loss
+            return_dict["capacitron_vae_beta_loss"] = beta_loss
+            return_dict["capacitron_vae_kl_term"] = kl_term
+            return_dict["capacitron_beta"] = beta
 
         stop_loss = (
             self.criterion_st(stopnet_output, stopnet_target, stop_target_length)
@@ -553,7 +610,6 @@ class VitsGeneratorLoss(nn.Module):
                 rl = rl.float().detach()
                 gl = gl.float()
                 loss += torch.mean(torch.abs(rl - gl))
-
         return loss * 2
 
     @staticmethod
@@ -588,13 +644,12 @@ class VitsGeneratorLoss(nn.Module):
 
     @staticmethod
     def cosine_similarity_loss(gt_spk_emb, syn_spk_emb):
-        l = -torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean()
-        return l
+        return -torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean()
 
     def forward(
         self,
-        waveform,
-        waveform_hat,
+        mel_slice,
+        mel_slice_hat,
         z_p,
         logs_q,
         m_p,
@@ -610,8 +665,8 @@ class VitsGeneratorLoss(nn.Module):
     ):
         """
         Shapes:
-            - waveform : :math:`[B, 1, T]`
-            - waveform_hat: :math:`[B, 1, T]`
+            - mel_slice : :math:`[B, 1, T]`
+            - mel_slice_hat: :math:`[B, 1, T]`
             - z_p: :math:`[B, C, T]`
             - logs_q: :math:`[B, C, T]`
             - m_p: :math:`[B, C, T]`
@@ -624,23 +679,23 @@ class VitsGeneratorLoss(nn.Module):
         loss = 0.0
         return_dict = {}
         z_mask = sequence_mask(z_len).float()
-        # compute mel spectrograms from the waveforms
-        mel = self.stft(waveform)
-        mel_hat = self.stft(waveform_hat)
-
         # compute losses
-        loss_kl = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask.unsqueeze(1)) * self.kl_loss_alpha
-        loss_feat = self.feature_loss(feats_disc_fake, feats_disc_real) * self.feat_loss_alpha
-        loss_gen = self.generator_loss(scores_disc_fake)[0] * self.gen_loss_alpha
-        loss_mel = torch.nn.functional.l1_loss(mel, mel_hat) * self.mel_loss_alpha
+        loss_kl = (
+            self.kl_loss(z_p=z_p, logs_q=logs_q, m_p=m_p, logs_p=logs_p, z_mask=z_mask.unsqueeze(1))
+            * self.kl_loss_alpha
+        )
+        loss_feat = (
+            self.feature_loss(feats_real=feats_disc_real, feats_generated=feats_disc_fake) * self.feat_loss_alpha
+        )
+        loss_gen = self.generator_loss(scores_fake=scores_disc_fake)[0] * self.gen_loss_alpha
+        loss_mel = torch.nn.functional.l1_loss(mel_slice, mel_slice_hat) * self.mel_loss_alpha
         loss_duration = torch.sum(loss_duration.float()) * self.dur_loss_alpha
         loss = loss_kl + loss_feat + loss_mel + loss_gen + loss_duration
 
         if use_speaker_encoder_as_loss:
             loss_se = self.cosine_similarity_loss(gt_spk_emb, syn_spk_emb) * self.spk_encoder_loss_alpha
-            loss += loss_se
+            loss = loss + loss_se
             return_dict["loss_spk_encoder"] = loss_se
-
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen
         return_dict["loss_kl"] = loss_kl
@@ -665,20 +720,24 @@ class VitsDiscriminatorLoss(nn.Module):
             dr = dr.float()
             dg = dg.float()
             real_loss = torch.mean((1 - dr) ** 2)
-            fake_loss = torch.mean(dg ** 2)
+            fake_loss = torch.mean(dg**2)
             loss += real_loss + fake_loss
             real_losses.append(real_loss.item())
             fake_losses.append(fake_loss.item())
-
         return loss, real_losses, fake_losses
 
     def forward(self, scores_disc_real, scores_disc_fake):
         loss = 0.0
         return_dict = {}
-        loss_disc, _, _ = self.discriminator_loss(scores_disc_real, scores_disc_fake)
+        loss_disc, loss_disc_real, _ = self.discriminator_loss(
+            scores_real=scores_disc_real, scores_fake=scores_disc_fake
+        )
         return_dict["loss_disc"] = loss_disc * self.disc_loss_alpha
         loss = loss + return_dict["loss_disc"]
         return_dict["loss"] = loss
+
+        for i, ldr in enumerate(loss_disc_real):
+            return_dict[f"loss_disc_real_{i}"] = ldr
         return return_dict
 
 
@@ -740,6 +799,7 @@ class ForwardTTSLoss(nn.Module):
         alignment_logprob=None,
         alignment_hard=None,
         alignment_soft=None,
+        binary_loss_weight=None,
     ):
         loss = 0
         return_dict = {}
@@ -772,7 +832,12 @@ class ForwardTTSLoss(nn.Module):
         if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
             binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
             loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
-            return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
+            if binary_loss_weight:
+                return_dict["loss_binary_alignment"] = (
+                    self.binary_alignment_loss_alpha * binary_alignment_loss * binary_loss_weight
+                )
+            else:
+                return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
 
         return_dict["loss"] = loss
         return return_dict

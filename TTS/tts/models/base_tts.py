@@ -1,41 +1,54 @@
 import os
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import torch
 import torch.distributed as dist
 from coqpit import Coqpit
 from torch import nn
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import WeightedRandomSampler
+from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 
-from TTS.model import BaseModel
-from TTS.tts.configs.shared_configs import CharactersConfig
+from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
-from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
+from TTS.tts.utils.data import get_length_balancer_weights
+from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_balancer_weights, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
-from TTS.tts.utils.text import make_symbols
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 # pylint: skip-file
 
 
-class BaseTTS(BaseModel):
+class BaseTTS(BaseTrainerModel):
     """Base `tts` class. Every new `tts` model must inherit this.
 
     It defines common `tts` specific functions on top of `Model` implementation.
-
-    Notes on input/output tensor shapes:
-        Any input or output tensor of the model must be shaped as
-
-        - 3D tensors `batch x time x channels`
-        - 2D tensors `batch x channels`
-        - 1D tensors `batch x 1`
     """
 
+    def __init__(
+        self,
+        config: Coqpit,
+        ap: "AudioProcessor",
+        tokenizer: "TTSTokenizer",
+        speaker_manager: SpeakerManager = None,
+        language_manager: LanguageManager = None,
+    ):
+        super().__init__()
+        self.config = config
+        self.ap = ap
+        self.tokenizer = tokenizer
+        self.speaker_manager = speaker_manager
+        self.language_manager = language_manager
+        self._set_model_args(config)
+
     def _set_model_args(self, config: Coqpit):
-        """Setup model args based on the config type.
+        """Setup model args based on the config type (`ModelConfig` or `ModelArgs`).
+
+        `ModelArgs` has all the fields reuqired to initialize the model architecture.
+
+        `ModelConfig` has all the fields required for training, inference and containes `ModelArgs`.
 
         If the config is for training with a name like "*Config", then the model args are embeded in the
         config.model_args
@@ -44,8 +57,11 @@ class BaseTTS(BaseModel):
         """
         # don't use isintance not to import recursively
         if "Config" in config.__class__.__name__:
+            config_num_chars = (
+                self.config.model_args.num_chars if hasattr(self.config, "model_args") else self.config.num_chars
+            )
+            num_chars = config_num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
             if "characters" in config:
-                _, self.config, num_chars = self.get_characters(config)
                 self.config.num_chars = num_chars
                 if hasattr(self.config, "model_args"):
                     config.model_args.num_chars = num_chars
@@ -57,22 +73,6 @@ class BaseTTS(BaseModel):
             self.args = config
         else:
             raise ValueError("config must be either a *Config or *Args")
-
-    @staticmethod
-    def get_characters(config: Coqpit) -> str:
-        # TODO: implement CharacterProcessor
-        if config.characters is not None:
-            symbols, phonemes = make_symbols(**config.characters)
-        else:
-            from TTS.tts.utils.text.symbols import parse_symbols, phonemes, symbols
-
-            config.characters = CharactersConfig(**parse_symbols())
-        model_characters = phonemes if config.use_phonemes else symbols
-        num_chars = len(model_characters) + getattr(config, "add_blank", False)
-        return model_characters, config, num_chars
-
-    def get_speaker_manager(config: Coqpit, restore_path: str, data: List, out_path: str = None) -> SpeakerManager:
-        return get_speaker_manager(config, restore_path, data, out_path)
 
     def init_multispeaker(self, config: Coqpit, data: List = None):
         """Initialize a speaker embedding layer if needen and define expected embedding channel size for defining
@@ -137,18 +137,18 @@ class BaseTTS(BaseModel):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_d_vector()
+                    d_vector = self.speaker_manager.get_random_embeddings()
                 else:
-                    d_vector = self.speaker_manager.get_d_vector_by_speaker(speaker_name)
+                    d_vector = self.speaker_manager.get_d_vector_by_name(speaker_name)
             elif config.use_speaker_embedding:
                 if speaker_name is None:
-                    speaker_id = self.speaker_manager.get_random_speaker_id()
+                    speaker_id = self.speaker_manager.get_random_id()
                 else:
-                    speaker_id = self.speaker_manager.speaker_ids[speaker_name]
+                    speaker_id = self.speaker_manager.ids[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
-            language_id = self.language_manager.language_id_mapping[language_name]
+            language_id = self.language_manager.ids[language_name]
 
         return {
             "text": text,
@@ -170,8 +170,8 @@ class BaseTTS(BaseModel):
             Dict: [description]
         """
         # setup input batch
-        text_input = batch["text"]
-        text_lengths = batch["text_lengths"]
+        text_input = batch["token_id"]
+        text_lengths = batch["token_id_lengths"]
         speaker_names = batch["speaker_names"]
         linear_input = batch["linear"]
         mel_input = batch["mel"]
@@ -234,12 +234,50 @@ class BaseTTS(BaseModel):
             "language_ids": language_ids,
         }
 
+    def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1):
+        weights = None
+        data_items = dataset.samples
+
+        if getattr(config, "use_language_weighted_sampler", False):
+            alpha = getattr(config, "language_weighted_sampler_alpha", 1.0)
+            print(" > Using Language weighted sampler with alpha:", alpha)
+            weights = get_language_balancer_weights(data_items) * alpha
+
+        if getattr(config, "use_speaker_weighted_sampler", False):
+            alpha = getattr(config, "speaker_weighted_sampler_alpha", 1.0)
+            print(" > Using Speaker weighted sampler with alpha:", alpha)
+            if weights is not None:
+                weights += get_speaker_balancer_weights(data_items) * alpha
+            else:
+                weights = get_speaker_balancer_weights(data_items) * alpha
+
+        if getattr(config, "use_length_weighted_sampler", False):
+            alpha = getattr(config, "length_weighted_sampler_alpha", 1.0)
+            print(" > Using Length weighted sampler with alpha:", alpha)
+            if weights is not None:
+                weights += get_length_balancer_weights(data_items) * alpha
+            else:
+                weights = get_length_balancer_weights(data_items) * alpha
+
+        if weights is not None:
+            sampler = WeightedRandomSampler(weights, len(weights))
+        else:
+            sampler = None
+
+        # sampler for DDP
+        if sampler is None:
+            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        else:  # If a sampler is already defined use this sampler and DDP sampler together
+            sampler = DistributedSamplerWrapper(sampler) if num_gpus > 1 else sampler
+
+        return sampler
+
     def get_data_loader(
         self,
         config: Coqpit,
         assets: Dict,
         is_eval: bool,
-        data_items: List,
+        samples: Union[List[Dict], List[List]],
         verbose: bool,
         num_gpus: int,
         rank: int = None,
@@ -247,127 +285,66 @@ class BaseTTS(BaseModel):
         if is_eval and not config.run_eval:
             loader = None
         else:
-            ap = assets["audio_processor"]
-
             # setup multi-speaker attributes
             if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
                 if hasattr(config, "model_args"):
-                    speaker_id_mapping = (
-                        self.speaker_manager.speaker_ids if config.model_args.use_speaker_embedding else None
-                    )
-                    d_vector_mapping = self.speaker_manager.d_vectors if config.model_args.use_d_vector_file else None
+                    speaker_id_mapping = self.speaker_manager.ids if config.model_args.use_speaker_embedding else None
+                    d_vector_mapping = self.speaker_manager.embeddings if config.model_args.use_d_vector_file else None
                     config.use_d_vector_file = config.model_args.use_d_vector_file
                 else:
-                    speaker_id_mapping = self.speaker_manager.speaker_ids if config.use_speaker_embedding else None
-                    d_vector_mapping = self.speaker_manager.d_vectors if config.use_d_vector_file else None
+                    speaker_id_mapping = self.speaker_manager.ids if config.use_speaker_embedding else None
+                    d_vector_mapping = self.speaker_manager.embeddings if config.use_d_vector_file else None
             else:
                 speaker_id_mapping = None
                 d_vector_mapping = None
 
-            # setup custom symbols if needed
-            custom_symbols = None
-            if hasattr(self, "make_symbols"):
-                custom_symbols = self.make_symbols(self.config)
-
-            if hasattr(self, "language_manager"):
-                language_id_mapping = (
-                    self.language_manager.language_id_mapping if self.args.use_language_embedding else None
-                )
+            # setup multi-lingual attributes
+            if hasattr(self, "language_manager") and self.language_manager is not None:
+                language_id_mapping = self.language_manager.ids if self.args.use_language_embedding else None
             else:
                 language_id_mapping = None
 
             # init dataloader
             dataset = TTSDataset(
                 outputs_per_step=config.r if "r" in config else 1,
-                text_cleaner=config.text_cleaner,
                 compute_linear_spec=config.model.lower() == "tacotron" or config.compute_linear_spec,
                 compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
-                meta_data=data_items,
-                ap=ap,
-                characters=config.characters,
-                custom_symbols=custom_symbols,
-                add_blank=config["add_blank"],
+                samples=samples,
+                ap=self.ap,
                 return_wav=config.return_wav if "return_wav" in config else False,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
-                min_seq_len=config.min_seq_len,
-                max_seq_len=config.max_seq_len,
+                min_text_len=config.min_text_len,
+                max_text_len=config.max_text_len,
+                min_audio_len=config.min_audio_len,
+                max_audio_len=config.max_audio_len,
                 phoneme_cache_path=config.phoneme_cache_path,
-                use_phonemes=config.use_phonemes,
-                phoneme_language=config.phoneme_language,
-                enable_eos_bos=config.enable_eos_bos_chars,
+                precompute_num_workers=config.precompute_num_workers,
                 use_noise_augment=False if is_eval else config.use_noise_augment,
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
-                d_vector_mapping=d_vector_mapping,
+                d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
+                tokenizer=self.tokenizer,
+                start_by_longest=config.start_by_longest,
                 language_id_mapping=language_id_mapping,
             )
 
-            # pre-compute phonemes
-            if config.use_phonemes and config.compute_input_seq_cache and rank in [None, 0]:
-                if hasattr(self, "eval_data_items") and is_eval:
-                    dataset.items = self.eval_data_items
-                elif hasattr(self, "train_data_items") and not is_eval:
-                    dataset.items = self.train_data_items
-                else:
-                    # precompute phonemes for precise estimate of sequence lengths.
-                    # otherwise `dataset.sort_items()` uses raw text lengths
-                    dataset.compute_input_seq(config.num_loader_workers)
-
-                    # TODO: find a more efficient solution
-                    # cheap hack - store items in the model state to avoid recomputing when reinit the dataset
-                    if is_eval:
-                        self.eval_data_items = dataset.items
-                    else:
-                        self.train_data_items = dataset.items
-
-            # halt DDP processes for the main process to finish computing the phoneme cache
+            # wait all the DDP process to be ready
             if num_gpus > 1:
                 dist.barrier()
 
             # sort input sequences from short to long
-            dataset.sort_and_filter_items(config.get("sort_by_audio_len", default=False))
+            dataset.preprocess_samples()
 
-            # compute pitch frames and write to files.
-            if config.compute_f0 and rank in [None, 0]:
-                if not os.path.exists(config.f0_cache_path):
-                    dataset.pitch_extractor.compute_pitch(
-                        ap, config.get("f0_cache_path", None), config.num_loader_workers
-                    )
-
-            # halt DDP processes for the main process to finish computing the F0 cache
-            if num_gpus > 1:
-                dist.barrier()
-
-            # load pitch stats computed above by all the workers
-            if config.compute_f0:
-                dataset.pitch_extractor.load_pitch_stats(config.get("f0_cache_path", None))
-
-            # sampler for DDP
-            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-
-            # Weighted samplers
-            assert not (
-                num_gpus > 1 and getattr(config, "use_language_weighted_sampler", False)
-            ), "language_weighted_sampler is not supported with DistributedSampler"
-            assert not (
-                num_gpus > 1 and getattr(config, "use_speaker_weighted_sampler", False)
-            ), "speaker_weighted_sampler is not supported with DistributedSampler"
-
-            if sampler is None:
-                if getattr(config, "use_language_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_language_weighted_sampler(dataset.items)
-                elif getattr(config, "use_speaker_weighted_sampler", False):
-                    print(" > Using Language weighted sampler")
-                    sampler = get_speaker_weighted_sampler(dataset.items)
+            # get samplers
+            sampler = self.get_sampler(config, dataset, num_gpus)
 
             loader = DataLoader(
                 dataset,
                 batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                shuffle=False,
+                shuffle=False,  # shuffle is done in the dataset.
                 collate_fn=dataset.collate_fn,
-                drop_last=False,
+                drop_last=False,  # setting this False might cause issues in AMP training.
                 sampler=sampler,
                 num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
                 pin_memory=False,
@@ -380,13 +357,13 @@ class BaseTTS(BaseModel):
 
         d_vector = None
         if self.config.use_d_vector_file:
-            d_vector = [self.speaker_manager.d_vectors[name]["embedding"] for name in self.speaker_manager.d_vectors]
+            d_vector = [self.speaker_manager.embeddings[name]["embedding"] for name in self.speaker_manager.embeddings]
             d_vector = (random.sample(sorted(d_vector), 1),)
 
         aux_inputs = {
             "speaker_id": None
             if not self.config.use_speaker_embedding
-            else random.sample(sorted(self.speaker_manager.speaker_ids.values()), 1),
+            else random.sample(sorted(self.speaker_manager.ids.values()), 1),
             "d_vector": d_vector,
             "style_wav": None,  # TODO: handle GST style input
         }
@@ -403,7 +380,6 @@ class BaseTTS(BaseModel):
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
         """
-        ap = assets["audio_processor"]
         print(" | > Synthesizing test sentences.")
         test_audios = {}
         test_figures = {}
@@ -415,17 +391,15 @@ class BaseTTS(BaseModel):
                 sen,
                 self.config,
                 "cuda" in str(next(self.parameters()).device),
-                ap,
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 style_wav=aux_inputs["style_wav"],
-                enable_eos_bos_chars=self.config.enable_eos_bos_chars,
                 use_griffin_lim=True,
                 do_trim_silence=False,
             )
             test_audios["{}-audio".format(idx)] = outputs_dict["wav"]
             test_figures["{}-prediction".format(idx)] = plot_spectrogram(
-                outputs_dict["outputs"]["model_outputs"], ap, output_fig=False
+                outputs_dict["outputs"]["model_outputs"], self.ap, output_fig=False
             )
             test_figures["{}-alignment".format(idx)] = plot_alignment(
                 outputs_dict["outputs"]["alignments"], output_fig=False
@@ -433,21 +407,21 @@ class BaseTTS(BaseModel):
         return test_figures, test_audios
 
     def on_init_start(self, trainer):
-        """Save the speaker.json and language_ids.json at the beginning of the training. Also update both paths."""
+        """Save the speaker.pth and language_ids.json at the beginning of the training. Also update both paths."""
         if self.speaker_manager is not None:
-            output_path = os.path.join(trainer.output_path, "speakers.json")
-            self.speaker_manager.save_speaker_ids_to_file(output_path)
+            output_path = os.path.join(trainer.output_path, "speakers.pth")
+            self.speaker_manager.save_ids_to_file(output_path)
             trainer.config.speakers_file = output_path
             # some models don't have `model_args` set
             if hasattr(trainer.config, "model_args"):
                 trainer.config.model_args.speakers_file = output_path
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
-            print(f" > `speakers.json` is saved to {output_path}.")
+            print(f" > `speakers.pth` is saved to {output_path}.")
             print(" > `speakers_file` is updated in the config.json.")
 
         if hasattr(self, "language_manager") and self.language_manager is not None:
             output_path = os.path.join(trainer.output_path, "language_ids.json")
-            self.language_manager.save_language_ids_to_file(output_path)
+            self.language_manager.save_ids_to_file(output_path)
             trainer.config.language_ids_file = output_path
             if hasattr(trainer.config, "model_args"):
                 trainer.config.model_args.language_ids_file = output_path

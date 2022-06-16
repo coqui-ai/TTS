@@ -1,30 +1,36 @@
-cython
-flask
-gdown
-inflect
-jieba
-librosa==0.8.0
-matplotlib
-numpy==1.19.5
-pandas
-pypinyin
-pysbd
-pyyaml
-scipy>=0.19.0
-soundfile
-tensorboardX
+# core deps
+numpy==1.21.6
+cython==0.29.28
+scipy>=1.4.0
 torch>=1.7
+torchaudio
+soundfile
+librosa==0.8.0
+numba==0.55.1
+inflect
 tqdm
-numba==0.53
-umap-learn==0.5.1
 anyascii
-coqpit
+pyyaml
+fsspec>=2021.04.0
+# deps for examples
+flask
+# deps for inference
+pysbd
+# deps for notebooks
+umap-learn==0.5.1
+pandas
+# deps for training
+matplotlib
+pyworld==0.2.10 # > 0.2.10 is not p3.10.x compatible
+# coqui stack
+trainer
+# config management
+coqpit>=0.0.16
+# chinese g2p deps
+jieba
+pypinyin
 # japanese g2p deps
-mecab-python3==1.0.3
+mecab-python3==1.0.5
 unidic-lite==1.0.8
 # gruut+supported langs
-gruut[cs,de,es,fr,it,nl,pt,ru,sv]~=2.0.0
-fsspec>=2021.04.0
-pyworld
-webrtcvad
-torchaudio
+gruut[cs,de,es,fr,it,nl,pt,ru,sv]==2.2.3

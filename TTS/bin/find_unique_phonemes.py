@@ -7,14 +7,15 @@ from tqdm.contrib.concurrent import process_map
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.text import text2phone
+from TTS.tts.utils.text.phonemizers.gruut_wrapper import Gruut
+
+phonemizer = Gruut(language="en-us")
 
 
 def compute_phonemes(item):
     try:
         text = item[0]
-        language = item[-1]
-        ph = text2phone(text, language, use_espeak_phonemes=c.use_espeak_phonemes).split("|")
+        ph = phonemizer.phonemize(text).split("|")
     except:
         return []
     return list(set(ph))
@@ -39,9 +40,16 @@ def main():
     c = load_config(args.config_path)
 
     # load all datasets
-    train_items, eval_items = load_tts_samples(c.datasets, eval_split=True)
+    train_items, eval_items = load_tts_samples(
+        c.datasets, eval_split=True, eval_split_max_size=c.eval_split_max_size, eval_split_size=c.eval_split_size
+    )
     items = train_items + eval_items
     print("Num items:", len(items))
+
+    is_lang_def = all(item["language"] for item in items)
+
+    if not c.phoneme_language or not is_lang_def:
+        raise ValueError("Phoneme language must be defined in config.")
 
     phonemes = process_map(compute_phonemes, items, max_workers=multiprocessing.cpu_count(), chunksize=15)
     phones = []

@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
         experimental: [false]
     steps:
       - uses: actions/checkout@v2
@@ -35,9 +35,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git make gcc
+          sudo apt-get install espeak espeak-ng
           make system-deps
       - name: Install/upgrade Python setup deps
         run: python3 -m pip install --upgrade pip setuptools wheel
+      - name: Replace scarf urls
+        run: |
+          sed -i 's/https:\/\/coqui.gateway.scarf.sh\//https:\/\/github.com\/coqui-ai\/TTS\/releases\/download\//g' TTS/.models.json
       - name: Install TTS
         run: |
           python3 -m pip install .[all]

@@ -3,15 +3,23 @@
 🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
 🐸TTS comes with pretrained models, tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
 
-[![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/main.yml/badge.svg)](https://github.com/coqui-ai/TTS/actions)
+[![Gitter](https://badges.gitter.im/coqui-ai/TTS.svg)](https://gitter.im/coqui-ai/TTS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 [![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
 [![Covenant](https://camo.githubusercontent.com/7d620efaa3eac1c5b060ece5d6aacfcc8b81a74a04d05cd0398689c01c4463bb/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f436f6e7472696275746f72253230436f76656e616e742d76322e3025323061646f707465642d6666363962342e737667)](https://github.com/coqui-ai/TTS/blob/master/CODE_OF_CONDUCT.md)
 [![Downloads](https://pepy.tech/badge/tts)](https://pepy.tech/project/tts)
 [![DOI](https://zenodo.org/badge/265612440.svg)](https://zenodo.org/badge/latestdoi/265612440)
 
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/aux_tests.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/data_tests.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/docker.yaml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/inference_tests.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/style_check.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/text_tests.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/tts_tests.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/vocoder_tests.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests.yml/badge.svg)
 [![Docs](<https://readthedocs.org/projects/tts/badge/?version=latest&style=plastic>)](https://tts.readthedocs.io/en/latest/)
-[![Gitter](https://badges.gitter.im/coqui-ai/TTS.svg)](https://gitter.im/coqui-ai/TTS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-[![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 
 📰 [**Subscribe to 🐸Coqui.ai Newsletter**](https://coqui.ai/?subscription=true)
 
@@ -61,8 +69,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Detailed training logs on the terminal and Tensorboard.
 - Support for Multi-speaker TTS.
 - Efficient, flexible, lightweight but feature complete `Trainer API`.
-- Ability to convert PyTorch models to Tensorflow 2.0 and TFLite for inference.
-- Released and read-to-use models.
+- Released and ready-to-use models.
 - Tools to curate Text2Speech datasets under```dataset_analysis```.
 - Utilities to use and test your models.
 - Modular (but not too much) code base enabling easy implementation of new ideas.
@@ -105,7 +112,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 You can also help us implement more models.
 
 ## Install TTS
-🐸TTS is tested on Ubuntu 18.04 with **python >= 3.6, < 3.9**.
+🐸TTS is tested on Ubuntu 18.04 with **python >= 3.7, < 3.11.**.
 
 If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
 
@@ -113,17 +120,11 @@ If you are only interested in [synthesizing speech](https://tts.readthedocs.io/e
 pip install TTS
 ```
 
-By default, this only installs the requirements for PyTorch. To install the tensorflow dependencies as well, use the `tf` extra.
-
-```bash
-pip install TTS[tf]
-```
-
 If you plan to code or train models, clone 🐸TTS and install it locally.
 
 ```bash
 git clone https://github.com/coqui-ai/TTS
-pip install -e .[all,dev,notebooks,tf]  # Select the relevant extras
+pip install -e .[all,dev,notebooks]  # Select the relevant extras
 ```
 
 If you are on Ubuntu (Debian), you can also run following commands for installation.
@@ -166,13 +167,13 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
 - Run your own TTS model (Using Griffin-Lim Vocoder):
 
     ```
-    $ tts --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
     ```
 
 - Run your own TTS and Vocoder models:
     ```
-    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
-        --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
+    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth --out_path output/path/speech.wav
+        --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
     ```
 
 ### Multi-speaker Models
@@ -192,7 +193,7 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
 - Run your own multi-speaker TTS model:
 
     ```
-    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth.tar --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
+    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
     ```
 
 ## Directory Structure
@@ -204,12 +205,10 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
       |- train*.py                  (train your target model.)
       |- distribute.py              (train your TTS model using Multiple GPUs.)
       |- compute_statistics.py      (compute dataset statistics for normalization.)
-      |- convert*.py                (convert target torch model to TF.)
       |- ...
     |- tts/             (text to speech models)
         |- layers/          (model layer definitions)
         |- models/          (model definitions)
-        |- tf/              (Tensorflow 2 utilities and model implementations)
         |- utils/           (model specific utilities.)
     |- speaker_encoder/ (Speaker Encoder models.)
         |- (same)

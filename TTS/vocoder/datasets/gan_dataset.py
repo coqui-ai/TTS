@@ -115,8 +115,8 @@ class GANDataset(Dataset):
                 audio, mel = self.cache[idx]
             else:
                 audio = self.ap.load_wav(wavpath)
-                audio, _ = self._pad_short_samples(audio)
                 mel = self.ap.melspectrogram(audio)
+                audio, mel = self._pad_short_samples(audio, mel)
         else:
 
             # load precomputed features

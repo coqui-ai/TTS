@@ -36,7 +36,7 @@ class MelganGenerator(nn.Module):
 
         # upsampling layers and residual stacks
         for idx, upsample_factor in enumerate(upsample_factors):
-            layer_in_channels = base_channels // (2 ** idx)
+            layer_in_channels = base_channels // (2**idx)
             layer_out_channels = base_channels // (2 ** (idx + 1))
             layer_filter_size = upsample_factor * 2
             layer_stride = upsample_factor

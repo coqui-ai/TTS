@@ -51,7 +51,7 @@ def main():
     N = 0
     for item in tqdm(dataset_items):
         # compute features
-        wav = ap.load_wav(item if isinstance(item, str) else item[1])
+        wav = ap.load_wav(item if isinstance(item, str) else item["audio_file"])
         linear = ap.spectrogram(wav)
         mel = ap.melspectrogram(wav)
 
@@ -59,13 +59,13 @@ def main():
         N += mel.shape[1]
         mel_sum += mel.sum(1)
         linear_sum += linear.sum(1)
-        mel_square_sum += (mel ** 2).sum(axis=1)
-        linear_square_sum += (linear ** 2).sum(axis=1)
+        mel_square_sum += (mel**2).sum(axis=1)
+        linear_square_sum += (linear**2).sum(axis=1)
 
     mel_mean = mel_sum / N
-    mel_scale = np.sqrt(mel_square_sum / N - mel_mean ** 2)
+    mel_scale = np.sqrt(mel_square_sum / N - mel_mean**2)
     linear_mean = linear_sum / N
-    linear_scale = np.sqrt(linear_square_sum / N - linear_mean ** 2)
+    linear_scale = np.sqrt(linear_square_sum / N - linear_mean**2)
 
     output_file_path = args.out_path
     stats = {}
