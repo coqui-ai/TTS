@@ -24,54 +24,56 @@ def extract_aligments(
     data_loader, model, output_path, use_cuda=True
 ):
     model.eval()
-    export_metadata = []
-    for _, batch in tqdm(enumerate(data_loader), total=len(data_loader)):
+    with torch.no_grad():
+        for _, batch in tqdm(enumerate(data_loader), total=len(data_loader)):
 
-        batch = model.format_batch(batch)        
-        if use_cuda:
-            for k, v in batch.items():
-                    batch[k] = to_cuda(v)
+            batch = model.format_batch(batch)        
+            if use_cuda:
+                for k, v in batch.items():
+                        batch[k] = to_cuda(v)
 
-        batch = model.format_batch_on_device(batch)
+            batch = model.format_batch_on_device(batch)
 
-        spec_lens = batch["spec_lens"]
-        tokens = batch["tokens"]
-        token_lenghts = batch["token_lens"]
-        spec = batch["spec"]
+            spec_lens = batch["spec_lens"]
+            tokens = batch["tokens"]
+            token_lenghts = batch["token_lens"]
+            spec = batch["spec"]
 
-        d_vectors = batch["d_vectors"]
-        speaker_ids = batch["speaker_ids"]
-        language_ids = batch["language_ids"]
-        emotion_embeddings = batch["emotion_embeddings"]
-        emotion_ids = batch["emotion_ids"]
-        waveform = batch["waveform"]
-        item_idx = batch["audio_files"]
-        # generator pass
-        outputs = model.forward(
-            tokens,
-            token_lenghts,
-            spec,
-            spec_lens,
-            waveform,
-            aux_input={
-                "d_vectors": d_vectors,
-                "speaker_ids": speaker_ids,
-                "language_ids": language_ids,
-                "emotion_embeddings": emotion_embeddings,
-                "emotion_ids": emotion_ids,
-            },
-        )
+            d_vectors = batch["d_vectors"]
+            speaker_ids = batch["speaker_ids"]
+            language_ids = batch["language_ids"]
+            emotion_embeddings = batch["emotion_embeddings"]
+            emotion_ids = batch["emotion_ids"]
+            waveform = batch["waveform"]
+            item_idx = batch["audio_files"]
+            pitch = batch["pitch"]
+            # generator pass
+            outputs = model.forward(
+                tokens,
+                token_lenghts,
+                spec,
+                spec_lens,
+                waveform,
+                pitch,
+                aux_input={
+                    "d_vectors": d_vectors,
+                    "speaker_ids": speaker_ids,
+                    "language_ids": language_ids,
+                    "emotion_embeddings": emotion_embeddings,
+                    "emotion_ids": emotion_ids,
+                },
+            )
 
-        alignments = outputs["alignments"].detach().cpu().numpy()
+            alignments = outputs["alignments"].detach().cpu().numpy()
 
-        for idx in range(tokens.shape[0]):
-            wav_file_path = item_idx[idx]
-            alignment = alignments[idx]
-            # set paths
-            align_file_name = os.path.splitext(os.path.basename(wav_file_path))[0] + ".npy"
-            os.makedirs(os.path.join(output_path, "alignments"), exist_ok=True)
-            align_file_path = os.path.join(output_path, "alignments", align_file_name)
-            np.save(align_file_path, alignment)
+            for idx in range(tokens.shape[0]):
+                wav_file_path = item_idx[idx]
+                alignment = alignments[idx]
+                # set paths
+                align_file_name = os.path.splitext(os.path.basename(wav_file_path))[0] + ".npy"
+                os.makedirs(os.path.join(output_path, "alignments"), exist_ok=True)
+                align_file_path = os.path.join(output_path, "alignments", align_file_name)
+                np.save(align_file_path, alignment)
 
 
 

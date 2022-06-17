@@ -25,6 +25,8 @@ config = VitsConfig(
     epochs=1,
     print_step=1,
     print_eval=True,
+    compute_pitch=True,
+    f0_cache_path="tests/data/ljspeech/f0_cache/",
     test_sentences=[
         ["Be a voice, not an echo.", "ljspeech-1", "tests/data/ljspeech/wavs/LJ001-0001.wav", None, None, "ljspeech-2"],
     ],
@@ -57,12 +59,15 @@ config.model_args.use_latent_discriminator = True
 config.model_args.use_noise_scale_predictor = False
 config.model_args.condition_pros_enc_on_speaker = True
 
-config.model_args.use_pros_enc_input_as_pros_emb = True
-config.model_args.use_prosody_embedding_squeezer = True
-config.model_args.prosody_embedding_squeezer_input_dim = 192
+config.model_args.use_pros_enc_input_as_pros_emb = False
+config.model_args.use_prosody_embedding_squeezer = False
+config.model_args.prosody_embedding_squeezer_input_dim = 0
 
-# enable end2end loss
-config.model_args.use_end2end_loss = False
+# pitch predictor
+config.model_args.use_pitch = True
+config.model_args.use_pitch_on_enc_input = False
+config.model_args.condition_dp_on_speaker = False
+
 
 config.mixed_precision = False
 
