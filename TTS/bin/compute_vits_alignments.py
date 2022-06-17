@@ -69,6 +69,9 @@ def extract_aligments(
             for idx in range(tokens.shape[0]):
                 wav_file_path = item_idx[idx]
                 alignment = alignments[idx]
+                spec_length = spec_lens[idx]
+                token_length = token_lenghts[idx]
+                alignment = alignment[:token_length, :spec_length]
                 # set paths
                 align_file_name = os.path.splitext(os.path.basename(wav_file_path))[0] + ".npy"
                 os.makedirs(os.path.join(output_path, "alignments"), exist_ok=True)

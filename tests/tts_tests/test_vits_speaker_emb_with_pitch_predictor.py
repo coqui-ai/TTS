@@ -28,7 +28,7 @@ config = VitsConfig(
     compute_pitch=True,
     f0_cache_path="tests/data/ljspeech/f0_cache/",
     test_sentences=[
-        ["Be a voice, not an echo.", "ljspeech-1", "tests/data/ljspeech/wavs/LJ001-0001.wav", None, None],
+        ["Be a voice, not an echo.", "ljspeech-1", None, None, None],
     ],
 )
 # set audio config
@@ -42,17 +42,18 @@ config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
 config.model_args.speaker_embedding_channels = 128
 config.model_args.d_vector_dim = 128
 
-# prosody embedding
-config.model_args.use_prosody_encoder = True
-config.model_args.prosody_embedding_dim = 64
+
+config.model_args.use_precomputed_alignments = True
+config.model_args.alignments_cache_path = "tests/data/ljspeech/mas_alignments/alignments/"
 
 # pitch predictor
 config.model_args.use_pitch = True
+config.model_args.use_pitch_on_enc_input = True
+config.model_args.pitch_embedding_dim = 2
 config.model_args.condition_dp_on_speaker = True
 
 
 config.save_json(config_path)
-
 # train the model for one epoch
 command_train = (
     f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --config_path {config_path} "
@@ -74,11 +75,9 @@ continue_config_path = os.path.join(continue_path, "config.json")
 continue_restore_path, _ = get_last_checkpoint(continue_path)
 out_wav_path = os.path.join(get_tests_output_path(), "output.wav")
 speaker_id = "ljspeech-1"
-style_wav_path = "tests/data/ljspeech/wavs/LJ001-0001.wav"
 continue_speakers_path = os.path.join(continue_path, "speakers.json")
 
-
-inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path} --gst_style {style_wav_path}"
+inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --speaker_idx {speaker_id} --speakers_file_path {continue_speakers_path} --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path} "
 run_cli(inference_command)
 
 # restore the model and continue training for one more epoch

@@ -265,7 +265,9 @@ class VitsDataset(TTSDataset):
         self.pad_id = self.tokenizer.characters.pad_id
         self.model_args = model_args
         self.compute_pitch = compute_pitch
-        
+        self.use_precomputed_alignments = model_args.use_precomputed_alignments
+        self.alignments_cache_path = model_args.alignments_cache_path
+
         if self.compute_pitch:
             self.f0_dataset = VITSF0Dataset(config,
                 samples=self.samples, ap=self.ap, cache_path=self.f0_cache_path, precompute_num_workers=self.precompute_num_workers
@@ -289,6 +291,11 @@ class VitsDataset(TTSDataset):
         if self.compute_pitch:
             f0 = self.get_f0(idx)["f0"]
 
+        alignments = None
+        if self.use_precomputed_alignments:
+            align_file = os.path.join(self.alignments_cache_path, os.path.splitext(wav_filename)[0] + ".npy")
+            alignments = self.get_attn_mask(align_file)
+
         # after phonemization the text length may change
         # this is a shameful 🤭 hack to prevent longer phonemes
         # TODO: find a better fix
@@ -305,6 +312,8 @@ class VitsDataset(TTSDataset):
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
             "pitch": f0,
+            "alignments": alignments,
+
         }
 
     @property
@@ -365,6 +374,18 @@ class VitsDataset(TTSDataset):
             pitch = torch.FloatTensor(pitch)[:, None, :].contiguous() # B x 1 xT
         else:
             pitch = None
+        
+        padded_alignments = None
+        if self.use_precomputed_alignments:
+            alignments = batch["alignments"]
+            max_len_1 = max((x.shape[0] for x in alignments))
+            max_len_2 = max((x.shape[1] for x in alignments))
+            padded_alignments = []
+            for x in alignments:
+                padded_alignment = np.pad(x, ((0, max_len_1 - x.shape[0]), (0, max_len_2 - x.shape[1])), mode="constant", constant_values=0)
+                padded_alignments.append(padded_alignment)
+            
+            padded_alignments = torch.FloatTensor(np.stack(padded_alignments)).unsqueeze(1)
 
         return {
             "tokens": token_padded,
@@ -378,13 +399,13 @@ class VitsDataset(TTSDataset):
             "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
+            "alignments": padded_alignments,
         }
 
 
 ##############################
 # MODEL DEFINITION
 ##############################
-
 
 @dataclass
 class VitsArgs(Coqpit):
@@ -664,6 +685,9 @@ class VitsArgs(Coqpit):
     pitch_predictor_dropout_p: float = 0.1
     pitch_embedding_kernel_size: int = 3
     detach_pp_input: bool = False
+    use_precomputed_alignments: bool = False
+    alignments_cache_path: str = ""
+    pitch_embedding_dim: int = 0
 
     detach_dp_input: bool = True
     use_language_embedding: bool = False
@@ -751,6 +775,7 @@ class Vits(BaseTTS):
             language_emb_dim=self.embedded_language_dim,
             emotion_emb_dim=self.args.emotion_embedding_dim if not self.args.use_noise_scale_predictor else 0,
             prosody_emb_dim=self.args.prosody_embedding_dim if not self.args.use_noise_scale_predictor else 0,
+            pitch_dim=self.args.pitch_embedding_dim if self.args.use_pitch and self.args.use_pitch_on_enc_input else 0,
         )
 
         self.posterior_encoder = PosteriorEncoder(
@@ -791,6 +816,9 @@ class Vits(BaseTTS):
         if self.args.use_prosody_encoder and not self.args.use_noise_scale_predictor:
             dp_extra_inp_dim += self.args.prosody_embedding_dim
 
+        if self.args.use_pitch and self.args.use_pitch_on_enc_input:
+            dp_extra_inp_dim += self.args.pitch_embedding_dim
+
         if self.args.use_sdp:
             self.duration_predictor = StochasticDurationPredictor(
                 self.args.hidden_channels + dp_extra_inp_dim,
@@ -814,13 +842,13 @@ class Vits(BaseTTS):
         if self.args.use_pitch:
             if self.args.use_pitch_on_enc_input:
                 self.pitch_predictor_vocab_emb = nn.Embedding(self.args.num_chars, self.args.hidden_channels)
-            else:
-                self.pitch_emb = nn.Conv1d(
-                    1,
-                    self.args.hidden_channels,
-                    kernel_size=self.args.pitch_predictor_kernel_size,
-                    padding=int((self.args.pitch_predictor_kernel_size - 1) / 2),
-                )
+
+            self.pitch_emb = nn.Conv1d(
+                1,
+                self.args.hidden_channels if not self.args.use_pitch_on_enc_input else self.args.pitch_embedding_dim,
+                kernel_size=self.args.pitch_predictor_kernel_size,
+                padding=int((self.args.pitch_predictor_kernel_size - 1) / 2),
+            )
             self.pitch_predictor = DurationPredictor(
                 self.args.hidden_channels,
                 self.args.pitch_predictor_hidden_channels,
@@ -1241,17 +1269,16 @@ class Vits(BaseTTS):
         )
 
         pitch_loss = None
-        gt_avg_pitch = None
+        pred_avg_pitch_emb = None
+        gt_avg_pitch_emb = None
         if pitch is not None:
             gt_avg_pitch = average_over_durations(pitch, dr.squeeze()).detach()
             pitch_loss = torch.sum(torch.sum((gt_avg_pitch - pred_avg_pitch) ** 2, [1, 2]) / torch.sum(x_mask))
-            if not self.args.use_pitch_on_enc_input:
-                gt_agv_pitch = self.pitch_emb(gt_avg_pitch)
+            gt_avg_pitch_emb = self.pitch_emb(gt_avg_pitch)
         else:
-            if not self.args.use_pitch_on_enc_input:
-                pred_avg_pitch = self.pitch_emb(pred_avg_pitch)
+            pred_avg_pitch_emb = self.pitch_emb(pred_avg_pitch)
 
-        return pitch_loss, gt_agv_pitch, pred_avg_pitch
+        return pitch_loss, gt_avg_pitch_emb, pred_avg_pitch_emb
 
     def forward_mas(self, outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g, lang_emb):
         # find the alignment path
@@ -1313,6 +1340,7 @@ class Vits(BaseTTS):
         y_lengths: torch.tensor,
         waveform: torch.tensor,
         pitch: torch.tensor,
+        alignments: torch.tensor,
         aux_input={
             "d_vectors": None,
             "speaker_ids": None,
@@ -1389,6 +1417,21 @@ class Vits(BaseTTS):
             if self.args.use_speaker_embedding or self.args.use_d_vector_file:
                 g = F.normalize(self.speaker_embedding_squeezer(g.squeeze(-1))).unsqueeze(-1)
 
+        # duration predictor
+        g_dp = g if self.args.condition_dp_on_speaker else None
+        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
+            if g_dp is None:
+                g_dp = eg
+            else:
+                g_dp = torch.cat([g_dp, eg], dim=1)  # [b, h1+h2, 1]
+        
+        pitch_loss = None
+        gt_avg_pitch_emb = None
+        if self.args.use_pitch and self.args.use_pitch_on_enc_input:
+            if alignments is None:
+                raise RuntimeError(" [!] For condition the pitch on the Text Encoder you need to provide external alignments !")
+            pitch_loss, gt_avg_pitch_emb, _ = self.forward_pitch_predictor(x, x_lengths, pitch, alignments.sum(3), g_dp)
+
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
 
@@ -1418,13 +1461,14 @@ class Vits(BaseTTS):
                 _, l_pros_speaker = self.speaker_reversal_classifier(pros_emb.transpose(1, 2), sid, x_mask=None)
             if self.args.use_prosody_enc_emo_classifier:
                 _, l_pros_emotion = self.pros_enc_emotion_classifier(pros_emb.transpose(1, 2), eid, x_mask=None)
-        x_input = x
+
         x, m_p, logs_p, x_mask = self.text_encoder(
             x,
             x_lengths,
             lang_emb=lang_emb,
             emo_emb=eg if not self.args.use_noise_scale_predictor else None,
             pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None,
+            pitch_emb=gt_avg_pitch_emb if self.args.use_pitch and self.args.use_pitch_on_enc_input else None,
         )
 
         # reversal speaker loss to force the encoder to be speaker identity free
@@ -1437,14 +1481,6 @@ class Vits(BaseTTS):
         if self.args.use_text_enc_emo_classifier:
             _, l_text_emotion = self.emo_text_enc_classifier(m_p.transpose(1, 2), eid, x_mask=x_mask)
 
-        # duration predictor
-        g_dp = g if self.args.condition_dp_on_speaker else None
-        if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
-            if g_dp is None:
-                g_dp = eg
-            else:
-                g_dp = torch.cat([g_dp, eg], dim=1)  # [b, h1+h2, 1]
-
         if self.args.use_prosody_encoder:
             if g_dp is None:
                 g_dp = pros_emb
@@ -1453,7 +1489,6 @@ class Vits(BaseTTS):
 
         outputs, attn = self.forward_mas(outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g=g_dp, lang_emb=lang_emb)
 
-        pitch_loss = None
         if self.args.use_pitch and not self.args.use_pitch_on_enc_input:
             pitch_loss, gt_avg_pitch_emb, _ = self.forward_pitch_predictor(m_p, x_lengths, pitch, attn.sum(3), g_dp)
             m_p = m_p + gt_avg_pitch_emb
@@ -1631,14 +1666,6 @@ class Vits(BaseTTS):
 
             pros_emb = pros_emb.transpose(1, 2)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(
-            x,
-            x_lengths,
-            lang_emb=lang_emb,
-            emo_emb=eg if not self.args.use_noise_scale_predictor else None,
-            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None,
-        )
-
         # duration predictor
         g_dp = g if self.args.condition_dp_on_speaker else None
         if eg is not None and (self.args.use_emotion_embedding or self.args.use_external_emotions_embeddings):
@@ -1646,6 +1673,19 @@ class Vits(BaseTTS):
                 g_dp = eg
             else:
                 g_dp = torch.cat([g_dp, eg], dim=1)  # [b, h1+h2, 1]
+
+        pred_avg_pitch_emb = None
+        if self.args.use_pitch and self.args.use_pitch_on_enc_input:
+            _, _, pred_avg_pitch_emb = self.forward_pitch_predictor(x, x_lengths, g_pp=g_dp)
+
+        x, m_p, logs_p, x_mask = self.text_encoder(
+            x,
+            x_lengths,
+            lang_emb=lang_emb,
+            emo_emb=eg if not self.args.use_noise_scale_predictor else None,
+            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None,
+            pitch_emb=pred_avg_pitch_emb if self.args.use_pitch and self.args.use_pitch_on_enc_input else None,
+        )
 
         if self.args.use_prosody_encoder:
             if g_dp is None:
@@ -1673,7 +1713,6 @@ class Vits(BaseTTS):
         attn_mask = x_mask * y_mask.transpose(1, 2)  # [B, 1, T_enc] * [B, T_dec, 1]
         attn = generate_path(w_ceil.squeeze(1), attn_mask.squeeze(1).transpose(1, 2))
 
-        pred_avg_pitch_emb = None
         if self.args.use_pitch and not self.args.use_pitch_on_enc_input:
             _, _, pred_avg_pitch_emb = self.forward_pitch_predictor(m_p, x_lengths, g_pp=g_dp)
             m_p = m_p + pred_avg_pitch_emb
@@ -1819,6 +1858,7 @@ class Vits(BaseTTS):
             emotion_ids = batch["emotion_ids"]
             waveform = batch["waveform"]
             pitch = batch["pitch"]
+            alignments = batch["alignments"]
 
             # generator pass
             outputs = self.forward(
@@ -1828,6 +1868,7 @@ class Vits(BaseTTS):
                 spec_lens,
                 waveform,
                 pitch,
+                alignments,
                 aux_input={
                     "d_vectors": d_vectors,
                     "speaker_ids": speaker_ids,
