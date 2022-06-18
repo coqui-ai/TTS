@@ -9,7 +9,17 @@ from tests import assertHasAttr, assertHasNotAttr, get_tests_data_path, get_test
 from TTS.config import load_config
 from TTS.encoder.utils.generic_utils import setup_encoder_model
 from TTS.tts.configs.vits_config import VitsConfig
-from TTS.tts.models.vits import Vits, VitsArgs, amp_to_db, db_to_amp, load_audio, spec_to_mel, wav_to_mel, wav_to_spec
+from TTS.tts.models.vits import (
+    Vits,
+    VitsArgs,
+    VitsAudioConfig,
+    amp_to_db,
+    db_to_amp,
+    load_audio,
+    spec_to_mel,
+    wav_to_mel,
+    wav_to_spec,
+)
 from TTS.tts.utils.speakers import SpeakerManager
 
 LANG_FILE = os.path.join(get_tests_input_path(), "language_ids.json")
@@ -421,8 +431,10 @@ class TestVits(unittest.TestCase):
         self._check_parameter_changes(model, model_ref)
 
     def test_train_step_upsampling(self):
+        """Upsampling by the decoder upsampling layers"""
         # setup the model
         with torch.autograd.set_detect_anomaly(True):
+            audio_config = VitsAudioConfig(sample_rate=22050)
             model_args = VitsArgs(
                 num_chars=32,
                 spec_segment_size=10,
@@ -430,7 +442,7 @@ class TestVits(unittest.TestCase):
                 interpolate_z=False,
                 upsample_rates_decoder=[8, 8, 4, 2],
             )
-            config = VitsConfig(model_args=model_args)
+            config = VitsConfig(model_args=model_args, audio=audio_config)
             model = Vits(config).to(device)
             model.train()
             # model to train
@@ -459,10 +471,18 @@ class TestVits(unittest.TestCase):
         self._check_parameter_changes(model, model_ref)
 
     def test_train_step_upsampling_interpolation(self):
+        """Upsampling by interpolation"""
         # setup the model
         with torch.autograd.set_detect_anomaly(True):
-            model_args = VitsArgs(num_chars=32, spec_segment_size=10, encoder_sample_rate=11025, interpolate_z=True)
-            config = VitsConfig(model_args=model_args)
+            audio_config = VitsAudioConfig(sample_rate=22050)
+            model_args = VitsArgs(
+                num_chars=32,
+                spec_segment_size=10,
+                encoder_sample_rate=11025,
+                interpolate_z=True,
+                upsample_rates_decoder=[8, 8, 2, 2],
+            )
+            config = VitsConfig(model_args=model_args, audio=audio_config)
             model = Vits(config).to(device)
             model.train()
             # model to train
