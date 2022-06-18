@@ -53,6 +53,8 @@ config.model_args.pitch_embedding_dim = 2
 config.model_args.condition_dp_on_speaker = True
 
 
+config.model_args.use_latent_discriminator = True
+
 config.save_json(config_path)
 # train the model for one epoch
 command_train = (
