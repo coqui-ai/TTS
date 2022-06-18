@@ -3,11 +3,10 @@ from glob import glob
 
 from trainer import Trainer, TrainerArgs
 
-from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.vits import CharactersConfig, Vits, VitsArgs
+from TTS.tts.models.vits import CharactersConfig, Vits, VitsArgs, VitsAudioConfig
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -22,22 +21,13 @@ dataset_config = [
     for path in dataset_paths
 ]
 
-audio_config = BaseAudioConfig(
+audio_config = VitsAudioConfig(
     sample_rate=16000,
     win_length=1024,
     hop_length=256,
     num_mels=80,
-    preemphasis=0.0,
-    ref_level_db=20,
-    log_func="np.log",
-    do_trim_silence=False,
-    trim_db=23.0,
     mel_fmin=0,
     mel_fmax=None,
-    spec_gain=1.0,
-    signal_norm=True,
-    do_amp_to_db_linear=False,
-    resample=False,
 )
 
 vitsArgs = VitsArgs(
