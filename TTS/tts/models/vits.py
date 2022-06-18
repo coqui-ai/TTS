@@ -504,6 +504,12 @@ class VitsArgs(Coqpit):
             to the `config.audio.sample_rate`. If it is False you will need to add extra
             `upsample_rates_decoder` to match the shape. Defaults to True.
 
+        reinit_DP (bool):
+            Reinitialize the duration predictor weights at the beginning of a training. Defaults to False.
+
+        reinit_text_encoder (bool):
+            Reinitialize the text encoder weights at the beginning of a  training. Defaults to False.
+
     """
 
     num_chars: int = 100
@@ -876,6 +882,8 @@ class Vits(BaseTTS):
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t, t']
 
         # duration predictor
+        if not self.args.condition_dp_on_speaker:
+            g = None
         attn_durations = attn.sum(3)
         if self.args.use_sdp:
             loss_duration = self.duration_predictor(
