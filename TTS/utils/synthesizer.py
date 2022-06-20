@@ -1,5 +1,5 @@
 import time
-from typing import List, Union
+from typing import List
 
 import numpy as np
 import pysbd
@@ -97,10 +97,10 @@ class Synthesizer(object):
         """Load the TTS model.
 
         1. Load the model config.
-        2. Init the AudioProcessor.
-        3. Init the model from the config.
+        2. Init the model from the config.
+        3. Load the model weights.
         4. Move the model to the GPU if CUDA is enabled.
-        5. Init the speaker manager for the model.
+        5. Init the speaker manager in the model.
 
         Args:
             tts_checkpoint (str): path to the model checkpoint.
@@ -122,7 +122,7 @@ class Synthesizer(object):
             self.tts_model.cuda()
 
         if self.encoder_checkpoint and hasattr(self.tts_model, "speaker_manager"):
-            self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config)
+            self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config, use_cuda)
 
     def _set_speaker_encoder_paths_from_tts_config(self):
         """Set the encoder paths from the tts model config for models with speaker encoders."""
@@ -178,8 +178,9 @@ class Synthesizer(object):
         text: str = "",
         speaker_name: str = "",
         language_name: str = "",
-        speaker_wav: Union[str, List[str]] = None,
+        speaker_wav=None,
         style_wav=None,
+        style_text=None,
         reference_wav=None,
         reference_speaker_name=None,
     ) -> List[int]:
@@ -191,6 +192,7 @@ class Synthesizer(object):
             language_name (str, optional): language id for multi-language models. Defaults to "".
             speaker_wav (Union[str, List[str]], optional): path to the speaker wav. Defaults to None.
             style_wav ([type], optional): style waveform for GST. Defaults to None.
+            style_text ([type], optional): transcription of style_wav for Capacitron. Defaults to None.
             reference_wav ([type], optional): reference waveform for voice conversion. Defaults to None.
             reference_speaker_name ([type], optional): spekaer id of reference waveform. Defaults to None.
         Returns:
@@ -273,10 +275,11 @@ class Synthesizer(object):
                     CONFIG=self.tts_config,
                     use_cuda=self.use_cuda,
                     speaker_id=speaker_id,
-                    language_id=language_id,
                     style_wav=style_wav,
+                    style_text=style_text,
                     use_griffin_lim=use_gl,
                     d_vector=speaker_embedding,
+                    language_id=language_id,
                 )
                 waveform = outputs["wav"]
                 mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
@@ -315,7 +318,7 @@ class Synthesizer(object):
             # get the speaker embedding or speaker id for the reference wav file
             reference_speaker_embedding = None
             reference_speaker_id = None
-            if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "speaker_ids"):
+            if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "ids"):
                 if reference_speaker_name and isinstance(reference_speaker_name, str):
                     if self.tts_config.use_d_vector_file:
                         # get the speaker embedding from the saved d_vectors.

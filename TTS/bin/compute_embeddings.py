@@ -2,51 +2,48 @@ import argparse
 import os
 from argparse import RawTextHelpFormatter
 
+import torch
 from tqdm import tqdm
 
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
+from TTS.tts.utils.managers import save_file
 from TTS.tts.utils.speakers import SpeakerManager
 
 parser = argparse.ArgumentParser(
     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
     """
     Example runs:
-    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth speaker_encoder_config.json  dataset_config.json embeddings_output_path/
+    python TTS/bin/compute_embeddings.py speaker_encoder_model.pth speaker_encoder_config.json  dataset_config.json
     """,
     formatter_class=RawTextHelpFormatter,
 )
 parser.add_argument("model_path", type=str, help="Path to model checkpoint file.")
-parser.add_argument(
-    "config_path",
-    type=str,
-    help="Path to model config file.",
-)
-
-parser.add_argument(
-    "config_dataset_path",
-    type=str,
-    help="Path to dataset config file.",
-)
-parser.add_argument("output_path", type=str, help="path for output speakers.json and/or speakers.npy.")
-parser.add_argument(
-    "--old_file", type=str, help="Previous speakers.json file, only compute for new audios.", default=None
-)
-parser.add_argument("--use_cuda", type=bool, help="flag to set cuda.", default=True)
-parser.add_argument("--eval", type=bool, help="compute eval.", default=True)
+parser.add_argument("config_path", type=str, help="Path to model config file.")
+parser.add_argument("config_dataset_path", type=str, help="Path to dataset config file.")
+parser.add_argument("--output_path", type=str, help="Path for output `pth` or `json` file.", default="speakers.pth")
+parser.add_argument("--old_file", type=str, help="Previous embedding file to only compute new audios.", default=None)
+parser.add_argument("--disable_cuda", type=bool, help="Flag to disable cuda.", default=False)
+parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
 
 args = parser.parse_args()
 
+use_cuda = torch.cuda.is_available() and not args.disable_cuda
+
 c_dataset = load_config(args.config_dataset_path)
 
-meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_split=args.eval)
-wav_files = meta_data_train + meta_data_eval
+meta_data_train, meta_data_eval = load_tts_samples(c_dataset.datasets, eval_split=not args.no_eval)
+
+if meta_data_eval is None:
+    wav_files = meta_data_train
+else:
+    wav_files = meta_data_train + meta_data_eval
 
 encoder_manager = SpeakerManager(
     encoder_model_path=args.model_path,
     encoder_config_path=args.config_path,
     d_vectors_file_path=args.old_file,
-    use_cuda=args.use_cuda,
+    use_cuda=use_cuda,
 )
 
 class_name_key = encoder_manager.encoder_config.class_name_key
@@ -75,13 +72,13 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
 
 if speaker_mapping:
     # save speaker_mapping if target dataset is defined
-    if ".json" not in args.output_path:
-        mapping_file_path = os.path.join(args.output_path, "speakers.json")
+    if os.path.isdir(args.output_path):
+        mapping_file_path = os.path.join(args.output_path, "speakers.pth")
     else:
         mapping_file_path = args.output_path
 
-    os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
+    if os.path.dirname(mapping_file_path) != "":
+        os.makedirs(os.path.dirname(mapping_file_path), exist_ok=True)
 
-    # pylint: disable=W0212
-    encoder_manager._save_json(mapping_file_path, speaker_mapping)
+    save_file(speaker_mapping, mapping_file_path)
     print("Speaker embeddings saved at:", mapping_file_path)

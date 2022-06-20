@@ -119,6 +119,26 @@
                     "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 }
+            },
+            "blizzard2013": {
+                "capacitron-t2-c50": {
+                    "description": "Capacitron additions to Tacotron 2 with Capacity at 50 as in https://arxiv.org/pdf/1906.03402.pdf",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.7.0_models/tts_models--en--blizzard2013--capacitron-t2-c50.zip",
+                    "commit": "d6284e7",
+                    "default_vocoder": "vocoder_models/en/blizzard2013/hifigan_v2",
+                    "author": "Adam Froghyar @a-froghyar",
+                    "license": "apache 2.0",
+                    "contact": "adamfroghyar@gmail.com"
+                },
+                "capacitron-t2-c150": {
+                    "description": "Capacitron additions to Tacotron 2 with Capacity at 150 as in https://arxiv.org/pdf/1906.03402.pdf",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.7.0_models/tts_models--en--blizzard2013--capacitron-t2-c150.zip",
+                    "commit": "d6284e7",
+                    "default_vocoder": "vocoder_models/en/blizzard2013/hifigan_v2",
+                    "author": "Adam Froghyar @a-froghyar",
+                    "license": "apache 2.0",
+                    "contact": "adamfroghyar@gmail.com"
+                }
             }
         },
         "es": {
@@ -377,6 +397,16 @@
                     "author": "Eren @erogol",
                     "license": "apache 2.0",
                     "contact": "egolge@coqui.ai"
+                }
+            },
+            "blizzard2013": {
+                "hifigan_v2": {
+                    "description": "HiFiGAN_v2 LJSpeech vocoder from https://arxiv.org/abs/2010.05646.",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.7.0_models/vocoder_models--en--blizzard2013--hifigan_v2.zip",
+                    "commit": "d6284e7",
+                    "author": "Adam Froghyar @a-froghyar",
+                    "license": "apache 2.0",
+                    "contact": "adamfroghyar@gmail.com"
                 }
             },
             "vctk": {

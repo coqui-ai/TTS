@@ -14,6 +14,9 @@ jobs:
     strategy:
       matrix:
         arch: ["amd64"]
+        base:
+        - "nvcr.io/nvidia/pytorch:22.03-py3" # GPU enabled
+        - "ubuntu:20.04" # CPU only
     steps:
       - uses: actions/checkout@v2
       - name: Log in to the Container registry
@@ -28,6 +31,11 @@ jobs:
           set -ex
           base="ghcr.io/coqui-ai/tts"
           tags="" # PR build
+
+          if [[ ${{ matrix.base }} = "ubuntu:20.04" ]]; then
+            base="ghcr.io/coqui-ai/tts-cpu"
+          fi
+
           if [[ "${{ startsWith(github.ref, 'refs/heads/') }}" = "true" ]]; then
             # Push to branch
             github_ref="${{ github.ref }}"
@@ -53,4 +61,5 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           push: ${{ github.event_name == 'push' }}
+          build-args: "BASE=${{ matrix.base }}"
           tags: ${{ steps.compute-tag.outputs.tags }}

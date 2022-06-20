@@ -49,6 +49,50 @@ class GSTConfig(Coqpit):
 
 
 @dataclass
+class CapacitronVAEConfig(Coqpit):
+    """Defines the capacitron VAE Module
+    Args:
+        capacitron_capacity (int):
+            Defines the variational capacity limit of the prosody embeddings. Defaults to 150.
+        capacitron_VAE_embedding_dim (int):
+            Defines the size of the Capacitron embedding vector dimension. Defaults to 128.
+        capacitron_use_text_summary_embeddings (bool):
+            If True, use a text summary embedding in Capacitron. Defaults to True.
+        capacitron_text_summary_embedding_dim (int):
+            Defines the size of the capacitron text embedding vector dimension. Defaults to 128.
+        capacitron_use_speaker_embedding (bool):
+            if True use speaker embeddings in Capacitron. Defaults to False.
+        capacitron_VAE_loss_alpha (float):
+            Weight for the VAE loss of the Tacotron model. If set less than or equal to zero, it disables the
+            corresponding loss function. Defaults to 0.25
+        capacitron_grad_clip (float):
+            Gradient clipping value for all gradients except beta. Defaults to 5.0
+    """
+
+    capacitron_loss_alpha: int = 1
+    capacitron_capacity: int = 150
+    capacitron_VAE_embedding_dim: int = 128
+    capacitron_use_text_summary_embeddings: bool = True
+    capacitron_text_summary_embedding_dim: int = 128
+    capacitron_use_speaker_embedding: bool = False
+    capacitron_VAE_loss_alpha: float = 0.25
+    capacitron_grad_clip: float = 5.0
+
+    def check_values(
+        self,
+    ):
+        """Check config fields"""
+        c = asdict(self)
+        super().check_values()
+        check_argument("capacitron_capacity", c, restricted=True, min_val=10, max_val=500)
+        check_argument("capacitron_VAE_embedding_dim", c, restricted=True, min_val=16, max_val=1024)
+        check_argument("capacitron_use_speaker_embedding", c, restricted=False)
+        check_argument("capacitron_text_summary_embedding_dim", c, restricted=False, min_val=16, max_val=512)
+        check_argument("capacitron_VAE_loss_alpha", c, restricted=False)
+        check_argument("capacitron_grad_clip", c, restricted=False)
+
+
+@dataclass
 class CharactersConfig(Coqpit):
     """Defines arguments for the `BaseCharacters` or `BaseVocabulary` and their subclasses.
 
@@ -232,6 +276,14 @@ class BaseTTSConfig(BaseTrainingConfig):
 
         language_weighted_sampler_alpha (float):
             Number that control the influence of the language sampler weights. Defaults to ```1.0```.
+
+        use_length_weighted_sampler (bool):
+            Enable / Disable the batch balancer by audio length. If enabled the dataset will be divided
+            into 10 buckets considering the min and max audio of the dataset. The sampler weights will be
+            computed forcing to have the same quantity of data for each bucket in each training batch. Defaults to ```False```.
+
+        length_weighted_sampler_alpha (float):
+            Number that control the influence of the length sampler weights. Defaults to ```1.0```.
     """
 
     audio: BaseAudioConfig = field(default_factory=BaseAudioConfig)
@@ -279,3 +331,5 @@ class BaseTTSConfig(BaseTrainingConfig):
     speaker_weighted_sampler_alpha: float = 1.0
     use_language_weighted_sampler: bool = False
     language_weighted_sampler_alpha: float = 1.0
+    use_length_weighted_sampler: bool = False
+    length_weighted_sampler_alpha: float = 1.0
