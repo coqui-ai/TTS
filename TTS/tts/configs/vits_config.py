@@ -122,6 +122,7 @@ class VitsConfig(BaseTTSConfig):
     gen_latent_loss_alpha: float = 5.0
     feat_latent_loss_alpha: float = 108.0
     pitch_loss_alpha: float = 5.0
+    z_decoder_loss_alpha: float = 45.0
 
     # data loader params
     return_wav: bool = True

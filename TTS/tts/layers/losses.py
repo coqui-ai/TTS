@@ -597,6 +597,7 @@ class VitsGeneratorLoss(nn.Module):
         self.prosody_encoder_kl_loss_alpha = c.prosody_encoder_kl_loss_alpha
         self.feat_latent_loss_alpha = c.feat_latent_loss_alpha
         self.gen_latent_loss_alpha = c.gen_latent_loss_alpha
+        self.z_decoder_loss_alpha = c.z_decoder_loss_alpha
 
         self.stft = TorchSTFT(
             c.audio.fft_size,
@@ -682,6 +683,7 @@ class VitsGeneratorLoss(nn.Module):
         feats_disc_mp=None,
         feats_disc_zp=None,
         pitch_loss=None,
+        z_decoder_loss=None,
     ):
         """
         Shapes:
@@ -761,6 +763,11 @@ class VitsGeneratorLoss(nn.Module):
             pitch_loss = pitch_loss * self.pitch_loss_alpha
             loss += pitch_loss
             return_dict["pitch_loss"] = pitch_loss
+
+        if z_decoder_loss is not None:
+            z_decoder_loss = z_decoder_loss * self.z_decoder_loss_alpha
+            loss += z_decoder_loss
+            return_dict["z_decoder_loss"] = z_decoder_loss
 
         # pass losses to the dict
         return_dict["loss_gen"] = loss_gen

@@ -31,6 +31,8 @@ config = VitsConfig(
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 
+config.model_args.use_z_decoder = True
+
 # active multispeaker d-vec mode
 config.model_args.use_d_vector_file = True
 config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
