@@ -242,14 +242,14 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
     # print the description if either text or list_models is not set
     check_args = [
-                args.text,
-                args.list_models,
-                args.list_speaker_idxs,
-                args.list_language_idxs,
-                args.reference_wav,
-                args.model_info_by_idx,
-                args.model_info_by_name
-                ]
+        args.text,
+        args.list_models,
+        args.list_speaker_idxs,
+        args.list_language_idxs,
+        args.reference_wav,
+        args.model_info_by_idx,
+        args.model_info_by_name,
+    ]
     if not any(check_args):
         parser.parse_args(["-h"])
 
