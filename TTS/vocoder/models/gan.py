@@ -185,8 +185,7 @@ class GAN(BaseVocoder):
             outputs = {"model_outputs": self.y_hat_g}
         return outputs, loss_dict
 
-    @staticmethod
-    def _log(name: str, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
+    def _log(self, name: str, ap: AudioProcessor, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
         """Logging shared by the training and evaluation.
 
         Args:
