@@ -31,7 +31,7 @@ config = VitsConfig(
 config.audio.do_trim_silence = True
 config.audio.trim_db = 60
 
-config.model_args.use_z_decoder = True
+config.model_args.use_z_decoder = False
 
 # active multispeaker d-vec mode
 config.model_args.use_d_vector_file = True

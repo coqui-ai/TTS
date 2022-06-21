@@ -33,6 +33,7 @@ def run_model_torch(
     emotion_embedding: torch.Tensor = None,
     style_speaker_id: torch.Tensor = None,
     style_speaker_d_vector: torch.Tensor = None,
+    pitch_transform: torch.Tensor = None,
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
 
@@ -53,6 +54,7 @@ def run_model_torch(
         _func = model.inference
     outputs = _func(
         inputs,
+        pitch_transform=pitch_transform,
         aux_input={
             "x_lengths": input_lengths,
             "speaker_ids": speaker_id,
@@ -134,6 +136,7 @@ def synthesis(
     emotion_embedding=None,
     style_speaker_id=None,
     style_speaker_d_vector=None,
+    pitch_transform=None,
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
     the vocoder model.
@@ -243,6 +246,7 @@ def synthesis(
         emotion_embedding=emotion_embedding,
         style_speaker_id=style_speaker_id,
         style_speaker_d_vector=style_speaker_d_vector,
+        pitch_transform=pitch_transform,
     )
     model_outputs = outputs["model_outputs"]
     model_outputs = model_outputs[0].data.cpu().numpy()

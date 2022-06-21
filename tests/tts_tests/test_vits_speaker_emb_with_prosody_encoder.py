@@ -45,11 +45,14 @@ config.model_args.d_vector_dim = 128
 # prosody embedding
 config.model_args.use_prosody_encoder = True
 config.model_args.prosody_embedding_dim = 64
+
+config.model_args.use_encoder_conditional_module = True
+
 # active classifier
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
 config.model_args.use_prosody_enc_emo_classifier = False
 config.model_args.use_text_enc_emo_classifier = False
-config.model_args.use_prosody_encoder_z_p_input = True
+config.model_args.use_prosody_encoder_z_p_input = False
 
 config.model_args.prosody_encoder_type = "gst"
 config.model_args.detach_prosody_enc_input = True
@@ -64,7 +67,7 @@ config.model_args.use_prosody_embedding_squeezer = False
 config.model_args.prosody_embedding_squeezer_input_dim = 0
 
 # pitch predictor
-config.model_args.use_pitch = True
+config.model_args.use_pitch = False
 config.model_args.use_pitch_on_enc_input = False
 config.model_args.condition_dp_on_speaker = False
 

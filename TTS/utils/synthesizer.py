@@ -215,6 +215,7 @@ class Synthesizer(object):
         reference_speaker_name=None,
         emotion_name=None,
         style_speaker_name=None,
+        pitch_transform=None,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -381,6 +382,7 @@ class Synthesizer(object):
                     language_id=language_id,
                     emotion_embedding=emotion_embedding,
                     emotion_id=emotion_id,
+                    pitch_transform=pitch_transform,
                 )
                 waveform = outputs["wav"]
                 mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()

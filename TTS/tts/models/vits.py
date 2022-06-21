@@ -22,7 +22,7 @@ from TTS.tts.datasets.dataset import TTSDataset, _parse_sample, F0Dataset
 from TTS.tts.layers.generic.classifier import ReversalClassifier
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.glow_tts.transformer import RelativePositionTransformer
-from TTS.tts.layers.feed_forward.decoder import Decoder as ZDecoder
+from TTS.tts.layers.feed_forward.decoder import Decoder as forwardDecoder
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.prosody_encoder import VitsGST, VitsVAE, ResNetProsodyEncoder
@@ -677,6 +677,12 @@ class VitsArgs(Coqpit):
     use_noise_scale_predictor: bool = False
     use_latent_discriminator: bool = False
 
+    use_encoder_conditional_module: bool = False
+    conditional_module_type: str = "fftransformer"
+    conditional_module_params: dict = field(
+        default_factory=lambda: {"hidden_channels_ffn": 1024, "num_heads": 2, "num_layers": 3, "dropout_p": 0.1}
+    )
+
     # Pitch predictor
     use_pitch_on_enc_input: bool = False
     use_pitch: bool = False
@@ -782,7 +788,7 @@ class Vits(BaseTTS):
             self.args.dropout_p_text_encoder,
             language_emb_dim=self.embedded_language_dim,
             emotion_emb_dim=self.args.emotion_embedding_dim if not self.args.use_noise_scale_predictor else 0,
-            prosody_emb_dim=self.args.prosody_embedding_dim if not self.args.use_noise_scale_predictor else 0,
+            prosody_emb_dim=self.args.prosody_embedding_dim if not self.args.use_noise_scale_predictor and not self.args.use_encoder_conditional_module else 0,
             pitch_dim=self.args.pitch_embedding_dim if self.args.use_pitch and self.args.use_pitch_on_enc_input else 0,
         )
 
@@ -821,7 +827,7 @@ class Vits(BaseTTS):
         ) and not self.args.use_noise_scale_predictor:
             dp_extra_inp_dim += self.args.emotion_embedding_dim
 
-        if self.args.use_prosody_encoder and not self.args.use_noise_scale_predictor:
+        if self.args.use_prosody_encoder and not self.args.use_noise_scale_predictor and not self.args.use_encoder_conditional_module:
             dp_extra_inp_dim += self.args.prosody_embedding_dim
 
         if self.args.use_pitch and self.args.use_pitch_on_enc_input:
@@ -855,11 +861,24 @@ class Vits(BaseTTS):
             if self.args.use_prosody_encoder:
                 dec_extra_inp_dim += self.args.prosody_embedding_dim
 
-            self.z_decoder = ZDecoder(
+            self.z_decoder = forwardDecoder(
                 self.args.hidden_channels,
                 self.args.hidden_channels + dec_extra_inp_dim,
                 self.args.z_decoder_type,
                 self.args.z_decoder_params,
+            )
+
+
+        if self.args.use_encoder_conditional_module:
+            extra_inp_dim = 0
+            if self.args.use_prosody_encoder:
+                extra_inp_dim += self.args.prosody_embedding_dim
+
+            self.encoder_conditional_module = forwardDecoder(
+                self.args.hidden_channels,
+                self.args.hidden_channels + extra_inp_dim,
+                self.args.conditional_module_type,
+                self.args.conditional_module_params,
             )
 
         if self.args.use_pitch:
@@ -1495,7 +1514,7 @@ class Vits(BaseTTS):
             x_lengths,
             lang_emb=lang_emb,
             emo_emb=eg if not self.args.use_noise_scale_predictor else None,
-            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None,
+            pros_emb=pros_emb if not self.args.use_noise_scale_predictor and not self.args.use_encoder_conditional_module else None,
             pitch_emb=gt_avg_pitch_emb if self.args.use_pitch and self.args.use_pitch_on_enc_input else None,
         )
 
@@ -1517,6 +1536,23 @@ class Vits(BaseTTS):
 
         outputs, attn = self.forward_mas(outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g=g_dp, lang_emb=lang_emb)
 
+        conditional_module_loss = None
+        if self.args.use_encoder_conditional_module:
+            g_cond = None
+            cond_module_input = x
+            if self.args.use_prosody_encoder:
+                if g_cond is None:
+                    g_cond = pros_emb
+                else:
+                    g_cond = torch.cat([g_cond, pros_emb], dim=1)  # [b, h1+h2, 1]
+
+            if g_cond is not None:
+                cond_module_input = torch.cat((cond_module_input, g_cond.expand(-1, -1, cond_module_input.size(2))), dim=1)
+
+            new_m_p = self.encoder_conditional_module(cond_module_input, x_mask)
+            z_p_avg = average_over_durations(z_p, attn.sum(3).squeeze()).detach()
+            conditional_module_loss = torch.nn.functional.l1_loss(new_m_p * x_mask, z_p_avg)
+            
         if self.args.use_pitch and not self.args.use_pitch_on_enc_input:
             pitch_loss, gt_avg_pitch_emb, _ = self.forward_pitch_predictor(m_p, x_lengths, pitch, attn.sum(3), g_dp)
             m_p = m_p + gt_avg_pitch_emb
@@ -1628,7 +1664,8 @@ class Vits(BaseTTS):
                 "loss_text_enc_spk_rev_classifier": l_text_speaker,
                 "loss_text_enc_emo_classifier": l_text_emotion,
                 "pitch_loss": pitch_loss,
-                "z_decoder_loss": z_decoder_loss, 
+                "z_decoder_loss": z_decoder_loss,
+                "conditional_module_loss": conditional_module_loss,
             }
         )
         return outputs
@@ -1744,7 +1781,7 @@ class Vits(BaseTTS):
             x_lengths,
             lang_emb=lang_emb,
             emo_emb=eg if not self.args.use_noise_scale_predictor else None,
-            pros_emb=pros_emb if not self.args.use_noise_scale_predictor else None,
+            pros_emb=pros_emb if not self.args.use_noise_scale_predictor and not self.args.use_encoder_conditional_module else None,
             pitch_emb=pred_avg_pitch_emb if self.args.use_pitch and self.args.use_pitch_on_enc_input else None,
         )
 
@@ -1778,6 +1815,18 @@ class Vits(BaseTTS):
             _, _, pred_avg_pitch_emb = self.forward_pitch_predictor(m_p, x_lengths, g_pp=g_dp, pitch_transform=pitch_transform)
             m_p = m_p + pred_avg_pitch_emb
 
+        if self.args.use_encoder_conditional_module:
+            g_cond = None
+            cond_module_input = x
+            if self.args.use_prosody_encoder:
+                if g_cond is None:
+                    g_cond = pros_emb
+                else:
+                    g_cond = torch.cat([g_cond, pros_emb], dim=1)  # [b, h1+h2, 1]
+
+            if g_cond is not None:
+                cond_module_input = torch.cat((cond_module_input, g_cond.expand(-1, -1, cond_module_input.size(2))), dim=1)
+            m_p = self.encoder_conditional_module(cond_module_input, x_mask)
 
         m_p = torch.matmul(attn.transpose(1, 2), m_p.transpose(1, 2)).transpose(1, 2)
         logs_p = torch.matmul(attn.transpose(1, 2), logs_p.transpose(1, 2)).transpose(1, 2)
@@ -1843,9 +1892,13 @@ class Vits(BaseTTS):
 
     def compute_style_feature(self, style_wav_path):
         style_wav, sr = torchaudio.load(style_wav_path)
-        if sr != self.config.audio.sample_rate:
+        if sr != self.config.audio.sample_rate and self.args.encoder_sample_rate is None:
             raise RuntimeError(
-                " [!] Style reference need to have sampling rate equal to {self.config.audio.sample_rate} !!"
+                f" [!] Style reference need to have sampling rate equal to {self.config.audio.sample_rate} !!"
+            )
+        elif self.args.encoder_sample_rate is not None and sr != self.args.encoder_sample_rate:
+            raise RuntimeError(
+                f" [!] Style reference need to have sampling rate equal to {self.args.encoder_sample_rate} !!"
             )
         y = wav_to_spec(
             style_wav.unsqueeze(1),
@@ -2047,6 +2100,7 @@ class Vits(BaseTTS):
                     feats_disc_zp=feats_disc_zp,
                     pitch_loss=self.model_outputs_cache["pitch_loss"],
                     z_decoder_loss=self.model_outputs_cache["z_decoder_loss"],
+                    conditional_module_loss=self.model_outputs_cache["conditional_module_loss"]
                 )
 
             return self.model_outputs_cache, loss_dict
