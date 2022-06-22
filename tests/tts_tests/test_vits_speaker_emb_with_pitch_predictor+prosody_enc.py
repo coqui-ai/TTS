@@ -28,7 +28,7 @@ config = VitsConfig(
     compute_pitch=True,
     f0_cache_path="tests/data/ljspeech/f0_cache/",
     test_sentences=[
-        ["Be a voice, not an echo.", "ljspeech-1", None, None, None],
+       ["Be a voice, not an echo.", "ljspeech-1", "tests/data/ljspeech/wavs/LJ001-0001.wav", None, None, "ljspeech-2"],
     ],
 )
 # set audio config
@@ -52,8 +52,15 @@ config.model_args.use_pitch_on_enc_input = False
 config.model_args.pitch_embedding_dim = 2
 config.model_args.condition_dp_on_speaker = False
 
-config.model_args.use_encoder_conditional_module = False
-config.model_args.use_z_decoder = True
+
+
+# prosody encoder
+config.model_args.use_prosody_encoder = True
+config.model_args.prosody_embedding_dim = 64
+config.model_args.prosody_encoder_type = "resnet"
+
+config.model_args.use_encoder_conditional_module = True
+config.model_args.use_z_decoder = False
 
 config.model_args.use_latent_discriminator = False
 

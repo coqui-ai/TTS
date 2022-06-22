@@ -30,5 +30,5 @@ class ResNetProsodyEncoder(ResNetSpeakerEncoder):
         super().__init__(*args, **kwargs)
 
     def forward(self, inputs, input_lengths=None, speaker_embedding=None):
-        style_embed = super().forward(inputs, l2_norm=True).unsqueeze(1)
+        style_embed = super().forward(inputs, l2_norm=False).unsqueeze(1)
         return style_embed, None
