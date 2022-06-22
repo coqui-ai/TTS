@@ -1178,7 +1178,7 @@ class Vits(BaseTTS):
         else:
             raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
 
-        # print(f'shapes for postencoder {y.shape, y_lengths.shape, g_src.shape}') #debug for voice conversion
+        # print(f'shapes for postencoder {y.shape, y_lengths.shape, g_src.shape}') #debug for voice conversion hot fix
         z, _, _, y_mask = self.posterior_encoder(y, y_lengths, g=g_src)
         z_p = self.flow(z, y_mask, g=g_src)
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
