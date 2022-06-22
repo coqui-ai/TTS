@@ -498,7 +498,7 @@ class GlowTTS(BaseTTS):
                     d_vector=aux_inputs["d_vector"],
                     style_wav=aux_inputs["style_wav"],
                     use_griffin_lim=True,
-                    do_trim_silence=False,
+                    do_trim_silence=True,
                 )
 
                 test_audios["{}-audio".format(idx)] = outputs["wav"]

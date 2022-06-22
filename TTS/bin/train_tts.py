@@ -11,8 +11,9 @@ from TTS.tts.datasets import jsonfomatter
 
 @dataclass
 class TrainTTSArgs(TrainerArgs):
-    config_path: str = field(default='C:\\Users\\82109\\Desktop\\TTS\\lia_config.json', metadata={"help": "Path to the config file."})
-
+    #config_path: str = field(default='C:\\Users\\82109\\Desktop\\TTS\\data\\kss\\kss_config.json', metadata={"help": "Path to the config file."})
+    continue_path: str = field(default='\\Users\\82109\\Desktop\\TTS\\data\\vits\\emilia+kss-June-20-2022_04+41PM-b0ff0b6c', metadata={"help": "Path to the config file."})
+    config_path: str = field(default='')
 
 def main():
     """Run `tts` model training directly by a `config.json` file."""
@@ -44,13 +45,13 @@ def main():
             config_base.parse_known_args(config_overrides)
             config = register_config(config_base.model)()
 
+
     # load training samples
     train_samples, eval_samples = load_tts_samples(
         config.datasets,
         eval_split=True,
         eval_split_max_size=config.eval_split_max_size,
         eval_split_size=config.eval_split_size,
-        formatter=jsonfomatter
     )
 
     # init the model from config
@@ -71,3 +72,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

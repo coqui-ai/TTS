@@ -178,6 +178,7 @@ def tokenizer_fn(iterator):
 
 
 def normalize(text):
+    #print(f'text -> {text}')
     text = text.strip()
 
     text = re.sub('\(\d+일\)', '', text)
@@ -347,12 +348,3 @@ if __name__ == "__main__":
         print(normalize(text))
         print("=" * 30)
 
-
-    test_normalize("JTBC는 JTBCs를 DY는 A가 Absolute")
-    test_normalize("오늘(13일) 3,600마리 강아지가")
-    test_normalize("60.3%")
-    test_normalize('"저돌"(猪突) 입니다.')
-    test_normalize('비대위원장이 지난 1월 이런 말을 했습니다. “난 그냥 산돼지처럼 돌파하는 스타일이다”')
-    test_normalize("지금은 -12.35%였고 종류는 5가지와 19가지, 그리고 55가지였다")
-    test_normalize("JTBC는 TH와 K 양이 2017년 9월 12일 오후 12시에 24살이 된다")
-    print(list(hangul_to_jamo(list(hangul_to_jamo('비대위원장이 지난 1월 이런 말을 했습니다? “난 그냥 산돼지처럼 돌파하는 스타일이다”')))))

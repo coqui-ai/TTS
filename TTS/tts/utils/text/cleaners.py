@@ -11,7 +11,8 @@ from .english.abbreviations import abbreviations_en
 from .english.number_norm import normalize_numbers as en_normalize_numbers
 from .english.time_norm import expand_time_english
 from .french.abbreviations import abbreviations_fr
-from .korean.korean import tokenize
+
+from TTS.tts.utils.text.korean.korean import tokenize
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r"\s+")
 
@@ -135,6 +136,11 @@ def chinese_mandarin_cleaners(text: str) -> str:
     text = replace_numbers_to_characters_in_text(text)
     return text
 
+def korean_cleaners(text):
+    """Pipeline for Korean text, including number and abbreviation expansion."""
+    text = tokenize(text)
+    #print(text)
+    return text
 
 def multilingual_cleaners(text):
     """Pipeline for multilingual text"""
@@ -144,9 +150,6 @@ def multilingual_cleaners(text):
     text = collapse_whitespace(text)
     return text
 
-def korean_cleaners(text):
-    '''Pipeline for Korean text, including number and abbreviation expansion.'''
-    text = tokenize(text)
-    return text
+
 
 

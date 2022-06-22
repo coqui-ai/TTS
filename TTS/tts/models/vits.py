@@ -1050,7 +1050,16 @@ class Vits(BaseTTS):
         """
         sid, g, lid = self._set_cond_input(aux_input)
         x_lengths = self._set_x_lengths(x, aux_input)
-
+        print(f'beforo')
+        print(f'sid -> {sid}')
+        print(f'g -> {g}')
+        print(f'lid -> {lid}')
+        sid = torch.tensor([0], dtype=torch.long, device='cuda:0')
+        lid = torch.tensor([0], dtype=torch.long, device='cuda:0')
+        print(f'\nafter')
+        print(f'sid -> {sid}')
+        print(f'g -> {g}')
+        print(f'lid -> {lid}')
         # speaker embedding
         if self.args.use_speaker_embedding and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)

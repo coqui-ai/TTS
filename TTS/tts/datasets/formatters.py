@@ -124,18 +124,60 @@ def ljspeech(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     return items
 
 ##########################################
+def a(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = root_path.split("\\")[-1]
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        dic = json.load(ttf)
+        for i in dic:
+            wav_file = os.path.join(root_path, speaker_name, i)
+            items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
+    return items
+
+def b(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = root_path.split("\\")[-1]
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        dic = json.load(ttf)
+        for i in dic:
+            wav_file = os.path.join(root_path, speaker_name, i)
+            items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
+    return items
 
 def jsonfomatter(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     txt_file = os.path.join(root_path, meta_file)
     items = []
-    speaker_name = ""
+    speaker_name = root_path.split("\\")[-1]
     with open(txt_file, "r", encoding="utf-8") as ttf:
         dic = json.load(ttf)
         for i in dic:
-            wav_file = os.path.join(root_path, "audio", i)
+            wav_file = os.path.join(root_path, speaker_name, i)
             items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
     return items
 
+def emilia(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = root_path.split("\\")[-1]
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        dic = json.load(ttf)
+        for i in dic:
+            wav_file = os.path.join(root_path, speaker_name, i)
+            items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
+    return items
+
+def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = root_path.split("\\")[-1]
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        dic = json.load(ttf)
+        for i in dic:
+            wav_file = os.path.join(root_path, speaker_name, i)
+            items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
+    return items
 ####################################################
 
 
