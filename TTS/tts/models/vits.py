@@ -673,7 +673,7 @@ class Vits(BaseTTS):
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
             )
 
-        #VOICE CONVERSION HOT FIX
+        # VOICE CONVERSION HOT FIX
         self.reference_speaker_id_exist = None
         self.reference_speaker_d_vector_exist = None
         self.tgt_speaker_id_exist = None
@@ -1135,7 +1135,7 @@ class Vits(BaseTTS):
             center=False,
         )
 
-        #VOICE CONVERSION HOT FIX
+        # VOICE CONVERSION HOT FIX
         self.reference_speaker_id_exist = reference_speaker_id is not None
         self.reference_speaker_d_vector_exist = reference_d_vector is not None
         self.tgt_speaker_id_exist = speaker_id is not None
