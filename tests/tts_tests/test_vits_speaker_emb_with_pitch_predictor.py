@@ -48,12 +48,15 @@ config.model_args.alignments_cache_path = "tests/data/ljspeech/mas_alignments/al
 
 # pitch predictor
 config.model_args.use_pitch = True
-config.model_args.use_pitch_on_enc_input = True
+config.model_args.use_pitch_on_enc_input = False
 config.model_args.pitch_embedding_dim = 2
-config.model_args.condition_dp_on_speaker = True
+config.model_args.condition_dp_on_speaker = False
 
 
-config.model_args.use_latent_discriminator = True
+config.model_args.use_encoder_conditional_module = True
+config.model_args.use_z_decoder = False
+
+config.model_args.use_latent_discriminator = False
 
 config.save_json(config_path)
 # train the model for one epoch

@@ -46,7 +46,8 @@ config.model_args.d_vector_dim = 128
 config.model_args.use_prosody_encoder = True
 config.model_args.prosody_embedding_dim = 64
 
-config.model_args.use_encoder_conditional_module = True
+config.model_args.use_z_decoder = True
+config.model_args.use_encoder_conditional_module = False
 
 # active classifier
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
