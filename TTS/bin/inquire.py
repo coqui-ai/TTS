@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+from inquirer.themes import GreenPassion
 import argparse
 import sys
 from argparse import RawTextHelpFormatter
@@ -12,11 +12,8 @@ from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
 
 import inquirer
-from inquirer.themes import GreenPassion
 
-#TODO add inquirer in requirements.txt
-
-path = Path(__file__).parent / "../.models.json"
+path = r"C:\Users\User\Desktop\TTS\TTS\.models.json"
 manager = ModelManager(path)
 
 
