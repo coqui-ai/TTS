@@ -16,4 +16,3 @@ class BWEConfig(BaseEnhancerConfig):
     input_sr: int = 16000
     segment_train: bool = True
     segment_len: float = 1.0
-    steps_to_start_discriminator: int = 50000

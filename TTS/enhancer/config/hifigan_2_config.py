@@ -14,3 +14,4 @@ class Hifigan2Config(BaseEnhancerConfig):
     target_sr: int = 16000
     input_sr: int = 16000
     segment_len: float = 2.5
+    gt_augment: bool = True

@@ -28,9 +28,9 @@ class BaseEnhancerConfig(BaseTrainingConfig):
     # scheduler
     lr_disc: float = 0.001
     lr_gen: float = 0.001
-    lr_scheduler_gen: str = "ExponentialLR"
-    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.995, "last_epoch": -1})
-    lr_scheduler_disc: str = "ExponentialLR"
-    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.995, "last_epoch": -1})
+    lr_scheduler_gen: str = None
+    lr_scheduler_gen_params: dict = field(default_factory=lambda: {})
+    lr_scheduler_disc: str = None
+    lr_scheduler_disc_params: dict = field(default_factory=lambda: {})
     # gan
-    steps_to_start_discriminator: int = 50000
+    steps_to_start_discriminator: int = 50_000

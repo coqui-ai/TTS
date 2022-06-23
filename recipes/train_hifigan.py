@@ -8,7 +8,7 @@ from TTS.enhancer.models.hifigan import HifiGAN, HifiGANArgs
 from TTS.enhancer.datasets.dataset import load_wav_data
 from TTS.utils.audio import AudioProcessor
 
-output_path = os.path.dirname("/home/julian/workspace/train")
+output_path = os.path.dirname("/media/julian/Workdisk/train")
 
 audio_config = BaseAudioConfig(
     sample_rate=16000,
@@ -26,10 +26,10 @@ audio_config = BaseAudioConfig(
     resample=False,
 )
 
-bweArgs = HifiGANArgs()
+HifiganArgs = HifiGANArgs()
 
 config = HifiganConfig(
-    model_args=bweArgs,
+    model_args=HifiganArgs,
     audio=audio_config,
     run_name="enhancer_hifigan_vctk",
     batch_size=6,
@@ -40,7 +40,7 @@ config = HifiganConfig(
     test_delay_epochs=-1,
     target_sr=16000,
     input_sr=16000,
-    gt_augment=True,
+    gt_augment=False,
     segment_train=True,
     segment_len=2,
     cudnn_benchmark=False,

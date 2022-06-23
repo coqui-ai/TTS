@@ -15,10 +15,4 @@ class HifiganConfig(BaseEnhancerConfig):
     steps_to_start_discriminator: int = 40_000
     steps_to_start_postnet: int = 20_000
     gt_augment: bool = True
-    lr_gen: float = 0.002
-    lr_disc: float = 0.002
-    lr_scheduler_gen: str = "StepLR"
-    lr_scheduler_gen_params: dict = field(default_factory=lambda: {})
-    lr_scheduler_disc: str = "StepLR"
-    lr_scheduler_disc_params: dict = field(default_factory=lambda: {})
 

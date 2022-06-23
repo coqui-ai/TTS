@@ -8,7 +8,7 @@ from TTS.enhancer.models.hifigan_2 import HifiGAN2, HifiGAN2Args
 from TTS.enhancer.datasets.dataset import load_wav_data
 from TTS.utils.audio import AudioProcessor
 
-output_path = os.path.dirname("/home/julian/workspace/train")
+output_path = os.path.dirname("/media/julian/Workdisk/train")
 
 audio_config = BaseAudioConfig(
     sample_rate=16000,
