@@ -58,17 +58,18 @@ class ModelManager(object):
         with open(file_path, "r", encoding="utf-8") as json_file:
             self.models_dict = json.load(json_file)
 
-    def _list_models(self, model_type, model_count=0):
+    def _list_models(self, model_type, model_count=0, print_list=False):
         model_list = []
         for lang in self.models_dict[model_type]:
             for dataset in self.models_dict[model_type][lang]:
                 for model in self.models_dict[model_type][lang][dataset]:
                     model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
                     output_path = os.path.join(self.output_prefix, model_full_name)
-                    if os.path.exists(output_path):
-                        print(f" {model_count}: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
-                    else:
-                        print(f" {model_count}: {model_type}/{lang}/{dataset}/{model}")
+                    if print_list:
+                        if os.path.exists(output_path):
+                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
+                        else:
+                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model}")
                     model_list.append(f"{model_type}/{lang}/{dataset}/{model}")
                     model_count += 1
         return model_list
@@ -81,13 +82,14 @@ class ModelManager(object):
         models_name_list.extend(self._list_models(model_type, model_count))
         return [name.replace(model_type + "/", "") for name in models_name_list]
 
-    def list_models(self):
-        print(" Name format: type/language/dataset/model")
-        models_name_list = []
+    def list_models(self, print_list=True):
+        if print_list:
+            print(" Name format: type/language/dataset/model")
+        models_name_list = {}
         model_count = 1
         for model_type in self.models_dict:
-            model_list = self._list_models(model_type, model_count)
-            models_name_list.extend(model_list)
+            model_list = self._list_models(model_type, model_count, print_list=print_list)
+            models_name_list[model_type]=model_list
         return models_name_list
 
     def model_info_by_idx(self, model_query):
