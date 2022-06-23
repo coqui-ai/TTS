@@ -19,11 +19,17 @@ from inquirer.themes import GreenPassion
 path = Path(__file__).parent / "../.models.json"
 manager = ModelManager(path)
 
+str2none = lambda i : i or None #converter for default None (''->None)
 
 def official_zoo_inquirer():
     model_list=manager.list_models(print_list=False)
     model_list['vocoder_models'].append('default_vocoder')
     model_load_questions = [
+    inquirer.List('use_cuda',
+                message="Run model on CUDA?",
+                choices=[True,False],
+                default=False,
+            ),
     inquirer.List('tts_choose',
                 message="Choose a tts model to load",
                 choices=model_list['tts_models'],
@@ -37,8 +43,51 @@ def official_zoo_inquirer():
     answers_model_load = inquirer.prompt(model_load_questions, theme=GreenPassion())
     return answers_model_load
 
+def custom_model_inquirer():
+    custom_model_load_questions = [
+    inquirer.List('use_cuda',
+                message="Run model on CUDA?",
+                choices=[True,False],
+                default=False,
+            ),
+    inquirer.Text('model_path',
+                message="Path to TTS model path",
+                default=None,
+            ),
+    inquirer.Text('model_config_path',
+                message="Path to TTS model config path",
+                default=None,
+            ),
+    inquirer.Text('vocoder_path',
+                message="Path to vocoder model file.",
+                default=None,
+            ),
+    inquirer.Text('vocoder_config_path',
+                message="Path to vocoder model config file.",
+                default=None,
+            ),
+    inquirer.Text('encoder_path',
+                message="Path to speaker encoder model file.",
+                default=None,
+            ),
+    inquirer.Text('encoder_config_path',
+                message="Path to speaker encoder config file.",
+                default=None,
+            ),    
+    ]
+    answers_custom_model_load = inquirer.prompt(custom_model_load_questions, theme=GreenPassion())
+    return answers_custom_model_load
+
 def multispeaker_inquirer():
     multispeaker_questions = [
+    inquirer.Text('speakers_file_path',
+                message="JSON file for multi-speaker model.",
+                default=None,
+            ),
+    inquirer.Text('language_ids_file_path',
+                message="JSON file for multi-lingual model.",
+                default=None,
+            ),
     inquirer.Text('speaker_idx',
                 message="Enter speaker idx",
                 default=None
@@ -49,7 +98,7 @@ def multispeaker_inquirer():
             ),
     inquirer.Text('speaker_wav',
                 message="Enter speaker wav file path",
-                default="Enter some text."
+                default=None
             ),
     inquirer.Text('reference_wav',
                 message="Enter ref wav file path",
@@ -94,7 +143,6 @@ def continue_inquirer():
 
 def tts_inquirer(
     synthesizer,
-    text,
     speaker_idx,
     language_idx,
     speaker_wav,
@@ -113,8 +161,9 @@ def tts_inquirer(
             ),
     ]
     answers_tts = inquirer.prompt(tts_questions, theme=GreenPassion())
-    text = answers_tts['text_input']
+    text = str2none(answers_tts['text_input'])
     outpath = answers_tts['out_path']
+    text = text if text is not None else "Enter random text."
     print(f" > Text: {text}")
     # kick it
     wav = synthesizer.tts(
@@ -135,6 +184,50 @@ def tts_inquirer(
     continue_answers=continue_inquirer()
     return continue_answers
 
+def block_prompt(synthesizer, tts_model_name):
+    speaker_idx=None
+    language_idx=None
+    speaker_wav=None
+    reference_wav=reference_wav=None
+    reference_speaker_idx=None
+    capacitron_style_wav=None
+    capacitron_style_text=None
+
+    if synthesizer.tts_speakers_file or hasattr(synthesizer.tts_model.speaker_manager, "ids"):
+        answers_multispeaker=multispeaker_inquirer()
+        for key,item in answers_multispeaker.items():
+            answers_multispeaker[key]=str2none(item)
+        speaker_idx=answers_multispeaker['speaker_idx']
+        language_idx=answers_multispeaker['language_idx']
+        speaker_wav=answers_multispeaker['speaker_wav']
+        reference_wav=reference_wav=answers_multispeaker['reference_wav']
+        reference_speaker_idx=answers_multispeaker['reference_speaker_idx']
+
+    if 'capacitron' in tts_model_name:
+        answers_capacitron = capacitron_inquirer()
+        for key,item in answers_capacitron.items():
+            answers_capacitron[key]=str2none(item)
+        capacitron_style_wav=answers_capacitron['capacitron_style_wav']
+        capacitron_style_text=answers_capacitron['capacitron_style_text']
+    
+    continue_answers = tts_inquirer(
+            synthesizer,
+            speaker_idx,
+            language_idx,
+            speaker_wav,
+            reference_wav,
+            reference_speaker_idx,
+            capacitron_style_wav,
+            capacitron_style_text
+        )
+    if continue_answers['to_do'] == 'exit tts':
+        return
+    if continue_answers['to_do'] == 'restart tts':
+        print("restart")
+        init_prompt()
+    if continue_answers['to_do'] == 'continue new text':
+        block_prompt(synthesizer, tts_model_name)
+
 def init_prompt():
     model_path=None
     config_path=None
@@ -144,18 +237,9 @@ def init_prompt():
     vocoder_config_path=None
     encoder_path=None
     encoder_config_path=None
-    use_cuda=True
-
-    text="Random Text."
-    speaker_idx=None
-    language_idx=None
-    speaker_wav=None
-    reference_wav=reference_wav=None
-    reference_speaker_idx=reference_speaker_name=None
-    capacitron_style_wav=style_wav=None
-    capacitron_style_text=style_text=None
-      
-    questions = [
+    use_cuda=False
+          
+    init_questions = [
     inquirer.List('to_do',
                     message="What do you need?",
                     choices=[
@@ -166,18 +250,25 @@ def init_prompt():
                 ),
     ]
 
-    answers = inquirer.prompt(questions, theme=GreenPassion())
+    init_answers = inquirer.prompt(init_questions, theme=GreenPassion())
 
-    if answers['to_do'] == 'exit tts':
+    if init_answers['to_do'] == 'exit tts':
         return
 
-    if answers['to_do'] == 'play with official model zoo':
+    if init_answers['to_do'] == 'play with your own model':
+        answers_custom_model_load = custom_model_inquirer()
+
+    if init_answers['to_do'] == 'play with official model zoo':
         answers_model_load = official_zoo_inquirer()
         tts_model_name=answers_model_load['tts_choose']
         model_path, config_path, model_item = manager.download_model(tts_model_name)
+        print(model_item["default_vocoder"])
         vocoder_name=answers_model_load['vocoder_choose'] if answers_model_load['vocoder_choose'] != "default_vocoder" else model_item["default_vocoder"]  
-        vocoder_path, vocoder_config_path, _ = manager.download_model(vocoder_name)
-        
+        print(vocoder_name)
+        if vocoder_name is not None:
+            vocoder_path, vocoder_config_path, _ = manager.download_model(vocoder_name)
+        use_cuda=answers_model_load['use_cuda']
+
         synthesizer = Synthesizer(
         model_path,
         config_path,
@@ -189,47 +280,7 @@ def init_prompt():
         encoder_config_path,
         use_cuda,
         )
-     
-        if synthesizer.tts_speakers_file:
-            answers_multispeaker=multispeaker_inquirer()
-            speaker_idx=answers_multispeaker['speaker_idx'],
-            language_idx=answers_multispeaker['language_idx'],
-            speaker_wav=answers_multispeaker['speaker_wav'],
-            reference_wav=reference_wav=answers_multispeaker['reference_wav'],
-            reference_speaker_idx=answers_multispeaker['reference_speaker_idx'],
-    
-        if 'capacitron' in tts_model_name:
-            answers_capacitron = capacitron_inquirer()
-            capacitron_style_wav=answers_capacitron['capacitron_style_wav'],
-            capacitron_style_text=answers_capacitron['capacitron_style_text'],
-        
-        continue_answers = tts_inquirer(
-                synthesizer,
-                text,
-                speaker_idx,
-                language_idx,
-                speaker_wav,
-                reference_wav,
-                reference_speaker_idx,
-                capacitron_style_wav,
-                capacitron_style_text
-            )
-        if continue_answers['to_do'] == 'exit tts':
-            return
-        if continue_answers['to_do'] == 'restart tts':
-            init_prompt()
-        if continue_answers['to_do'] == 'continue new text':
-            tts_inquirer(
-                synthesizer,
-                text,
-                speaker_idx,
-                language_idx,
-                speaker_wav,
-                reference_wav,
-                reference_speaker_idx,
-                capacitron_style_wav,
-                capacitron_style_text
-            )
-        
 
+        block_prompt(synthesizer, tts_model_name)
+     
 init_prompt()
