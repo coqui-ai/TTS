@@ -21,24 +21,26 @@ class BWEGeneratorLoss(torch.nn.Module):
             hop_lengths=tuple(int(512 * 2**i / 4) for i in range(n_scale_STFTLoss)),
             win_lengths=tuple(512 * 2**i for i in range(n_scale_STFTLoss)),
         )
-        self.mel_loss = L1SpecLoss(sr, n_fft, hop_length, n_fft, mel_fmin=0, mel_fmax=sr//2, n_mels=n_mels, use_mel=True)
+        self.mel_loss = L1SpecLoss(
+            sr, n_fft, hop_length, n_fft, mel_fmin=0, mel_fmax=sr // 2, n_mels=n_mels, use_mel=True
+        )
         self.feat_match_loss = MelganFeatureLoss()
         self.gen_gan_loss = MSEGLoss()
         self.pred_l1_loss = torch.nn.L1Loss()
         self.pred_l2_loss = torch.nn.MSELoss()
 
     def forward(
-            self,
-            y_hat,
-            y,
-            y_hat_postnet=None,
-            lens=None,
-            scores_fake=None,
-            feats_fake=None,
-            feats_real=None,
-            mfcc=None,
-            mfcc_hat=None
-        ):
+        self,
+        y_hat,
+        y,
+        y_hat_postnet=None,
+        lens=None,
+        scores_fake=None,
+        feats_fake=None,
+        feats_real=None,
+        mfcc=None,
+        mfcc_hat=None,
+    ):
         return_dict = {}
         if lens is None:
             lens = torch.IntTensor([y.size(1)]).to(y.device)
@@ -55,8 +57,7 @@ class BWEGeneratorLoss(torch.nn.Module):
             return_dict["G_postnet_l1_wavform"] = self.l1_masked(y_hat_postnet, y, lens)
             return_dict["loss"] += return_dict["G_postnet_l1_wavform"] * 10
             return_dict["G_postnet_stft_loss_mg"], return_dict["G_postnet_stft_loss_sc"] = self.stft_loss(
-                y_hat_postnet.squeeze(1),
-                y.squeeze(1)
+                y_hat_postnet.squeeze(1), y.squeeze(1)
             )
             return_dict["loss"] += (return_dict["G_postnet_stft_loss_mg"] + return_dict["G_postnet_stft_loss_sc"]) * 1
 

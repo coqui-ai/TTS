@@ -15,4 +15,3 @@ class HifiganConfig(BaseEnhancerConfig):
     steps_to_start_discriminator: int = 40_000
     steps_to_start_postnet: int = 20_000
     gt_augment: bool = True
-

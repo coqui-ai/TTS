@@ -4,9 +4,8 @@ from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.enhancer.config.bwe_config import BWEConfig
-from TTS.enhancer.models.bwe import BWE, BWEArgs
 from TTS.enhancer.datasets.dataset import load_wav_data
-
+from TTS.enhancer.models.bwe import BWE, BWEArgs
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname("/media/julian/Workdisk/train")

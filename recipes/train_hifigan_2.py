@@ -4,8 +4,8 @@ from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
 from TTS.enhancer.config.hifigan_2_config import Hifigan2Config
-from TTS.enhancer.models.hifigan_2 import HifiGAN2, HifiGAN2Args
 from TTS.enhancer.datasets.dataset import load_wav_data
+from TTS.enhancer.models.hifigan_2 import HifiGAN2, HifiGAN2Args
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname("/media/julian/Workdisk/train")
@@ -64,20 +64,9 @@ config = Hifigan2Config(
             "sounds_path": "/media/julian/Workdisk/datasets/DNS-Challenge/",
             "noise": {"min_snr_in_db": 15, "max_snr_in_db": 35, "min_num_noises": 1, "max_num_noises": 1},
         },
-        "rir": { 
-            "rir_path": "/media/julian/Datasets/RIRS_NOISES",
-            "conv_mode": "full"
-        },
-        "EQ": {
-            "min_snr_in_db": -12,
-            "max_snr_in_db": 12,
-            "p": 0.7
-        },
-        "gaussian": {
-            "min_snr_in_db": 15,
-            "max_snr_in_db": 45,
-            "p": 0.5
-        }
+        "rir": {"rir_path": "/media/julian/Datasets/RIRS_NOISES", "conv_mode": "full"},
+        "EQ": {"min_snr_in_db": -12, "max_snr_in_db": 12, "p": 0.7},
+        "gaussian": {"min_snr_in_db": 15, "max_snr_in_db": 45, "p": 0.5},
     },
 )
 

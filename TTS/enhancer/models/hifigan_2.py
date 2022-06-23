@@ -83,7 +83,7 @@ class HifiGAN2(BaseTrainerModel):
             max_channels=1024,
         )
         self.spectral_disc = SpectralDiscriminator(
-            sample_rate=self.target_sr, 
+            sample_rate=self.target_sr,
             n_mels=self.args.n_mels,
             n_fft=800,
             hop_length=200,
@@ -253,12 +253,17 @@ class HifiGAN2(BaseTrainerModel):
         return [self.config.lr_disc, self.config.lr_gen]
 
     def get_scheduler(self, optimizer) -> List:
-        disc_scheduler = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
+        disc_scheduler = get_scheduler(
+            self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0]
+        )
         gen_scheduler = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
         return [disc_scheduler, gen_scheduler]
 
     def get_criterion(self):
-        return [BWEDiscriminatorLoss(), BWEGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=512, hop_length=160)]
+        return [
+            BWEDiscriminatorLoss(),
+            BWEGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=512, hop_length=160),
+        ]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None

@@ -5,12 +5,12 @@ import random
 import re
 
 import numpy as np
+from audiomentations import AddGaussianSNR, Compose, SevenBandParametricEQ
 from scipy import signal
 
 from TTS.encoder.models.lstm import LSTMSpeakerEncoder
 from TTS.encoder.models.resnet import ResNetSpeakerEncoder
 from TTS.utils.io import save_fsspec
-from audiomentations import Compose, AddGaussianSNR, SevenBandParametricEQ
 
 
 class AugmentWAV(object):
@@ -57,13 +57,24 @@ class AugmentWAV(object):
 
             print(f" | > Using RIR Noise Augmentation: with {len(self.rir_files)} audios instances")
 
-
         self.additional_functions = []
         if "EQ" in augmentation_config.keys():
-            self.additional_functions.append(SevenBandParametricEQ(min_gain_db=augmentation_config["EQ"]["min_snr_in_db"], max_gain_db=augmentation_config["EQ"]["max_snr_in_db"], p=augmentation_config["EQ"]["p"]))
+            self.additional_functions.append(
+                SevenBandParametricEQ(
+                    min_gain_db=augmentation_config["EQ"]["min_snr_in_db"],
+                    max_gain_db=augmentation_config["EQ"]["max_snr_in_db"],
+                    p=augmentation_config["EQ"]["p"],
+                )
+            )
 
         if "gaussian" in augmentation_config.keys():
-            self.additional_functions.append(AddGaussianSNR(min_snr_in_db=augmentation_config["gaussian"]["min_snr_in_db"], max_snr_in_db=augmentation_config["gaussian"]["max_snr_in_db"], p=augmentation_config["gaussian"]["p"]))
+            self.additional_functions.append(
+                AddGaussianSNR(
+                    min_snr_in_db=augmentation_config["gaussian"]["min_snr_in_db"],
+                    max_snr_in_db=augmentation_config["gaussian"]["max_snr_in_db"],
+                    p=augmentation_config["gaussian"]["p"],
+                )
+            )
 
         if len(self.additional_functions) > 0:
             print(f" | > Using {len(self.additional_functions)} Additional Augmentation")

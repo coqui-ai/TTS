@@ -210,7 +210,9 @@ class BWE(BaseTrainerModel):
         return [self.config.lr_disc, self.config.lr_gen]
 
     def get_scheduler(self, optimizer) -> List:
-        disc_scheduler = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
+        disc_scheduler = get_scheduler(
+            self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0]
+        )
         gen_scheduler = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
         return [disc_scheduler, gen_scheduler]
 

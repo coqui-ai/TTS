@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
 class Postnet(nn.Module):
     def __init__(self, channels=128, kernel_size=33, n_layers=12):
         super().__init__()

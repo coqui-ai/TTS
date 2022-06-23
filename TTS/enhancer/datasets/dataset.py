@@ -1,15 +1,16 @@
-import random
-import os
-import librosa
-import torch
 import glob
+import os
+import random
+
+import librosa
 import numpy as np
+import torch
+from audiomentations import Compose, Gain, Resample
 from librosa.core import load, resample
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 
 from TTS.encoder.utils.generic_utils import AugmentWAV
-from audiomentations import Compose, Gain, Resample
 
 
 class EnhancerDataset(Dataset):
@@ -43,10 +44,14 @@ class EnhancerDataset(Dataset):
         self.augmentator = None
         self.gaussian_augmentation_config = None
         if self.config.gt_augment:
-            self.gt_augment = Compose([
-                Gain(p=1, max_gain_in_db=6),
-                Resample(p=0.5, min_sample_rate=int(0.8 * self.target_sr), max_sample_rate=int(1.2 * self.target_sr)),
-            ])
+            self.gt_augment = Compose(
+                [
+                    Gain(p=1, max_gain_in_db=6),
+                    Resample(
+                        p=0.5, min_sample_rate=int(0.8 * self.target_sr), max_sample_rate=int(1.2 * self.target_sr)
+                    ),
+                ]
+            )
         else:
             self.gt_augment = None
         if augmentation_config:
@@ -134,10 +139,11 @@ class EnhancerDataset(Dataset):
             "target_lens": torch.tensor(target_lens, dtype=torch.int32),
         }
 
+
 def load_wav_data(data_paths, eval_split_size=0.1, file_ext="wav"):
     wav_paths = []
     for path in data_paths:
-        tmp = glob.glob(os.path.join(path, "**", "*."+file_ext), recursive=True)
+        tmp = glob.glob(os.path.join(path, "**", "*." + file_ext), recursive=True)
         assert len(tmp) > 0, f" [!] {path} is empty."
         wav_paths += tmp
     np.random.seed(0)

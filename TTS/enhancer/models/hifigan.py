@@ -14,8 +14,8 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.enhancer.datasets.dataset import EnhancerDataset
-from TTS.enhancer.layers.postnet import Postnet
 from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
+from TTS.enhancer.layers.postnet import Postnet
 from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
@@ -69,7 +69,7 @@ class HifiGAN(BaseTrainerModel):
             max_channels=1024,
         )
         self.spectral_disc = SpectralDiscriminator(
-            sample_rate=self.target_sr, 
+            sample_rate=self.target_sr,
             n_mels=128,
             n_fft=1024,
             hop_length=256,
@@ -232,12 +232,17 @@ class HifiGAN(BaseTrainerModel):
         return [self.config.lr_disc, self.config.lr_gen]
 
     def get_scheduler(self, optimizer) -> List:
-        disc_scheduler = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
+        disc_scheduler = get_scheduler(
+            self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0]
+        )
         gen_scheduler = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
         return [disc_scheduler, gen_scheduler]
 
     def get_criterion(self):
-        return [BWEDiscriminatorLoss(), BWEGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=1024, hop_length=256)]
+        return [
+            BWEDiscriminatorLoss(),
+            BWEGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=1024, hop_length=256),
+        ]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None
@@ -265,13 +270,13 @@ class HifiGAN(BaseTrainerModel):
             name + "_mel_input": self._plot_spec(x, self.target_sr),
             name + "_mel_prenet": self._plot_spec(y_hat, self.target_sr),
             name + "_mel_postnet": self._plot_spec(y_hat_postnet, self.target_sr),
-            name + "_mel_target": self._plot_spec(y, self.target_sr)
+            name + "_mel_target": self._plot_spec(y, self.target_sr),
         }
         audios = {
             f"{name}_input/audio": x,
             f"{name}_prenet/audio": y_hat,
             f"{name}_postnet/audio": y_hat_postnet,
-            f"{name}_target/audio": y
+            f"{name}_target/audio": y,
         }
         return figures, audios
 
