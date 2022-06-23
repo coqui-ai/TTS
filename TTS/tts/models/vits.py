@@ -673,6 +673,12 @@ class Vits(BaseTTS):
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
             )
 
+        # VOICE CONVERSION HOT FIX
+        self.reference_speaker_id_exist = None
+        self.reference_speaker_d_vector_exist = None
+        self.tgt_speaker_id_exist = None
+        self.tgt_speaker_d_vector_exist = None
+
     def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
         or with external `d_vectors` computed from a speaker encoder model.
@@ -1128,6 +1134,13 @@ class Vits(BaseTTS):
             self.config.audio.win_length,
             center=False,
         )
+
+        # VOICE CONVERSION HOT FIX
+        self.reference_speaker_id_exist = reference_speaker_id is not None
+        self.reference_speaker_d_vector_exist = reference_d_vector is not None
+        self.tgt_speaker_id_exist = speaker_id is not None
+        self.tgt_speaker_d_vector_exist = d_vector is not None
+
         y_lengths = torch.tensor([y.size(-1)]).to(y.device)
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
@@ -1149,14 +1162,23 @@ class Vits(BaseTTS):
         assert self.num_speakers > 0, "num_speakers have to be larger than 0."
         # speaker embedding
         if self.args.use_speaker_embedding and not self.args.use_d_vector_file:
-            g_src = self.emb_g(speaker_cond_src).unsqueeze(-1)
-            g_tgt = self.emb_g(speaker_cond_tgt).unsqueeze(-1)
+            # <--- VOICE CONVERSION HOT FIX START --> #
+            if self.reference_speaker_id_exist:
+                g_src = self.emb_g(speaker_cond_src).unsqueeze(-1).unsqueeze(0)
+            elif self.reference_speaker_d_vector_exist:
+                g_src = F.normalize(speaker_cond_src).unsqueeze(-1)
+            if self.tgt_speaker_id_exist:
+                g_tgt = self.emb_g(speaker_cond_tgt).unsqueeze(-1).unsqueeze(0)
+            elif self.tgt_speaker_d_vector_exist:
+                g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
+            # <--- VOICE CONVERSION HOT FIX END ----> #
         elif not self.args.use_speaker_embedding and self.args.use_d_vector_file:
             g_src = F.normalize(speaker_cond_src).unsqueeze(-1)
             g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
         else:
             raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
 
+        # print(f'shapes for postencoder {y.shape, y_lengths.shape, g_src.shape}') #debug for voice conversion hot fix
         z, _, _, y_mask = self.posterior_encoder(y, y_lengths, g=g_src)
         z_p = self.flow(z, y_mask, g=g_src)
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
