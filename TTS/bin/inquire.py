@@ -45,6 +45,17 @@ def official_zoo_inquirer():
     answers_model_load = inquirer.prompt(model_load_questions, theme=GreenPassion())
     return answers_model_load
 
+def official_zoo_info_inquirer():
+    joint_model_list=manager.list_tts_models(print_list=False)+manager.list_vocoder_models(print_list=False)
+    model_info_questions = [
+    inquirer.List('model_choose_for_info',
+                message="Choose a tts model for info",
+                choices=joint_model_list,
+            ),
+    ]
+    answers_model_info_request = inquirer.prompt(model_info_questions, theme=GreenPassion())
+    return answers_model_info_request
+
 def custom_model_inquirer():
     custom_model_load_questions = [
     inquirer.List('use_cuda',
@@ -133,7 +144,7 @@ def continue_inquirer():
         inquirer.List('to_do',
                         message="What to do next?",
                         choices=[
-                            'continue new text',
+                            'try another text-input',
                             'restart tts',
                             'exit tts'
                         ]
@@ -227,7 +238,7 @@ def block_prompt(synthesizer, tts_model_name):
     if continue_answers['to_do'] == 'restart tts':
         print("restart")
         init_prompt()
-    if continue_answers['to_do'] == 'continue new text':
+    if continue_answers['to_do'] == 'try another text-input':
         block_prompt(synthesizer, tts_model_name)
 
 def init_prompt():
@@ -244,9 +255,10 @@ def init_prompt():
     init_questions = [
     inquirer.List('to_do',
                     message="What do you need?",
-                    choices=[
-                        'play with your own model', 
+                    choices=[ 
+                        'get info from official model zoo',
                         'play with official model zoo',
+                        'play with your own model',
                         'exit tts'
                     ]
                 ),
@@ -254,22 +266,18 @@ def init_prompt():
 
     init_answers = inquirer.prompt(init_questions, theme=GreenPassion())
 
+    if init_answers['to_do'] == 'get info from official model zoo':
+        answers_model_load = official_zoo_info_inquirer()
+        manager.model_info_by_full_name(answers_model_load['model_choose_for_info'])
+
     if init_answers['to_do'] == 'exit tts':
         return
-
-    if init_answers['to_do'] == 'play with your own model':
-        answers_custom_model_load = custom_model_inquirer()
-        for key,item in answers_custom_model_load.items():
-            answers_custom_model_load[key]=str2none(item)
-        
 
     if init_answers['to_do'] == 'play with official model zoo':
         answers_model_load = official_zoo_inquirer()
         tts_model_name=answers_model_load['tts_choose']
         model_path, config_path, model_item = manager.download_model(tts_model_name)
-        print(model_item["default_vocoder"])
         vocoder_name=answers_model_load['vocoder_choose'] if answers_model_load['vocoder_choose'] != "default_vocoder" else model_item["default_vocoder"]  
-        print(vocoder_name)
         if vocoder_name is not None:
             vocoder_path, vocoder_config_path, _ = manager.download_model(vocoder_name)
         use_cuda=answers_model_load['use_cuda']
@@ -288,7 +296,15 @@ def init_prompt():
 
         block_prompt(synthesizer, tts_model_name)
 
+    if init_answers['to_do'] == 'play with your own model':
+        answers_custom_model_load = custom_model_inquirer()
+        for key,item in answers_custom_model_load.items():
+            answers_custom_model_load[key]=str2none(item)
+        print(answers_custom_model_load)
+
 def main():
+    from TTS.bin.frogie import ascii_art_printer
+    # ascii_art_printer()
     print("welcome to COQUI TTS")
     init_prompt()
     
