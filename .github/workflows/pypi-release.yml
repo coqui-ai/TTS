@@ -1,6 +1,7 @@
 name: Publish Python 🐍 distributions 📦 to PyPI
 on:
   pull_request: #TO DELETE
+    types: [opened, synchronize, reopened]
   release:
     types: [published]
 defaults:
