@@ -22,7 +22,9 @@ manager = ModelManager(path)
 str2none = lambda i : i or None #converter for default None (''->None)
 
 def official_zoo_inquirer():
-    model_list=manager.list_models(print_list=False)
+    model_list={}
+    model_list['tts_models']=manager.list_tts_models(print_list=False)
+    model_list['vocoder_models']=manager.list_vocoder_models(print_list=False)
     model_list['vocoder_models'].insert(0,'default_vocoder')
     model_load_questions = [
     inquirer.List('use_cuda',
@@ -257,6 +259,9 @@ def init_prompt():
 
     if init_answers['to_do'] == 'play with your own model':
         answers_custom_model_load = custom_model_inquirer()
+        for key,item in answers_custom_model_load.items():
+            answers_custom_model_load[key]=str2none(item)
+        
 
     if init_answers['to_do'] == 'play with official model zoo':
         answers_model_load = official_zoo_inquirer()

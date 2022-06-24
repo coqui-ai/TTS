@@ -75,22 +75,22 @@ class ModelManager(object):
                     model_count += 1
         return model_list
 
-    def _list_for_model_type(self, model_type):
-        print(" Name format: language/dataset/model")
+    def _list_for_model_type(self, model_type, print_list=False):
+        if print_list:
+            print(" Name format: model_type/language/dataset/model")
         models_name_list = []
         model_count = 1
-        model_type = "tts_models"
-        models_name_list.extend(self._list_models(model_type, model_count))
-        return [name.replace(model_type + "/", "") for name in models_name_list]
+        models_name_list.extend(self._list_models(model_type=model_type, model_count=model_count,print_list=print_list))
+        return models_name_list
 
     def list_models(self, print_list=True):
         if print_list:
             print(" Name format: type/language/dataset/model")
-        models_name_list = {}
+        models_name_list = []
         model_count = 1
         for model_type in self.models_dict:
             model_list = self._list_models(model_type, model_count, print_list=print_list)
-            models_name_list[model_type]=model_list
+            models_name_list.extend(model_list)
         return models_name_list
 
     def model_info_by_idx(self, model_query):
@@ -168,17 +168,17 @@ class ModelManager(object):
         else:
             print(f"> model_type {model_type} does not exist in the list.")
 
-    def list_tts_models(self):
+    def list_tts_models(self, print_list=True):
         """Print all `TTS` models and return a list of model names
 
-        Format is `language/dataset/model`
+        Format is `tts_models/language/dataset/model`
         """
         return self._list_for_model_type("tts_models")
 
-    def list_vocoder_models(self):
+    def list_vocoder_models(self, print_list=True):
         """Print all the `vocoder` models and return a list of model names
 
-        Format is `language/dataset/model`
+        Format is `vocoder_models/language/dataset/model`
         """
         return self._list_for_model_type("vocoder_models")
 
