@@ -1,12 +1,12 @@
 # core deps
-numpy==1.19.5
-cython
+numpy==1.21.6
+cython==0.29.28
 scipy>=1.4.0
 torch>=1.7
 torchaudio
 soundfile
 librosa==0.8.0
-numba==0.53
+numba==0.55.1
 inflect
 tqdm
 anyascii
@@ -21,16 +21,16 @@ umap-learn==0.5.1
 pandas
 # deps for training
 matplotlib
-tensorboardX
-pyworld
+pyworld==0.2.10 # > 0.2.10 is not p3.10.x compatible
 # coqui stack
 trainer
-coqpit # config management
+# config management
+coqpit>=0.0.16
 # chinese g2p deps
 jieba
 pypinyin
 # japanese g2p deps
-mecab-python3==1.0.3
+mecab-python3==1.0.5
 unidic-lite==1.0.8
 # gruut+supported langs
 gruut[cs,de,es,fr,it,nl,pt,ru,sv]==2.2.3

@@ -6,7 +6,7 @@ import torch
 from torch import nn, optim
 
 from tests import get_tests_input_path
-from TTS.tts.configs.shared_configs import GSTConfig
+from TTS.tts.configs.shared_configs import CapacitronVAEConfig, GSTConfig
 from TTS.tts.configs.tacotron_config import TacotronConfig
 from TTS.tts.layers.losses import L1LossMasked
 from TTS.tts.models.tacotron import Tacotron
@@ -237,6 +237,74 @@ class TacotronGSTTrainTest(unittest.TestCase):
             stop_loss = criterion_st(outputs["stop_tokens"], stop_targets)
             loss = loss + criterion(outputs["model_outputs"], linear_spec, mel_lengths) + stop_loss
             loss.backward()
+            optimizer.step()
+        # check parameter changes
+        count = 0
+        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+            # ignore pre-higway layer since it works conditional
+            assert (param != param_ref).any(), "param {} with shape {} not updated!! \n{}\n{}".format(
+                count, param.shape, param, param_ref
+            )
+            count += 1
+
+
+class TacotronCapacitronTrainTest(unittest.TestCase):
+    @staticmethod
+    def test_train_step():
+        config = TacotronConfig(
+            num_chars=32,
+            num_speakers=10,
+            use_speaker_embedding=True,
+            out_channels=513,
+            decoder_output_dim=80,
+            use_capacitron_vae=True,
+            capacitron_vae=CapacitronVAEConfig(),
+            optimizer="CapacitronOptimizer",
+            optimizer_params={
+                "RAdam": {"betas": [0.9, 0.998], "weight_decay": 1e-6},
+                "SGD": {"lr": 1e-5, "momentum": 0.9},
+            },
+        )
+
+        batch = dict({})
+        batch["text_input"] = torch.randint(0, 24, (8, 128)).long().to(device)
+        batch["text_lengths"] = torch.randint(100, 129, (8,)).long().to(device)
+        batch["text_lengths"] = torch.sort(batch["text_lengths"], descending=True)[0]
+        batch["text_lengths"][0] = 128
+        batch["linear_input"] = torch.rand(8, 120, config.audio["fft_size"] // 2 + 1).to(device)
+        batch["mel_input"] = torch.rand(8, 120, config.audio["num_mels"]).to(device)
+        batch["mel_lengths"] = torch.randint(20, 120, (8,)).long().to(device)
+        batch["mel_lengths"] = torch.sort(batch["mel_lengths"], descending=True)[0]
+        batch["mel_lengths"][0] = 120
+        batch["stop_targets"] = torch.zeros(8, 120, 1).float().to(device)
+        batch["stop_target_lengths"] = torch.randint(0, 120, (8,)).to(device)
+        batch["speaker_ids"] = torch.randint(0, 5, (8,)).long().to(device)
+        batch["d_vectors"] = None
+
+        for idx in batch["mel_lengths"]:
+            batch["stop_targets"][:, int(idx.item()) :, 0] = 1.0
+
+        batch["stop_targets"] = batch["stop_targets"].view(
+            batch["text_input"].shape[0], batch["stop_targets"].size(1) // config.r, -1
+        )
+        batch["stop_targets"] = (batch["stop_targets"].sum(2) > 0.0).unsqueeze(2).float().squeeze()
+
+        model = Tacotron(config).to(device)
+        criterion = model.get_criterion()
+        optimizer = model.get_optimizer()
+        model.train()
+        print(" > Num parameters for Tacotron with Capacitron VAE model:%s" % (count_parameters(model)))
+        model_ref = copy.deepcopy(model)
+        count = 0
+        for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+            assert (param - param_ref).sum() == 0, param
+            count += 1
+        for _ in range(10):
+            _, loss_dict = model.train_step(batch, criterion)
+            optimizer.zero_grad()
+            loss_dict["capacitron_vae_beta_loss"].backward()
+            optimizer.first_step()
+            loss_dict["loss"].backward()
             optimizer.step()
         # check parameter changes
         count = 0

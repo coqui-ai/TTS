@@ -7,36 +7,36 @@ help:
 target_dirs := tests TTS notebooks recipes
 
 test_all:	## run tests and don't stop on an error.
-	nosetests --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
+	nose2 --with-coverage --coverage TTS tests
 	./run_bash_tests.sh
 
 test:	## run tests.
-	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests
 
 test_vocoder:	## run vocoder tests.
-	nosetests tests.vocoder_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.vocoder_tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests.vocoder_tests
 
 test_tts:	## run tts tests.
-	nosetests tests.tts_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.tts_tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests
 
 test_aux:	## run aux tests.
-	nosetests tests.aux_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.aux_tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests.aux_tests
 	./run_bash_tests.sh
 
 test_zoo:	## run zoo tests.
-	nosetests tests.zoo_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.zoo_tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests
 
 inference_tests: ## run inference tests.
-	nosetests tests.inference_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.inference_tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests.inference_tests
 
 data_tests: ## run data tests.
-	nosetests tests.data_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.data_tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests.data_tests
 
 test_text: ## run text tests.
-	nosetests tests.text_tests -x --with-cov -cov  --cover-erase --cover-package TTS tests.text_tests --nologcapture --with-id
+	nose2 -F -v -B --with-coverage --coverage TTS tests.text_tests
 
 test_failed:  ## only run tests failed the last time.
-	nosetests -x --with-cov -cov  --cover-erase --cover-package TTS tests --nologcapture --failed
+	nose2 -F -v -B --with-coverage --coverage TTS tests
 
 style:	## update code style.
 	black ${target_dirs}

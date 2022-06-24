@@ -41,6 +41,23 @@ hann_window = {}
 mel_basis = {}
 
 
+@torch.no_grad()
+def weights_reset(m: nn.Module):
+    # check if the current module has reset_parameters and if it is reset the weight
+    reset_parameters = getattr(m, "reset_parameters", None)
+    if callable(reset_parameters):
+        m.reset_parameters()
+
+
+def get_module_weights_sum(mdl: nn.Module):
+    dict_sums = {}
+    for name, w in mdl.named_parameters():
+        if "weight" in name:
+            value = w.data.sum().item()
+            dict_sums[name] = value
+    return dict_sums
+
+
 def load_audio(file_path):
     """Load the audio file normalized in [-1, 1]
 
@@ -189,15 +206,20 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
 
 
 class VitsDataset(TTSDataset):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model_args, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pad_id = self.tokenizer.characters.pad_id
+        self.model_args = model_args
 
     def __getitem__(self, idx):
         item = self.samples[idx]
         raw_text = item["text"]
 
         wav, _ = load_audio(item["audio_file"])
+        if self.model_args.encoder_sample_rate is not None:
+            if wav.size(1) % self.model_args.encoder_sample_rate != 0:
+                wav = wav[:, : -int(wav.size(1) % self.model_args.encoder_sample_rate)]
+
         wav_filename = os.path.basename(item["audio_file"])
 
         token_ids = self.get_token_ids(idx, item["text"])
@@ -362,6 +384,9 @@ class VitsArgs(Coqpit):
         upsample_kernel_sizes_decoder (List[int]):
             Kernel sizes for each upsampling layer of the decoder network. Defaults to `[16, 16, 4, 4]`.
 
+        periods_multi_period_discriminator (List[int]):
+            Periods values for Vits Multi-Period Discriminator. Defaults to `[2, 3, 5, 7, 11]`.
+
         use_sdp (bool):
             Use Stochastic Duration Predictor. Defaults to True.
 
@@ -451,6 +476,18 @@ class VitsArgs(Coqpit):
 
         freeze_waveform_decoder (bool):
             Freeze the waveform decoder weigths during training. Defaults to False.
+
+        encoder_sample_rate (int):
+            If not None this sample rate will be used for training the Posterior Encoder,
+            flow, text_encoder and duration predictor. The decoder part (vocoder) will be
+            trained with the `config.audio.sample_rate`. Defaults to None.
+
+        interpolate_z (bool):
+            If `encoder_sample_rate` not None and  this parameter True the nearest interpolation
+            will be used to upsampling the latent variable z with the sampling rate `encoder_sample_rate`
+            to the `config.audio.sample_rate`. If it is False you will need to add extra
+            `upsample_rates_decoder` to match the shape. Defaults to True.
+
     """
 
     num_chars: int = 100
@@ -475,6 +512,7 @@ class VitsArgs(Coqpit):
     upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
     upsample_initial_channel_decoder: int = 512
     upsample_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
+    periods_multi_period_discriminator: List[int] = field(default_factory=lambda: [2, 3, 5, 7, 11])
     use_sdp: bool = True
     noise_scale: float = 1.0
     inference_noise_scale: float = 0.667
@@ -505,6 +543,10 @@ class VitsArgs(Coqpit):
     freeze_PE: bool = False
     freeze_flow_decoder: bool = False
     freeze_waveform_decoder: bool = False
+    encoder_sample_rate: int = None
+    interpolate_z: bool = True
+    reinit_DP: bool = False
+    reinit_text_encoder: bool = False
 
 
 class Vits(BaseTTS):
@@ -548,6 +590,7 @@ class Vits(BaseTTS):
 
         self.init_multispeaker(config)
         self.init_multilingual(config)
+        self.init_upsampling()
 
         self.length_scale = self.args.length_scale
         self.noise_scale = self.args.noise_scale
@@ -625,7 +668,10 @@ class Vits(BaseTTS):
         )
 
         if self.args.init_discriminator:
-            self.disc = VitsDiscriminator(use_spectral_norm=self.args.use_spectral_norm_disriminator)
+            self.disc = VitsDiscriminator(
+                periods=self.args.periods_multi_period_discriminator,
+                use_spectral_norm=self.args.use_spectral_norm_disriminator,
+            )
 
     def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
@@ -706,6 +752,38 @@ class Vits(BaseTTS):
             torch.nn.init.xavier_uniform_(self.emb_l.weight)
         else:
             self.embedded_language_dim = 0
+
+    def init_upsampling(self):
+        """
+        Initialize upsampling modules of a model.
+        """
+        if self.args.encoder_sample_rate:
+            self.interpolate_factor = self.config.audio["sample_rate"] / self.args.encoder_sample_rate
+            self.audio_resampler = torchaudio.transforms.Resample(
+                orig_freq=self.config.audio["sample_rate"], new_freq=self.args.encoder_sample_rate
+            )  # pylint: disable=W0201
+
+    def on_init_end(self, trainer):  # pylint: disable=W0613
+        """Reinit layes if needed"""
+        if self.args.reinit_DP:
+            before_dict = get_module_weights_sum(self.duration_predictor)
+            # Applies weights_reset recursively to every submodule of the duration predictor
+            self.duration_predictor.apply(fn=weights_reset)
+            after_dict = get_module_weights_sum(self.duration_predictor)
+            for key, value in after_dict.items():
+                if value == before_dict[key]:
+                    raise RuntimeError(" [!] The weights of Duration Predictor was not reinit check it !")
+            print(" > Duration Predictor was reinit.")
+
+        if self.args.reinit_text_encoder:
+            before_dict = get_module_weights_sum(self.text_encoder)
+            # Applies weights_reset recursively to every submodule of the duration predictor
+            self.text_encoder.apply(fn=weights_reset)
+            after_dict = get_module_weights_sum(self.text_encoder)
+            for key, value in after_dict.items():
+                if value == before_dict[key]:
+                    raise RuntimeError(" [!] The weights of Text Encoder was not reinit check it !")
+            print(" > Text Encoder was reinit.")
 
     def get_aux_input(self, aux_input: Dict):
         sid, g, lid = self._set_cond_input(aux_input)
@@ -804,6 +882,23 @@ class Vits(BaseTTS):
         outputs["loss_duration"] = loss_duration
         return outputs, attn
 
+    def upsampling_z(self, z, slice_ids=None, y_lengths=None, y_mask=None):
+        spec_segment_size = self.spec_segment_size
+        if self.args.encoder_sample_rate:
+            # recompute the slices and spec_segment_size if needed
+            slice_ids = slice_ids * int(self.interpolate_factor) if slice_ids is not None else slice_ids
+            spec_segment_size = spec_segment_size * int(self.interpolate_factor)
+            # interpolate z if needed
+            if self.args.interpolate_z:
+                z = torch.nn.functional.interpolate(z, scale_factor=[self.interpolate_factor], mode="linear").squeeze(0)
+                # recompute the mask if needed
+                if y_lengths is not None and y_mask is not None:
+                    y_mask = (
+                        sequence_mask(y_lengths * self.interpolate_factor, None).to(y_mask.dtype).unsqueeze(1)
+                    )  # [B, 1, T_dec_resampled]
+
+        return z, spec_segment_size, slice_ids, y_mask
+
     def forward(  # pylint: disable=dangerous-default-value
         self,
         x: torch.tensor,
@@ -878,12 +973,16 @@ class Vits(BaseTTS):
 
         # select a random feature segment for the waveform decoder
         z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size, let_short_samples=True, pad_short=True)
+
+        # interpolate z if needed
+        z_slice, spec_segment_size, slice_ids, _ = self.upsampling_z(z_slice, slice_ids=slice_ids)
+
         o = self.waveform_decoder(z_slice, g=g)
 
         wav_seg = segment(
             waveform,
             slice_ids * self.config.audio.hop_length,
-            self.args.spec_segment_size * self.config.audio.hop_length,
+            spec_segment_size * self.config.audio.hop_length,
             pad_short=True,
         )
 
@@ -927,6 +1026,7 @@ class Vits(BaseTTS):
             return aux_input["x_lengths"]
         return torch.tensor(x.shape[1:2]).to(x.device)
 
+    @torch.no_grad()
     def inference(
         self, x, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None}
     ):  # pylint: disable=dangerous-default-value
@@ -989,9 +1089,22 @@ class Vits(BaseTTS):
 
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * self.inference_noise_scale
         z = self.flow(z_p, y_mask, g=g, reverse=True)
+
+        # upsampling if needed
+        z, _, _, y_mask = self.upsampling_z(z, y_lengths=y_lengths, y_mask=y_mask)
+
         o = self.waveform_decoder((z * y_mask)[:, :, : self.max_inference_len], g=g)
 
-        outputs = {"model_outputs": o, "alignments": attn.squeeze(1), "z": z, "z_p": z_p, "m_p": m_p, "logs_p": logs_p}
+        outputs = {
+            "model_outputs": o,
+            "alignments": attn.squeeze(1),
+            "durations": w_ceil,
+            "z": z,
+            "z_p": z_p,
+            "m_p": m_p,
+            "logs_p": logs_p,
+            "y_mask": y_mask,
+        }
         return outputs
 
     @torch.no_grad()
@@ -1014,7 +1127,7 @@ class Vits(BaseTTS):
             self.config.audio.hop_length,
             self.config.audio.win_length,
             center=False,
-        ).transpose(1, 2)
+        )
         y_lengths = torch.tensor([y.size(-1)]).to(y.device)
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
@@ -1044,7 +1157,7 @@ class Vits(BaseTTS):
         else:
             raise RuntimeError(" [!] Voice conversion is only supported on multi-speaker models.")
 
-        z, _, _, y_mask = self.posterior_encoder(y.transpose(1, 2), y_lengths, g=g_src)
+        z, _, _, y_mask = self.posterior_encoder(y, y_lengths, g=g_src)
         z_p = self.flow(z, y_mask, g=g_src)
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
         o_hat = self.waveform_decoder(z_hat * y_mask, g=g_tgt)
@@ -1064,13 +1177,12 @@ class Vits(BaseTTS):
 
         self._freeze_layers()
 
-        mel_lens = batch["mel_lens"]
+        spec_lens = batch["spec_lens"]
 
         if optimizer_idx == 0:
             tokens = batch["tokens"]
             token_lenghts = batch["token_lens"]
             spec = batch["spec"]
-            spec_lens = batch["spec_lens"]
 
             d_vectors = batch["d_vectors"]
             speaker_ids = batch["speaker_ids"]
@@ -1108,8 +1220,14 @@ class Vits(BaseTTS):
 
             # compute melspec segment
             with autocast(enabled=False):
+
+                if self.args.encoder_sample_rate:
+                    spec_segment_size = self.spec_segment_size * int(self.interpolate_factor)
+                else:
+                    spec_segment_size = self.spec_segment_size
+
                 mel_slice = segment(
-                    mel.float(), self.model_outputs_cache["slice_ids"], self.spec_segment_size, pad_short=True
+                    mel.float(), self.model_outputs_cache["slice_ids"], spec_segment_size, pad_short=True
                 )
                 mel_slice_hat = wav_to_mel(
                     y=self.model_outputs_cache["model_outputs"].float(),
@@ -1137,7 +1255,7 @@ class Vits(BaseTTS):
                     logs_q=self.model_outputs_cache["logs_q"].float(),
                     m_p=self.model_outputs_cache["m_p"].float(),
                     logs_p=self.model_outputs_cache["logs_p"].float(),
-                    z_len=mel_lens,
+                    z_len=spec_lens,
                     scores_disc_fake=scores_disc_fake,
                     feats_disc_fake=feats_disc_fake,
                     feats_disc_real=feats_disc_real,
@@ -1318,22 +1436,49 @@ class Vits(BaseTTS):
         """Compute spectrograms on the device."""
         ac = self.config.audio
 
+        if self.args.encoder_sample_rate:
+            wav = self.audio_resampler(batch["waveform"])
+        else:
+            wav = batch["waveform"]
+
         # compute spectrograms
-        batch["spec"] = wav_to_spec(batch["waveform"], ac.fft_size, ac.hop_length, ac.win_length, center=False)
+        batch["spec"] = wav_to_spec(wav, ac.fft_size, ac.hop_length, ac.win_length, center=False)
+
+        if self.args.encoder_sample_rate:
+            # recompute spec with high sampling rate to the loss
+            spec_mel = wav_to_spec(batch["waveform"], ac.fft_size, ac.hop_length, ac.win_length, center=False)
+            # remove extra stft frames if needed
+            if spec_mel.size(2) > int(batch["spec"].size(2) * self.interpolate_factor):
+                spec_mel = spec_mel[:, :, : int(batch["spec"].size(2) * self.interpolate_factor)]
+            else:
+                batch["spec"] = batch["spec"][:, :, : int(spec_mel.size(2) / self.interpolate_factor)]
+        else:
+            spec_mel = batch["spec"]
+
         batch["mel"] = spec_to_mel(
-            spec=batch["spec"],
+            spec=spec_mel,
             n_fft=ac.fft_size,
             num_mels=ac.num_mels,
             sample_rate=ac.sample_rate,
             fmin=ac.mel_fmin,
             fmax=ac.mel_fmax,
         )
-        assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
+
+        if self.args.encoder_sample_rate:
+            assert batch["spec"].shape[2] == int(
+                batch["mel"].shape[2] / self.interpolate_factor
+            ), f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
+        else:
+            assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
 
         # compute spectrogram frame lengths
         batch["spec_lens"] = (batch["spec"].shape[2] * batch["waveform_rel_lens"]).int()
         batch["mel_lens"] = (batch["mel"].shape[2] * batch["waveform_rel_lens"]).int()
-        assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
+
+        if self.args.encoder_sample_rate:
+            assert (batch["spec_lens"] - (batch["mel_lens"] / self.interpolate_factor).int()).sum() == 0
+        else:
+            assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
 
         # zero the padding frames
         batch["spec"] = batch["spec"] * sequence_mask(batch["spec_lens"]).unsqueeze(1)
@@ -1355,8 +1500,9 @@ class Vits(BaseTTS):
         else:
             # init dataloader
             dataset = VitsDataset(
+                model_args=self.args,
                 samples=samples,
-                # batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
+                batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_text_len=config.min_text_len,
                 max_text_len=config.max_text_len,
                 min_audio_len=config.min_audio_len,
@@ -1449,6 +1595,11 @@ class Vits(BaseTTS):
         # TODO: consider baking the speaker encoder into the model and call it from there.
         # as it is probably easier for model distribution.
         state["model"] = {k: v for k, v in state["model"].items() if "speaker_encoder" not in k}
+
+        if self.args.encoder_sample_rate is not None and eval:
+            # audio resampler is not used in inference time
+            self.audio_resampler = None
+
         # handle fine-tuning from a checkpoint with additional speakers
         if hasattr(self, "emb_g") and state["model"]["emb_g.weight"].shape != self.emb_g.weight.shape:
             num_new_speakers = self.emb_g.weight.shape[0] - state["model"]["emb_g.weight"].shape[0]
@@ -1476,9 +1627,17 @@ class Vits(BaseTTS):
         from TTS.utils.audio import AudioProcessor
 
         upsample_rate = torch.prod(torch.as_tensor(config.model_args.upsample_rates_decoder)).item()
-        assert (
-            upsample_rate == config.audio.hop_length
-        ), f" [!] Product of upsample rates must be equal to the hop length - {upsample_rate} vs {config.audio.hop_length}"
+
+        if not config.model_args.encoder_sample_rate:
+            assert (
+                upsample_rate == config.audio.hop_length
+            ), f" [!] Product of upsample rates must be equal to the hop length - {upsample_rate} vs {config.audio.hop_length}"
+        else:
+            encoder_to_vocoder_upsampling_factor = config.audio.sample_rate / config.model_args.encoder_sample_rate
+            effective_hop_length = config.audio.hop_length * encoder_to_vocoder_upsampling_factor
+            assert (
+                upsample_rate == effective_hop_length
+            ), f" [!] Product of upsample rates must be equal to the hop length - {upsample_rate} vs {effective_hop_length}"
 
         ap = AudioProcessor.init_from_config(config, verbose=verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
