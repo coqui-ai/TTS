@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from TTS.tts.configs.shared_configs import BaseTTSConfig, GSTConfig
+from TTS.tts.configs.shared_configs import BaseTTSConfig, CapacitronVAEConfig, GSTConfig
 
 
 @dataclass
@@ -23,6 +23,10 @@ class TacotronConfig(BaseTTSConfig):
         gst_style_input (str):
             Path to the wav file used at inference to set the speech style through GST. If `GST` is enabled and
             this is not defined, the model uses a zero vector as an input. Defaults to None.
+        use_capacitron_vae (bool):
+            enable / disable the use of Capacitron modules. Defaults to False.
+        capacitron_vae (CapacitronConfig):
+            Instance of `CapacitronConfig` class.
         num_chars (int):
             Number of characters used by the model. It must be defined before initializing the model. Defaults to None.
         num_speakers (int):
@@ -142,6 +146,9 @@ class TacotronConfig(BaseTTSConfig):
     use_gst: bool = False
     gst: GSTConfig = None
     gst_style_input: str = None
+
+    use_capacitron_vae: bool = False
+    capacitron_vae: CapacitronVAEConfig = None
 
     # model specific params
     num_speakers: int = 1

@@ -139,7 +139,7 @@ class MultiHeadAttention(nn.Module):
         keys = torch.stack(torch.split(keys, split_size, dim=2), dim=0)  # [h, N, T_k, num_units/h]
         values = torch.stack(torch.split(values, split_size, dim=2), dim=0)  # [h, N, T_k, num_units/h]
 
-        # score = softmax(QK^T / (d_k ** 0.5))
+        # score = softmax(QK^T / (d_k**0.5))
         scores = torch.matmul(queries, keys.transpose(2, 3))  # [h, N, T_q, T_k]
         scores = scores / (self.key_dim**0.5)
         scores = F.softmax(scores, dim=3)

@@ -12,6 +12,7 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 
 from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
+from TTS.tts.utils.data import get_length_balancer_weights
 from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_balancer_weights, get_speaker_manager
 from TTS.tts.utils.synthesis import synthesis
@@ -250,6 +251,14 @@ class BaseTTS(BaseTrainerModel):
             else:
                 weights = get_speaker_balancer_weights(data_items) * alpha
 
+        if getattr(config, "use_length_weighted_sampler", False):
+            alpha = getattr(config, "length_weighted_sampler_alpha", 1.0)
+            print(" > Using Length weighted sampler with alpha:", alpha)
+            if weights is not None:
+                weights += get_length_balancer_weights(data_items) * alpha
+            else:
+                weights = get_length_balancer_weights(data_items) * alpha
+
         if weights is not None:
             sampler = WeightedRandomSampler(weights, len(weights))
         else:
@@ -398,16 +407,16 @@ class BaseTTS(BaseTrainerModel):
         return test_figures, test_audios
 
     def on_init_start(self, trainer):
-        """Save the speaker.json and language_ids.json at the beginning of the training. Also update both paths."""
+        """Save the speaker.pth and language_ids.json at the beginning of the training. Also update both paths."""
         if self.speaker_manager is not None:
-            output_path = os.path.join(trainer.output_path, "speakers.json")
+            output_path = os.path.join(trainer.output_path, "speakers.pth")
             self.speaker_manager.save_ids_to_file(output_path)
             trainer.config.speakers_file = output_path
             # some models don't have `model_args` set
             if hasattr(trainer.config, "model_args"):
                 trainer.config.model_args.speakers_file = output_path
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
-            print(f" > `speakers.json` is saved to {output_path}.")
+            print(f" > `speakers.pth` is saved to {output_path}.")
             print(" > `speakers_file` is updated in the config.json.")
 
         if hasattr(self, "language_manager") and self.language_manager is not None:
