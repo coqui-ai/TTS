@@ -1,17 +1,19 @@
 # core deps
-numpy>=1.21.6
+numpy==1.22.4
 cython==0.29.28
 scipy>=1.4.0
 torch>=1.7
 torchaudio
 soundfile
 librosa==0.8.0
-numba>=0.55.1
+numba==0.55.2
 inflect
 tqdm
 anyascii
 pyyaml
 fsspec>=2021.04.0
+#deps for CLI
+inquirer
 # deps for examples
 flask
 # deps for inference

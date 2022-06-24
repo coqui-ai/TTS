@@ -114,7 +114,7 @@ setup(
         "notebooks": requirements_notebooks,
     },
     python_requires=">=3.7.0, <3.11",
-    entry_points={"console_scripts": ["tts=TTS.bin.synthesize:main", "tts-server = TTS.server.server:main"]},
+    entry_points={"console_scripts": ["tts=TTS.bin.synthesize:main", "tts-server = TTS.server.server:main", "tts-cli = TTS.bin.inquire:main"]},
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",

@@ -23,7 +23,7 @@ str2none = lambda i : i or None #converter for default None (''->None)
 
 def official_zoo_inquirer():
     model_list=manager.list_models(print_list=False)
-    model_list['vocoder_models'].append('default_vocoder')
+    model_list['vocoder_models'].insert(0,'default_vocoder')
     model_load_questions = [
     inquirer.List('use_cuda',
                 message="Run model on CUDA?",
@@ -282,5 +282,10 @@ def init_prompt():
         )
 
         block_prompt(synthesizer, tts_model_name)
-     
-init_prompt()
+
+def main():
+    print("welcome to COQUI TTS")
+    init_prompt()
+    
+if __name__ == "__main__":
+    main()
