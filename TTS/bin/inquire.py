@@ -197,7 +197,7 @@ def tts_inquirer(
     continue_answers=continue_inquirer()
     return continue_answers
 
-def block_prompt(synthesizer, tts_model_name):
+def block_prompt(synthesizer, isCapacitron=False):
     speaker_idx=None
     language_idx=None
     speaker_wav=None
@@ -205,6 +205,7 @@ def block_prompt(synthesizer, tts_model_name):
     reference_speaker_idx=None
     capacitron_style_wav=None
     capacitron_style_text=None
+    isCapacitron=isCapacitron
 
     if synthesizer.tts_speakers_file or hasattr(synthesizer.tts_model.speaker_manager, "ids"):
         answers_multispeaker=multispeaker_inquirer()
@@ -216,7 +217,7 @@ def block_prompt(synthesizer, tts_model_name):
         reference_wav=reference_wav=answers_multispeaker['reference_wav']
         reference_speaker_idx=answers_multispeaker['reference_speaker_idx']
 
-    if 'capacitron' in tts_model_name:
+    
         answers_capacitron = capacitron_inquirer()
         for key,item in answers_capacitron.items():
             answers_capacitron[key]=str2none(item)
@@ -239,7 +240,7 @@ def block_prompt(synthesizer, tts_model_name):
         print("restart")
         init_prompt()
     if continue_answers['to_do'] == 'try another text-input':
-        block_prompt(synthesizer, tts_model_name)
+        block_prompt(synthesizer, isCapacitron=isCapacitron)
 
 def init_prompt():
     model_path=None
@@ -294,7 +295,10 @@ def init_prompt():
         use_cuda,
         )
 
-        block_prompt(synthesizer, tts_model_name)
+        if 'capacitron' in tts_model_name:
+            isCapacitron = True
+
+        block_prompt(synthesizer, isCapacitron)
 
     if init_answers['to_do'] == 'play with your own model':
         answers_custom_model_load = custom_model_inquirer()
