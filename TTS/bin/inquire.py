@@ -27,11 +27,6 @@ def official_zoo_inquirer():
     model_list['vocoder_models']=manager.list_vocoder_models(print_list=False)
     model_list['vocoder_models'].insert(0,'default_vocoder')
     model_load_questions = [
-    inquirer.List('use_cuda',
-                message="Run model on CUDA?",
-                choices=[True,False],
-                default=False,
-            ),
     inquirer.List('tts_choose',
                 message="Choose a tts model to load",
                 choices=model_list['tts_models'],
