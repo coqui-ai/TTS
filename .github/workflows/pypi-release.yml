@@ -50,6 +50,8 @@ jobs:
       #   with:
       #     python-versions: 'cp37-cp37m'
       - run:
+          python -m pip install -r requirements.txt
+      - run:
           python setup.py bdist_wheel --plat-name=manylinux1_x86_64
       - run: |
           python -m pip install dist/*-manylinux*.whl
