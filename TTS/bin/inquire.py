@@ -40,7 +40,12 @@ def official_zoo_inquirer():
     inquirer.List('vocoder_choose',
                 message="Choose a vocoder model to load",
                 choices=model_list['vocoder_models'],
-            )
+            ),
+    inquirer.List('use_cuda',
+                message="Run model on CUDA?",
+                choices=[True,False],
+                default=True,
+            ),
     ]
     answers_model_load = inquirer.prompt(model_load_questions, theme=GreenPassion())
     return answers_model_load
@@ -58,11 +63,6 @@ def official_zoo_info_inquirer():
 
 def custom_model_inquirer():
     custom_model_load_questions = [
-    inquirer.List('use_cuda',
-                message="Run model on CUDA?",
-                choices=[True,False],
-                default=False,
-            ),
     inquirer.Text('model_path',
                 message="Path to TTS model path",
                 default=None,
@@ -86,6 +86,11 @@ def custom_model_inquirer():
     inquirer.Text('encoder_config_path',
                 message="Path to speaker encoder config file.",
                 default=None,
+            ),
+    inquirer.List('use_cuda',
+                message="Run model on CUDA?",
+                choices=[True,False],
+                default=True,
             ),    
     ]
     answers_custom_model_load = inquirer.prompt(custom_model_load_questions, theme=GreenPassion())
@@ -216,14 +221,14 @@ def block_prompt(synthesizer, isCapacitron=False):
         speaker_wav=answers_multispeaker['speaker_wav']
         reference_wav=reference_wav=answers_multispeaker['reference_wav']
         reference_speaker_idx=answers_multispeaker['reference_speaker_idx']
-
     
+    if isCapacitron:
         answers_capacitron = capacitron_inquirer()
         for key,item in answers_capacitron.items():
             answers_capacitron[key]=str2none(item)
         capacitron_style_wav=answers_capacitron['capacitron_style_wav']
         capacitron_style_text=answers_capacitron['capacitron_style_text']
-    
+
     continue_answers = tts_inquirer(
             synthesizer,
             speaker_idx,
@@ -234,6 +239,7 @@ def block_prompt(synthesizer, isCapacitron=False):
             capacitron_style_wav,
             capacitron_style_text
         )
+
     if continue_answers['to_do'] == 'exit tts':
         return
     if continue_answers['to_do'] == 'restart tts':
@@ -251,8 +257,9 @@ def init_prompt():
     vocoder_config_path=None
     encoder_path=None
     encoder_config_path=None
-    use_cuda=False
-          
+    use_cuda=True
+    isCapacitron=False      
+
     init_questions = [
     inquirer.List('to_do',
                     message="What do you need?",
@@ -298,17 +305,42 @@ def init_prompt():
         if 'capacitron' in tts_model_name:
             isCapacitron = True
 
-        block_prompt(synthesizer, isCapacitron)
+        block_prompt(synthesizer, isCapacitron=isCapacitron)
 
     if init_answers['to_do'] == 'play with your own model':
         answers_custom_model_load = custom_model_inquirer()
         for key,item in answers_custom_model_load.items():
             answers_custom_model_load[key]=str2none(item)
-        print(answers_custom_model_load)
+
+        model_path=answers_custom_model_load['model_path']
+        config_path=answers_custom_model_load['model_config_path']
+        vocoder_path=answers_custom_model_load['vocoder_path']
+        vocoder_config_path=answers_custom_model_load['vocoder_config_path']
+        encoder_path=answers_custom_model_load['encoder_path']
+        encoder_config_path=answers_custom_model_load['encoder_config_path']
+        use_cuda=answers_custom_model_load['use_cuda']
+        
+        synthesizer = Synthesizer(
+        model_path,
+        config_path,
+        speakers_file_path,
+        language_ids_file_path,
+        vocoder_path,
+        vocoder_config_path,
+        encoder_path,
+        encoder_config_path,
+        use_cuda,
+        )
+
+        if 'use_capacitron_vae' in synthesizer.tts_config: #find if model is capacitron
+            print("yes cap")
+            isCapacitron = True
+
+        block_prompt(synthesizer, isCapacitron=isCapacitron)
 
 def main():
     from TTS.bin.frogie import ascii_art_printer
-    # ascii_art_printer()
+    ascii_art_printer()
     print("welcome to COQUI TTS")
     init_prompt()
     
