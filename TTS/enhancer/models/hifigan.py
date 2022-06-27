@@ -32,6 +32,7 @@ class HifiGANArgs(Coqpit):
     num_channel_postnet: int = 128
     num_layers_postnet: int = 12
     kernel_size_postnet: int = 33
+    use_postnet: bool = True
 
 
 class HifiGAN(BaseTrainerModel):
@@ -48,7 +49,6 @@ class HifiGAN(BaseTrainerModel):
         self.target_sr = config.target_sr
         self.train_disc = False
         self.train_postnet = False
-        assert config.steps_to_start_discriminator >= config.steps_to_start_postnet
         self.generator = WNBlocks(
             in_channels=1,
             hidden_channels=self.args.num_channel_wn,
@@ -58,11 +58,13 @@ class HifiGAN(BaseTrainerModel):
             num_layers=self.args.num_layers_wn,
         )
         self.postconv = nn.Conv1d(self.args.num_channel_wn, 1, kernel_size=1)
-        self.postnet = Postnet(
-            channels=self.args.num_channel_postnet,
-            kernel_size=self.args.kernel_size_postnet,
-            n_layers=self.args.num_layers_postnet,
-        )
+        if self.args.use_postnet:
+            assert config.steps_to_start_discriminator >= config.steps_to_start_postnet
+            self.postnet = Postnet(
+                channels=self.args.num_channel_postnet,
+                kernel_size=self.args.kernel_size_postnet,
+                n_layers=self.args.num_layers_postnet,
+            )
         self.waveform_disc = MelganMultiscaleDiscriminator(
             downsample_factors=(2, 2, 2),
             base_channels=16,
@@ -77,7 +79,8 @@ class HifiGAN(BaseTrainerModel):
 
     def on_init_end(self, trainer):
         self.generator.apply(self.init_weights)
-        self.postnet.apply(self.init_weights)
+        if self.args.use_postnet:
+            self.postnet.apply(self.init_weights)
 
     @staticmethod
     def init_weights(m):
@@ -147,7 +150,7 @@ class HifiGAN(BaseTrainerModel):
             loss_dict = criterion[optimizer_idx](
                 self.y_hat,
                 y,
-                y_hat_postnet=self.y_hat_postnet if self.train_postnet else None,
+                y_hat_postnet=self.y_hat_postnet if (self.train_postnet and self.args.use_postnet) else None,
                 scores_fake=scores_fake,
                 feats_fake=feats_fake,
                 feats_real=feats_real,
@@ -221,7 +224,7 @@ class HifiGAN(BaseTrainerModel):
             self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, parameters=disc_params
         )
         gen_params = (
-            list(self.generator.parameters()) + list(self.postconv.parameters()) + list(self.postnet.parameters())
+            list(self.generator.parameters()) + list(self.postconv.parameters()) + list(self.postnet.parameters() if self.args.use_postnet else [])
         )
         optimizer_gen = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_params
@@ -263,21 +266,22 @@ class HifiGAN(BaseTrainerModel):
 
     def _log(self, name: str, batch: Dict, outputs: Dict) -> Tuple[Dict, Dict]:
         y_hat = outputs[1]["y_hat"][0].detach().squeeze(0).cpu().numpy()
-        y_hat_postnet = outputs[1]["y_hat_postnet"][0].detach().squeeze(0).cpu().numpy()
         y = batch["target_wav"][0].detach().squeeze(0).cpu().numpy()
         x = batch["input_wav"][0].detach().squeeze(0).cpu().numpy()
         figures = {
             name + "_mel_input": self._plot_spec(x, self.target_sr),
             name + "_mel_prenet": self._plot_spec(y_hat, self.target_sr),
-            name + "_mel_postnet": self._plot_spec(y_hat_postnet, self.target_sr),
             name + "_mel_target": self._plot_spec(y, self.target_sr),
         }
         audios = {
             f"{name}_input/audio": x,
             f"{name}_prenet/audio": y_hat,
-            f"{name}_postnet/audio": y_hat_postnet,
             f"{name}_target/audio": y,
         }
+        if self.train_postnet:
+            y_hat_postnet = outputs[1]["y_hat_postnet"][0].detach().squeeze(0).cpu().numpy()
+            figures[name + "_mel_postnet"] = self._plot_spec(y_hat_postnet if self.args.use_postnet else y_hat, self.target_sr)
+            audios[f"{name}_postnet/audio"] = y_hat_postnet
         return figures, audios
 
     @staticmethod
@@ -298,4 +302,4 @@ class HifiGAN(BaseTrainerModel):
             trainer (Trainer): Trainer object.
         """
         self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator
-        self.train_postnet = trainer.total_steps_done >= self.config.steps_to_start_postnet
+        self.train_postnet = trainer.total_steps_done >= self.config.steps_to_start_postnet and self.args.use_postnet
