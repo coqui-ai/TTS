@@ -10,16 +10,13 @@ defaults:
 jobs:
   build-sdist:
     runs-on: ubuntu-20.04
-    steps:
+    steps: #Add back version test
       - uses: actions/checkout@v2
       - name: Verify tag matches version
         run: |
           set -ex
           version=$(cat TTS/VERSION)
           tag="${GITHUB_REF/refs\/tags\/}"
-          if [[ "v$version" != "v$version" ]]; then
-            exit 1
-          fi
       - uses: actions/setup-python@v2
         with:
           python-version: 3.8
@@ -37,23 +34,19 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.7"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - run: |
+      - name: Install pip requirements
+        run: |
           python -m pip install -U pip setuptools wheel build
-      # - name: Build manylinux Python wheels
-      #   uses: RalfG/python-wheels-manylinux-build@v0.4.2-manylinux2014_x86_64
-      #   with:
-      #     python-versions: 'cp37-cp37m'
-      - run:
           python -m pip install -r requirements.txt
-      - run:
+      - name: Setup and install manylinux1_x86_64 wheel
+        run: |
           python setup.py bdist_wheel --plat-name=manylinux1_x86_64
-      - run: |
           python -m pip install dist/*-manylinux*.whl
       - uses: actions/upload-artifact@v2
         with:
@@ -72,6 +65,18 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: "wheel-3.7"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.8"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.9"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.10"
           path: "dist/"
       - run: |
           ls -lh dist/
