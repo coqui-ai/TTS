@@ -1,4 +1,4 @@
-name: Publish Python 🐍 distributions 📦 to PyPI
+name: Publish Python distributions to PyPI
 on:
   pull_request:
   release:
@@ -52,7 +52,7 @@ jobs:
       - run: |
           python -m pip install dist/*-manylinux*.whl
       - name: Upload manylinux wheel
-      - uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2
         with:
           name: wheel-${{ matrix.python-version }}
           path: dist/*-manylinux*.whl
