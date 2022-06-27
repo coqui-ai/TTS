@@ -29,7 +29,7 @@ You can continue a previous training run by the following command.
 
 You can fine-tune a pre-trained model by the following command.
 
-```CUDA_VISIBLE_DEVICES='0' python tts/bin/train_vocoder.py --restore_path path/to/your/model.pth.tar```
+```CUDA_VISIBLE_DEVICES='0' python tts/bin/train_vocoder.py --restore_path path/to/your/model.pth```
 
 Restoring a model starts a new training in a different folder. It only restores model weights with the given checkpoint file. However, continuing a training starts from the same directory where the previous training run left off.
 

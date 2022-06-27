@@ -39,6 +39,18 @@ If you don't specify any models, then it uses LJSpeech based English model.
     $ tts --list_models
     ```
 
+- Query info for model info by idx:
+
+    ```
+    $ tts --model_info_by_idx "<model_type>/<model_query_idx>"
+    ```
+
+- Query info for model info by full name:
+
+    ```
+    $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
+    ```
+
 - Run TTS with default models:
 
     ```
@@ -60,13 +72,13 @@ If you don't specify any models, then it uses LJSpeech based English model.
 - Run your own TTS model (Using Griffin-Lim Vocoder):
 
     ```
-    $ tts --text "Text for TTS" --model_path path/to/model.pth.tar --config_path path/to/config.json --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
     ```
 
 - Run your own TTS and Vocoder models:
     ```
-    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth.tar --out_path output/path/speech.wav
-        --vocoder_path path/to/vocoder.pth.tar --vocoder_config_path path/to/vocoder_config.json
+    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth --out_path output/path/speech.wav
+        --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
     ```
 
 ### Multi-speaker Models
@@ -86,7 +98,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
 - Run your own multi-speaker TTS model:
 
     ```
-    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth.tar --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
+    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
     ```
     """
     # We remove Markdown code formatting programmatically here to allow us to copy-and-paste from main README to keep
@@ -104,6 +116,21 @@ If you don't specify any models, then it uses LJSpeech based English model.
         default=False,
         help="list available pre-trained TTS and vocoder models.",
     )
+
+    parser.add_argument(
+        "--model_info_by_idx",
+        type=str,
+        default=None,
+        help="model info using query format: <model_type>/<model_query_idx>",
+    )
+
+    parser.add_argument(
+        "--model_info_by_name",
+        type=str,
+        default=None,
+        help="model info using query format: <model_type>/<language>/<dataset>/<model_name>",
+    )
+
     parser.add_argument("--text", type=str, default=None, help="Text to generate speech.")
 
     # Args for running pre-trained TTS models.
@@ -171,7 +198,11 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="wav file(s) to condition a multi-speaker TTS model with a Speaker Encoder. You can give multiple file paths. The d_vectors is computed as their average.",
         default=None,
     )
-    parser.add_argument("--gst_style", help="Wav path file for GST stylereference.", default=None)
+    parser.add_argument("--gst_style", help="Wav path file for GST style reference.", default=None)
+    parser.add_argument(
+        "--capacitron_style_wav", type=str, help="Wav path file for Capacitron prosody reference.", default=None
+    )
+    parser.add_argument("--capacitron_style_text", type=str, help="Transcription of the reference.", default=None)
     parser.add_argument(
         "--list_speaker_idxs",
         help="List available speaker ids for the defined multi-speaker model.",
@@ -195,11 +226,31 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="If true save raw spectogram for further (vocoder) processing in out_path.",
         default=False,
     )
-
+    parser.add_argument(
+        "--reference_wav",
+        type=str,
+        help="Reference wav file to convert in the voice of the speaker_idx or speaker_wav",
+        default=None,
+    )
+    parser.add_argument(
+        "--reference_speaker_idx",
+        type=str,
+        help="speaker ID of the reference_wav speaker (If not provided the embedding will be computed using the Speaker Encoder).",
+        default=None,
+    )
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
-    if args.text is None and not args.list_models and not args.list_speaker_idxs and not args.list_language_idxs:
+    check_args = [
+        args.text,
+        args.list_models,
+        args.list_speaker_idxs,
+        args.list_language_idxs,
+        args.reference_wav,
+        args.model_info_by_idx,
+        args.model_info_by_name,
+    ]
+    if not any(check_args):
         parser.parse_args(["-h"])
 
     # load model manager
@@ -215,12 +266,23 @@ If you don't specify any models, then it uses LJSpeech based English model.
     encoder_path = None
     encoder_config_path = None
 
-    # CASE1: list pre-trained TTS models
+    # CASE1 #list : list pre-trained TTS models
     if args.list_models:
         manager.list_models()
         sys.exit()
 
-    # CASE2: load pre-trained model paths
+    # CASE2 #info : model info of pre-trained TTS models
+    if args.model_info_by_idx:
+        model_query = args.model_info_by_idx
+        manager.model_info_by_idx(model_query)
+        sys.exit()
+
+    if args.model_info_by_name:
+        model_query_full_name = args.model_info_by_name
+        manager.model_info_by_full_name(model_query_full_name)
+        sys.exit()
+
+    # CASE3: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
         args.vocoder_name = model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
@@ -228,7 +290,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.vocoder_name is not None and not args.vocoder_path:
         vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
-    # CASE3: set custom model paths
+    # CASE4: set custom model paths
     if args.model_path is not None:
         model_path = args.model_path
         config_path = args.config_path
@@ -261,7 +323,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         print(
             " > Available speaker ids: (Set --speaker_idx flag to one of these values to use the multi-speaker model."
         )
-        print(synthesizer.tts_model.speaker_manager.speaker_ids)
+        print(synthesizer.tts_model.speaker_manager.ids)
         return
 
     # query langauge ids of a multi-lingual model.
@@ -269,7 +331,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         print(
             " > Available language ids: (Set --language_idx flag to one of these values to use the multi-lingual model."
         )
-        print(synthesizer.tts_model.language_manager.language_id_mapping)
+        print(synthesizer.tts_model.language_manager.ids)
         return
 
     # check the arguments against a multi-speaker model.
@@ -281,10 +343,20 @@ If you don't specify any models, then it uses LJSpeech based English model.
         return
 
     # RUN THE SYNTHESIS
-    print(" > Text: {}".format(args.text))
+    if args.text:
+        print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(args.text, args.speaker_idx, args.language_idx, args.speaker_wav)
+    wav = synthesizer.tts(
+        args.text,
+        args.speaker_idx,
+        args.language_idx,
+        args.speaker_wav,
+        reference_wav=args.reference_wav,
+        style_wav=args.capacitron_style_wav,
+        style_text=args.capacitron_style_text,
+        reference_speaker_name=args.reference_speaker_idx,
+    )
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))

@@ -36,16 +36,10 @@ ap = AudioProcessor(**config.audio.to_dict())
 eval_samples, train_samples = load_wav_data(config.data_path, config.eval_split_size)
 
 # init model
-model = GAN(config)
+model = GAN(config, ap)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainerArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-    training_assets={"audio_processor": ap},
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 trainer.fit()

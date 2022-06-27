@@ -25,7 +25,7 @@ These masks can be used for different purposes including training a TTS model wi
         """
 Example run:
     CUDA_VISIBLE_DEVICE="0" python TTS/bin/compute_attention_masks.py
-        --model_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/checkpoint_200000.pth.tar
+        --model_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/checkpoint_200000.pth
         --config_path /data/rw/home/Models/ljspeech-dcattn-December-14-2020_11+10AM-9d0e8c7/config.json
         --dataset_metafile metadata.csv
         --data_path /root/LJSpeech-1.1/

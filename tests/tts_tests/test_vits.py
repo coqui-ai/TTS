@@ -7,7 +7,7 @@ from trainer.logging.tensorboard_logger import TensorboardLogger
 
 from tests import assertHasAttr, assertHasNotAttr, get_tests_data_path, get_tests_input_path, get_tests_output_path
 from TTS.config import load_config
-from TTS.speaker_encoder.utils.generic_utils import setup_speaker_encoder_model
+from TTS.encoder.utils.generic_utils import setup_encoder_model
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.models.vits import Vits, VitsArgs, amp_to_db, db_to_amp, load_audio, spec_to_mel, wav_to_mel, wav_to_spec
 from TTS.tts.utils.speakers import SpeakerManager
@@ -79,25 +79,25 @@ class TestVits(unittest.TestCase):
         model = Vits(args)
         self.assertEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, 0)
-        self.assertEqual(model.emb_l, None)
+        assertHasNotAttr(self, model, "emb_l")
 
         args = VitsArgs(language_ids_file=LANG_FILE)
         model = Vits(args)
         self.assertNotEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, 0)
-        self.assertEqual(model.emb_l, None)
+        assertHasNotAttr(self, model, "emb_l")
 
         args = VitsArgs(language_ids_file=LANG_FILE, use_language_embedding=True)
         model = Vits(args)
         self.assertNotEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, args.embedded_language_dim)
-        self.assertNotEqual(model.emb_l, None)
+        assertHasAttr(self, model, "emb_l")
 
         args = VitsArgs(language_ids_file=LANG_FILE, use_language_embedding=True, embedded_language_dim=102)
         model = Vits(args)
         self.assertNotEqual(model.language_manager, None)
         self.assertEqual(model.embedded_language_dim, args.embedded_language_dim)
-        self.assertNotEqual(model.emb_l, None)
+        assertHasAttr(self, model, "emb_l")
 
     def test_get_aux_input(self):
         aux_input = {"speaker_ids": None, "style_wav": None, "d_vectors": None, "language_ids": None}
@@ -122,7 +122,7 @@ class TestVits(unittest.TestCase):
         args = VitsArgs(num_speakers=num_speakers, use_speaker_embedding=True)
         model = Vits(args)
 
-        ref_inp = torch.randn(1, spec_len, 513)
+        ref_inp = torch.randn(1, 513, spec_len)
         ref_inp_len = torch.randint(1, spec_effective_len, (1,))
         ref_spk_id = torch.randint(1, num_speakers, (1,))
         tgt_spk_id = torch.randint(1, num_speakers, (1,))
@@ -242,9 +242,9 @@ class TestVits(unittest.TestCase):
 
         speaker_encoder_config = load_config(SPEAKER_ENCODER_CONFIG)
         speaker_encoder_config.model_params["use_torch_spec"] = True
-        speaker_encoder = setup_speaker_encoder_model(speaker_encoder_config).to(device)
+        speaker_encoder = setup_encoder_model(speaker_encoder_config).to(device)
         speaker_manager = SpeakerManager()
-        speaker_manager.speaker_encoder = speaker_encoder
+        speaker_manager.encoder = speaker_encoder
 
         args = VitsArgs(
             language_ids_file=LANG_FILE,
@@ -393,6 +393,76 @@ class TestVits(unittest.TestCase):
         with torch.autograd.set_detect_anomaly(True):
 
             config = VitsConfig(model_args=VitsArgs(num_chars=32, spec_segment_size=10))
+            model = Vits(config).to(device)
+            model.train()
+            # model to train
+            optimizers = model.get_optimizer()
+            criterions = model.get_criterion()
+            criterions = [criterions[0].to(device), criterions[1].to(device)]
+            # reference model to compare model weights
+            model_ref = Vits(config).to(device)
+            # # pass the state to ref model
+            model_ref.load_state_dict(copy.deepcopy(model.state_dict()))
+            count = 0
+            for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+                assert (param - param_ref).sum() == 0, param
+                count = count + 1
+            for _ in range(5):
+                batch = self._create_batch(config, 2)
+                for idx in [0, 1]:
+                    outputs, loss_dict = model.train_step(batch, criterions, idx)
+                    self.assertFalse(not outputs)
+                    self.assertFalse(not loss_dict)
+                    loss_dict["loss"].backward()
+                    optimizers[idx].step()
+                    optimizers[idx].zero_grad()
+
+        # check parameter changes
+        self._check_parameter_changes(model, model_ref)
+
+    def test_train_step_upsampling(self):
+        # setup the model
+        with torch.autograd.set_detect_anomaly(True):
+            model_args = VitsArgs(
+                num_chars=32,
+                spec_segment_size=10,
+                encoder_sample_rate=11025,
+                interpolate_z=False,
+                upsample_rates_decoder=[8, 8, 4, 2],
+            )
+            config = VitsConfig(model_args=model_args)
+            model = Vits(config).to(device)
+            model.train()
+            # model to train
+            optimizers = model.get_optimizer()
+            criterions = model.get_criterion()
+            criterions = [criterions[0].to(device), criterions[1].to(device)]
+            # reference model to compare model weights
+            model_ref = Vits(config).to(device)
+            # # pass the state to ref model
+            model_ref.load_state_dict(copy.deepcopy(model.state_dict()))
+            count = 0
+            for param, param_ref in zip(model.parameters(), model_ref.parameters()):
+                assert (param - param_ref).sum() == 0, param
+                count = count + 1
+            for _ in range(5):
+                batch = self._create_batch(config, 2)
+                for idx in [0, 1]:
+                    outputs, loss_dict = model.train_step(batch, criterions, idx)
+                    self.assertFalse(not outputs)
+                    self.assertFalse(not loss_dict)
+                    loss_dict["loss"].backward()
+                    optimizers[idx].step()
+                    optimizers[idx].zero_grad()
+
+        # check parameter changes
+        self._check_parameter_changes(model, model_ref)
+
+    def test_train_step_upsampling_interpolation(self):
+        # setup the model
+        with torch.autograd.set_detect_anomaly(True):
+            model_args = VitsArgs(num_chars=32, spec_segment_size=10, encoder_sample_rate=11025, interpolate_z=True)
+            config = VitsConfig(model_args=model_args)
             model = Vits(config).to(device)
             model.train()
             # model to train

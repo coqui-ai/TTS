@@ -44,7 +44,7 @@ Run your own TTS model (Using Griffin-Lim Vocoder)
 
 ```bash
 tts --text "Text for TTS" \
-    --model_path path/to/model.pth.tar \
+    --model_path path/to/model.pth \
     --config_path path/to/config.json \
     --out_path folder/to/save/output.wav
 ```
@@ -54,9 +54,9 @@ Run your own TTS and Vocoder models
 ```bash
 tts --text "Text for TTS" \
     --config_path path/to/config.json \
-    --model_path path/to/model.pth.tar \
+    --model_path path/to/model.pth \
     --out_path folder/to/save/output.wav \
-    --vocoder_path path/to/vocoder.pth.tar \
+    --vocoder_path path/to/vocoder.pth \
     --vocoder_config_path path/to/vocoder_config.json
 ```
 

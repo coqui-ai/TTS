@@ -2,7 +2,7 @@
 
 1. Decide the model you want to use.
 
-    Each model has a different set of pros and cons that define the run-time efficiency and the voice quality. It is up to you to decide what model servers your needs. Other than referring to the papers, one easy way is to test the 🐸TTS
+    Each model has a different set of pros and cons that define the run-time efficiency and the voice quality. It is up to you to decide what model serves your needs. Other than referring to the papers, one easy way is to test the 🐸TTS
     community models and see how fast and good each of the models. Or you can start a discussion on our communication channels.
 
 2. Understand the configuration, its fields and values.
@@ -33,7 +33,7 @@
     If you like to run a multi-gpu training using DDP back-end,
 
     ```bash
-    $ CUDA_VISIBLE_DEVICES="0, 1, 2" python TTS/bin/distribute.py --script <path_to_your_script>/train_glowtts.py
+    $ CUDA_VISIBLE_DEVICES="0, 1, 2" python -m trainer.distribute --script <path_to_your_script>/train_glowtts.py
     ```
 
     The example above runs a multi-gpu training using GPUs `0, 1, 2`.
@@ -122,7 +122,7 @@
 
     ```bash
     $ tts --text "Text for TTS" \
-          --model_path path/to/checkpoint_x.pth.tar \
+          --model_path path/to/checkpoint_x.pth \
           --config_path path/to/config.json \
           --out_path folder/to/save/output.wav
     ```

@@ -281,6 +281,10 @@ class TacotronLoss(torch.nn.Module):
     def __init__(self, c, ga_sigma=0.4):
         super().__init__()
         self.stopnet_pos_weight = c.stopnet_pos_weight
+        self.use_capacitron_vae = c.use_capacitron_vae
+        if self.use_capacitron_vae:
+            self.capacitron_capacity = c.capacitron_vae.capacitron_capacity
+            self.capacitron_vae_loss_alpha = c.capacitron_vae.capacitron_VAE_loss_alpha
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -308,6 +312,9 @@ class TacotronLoss(torch.nn.Module):
         # pylint: disable=not-callable
         self.criterion_st = BCELossMasked(pos_weight=torch.tensor(self.stopnet_pos_weight)) if c.stopnet else None
 
+        # For dev pruposes only
+        self.criterion_capacitron_reconstruction_loss = nn.L1Loss(reduction="sum")
+
     def forward(
         self,
         postnet_output,
@@ -317,6 +324,7 @@ class TacotronLoss(torch.nn.Module):
         stopnet_output,
         stopnet_target,
         stop_target_length,
+        capacitron_vae_outputs,
         output_lens,
         decoder_b_output,
         alignments,
@@ -347,6 +355,55 @@ class TacotronLoss(torch.nn.Module):
         loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
         return_dict["decoder_loss"] = decoder_loss
         return_dict["postnet_loss"] = postnet_loss
+
+        if self.use_capacitron_vae:
+            # extract capacitron vae infos
+            posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
+
+            # KL divergence term between the posterior and the prior
+            kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
+
+            # Limit the mutual information between the data and latent space by the variational capacity limit
+            kl_capacity = kl_term - self.capacitron_capacity
+
+            # pass beta through softplus to keep it positive
+            beta = torch.nn.functional.softplus(beta)[0]
+
+            # This is the term going to the main ADAM optimiser, we detach beta because
+            # beta is optimised by a separate, SGD optimiser below
+            capacitron_vae_loss = beta.detach() * kl_capacity
+
+            # normalize the capacitron_vae_loss as in L1Loss or MSELoss.
+            # After this, both the standard loss and capacitron_vae_loss will be in the same scale.
+            # For this reason we don't need use L1Loss and MSELoss in "sum" reduction mode.
+            # Note: the batch is not considered because the L1Loss was calculated in "sum" mode
+            # divided by the batch size, So not dividing the capacitron_vae_loss by B is legitimate.
+
+            # get B T D dimension from input
+            B, T, D = mel_input.size()
+            # normalize
+            if self.config.loss_masking:
+                # if mask loss get T using the mask
+                T = output_lens.sum() / B
+
+            # Only for dev purposes to be able to compare the reconstruction loss with the values in the
+            # original Capacitron paper
+            return_dict["capaciton_reconstruction_loss"] = (
+                self.criterion_capacitron_reconstruction_loss(decoder_output, mel_input) / decoder_output.size(0)
+            ) + kl_capacity
+
+            capacitron_vae_loss = capacitron_vae_loss / (T * D)
+            capacitron_vae_loss = capacitron_vae_loss * self.capacitron_vae_loss_alpha
+
+            # This is the term to purely optimise beta and to pass into the SGD optimizer
+            beta_loss = torch.negative(beta) * kl_capacity.detach()
+
+            loss += capacitron_vae_loss
+
+            return_dict["capacitron_vae_loss"] = capacitron_vae_loss
+            return_dict["capacitron_vae_beta_loss"] = beta_loss
+            return_dict["capacitron_vae_kl_term"] = kl_term
+            return_dict["capacitron_beta"] = beta
 
         stop_loss = (
             self.criterion_st(stopnet_output, stopnet_target, stop_target_length)

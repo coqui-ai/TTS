@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython", "numpy==1.19.5"]
+requires = ["setuptools", "wheel", "cython==0.29.28", "numpy==1.21.6"]
 
 [flake8]
 max-line-length=120
 
 [tool.black]
 line-length = 120
-target-version = ['py38']
+target-version = ['py39']
 exclude = '''
 
 (
