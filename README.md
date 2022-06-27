@@ -149,20 +149,32 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
 - Run TTS with default models:
 
     ```
-    $ tts --text "Text for TTS"
+    $ tts --text "Text for TTS" --out_path output/path/speech.wav
     ```
 
 - Run a TTS model with its default vocoder model:
 
     ```
-    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>
+    $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
+    ```
+For example:
+
+    ```
+    $  tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --out_path output/path/speech.wav
     ```
 
 - Run with specific TTS and vocoder models from the list:
 
     ```
-    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
+    $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --vocoder_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
     ```
+
+For example:
+
+    ```
+    $  tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --vocoder_name "vocoder_models/en/ljspeech/univnet" --out_path output/path/speech.wav
+    ```
+
 
 - Run your own TTS model (Using Griffin-Lim Vocoder):
 
