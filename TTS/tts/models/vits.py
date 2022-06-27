@@ -1031,7 +1031,9 @@ class Vits(BaseTTS):
 
     @torch.no_grad()
     def inference(
-        self, x, aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "durations": None}
+        self,
+        x,
+        aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "durations": None},
     ):  # pylint: disable=dangerous-default-value
         """
         Note:
@@ -1078,12 +1080,11 @@ class Vits(BaseTTS):
             else:
                 logw = self.duration_predictor(
                     x, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
-            )
+                )
             w = torch.exp(logw) * x_mask * self.length_scale
         else:
             assert durations.shape[-1] == x.shape[-1]
             w = durations.unsqueeze(0)
-            print(w)
 
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
