@@ -36,6 +36,7 @@ class TTSDataset(Dataset):
         phoneme_language: str = "en-us",
         enable_eos_bos: bool = False,
         speaker_id_mapping: Dict = None,
+        style_id_mapping: Dict = None,
         d_vector_mapping: Dict = None,
         language_id_mapping: Dict = None,
         use_noise_augment: bool = False,
@@ -94,6 +95,9 @@ class TTSDataset(Dataset):
 
             speaker_id_mapping (dict): Mapping of speaker names to IDs used to compute embedding vectors by the
                 embedding layer. Defaults to None.
+            
+            style_id_mapping (dict): Mapping of style names to IDs used to compute embedding vectors by the
+                embedding layer. Defaults to None.
 
             d_vector_mapping (dict): Mapping of wav files to computed d-vectors. Defaults to None.
 
@@ -122,6 +126,7 @@ class TTSDataset(Dataset):
         self.phoneme_language = phoneme_language
         self.enable_eos_bos = enable_eos_bos
         self.speaker_id_mapping = speaker_id_mapping
+        self.style_id_mapping = style_id_mapping
         self.d_vector_mapping = d_vector_mapping
         self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
@@ -201,10 +206,15 @@ class TTSDataset(Dataset):
         item = self.items[idx]
 
         if len(item) == 5:
-            text, wav_file, speaker_name, language_name, attn_file = item
+            text, wav_file, speaker_name, language_name, style_target = item
+            attn = None
+        elif len(item) == 6:
+            text, wav_file, speaker_name, language_name, style_target, attn_file = item
         else:
             text, wav_file, speaker_name, language_name = item
             attn = None
+            style_target = None
+
         raw_text = text
 
         wav = np.asarray(self.load_wav(wav_file), dtype=np.float32)
@@ -265,6 +275,7 @@ class TTSDataset(Dataset):
             "speaker_name": speaker_name,
             "language_name": language_name,
             "wav_file_name": os.path.basename(wav_file),
+            "style_target": style_target
         }
         return sample
 
@@ -427,6 +438,14 @@ class TTSDataset(Dataset):
                 speaker_ids = [self.speaker_id_mapping[sn] for sn in batch["speaker_name"]]
             else:
                 speaker_ids = None
+
+
+            # get numerical style ids from speaker names
+            if self.speaker_id_mapping:
+                style_ids = [self.style_id_mapping[st] for st in batch["style_target"]]
+            else:
+                style_ids = None
+
             # compute features
             mel = [self.ap.melspectrogram(w).astype("float32") for w in batch["wav"]]
 
@@ -517,6 +536,7 @@ class TTSDataset(Dataset):
                 attns = torch.FloatTensor(attns).unsqueeze(1)
             else:
                 attns = None
+
             # TODO: return dictionary
             return {
                 "text": text,
@@ -534,6 +554,8 @@ class TTSDataset(Dataset):
                 "raw_text": batch["raw_text"],
                 "pitch": pitch,
                 "language_ids": language_ids,
+                "style_ids": style_ids,
+                "style_target": batch["style_target"]
             }
 
         raise TypeError(
