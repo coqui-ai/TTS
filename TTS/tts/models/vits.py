@@ -312,6 +312,7 @@ class VitsDataset(TTSDataset):
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
+            "emotion_name": item["emotion_name"],
             "pitch": f0,
             "alignments": alignments,
 
@@ -398,6 +399,7 @@ class VitsDataset(TTSDataset):
             "pitch": pitch,
             "speaker_names": batch["speaker_name"],
             "language_names": batch["language_name"],
+            "emotion_names": batch["emotion_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
             "alignments": padded_alignments,
@@ -1395,7 +1397,6 @@ class Vits(BaseTTS):
         # speaker embedding
         if self.args.use_speaker_embedding and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
-
         # emotion embedding
         if self.args.use_emotion_embedding and eid is not None and eg is None:
             eg = self.emb_emotion(eid).unsqueeze(-1)  # [b, h, 1]
@@ -1726,7 +1727,8 @@ class Vits(BaseTTS):
 
         attn_mask = x_mask * y_mask.transpose(1, 2)  # [B, 1, T_enc] * [B, T_dec, 1]
         attn = generate_path(w_ceil.squeeze(1), attn_mask.squeeze(1).transpose(1, 2))
-
+        
+        pred_avg_pitch_emb = None
         if self.args.use_pitch:
             _, _, pred_avg_pitch_emb = self.forward_pitch_predictor(x, x_lengths, g_pp=g, pitch_transform=pitch_transform)
             x = x + pred_avg_pitch_emb
@@ -2247,6 +2249,9 @@ class Vits(BaseTTS):
             emotion_names = [emotion_mapping[w]["name"] for w in batch["audio_files"]]
             emotion_ids = [self.emotion_manager.ids[en] for en in emotion_names]
             emotion_ids = torch.LongTensor(emotion_ids)
+
+        if self.emotion_manager is not None and self.emotion_manager.ids and self.args.use_emotion_embedding:
+            emotion_ids = torch.LongTensor([self.emotion_manager.ids[en] for en in batch["emotion_names"]])
 
         batch["language_ids"] = language_ids
         batch["d_vectors"] = d_vectors
