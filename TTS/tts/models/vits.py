@@ -786,7 +786,7 @@ class Vits(BaseTTS):
             print(" > Text Encoder was reinit.")
 
     def get_aux_input(self, aux_input: Dict):
-        sid, g, lid = self._set_cond_input(aux_input)
+        sid, g, lid, _ = self._set_cond_input(aux_input)
         return {"speaker_ids": sid, "style_wav": None, "d_vectors": g, "language_ids": lid}
 
     def _freeze_layers(self):
