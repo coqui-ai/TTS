@@ -412,6 +412,7 @@ class StyleforwardTTS(BaseTTS):
         x_mask: torch.IntTensor,
         pitch: torch.FloatTensor = None,
         dr: torch.IntTensor = None,
+        pitch_control: torch.FloatTensor = None,
     ) -> Tuple[torch.FloatTensor, torch.FloatTensor]:
         """Pitch predictor forward pass.
 
@@ -437,6 +438,9 @@ class StyleforwardTTS(BaseTTS):
         o_pitch = self.pitch_predictor(o_en, x_mask)
         if pitch is not None:
             avg_pitch = average_over_durations(pitch, dr)
+            # Put the control over phonemes      
+            if(pitch_control is not None):
+                avg_pitch = avg_pitch*pitch_control
             o_pitch_emb = self.pitch_emb(avg_pitch)
             return o_pitch_emb, o_pitch, avg_pitch
         o_pitch_emb = self.pitch_emb(o_pitch)
@@ -588,7 +592,7 @@ class StyleforwardTTS(BaseTTS):
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, 'style_mel': None}):  # pylint: disable=unused-argument
+    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, 'style_mel': None, 'pitch_control': None}):  # pylint: disable=unused-argument
         """Model's inference pass.
 
         Args:
@@ -621,7 +625,7 @@ class StyleforwardTTS(BaseTTS):
         # pitch predictor pass
         o_pitch = None
         if self.args.use_pitch:
-            o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask)
+            o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, aux_input['pitch_control'])
             o_en = o_en + o_pitch_emb
         # decoder pass
         o_de, attn = self._forward_decoder(o_en, o_dr, x_mask, y_lengths, g=None)

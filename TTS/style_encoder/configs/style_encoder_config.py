@@ -28,6 +28,7 @@ class StyleEncoderConfig(Coqpit):
     num_mel: int = 80
     style_embedding_dim: int = 128
     agg_type: str = "concat" # Can be concat or sum
+    agg_norm: bool = False # If agg_type == sum, you can rather than normalizing or not
     use_proj_linear: bool = False # Whether use linear projection to decoder dim or not (specifcally useful for sum agg_style)
     proj_dim: int = 512 # Projection dim, often the encoder output (512 is the tacotron2 default encoder output)
     start_loss_at: int = 0 # Iteration that the style loss should start propagate 

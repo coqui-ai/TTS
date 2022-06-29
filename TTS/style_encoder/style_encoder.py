@@ -262,7 +262,9 @@ class StyleEncoder(nn.Module):
     @classmethod
     def _add_speaker_embedding(self, outputs, embedded_speakers):
         # Fixed to the forwardtts, now, for adding we normalize by l2 norm
-        # embedded_speakers_ = nn.functional.normalize(embedded_speakers).expand(outputs.size(0), outputs.size(1), -1)
-        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
+        if(self.agg_norm == True):
+            embedded_speakers_ = nn.functional.normalize(embedded_speakers).expand(outputs.size(0), outputs.size(1), -1)
+        else:
+            embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = outputs + embedded_speakers_
         return outputs
