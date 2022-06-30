@@ -83,9 +83,9 @@ jobs:
       - name: Setup PyPI config
         run: |
           cat << EOF > ~/.pypirc
-          [pypi]
-          username = __token__
-          password = ${{ secrets.TEST_PYPI_TOKEN }}
+          [testpypi]
+          username=__token__
+          password=${{ secrets.TEST_PYPI_TOKEN }}
           EOF
       - uses: actions/setup-python@v2
         with:
