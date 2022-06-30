@@ -84,7 +84,7 @@ jobs:
         run: |
           cat << EOF > ~/.pypirc
           [pypi]
-          username=__token__
+          username=julian78w
           password=${{ secrets.TEST_PYPI_TOKEN }}
           EOF
       - uses: actions/setup-python@v2
