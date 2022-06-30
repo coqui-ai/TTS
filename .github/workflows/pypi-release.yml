@@ -1,6 +1,5 @@
 name: Publish Python 🐍 distributions 📦 to PyPI
 on:
-  pull_request:
   release:
     types: [published]
 defaults:
@@ -10,7 +9,15 @@ defaults:
 jobs:
   build-sdist:
     runs-on: ubuntu-20.04
-    steps: #Add back version test
+    steps:
+      - name: Verify tag matches version
+        run: |
+          set -ex
+          version=$(cat TTS/VERSION)
+          tag="${GITHUB_REF/refs\/tags\/}"
+          if [[ "v$version" != "$tag" ]]; then
+            exit 1
+          fi
       - uses: actions/checkout@v2
       - name: Verify tag matches version
         run: |
@@ -83,9 +90,9 @@ jobs:
       - name: Setup PyPI config
         run: |
           cat << EOF > ~/.pypirc
-          [testpypi]
+          [pypi]
           username=__token__
-          password=${{ secrets.TEST_PYPI_TOKEN }}
+          password=${{ secrets.PYPI_TOKEN }}
           EOF
       - uses: actions/setup-python@v2
         with:
@@ -93,4 +100,4 @@ jobs:
       - run: |
           python -m pip install twine
       - run: |
-          twine upload --repository testpypi dist/*
+          twine upload --repository pypi dist/*
