@@ -80,3 +80,17 @@ jobs:
           path: "dist/"
       - run: |
           ls -lh dist/
+      - name: Setup PyPI config
+        run: |
+          cat << EOF > ~/.pypirc
+          [pypi]
+          username=__token__
+          password=${{ secrets.TEST_PYPI_TOKEN }}
+          EOF
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - run: |
+          python -m pip install twine
+      - run: |
+          twine upload --repository testpypi dist/*
