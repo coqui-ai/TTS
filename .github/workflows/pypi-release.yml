@@ -10,6 +10,7 @@ jobs:
   build-sdist:
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@v2
       - name: Verify tag matches version
         run: |
           set -ex
@@ -18,12 +19,6 @@ jobs:
           if [[ "v$version" != "$tag" ]]; then
             exit 1
           fi
-      - uses: actions/checkout@v2
-      - name: Verify tag matches version
-        run: |
-          set -ex
-          version=$(cat TTS/VERSION)
-          tag="${GITHUB_REF/refs\/tags\/}"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.8
