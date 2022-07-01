@@ -12,7 +12,7 @@ from .english.number_norm import normalize_numbers as en_normalize_numbers
 from .english.time_norm import expand_time_english
 from .french.abbreviations import abbreviations_fr
 
-from TTS.tts.utils.text.korean.korean import tokenize
+from TTS.tts.utils.text.korean.korean import normalize
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r"\s+")
 
@@ -138,8 +138,7 @@ def chinese_mandarin_cleaners(text: str) -> str:
 
 def korean_cleaners(text):
     """Pipeline for Korean text, including number and abbreviation expansion."""
-    text = tokenize(text)
-    #print(text)
+    text = normalize(text)
     return text
 
 def multilingual_cleaners(text):
@@ -153,3 +152,6 @@ def multilingual_cleaners(text):
 
 
 
+if __name__ == "__main__":
+    text = "これは、電話をかけるための私の日本語の例のテキストです。"
+    print(normalize(text))

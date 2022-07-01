@@ -461,8 +461,43 @@ class Graphemes(BaseCharacters):
         return characters, new_config
 
 
+class Hangeul(BaseCharacters):
+    def __init__(
+        self,
+        characters: str = 'ᄀᄁᄂᄃᄄᄅᄆᄇᄈᄉᄊᄋᄌᄍᄎᄏᄐᄑ하ᅢᅣᅤᅥᅦᅧᅨᅩᅪᅫᅬᅭᅮᅯᅰᅱᅲᅳᅴᅵᆨᆩᆪᆫᆬᆭᆮᆯᆰᆱᆲᆳᆴᆵᆶᆷᆸᆹᆺᆻᆼᆽᆾᆿᇀᇁᇂ',
+        punctuations: str = _punctuations,
+        pad: str = _pad,
+        eos: str = _eos,
+        bos: str = _bos,
+        blank: str = _blank,
+        is_unique: bool = False,
+        is_sorted: bool = True,
+    ) -> None:
+        super().__init__(characters, punctuations, pad, eos, bos, blank, is_unique, is_sorted)
+
+    @staticmethod
+    def init_from_config(config: "Coqpit"):
+        """
+        Init a Graphemes object from a model config
+
+        If characters are not defined in the config, it will be set to the default characters and the config
+        will be updated.
+        """
+        characters = Hangeul()
+        new_config = replace(config, characters=characters.to_config())
+        return characters, new_config
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     gr = Graphemes()
     ph = IPAPhonemes()
+    hg = Hangeul()
     gr.print_log()
     ph.print_log()
+    hg.print_log()

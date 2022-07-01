@@ -61,12 +61,12 @@ class JA_JP_Phonemizer(BasePhonemizer):
         return True
 
 
-# if __name__ == "__main__":
-#     text = "これは、電話をかけるための私の日本語の例のテキストです。"
-#     e = JA_JP_Phonemizer()
-#     print(e.supported_languages())
-#     print(e.version())
-#     print(e.language)
-#     print(e.name())
-#     print(e.is_available())
-#     print("`" + e.phonemize(text) + "`")
+if __name__ == "__main__":
+     text = "これは、電話をかけるための私の日本語の例のテキストです。"
+     e = JA_JP_Phonemizer()
+     print(e.supported_languages())
+     print(e.version())
+     print(e.language)
+     print(e.name())
+     print(e.is_available())
+     print("`" + e.phonemize(text) + "`")

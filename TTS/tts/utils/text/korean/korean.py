@@ -23,7 +23,7 @@ import json
 from jamo import hangul_to_jamo, h2j, j2h
 from jamo.jamo import _jamo_char_to_hcj
 
-from .ko_dictionary import english_dictionary, etc_dictionary
+from TTS.tts.utils.text.korean.ko_dictionary import english_dictionary, etc_dictionary
 
 PAD = '_'
 EOS = '~'
@@ -168,9 +168,9 @@ def tokenize(text, as_id=False):
     tokens = list(hangul_to_jamo(text))  # '존경하는'  --> ['ᄌ', 'ᅩ', 'ᆫ', 'ᄀ', 'ᅧ', 'ᆼ', 'ᄒ', 'ᅡ', 'ᄂ', 'ᅳ', 'ᆫ', '~']
 
     if as_id:
-        return [char_to_id[token] for token in tokens] + [char_to_id[EOS]]
+        return [char_to_id[token] for token in tokens]
     else:
-        return [token for token in tokens] + [EOS]
+        return [token for token in tokens]
 
 
 def tokenizer_fn(iterator):
@@ -346,5 +346,6 @@ if __name__ == "__main__":
     def test_normalize(text):
         print(text)
         print(normalize(text))
+        print(tokenize(text))
         print("=" * 30)
-
+    test_normalize("나는? ! 배%2 고프다")
