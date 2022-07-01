@@ -46,9 +46,9 @@ class EnhancerDataset(Dataset):
         if self.config.gt_augment:
             self.gt_augment = Compose(
                 [
-                    Gain(p=1, max_gain_in_db=6),
+                    Gain(p=1, max_gain_in_db=+2, min_gain_in_db=-2),
                     Resample(
-                        p=0.5, min_sample_rate=int(0.8 * self.target_sr), max_sample_rate=int(1.2 * self.target_sr)
+                        p=1, min_sample_rate=int(0.9 * self.target_sr), max_sample_rate=int(1.1 * self.target_sr)
                     ),
                 ]
             )
