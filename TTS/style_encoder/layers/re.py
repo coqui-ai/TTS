@@ -11,7 +11,7 @@ class ReferenceEncoder(nn.Module):
     outputs: [batch_size, embedding_dim]
     """
 
-    def __init__(self, num_mel, embedding_dim):
+    def __init__(self, num_mel, embedding_dim, use_nonlinear_proj = False):
 
         super().__init__()
         self.num_mel = num_mel
@@ -30,6 +30,15 @@ class ReferenceEncoder(nn.Module):
         self.recurrence = nn.GRU(
             input_size=filters[-1] * post_conv_height, hidden_size=embedding_dim, batch_first=True
         )
+
+        self.dropout = nn.Dropout(p=0.5)
+        
+        self.use_nonlinear_proj = use_nonlinear_proj
+
+        if(self.use_nonlinear_proj):
+            self.proj = nn.Linear(embedding_dim, embedding_dim)
+            nn.init.xavier_normal_(self.proj.weight) # Good init for projection
+            # self.proj.bias.data.zero_() # Not random bias to "move" z
 
     def forward(self, inputs):
         batch_size = inputs.size(0)
@@ -51,6 +60,10 @@ class ReferenceEncoder(nn.Module):
         _, out = self.recurrence(x)
         # out: 3D tensor [seq_len==1, batch_size, encoding_size=128]
 
+        if(self.use_nonlinear_proj):
+            out = torch.tanh(self.proj(out))
+            out = self.dropout(out)
+            
         return out.squeeze(0)
 
     @staticmethod

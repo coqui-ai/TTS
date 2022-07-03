@@ -19,6 +19,8 @@ class StyleEncoder(nn.Module):
             self.nl_proj = nn.Linear(self.style_embedding_dim, self.style_embedding_dim)
             nn.init.xavier_normal_(self.nl_proj.weight) # Good init for projection
 
+        self.dropout = nn.Dropout(p=0.5)
+
         if(self.use_proj_linear):
             self.proj = nn.Linear(self.style_embedding_dim, self.proj_dim)
             nn.init.xavier_normal_(self.proj.weight) # Good init for projection
@@ -119,7 +121,9 @@ class StyleEncoder(nn.Module):
                 gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
             
             if(self.use_nonlinear_proj):
-                gst_outputs = self.nl_proj(gst_outputs)
+                # gst_outputs = self.nl_proj(gst_outputs)
+                gst_outputs = torch.tanh(self.nl_proj(gst_outputs))
+                gst_outputs = self.dropout(gst_outputs)
                
             if(self.use_proj_linear):
                 gst_outputs = self.proj(gst_outputs)
@@ -142,7 +146,8 @@ class StyleEncoder(nn.Module):
                 gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
             
             if(self.use_nonlinear_proj):
-                gst_outputs = self.nl_proj(gst_outputs)
+                gst_outputs = torch.tanh(self.nl_proj(gst_outputs))
+                gst_outputs = self.dropout(gst_outputs)
                
             if(self.use_proj_linear):
                 gst_outputs = self.proj(gst_outputs)
@@ -157,8 +162,10 @@ class StyleEncoder(nn.Module):
             diff_output = self.layer.forward(ref_mels)
 
             if(self.use_nonlinear_proj):
-                diff_output = self.nl_proj(diff_output)
-               
+                # diff_output = self.nl_proj(diff_output)
+                diff_output = torch.tanh(self.nl_proj(diff_output))
+                diff_output = self.dropout(diff_output)
+
             if(self.use_proj_linear):
                 diff_output = self.proj(diff_output)
 
@@ -171,7 +178,8 @@ class StyleEncoder(nn.Module):
             diff_output = self.layer.inference(ref_mels, infer_from)
             
             if(self.use_nonlinear_proj):
-                diff_output = self.nl_proj(diff_output)
+                diff_output = torch.tanh(self.nl_proj(diff_output))
+                diff_output = self.dropout(diff_output)
                
             if(self.use_proj_linear):
                 diff_output = self.proj(diff_output)
@@ -186,8 +194,10 @@ class StyleEncoder(nn.Module):
         vae_output = self.layer.forward(ref_mels)
 
         if(self.use_nonlinear_proj):
-            vae_output = self.nl_proj(vae_output)
-            
+            # vae_output = self.nl_proj(vae_output)
+            vae_output = torch.tanh(self.nl_proj(vae_output))
+            vae_output = self.dropout(vae_output)
+
         if(self.use_proj_linear):
             vae_output = self.proj(vae_output)
 
@@ -206,7 +216,8 @@ class StyleEncoder(nn.Module):
             vae_output = self.layer.forward(ref_mels)
 
             if(self.use_nonlinear_proj):
-                vae_output = self.nl_proj(vae_output)
+                vae_output = torch.tanh(self.nl_proj(vae_output))
+                vae_output = self.dropout(vae_output)
                 
             if(self.use_proj_linear):
                 vae_output = self.proj(vae_output)
@@ -220,8 +231,10 @@ class StyleEncoder(nn.Module):
         vaeflow_output = self.layer.forward(ref_mels)
 
         if(self.use_nonlinear_proj):
-            vaeflow_output = self.nl_proj(vaeflow_output)
-            
+            # vaeflow_output = self.nl_proj(vaeflow_output)
+            vaeflow_output = torch.tanh(self.nl_proj(vaeflow_output))
+            vaeflow_output = self.dropout(vaeflow_output)
+
         if(self.use_proj_linear):
             vaeflow_output = self.proj(vaeflow_output)
 
@@ -240,7 +253,8 @@ class StyleEncoder(nn.Module):
             vaeflow_output = self.layer.forward(ref_mels)
 
             if(self.use_nonlinear_proj):
-                vaeflow_output = self.nl_proj(vaeflow_output)
+                vaeflow_output = torch.tanh(self.nl_proj(vaeflow_output))
+                vaeflow_output = self.dropout(vaeflow_output)
                 
             if(self.use_proj_linear):
                 vaeflow_output = self.proj(vaeflow_output)
