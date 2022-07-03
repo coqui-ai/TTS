@@ -15,7 +15,7 @@ class StyleEncoder(nn.Module):
         for key in config:
             setattr(self, key, config[key])
             
-        print(self.agg_norm)
+        # print(self.agg_norm)
 
         if(self.use_nonlinear_proj):
             self.nl_proj = nn.Linear(self.style_embedding_dim, self.style_embedding_dim)
