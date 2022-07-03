@@ -269,13 +269,13 @@ class StyleEncoder(nn.Module):
 
     # For this two below, remember if B is batch size, L the sequence length, E is the embedding dim and D the style embed dim
     # for tacotron2 the encoder outputs comes [B,L,E] and faspitch comes [B,E,L]
-    @classmethod
+    # @classmethod
     def _concat_embedding(self, outputs, embedded_speakers):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = torch.cat([outputs, embedded_speakers_], dim=-1)
         return outputs
 
-    @classmethod
+    # @classmethod
     def _add_speaker_embedding(self, outputs, embedded_speakers):
         # Fixed to the forwardtts, now, for adding we normalize by l2 norm
         if(self.agg_norm == True):
