@@ -86,7 +86,7 @@ def main():
     # init the model from config
     model = setup_model(config, speaker_manager, language_manager)
 
-    # init the trainer and 🚀
+    # init the trainer and 
     trainer = Trainer(
         train_args,
         config,
