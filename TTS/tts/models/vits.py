@@ -1,5 +1,6 @@
 import math
 import os
+import traceback
 import numpy as np
 import pyworld as pw
 from dataclasses import dataclass, field, replace
@@ -312,7 +313,7 @@ class VitsDataset(TTSDataset):
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
-            "emotion_name": item["emotion_name"],
+            "emotion_name": item["emotion_name"] if "emotion_name" in item else None,
             "pitch": f0,
             "alignments": alignments,
 
@@ -1857,7 +1858,6 @@ class Vits(BaseTTS):
         Returns:
             Tuple[Dict, Dict]: Model ouputs and computed losses.
         """
-
         self._freeze_layers()
 
         spec_lens = batch["spec_lens"]
@@ -2163,24 +2163,29 @@ class Vits(BaseTTS):
         test_sentences = self.config.test_sentences
         for idx, s_info in enumerate(test_sentences):
             aux_inputs = self.get_aux_input_from_test_sentences(s_info)
-            wav, alignment, _, _ = synthesis(
-                self,
-                aux_inputs["text"],
-                self.config,
-                "cuda" in str(next(self.parameters()).device),
-                speaker_id=aux_inputs["speaker_id"],
-                d_vector=aux_inputs["d_vector"],
-                style_wav=aux_inputs["style_wav"],
-                language_id=aux_inputs["language_id"],
-                emotion_embedding=aux_inputs["emotion_embedding"],
-                emotion_id=aux_inputs["emotion_ids"],
-                style_speaker_id=aux_inputs["style_speaker_id"],
-                style_speaker_d_vector=aux_inputs["style_speaker_d_vector"],
-                use_griffin_lim=True,
-                do_trim_silence=False,
-            ).values()
-            test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            try:
+                wav, alignment, _, _ = synthesis(
+                    self,
+                    aux_inputs["text"],
+                    self.config,
+                    "cuda" in str(next(self.parameters()).device),
+                    speaker_id=aux_inputs["speaker_id"],
+                    d_vector=aux_inputs["d_vector"],
+                    style_wav=aux_inputs["style_wav"],
+                    language_id=aux_inputs["language_id"],
+                    emotion_embedding=aux_inputs["emotion_embedding"],
+                    emotion_id=aux_inputs["emotion_ids"],
+                    style_speaker_id=aux_inputs["style_speaker_id"],
+                    style_speaker_d_vector=aux_inputs["style_speaker_d_vector"],
+                    use_griffin_lim=True,
+                    do_trim_silence=False,
+                ).values()
+                test_audios["{}-audio".format(idx)] = wav
+                test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            except:
+                print("Error during the synthesis of the sentence:", aux_inputs)
+                traceback.print_exc()
+
         return {"figures": test_figures, "audios": test_audios}
 
     def test_log(

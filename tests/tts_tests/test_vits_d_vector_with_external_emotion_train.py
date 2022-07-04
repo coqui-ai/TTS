@@ -26,6 +26,9 @@ config = VitsConfig(
     print_step=1,
     print_eval=True,
     test_sentences=[
+        ["There", "ljspeech-1", None, None, "ljspeech-1"],
+        ["To access Overdub Stock Voices, first make sure you’ve updated the app, then click Edit > Manage Speakers inside any Composition. Add a new Speaker with any name you choose, and then click Overdub Voice to select from our included Stock Voices. You don’t need to have created an Overdub Voice of your own to access these Stock Voices, so you can start using these voices in no time at all!","ljspeech-1", None, None, "ljspeech-1"],
+        ["To access Overdub Stock Voices, first make sure you’ve updated the app, then click Edit > Manage Speakers inside any Composition. Add a new Speaker with any name you choose, and then click Overdub Voice to select from our included Stock Voices. You don’t need to have created an Overdub Voice of your own to access these Stock Voices, so you can start using these voices in no time at all. To access Overdub Stock Voices, first make sure you’ve updated the app, then click Edit > Manage Speakers inside any Composition. Add a new Speaker with any name you choose, and then click Overdub Voice to select from our included Stock Voices. You don’t need to have created an Overdub Voice of your own to access these Stock Voices, so you can start using these voices in no time at all!", "ljspeech-2", None, None, "ljspeech-2"],
         ["Be a voice, not an echo.", "ljspeech-1", None, None, "ljspeech-1"],
     ],
 )
@@ -45,9 +48,13 @@ config.model_args.d_vector_dim = 256
 config.model_args.use_external_emotions_embeddings = True
 config.model_args.use_emotion_embedding = False
 config.model_args.emotion_embedding_dim = 256
-config.model_args.emotion_just_encoder = True
 config.model_args.external_emotions_embs_file = "tests/data/ljspeech/speakers.json"
+config.model_args.condition_dp_on_speaker = False
 config.use_style_weighted_sampler = True
+
+config.mixed_precision = True
+config.cudnn_benchmark = True
+
 # consistency loss
 # config.model_args.use_emotion_encoder_as_loss = True
 # config.model_args.encoder_model_path = "/raid/edresson/dev/Checkpoints/Coqui-Realesead/tts_models--multilingual--multi-dataset--your_tts/model_se.pth.tar"
