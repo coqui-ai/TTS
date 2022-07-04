@@ -1,5 +1,6 @@
 import argparse
 import os
+import numpy as np
 from argparse import RawTextHelpFormatter
 
 import torch
@@ -67,6 +68,11 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     else:
         # extract the embedding
         embedd = encoder_manager.compute_embedding_from_clip(wav_file)
+
+    # ignore samples that the embedding is NaN and return a warning
+    if np.isnan(np.array(embedd)).any():
+        print(f"> The embedding of the file {wav_file} was not saved, because it has NaN values, It probably means that this file is empty, please check it!")
+        continue
 
     if args.use_predicted_label:
         map_classid_to_classname = getattr(encoder_manager.encoder_config, "map_classid_to_classname", None)
