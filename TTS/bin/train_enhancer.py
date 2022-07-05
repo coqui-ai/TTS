@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from trainer import Trainer, TrainerArgs
 
 from TTS.config import load_config, register_config
-from TTS.enhancer.models.bwe import BWE
+from TTS.enhancer.models.bwe import Bwe
 from TTS.tts.datasets import load_tts_samples
 
 
@@ -52,7 +52,7 @@ def main():
     )
 
     # init the model from config
-    model = BWE.init_from_config(config)
+    model = Bwe.init_from_config(config)
 
     # init the trainer and 🚀
     trainer = Trainer(

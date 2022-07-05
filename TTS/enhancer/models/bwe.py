@@ -16,7 +16,7 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.enhancer.datasets.dataset import EnhancerDataset
-from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
+from TTS.enhancer.layers.losses import BweDiscriminatorLoss, BweGeneratorLoss
 from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
@@ -24,7 +24,7 @@ from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleD
 
 
 @dataclass
-class BWEArgs(Coqpit):
+class BweArgs(Coqpit):
     num_channel_wn: int = 128
     dilation_rate_wn: int = 3
     num_blocks_wn: int = 2
@@ -32,7 +32,7 @@ class BWEArgs(Coqpit):
     kernel_size_wn: int = 3
 
 
-class BWE(BaseTrainerModel):
+class Bwe(BaseTrainerModel):
     def __init__(
         self,
         config: Coqpit,
@@ -75,7 +75,7 @@ class BWE(BaseTrainerModel):
         from TTS.utils.audio import AudioProcessor
 
         ap = AudioProcessor.init_from_config(config)
-        return BWE(config, ap)
+        return Bwe(config, ap)
 
     def gen_forward(self, x):
         with torch.no_grad():
@@ -218,7 +218,7 @@ class BWE(BaseTrainerModel):
 
     def get_criterion(self):
         # device = next(self.parameters()).device
-        return [BWEDiscriminatorLoss(), BWEGeneratorLoss()]
+        return [BweDiscriminatorLoss(), BweGeneratorLoss()]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):
         sampler = None

@@ -3,9 +3,9 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.enhancer.config.bwe_config import BWEConfig
+from TTS.enhancer.configs.bwe_config import BweConfig
 from TTS.enhancer.datasets.dataset import load_wav_data
-from TTS.enhancer.models.bwe import BWE, BWEArgs
+from TTS.enhancer.models.bwe import Bwe, BweArgs
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname("/media/julian/Workdisk/train")
@@ -26,7 +26,7 @@ audio_config = BaseAudioConfig(
     resample=False,
 )
 
-bweArgs = BWEArgs(
+bweArgs = BweArgs(
     num_channel_wn=128,
     dilation_rate_wn=3,
     kernel_size_wn=3,
@@ -34,7 +34,7 @@ bweArgs = BWEArgs(
     num_layers_wn=7,
 )
 
-config = BWEConfig(
+config = BweConfig(
     model_args=bweArgs,
     audio=audio_config,
     run_name="enhancer_bwe_vctk",
@@ -71,7 +71,7 @@ ap = AudioProcessor.init_from_config(config)
 train_samples, eval_samples = load_wav_data(config.datasets)
 
 # init model
-model = BWE(config, ap)
+model = Bwe(config, ap)
 
 # init the trainer and 🚀
 trainer = Trainer(

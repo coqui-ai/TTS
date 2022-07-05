@@ -12,7 +12,7 @@ from TTS.vocoder.layers.losses import (
 )
 
 
-class BWEGeneratorLoss(torch.nn.Module):
+class BweGeneratorLoss(torch.nn.Module):
     def __init__(self, n_scale_STFTLoss=4, sr=48000, n_fft=2024, hop_length=512, n_mels=128):
         super().__init__()
         self.l1_masked = L1LossMasked(False)
@@ -84,7 +84,7 @@ class BWEGeneratorLoss(torch.nn.Module):
         return return_dict
 
 
-class BWEDiscriminatorLoss(torch.nn.Module):
+class BweDiscriminatorLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.disc_gan_loss = MSEDLoss()

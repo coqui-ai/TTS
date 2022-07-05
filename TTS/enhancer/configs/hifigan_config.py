@@ -1,14 +1,15 @@
 from dataclasses import dataclass, field
 
-from TTS.enhancer.config.shared_enhancer_config import BaseEnhancerConfig
-from TTS.enhancer.models.hifigan import HifiGANArgs
+from TTS.enhancer.configs.shared_enhancer_config import BaseEnhancerConfig
+from TTS.enhancer.models.hifigan import HifiganArgs
 
 
 @dataclass
 class HifiganConfig(BaseEnhancerConfig):
-    """Defines parameters for the HifiGAN denoiser."""
+    """Defines parameters for the Hifigan denoiser."""
 
-    model_args: HifiGANArgs = field(default_factory=HifiGANArgs)
+    model: str = "hifigan_denoiser"
+    model_args: HifiganArgs = field(default_factory=HifiganArgs)
     target_sr: int = 16000
     input_sr: int = 16000
     segment_len: float = 2

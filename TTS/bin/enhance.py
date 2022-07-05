@@ -9,8 +9,8 @@ from librosa.core import load
 from soundfile import write
 from tqdm import tqdm
 
-from TTS.enhancer.config.base_enhancer_config import BaseEnhancerConfig
-from TTS.enhancer.models.bwe import BWE
+from TTS.enhancer.models import setup_model
+from TTS.config import load_config
 
 if __name__ == "__main__":
 
@@ -73,10 +73,9 @@ if __name__ == "__main__":
 
     print("Loading the upsampling model...")
     use_cuda = torch.cuda.is_available()
-    config = BaseEnhancerConfig()
     config_path = os.path.join(os.path.split(args.model_path)[0], "config.json")
-    config.load_json(config_path)
-    model = BWE.init_from_config(config)
+    config = load_config(config_path)
+    model = setup_model(config)
     model.load_state_dict(torch.load(args.model_path)["model"])
     model.eval()
     if use_cuda:

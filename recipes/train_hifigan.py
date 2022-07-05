@@ -3,9 +3,9 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.enhancer.config.hifigan_config import HifiganConfig
+from TTS.enhancer.configs.hifigan_config import HifiganConfig
 from TTS.enhancer.datasets.dataset import load_wav_data
-from TTS.enhancer.models.hifigan import HifiGAN, HifiGANArgs
+from TTS.enhancer.models.hifigan import Hifigan, HifiganArgs
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname("/media/julian/Workdisk/train")
@@ -26,7 +26,7 @@ audio_config = BaseAudioConfig(
     resample=False,
 )
 
-HifiganArgs = HifiGANArgs()
+HifiganArgs = HifiganArgs()
 
 config = HifiganConfig(
     model_args=HifiganArgs,
@@ -72,7 +72,7 @@ ap = AudioProcessor.init_from_config(config)
 train_samples, eval_samples = load_wav_data(config.datasets, eval_split_size=config.eval_split_size)
 
 # init model
-model = HifiGAN(config, ap)
+model = Hifigan(config, ap)
 
 # init the trainer and 🚀
 trainer = Trainer(

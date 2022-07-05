@@ -20,7 +20,7 @@ from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.enhancer.datasets.dataset import EnhancerDataset
 from TTS.enhancer.layers.acoustic_features_predictor import AcousticFeaturesPredictor
-from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
+from TTS.enhancer.layers.losses import BweDiscriminatorLoss, BweGeneratorLoss
 from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
 from TTS.model import BaseTrainerModel
 from TTS.tts.layers.generic.wavenet import WNBlocks
@@ -30,7 +30,7 @@ from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleD
 
 
 @dataclass
-class HifiGAN2Args(Coqpit):
+class Hifigan2Args(Coqpit):
     num_channel_wn: int = 128
     dilation_rate_wn: int = 3
     num_blocks_wn: int = 3
@@ -40,7 +40,7 @@ class HifiGAN2Args(Coqpit):
     n_mels: int = 80
 
 
-class HifiGAN2(BaseTrainerModel):
+class Hifigan2(BaseTrainerModel):
     def __init__(
         self,
         config: Coqpit,
@@ -94,7 +94,7 @@ class HifiGAN2(BaseTrainerModel):
         from TTS.utils.audio import AudioProcessor
 
         ap = AudioProcessor.init_from_config(config)
-        return HifiGAN2(config, ap)
+        return Hifigan2(config, ap)
 
     def gen_forward(self, x, cond):
         g = torch.nn.functional.interpolate(cond, size=(x.shape[2]), mode="linear")
@@ -261,8 +261,8 @@ class HifiGAN2(BaseTrainerModel):
 
     def get_criterion(self):
         return [
-            BWEDiscriminatorLoss(),
-            BWEGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=512, hop_length=160),
+            BweDiscriminatorLoss(),
+            BweGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=512, hop_length=160),
         ]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):

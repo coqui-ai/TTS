@@ -14,7 +14,7 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.enhancer.datasets.dataset import EnhancerDataset
-from TTS.enhancer.layers.losses import BWEDiscriminatorLoss, BWEGeneratorLoss
+from TTS.enhancer.layers.losses import BweDiscriminatorLoss, BweGeneratorLoss
 from TTS.enhancer.layers.postnet import Postnet
 from TTS.enhancer.layers.spectral_discriminator import SpectralDiscriminator
 from TTS.model import BaseTrainerModel
@@ -23,7 +23,7 @@ from TTS.vocoder.models.melgan_multiscale_discriminator import MelganMultiscaleD
 
 
 @dataclass
-class HifiGANArgs(Coqpit):
+class HifiganArgs(Coqpit):
     num_channel_wn: int = 128
     dilation_rate_wn: int = 3
     num_blocks_wn: int = 2
@@ -35,7 +35,7 @@ class HifiGANArgs(Coqpit):
     use_postnet: bool = True
 
 
-class HifiGAN(BaseTrainerModel):
+class Hifigan(BaseTrainerModel):
     def __init__(
         self,
         config: Coqpit,
@@ -92,7 +92,7 @@ class HifiGAN(BaseTrainerModel):
         from TTS.utils.audio import AudioProcessor
 
         ap = AudioProcessor.init_from_config(config)
-        return HifiGAN(config, ap)
+        return Hifigan(config, ap)
 
     def gen_forward(self, x, run_postnet=True):
         x = self.generator(x)
@@ -243,8 +243,8 @@ class HifiGAN(BaseTrainerModel):
 
     def get_criterion(self):
         return [
-            BWEDiscriminatorLoss(),
-            BWEGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=1024, hop_length=256),
+            BweDiscriminatorLoss(),
+            BweGeneratorLoss(n_scale_STFTLoss=3, sr=self.config.target_sr, n_fft=1024, hop_length=256),
         ]
 
     def get_sampler(self, config: Coqpit, dataset: EnhancerDataset, num_gpus=1):

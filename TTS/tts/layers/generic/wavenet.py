@@ -115,6 +115,8 @@ class WN(torch.nn.Module):
         return output * x_mask
 
     def remove_weight_norm(self):
+        if self.in_channels != self.hidden_channels:
+            torch.nn.utils.remove_weight_norm(self.proj_layer)
         if self.c_in_channels != 0:
             torch.nn.utils.remove_weight_norm(self.cond_layer)
         for l in self.in_layers:
