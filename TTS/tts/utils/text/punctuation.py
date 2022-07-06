@@ -137,7 +137,7 @@ class Punctuation:
 
         # nothing have been phonemized, returns the puncs alone
         if not text:
-            return ["".join(m.mark for m in puncs)]
+            return ["".join(m.punc for m in puncs)]
 
         current = puncs[0]
 
