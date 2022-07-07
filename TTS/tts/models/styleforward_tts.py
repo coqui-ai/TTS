@@ -446,7 +446,7 @@ class StyleforwardTTS(BaseTTS):
             return o_pitch_emb, o_pitch, avg_pitch
         if(pitch_control is not None):
             print('entrou no pitch control: ', pitch_control, o_pitch)
-            o_pitch = o_pitch*pitch_control
+            o_pitch = o_pitch + pitch_control
         o_pitch_emb = self.pitch_emb(o_pitch)
         return o_pitch_emb, o_pitch
 
