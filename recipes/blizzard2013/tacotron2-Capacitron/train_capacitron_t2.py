@@ -52,7 +52,6 @@ config = Tacotron2Config(
     precompute_num_workers=24,
     run_eval=True,
     test_delay_epochs=5,
-    ga_alpha=0.0,
     r=2,
     optimizer="CapacitronOptimizer",
     optimizer_params={"RAdam": {"betas": [0.9, 0.998], "weight_decay": 1e-6}, "SGD": {"lr": 1e-5, "momentum": 0.9}},
@@ -77,23 +76,20 @@ config = Tacotron2Config(
         "gradual_learning_rates": [
             [0, 1e-3],
             [2e4, 5e-4],
-            [4e5, 3e-4],
+            [4e4, 3e-4],
             [6e4, 1e-4],
             [8e4, 5e-5],
         ]
     },
     scheduler_after_epoch=False,  # scheduler doesn't work without this flag
-    # dashboard_logger='wandb',
-    # sort_by_audio_len=True,
     seq_len_norm=True,
-    # Need to experiment with these below for capacitron
     loss_masking=False,
     decoder_loss_alpha=1.0,
     postnet_loss_alpha=1.0,
-    postnet_diff_spec_alpha=0.0,
-    decoder_diff_spec_alpha=0.0,
-    decoder_ssim_alpha=0.0,
-    postnet_ssim_alpha=0.0,
+    postnet_diff_spec_alpha=1.0,
+    decoder_diff_spec_alpha=1.0,
+    decoder_ssim_alpha=1.0,
+    postnet_ssim_alpha=1.0,
 )
 
 ap = AudioProcessor(**config.audio.to_dict())
