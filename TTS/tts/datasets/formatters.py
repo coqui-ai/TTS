@@ -556,3 +556,25 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             text = cols[2].replace(" ", "")
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items
+
+
+def artic(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    """Normalizes the ARTIC meta data file to TTS format"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = "artic"
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        for line in ttf:
+            # Split according to standard delimiter
+            cols = line.split("|")
+            if len(cols) > 1:
+                # One or two |s are present => text is taken from the last part
+                text = cols[-1]
+            else:
+                # Assume ARTIC SNT format => wav name is delimited by the first space
+                cols = line.split(maxsplit=1)
+                text = cols[1]
+            # in either way, wav name is stored in `cols[0]`
+            wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
+    return items
