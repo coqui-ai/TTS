@@ -565,16 +565,16 @@ def artic(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     speaker_name = "artic"
     with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
-            # Split according to standard delimiter
-            cols = line.split("|")
-            if len(cols) > 1:
-                # One or two |s are present => text is taken from the last part
-                text = cols[-1]
+            # Check the number of standard separators
+            n_seps = line.count("|")
+            if n_seps > 0:
+                # Split according to standard separator
+                cols = line.split("|")
             else:
                 # Assume ARTIC SNT format => wav name is delimited by the first space
                 cols = line.split(maxsplit=1)
-                text = cols[1]
-            # in either way, wav name is stored in `cols[0]`
+            # In either way, wav name is stored in `cols[0]` and text in `cols[-1]`
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
+            text = cols[-1]
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items
