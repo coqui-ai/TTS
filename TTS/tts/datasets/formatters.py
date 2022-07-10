@@ -562,7 +562,8 @@ def artic(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the ARTIC meta data file to TTS format"""
     txt_file = os.path.join(root_path, meta_file)
     items = []
-    speaker_name = "artic"
+    # Speaker name is the name of the directory with the data (last part of `root_path`)
+    speaker_name = os.path.basename(os.path.normpath(root_path))
     with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             # Check the number of standard separators
