@@ -579,3 +579,21 @@ def artic(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             text = cols[-1]
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items
+
+
+def artic_multispeaker(root_path, meta_file, **kwargs): # pylint: disable=unused-argument
+    """Normalizes the ARTIC multi-speaker meta data files to TTS format
+    
+    Args:
+        root_path (str): path to the artic dataset
+        meta_file (str): name of the meta file containing names of wav to select and
+                         transcripts of the corresponding utterances
+                         !Must be the same for all speakers!
+    Returns:
+        List[List[str]]: List of (text, wav_path, speaker_name) associated with each utterance
+    """
+    items = []
+    # Loop over speakers: speaker names are subdirs of `root_path`
+    for pth in glob(f"{root_path}/*/**/", recursive=False):
+        items.extend(artic(pth, meta_file))
+    return items
