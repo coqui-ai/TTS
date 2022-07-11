@@ -296,6 +296,6 @@ class StyleEncoder(nn.Module):
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         
         mean_style = torch.mean(embedded_speakers_, dim= [-2])
-        std_style = torch.std(embedded_speakers_, dim= [-2]
+        std_style = torch.std(embedded_speakers_, dim= [-2])
 
-        return  (outputs - mean_content.unsqueeze(-2))/ std_content.unsqueeze(-2)* std_style.unsqueeze(-2) + mean_style.unsqueeze(-2)
+        return (outputs - mean_content.unsqueeze(-2))/std_content.unsqueeze(-2)*std_style.unsqueeze(-2) + mean_style.unsqueeze(-2)
