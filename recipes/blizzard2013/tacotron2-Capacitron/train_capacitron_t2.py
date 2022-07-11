@@ -83,8 +83,6 @@ config = Tacotron2Config(
         ]
     },
     scheduler_after_epoch=False,  # scheduler doesn't work without this flag
-    # dashboard_logger='wandb',
-    # sort_by_audio_len=True,
     seq_len_norm=True,
     # Need to experiment with these below for capacitron
     loss_masking=False,
