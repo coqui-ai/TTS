@@ -289,8 +289,9 @@ class StyleEncoder(nn.Module):
 
     # we assume that the encoder "outputs" will get the shape [B,L,E], so we mean over L and apply adain in it
     def _adain(self, outputs, embedded_speakers):
+
         mean_content = torch.mean(outputs, dim= [-2])
-        std_content = torch.std(outputs, dim= [-2]
+        std_content = torch.std(outputs, dim= [-2])
 
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         
