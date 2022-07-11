@@ -156,6 +156,8 @@ class StyleEncoder(nn.Module):
 
             if(self.agg_type == 'concat'):
                 inputs = self._concat_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
+            elif(self.agg_type == 'adain'):
+                inputs = self._adain(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
             else:
                 inputs = self._add_speaker_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
             return inputs, gst_outputs
@@ -284,3 +286,15 @@ class StyleEncoder(nn.Module):
             embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         outputs = outputs + embedded_speakers_
         return outputs
+
+    # we assume that the encoder "outputs" will get the shape [B,L,E], so we mean over L and apply adain in it
+    def _adain(self, outputs, embedded_speakers):
+        mean_content = torch.mean(outputs, dim= [-2])
+        std_content = torch.std(outputs, dim= [-2]
+
+        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
+        
+        mean_style = torch.mean(embedded_speakers_, dim= [-2])
+        std_style = torch.std(embedded_speakers_, dim= [-2]
+
+        return  (outputs - mean_content.unsqueeze(-2))/ std_content.unsqueeze(-2)* std_style.unsqueeze(-2) + mean_style.unsqueeze(-2)

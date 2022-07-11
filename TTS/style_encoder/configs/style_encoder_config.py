@@ -27,7 +27,7 @@ class StyleEncoderConfig(Coqpit):
     # Generic Style Encoder Configuration
     num_mel: int = 80
     style_embedding_dim: int = 128
-    agg_type: str = "concat" # Can be concat or sum
+    agg_type: str = "concat" # Can be concat, sum, or adain
     agg_norm: bool = False # If agg_type == sum, you can rather than normalizing or not
     use_proj_linear: bool = False # Whether use linear projection to decoder dim or not (specifcally useful for sum agg_style)
     proj_dim: int = 512 # Projection dim, often the encoder output (512 is the tacotron2 default encoder output)
@@ -70,7 +70,7 @@ class StyleEncoderConfig(Coqpit):
         c = asdict(self)
         super().check_values()
         check_argument("se_type", c, restricted=True, enum_list=["gst", "re","vae", "diffusion", "vaeflow"])
-        check_argument("agg_type", c, restricted=True, enum_list=["sum", "concat"])
+        check_argument("agg_type", c, restricted=True, enum_list=["sum", "concat", "adain"])
         check_argument("num_mel", c, restricted=False)
         check_argument("style_embedding_dim", c, restricted=True, min_val=0, max_val=1000)
         check_argument("use_speaker_embedding", c, restricted=False)
