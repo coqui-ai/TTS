@@ -1,7 +1,6 @@
 import unittest
 
 import torch as T
-from torch.nn import functional
 
 from TTS.tts.layers.losses import BCELossMasked, L1LossMasked, MSELossMasked, SSIMLoss
 from TTS.tts.utils.helpers import sequence_mask
@@ -208,8 +207,6 @@ class BCELossTest(unittest.TestCase):
         layer = BCELossMasked(pos_weight=5.0)
 
         length = T.tensor([95])
-        mask = sequence_mask(length, 100)
-        pos_weight = T.tensor([5.0])
         target = (
             1.0 - sequence_mask(length - 1, 100).float()
         )  # [0, 0, .... 1, 1] where the first 1 is the last mel frame
@@ -236,6 +233,7 @@ class BCELossTest(unittest.TestCase):
         self.assertEqual(loss.item(), 0.0)
 
         # when pos_weight < 1 overweight the early stopping loss
+
         loss_early = layer(early_x, target, length)
         loss_late = layer(late_x, target, length)
         self.assertGreater(loss_early.item(), loss_late.item())
