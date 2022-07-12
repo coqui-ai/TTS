@@ -291,12 +291,12 @@ class StyleEncoder(nn.Module):
     def _adain(self, outputs, embedded_speakers):
 
         mean_content = torch.mean(outputs, dim= [-2])
-        std_content = torch.std(outputs, dim= [-2])
+        std_content = torch.std(outputs, dim= [-2]) + 1e-5
 
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         
         mean_style = torch.mean(embedded_speakers_, dim= [-2])
-        std_style = torch.std(embedded_speakers_, dim= [-2])
+        std_style = torch.std(embedded_speakers_, dim= [-2]) + 1e-5
 
         # add verbose to debug nan errors: the hypothesis is that the mean becomes high
         print(mean_content, std_content, mean_style, std_style)
