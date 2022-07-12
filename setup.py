@@ -90,7 +90,7 @@ setup(
     # ext_modules=find_cython_extensions(),
     # package
     include_package_data=True,
-    packages=find_packages(include=["TTS*"]),
+    packages=find_packages(include=["TTS"], exclude=["*.tests", "*tests.*", "tests.*", "*tests", "tests"]),
     package_data={
         "TTS": [
             "VERSION",

@@ -60,7 +60,6 @@ config = SpeedySpeechConfig(
         "Dieser Kuchen ist großartig. Er ist so lecker und feucht.",
         "Vor dem 22. November 1963.",
     ],
-    sort_by_audio_len=True,
     max_seq_len=500000,
     output_path=output_path,
     datasets=[dataset_config],

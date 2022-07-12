@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
-from TTS.tts.models.vits import VitsArgs
+from TTS.tts.models.vits import VitsArgs, VitsAudioConfig
 
 
 @dataclass
@@ -15,6 +15,9 @@ class VitsConfig(BaseTTSConfig):
 
         model_args (VitsArgs):
             Model architecture arguments. Defaults to `VitsArgs()`.
+
+        audio (VitsAudioConfig):
+            Audio processing configuration. Defaults to `VitsAudioConfig()`.
 
         grad_clip (List):
             Gradient clipping thresholds for each optimizer. Defaults to `[1000.0, 1000.0]`.
@@ -94,6 +97,7 @@ class VitsConfig(BaseTTSConfig):
     model: str = "vits"
     # model specific params
     model_args: VitsArgs = field(default_factory=VitsArgs)
+    audio: VitsAudioConfig = VitsAudioConfig()
 
     # optimizer
     grad_clip: List[float] = field(default_factory=lambda: [1000, 1000])
