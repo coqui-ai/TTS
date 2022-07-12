@@ -59,7 +59,6 @@ config = VitsConfig(
     use_language_weighted_sampler=True,
     print_eval=False,
     mixed_precision=False,
-    sort_by_audio_len=True,
     min_audio_len=32 * 256 * 4,
     max_audio_len=160000,
     output_path=output_path,

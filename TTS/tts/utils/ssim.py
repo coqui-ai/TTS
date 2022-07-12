@@ -16,9 +16,9 @@ def _reduce(x: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
     """
     if reduction == "none":
         return x
-    elif reduction == "mean":
+    if reduction == "mean":
         return x.mean(dim=0)
-    elif reduction == "sum":
+    if reduction == "sum":
         return x.sum(dim=0)
     raise ValueError("Unknown reduction. Expected one of {'none', 'mean', 'sum'}")
 

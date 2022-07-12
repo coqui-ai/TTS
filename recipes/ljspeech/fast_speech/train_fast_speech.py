@@ -53,7 +53,6 @@ config = FastSpeechConfig(
     print_step=50,
     print_eval=False,
     mixed_precision=False,
-    sort_by_audio_len=True,
     max_seq_len=500000,
     output_path=output_path,
     datasets=[dataset_config],
