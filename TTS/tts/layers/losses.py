@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional
 
 from TTS.tts.utils.helpers import sequence_mask
-from TTS.tts.utils.ssim import ssim
+from TTS.tts.utils.ssim import SSIMLoss as _SSIMLoss
 from TTS.utils.audio import TorchSTFT
 
 
@@ -91,30 +91,54 @@ class MSELossMasked(nn.Module):
         return loss
 
 
+def sample_wise_min_max(x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """Min-Max normalize tensor through first dimension
+    Shapes:
+        - x: :math:`[B, D1, D2]`
+        - m: :math:`[B, D1, 1]`
+    """
+    maximum = torch.amax(x.masked_fill(~mask, 0), dim=(1, 2), keepdim=True)
+    minimum = torch.amin(x.masked_fill(~mask, np.inf), dim=(1, 2), keepdim=True)
+    return (x - minimum) / (maximum - minimum + 1e-8)
+
 class SSIMLoss(torch.nn.Module):
-    """SSIM loss as explained here https://en.wikipedia.org/wiki/Structural_similarity"""
+    """SSIM loss as (1 - SSIM)
+    SSIM is explained here https://en.wikipedia.org/wiki/Structural_similarity
+    """
 
     def __init__(self):
         super().__init__()
-        self.loss_func = ssim
+        self.loss_func = _SSIMLoss()
 
-    def forward(self, y_hat, y, length=None):
+    def forward(self, y_hat, y, length):
         """
         Args:
             y_hat (tensor): model prediction values.
             y (tensor): target values.
-            length (tensor): length of each sample in a batch.
+            length (tensor): length of each sample in a batch for masking.
+
         Shapes:
             y_hat: B x T X D
             y: B x T x D
             length: B
+
          Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
-        if length is not None:
-            m = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2).float().to(y_hat.device)
-            y_hat, y = y_hat * m, y * m
-        return 1 - self.loss_func(y_hat.unsqueeze(1), y.unsqueeze(1))
+        mask = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2)
+        y_norm = sample_wise_min_max(y, mask)
+        y_hat_norm = sample_wise_min_max(y_hat, mask)
+        ssim_loss = self.loss_func((y_norm * mask).unsqueeze(1), (y_hat_norm * mask).unsqueeze(1))
+
+        if ssim_loss.item() > 1.0:
+            print(f" > SSIM loss is out-of-range {ssim_loss.item()}, setting it 1.0")
+            ssim_loss == 1.0
+
+        if ssim_loss.item() < 0.0:
+            print(f" > SSIM loss is out-of-range {ssim_loss.item()}, setting it 0.0")
+            ssim_loss == 0.0
+
+        return ssim_loss
 
 
 class AttentionEntropyLoss(nn.Module):
