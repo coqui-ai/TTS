@@ -299,6 +299,6 @@ class StyleEncoder(nn.Module):
         std_style = torch.std(embedded_speakers_, dim= [-2]) + 1e-5
 
         # add verbose to debug nan errors: the hypothesis is that the mean becomes high
-        print(mean_content, std_content, mean_style, std_style)
+        # print(mean_content, std_content, mean_style, std_style) # Apparently the error was dividing by 0, added 1e-5
 
         return (outputs - mean_content.unsqueeze(-2))/std_content.unsqueeze(-2)*std_style.unsqueeze(-2) + mean_style.unsqueeze(-2)
