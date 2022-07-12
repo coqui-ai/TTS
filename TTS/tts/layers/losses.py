@@ -137,7 +137,7 @@ class SSIMLoss(torch.nn.Module):
 
         if ssim_loss.item() < 0.0:
             print(f" > SSIM loss is out-of-range {ssim_loss.item()}, setting it 0.0")
-            ssim_loss =  torch.tensor([0.0])
+            ssim_loss = torch.tensor([0.0])
 
         return ssim_loss
 
