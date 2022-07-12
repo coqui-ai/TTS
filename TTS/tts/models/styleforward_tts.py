@@ -660,7 +660,7 @@ class StyleforwardTTS(BaseTTS):
         # use aligner's output as the duration target
         if self.use_aligner:
             durations = outputs["o_alignment_dur"]
-            print(durations)
+            # print(durations)
         # use float32 in AMP
         with autocast(enabled=False):
             # compute loss
