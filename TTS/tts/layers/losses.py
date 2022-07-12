@@ -147,9 +147,6 @@ class AttentionEntropyLoss(nn.Module):
         """
         Forces attention to be more decisive by penalizing
         soft attention weights
-
-        TODO: arguments
-        TODO: unit_test
         """
         entropy = torch.distributions.Categorical(probs=align).entropy()
         loss = (entropy / np.log(align.shape[1])).mean()
@@ -157,9 +154,9 @@ class AttentionEntropyLoss(nn.Module):
 
 
 class BCELossMasked(nn.Module):
-    def __init__(self, pos_weight):
+    def __init__(self, pos_weight:float=None):
         super().__init__()
-        self.pos_weight = pos_weight
+        self.pos_weight = torch.tensor([pos_weight])
 
     def forward(self, x, target, length):
         """
@@ -179,16 +176,15 @@ class BCELossMasked(nn.Module):
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
-        # mask: (batch, max_len, 1)
         target.requires_grad = False
         if length is not None:
-            mask = sequence_mask(sequence_length=length, max_len=target.size(1)).float()
-            x = x * mask
-            target = target * mask
+            # mask: (batch, max_len, 1)
+            mask = sequence_mask(sequence_length=length, max_len=target.size(1))
             num_items = mask.sum()
+            loss = functional.binary_cross_entropy_with_logits(x.masked_select(mask), target.masked_select(mask), pos_weight=self.pos_weight, reduction="sum")
         else:
+            loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
             num_items = torch.numel(x)
-        loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
         loss = loss / num_items
         return loss
 
