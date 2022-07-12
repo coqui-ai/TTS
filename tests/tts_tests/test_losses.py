@@ -1,9 +1,10 @@
 import unittest
+
 import torch as T
 from torch.nn import functional
 
+from TTS.tts.layers.losses import BCELossMasked, L1LossMasked, MSELossMasked, SSIMLoss
 from TTS.tts.utils.helpers import sequence_mask
-from TTS.tts.layers.losses import L1LossMasked, SSIMLoss, MSELossMasked, BCELossMasked
 
 
 class L1LossMaskedTests(unittest.TestCase):
@@ -134,7 +135,6 @@ class MSELossMaskedTests(unittest.TestCase):
         assert output.item() == 0, "0 vs {}".format(output.item())
 
 
-
 class SSIMLossTests(unittest.TestCase):
     def test_in_out(self):  # pylint: disable=no-self-use
         # test input == target
@@ -150,7 +150,7 @@ class SSIMLossTests(unittest.TestCase):
         dummy_input = dummy_input.reshape(4, 57, 128).float()
         dummy_target = T.arange(-4 * 57 * 128, 0)
         dummy_target = dummy_target.reshape(4, 57, 128).float()
-        dummy_target = (-dummy_target)
+        dummy_target = -dummy_target
 
         dummy_length = (T.ones(4) * 58).long()
         output = layer(dummy_input, dummy_target, dummy_length)
@@ -210,11 +210,13 @@ class BCELossTest(unittest.TestCase):
         length = T.tensor([95])
         mask = sequence_mask(length, 100)
         pos_weight = T.tensor([5.0])
-        target = 1. - sequence_mask(length - 1, 100).float()  # [0, 0, .... 1, 1] where the first 1 is the last mel frame
+        target = (
+            1.0 - sequence_mask(length - 1, 100).float()
+        )  # [0, 0, .... 1, 1] where the first 1 is the last mel frame
         true_x = target * 200 - 100  # creates logits of [-100, -100, ... 100, 100] corresponding to target
-        zero_x = T.zeros(target.shape) - 100.  # simulate logits if it never stops decoding
-        early_x = -200. * sequence_mask(length - 3, 100).float() + 100.  # simulate logits on early stopping
-        late_x = -200. * sequence_mask(length + 1, 100).float() + 100.  # simulate logits on late stopping
+        zero_x = T.zeros(target.shape) - 100.0  # simulate logits if it never stops decoding
+        early_x = -200.0 * sequence_mask(length - 3, 100).float() + 100.0  # simulate logits on early stopping
+        late_x = -200.0 * sequence_mask(length + 1, 100).float() + 100.0  # simulate logits on late stopping
 
         loss = layer(true_x, target, length)
         self.assertEqual(loss.item(), 0.0)

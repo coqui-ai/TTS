@@ -101,6 +101,7 @@ def sample_wise_min_max(x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     minimum = torch.amin(x.masked_fill(~mask, np.inf), dim=(1, 2), keepdim=True)
     return (x - minimum) / (maximum - minimum + 1e-8)
 
+
 class SSIMLoss(torch.nn.Module):
     """SSIM loss as (1 - SSIM)
     SSIM is explained here https://en.wikipedia.org/wiki/Structural_similarity
@@ -154,7 +155,15 @@ class AttentionEntropyLoss(nn.Module):
 
 
 class BCELossMasked(nn.Module):
-    def __init__(self, pos_weight:float=None):
+    """BCE loss with masking.
+
+    Used mainly for stopnet in autoregressive models.
+
+    Args:
+        pos_weight (float): weight for positive samples. If set < 1, penalize early stopping. Defaults to None.
+    """
+
+    def __init__(self, pos_weight: float = None):
         super().__init__()
         self.pos_weight = torch.tensor([pos_weight])
 
@@ -181,7 +190,9 @@ class BCELossMasked(nn.Module):
             # mask: (batch, max_len, 1)
             mask = sequence_mask(sequence_length=length, max_len=target.size(1))
             num_items = mask.sum()
-            loss = functional.binary_cross_entropy_with_logits(x.masked_select(mask), target.masked_select(mask), pos_weight=self.pos_weight, reduction="sum")
+            loss = functional.binary_cross_entropy_with_logits(
+                x.masked_select(mask), target.masked_select(mask), pos_weight=self.pos_weight, reduction="sum"
+            )
         else:
             loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
             num_items = torch.numel(x)
