@@ -302,9 +302,9 @@ class StyleEncoder(nn.Module):
         mean_style = torch.mean(embedded_speakers, dim= [-1])
         std_style = torch.std(embedded_speakers, dim= [-1]) + 1e-5
 
-        print(mean_style.shape, std_style.shape, mean_style, std_style)
+        # print(mean_style.shape, std_style.shape, mean_style, std_style)
 
-        print(mean_content.shape, std_content.shape, mean_content, std_content)
+        # print(mean_content.shape, std_content.shape, mean_content, std_content)
         
         mean_style = mean_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), outputs.size(2))
         std_style = std_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), outputs.size(2))
@@ -312,11 +312,11 @@ class StyleEncoder(nn.Module):
         mean_content = mean_content.unsqueeze(2).expand(outputs.size(0), outputs.size(1), outputs.size(2))
         std_content = std_content.unsqueeze(2).expand(outputs.size(0), outputs.size(1), outputs.size(2))
 
-        print(mean_style.shape, std_style.shape, mean_style, std_style)
+        # print(mean_style.shape, std_style.shape, mean_style, std_style)
 
-        print(mean_content.shape, std_content.shape, mean_content, std_content)
+        # print(mean_content.shape, std_content.shape, mean_content, std_content)
 
         # add verbose to debug nan errors: the hypothesis is that the mean becomes high
         # print(mean_content, std_content, mean_style, std_style) # Apparently the error was dividing by 0, added 1e-5
 
-        return (outputs - mean_content.unsqueeze(-2))/std_content.unsqueeze(-2)*std_style.unsqueeze(-2) + mean_style.unsqueeze(-2)
+        return (outputs - mean_content)/std_content*std_style + mean_style
