@@ -290,24 +290,29 @@ class StyleEncoder(nn.Module):
     # we assume that the encoder "outputs" will get the shape [B,L,E], so we mean over L and apply adain in it
     def _adain(self, outputs, embedded_speakers):
 
-        mean_content = torch.mean(outputs, dim= [-2])
-        std_content = torch.std(outputs, dim= [-2]) + 1e-5
+        mean_content = torch.mean(outputs, dim= [-1])
+        std_content = torch.std(outputs, dim= [-1]) + 1e-5
 
         print('embed_speakers shape : ' , embedded_speakers.shape)
 
-        embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
+        # embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), outputs.size(2))
         
-        print('embed_speakers_ shape : ' , embedded_speakers_.shape)
+        # print('embed_speakers_ shape : ' , embedded_speakers_.shape)
 
         mean_style = torch.mean(embedded_speakers, dim= [-1])
         std_style = torch.std(embedded_speakers, dim= [-1]) + 1e-5
 
         print(mean_style.shape, std_style.shape, mean_style, std_style)
 
-        mean_style = mean_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), -1)
-        std_style = std_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), -1)
+        mean_style = mean_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), outputs.size(2))
+        std_style = std_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), outputs.size(2))
+
+        mean_content = mean_content.expand(outputs.size(0), outputs.size(1), outputs.size(2))
+        std_content = std_content.expand(outputs.size(0), outputs.size(1), outputs.size(2))
 
         print(mean_style.shape, std_style.shape, mean_style, std_style)
+
+        print(mean_content.shape, std_content.shape, mean_content, std_content)
 
         # add verbose to debug nan errors: the hypothesis is that the mean becomes high
         # print(mean_content, std_content, mean_style, std_style) # Apparently the error was dividing by 0, added 1e-5
