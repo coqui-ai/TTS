@@ -309,8 +309,8 @@ class StyleEncoder(nn.Module):
         mean_style = mean_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), outputs.size(2))
         std_style = std_style.unsqueeze(1).expand(outputs.size(0), outputs.size(1), outputs.size(2))
 
-        mean_content = mean_content.expand(outputs.size(0), outputs.size(1), outputs.size(2))
-        std_content = std_content.expand(outputs.size(0), outputs.size(1), outputs.size(2))
+        mean_content = mean_content.unsqueeze(2).expand(outputs.size(0), outputs.size(1), outputs.size(2))
+        std_content = std_content.unsqueeze(2).expand(outputs.size(0), outputs.size(1), outputs.size(2))
 
         print(mean_style.shape, std_style.shape, mean_style, std_style)
 
