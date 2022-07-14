@@ -293,9 +293,11 @@ class StyleEncoder(nn.Module):
         mean_content = torch.mean(outputs, dim= [-2])
         std_content = torch.std(outputs, dim= [-2]) + 1e-5
 
+        print('embed_speakers shape : ' , embedded_speakers.shape)
+
         embedded_speakers_ = embedded_speakers.expand(outputs.size(0), outputs.size(1), -1)
         
-        print('embed_speakers shape : ' , embedded_speakers_.shape)
+        print('embed_speakers_ shape : ' , embedded_speakers_.shape)
 
         mean_style = torch.mean(embedded_speakers, dim= [-2])
         std_style = torch.std(embedded_speakers, dim= [-2]) + 1e-5
