@@ -18,7 +18,7 @@ class TestRemoveSilenceVAD(unittest.TestCase):
 
         # resample audios
         run_cli(
-            f'CUDA_VISIBLE_DEVICES="" python TTS/bin/resample.py --input_dir "{wav_path}" --output_dir "{output_resample_path}" --output_sr 16000'
+            f'CUDA_VISIBLE_DEVICES="" python TTS/bin/resample.py --input_dir "{wav_path}" --output_dir "{output_resample_path}" --output_sr 16000 --n_jobs 1'
         )
 
         # run test
