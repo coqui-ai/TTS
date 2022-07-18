@@ -111,7 +111,7 @@ class TTSTokenizer:
             text = self.intersperse_blank_char(text, True)
         if self.use_eos_bos:
             text = self.pad_with_bos_eos(text)
-        print(text)
+        #print(text)
         return self.encode(text)
 
     def ids_to_text(self, id_sequence: List[int]) -> str:

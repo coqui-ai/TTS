@@ -178,7 +178,7 @@ class GlowTTS(BaseTTS):
         return g
 
     def _speaker_embedding(self, aux_input: Dict) -> Union[torch.tensor, None]:
-        g = self._set_speaker_input(aux_input)
+        g = self._set_speaker_input(aux_input).long()
         # speaker embedding
         if g is not None:
             if hasattr(self, "emb_g"):

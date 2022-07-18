@@ -343,9 +343,6 @@ def number_to_korean(num_str, is_count=False):
 
 
 if __name__ == "__main__":
-    def test_normalize(text):
-        print(text)
-        print(normalize(text))
-        print(tokenize(text))
-        print("=" * 30)
-    test_normalize("나는? ! 배%2 고프다")
+    from num2words import num2words
+    text = "나는12개의 칼을 가지고 있다."
+    print(normalize_number(text))

@@ -464,12 +464,12 @@ class Graphemes(BaseCharacters):
 class Hangeul(BaseCharacters):
     def __init__(
         self,
-        characters: str = 'ᄀᄁᄂᄃᄄᄅᄆᄇᄈᄉᄊᄋᄌᄍᄎᄏᄐᄑ하ᅢᅣᅤᅥᅦᅧᅨᅩᅪᅫᅬᅭᅮᅯᅰᅱᅲᅳᅴᅵᆨᆩᆪᆫᆬᆭᆮᆯᆰᆱᆲᆳᆴᆵᆶᆷᆸᆹᆺᆻᆼᆽᆾᆿᇀᇁᇂ',
+        characters: str = 'ᄀᄁᄂᄃᄄᄅᄆᄇᄈᄉᄊᄋᄌᄍᄎᄏᄐᄑ하ᅢᅣᅤᅥᅦᅧᅨᅩᅪᅫᅬᅭᅮᅯᅰᅱᅲᅳᅴᅵᆨᆩᆪᆫᆬᆭᆮᆯᆰᆱᆲᆳᆴᆵᆶᆷᆸᆹᆺᆻᆼᆽᆾᆿᇀᇁᇂABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
         punctuations: str = _punctuations,
-        pad: str = _pad,
-        eos: str = _eos,
-        bos: str = _bos,
-        blank: str = _blank,
+        pad: str = "_",
+        eos: str = "~",
+        bos: str = "^",
+        blank: str = " ",
         is_unique: bool = False,
         is_sorted: bool = True,
     ) -> None:

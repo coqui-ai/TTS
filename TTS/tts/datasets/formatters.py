@@ -178,6 +178,17 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             wav_file = os.path.join(root_path, speaker_name, i)
             items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
     return items
+
+def jsut(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = root_path.split("\\")[-1]
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        dic = json.load(ttf)
+        for i in dic:
+            wav_file = os.path.join(root_path, speaker_name, i)
+            items.append({"text": dic[i], "audio_file": wav_file, "speaker_name": speaker_name})
+    return items
 ####################################################
 
 
