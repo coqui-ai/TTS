@@ -131,7 +131,7 @@ class TTSDataset(Dataset):
         self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
 
-        print(self.items[:2])
+        # print(self.items[:2])
 
         self.verbose = verbose
         self.input_seq_computed = False

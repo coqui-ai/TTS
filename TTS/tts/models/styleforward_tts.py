@@ -181,7 +181,7 @@ class StyleforwardTTS(BaseTTS):
         self.speaker_manager = speaker_manager
         self.init_multispeaker(config)
         if(config.style_encoder_config.use_supervised_style):
-            print(config.style_encoder_config)
+            # print(config.style_encoder_config)
             self.style_manager = style_manager
             self.init_style(config)
         # # pass all config fields to `self`
@@ -687,6 +687,7 @@ class StyleforwardTTS(BaseTTS):
         speaker_ids = batch["speaker_ids"]
         durations = batch["durations"]
         style_ids = batch['style_ids']
+        print(style_ids)
         aux_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids, "style_ids": style_ids}
 
         # forward pass
