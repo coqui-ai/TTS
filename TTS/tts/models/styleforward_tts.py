@@ -180,8 +180,9 @@ class StyleforwardTTS(BaseTTS):
 
         self.speaker_manager = speaker_manager
         self.init_multispeaker(config)
-        self.style_manager = style_manager
-        self.init_style(config)
+        if(config.style_encoder_config.use_supervised_style)
+            self.style_manager = style_manager
+            self.init_style(config)
         # # pass all config fields to `self`
         # # for fewer code change
         # for key in config:
@@ -276,8 +277,8 @@ class StyleforwardTTS(BaseTTS):
         Args:
             config (Coqpit): Model configuration.
         """
-        if self.args.style_ids_file is not None:
-            self.style_manager = StyleManager(style_ids_file_path=config.style_ids_file)
+        # if self.args.style_ids_file is not None:
+            # self.style_manager = StyleManager(style_ids_file_path=config.style_ids_file)
 
         print(" > using STYLE information.")
 
