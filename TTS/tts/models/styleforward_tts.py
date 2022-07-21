@@ -180,7 +180,7 @@ class StyleforwardTTS(BaseTTS):
 
         self.speaker_manager = speaker_manager
         self.init_multispeaker(config)
-        if(config.style_encoder_config.use_supervised_style)
+        if(config.style_encoder_config.use_supervised_style):
             self.style_manager = style_manager
             self.init_style(config)
         # # pass all config fields to `self`
