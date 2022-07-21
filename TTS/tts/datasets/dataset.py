@@ -220,6 +220,7 @@ class TTSDataset(Dataset):
         else:
             text, wav_file, speaker_name, style_target = item
             attn = None
+            language_name = None
             style_target = None
 
         raw_text = text

@@ -446,7 +446,7 @@ def cpqd_read(root_path, meta_file, **kwargs):
                 continue
             wav_file = cols[1]
             text = cols[0]
-            speaker_name = cols[2] # The last char is always "\n" since after this line is a breakline
+            speaker_name = cols[2][:-1].replace(" ", "") # The last char is always "\n" since after this line is a breakline
             items.append([text,wav_file,speaker_name])
 
     return items
@@ -477,7 +477,7 @@ def cpqd_style_read(root_path, meta_file, **kwargs):
             wav_file = cols[1]
             text = cols[0]
             speaker_name = cols[2]
-            style_name = cols[3][:-1] # The last char is always "\n" since after this line is a breakline
+            style_name = cols[3][:-1].replace(" ", "") # The last char is always "\n" since after this line is a breakline
             items.append([text,wav_file,speaker_name, style_name])
 
     return items
