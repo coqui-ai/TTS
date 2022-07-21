@@ -284,12 +284,12 @@ class StyleforwardTTS(BaseTTS):
 
         if self.config.style_encoder_config.use_lookup and self.style_manager:
             print(" > initialization of style-embedding layers.")
-            self.num_style = self.style_manager.num_styles
+            self.num_style = self.style_manager.num_styles()
             self.embedded_style_dim = self.config.style_encoder_config.style_embedding_dim
             self.emb_s = nn.Embedding(self.num_styles, self.embedded_style_dim)
             torch.nn.init.xavier_uniform_(self.emb_s.weight)
         else:
-            self.num_style = self.style_manager.num_styles
+            self.num_style = self.style_manager.num_styles()
             self.embedded_style_dim = 0
             self.emb_s = None
 
