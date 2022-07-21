@@ -205,6 +205,8 @@ class TTSDataset(Dataset):
     def load_data(self, idx):
         item = self.items[idx]
 
+        print(item)
+
         if len(item) == 5:
             text, wav_file, speaker_name, language_name, style_target = item
             attn = None
