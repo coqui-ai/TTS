@@ -52,7 +52,6 @@ class StyleManager:
             json.dump(data, f, indent=4)
 
 
-    @staticmethod
     def parse_styles_from_data(self, items: list) -> None:
         """Parse speaker IDs from data samples retured by `load_tts_samples()`.
 
