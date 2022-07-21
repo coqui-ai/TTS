@@ -66,7 +66,6 @@ class StyleManager:
         num_styles = len(styles_ids)
         
         self.style_id_mapping = styles_ids 
-        self.num_styles = num_styles
 
     @property
     def num_styles(self) -> int:
