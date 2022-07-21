@@ -573,7 +573,8 @@ class StyleforwardTTS(BaseTTS):
         if(self.config.style_encoder_config.use_lookup):
             # print(self.emb_s(aux_input["style_ids"]).unsqueeze(1).shape, o_en.shape)
             o_en = o_en.permute(0,2,1)
-            o_en = o_en + self.emb_s(aux_input["style_ids"].unsqueeze(1)) # [B, 1, C]
+            style_encoder_outputs = self.emb_s(aux_input["style_ids"].unsqueeze(1)) 
+            o_en = o_en + style_encoder_outputs # [B, 1, C]
             o_en = o_en.permute(0,2,1)
         else:
             se_inputs = [o_en.permute(0,2,1), y]
@@ -654,7 +655,8 @@ class StyleforwardTTS(BaseTTS):
         
         if(self.config.style_encoder_config.use_lookup):
             o_en = o_en.permute(0,2,1)
-            o_en = o_en + self.emb_s(aux_input["style_ids"].unsqueeze(1)) # [B, 1, C]
+            style_encoder_outputs = self.emb_s(aux_input["style_ids"].unsqueeze(1)) 
+            o_en = o_en + style_encoder_outputs # [B, 1, C]
             o_en = o_en.permute(0,2,1)
         else:
             se_inputs = [o_en.permute(0,2,1), aux_input['style_mel']]
