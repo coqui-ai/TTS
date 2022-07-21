@@ -453,12 +453,12 @@ class TTSDataset(Dataset):
 
 
             # get numerical style ids from speaker names
-            if self.speaker_id_mapping:
+            if self.style_id_mapping:
                 style_ids = [self.style_id_mapping[st] for st in batch["style_target"]]
             else:
                 style_ids = None
 
-            print(style_ids, batch['style_target'],self.style_id_mapping)
+            # print(style_ids, batch['style_target'],self.style_id_mapping)
 
             # compute features
             mel = [self.ap.melspectrogram(w).astype("float32") for w in batch["wav"]]
