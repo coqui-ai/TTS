@@ -25,17 +25,17 @@ def is_pinyin(token: str):
 
 
 def chinese_text_to_phonemes(text: str, seperator: str = "|") -> str:
-    tokenized_text = " ".join(text)
-    pinyined_text: List[str] = _chinese_character_to_pinyin(tokenized_text)
+    pinyined_text: List[str] = _chinese_character_to_pinyin(text)
 
     results: List[str] = []
 
     for token in pinyined_text:
         if is_pinyin(token):
             pinyin_phonemes = _chinese_pinyin_to_phoneme(token)
-
             results += list(pinyin_phonemes)
         else:  # is ponctuation or other
             results += list(token[1:])  # remove the temp flag
 
-    return seperator.join(results)
+        results.append(' ')
+
+    return seperator.join(results).strip()

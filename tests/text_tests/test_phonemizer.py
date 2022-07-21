@@ -193,7 +193,7 @@ class TestZH_CN_Phonemizer(unittest.TestCase):
             我来自武汉大学/wo3 lai2 dzɪ4 wu3 xan4 da4 ɕye2
             你吃早饭了吗？/ni3 ʈʂʏ1 dzaʌ3 fan4 lø5 ma5 ？
             一乘一等于1/i1 ʈʂɵŋ2 i1 dɵŋ3 y2 1
-            古人云：“人无远虑，必有近忧”/gu3 ʐœn2 yn2 ： “ ʐœn2 wu2 yɛn3 ly4 ， bi4 io3 dʑin4 io1 ”
+            古人云：“人无远虑，必有近忧”/gu3 ʐœn2 yn2 ：“ ʐœn2 wu2 yɛn3 ly4 ， bi4 io3 dʑin4 io1 ”
             """
 
     def test_phonemize(self):
