@@ -27,7 +27,6 @@ trainer
 # config management
 coqpit>=0.0.16
 # chinese g2p deps
-jieba
 pypinyin
 # japanese g2p deps
 mecab-python3==1.0.5

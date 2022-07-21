@@ -1,13 +1,14 @@
 from typing import List
 
-import jieba
 import pypinyin
 
 from .pinyinToPhonemes import PINYIN_DICT
 
 
 def _chinese_character_to_pinyin(text: str) -> List[str]:
-    pinyins = pypinyin.pinyin(text, style=pypinyin.Style.TONE3, heteronym=False, neutral_tone_with_five=True)
+    pinyins = pypinyin.pinyin(text, style=pypinyin.Style.TONE3, heteronym=False, neutral_tone_with_five=True,
+                              # Add temp non-pinyin flag
+                              errors=lambda x: '￥' + x)
     pinyins_flat_list = [item for sublist in pinyins for item in sublist]
     return pinyins_flat_list
 
@@ -19,19 +20,22 @@ def _chinese_pinyin_to_phoneme(pinyin: str) -> str:
     return phoneme + tone
 
 
+def is_pinyin(token: str):
+    return not token.startswith('￥')
+
+
 def chinese_text_to_phonemes(text: str, seperator: str = "|") -> str:
-    tokenized_text = jieba.cut(text, HMM=False)
-    tokenized_text = " ".join(tokenized_text)
+    tokenized_text = " ".join(text)
     pinyined_text: List[str] = _chinese_character_to_pinyin(tokenized_text)
 
     results: List[str] = []
 
     for token in pinyined_text:
-        if token[-1] in "12345":  # TODO transform to is_pinyin()
+        if is_pinyin(token):
             pinyin_phonemes = _chinese_pinyin_to_phoneme(token)
 
             results += list(pinyin_phonemes)
         else:  # is ponctuation or other
-            results += list(token)
+            results += list(token[1:])  # remove the temp flag
 
     return seperator.join(results)
