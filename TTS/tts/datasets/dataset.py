@@ -458,7 +458,7 @@ class TTSDataset(Dataset):
             else:
                 style_ids = None
 
-            print(style_ids)
+            print(style_ids, batch['style_target'],self.style_id_mapping)
 
             # compute features
             mel = [self.ap.melspectrogram(w).astype("float32") for w in batch["wav"]]
