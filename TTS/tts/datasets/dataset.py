@@ -212,13 +212,13 @@ class TTSDataset(Dataset):
             attn = None
         elif len(item) == 6:
             text, wav_file, speaker_name, language_name, style_target, attn_file = item
-        elif len(item) == 4:    
+        elif len(item) == 3:    
             text, wav_file, speaker_name = item
             attn = None
             language_name = None
             style_target = None
         else:
-            text, wav_file, speaker_name, language_name = item
+            text, wav_file, speaker_name, style_target = item
             attn = None
             style_target = None
 
