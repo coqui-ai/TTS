@@ -289,7 +289,7 @@ class BaseTTS(BaseModel):
 
             if hasattr(self, "style_manager"):
                 style_id_mapping = (
-                    self.style_manager.style_id_mapping if self.args.use_style_embedding else None
+                    self.style_manager.style_id_mapping if config.style_encoder_config.use_supervised_style else None
                 )
             else:
                 style_id_mapping = None
