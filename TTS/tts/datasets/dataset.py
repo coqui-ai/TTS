@@ -131,6 +131,8 @@ class TTSDataset(Dataset):
         self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
 
+        print(self.items[:2])
+
         self.verbose = verbose
         self.input_seq_computed = False
         self.rescue_item_idx = 1
@@ -204,8 +206,6 @@ class TTSDataset(Dataset):
 
     def load_data(self, idx):
         item = self.items[idx]
-
-        print(item)
 
         if len(item) == 5:
             text, wav_file, speaker_name, language_name, style_target = item
