@@ -207,21 +207,24 @@ class TTSDataset(Dataset):
     def load_data(self, idx):
         item = self.items[idx]
 
+        # Remember, for some reason, the last is always the "language" with default value = ''
         if len(item) == 5:
-            text, wav_file, speaker_name, language_name, style_target = item
+            text, wav_file, speaker_name, style_target, _ = item
+            language_name = None
             attn = None
         elif len(item) == 6:
             text, wav_file, speaker_name, language_name, style_target, attn_file = item
-        elif len(item) == 3:    
-            text, wav_file, speaker_name = item
+        elif len(item) == 4:    
+            text, wav_file, speaker_name, _ = item
             attn = None
             language_name = None
             style_target = None
         else:
-            text, wav_file, speaker_name, style_target = item
+            text, wav_file, _  = item
             attn = None
             language_name = None
             style_target = None
+            speaker_name = None
 
         raw_text = text
 
