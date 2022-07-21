@@ -51,12 +51,12 @@ class ZH_CN_Phonemizer(BasePhonemizer):
         return True
 
 
-if __name__ == "__main__":
-    text = "古人云：“人无远虑，必有近忧”"
-    e = ZH_CN_Phonemizer()
-    print(e.supported_languages())
-    print(e.version())
-    print(e.language)
-    print(e.name())
-    print(e.is_available())
-    print("`" + e.phonemize(text, separator="") + "`")
+# if __name__ == "__main__":
+#     text = "古人云：“人无远虑，必有近忧”"
+#     e = ZH_CN_Phonemizer()
+#     print(e.supported_languages())
+#     print(e.version())
+#     print(e.language)
+#     print(e.name())
+#     print(e.is_available())
+#     print("`" + e.phonemize(text, separator="") + "`")
