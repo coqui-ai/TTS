@@ -569,12 +569,12 @@ class StyleforwardTTS(BaseTTS):
         o_en, x_mask, g, x_emb = self._forward_encoder(x, x_mask, g)
 
         #Style embedding 
-        se_inputs = [o_en.permute(0,2,1), y]
-        o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
-        o_en = o_en.permute(0,2,1)
-
         if(self.config.style_encoder_config.use_lookup):
             o_en = o_en + self.emb_s(aux_input["style_ids"])
+        else:
+            se_inputs = [o_en.permute(0,2,1), y]
+            o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
+            o_en = o_en.permute(0,2,1)
 
         # duration predictor pass
         if self.args.detach_duration_predictor:
@@ -647,12 +647,14 @@ class StyleforwardTTS(BaseTTS):
         #Style embedding 
         # se_inputs = [o_en, aux_input['style_mel']]
         # o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
-        se_inputs = [o_en.permute(0,2,1), aux_input['style_mel']]
-        o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
-        o_en = o_en.permute(0,2,1)
         
         if(self.config.style_encoder_config.use_lookup):
             o_en = o_en + self.emb_s(aux_input["style_ids"])
+        else:
+            se_inputs = [o_en.permute(0,2,1), aux_input['style_mel']]
+            o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
+            o_en = o_en.permute(0,2,1)
+
 
         # duration predictor pass
         o_dr_log = self.duration_predictor(o_en, x_mask)
