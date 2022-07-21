@@ -36,9 +36,7 @@ class StyleManager:
         if style_ids_file_path:
             self.set_style_ids_from_file(style_ids_file_path)
         if data_items:  
-            style_id_mapping, num_styles = self.parse_styles_from_data(data_items)
-            self.style_id_mapping = style_id_mapping 
-            self.num_styles = num_styles
+            self.parse_styles_from_data(data_items)
 
         # if config:
             # self.set_style_ids_from_config(config)
@@ -55,7 +53,7 @@ class StyleManager:
 
 
     @staticmethod
-    def parse_styles_from_data(items: list) -> Tuple[Dict, int]:
+    def parse_styles_from_data(self, items: list) -> None:
         """Parse speaker IDs from data samples retured by `load_tts_samples()`.
 
         Args:
@@ -67,7 +65,9 @@ class StyleManager:
         styles = sorted({item[3] for item in items})
         styles_ids = {name: i for i, name in enumerate(styles)}
         num_styles = len(styles_ids)
-        return styles_ids, num_styles
+        
+        self.style_id_mapping = styles_ids 
+        self.num_styles = num_styles
 
     @property
     def num_styles(self) -> int:
