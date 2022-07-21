@@ -52,7 +52,7 @@ class StyleManager:
 
 
     @staticmethod
-    def parse_style_from_data(items: list) -> Tuple[Dict, int]:
+    def parse_styles_from_data(items: list) -> Tuple[Dict, int]:
         """Parse speaker IDs from data samples retured by `load_tts_samples()`.
 
         Args:
