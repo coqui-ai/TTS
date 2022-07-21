@@ -210,6 +210,7 @@ class TTSDataset(Dataset):
         # Remember, for some reason, the last is always the "language" with default value = ''
         if len(item) == 5:
             text, wav_file, speaker_name, style_target, _ = item
+            print(style_target)
             language_name = None
             attn = None
         elif len(item) == 6:

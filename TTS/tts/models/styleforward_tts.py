@@ -687,7 +687,7 @@ class StyleforwardTTS(BaseTTS):
         speaker_ids = batch["speaker_ids"]
         durations = batch["durations"]
         style_ids = batch['style_ids']
-        print(style_ids)
+        # print(style_ids) -> Ta vindo do batch errado, ta vindo None
         aux_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids, "style_ids": style_ids}
 
         # forward pass
