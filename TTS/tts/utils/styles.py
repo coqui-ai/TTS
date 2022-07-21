@@ -20,7 +20,7 @@ class StyleManager:
         Defaults to None.
 
     Examples:
-        >>> manager = StyleManager(style_ids_file_path=style_ids_file_path)
+        >>> manager = tyleManager(style_ids_file_path=style_ids_file_path)
         >>> style_id_mapper = manager.style_ids
     """
 
@@ -29,14 +29,16 @@ class StyleManager:
     def __init__(
         self,
         style_ids_file_path: str = "",
+        data_items: List[List[Any]] = None,
         config: Coqpit = None,
     ):
         self.style_id_mapping = {}
         if style_ids_file_path:
             self.set_style_ids_from_file(style_ids_file_path)
-
-        if config:
-            self.set_style_ids_from_config(config)
+        if data_items:  
+            self.style_id_mapping, self.num_styles = self.parse_styles_from_data(data_items)
+        # if config:
+            # self.set_style_ids_from_config(config)
 
     @staticmethod
     def _load_json(json_file_path: str) -> Dict:
@@ -47,6 +49,22 @@ class StyleManager:
     def _save_json(json_file_path: str, data: dict) -> None:
         with fsspec.open(json_file_path, "w") as f:
             json.dump(data, f, indent=4)
+
+
+    @staticmethod
+    def parse_style_from_data(items: list) -> Tuple[Dict, int]:
+        """Parse speaker IDs from data samples retured by `load_tts_samples()`.
+
+        Args:
+            items (list): Data sampled returned by `load_tts_samples()`.
+
+        Returns:
+            Tuple[Dict, int]: speaker IDs and number of speakers.
+        """
+        styles = sorted({item[3] for item in items})
+        styles_ids = {name: i for i, name in enumerate(styles)}
+        num_styles = len(styles_ids)
+        return styles_ids, num_styles
 
     @property
     def num_styles(self) -> int:

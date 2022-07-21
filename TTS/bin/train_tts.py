@@ -85,7 +85,7 @@ def main():
         language_manager = None
 
     if check_config_and_model_args(config.style_encoder_config, "use_supervised_style", True):
-        language_manager = StyleManager(config=config)
+        language_manager = StyleManager(ata_items=train_samples + eval_samples)
         if hasattr(config, "model_args"):
             config.model_args.num_styles = style_manager.num_styles
         else:

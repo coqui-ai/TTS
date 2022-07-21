@@ -65,6 +65,11 @@ class StyleEncoderConfig(Coqpit):
     diff_dropout: float = 0.1
     diff_loss_alpha: float = 0.75
 
+
+    # Use orthogonal loss    
+    orthogonal_loss: bool = False  
+    orthogonal_loss_alpha: float = 1.0
+
     def check_values(
         self,
     ):
