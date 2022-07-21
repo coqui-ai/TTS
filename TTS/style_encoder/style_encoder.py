@@ -71,7 +71,7 @@ class StyleEncoder(nn.Module):
         else:
             raise NotImplementedError
 
-    def forward(self, inputs):
+    def forward(self, inputs, aux_input):
         if self.se_type == 'gst':
             out = self.gst_embedding(*inputs)
         elif self.se_type == 're':

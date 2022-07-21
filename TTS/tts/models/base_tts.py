@@ -13,6 +13,7 @@ from TTS.model import BaseModel
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.languages import LanguageManager, get_language_weighted_sampler
+from TTS.tts.utils.styles import StyleManager, get_style_weighted_sampler
 from TTS.tts.utils.speakers import SpeakerManager, get_speaker_manager, get_speaker_weighted_sampler
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text import make_symbols
@@ -109,7 +110,7 @@ class BaseTTS(BaseModel):
 
     def get_aux_input(self, **kwargs) -> Dict:
         """Prepare and return `aux_input` used by `forward()`"""
-        return {"speaker_id": None, "style_wav": None, "d_vector": None, "language_id": None}
+        return {"speaker_id": None, "style_wav": None, "d_vector": None, "language_id": None, "style_id": None}
 
     def get_aux_input_from_test_setences(self, sentence_info):
         if hasattr(self.config, "model_args"):
@@ -118,7 +119,7 @@ class BaseTTS(BaseModel):
             config = self.config
 
         # extract speaker and language info
-        text, speaker_name, style_wav, language_name = None, None, None, None
+        text, speaker_name, style_wav, language_name, style_name, = None, None, None, None, None
 
         if isinstance(sentence_info, list):
             if len(sentence_info) == 1:
@@ -129,11 +130,13 @@ class BaseTTS(BaseModel):
                 text, speaker_name, style_wav = sentence_info
             elif len(sentence_info) == 4:
                 text, speaker_name, style_wav, language_name = sentence_info
+            elif len(sentence_info) == 5:
+                text, speaker_name, style_wav, language_name, style_name = sentence_info
         else:
             text = sentence_info
 
         # get speaker  id/d_vector
-        speaker_id, d_vector, language_id = None, None, None
+        speaker_id, d_vector, language_id, style_id = None, None, None, None
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
@@ -150,12 +153,17 @@ class BaseTTS(BaseModel):
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
             language_id = self.language_manager.language_id_mapping[language_name]
 
+        # get style id
+        if hasattr(self, "style_manager") and self.config.style_encoder_config.use_lookup and style_name is not None:
+            style_id = self.style_manager.style_id_mapping[style_name]
+
         return {
             "text": text,
             "speaker_id": speaker_id,
             "style_wav": style_wav,
             "d_vector": d_vector,
             "language_id": language_id,
+            "style_id": style_id
         }
 
     def format_batch(self, batch: Dict) -> Dict:
@@ -184,6 +192,8 @@ class BaseTTS(BaseModel):
         waveform = batch["waveform"]
         pitch = batch["pitch"]
         language_ids = batch["language_ids"]
+        style_ids = batch["style_ids"]
+
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
 
@@ -232,6 +242,7 @@ class BaseTTS(BaseModel):
             "waveform": waveform,
             "pitch": pitch,
             "language_ids": language_ids,
+            "style_ids": style_ids
         }
 
     def get_data_loader(
@@ -276,6 +287,13 @@ class BaseTTS(BaseModel):
             else:
                 language_id_mapping = None
 
+            if hasattr(self, "style_manager"):
+                style_id_mapping = (
+                    self.style_manager.style_id_mapping if self.args.use_style_embedding else None
+                )
+            else:
+                style_id_mapping = None
+
             # init dataloader
             dataset = TTSDataset(
                 outputs_per_step=config.r if "r" in config else 1,
@@ -301,6 +319,7 @@ class BaseTTS(BaseModel):
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping,
                 language_id_mapping=language_id_mapping,
+                style_id_mapping=style_id_mapping
             )
 
             # pre-compute phonemes
@@ -454,3 +473,13 @@ class BaseTTS(BaseModel):
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
             print(f" > `language_ids.json` is saved to {output_path}.")
             print(" > `language_ids_file` is updated in the config.json.")
+
+        if hasattr(self, "style_manager") and self.style_manager is not None:
+            output_path = os.path.join(trainer.output_path, "style_ids.json")
+            self.style_manager.save_style_ids_to_file(output_path)
+            trainer.config.style_ids_file = output_path
+            if hasattr(trainer.config, "model_args"):
+                trainer.config.model_args.style_ids_file = output_path
+            trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
+            print(f" > `style_ids.json` is saved to {output_path}.")
+            print(" > `style_ids_file` is updated in the config.json.")

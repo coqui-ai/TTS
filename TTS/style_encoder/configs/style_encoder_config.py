@@ -34,6 +34,8 @@ class StyleEncoderConfig(Coqpit):
     start_loss_at: int = 0 # Iteration that the style loss should start propagate 
     use_nonlinear_proj: bool = False # Whether use or not a linear (last_dim, last_dim) + tanh before agg in TTS encoder outputs
     use_speaker_embedding: bool = False
+    use_lookup: bool = False
+    use_supervised_style: bool = False
 
     # GST-SE Additional Configs
     gst_style_input_weights: dict = None

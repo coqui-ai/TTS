@@ -2,7 +2,7 @@ from TTS.tts.utils.text.symbols import make_symbols, parse_symbols
 from TTS.utils.generic_utils import find_module
 
 
-def setup_model(config, speaker_manager: "SpeakerManager" = None, language_manager: "LanguageManager" = None):
+def setup_model(config, speaker_manager: "SpeakerManager" = None, language_manager: "LanguageManager" = None, style_manager: "StyleManager" = None):
     print(" > Using model: {}".format(config.model))
     # fetch the right model implementation.
     if "base_model" in config and config["base_model"] is not None:
@@ -33,6 +33,8 @@ def setup_model(config, speaker_manager: "SpeakerManager" = None, language_manag
         config.model_args.num_chars = num_chars
     if config.model.lower() in ["vits"]:  # If model supports multiple languages
         model = MyModel(config, speaker_manager=speaker_manager, language_manager=language_manager)
+    elif config.model.lower() in ["styleforward_tts"] and config.style_encoder_config.use_supervised_style:
+        model = MyModel(config, speaker_manager=speaker_manager, style_manager=style_manager)
     else:
         model = MyModel(config, speaker_manager=speaker_manager)
     return model

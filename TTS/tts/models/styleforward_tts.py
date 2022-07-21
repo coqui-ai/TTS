@@ -15,6 +15,7 @@ from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import average_over_durations, generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.visual import plot_alignment, plot_pitch, plot_spectrogram
+from TTS.tts.utils.styles import StyleManager, get_style_weighted_sampler
 
 # Import Style Encoder
 from TTS.style_encoder.style_encoder import StyleEncoder
@@ -173,12 +174,14 @@ class StyleforwardTTS(BaseTTS):
     """
 
     # pylint: disable=dangerous-default-value
-    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None):
+    def __init__(self, config: Coqpit, speaker_manager: SpeakerManager = None, style_manager: StyleManager = None):
 
         super().__init__(config)
 
         self.speaker_manager = speaker_manager
         self.init_multispeaker(config)
+        self.style_manager = style_manager
+        self.init_style(config)
         # # pass all config fields to `self`
         # # for fewer code change
         # for key in config:
@@ -266,6 +269,28 @@ class StyleforwardTTS(BaseTTS):
             print(" > Init speaker_embedding layer.")
             self.emb_g = nn.Embedding(self.args.num_speakers, self.args.hidden_channels)
             nn.init.uniform_(self.emb_g.weight, -0.1, 0.1)
+
+    def init_style(self, config: Coqpit):
+        """Initialize style modules of a model.
+
+        Args:
+            config (Coqpit): Model configuration.
+        """
+        if self.args.style_ids_file is not None:
+            self.style_manager = StyleManager(style_ids_file_path=config.style_ids_file)
+
+        print(" > using STYLE information.")
+
+        if self.config.style_encoder_config.use_lookup and self.style_manager:
+            print(" > initialization of style-embedding layers.")
+            self.num_style = self.style_manager.num_styles
+            self.embedded_style_dim = self.config.style_encoder_config.style_embedding_dim
+            self.emb_s = nn.Embedding(self.num_styles, self.embedded_style_dim)
+            torch.nn.init.xavier_uniform_(self.emb_s.weight)
+        else:
+            self.num_style = self.style_manager.num_styles
+            self.embedded_style_dim = 0
+            self.emb_s = None
 
     @staticmethod
     def generate_attn(dr, x_mask, y_mask=None):
@@ -512,7 +537,7 @@ class StyleforwardTTS(BaseTTS):
         y: torch.FloatTensor = None,
         dr: torch.IntTensor = None,
         pitch: torch.FloatTensor = None,
-        aux_input: Dict = {"d_vectors": None, "speaker_ids": None},  # pylint: disable=unused-argument
+        aux_input: Dict = {"d_vectors": None, "speaker_ids": None, "style_ids": None},  # pylint: disable=unused-argument
     ) -> Dict:
         """Model's forward pass.
 
@@ -544,8 +569,11 @@ class StyleforwardTTS(BaseTTS):
 
         #Style embedding 
         se_inputs = [o_en.permute(0,2,1), y]
-        o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
+        o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
         o_en = o_en.permute(0,2,1)
+
+        if(self.config.style_encoder_config.use_lookup):
+            o_en = o_en + self.emb_s(aux_input["style_ids"])
 
         # duration predictor pass
         if self.args.detach_duration_predictor:
@@ -596,7 +624,7 @@ class StyleforwardTTS(BaseTTS):
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, 'style_mel': None, 'pitch_control': None}):  # pylint: disable=unused-argument
+    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, 'style_mel': None, "style_ids": None,'pitch_control': None}):  # pylint: disable=unused-argument
         """Model's inference pass.
 
         Args:
@@ -622,6 +650,9 @@ class StyleforwardTTS(BaseTTS):
         o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs)
         o_en = o_en.permute(0,2,1)
         
+        if(self.config.style_encoder_config.use_lookup):
+            o_en = o_en + self.emb_s(aux_input["style_ids"])
+
         # duration predictor pass
         o_dr_log = self.duration_predictor(o_en, x_mask)
         o_dr = self.format_durations(o_dr_log, x_mask).squeeze(1)
@@ -651,7 +682,8 @@ class StyleforwardTTS(BaseTTS):
         d_vectors = batch["d_vectors"]
         speaker_ids = batch["speaker_ids"]
         durations = batch["durations"]
-        aux_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids}
+        style_ids = batch['style_ids']
+        aux_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids, "style_ids": style_ids}
 
         # forward pass
         outputs = self.forward(

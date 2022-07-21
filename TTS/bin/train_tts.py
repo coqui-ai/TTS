@@ -11,6 +11,7 @@ from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models import setup_model
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.styles import StyleManager
 from TTS.utils.audio import AudioProcessor
 
 
@@ -83,8 +84,17 @@ def main():
     else:
         language_manager = None
 
+    if check_config_and_model_args(config.style_encoder_config, "use_supervised_style", True):
+        language_manager = StyleManager(config=config)
+        if hasattr(config, "model_args"):
+            config.model_args.num_styles = style_manager.num_styles
+        else:
+            config.num_styles = style_manager.num_styles
+    else:
+        style_manager = None
+
     # init the model from config
-    model = setup_model(config, speaker_manager, language_manager)
+    model = setup_model(config, speaker_manager, language_manager, style_manager)
 
     # init the trainer and 
     trainer = Trainer(

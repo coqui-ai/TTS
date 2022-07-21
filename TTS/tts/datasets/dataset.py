@@ -210,6 +210,11 @@ class TTSDataset(Dataset):
             attn = None
         elif len(item) == 6:
             text, wav_file, speaker_name, language_name, style_target, attn_file = item
+        elif len(item) == 4:    
+            text, wav_file, speaker_name = item
+            attn = None
+            language_name = None
+            style_target = None
         else:
             text, wav_file, speaker_name, language_name = item
             attn = None
@@ -489,6 +494,9 @@ class TTSDataset(Dataset):
 
             if language_ids is not None:
                 language_ids = torch.LongTensor(language_ids)
+
+            if style_ids is not None:
+                style_ids = torch.LongTensor(style_ids)
 
             # compute linear spectrogram
             if self.compute_linear_spec:
