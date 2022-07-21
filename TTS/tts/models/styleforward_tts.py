@@ -571,6 +571,7 @@ class StyleforwardTTS(BaseTTS):
 
         #Style embedding 
         if(self.config.style_encoder_config.use_lookup):
+            print(self.emb_s(aux_input["style_ids"].unsqueeze(-1).shape, o_en.shape)
             o_en = o_en + self.emb_s(aux_input["style_ids"].unsqueeze(-1)) # [B, E , 1]
         else:
             se_inputs = [o_en.permute(0,2,1), y]
