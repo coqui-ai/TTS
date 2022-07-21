@@ -36,7 +36,10 @@ class StyleManager:
         if style_ids_file_path:
             self.set_style_ids_from_file(style_ids_file_path)
         if data_items:  
-            self.style_id_mapping, self.num_styles = self.parse_styles_from_data(data_items)
+            style_id_mapping, num_styles = self.parse_styles_from_data(data_items)
+            self.style_id_mapping = style_id_mapping 
+            self.num_styles = num_styles
+
         # if config:
             # self.set_style_ids_from_config(config)
 
