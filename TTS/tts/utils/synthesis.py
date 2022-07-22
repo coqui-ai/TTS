@@ -72,6 +72,7 @@ def run_model_torch(
     style_mel: torch.Tensor = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
+    style_id: torch.Tensor = None,
     diff_t = None, 
     z: torch.Tensor = None,
     pitch_control: torch.FloatTensor = None,
@@ -101,6 +102,7 @@ def run_model_torch(
             "d_vectors": d_vector,
             "style_mel": style_mel,
             "language_ids": language_id,
+            "style_ids": style_id,
             "diff_t": diff_t,
             "z": z,
             "pitch_control": pitch_control
@@ -219,6 +221,7 @@ def synthesis(
     d_vector=None,
     language_id=None,
     language_name=None,
+    style_id = None,
     diff_t = None,
     z = None,
     pitch_control = None,
@@ -290,6 +293,9 @@ def synthesis(
         if language_id is not None:
             language_id = id_to_torch(language_id, cuda=use_cuda)
 
+        if style_id is not None:
+            style_id = id_to_torch(style_id, cuda=use_cuda)
+
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
@@ -301,7 +307,7 @@ def synthesis(
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id, diff_t = diff_t, z = z, pitch_control = pitch_control)
+        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id, style_id = style_id, diff_t = diff_t, z = z, pitch_control = pitch_control)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
         alignments = outputs["alignments"]
