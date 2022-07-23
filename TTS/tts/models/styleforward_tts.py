@@ -208,7 +208,8 @@ class StyleforwardTTS(BaseTTS):
             self.embedded_speaker_dim,
         )
 
-        self.style_encoder_layer = StyleEncoder(self.config.style_encoder_config)
+        if(not self.config.style_encoder_config.use_lookup):
+            self.style_encoder_layer = StyleEncoder(self.config.style_encoder_config)
 
         if self.args.positional_encoding:
             self.pos_encoder = PositionalEncoding(self.args.hidden_channels)
