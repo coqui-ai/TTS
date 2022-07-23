@@ -2,7 +2,6 @@ from typing import Dict, Tuple
 
 import librosa
 import numpy as np
-import pyworld as pw
 import scipy.io.wavfile
 import scipy.signal
 import soundfile as sf
@@ -724,38 +723,6 @@ class AudioProcessor(object):
         if pad_sides == 1:
             return 0, pad
         return pad // 2, pad // 2 + pad % 2
-
-    def compute_f0(self, x: np.ndarray) -> np.ndarray:
-        """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
-
-        Args:
-            x (np.ndarray): Waveform.
-
-        Returns:
-            np.ndarray: Pitch.
-
-        Examples:
-            >>> WAV_FILE = filename = librosa.util.example_audio_file()
-            >>> from TTS.config import BaseAudioConfig
-            >>> from TTS.utils.audio import AudioProcessor
-            >>> conf = BaseAudioConfig(pitch_fmax=8000)
-            >>> ap = AudioProcessor(**conf)
-            >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
-            >>> pitch = ap.compute_f0(wav)
-        """
-        assert self.pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
-        # align F0 length to the spectrogram length
-        if len(x) % self.hop_length == 0:
-            x = np.pad(x, (0, self.hop_length // 2), mode="reflect")
-
-        f0, t = pw.dio(
-            x.astype(np.double),
-            fs=self.sample_rate,
-            f0_ceil=self.pitch_fmax,
-            frame_period=1000 * self.hop_length / self.sample_rate,
-        )
-        f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
-        return f0
 
     ### Audio Processing ###
     def find_endpoint(self, wav: np.ndarray, min_silence_sec=0.8) -> int:
