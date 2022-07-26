@@ -16,7 +16,7 @@ python synthesize.py --text "" --model_path C:\Users\82109\Desktop\TTS\data\kss\
 
 
 
-python .\TTS\bin\synthesize.py --text "경찰청 철창살은 외철창살이고 검찰청 철창살은 쌍철창살이다." --model_path C:\Users\82109\Desktop\TTS\v\best_model.pth --config_path C:\Users\82109\Desktop\TTS\v\config.json --out_path C:\Users\82109\Desktop\TTS\v\outfile.wav --speaker_idx emilia --language_idx ko-kr
+python .\TTS\bin\synthesize.py --text "" --model_path C:\Users\82109\Desktop\TTS\v\best_model.pth --config_path C:\Users\82109\Desktop\TTS\v\config.json --out_path C:\Users\82109\Desktop\TTS\v\outfile.wav --speaker_idx emilia --language_idx ko-kr
 
 
 

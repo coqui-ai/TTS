@@ -4,8 +4,7 @@ from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes
 from TTS.tts.utils.text.phonemizers import DEF_LANG_TO_PHONEMIZER, get_phonemizer_by_name
 from TTS.utils.generic_utils import get_import_path, import_class
-
-
+import re
 class TTSTokenizer:
     """🐸TTS tokenizer to convert input characters to token IDs and back.
 
@@ -102,16 +101,28 @@ class TTSTokenizer:
         4. Add BOS and EOS characters
         5. Text to token IDs
         """
+
+        #Add support for language-specific processing.
+        if re.compile('[가-힇ㄱ-ㅎㅏ-ㅣ]+').findall(text):
+            language='ko-kr'
+        else:
+            language='ja-jp'
+
+
         # TODO: text cleaner should pick the right routine based on the language
         if self.text_cleaner is not None:
             text = self.text_cleaner(text)
-        if self.use_phonemes:
-            text = self.phonemizer.phonemize(text, separator="")
+
+        if self.use_phonemes and self.phonemizer.name()=="multi_phonemizer":
+            text = self.phonemizer.phonemize(text, separator="|",language=language)
+        elif self.use_phonemes:
+            text = self.phonemizer.phonemize(text, separator="|")
+
         if self.add_blank:
             text = self.intersperse_blank_char(text, True)
         if self.use_eos_bos:
             text = self.pad_with_bos_eos(text)
-        #print(text)
+        #print(f'text => {text}')
         return self.encode(text)
 
     def ids_to_text(self, id_sequence: List[int]) -> str:

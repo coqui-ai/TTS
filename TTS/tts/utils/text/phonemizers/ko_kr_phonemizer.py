@@ -23,7 +23,7 @@ class KO_KR_Phonemizer(BasePhonemizer):
     def _phonemize(self, text: str, separator: str = "|") -> str:
         pass
 
-    def phonemize(self, text: str, separator="|") -> str:
+    def phonemize(self, text: str, separator: str ="|") -> str:
         return korean_text_to_phonemes(text, separator)
 
     @staticmethod
