@@ -29,11 +29,11 @@ def squeeze(x, x_mask=None, num_sqz=2):
 
 
 def unsqueeze(x, x_mask=None, num_sqz=2):
-    """GlowTTS unsqueeze operation
+    """GlowTTS unsqueeze operation (revert the squeeze)
 
     Note:
         each 's' is a n-dimensional vector.
-        ``[[s1, s3, s5], [s2, s4, s6]] --> [[s1, s3, s5], [s2, s4, s6]]``
+        ``[[s1, s3, s5], [s2, s4, s6]] --> [[s1, s3, s5, s2, s4, s6]]``
     """
     b, c, t = x.size()
 
