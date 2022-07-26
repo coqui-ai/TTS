@@ -48,8 +48,7 @@ class MelResNet(nn.Module):
     def __init__(self, num_res_blocks, in_dims, compute_dims, res_out_dims, pad):
         super().__init__()
         k_size = pad * 2 + 1
-        self.conv_in = nn.Conv1d(
-            in_dims, compute_dims, kernel_size=k_size, bias=False)
+        self.conv_in = nn.Conv1d(in_dims, compute_dims, kernel_size=k_size, bias=False)
         self.batch_norm = nn.BatchNorm1d(compute_dims)
         self.layers = nn.ModuleList()
         for _ in range(num_res_blocks):
@@ -95,16 +94,14 @@ class UpsampleNetwork(nn.Module):
         self.indent = pad * self.total_scale
         self.use_aux_net = use_aux_net
         if use_aux_net:
-            self.resnet = MelResNet(
-                num_res_blocks, feat_dims, compute_dims, res_out_dims, pad)
+            self.resnet = MelResNet(num_res_blocks, feat_dims, compute_dims, res_out_dims, pad)
             self.resnet_stretch = Stretch2d(self.total_scale, 1)
         self.up_layers = nn.ModuleList()
         for scale in upsample_scales:
             k_size = (1, scale * 2 + 1)
             padding = (0, scale)
             stretch = Stretch2d(scale, 1)
-            conv = nn.Conv2d(1, 1, kernel_size=k_size,
-                             padding=padding, bias=False)
+            conv = nn.Conv2d(1, 1, kernel_size=k_size, padding=padding, bias=False)
             conv.weight.data.fill_(1.0 / k_size[1])
             self.up_layers.append(stretch)
             self.up_layers.append(conv)
@@ -120,7 +117,7 @@ class UpsampleNetwork(nn.Module):
         m = m.unsqueeze(1)
         for f in self.up_layers:
             m = f(m)
-        m = m.squeeze(1)[:, :, self.indent: -self.indent]
+        m = m.squeeze(1)[:, :, self.indent : -self.indent]
         return m.transpose(1, 2), aux
 
 
@@ -131,20 +128,17 @@ class Upsample(nn.Module):
         self.pad = pad
         self.indent = pad * scale
         self.use_aux_net = use_aux_net
-        self.resnet = MelResNet(num_res_blocks, feat_dims,
-                                compute_dims, res_out_dims, pad)
+        self.resnet = MelResNet(num_res_blocks, feat_dims, compute_dims, res_out_dims, pad)
 
     def forward(self, m):
         if self.use_aux_net:
             aux = self.resnet(m)
-            aux = torch.nn.functional.interpolate(
-                aux, scale_factor=self.scale, mode="linear", align_corners=True)
+            aux = torch.nn.functional.interpolate(aux, scale_factor=self.scale, mode="linear", align_corners=True)
             aux = aux.transpose(1, 2)
         else:
             aux = None
-        m = torch.nn.functional.interpolate(
-            m, scale_factor=self.scale, mode="linear", align_corners=True)
-        m = m[:, :, self.indent: -self.indent]
+        m = torch.nn.functional.interpolate(m, scale_factor=self.scale, mode="linear", align_corners=True)
+        m = m[:, :, self.indent : -self.indent]
         m = m * 0.045  # empirically found
 
         return m.transpose(1, 2), aux
@@ -244,8 +238,7 @@ class Wavernn(BaseVocoder):
 
         if self.args.use_upsample_net:
             assert (
-                np.cumproduct(
-                    self.args.upsample_factors)[-1] == config.audio.hop_length
+                np.cumproduct(self.args.upsample_factors)[-1] == config.audio.hop_length
             ), " [!] upsample scales needs to be equal to hop_length"
             self.upsample = UpsampleNetwork(
                 self.args.feat_dims,
@@ -267,23 +260,16 @@ class Wavernn(BaseVocoder):
                 self.args.use_aux_net,
             )
         if self.args.use_aux_net:
-            self.I = nn.Linear(self.args.feat_dims +
-                               self.aux_dims + 1, self.args.rnn_dims)
-            self.rnn1 = nn.GRU(self.args.rnn_dims,
-                               self.args.rnn_dims, batch_first=True)
-            self.rnn2 = nn.GRU(self.args.rnn_dims + self.aux_dims,
-                               self.args.rnn_dims, batch_first=True)
-            self.fc1 = nn.Linear(self.args.rnn_dims +
-                                 self.aux_dims, self.args.fc_dims)
-            self.fc2 = nn.Linear(self.args.fc_dims +
-                                 self.aux_dims, self.args.fc_dims)
+            self.I = nn.Linear(self.args.feat_dims + self.aux_dims + 1, self.args.rnn_dims)
+            self.rnn1 = nn.GRU(self.args.rnn_dims, self.args.rnn_dims, batch_first=True)
+            self.rnn2 = nn.GRU(self.args.rnn_dims + self.aux_dims, self.args.rnn_dims, batch_first=True)
+            self.fc1 = nn.Linear(self.args.rnn_dims + self.aux_dims, self.args.fc_dims)
+            self.fc2 = nn.Linear(self.args.fc_dims + self.aux_dims, self.args.fc_dims)
             self.fc3 = nn.Linear(self.args.fc_dims, self.n_classes)
         else:
             self.I = nn.Linear(self.args.feat_dims + 1, self.args.rnn_dims)
-            self.rnn1 = nn.GRU(self.args.rnn_dims,
-                               self.args.rnn_dims, batch_first=True)
-            self.rnn2 = nn.GRU(self.args.rnn_dims,
-                               self.args.rnn_dims, batch_first=True)
+            self.rnn1 = nn.GRU(self.args.rnn_dims, self.args.rnn_dims, batch_first=True)
+            self.rnn2 = nn.GRU(self.args.rnn_dims, self.args.rnn_dims, batch_first=True)
             self.fc1 = nn.Linear(self.args.rnn_dims, self.args.fc_dims)
             self.fc2 = nn.Linear(self.args.fc_dims, self.args.fc_dims)
             self.fc3 = nn.Linear(self.args.fc_dims, self.n_classes)
@@ -296,10 +282,10 @@ class Wavernn(BaseVocoder):
 
         if self.args.use_aux_net:
             aux_idx = [self.aux_dims * i for i in range(5)]
-            a1 = aux[:, :, aux_idx[0]: aux_idx[1]]
-            a2 = aux[:, :, aux_idx[1]: aux_idx[2]]
-            a3 = aux[:, :, aux_idx[2]: aux_idx[3]]
-            a4 = aux[:, :, aux_idx[3]: aux_idx[4]]
+            a1 = aux[:, :, aux_idx[0] : aux_idx[1]]
+            a2 = aux[:, :, aux_idx[1] : aux_idx[2]]
+            a3 = aux[:, :, aux_idx[2] : aux_idx[3]]
+            a4 = aux[:, :, aux_idx[3] : aux_idx[4]]
 
         x = (
             torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
@@ -335,15 +321,13 @@ class Wavernn(BaseVocoder):
 
         with torch.no_grad():
             if isinstance(mels, np.ndarray):
-                mels = torch.FloatTensor(mels).to(
-                    str(next(self.parameters()).device))
+                mels = torch.FloatTensor(mels).to(str(next(self.parameters()).device))
 
             if mels.ndim == 2:
                 mels = mels.unsqueeze(0)
             wave_len = (mels.size(-1) - 1) * self.config.audio.hop_length
 
-            mels = self.pad_tensor(mels.transpose(
-                1, 2), pad=self.args.pad, side="both")
+            mels = self.pad_tensor(mels.transpose(1, 2), pad=self.args.pad, side="both")
             mels, aux = self.upsample(mels.transpose(1, 2))
 
             if batched:
@@ -359,7 +343,7 @@ class Wavernn(BaseVocoder):
 
             if self.args.use_aux_net:
                 d = self.aux_dims
-                aux_split = [aux[:, :, d * i: d * (i + 1)] for i in range(4)]
+                aux_split = [aux[:, :, d * i : d * (i + 1)] for i in range(4)]
 
             for i in range(seq_len):
 
@@ -368,14 +352,12 @@ class Wavernn(BaseVocoder):
                 if self.args.use_aux_net:
                     a1_t, a2_t, a3_t, a4_t = (a[:, i, :] for a in aux_split)
 
-                x = torch.cat([x, m_t, a1_t], dim=1) if self.args.use_aux_net else torch.cat(
-                    [x, m_t], dim=1)
+                x = torch.cat([x, m_t, a1_t], dim=1) if self.args.use_aux_net else torch.cat([x, m_t], dim=1)
                 x = self.I(x)
                 h1 = rnn1(x, h1)
 
                 x = x + h1
-                inp = torch.cat(
-                    [x, a2_t], dim=1) if self.args.use_aux_net else x
+                inp = torch.cat([x, a2_t], dim=1) if self.args.use_aux_net else x
                 h2 = rnn2(inp, h2)
 
                 x = x + h2
@@ -388,13 +370,11 @@ class Wavernn(BaseVocoder):
                 logits = self.fc3(x)
 
                 if self.args.mode == "mold":
-                    sample = sample_from_discretized_mix_logistic(
-                        logits.unsqueeze(0).transpose(1, 2))
+                    sample = sample_from_discretized_mix_logistic(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
                     x = sample.transpose(0, 1).type_as(mels)
                 elif self.args.mode == "gauss":
-                    sample = sample_from_gaussian(
-                        logits.unsqueeze(0).transpose(1, 2))
+                    sample = sample_from_gaussian(logits.unsqueeze(0).transpose(1, 2))
                     output.append(sample.view(-1))
                     x = sample.transpose(0, 1).type_as(mels)
                 elif isinstance(self.args.mode, int):
@@ -405,8 +385,7 @@ class Wavernn(BaseVocoder):
                     output.append(sample)
                     x = sample.unsqueeze(-1)
                 else:
-                    raise RuntimeError(
-                        "Unknown model mode value - ", self.args.mode)
+                    raise RuntimeError("Unknown model mode value - ", self.args.mode)
 
                 if i % 100 == 0:
                     self.gen_display(i, seq_len, b_size, start)
@@ -429,7 +408,7 @@ class Wavernn(BaseVocoder):
         output = output[:wave_len]
 
         if wave_len > len(fade_out):
-            output[-20 * self.config.audio.hop_length:] *= fade_out
+            output[-20 * self.config.audio.hop_length :] *= fade_out
 
         self.train()
         return output
@@ -474,8 +453,7 @@ class Wavernn(BaseVocoder):
             padding = target + 2 * overlap - remaining
             x = self.pad_tensor(x, padding, side="after")
 
-        folded = torch.zeros(num_folds, target + 2 *
-                             overlap, features).to(x.device)
+        folded = torch.zeros(num_folds, target + 2 * overlap, features).to(x.device)
 
         # Get the values for the folded tensor
         for i in range(num_folds):
@@ -502,7 +480,7 @@ class Wavernn(BaseVocoder):
         total = t + 2 * pad if side == "both" else t + pad
         padded = torch.zeros(b, total, c).to(x.device)
         if side in ("before", "both"):
-            padded[:, pad: pad + t, :] = x
+            padded[:, pad : pad + t, :] = x
         elif side == "after":
             padded[:, :t, :] = x
         return padded
@@ -601,8 +579,7 @@ class Wavernn(BaseVocoder):
         for idx, sample in enumerate(samples):
             x = torch.FloatTensor(sample[0])
             x = x.to(next(self.parameters()).device)
-            y_hat = self.inference(
-                x, self.config.batched, self.config.target_samples, self.config.overlap_samples)
+            y_hat = self.inference(x, self.config.batched, self.config.target_samples, self.config.overlap_samples)
             x_hat = ap.melspectrogram(y_hat)
             figures.update(
                 {
@@ -649,8 +626,7 @@ class Wavernn(BaseVocoder):
             is_training=not is_eval,
             verbose=verbose,
         )
-        sampler = DistributedSampler(
-            dataset, shuffle=True) if num_gpus > 1 else None
+        sampler = DistributedSampler(dataset, shuffle=True) if num_gpus > 1 else None
         loader = DataLoader(
             dataset,
             batch_size=1 if is_eval else config.batch_size,
