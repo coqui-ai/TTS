@@ -130,7 +130,7 @@ pip install -e .[all,dev,notebooks]  # Select the relevant extras
 If you are on Ubuntu (Debian), you can also run following commands for installation.
 
 ```bash
-$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
+$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a different OS.
 $ make install
 ```
 
@@ -157,10 +157,10 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
     ```
     $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
     ```
-For example:
+  For example:
 
     ```
-    $  tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --out_path output/path/speech.wav
     ```
 
 - Run with specific TTS and vocoder models from the list:
@@ -169,10 +169,10 @@ For example:
     $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --vocoder_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
     ```
 
-For example:
+  For example:
 
     ```
-    $  tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --vocoder_name "vocoder_models/en/ljspeech/univnet" --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --vocoder_name "vocoder_models/en/ljspeech/univnet" --out_path output/path/speech.wav
     ```
 
 
