@@ -5,8 +5,8 @@ from pathlib import Path
 from shutil import copyfile, rmtree
 from typing import Dict, Tuple
 
-from tqdm import tqdm
 import requests
+from tqdm import tqdm
 
 from TTS.config import load_config
 from TTS.utils.generic_utils import get_user_data_dir
