@@ -340,17 +340,17 @@ class ModelManager(object):
         r = requests.get(file_url, stream=True)
         # extract the file
         try:
-            total_size_in_bytes= int(r.headers.get('content-length', 0))
-            block_size = 1024 #1 Kibibyte
-            progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
-            temp_zip_name = os.path.join(output_folder, file_url.split('/')[-1])
-            with open(temp_zip_name, 'wb') as file:
+            total_size_in_bytes = int(r.headers.get("content-length", 0))
+            block_size = 1024  # 1 Kibibyte
+            progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+            temp_zip_name = os.path.join(output_folder, file_url.split("/")[-1])
+            with open(temp_zip_name, "wb") as file:
                 for data in r.iter_content(block_size):
                     progress_bar.update(len(data))
                     file.write(data)
             with zipfile.ZipFile(temp_zip_name) as z:
                 z.extractall(output_folder)
-            os.remove(temp_zip_name) #delete zip after extract
+            os.remove(temp_zip_name)  # delete zip after extract
         except zipfile.BadZipFile:
             print(f" > Error: Bad zip file - {file_url}")
             raise zipfile.BadZipFile  # pylint: disable=raise-missing-from
