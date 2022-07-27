@@ -4,8 +4,8 @@ import zipfile
 from pathlib import Path
 from shutil import copyfile, rmtree
 from typing import Dict, Tuple
-from tqdm import tqdm
 
+from tqdm import tqdm
 import requests
 
 from TTS.config import load_config
