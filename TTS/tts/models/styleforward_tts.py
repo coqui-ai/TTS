@@ -584,7 +584,7 @@ class StyleforwardTTS(BaseTTS):
             o_en = o_en + style_encoder_outputs # [B, 1, C]
             o_en = o_en.permute(0,2,1)
         else:
-            se_inputs = [o_en.permute(0,2,1), y]
+            se_inputs = [encoder_outputs.permute(0,2,1), y]
             o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
             o_en = o_en.permute(0,2,1)
 
