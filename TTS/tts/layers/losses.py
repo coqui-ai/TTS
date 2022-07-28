@@ -1076,10 +1076,10 @@ class StyleForwardTTSLoss(nn.Module):
 
         if self.style_encoder_config.se_type == 're':
             if self.style_encoder_config.content_orthogonal_loss:
-                print(style_encoder_output.shape, encoder_output.shape)
+                # print(style_encoder_output.shape, encoder_output.shape)
                 # print(torch.matmul(style_encoder_output, encoder_output.permute(0,2,1)))
                 # content_dot_loss = torch.dot(style_encoder_output, encoder_output)
-                content_dot_loss = (style_encoder_output*encoder_output.permute(0,2,1)).sum(axis=-1).mean().abs() # Must be abs because dot product can be negative
+                content_dot_loss = (style_encoder_output.unsqueeze(1)*encoder_output.permute(0,2,1)).sum(axis=-1).mean().abs() # Must be abs because dot product can be negative
                 # print(content_dot_loss)
                 loss += content_dot_loss
                 return_dict["content_orthogonal_loss"] = content_dot_loss
@@ -1088,8 +1088,8 @@ class StyleForwardTTSLoss(nn.Module):
                 loss += speaker_dot_loss
                 return_dict["speaker_orthogonal_loss"] = speaker_dot_loss
             if self.style_encoder_config.use_guided_style:
-                print(style_preds.shape, style_ids.shape)
-                style_guided_loss = self.criterion_guided(style_preds.squeeze(1), style_ids) # Must squeeze cuz it was augmented for broadcasting
+                # print(style_preds.shape, style_ids.shape)
+                style_guided_loss = self.criterion_guided(style_preds, style_ids) # Must squeeze cuz it was augmented for broadcasting
                 loss += style_guided_loss
                 return_dict["style_guided_loss"] = style_guided_loss
 

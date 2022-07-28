@@ -583,6 +583,7 @@ class StyleforwardTTS(BaseTTS):
             style_encoder_outputs = self.emb_s(aux_input["style_ids"].unsqueeze(1)) 
             o_en = o_en + style_encoder_outputs # [B, 1, C]
             o_en = o_en.permute(0,2,1)
+            style_encoder_outputs = style_encoder_outputs.squeeze(1)
         else:
             se_inputs = [encoder_outputs.permute(0,2,1), y]
             o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
