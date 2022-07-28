@@ -164,7 +164,7 @@ class ESpeak(BasePhonemizer):
 
             # dealing with the conditions descrived above
             ph_decoded = ph_decoded[:1].replace("_", "") + ph_decoded[1:]
-            
+
             # espeak-ng backend can add language flags that need to be removed:
             #   "sɛʁtˈɛ̃ mˈo kɔm (en)fˈʊtbɔːl(fr) ʒenˈɛʁ de- flˈaɡ də- lˈɑ̃ɡ."
             # phonemize needs to remove the language flags of the returned text:
