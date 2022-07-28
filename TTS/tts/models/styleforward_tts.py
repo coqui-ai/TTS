@@ -185,7 +185,7 @@ class StyleforwardTTS(BaseTTS):
             self.style_manager = style_manager
             self.init_style(config)
 
-            if(config.style_encoder_config.guided_style):
+            if(config.style_encoder_config.use_guided_style):
                 print(f"Using style guided training with {self.num_styles} styles")
                 style_embedding_dim = config.style_encoder_config.proj_dim if config.style_encoder_config.use_proj_linear else config.style_encoder_config.style_embedding_dim
                 self.style_classify_layer = nn.Linear(style_embedding_dim,self.num_style)
@@ -588,7 +588,7 @@ class StyleforwardTTS(BaseTTS):
             o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
             o_en = o_en.permute(0,2,1)
 
-        if(self.config.style_encoder_config.guided_style):
+        if(self.config.style_encoder_config.use_guided_style):
             style_preds = self.style_classify_layer(style_encoder_outputs)
 
         # duration predictor pass
