@@ -184,10 +184,16 @@ class StyleforwardTTS(BaseTTS):
             # print(config.style_encoder_config)
             self.style_manager = style_manager
             self.init_style(config)
+
+            if(config.style_encoder_config.guided_style):
+                print(f"Using style guided training with {self.num_styles} styles")
+                style_embedding_dim = config.style_encoder_config.proj_dim if config.style_encoder_config.use_proj_linear else config.style_encoder_config.style_embedding_dim
+                self.style_classify_layer = nn.Linear(style_embedding_dim,self.num_style)
         # # pass all config fields to `self`
         # # for fewer code change
         # for key in config:
         #     setattr(self, key, config[key])
+
 
         self.max_duration = self.args.max_duration
         self.use_aligner = self.args.use_aligner
@@ -568,12 +574,12 @@ class StyleforwardTTS(BaseTTS):
         y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).float()
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).float()
         # encoder pass
-        o_en, x_mask, g, x_emb = self._forward_encoder(x, x_mask, g)
+        encoder_outputs, x_mask, g, x_emb = self._forward_encoder(x, x_mask, g)
 
         #Style embedding 
         if(self.config.style_encoder_config.use_lookup):
             # print(self.emb_s(aux_input["style_ids"]).unsqueeze(1).shape, o_en.shape)
-            o_en = o_en.permute(0,2,1)
+            o_en = encoder_outputs.permute(0,2,1)
             style_encoder_outputs = self.emb_s(aux_input["style_ids"].unsqueeze(1)) 
             o_en = o_en + style_encoder_outputs # [B, 1, C]
             o_en = o_en.permute(0,2,1)
@@ -581,6 +587,9 @@ class StyleforwardTTS(BaseTTS):
             se_inputs = [o_en.permute(0,2,1), y]
             o_en, style_encoder_outputs = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
             o_en = o_en.permute(0,2,1)
+
+        if(self.config.style_encoder_config.guided_style):
+            style_preds = self.style_classify_layer(style_encoder_outputs)
 
         # duration predictor pass
         if self.args.detach_duration_predictor:
@@ -626,7 +635,10 @@ class StyleforwardTTS(BaseTTS):
             "alignment_logprob": alignment_logprob,
             "x_mask": x_mask,
             "y_mask": y_mask,
-            "style_encoder_outputs": style_encoder_outputs
+            "style_encoder_outputs": style_encoder_outputs,
+            "encoder_outputs": encoder_outputs,
+            "speaker_outputs": g,
+            "style_preds": style_preds
         }
         return outputs
 
@@ -694,7 +706,7 @@ class StyleforwardTTS(BaseTTS):
         d_vectors = batch["d_vectors"]
         speaker_ids = batch["speaker_ids"]
         durations = batch["durations"]
-        style_ids = batch['style_ids']
+        style_ids = batch['style_ids'] if self.config.style_encoder_config.use_supervised_style else None
         # print(style_ids) -> Ta vindo do batch errado, ta vindo None
         aux_input = {"d_vectors": d_vectors, "speaker_ids": speaker_ids, "style_ids": style_ids}
 
@@ -721,7 +733,11 @@ class StyleforwardTTS(BaseTTS):
                 alignment_logprob=outputs["alignment_logprob"] if self.use_aligner else None,
                 alignment_soft=outputs["alignment_soft"] if self.use_binary_alignment_loss else None,
                 alignment_hard=outputs["alignment_mas"] if self.use_binary_alignment_loss else None,
-                style_encoder_output=outputs['style_encoder_outputs']
+                style_encoder_output=outputs['style_encoder_outputs'],
+                style_ids = style_ids,
+                encoder_output = outputs['encoder_outputs'],
+                speaker_output = outputs['speaker_outputs'],
+                style_preds = outputs['style_preds'],
             )
             # compute duration error
             durations_pred = outputs["durations"]

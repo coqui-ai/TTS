@@ -36,6 +36,9 @@ class StyleEncoderConfig(Coqpit):
     use_speaker_embedding: bool = False
     use_lookup: bool = False
     use_supervised_style: bool = False
+    content_orthogonal_loss: bool = False # whether use othogonal loss between style and content embeddings
+    speaker_orthogonal_loss: bool = False # whether use othogonal loss between speaker and content embeddings
+    use_guided_style: bool = False # Whether use guided style encoder training
 
     # GST-SE Additional Configs
     gst_style_input_weights: dict = None
