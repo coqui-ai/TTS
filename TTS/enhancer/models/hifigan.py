@@ -66,9 +66,10 @@ class Hifigan(BaseTrainerModel):
                 n_layers=self.args.num_layers_postnet,
             )
         self.waveform_disc = MelganMultiscaleDiscriminator(
-            downsample_factors=(2, 2, 2),
+            downsample_factors=(4,4,4,4),
             base_channels=16,
             max_channels=1024,
+            num_scales=3
         )
         self.spectral_disc = SpectralDiscriminator(
             sample_rate=self.target_sr,
