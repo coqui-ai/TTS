@@ -4,6 +4,9 @@ import io
 import json
 import os
 import sys
+import threading
+import time
+from threading import Lock
 from pathlib import Path
 from typing import Union
 
@@ -167,9 +170,10 @@ def details():
         args=args.__dict__,
     )
 
-
+lock = Lock()
 @app.route("/api/tts", methods=["GET"])
 def tts():
+    lock.acquire()
     text = request.args.get("text")
     speaker_idx = request.args.get("speaker_id", "")
     style_wav = request.args.get("style_wav", "")
@@ -179,6 +183,7 @@ def tts():
     wavs = synthesizer.tts(text, speaker_name=speaker_idx, style_wav=style_wav)
     out = io.BytesIO()
     synthesizer.save_wav(wavs, out)
+    lock.release()
     return send_file(out, mimetype="audio/wav")
 
 
