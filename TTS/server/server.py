@@ -4,7 +4,6 @@ import io
 import json
 import os
 import sys
-import threading
 from threading import Lock
 from pathlib import Path
 from typing import Union
