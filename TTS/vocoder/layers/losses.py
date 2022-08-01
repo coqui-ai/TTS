@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from TTS.utils.audio import TorchSTFT
+from TTS.utils.audio.torch_transforms import TorchSTFT
 from TTS.vocoder.utils.distribution import discretized_mix_logistic_loss, gaussian_loss
 
 #################################
