@@ -73,7 +73,7 @@ class Hifigan(BaseTrainerModel):
         )
         self.spectral_disc = SpectralDiscriminator(
             sample_rate=self.target_sr,
-            n_mels=128,
+            n_mels=80,
             n_fft=1024,
             hop_length=256,
         )

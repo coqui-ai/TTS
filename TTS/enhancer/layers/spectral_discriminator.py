@@ -26,7 +26,7 @@ class ConvLayerSpecDisc(nn.Module):
 
 
 class SpectralDiscriminator(nn.Module):
-    def __init__(self, sample_rate=48000, n_fft=1024, hop_length=512, n_mels=128):
+    def __init__(self, sample_rate=48000, n_fft=1024, hop_length=256, n_mels=128):
         super().__init__()
         self.mel_spec = TorchSTFT(
             n_fft=n_fft,
