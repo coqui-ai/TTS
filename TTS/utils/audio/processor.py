@@ -1,4 +1,5 @@
 from typing import Dict, Tuple
+
 import librosa
 import numpy as np
 import pyworld as pw
@@ -6,6 +7,7 @@ import scipy.io.wavfile
 import scipy.signal
 import soundfile as sf
 
+from TTS.tts.utils.helpers import StandardScaler
 
 # pylint: disable=too-many-public-methods
 

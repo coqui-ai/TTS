@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from typing import Tuple
 
 import librosa
 import numpy as np
@@ -6,7 +6,8 @@ import pyworld as pw
 import scipy
 import soundfile as sf
 
-# from TTS.tts.utils.helpers import StandardScaler
+# For using kwargs
+# pylint: disable=unused-argument
 
 
 def build_mel_basis(
@@ -67,7 +68,7 @@ def amp_to_db(*, x: np.ndarray = None, gain: float = 1, base: int = 10, **kwargs
     Returns:
         np.ndarray: Decibels spectrogram.
     """
-    assert (x<0).sum() == 0, " [!] Input values must be non-negative."
+    assert (x < 0).sum() == 0, " [!] Input values must be non-negative."
     return gain * _log(np.maximum(1e-8, x), base)
 
 
@@ -127,7 +128,7 @@ def spec_to_mel(*, spec: np.ndarray, mel_basis: np.ndarray = None, **kwargs) -> 
 
 def mel_to_spec(*, mel: np.ndarray = None, mel_basis: np.ndarray = None, **kwargs) -> np.ndarray:
     """Convert a melspectrogram to full scale spectrogram."""
-    assert (mel<0).sum() == 0, " [!] Input values must be non-negative."
+    assert (mel < 0).sum() == 0, " [!] Input values must be non-negative."
     inv_mel_basis = np.linalg.pinv(mel_basis)
     return np.maximum(1e-10, np.dot(inv_mel_basis, mel))
 
@@ -347,8 +348,6 @@ def rms_volume_norm(*, x: np.ndarray, db_level: float = -27.0, **kwargs) -> np.n
     Returns:
         np.ndarray: RMS normalized waveform.
     """
-    if db_level is None:
-        db_level = db_level
     assert -99 <= db_level <= 0, " [!] db_level should be between -99 and 0"
     wav = rms_norm(wav=x, db_level=db_level)
     return wav

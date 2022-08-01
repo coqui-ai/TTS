@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn.utils import spectral_norm, weight_norm
 
-from TTS.utils.audio import TorchSTFT
+from TTS.utils.audio.torch_transforms import TorchSTFT
 from TTS.vocoder.models.hifigan_discriminator import MultiPeriodDiscriminator
 
 LRELU_SLOPE = 0.1
