@@ -990,7 +990,8 @@ class StyleForwardTTSLoss(nn.Module):
             self.criterion_se = VAEFlowStyleEncoderLoss(self.style_encoder_config)
 
         if self.style_encoder_config.use_guided_style:
-            self.criterion_guided = nn.CrossEntropyLoss(weight =torch.Tensor([10,10,0.1,10])) # To balance styles
+            self.criterion_guided = nn.CrossEntropyLoss()
+            # self.criterion_guided = nn.CrossEntropyLoss(weight =torch.Tensor([10,10,0.1,10])) # To balance styles
             # self.criterion_guided = nn.CrossEntropyLoss(ignore_index = 3) # To ignore none style (semi supervised)
 
         self.spec_loss_alpha = c.spec_loss_alpha
