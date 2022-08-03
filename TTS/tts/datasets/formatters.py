@@ -519,7 +519,7 @@ def emovdb(root_path, meta_file, **kwargs):
         Generic style reader for files with multi-speaker multi-style
         Input file must be a textual file separated by "|" with "\n" breaklines,
         and the columns must be:
-        text | wav_path | speaker_name | style_name
+        wav_path|text|speaker_name|style_name
         The output will be:
         [text, wav_path, speaker_name, style_name]
     '''
