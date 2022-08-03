@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="🐸Coqui AI TTS demo server.">
+    <meta name="author" content="🐸Coqui AI TTS">
+
+    <title>TTS engine</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
+        integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous"
+        rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <style>
+        body {
+            padding-top: 54px;
+        }
+
+        @media (min-width: 992px) {
+            body {
+                padding-top: 56px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a href="https://github.com/coqui-ai/TTS"><img style="position: absolute; z-index:1000; top: 0; left: 0; border: 0;"
+            src="https://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png" alt="Fork me on GitHub"></a>
+
+    <!-- Navigation -->
+    <!--
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+      <div class="container">
+        <a class="navbar-brand" href="#">Coqui TTS</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+          <ul class="navbar-nav ml-auto">
+            <li class="nav-item active">
+              <a class="nav-link" href="#">Home
+                <span class="sr-only">(current)</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    -->
+
+    <!-- Page Content -->
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12 text-center">
+                <img class="mt-5" src="{{url_for('static', filename='coqui-log-green-TTS.png')}}" align="middle"
+                    width="512" />
+
+                <ul class="list-unstyled">
+                </ul>
+
+                {%if use_gst%}
+                <input value='{"0": 0.1}' id="style_wav" placeholder="style wav (dict or path ot wav).." size=45
+                    type="text" name="style_wav">
+                {%endif%}
+
+                <input id="text" placeholder="Type here..." size=45 type="text" name="text">
+                <button id="speak-button" name="speak">Speak</button><br /><br />
+
+                {%if use_multi_speaker%}
+                Choose a speaker:
+                <select id="speaker_id" name=speaker_id method="GET" action="/">
+                    {% for speaker_id in speaker_ids %}
+                    <option value="{{speaker_id}}" SELECTED>{{speaker_id}}</option>"
+                    {% endfor %}
+                </select><br /><br />
+                {%endif%}
+
+                {%if show_details%}
+                <button id="details-button" onclick="location.href = 'details'" name="model-details">Model
+                    Details</button><br /><br />
+                {%endif%}
+                <audio id="audio" controls autoplay hidden></audio>
+                <p id="message"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript -->
+    <script>
+        function getTextValue(textId) {
+            const container = q(textId)
+            if (container) {
+                return container.value
+            }
+            return ""
+        }
+        function q(selector) { return document.querySelector(selector) }
+        q('#text').focus()
+        function do_tts(e) {
+            const text = q('#text').value
+            const speaker_id = getTextValue('#speaker_id')
+            const style_wav = getTextValue('#style_wav')
+            if (text) {
+                q('#message').textContent = 'Synthesizing...'
+                q('#speak-button').disabled = true
+                q('#audio').hidden = true
+                synthesize(text, speaker_id, style_wav)
+            }
+            e.preventDefault()
+            return false
+        }
+        q('#speak-button').addEventListener('click', do_tts)
+        q('#text').addEventListener('keyup', function (e) {
+            if (e.keyCode == 13) { // enter
+                do_tts(e)
+            }
+        })
+        function synthesize(text, speaker_id = "", style_wav = "") {
+            fetch(`/api/tts?text=${encodeURIComponent(text)}&speaker_id=${encodeURIComponent(speaker_id)}&style_wav=${encodeURIComponent(style_wav)}`, { cache: 'no-cache' })
+                .then(function (res) {
+                    if (!res.ok) throw Error(res.statusText)
+                    return res.blob()
+                }).then(function (blob) {
+                    q('#message').textContent = ''
+                    q('#speak-button').disabled = false
+                    q('#audio').src = URL.createObjectURL(blob)
+                    q('#audio').hidden = false
+                }).catch(function (err) {
+                    q('#message').textContent = 'Error: ' + err.message
+                    q('#speak-button').disabled = false
+                })
+        }
+    </script>
+
+</body>
+
+</html>

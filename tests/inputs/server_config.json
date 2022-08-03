@@ -1,0 +1,14 @@
+{
+    "tts_checkpoint":"checkpoint_10.pth",     // tts checkpoint file
+    "tts_config":"dummy_model_config.json",     // tts config.json file
+    "tts_speakers": null,           // json file listing speaker ids. null if no speaker embedding.
+    "wavernn_lib_path": null,   // Rootpath to wavernn project folder to be imported. If this is null, model uses GL for speech synthesis.
+    "wavernn_file": null, // wavernn checkpoint file name
+    "wavernn_config": null, // wavernn config file
+    "vocoder_config":null,
+    "vocoder_checkpoint": null,
+    "is_wavernn_batched":true,
+    "port": 5002,
+    "use_cuda": false,
+    "debug": true
+}

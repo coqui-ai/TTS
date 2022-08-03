@@ -1,0 +1,69 @@
+    {
+    "audio":{
+        "audio_processor": "audio",
+        "num_mels": 80,
+        "fft_size": 1024,
+        "sample_rate": 22050,
+        "frame_length_ms": null,
+        "frame_shift_ms": null,
+        "hop_length": 256,
+        "win_length": 1024,
+        "preemphasis": 0.97,
+        "min_level_db": -100,
+        "ref_level_db": 20,
+        "power": 1.5,
+        "griffin_lim_iters": 30,
+        "signal_norm": true,
+        "symmetric_norm": true,
+        "clip_norm": true,
+        "max_norm": 4,
+        "mel_fmin": 0,
+        "mel_fmax": 8000,
+        "do_trim_silence": false,
+        "spec_gain": 20
+    },
+
+    "characters":{
+        "pad": "_",
+        "eos": "~",
+        "bos": "^",
+        "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!'(),-.:;? ",
+        "punctuations":"!'(),-.:;? ",
+        "phonemes":"iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻʘɓǀɗǃʄǂɠǁʛpbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟˈˌːˑʍwɥʜʢʡɕʑɺɧɚ˞ɫʲ"
+    },
+
+    "hidden_size": 128,
+    "embedding_size": 256,
+    "text_cleaner": "english_cleaners",
+
+    "epochs": 2000,
+    "lr": 0.003,
+    "lr_patience": 5,
+    "lr_decay": 0.5,
+    "batch_size": 2,
+    "r": 5,
+    "mk": 1.0,
+    "num_loader_workers": 0,
+    "memory_size": 5,
+
+    "save_step": 200,
+    "data_path": "tests/data/ljspeech/",
+    "output_path": "result",
+    "min_seq_len": 0,
+    "max_seq_len": 300,
+    "log_dir": "tests/outputs/",
+
+
+    "use_speaker_embedding": false,
+    "use_gst": true,
+    "gst":	{
+        "gst_style_input": null,
+
+
+
+        "gst_use_speaker_embedding": true,
+        "gst_embedding_dim": 512,
+        "gst_num_heads": 4,
+        "gst_num_style_tokens": 10
+        }
+}

@@ -1,0 +1,12 @@
+{
+    "tts_path":"/media/erogol/data_ssd/Models/libri_tts/5049/",  // tts model root folder
+    "tts_file":"best_model.pth",     // tts checkpoint file
+    "tts_config":"config.json",     // tts config.json file
+    "tts_speakers": null,           // json file listing speaker ids. null if no speaker embedding.
+    "vocoder_config":null,
+    "vocoder_file": null,
+    "is_wavernn_batched":true,
+    "port": 5002,
+    "use_cuda": true,
+    "debug": true
+}

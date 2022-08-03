@@ -1,0 +1,15 @@
+include README.md
+include LICENSE.txt
+include requirements.*.txt
+include *.cff
+include requirements.txt
+include TTS/VERSION
+recursive-include TTS *.json
+recursive-include TTS *.html
+recursive-include TTS *.png
+recursive-include TTS *.md
+recursive-include TTS *.py
+recursive-include TTS *.pyx
+recursive-include images *.png
+recursive-exclude tests *
+prune tests*

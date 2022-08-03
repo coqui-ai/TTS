@@ -1,0 +1,98 @@
+name: Publish Python 🐍 distributions 📦 to PyPI
+on:
+  release:
+    types: [published]
+defaults:
+  run:
+    shell:
+      bash
+jobs:
+  build-sdist:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Verify tag matches version
+        run: |
+          set -ex
+          version=$(cat TTS/VERSION)
+          tag="${GITHUB_REF/refs\/tags\/}"
+          if [[ "v$version" != "$tag" ]]; then
+            exit 1
+          fi
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - run: |
+          python -m pip install -U pip setuptools wheel build
+      - run: |
+          python -m build
+      - run: |
+          pip install dist/*.tar.gz
+      - uses: actions/upload-artifact@v2
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+  build-wheels:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pip requirements
+        run: |
+          python -m pip install -U pip setuptools wheel build
+          python -m pip install -r requirements.txt
+      - name: Setup and install manylinux1_x86_64 wheel
+        run: |
+          python setup.py bdist_wheel --plat-name=manylinux1_x86_64
+          python -m pip install dist/*-manylinux*.whl
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheel-${{ matrix.python-version }}
+          path: dist/*-manylinux*.whl
+  publish-artifacts:
+    runs-on: ubuntu-20.04
+    needs: [build-sdist, build-wheels]
+    steps:
+      - run: |
+          mkdir dist
+      - uses: actions/download-artifact@v2
+        with:
+          name: "sdist"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.7"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.8"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.9"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.10"
+          path: "dist/"
+      - run: |
+          ls -lh dist/
+      - name: Setup PyPI config
+        run: |
+          cat << EOF > ~/.pypirc
+          [pypi]
+          username=__token__
+          password=${{ secrets.PYPI_TOKEN }}
+          EOF
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - run: |
+          python -m pip install twine
+      - run: |
+          twine upload --repository pypi dist/*
