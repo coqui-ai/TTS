@@ -153,6 +153,3 @@ def multilingual_cleaners(text):
 
 
 
-if __name__ == "__main__":
-    text = "나는 13자루의 검을 가진다"
-    print(korean_cleaners(text))

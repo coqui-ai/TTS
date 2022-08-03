@@ -10,8 +10,6 @@ def korean_text_to_phonemes(text, separator):
 
 
 if __name__ == "__main__":
-    print(korean_text_to_phonemes("i have a dream. it's a big dream", "|"))
-    print(korean_text_to_phonemes("나는 밥을 ㅁ거을거아", " "))
+    print(korean_text_to_phonemes("나는 밥을 먹을거아", " "))
     tokens = list(hangul_to_jamo("안녕 나는 밥이야"))
-    for i in tokens:
-        print(i)
+    print(tokens)

@@ -342,7 +342,3 @@ def number_to_korean(num_str, is_count=False):
     return kor + unit_str
 
 
-if __name__ == "__main__":
-    from num2words import num2words
-    text = "나는12개의 칼을 가지고 있다."
-    print(normalize_number(text))
