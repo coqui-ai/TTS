@@ -513,3 +513,28 @@ def cpqd_read_ljspeech(root_path, meta_file):
             items.append([text,wav_file,speaker_name])
 
     return items
+
+def emovdb(root_path, meta_file, **kwargs):
+    '''
+        Generic style reader for files with multi-speaker multi-style
+        Input file must be a textual file separated by "|" with "\n" breaklines,
+        and the columns must be:
+        text | wav_path | speaker_name | style_name
+        The output will be:
+        [text, wav_path, speaker_name, style_name]
+    '''
+    
+    meta_path = os.path.join(root_path, meta_file)
+
+    items = []
+
+    with open(meta_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            cols = line.split('|')
+            wav_file = cols[0]
+            text = cols[1]
+            speaker_name = cols[2]
+            style_name = cols[3][:-1] # The last char is always "\n" since after this line is a breakline
+            items.append([text,wav_file,speaker_name, style_name])
+
+    return items
