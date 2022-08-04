@@ -25,10 +25,10 @@ from jamo.jamo import _jamo_char_to_hcj
 
 from TTS.tts.utils.text.korean.ko_dictionary import english_dictionary, etc_dictionary
 
-PAD = '_'
-EOS = '~'
-PUNC = '!\'(),-.:;?'
-SPACE = ' '
+PAD = "_"
+EOS = "~"
+PUNC = "!'(),-.:;?"
+SPACE = " "
 
 JAMO_LEADS = "".join([chr(_) for _ in range(0x1100, 0x1113)])
 JAMO_VOWELS = "".join([chr(_) for _ in range(0x1161, 0x1176)])
@@ -105,56 +105,56 @@ def jamo_to_korean(text):
 
 
 num_to_kor = {
-    '0': '영',
-    '1': '일',
-    '2': '이',
-    '3': '삼',
-    '4': '사',
-    '5': '오',
-    '6': '육',
-    '7': '칠',
-    '8': '팔',
-    '9': '구',
+    "0": "영",
+    "1": "일",
+    "2": "이",
+    "3": "삼",
+    "4": "사",
+    "5": "오",
+    "6": "육",
+    "7": "칠",
+    "8": "팔",
+    "9": "구",
 }
 
 unit_to_kor1 = {
-    '%': '퍼센트',
-    'cm': '센치미터',
-    'mm': '밀리미터',
-    'km': '킬로미터',
-    'kg': '킬로그람',
+    "%": "퍼센트",
+    "cm": "센치미터",
+    "mm": "밀리미터",
+    "km": "킬로미터",
+    "kg": "킬로그람",
 }
 unit_to_kor2 = {
-    'm': '미터',
+    "m": "미터",
 }
 
 upper_to_kor = {
-    'A': '에이',
-    'B': '비',
-    'C': '씨',
-    'D': '디',
-    'E': '이',
-    'F': '에프',
-    'G': '지',
-    'H': '에이치',
-    'I': '아이',
-    'J': '제이',
-    'K': '케이',
-    'L': '엘',
-    'M': '엠',
-    'N': '엔',
-    'O': '오',
-    'P': '피',
-    'Q': '큐',
-    'R': '알',
-    'S': '에스',
-    'T': '티',
-    'U': '유',
-    'V': '브이',
-    'W': '더블유',
-    'X': '엑스',
-    'Y': '와이',
-    'Z': '지',
+    "A": "에이",
+    "B": "비",
+    "C": "씨",
+    "D": "디",
+    "E": "이",
+    "F": "에프",
+    "G": "지",
+    "H": "에이치",
+    "I": "아이",
+    "J": "제이",
+    "K": "케이",
+    "L": "엘",
+    "M": "엠",
+    "N": "엔",
+    "O": "오",
+    "P": "피",
+    "Q": "큐",
+    "R": "알",
+    "S": "에스",
+    "T": "티",
+    "U": "유",
+    "V": "브이",
+    "W": "더블유",
+    "X": "엑스",
+    "Y": "와이",
+    "Z": "지",
 }
 
 
@@ -178,15 +178,15 @@ def tokenizer_fn(iterator):
 
 
 def normalize(text):
-    #print(f'text -> {text}')
+    # print(f'text -> {text}')
     text = text.strip()
 
-    text = re.sub('\(\d+일\)', '', text)
-    text = re.sub('\([⺀-⺙⺛-⻳⼀-⿕々〇〡-〩〸-〺〻㐀-䶵一-鿃豈-鶴侮-頻並-龎]+\)', '', text)
+    text = re.sub("\(\d+일\)", "", text)
+    text = re.sub("\([⺀-⺙⺛-⻳⼀-⿕々〇〡-〩〸-〺〻㐀-䶵一-鿃豈-鶴侮-頻並-龎]+\)", "", text)
 
     text = normalize_with_dictionary(text, etc_dictionary)
     text = normalize_english(text)
-    text = re.sub('[a-zA-Z]+', normalize_upper, text)
+    text = re.sub("[a-zA-Z]+", normalize_upper, text)
 
     text = normalize_quote(text)
     text = normalize_number(text)
@@ -196,7 +196,7 @@ def normalize(text):
 
 def normalize_with_dictionary(text, dic):
     if any(key in text for key in dic.keys()):
-        pattern = re.compile('|'.join(re.escape(key) for key in dic.keys()))
+        pattern = re.compile("|".join(re.escape(key) for key in dic.keys()))
         return pattern.sub(lambda x: dic[x.group()], text)
     else:
         return text
@@ -243,10 +243,8 @@ count_checker = "(시|명|가지|살|마리|포기|송이|수|톨|통|점|개|�
 def normalize_number(text):
     text = normalize_with_dictionary(text, unit_to_kor1)
     text = normalize_with_dictionary(text, unit_to_kor2)
-    text = re.sub(number_checker + count_checker,
-                  lambda x: number_to_korean(x, True), text)
-    text = re.sub(number_checker,
-                  lambda x: number_to_korean(x, False), text)
+    text = re.sub(number_checker + count_checker, lambda x: number_to_korean(x, True), text)
+    text = re.sub(number_checker, lambda x: number_to_korean(x, False), text)
     return text
 
 
@@ -276,13 +274,13 @@ def number_to_korean(num_str, is_count=False):
     else:
         num_str, unit_str = num_str.group(), ""
 
-    num_str = num_str.replace(',', '')
+    num_str = num_str.replace(",", "")
     num = ast.literal_eval(num_str)
 
     if num == 0:
         return "영"
 
-    check_float = num_str.split('.')
+    check_float = num_str.split(".")
     if len(check_float) == 2:
         digit_str, float_str = check_float
     elif len(check_float) >= 3:
@@ -323,16 +321,14 @@ def number_to_korean(num_str, is_count=False):
             kor = kor[1:]
 
         if any(word in kor for word in count_tenth_dict):
-            kor = re.sub(
-                '|'.join(count_tenth_dict.keys()),
-                lambda x: count_tenth_dict[x.group()], kor)
+            kor = re.sub("|".join(count_tenth_dict.keys()), lambda x: count_tenth_dict[x.group()], kor)
 
     if not is_count and kor.startswith("일") and len(kor) > 1:
         kor = kor[1:]
 
     if float_str is not None:
         kor += "쩜 "
-        kor += re.sub('\d', lambda x: num_to_kor[x.group()], float_str)
+        kor += re.sub("\d", lambda x: num_to_kor[x.group()], float_str)
 
     if num_str.startswith("+"):
         kor = "플러스 " + kor
@@ -340,5 +336,3 @@ def number_to_korean(num_str, is_count=False):
         kor = "마이너스 " + kor
 
     return kor + unit_str
-
-

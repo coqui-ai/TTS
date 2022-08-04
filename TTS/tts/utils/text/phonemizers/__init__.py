@@ -29,6 +29,7 @@ DEF_LANG_TO_PHONEMIZER["ja-jp"] = JA_JP_Phonemizer.name()
 DEF_LANG_TO_PHONEMIZER["zh-cn"] = ZH_CN_Phonemizer.name()
 DEF_LANG_TO_PHONEMIZER["ko-kr"] = KO_KR_Phonemizer.name()
 
+
 def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
     """Initiate a phonemizer by name
 

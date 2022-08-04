@@ -1,6 +1,7 @@
 from typing import Dict
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 from TTS.tts.utils.text.korean.phonemizer import korean_text_to_phonemes
+
 _DEF_KO_PUNCS = "、.,[]()?!〽~『』「」【】"
 
 
@@ -30,7 +31,7 @@ class KO_KR_Phonemizer(BasePhonemizer):
     def _phonemize(self, text: str, separator: str = "") -> str:
         pass
 
-    def phonemize(self, text: str, separator: str ="|") -> str:
+    def phonemize(self, text: str, separator: str = "|") -> str:
         return korean_text_to_phonemes(text, separator)
 
     @staticmethod
@@ -45,11 +46,11 @@ class KO_KR_Phonemizer(BasePhonemizer):
 
 
 if __name__ == "__main__":
-     text = "이 문장은 음성합성 테스트를 위한 문장입니다."
-     e = KO_KR_Phonemizer()
-     print(e.supported_languages())
-     print(e.version())
-     print(e.language)
-     print(e.name())
-     print(e.is_available())
-     print(e.phonemize(text))
+    text = "이 문장은 음성합성 테스트를 위한 문장입니다."
+    e = KO_KR_Phonemizer()
+    print(e.supported_languages())
+    print(e.version())
+    print(e.language)
+    print(e.name())
+    print(e.is_available())
+    print(e.phonemize(text))
