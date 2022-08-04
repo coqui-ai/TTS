@@ -329,5 +329,6 @@ def number_to_korean(num_str, is_count=False):
 
     return kor + unit_str
 
+
 if __name__ == "__main__":
     print(normalize("안녕 나는 음성합성 텍스트야. 5일이 지났네"))
