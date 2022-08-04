@@ -10,6 +10,4 @@ def korean_text_to_phonemes(text, separator):
 
 
 if __name__ == "__main__":
-    print(korean_text_to_phonemes("나는 밥을 먹을거아", " "))
-    tokens = list(hangul_to_jamo("안녕 나는 밥이야"))
-    print(tokens)
+    print(korean_text_to_phonemes("테스트용 문장입니다.", " "))

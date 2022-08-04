@@ -17,9 +17,7 @@
 
 # Code based on https://github.com/carpedm20/multi-speaker-tacotron-tensorflow
 import re
-import os
 import ast
-import json
 from jamo import hangul_to_jamo, h2j, j2h
 from jamo.jamo import _jamo_char_to_hcj
 
@@ -38,7 +36,7 @@ VALID_CHARS = JAMO_LEADS + JAMO_VOWELS + JAMO_TAILS + PUNC + SPACE
 ALL_SYMBOLS = PAD + EOS + VALID_CHARS
 
 char_to_id = {c: i for i, c in enumerate(ALL_SYMBOLS)}
-id_to_char = {i: c for i, c in enumerate(ALL_SYMBOLS)}
+id_to_char = dict(enumerate(ALL_SYMBOLS))
 
 quote_checker = """([`"'＂“‘])(.+?)([`"'＂”’])"""
 
@@ -58,21 +56,19 @@ def is_tail(char):
 def get_mode(char):
     if is_lead(char):
         return 0
-    elif is_vowel(char):
+    if is_vowel(char):
         return 1
-    elif is_tail(char):
+    if is_tail(char):
         return 2
-    else:
-        return -1
+    return -1
 
 
 def _get_text_from_candidates(candidates):
     if len(candidates) == 0:
         return ""
-    elif len(candidates) == 1:
+    if len(candidates) == 1:
         return _jamo_char_to_hcj(candidates[0])
-    else:
-        return j2h(**dict(zip(["lead", "vowel", "tail"], candidates)))
+    return j2h(**dict(zip(["lead", "vowel", "tail"], candidates)))
 
 
 def jamo_to_korean(text):
@@ -169,8 +165,7 @@ def tokenize(text, as_id=False):
 
     if as_id:
         return [char_to_id[token] for token in tokens]
-    else:
-        return [token for token in tokens]
+    return list(tokens)
 
 
 def tokenizer_fn(iterator):
@@ -181,8 +176,8 @@ def normalize(text):
     # print(f'text -> {text}')
     text = text.strip()
 
-    text = re.sub("\(\d+일\)", "", text)
-    text = re.sub("\([⺀-⺙⺛-⻳⼀-⿕々〇〡-〩〸-〺〻㐀-䶵一-鿃豈-鶴侮-頻並-龎]+\)", "", text)
+    text = re.sub("\\(\\d+일\\)", "", text)
+    text = re.sub("\\([⺀-⺙⺛-⻳⼀-⿕々〇〡-〩〸-〺〻㐀-䶵一-鿃豈-鶴侮-頻並-龎]+\\)", "", text)
 
     text = normalize_with_dictionary(text, etc_dictionary)
     text = normalize_english(text)
@@ -198,8 +193,7 @@ def normalize_with_dictionary(text, dic):
     if any(key in text for key in dic.keys()):
         pattern = re.compile("|".join(re.escape(key) for key in dic.keys()))
         return pattern.sub(lambda x: dic[x.group()], text)
-    else:
-        return text
+    return text
 
 
 def normalize_english(text):
@@ -207,8 +201,7 @@ def normalize_english(text):
         word = m.group()
         if word in english_dictionary:
             return english_dictionary.get(word)
-        else:
-            return word
+        return word
 
     text = re.sub("([A-Za-z]+)", fn, text)
     return text
@@ -217,10 +210,9 @@ def normalize_english(text):
 def normalize_upper(text):
     text = text.group(0)
 
-    if all([char.isupper() for char in text]):
+    if all(char.isupper() for char in text):
         return "".join(upper_to_kor[char] for char in text)
-    else:
-        return text
+    return text
 
 
 def normalize_quote(text):
@@ -236,7 +228,7 @@ def normalize_quote(text):
     return re.sub(quote_checker, fn, text)
 
 
-number_checker = "([+-]?\d[\d,]*)[\.]?\d*"
+number_checker = "([+-]?\\d[\\d,]*)[\\.]?\\d*"
 count_checker = "(시|명|가지|살|마리|포기|송이|수|톨|통|점|개|벌|척|채|다발|그루|자루|줄|켤레|그릇|잔|마디|상자|사람|곡|병|판)"
 
 
@@ -328,7 +320,7 @@ def number_to_korean(num_str, is_count=False):
 
     if float_str is not None:
         kor += "쩜 "
-        kor += re.sub("\d", lambda x: num_to_kor[x.group()], float_str)
+        kor += re.sub("\\d", lambda x: num_to_kor[x.group()], float_str)
 
     if num_str.startswith("+"):
         kor = "플러스 " + kor
@@ -336,3 +328,6 @@ def number_to_korean(num_str, is_count=False):
         kor = "마이너스 " + kor
 
     return kor + unit_str
+
+if __name__ == "__main__":
+    print(normalize("안녕 나는 음성합성 텍스트야. 5일이 지났네"))
