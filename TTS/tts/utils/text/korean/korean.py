@@ -15,10 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ast
+
 # Code based on https://github.com/carpedm20/multi-speaker-tacotron-tensorflow
 import re
-import ast
-from jamo import hangul_to_jamo, h2j, j2h
+
+from jamo import h2j, hangul_to_jamo, j2h
 from jamo.jamo import _jamo_char_to_hcj
 
 from TTS.tts.utils.text.korean.ko_dictionary import english_dictionary, etc_dictionary

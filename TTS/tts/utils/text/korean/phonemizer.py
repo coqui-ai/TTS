@@ -1,5 +1,6 @@
-from TTS.tts.utils.text.korean.korean import normalize
 from jamo import hangul_to_jamo
+
+from TTS.tts.utils.text.korean.korean import normalize
 
 
 def korean_text_to_phonemes(text, separator):

@@ -1,6 +1,7 @@
 from typing import Dict
-from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
+
 from TTS.tts.utils.text.korean.phonemizer import korean_text_to_phonemes
+from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 
 _DEF_KO_PUNCS = "、.,[]()?!〽~『』「」【】"
 
