@@ -169,7 +169,7 @@ class ESpeak(BasePhonemizer):
             #   "sɛʁtˈɛ̃ mˈo kɔm (en)fˈʊtbɔːl(fr) ʒenˈɛʁ de- flˈaɡ də- lˈɑ̃ɡ."
             # phonemize needs to remove the language flags of the returned text:
             #   "sɛʁtˈɛ̃ mˈo kɔm fˈʊtbɔːl ʒenˈɛʁ de- flˈaɡ də- lˈɑ̃ɡ."
-            ph_decoded = re.sub(r"(\([a-z][a-z]\))", "", ph_decoded)
+            ph_decoded = re.sub(r"\(.+?\)", "", ph_decoded)
 
             phonemes += ph_decoded.strip()
         return phonemes.replace("_", separator)
