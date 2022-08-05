@@ -171,17 +171,16 @@ def details():
 lock = Lock()
 @app.route("/api/tts", methods=["GET"])
 def tts():
-    lock.acquire()
-    text = request.args.get("text")
-    speaker_idx = request.args.get("speaker_id", "")
-    style_wav = request.args.get("style_wav", "")
-    style_wav = style_wav_uri_to_dict(style_wav)
-    print(" > Model input: {}".format(text))
-    print(" > Speaker Idx: {}".format(speaker_idx))
-    wavs = synthesizer.tts(text, speaker_name=speaker_idx, style_wav=style_wav)
-    out = io.BytesIO()
-    synthesizer.save_wav(wavs, out)
-    lock.release()
+    with lock:
+        text = request.args.get("text")
+        speaker_idx = request.args.get("speaker_id", "")
+        style_wav = request.args.get("style_wav", "")
+        style_wav = style_wav_uri_to_dict(style_wav)
+        print(" > Model input: {}".format(text))
+        print(" > Speaker Idx: {}".format(speaker_idx))
+        wavs = synthesizer.tts(text, speaker_name=speaker_idx, style_wav=style_wav)
+        out = io.BytesIO()
+        synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype="audio/wav")
 
 
