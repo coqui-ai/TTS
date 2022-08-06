@@ -162,7 +162,7 @@ class TacotronConfig(BaseTTSConfig):
     stopnet: bool = True
     separate_stopnet: bool = True
     stopnet_pos_weight: float = 0.2
-    max_decoder_steps: int = 500
+    max_decoder_steps: int = 10000
     encoder_in_features: int = 256
     decoder_in_features: int = 256
     decoder_output_dim: int = 80
