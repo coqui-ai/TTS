@@ -137,7 +137,7 @@ class BaseTTS(BaseTrainerModel):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embeddings()
+                    d_vector = self.speaker_manager.get_random_embedding()
                 else:
                     d_vector = self.speaker_manager.get_d_vector_by_name(speaker_name)
             elif config.use_speaker_embedding:
