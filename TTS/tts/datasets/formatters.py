@@ -531,10 +531,9 @@ def emovdb(root_path, meta_file, **kwargs):
     with open(meta_path, 'r', encoding='utf-8') as f:
         for line in f:
             cols = line.split('|')
-            wav_file = cols[0]
+            wav_file = os.path.join(root_path, "files", cols[0])
             text = cols[1]
             speaker_name = cols[2]
             style_name = cols[3][:-1] # The last char is always "\n" since after this line is a breakline
             items.append([text,wav_file,speaker_name, style_name])
-
     return items
