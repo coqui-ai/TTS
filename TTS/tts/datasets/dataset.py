@@ -22,6 +22,7 @@ class TTSDataset(Dataset):
         compute_linear_spec: bool,
         ap: AudioProcessor,
         meta_data: List[List],
+        ds_name: str = 'ljspeech',
         compute_f0: bool = False,
         f0_cache_path: str = None,
         characters: Dict = None,
@@ -108,6 +109,7 @@ class TTSDataset(Dataset):
         super().__init__()
         self.batch_group_size = batch_group_size
         self.items = meta_data
+        self.ds_name = ds_name
         self.outputs_per_step = outputs_per_step
         self.sample_rate = ap.sample_rate
         self.cleaners = text_cleaner
@@ -274,7 +276,7 @@ class TTSDataset(Dataset):
 
         pitch = None
         if self.compute_f0:
-            pitch = self.pitch_extractor.load_or_compute_pitch(self.ap, wav_file, self.f0_cache_path)
+            pitch = self.pitch_extractor.load_or_compute_pitch(self.ap, wav_file, self.f0_cache_path, self.ds_name)
             pitch = self.pitch_extractor.normalize_pitch(pitch.astype(np.float32))
 
         sample = {
@@ -604,18 +606,15 @@ class PitchExtractor:
         self.std = None
 
     @staticmethod
-    def create_pitch_file_path(wav_file, cache_path):
-        # Original:
-        #file_name = os.path.splitext(os.path.basename(wav_file))[0]
+    def create_pitch_file_path(wav_file, cache_path, ds_name):
 
-        #print(wav_file.split('/'))        
-        # CPQD: (must getunique value by getting the concatenated file_name of the subfolders)
-        file_name = wav_file.split('/')[-6] + '_' + wav_file.split('/')[-5] + '_' + wav_file.split('/')[-4] + '_' + wav_file.split('/')[-3] + '_' + wav_file.split('/')[-2] + '_' + os.path.splitext(os.path.basename(wav_file))[0]
-	
-	# If running ljspeech must fave only the last
-        # file_name = os.path.splitext(os.path.basename(wav_file))[0]
-
-
+        if ds_name == 'cpqd_style_read' or ds_name == 'cpqd_read':
+            file_name = wav_file.split('/')[-6] + '_' + wav_file.split('/')[-5] + '_' + wav_file.split('/')[-4] + '_' + wav_file.split('/')[-3] + '_' + wav_file.split('/')[-2] + '_' + os.path.splitext(os.path.basename(wav_file))[0]
+        elif ds_name == 'emovdb':
+            file_name = wav_file.split('/')[-2] + '_' + os.path.splitext(os.path.basename(wav_file))[0]
+        elif ds_name == 'ljspeech':
+            file_name = os.path.splitext(os.path.basename(wav_file))[0]
+        
         pitch_file = os.path.join(cache_path, file_name + "_pitch.npy")
         return pitch_file
     #OLD
@@ -653,11 +652,11 @@ class PitchExtractor:
         return pitch
 
     @staticmethod
-    def load_or_compute_pitch(ap, wav_file, cache_path):
+    def load_or_compute_pitch(ap, wav_file, cache_path, ds_name):
         """
         compute pitch and return a numpy array of pitch values
         """
-        pitch_file = PitchExtractor.create_pitch_file_path(wav_file, cache_path)
+        pitch_file = PitchExtractor.create_pitch_file_path(wav_file, cache_path, ds_name)
         if not os.path.exists(pitch_file):
             pitch = PitchExtractor._compute_and_save_pitch(ap, wav_file, pitch_file)
         else:
@@ -669,8 +668,9 @@ class PitchExtractor:
         item = args[0]
         ap = args[1]
         cache_path = args[2]
+        ds_name = args[3]
         _, wav_file, *_ = item
-        pitch_file = PitchExtractor.create_pitch_file_path(wav_file, cache_path)
+        pitch_file = PitchExtractor.create_pitch_file_path(wav_file, cache_path, ds_name)
         if not os.path.exists(pitch_file):
             pitch = PitchExtractor._compute_and_save_pitch(ap, wav_file, pitch_file)
             return pitch
@@ -687,12 +687,12 @@ class PitchExtractor:
         if num_workers == 0:
             pitch_vecs = []
             for _, item in enumerate(tqdm.tqdm(self.items)):
-                pitch_vecs += [self._pitch_worker([item, ap, cache_path])]
+                pitch_vecs += [self._pitch_worker([item, ap, cache_path, self.ds_name])]
         else:
             with Pool(num_workers) as p:
                 pitch_vecs = list(
                     tqdm.tqdm(
-                        p.imap(PitchExtractor._pitch_worker, [[item, ap, cache_path] for item in self.items]),
+                        p.imap(PitchExtractor._pitch_worker, [[item, ap, cache_path, self.ds_name] for item in self.items]),
                         total=len(self.items),
                     )
                 )

@@ -302,6 +302,7 @@ class BaseTTS(BaseModel):
                 compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
                 meta_data=data_items,
+                ds_name=config.datasets["name"],
                 ap=ap,
                 characters=config.characters,
                 custom_symbols=custom_symbols,
