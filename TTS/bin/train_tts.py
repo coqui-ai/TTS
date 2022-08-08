@@ -59,6 +59,7 @@ def main():
             config.model_args.num_speakers = speaker_manager.num_speakers
         else:
             config.num_speakers = speaker_manager.num_speakers
+
     elif check_config_and_model_args(config, "use_d_vector_file", True):
         if check_config_and_model_args(config, "use_speaker_encoder_as_loss", True):
             speaker_manager = SpeakerManager(
@@ -84,14 +85,18 @@ def main():
     else:
         language_manager = None
 
-    if check_config_and_model_args(config.style_encoder_config, "use_supervised_style", True):
-        style_manager = StyleManager(data_items=train_samples + eval_samples)
-        if hasattr(config, "model_args"):
-            config.model_args.num_styles = style_manager.num_styles
+    if hasattr(config, "style_encoder_config"):
+        if check_config_and_model_args(config.style_encoder_config, "use_supervised_style", True):
+            style_manager = StyleManager(data_items=train_samples + eval_samples)
+            if hasattr(config, "model_args"):
+                config.model_args.num_styles = style_manager.num_styles
+            else:
+                config.num_styles = style_manager.num_styles
         else:
-            config.num_styles = style_manager.num_styles
+            style_manager = None
     else:
         style_manager = None
+        
 
     # init the model from config
     model = setup_model(config, speaker_manager, language_manager, style_manager)
