@@ -10,5 +10,5 @@ WORKDIR /root
 COPY requirements-recod.txt /root
 COPY requirements.dev.txt /root
 COPY requirements.notebooks.txt /root
-RUN ["/bin/bash", "-c", "pip install -r <(cat requirements.txt)"]
+RUN ["/bin/bash", "-c", "pip install -r <(cat requirements-recod.txt)"]
 COPY . /root
