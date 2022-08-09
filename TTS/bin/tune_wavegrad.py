@@ -8,10 +8,11 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from TTS.utils.audio import AudioProcessor
-from TTS.utils.io import load_config
+from TTS.config import load_config
 from TTS.vocoder.datasets.preprocess import load_wav_data
 from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset
-from TTS.vocoder.utils.generic_utils import setup_generator
+from TTS.vocoder.models import setup_model
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_path", type=str, help="Path to model checkpoint.")
@@ -64,7 +65,7 @@ loader = DataLoader(
 )
 
 # setup the model
-model = setup_generator(config)
+model = setup_model(config)
 if args.use_cuda:
     model.cuda()
 
