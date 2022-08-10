@@ -143,7 +143,7 @@ class TTSDataset(Dataset):
         if use_phonemes and not os.path.isdir(phoneme_cache_path):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if compute_f0:
-            self.pitch_extractor = PitchExtractor(self.items, verbose=verbose)
+            self.pitch_extractor = PitchExtractor(self.ds_name, self.items, verbose=verbose)
         if self.verbose:
             print("\n > DataLoader initialization")
             print(" | > Use phonemes: {}".format(self.use_phonemes))
@@ -597,9 +597,11 @@ class PitchExtractor:
 
     def __init__(
         self,
+        ds_name,
         items: List[List],
         verbose=False,
     ):
+        self.ds_name = ds_name
         self.items = items
         self.verbose = verbose
         self.mean = None
