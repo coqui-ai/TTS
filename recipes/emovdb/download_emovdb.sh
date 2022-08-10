@@ -2,6 +2,11 @@
 # take the scripts's parent's directory to prefix all the output paths.
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo $RUN_DIR
+
+# download transcriptions
+wget http://www.festvox.org/cmu_arctic/cmuarctic.data
+mv cmuarctic.data transcriptions.txt
+
 # download dataset
 wget https://www.openslr.org/resources/115/bea_Amused.tar.gz
 wget https://www.openslr.org/resources/115/bea_Angry.tar.gz
