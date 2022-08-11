@@ -1092,6 +1092,9 @@ class StyleForwardTTSLoss(nn.Module):
             if self.style_encoder_config.use_guided_style:
                 # print(style_preds.shape, style_ids.shape)
                 style_guided_loss = self.criterion_guided(style_preds, style_ids) # Must squeeze cuz it was augmented for broadcasting
+                
+                print(style_guided_loss, style_preds, style_ids)
+                
                 loss += style_guided_loss
                 return_dict["style_guided_loss"] = style_guided_loss
 
