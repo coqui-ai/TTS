@@ -1,4 +1,3 @@
-from importlib.metadata import requires
 import math
 
 import numpy as np
