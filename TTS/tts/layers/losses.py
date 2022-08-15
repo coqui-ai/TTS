@@ -1,3 +1,4 @@
+from importlib.metadata import requires
 import math
 
 import numpy as np
@@ -165,7 +166,7 @@ class BCELossMasked(nn.Module):
 
     def __init__(self, pos_weight: float = None):
         super().__init__()
-        self.pos_weight = torch.tensor([pos_weight])
+        self.pos_weight = nn.Parameter(torch.tensor([pos_weight]), requires_grad=False)
 
     def forward(self, x, target, length):
         """
