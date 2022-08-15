@@ -4,6 +4,7 @@ from dataclasses import dataclass, field, replace
 from itertools import chain
 from typing import Dict, List, Tuple, Union
 
+import numpy as np
 import torch
 import torch.distributed as dist
 import torchaudio
@@ -13,6 +14,8 @@ from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
+from torch.utils.data.sampler import WeightedRandomSampler
+from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.tts.configs.shared_configs import CharactersConfig
@@ -29,6 +32,8 @@ from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment
+from TTS.utils.io import load_fsspec
+from TTS.utils.samplers import BucketBatchSampler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
@@ -219,6 +224,30 @@ class VitsAudioConfig(Coqpit):
 ##############################
 # DATASET
 ##############################
+
+
+def get_attribute_balancer_weights(items: list, attr_name: str, multi_dict: dict = None):
+    """Create inverse frequency weights for balancing the dataset.
+    Use `multi_dict` to scale relative weights."""
+    attr_names_samples = np.array([item[attr_name] for item in items])
+    unique_attr_names = np.unique(attr_names_samples).tolist()
+    attr_idx = [unique_attr_names.index(l) for l in attr_names_samples]
+    attr_count = np.array([len(np.where(attr_names_samples == l)[0]) for l in unique_attr_names])
+    weight_attr = 1.0 / attr_count
+    dataset_samples_weight = np.array([weight_attr[l] for l in attr_idx])
+    dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
+    if multi_dict is not None:
+        # check if all keys are in the multi_dict
+        for k in multi_dict:
+            assert k in unique_attr_names, f"{k} not in {unique_attr_names}"
+        # scale weights
+        multiplier_samples = np.array([multi_dict.get(item[attr_name], 1.0) for item in items])
+        dataset_samples_weight *= multiplier_samples
+    return (
+        torch.from_numpy(dataset_samples_weight).float(),
+        unique_attr_names,
+        np.unique(dataset_samples_weight).tolist(),
+    )
 
 
 class VitsDataset(TTSDataset):
@@ -1510,6 +1539,42 @@ class Vits(BaseTTS):
         batch["mel"] = batch["mel"] * sequence_mask(batch["mel_lens"]).unsqueeze(1)
         return batch
 
+    def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1, is_eval=False):
+        weights = None
+        data_items = dataset.samples
+        if getattr(config, "use_weighted_sampler", False):
+            for attr_name, alpha in config.weighted_sampler_attrs.items():
+                print(f" > Using weighted sampler for attribute '{attr_name}' with alpha '{alpha}'")
+                multi_dict = config.weighted_sampler_multipliers.get(attr_name, None)
+                print(multi_dict)
+                weights, attr_names, attr_weights = get_attribute_balancer_weights(
+                    attr_name=attr_name, items=data_items, multi_dict=multi_dict
+                )
+                weights = weights * alpha
+                print(f" > Attribute weights for '{attr_names}' \n | > {attr_weights}")
+
+        # input_audio_lenghts = [os.path.getsize(x["audio_file"]) for x in data_items]
+
+        if weights is not None:
+            w_sampler = WeightedRandomSampler(weights, len(weights))
+            batch_sampler = BucketBatchSampler(
+                w_sampler,
+                data=data_items,
+                batch_size=config.eval_batch_size if is_eval else config.batch_size,
+                sort_key=lambda x: os.path.getsize(x["audio_file"]),
+                drop_last=True,
+            )
+        else:
+            batch_sampler = None
+        # sampler for DDP
+        if batch_sampler is None:
+            batch_sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        else:  # If a sampler is already defined use this sampler and DDP sampler together
+            batch_sampler = (
+                DistributedSamplerWrapper(batch_sampler) if num_gpus > 1 else batch_sampler
+            )  # TODO: check batch_sampler with multi-gpu
+        return batch_sampler
+
     def get_data_loader(
         self,
         config: Coqpit,
@@ -1551,10 +1616,7 @@ class Vits(BaseTTS):
 
             loader = DataLoader(
                 dataset,
-                batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                shuffle=False,  # shuffle is done in the dataset.
-                drop_last=False,  # setting this False might cause issues in AMP training.
-                sampler=sampler,
+                batch_sampler=sampler,
                 collate_fn=dataset.collate_fn,
                 num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
                 pin_memory=False,
@@ -1615,7 +1677,7 @@ class Vits(BaseTTS):
         strict=True,
     ):  # pylint: disable=unused-argument, redefined-builtin
         """Load the model checkpoint and setup for training or inference"""
-        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         # compat band-aid for the pre-trained models to not use the encoder baked into the model
         # TODO: consider baking the speaker encoder into the model and call it from there.
         # as it is probably easier for model distribution.
