@@ -7,27 +7,25 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from TTS.utils.audio import AudioProcessor
 from TTS.config import load_config
+from TTS.utils.audio import AudioProcessor
 from TTS.vocoder.datasets.preprocess import load_wav_data
 from TTS.vocoder.datasets.wavegrad_dataset import WaveGradDataset
 from TTS.vocoder.models import setup_model
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str, help="Path to model checkpoint.")
     parser.add_argument("--config_path", type=str, help="Path to model config file.")
     parser.add_argument("--data_path", type=str, help="Path to data directory.")
-    parser.add_argument("--output_path", type=str,
-                        help="path for output file including file name and extension.")
+    parser.add_argument("--output_path", type=str, help="path for output file including file name and extension.")
     parser.add_argument(
-        "--num_iter", type=int,
-        help="Number of model inference iterations that you like to optimize noise schedule for."
+        "--num_iter",
+        type=int,
+        help="Number of model inference iterations that you like to optimize noise schedule for.",
     )
     parser.add_argument("--use_cuda", action="store_true", help="enable CUDA.")
-    parser.add_argument("--num_samples", type=int, default=1,
-                        help="Number of datasamples used for inference.")
+    parser.add_argument("--num_samples", type=int, default=1, help="Number of datasamples used for inference.")
     parser.add_argument(
         "--search_depth",
         type=int,
@@ -80,8 +78,7 @@ if __name__ == '__main__':
     best_error = float("inf")
     best_schedule = None  # pylint: disable=C0103
     total_search_iter = len(base_values) ** args.num_iter
-    for base in tqdm(cartesian_product(base_values, repeat=args.num_iter),
-                     total=total_search_iter):
+    for base in tqdm(cartesian_product(base_values, repeat=args.num_iter), total=total_search_iter):
         beta = exponents * base
         model.compute_noise_level(beta)
         for data in loader:
