@@ -70,6 +70,18 @@ class VitsConfig(BaseTTSConfig):
         compute_linear_spec (bool):
             If true, the linear spectrogram is computed and returned alongside the mel output. Do not change. Defaults to `True`.
 
+        use_weighted_sampler (bool):
+            If true, use weighted sampler with bucketing for balancing samples between datasets used in training. Defaults to `False`.
+
+        weighted_sampler_attrs (dict):
+            Key retuned by the formatter to be used for weighted sampler. For example `{"root_path": 2.0, "speaker_name": 1.0}` sets sample probabilities
+            by overweighting `root_path` by 2.0. Defaults to `{}`.
+
+        weighted_sampler_multipliers (dict):
+            Weight each unique value of a key returned by the formatter for weighted sampling.
+            For example `{"root_path":{"/raid/datasets/libritts-clean-16khz-bwe-coqui_44khz/LibriTTS/train-clean-100/":1.0, "/raid/datasets/libritts-clean-16khz-bwe-coqui_44khz/LibriTTS/train-clean-360/": 0.5}`.
+            It will sample instances from `train-clean-100` 2 times more than `train-clean-360`. Defaults to `{}`.
+
         r (int):
             Number of spectrogram frames to be generated at a time. Do not change. Defaults to `1`.
 
@@ -123,6 +135,11 @@ class VitsConfig(BaseTTSConfig):
     # data loader params
     return_wav: bool = True
     compute_linear_spec: bool = True
+
+    # sampler params
+    use_weighted_sampler: bool = False  # TODO: move it to the base config
+    weighted_sampler_attrs: dict = field(default_factory=lambda: {})
+    weighted_sampler_multipliers: dict = field(default_factory=lambda: {})
 
     # overrides
     r: int = 1  # DO NOT CHANGE
