@@ -3,12 +3,21 @@ from jamo import hangul_to_jamo
 from TTS.tts.utils.text.korean.korean import normalize
 
 
-def korean_text_to_phonemes(text, separator):
-    # jamo package에 있는 hangul_to_jamo를 이용하여 한글 string을 초성/중성/종성으로 나눈다.
+def korean_text_to_phonemes(text):
+    '''
+
+        The input and output values look the same, but they are different in Unicode.
+
+        example :
+
+            input = '하늘' (Unicode : \ud558\ub298), (하 + 늘)
+            output = '하늘' (Unicode :\u1112\u1161\u1102\u1173\u11af), (ᄒ + ᅡ + ᄂ + ᅳ + ᆯ)
+
+    '''
     text = normalize(text)
-    tokens = list(hangul_to_jamo(text))  # '존경하는'  --> ['ᄌ', 'ᅩ', 'ᆫ', 'ᄀ', 'ᅧ', 'ᆼ', 'ᄒ', 'ᅡ', 'ᄂ', 'ᅳ', 'ᆫ', '~']
-    return separator.join(tokens)
+    text = list(hangul_to_jamo(text))  # '하늘' --> ['ᄒ', 'ᅡ', 'ᄂ', 'ᅳ', 'ᆯ']
+    return ''.join(text)
 
 
 if __name__ == "__main__":
-    print(korean_text_to_phonemes("테스트용 문장입니다.", " "))
+    print(korean_text_to_phonemes("테스트용 문장입니다."))

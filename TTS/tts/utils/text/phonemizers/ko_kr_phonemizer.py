@@ -30,10 +30,13 @@ class KO_KR_Phonemizer(BasePhonemizer):
         return "ko_kr_phonemizer"
 
     def _phonemize(self, text: str, separator: str = "") -> str:
-        pass
+        ph = korean_text_to_phonemes(text)
+        if separator is not None or separator != "":
+            return separator.join(ph)
+        return ph
 
-    def phonemize(self, text: str, separator: str = "|") -> str:
-        return korean_text_to_phonemes(text, separator)
+    def phonemize(self, text: str, separator: str = "") -> str:
+        return self._phonemize(text, separator)
 
     @staticmethod
     def supported_languages() -> Dict:
