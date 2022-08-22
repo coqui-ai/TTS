@@ -142,17 +142,19 @@ class StyleEncoder(nn.Module):
             if style_input is None:
                 # ignore style token and return zero tensor
                 gst_outputs = torch.zeros(1, 1, self.style_embedding_dim).type_as(inputs)
+            elif style_input.shape[-1] == self.style_embedding_dim:
+                gst_outputs = style_input
             else:
                 # compute style tokens
                 input_args = [style_input]
                 gst_outputs = self.layer(*input_args)  # pylint: disable=not-callable
             
-            if(self.use_nonlinear_proj):
-                gst_outputs = torch.tanh(self.nl_proj(gst_outputs))
-                gst_outputs = self.dropout(gst_outputs)
-               
-            if(self.use_proj_linear):
-                gst_outputs = self.proj(gst_outputs)
+                if(self.use_nonlinear_proj):
+                    gst_outputs = torch.tanh(self.nl_proj(gst_outputs))
+                    gst_outputs = self.dropout(gst_outputs)
+                
+                if(self.use_proj_linear):
+                    gst_outputs = self.proj(gst_outputs)
 
             if(self.agg_type == 'concat'):
                 inputs = self._concat_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
