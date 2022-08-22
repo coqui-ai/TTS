@@ -215,6 +215,7 @@ def synthesis(
     ap,
     speaker_id=None,
     style_wav=None,
+    style_representation=None,
     enable_eos_bos_chars=False,  # pylint: disable=unused-argument
     use_griffin_lim=False,
     do_trim_silence=False,
@@ -298,6 +299,8 @@ def synthesis(
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
+        if style_representation:
+            style_mel = style_representation
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
         text_inputs = text_inputs.unsqueeze(0)
     elif backend in ["tf", "tflite"]:
