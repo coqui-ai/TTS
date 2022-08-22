@@ -68,7 +68,6 @@ config = Tacotron2Config(
     print_step=25,
     print_eval=True,
     mixed_precision=False,
-    sort_by_audio_len=True,
     seq_len_norm=True,
     output_path=output_path,
     datasets=[dataset_config],

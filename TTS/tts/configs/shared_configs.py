@@ -200,9 +200,6 @@ class BaseTTSConfig(BaseTrainingConfig):
         loss_masking (bool):
             enable / disable masking loss values against padded segments of samples in a batch.
 
-        sort_by_audio_len (bool):
-            If true, dataloder sorts the data by audio length else sorts by the input text length. Defaults to `False`.
-
         min_text_len (int):
             Minimum length of input text to be used. All shorter samples will be ignored. Defaults to 0.
 
@@ -303,7 +300,6 @@ class BaseTTSConfig(BaseTrainingConfig):
     batch_group_size: int = 0
     loss_masking: bool = None
     # dataloading
-    sort_by_audio_len: bool = False
     min_audio_len: int = 1
     max_audio_len: int = float("inf")
     min_text_len: int = 1
