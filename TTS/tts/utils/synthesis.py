@@ -299,7 +299,7 @@ def synthesis(
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
-        if style_representation:
+        if style_representation is not None:
             style_mel = style_representation
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
         text_inputs = text_inputs.unsqueeze(0)
