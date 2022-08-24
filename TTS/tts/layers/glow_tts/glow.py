@@ -197,7 +197,7 @@ class CouplingBlock(nn.Module):
         end.bias.data.zero_()
         self.end = end
         # coupling layers
-        self.wn = WN(in_channels, hidden_channels, kernel_size, dilation_rate, num_layers, c_in_channels, dropout_p)
+        self.wn = WN(hidden_channels, hidden_channels, kernel_size, dilation_rate, num_layers, c_in_channels, dropout_p)
 
     def forward(self, x, x_mask=None, reverse=False, g=None, **kwargs):  # pylint: disable=unused-argument
         """

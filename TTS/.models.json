@@ -215,6 +215,14 @@
                     "author": "@thorstenMueller",
                     "license": "apache 2.0",
                     "commit": "unknown"
+                },
+                "tacotron2-DDC": {
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--de--thorsten--tacotron2-DDC.zip",
+                    "default_vocoder": "vocoder_models/de/thorsten/hifigan_v1",
+                    "description": "Thorsten-Dec2021-22k-DDC",
+                    "author": "@thorstenMueller",
+                    "license": "apache 2.0",
+                    "commit": "unknown"
                 }
             }
         },
@@ -457,6 +465,13 @@
                 },
                 "fullband-melgan": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--de--thorsten--fullband-melgan.zip",
+                    "author": "@thorstenMueller",
+                    "license": "apache 2.0",
+                    "commit": "unknown"
+                },
+                "hifigan_v1": {
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/vocoder_models--de--thorsten--hifigan_v1.zip",
+                    "description": "HifiGAN vocoder model for Thorsten Neutral Dec2021 22k Samplerate Tacotron2 DDC model",
                     "author": "@thorstenMueller",
                     "license": "apache 2.0",
                     "commit": "unknown"

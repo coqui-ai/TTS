@@ -7,8 +7,8 @@ from torch import nn
 from torch.nn import functional
 
 from TTS.tts.utils.helpers import sequence_mask
-from TTS.tts.utils.ssim import ssim
-from TTS.utils.audio import TorchSTFT
+from TTS.tts.utils.ssim import SSIMLoss as _SSIMLoss
+from TTS.utils.audio.torch_transforms import TorchSTFT
 
 
 # pylint: disable=abstract-method
@@ -91,30 +91,55 @@ class MSELossMasked(nn.Module):
         return loss
 
 
+def sample_wise_min_max(x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """Min-Max normalize tensor through first dimension
+    Shapes:
+        - x: :math:`[B, D1, D2]`
+        - m: :math:`[B, D1, 1]`
+    """
+    maximum = torch.amax(x.masked_fill(~mask, 0), dim=(1, 2), keepdim=True)
+    minimum = torch.amin(x.masked_fill(~mask, np.inf), dim=(1, 2), keepdim=True)
+    return (x - minimum) / (maximum - minimum + 1e-8)
+
+
 class SSIMLoss(torch.nn.Module):
-    """SSIM loss as explained here https://en.wikipedia.org/wiki/Structural_similarity"""
+    """SSIM loss as (1 - SSIM)
+    SSIM is explained here https://en.wikipedia.org/wiki/Structural_similarity
+    """
 
     def __init__(self):
         super().__init__()
-        self.loss_func = ssim
+        self.loss_func = _SSIMLoss()
 
-    def forward(self, y_hat, y, length=None):
+    def forward(self, y_hat, y, length):
         """
         Args:
             y_hat (tensor): model prediction values.
             y (tensor): target values.
-            length (tensor): length of each sample in a batch.
+            length (tensor): length of each sample in a batch for masking.
+
         Shapes:
             y_hat: B x T X D
             y: B x T x D
             length: B
+
          Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
-        if length is not None:
-            m = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2).float().to(y_hat.device)
-            y_hat, y = y_hat * m, y * m
-        return 1 - self.loss_func(y_hat.unsqueeze(1), y.unsqueeze(1))
+        mask = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2)
+        y_norm = sample_wise_min_max(y, mask)
+        y_hat_norm = sample_wise_min_max(y_hat, mask)
+        ssim_loss = self.loss_func((y_norm * mask).unsqueeze(1), (y_hat_norm * mask).unsqueeze(1))
+
+        if ssim_loss.item() > 1.0:
+            print(f" > SSIM loss is out-of-range {ssim_loss.item()}, setting it 1.0")
+            ssim_loss = torch.tensor(1.0, device=ssim_loss.device)
+
+        if ssim_loss.item() < 0.0:
+            print(f" > SSIM loss is out-of-range {ssim_loss.item()}, setting it 0.0")
+            ssim_loss = torch.tensor(0.0, device=ssim_loss.device)
+
+        return ssim_loss
 
 
 class AttentionEntropyLoss(nn.Module):
@@ -123,9 +148,6 @@ class AttentionEntropyLoss(nn.Module):
         """
         Forces attention to be more decisive by penalizing
         soft attention weights
-
-        TODO: arguments
-        TODO: unit_test
         """
         entropy = torch.distributions.Categorical(probs=align).entropy()
         loss = (entropy / np.log(align.shape[1])).mean()
@@ -133,9 +155,17 @@ class AttentionEntropyLoss(nn.Module):
 
 
 class BCELossMasked(nn.Module):
-    def __init__(self, pos_weight):
+    """BCE loss with masking.
+
+    Used mainly for stopnet in autoregressive models.
+
+    Args:
+        pos_weight (float): weight for positive samples. If set < 1, penalize early stopping. Defaults to None.
+    """
+
+    def __init__(self, pos_weight: float = None):
         super().__init__()
-        self.pos_weight = pos_weight
+        self.pos_weight = nn.Parameter(torch.tensor([pos_weight]), requires_grad=False)
 
     def forward(self, x, target, length):
         """
@@ -155,16 +185,17 @@ class BCELossMasked(nn.Module):
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
-        # mask: (batch, max_len, 1)
         target.requires_grad = False
         if length is not None:
-            mask = sequence_mask(sequence_length=length, max_len=target.size(1)).float()
-            x = x * mask
-            target = target * mask
+            # mask: (batch, max_len, 1)
+            mask = sequence_mask(sequence_length=length, max_len=target.size(1))
             num_items = mask.sum()
+            loss = functional.binary_cross_entropy_with_logits(
+                x.masked_select(mask), target.masked_select(mask), pos_weight=self.pos_weight, reduction="sum"
+            )
         else:
+            loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
             num_items = torch.numel(x)
-        loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
         loss = loss / num_items
         return loss
 

@@ -11,4 +11,5 @@ recursive-include TTS *.md
 recursive-include TTS *.py
 recursive-include TTS *.pyx
 recursive-include images *.png
-
+recursive-exclude tests *
+prune tests*

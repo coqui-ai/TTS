@@ -60,13 +60,13 @@ If you don't specify any models, then it uses LJSpeech based English model.
 - Run a TTS model with its default vocoder model:
 
     ```
-    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>"
+    $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>
     ```
 
 - Run with specific TTS and vocoder models from the list:
 
     ```
-    $ tts --text "Text for TTS" --model_name "<language>/<dataset>/<model_name>" --vocoder_name "<language>/<dataset>/<model_name>" --output_path
+    $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --vocoder_name "<model_type>/<language>/<dataset>/<model_name>" --output_path
     ```
 
 - Run your own TTS model (Using Griffin-Lim Vocoder):
