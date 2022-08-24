@@ -93,7 +93,9 @@ class ESpeak(BasePhonemizer):
 
         # band-aid for backwards compatibility
         if language == "en":
-            language = "en-us"
+            language = "en-us"        
+        if language == "zh-cn":
+            language = "cmn"
 
         super().__init__(language, punctuations=punctuations, keep_puncs=keep_puncs)
         if backend is not None:
