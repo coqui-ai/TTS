@@ -93,7 +93,7 @@ class ESpeak(BasePhonemizer):
 
         # band-aid for backwards compatibility
         if language == "en":
-            language = "en-us"        
+            language = "en-us"
         if language == "zh-cn":
             language = "cmn"
 
