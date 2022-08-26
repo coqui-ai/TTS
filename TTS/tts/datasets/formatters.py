@@ -599,7 +599,7 @@ def artic(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             # In either way, wav name is stored in `cols[0]` and text in `cols[-1]`
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[-1]
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
 
 
