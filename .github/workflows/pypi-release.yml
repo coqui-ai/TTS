@@ -36,22 +36,24 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - run: |
+      - name: Install pip requirements
+        run: |
           python -m pip install -U pip setuptools wheel build
-      - run: |
-          python -m build
-      - run: |
-          python -m pip install dist/*.whl
+          python -m pip install -r requirements.txt
+      - name: Setup and install manylinux1_x86_64 wheel
+        run: |
+          python setup.py bdist_wheel --plat-name=manylinux1_x86_64
+          python -m pip install dist/*-manylinux*.whl
       - uses: actions/upload-artifact@v2
         with:
           name: wheel-${{ matrix.python-version }}
-          path: dist/*.whl
+          path: dist/*-manylinux*.whl
   publish-artifacts:
     runs-on: ubuntu-20.04
     needs: [build-sdist, build-wheels]
@@ -64,10 +66,6 @@ jobs:
           path: "dist/"
       - uses: actions/download-artifact@v2
         with:
-          name: "wheel-3.6"
-          path: "dist/"
-      - uses: actions/download-artifact@v2
-        with:
           name: "wheel-3.7"
           path: "dist/"
       - uses: actions/download-artifact@v2
@@ -77,6 +75,10 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: "wheel-3.9"
+          path: "dist/"
+      - uses: actions/download-artifact@v2
+        with:
+          name: "wheel-3.10"
           path: "dist/"
       - run: |
           ls -lh dist/

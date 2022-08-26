@@ -514,7 +514,7 @@ class GlowTTS(BaseTTS):
             y = y[:, :, :y_max_length]
             if attn is not None:
                 attn = attn[:, :, :, :y_max_length]
-        y_lengths = (y_lengths // self.num_squeeze) * self.num_squeeze
+        y_lengths = torch.div(y_lengths, self.num_squeeze, rounding_mode="floor") * self.num_squeeze
         return y, y_lengths, y_max_length, attn
 
     def store_inverse(self):

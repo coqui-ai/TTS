@@ -484,4 +484,4 @@ def init_attn(
             beta=0.9,
         )
 
-    raise RuntimeError(" [!] Given Attention Type '{attn_type}' is not exist.")
+    raise RuntimeError(f" [!] Given Attention Type '{attn_type}' is not exist.")

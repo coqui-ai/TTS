@@ -30,6 +30,13 @@ class TestTTSTokenizer(unittest.TestCase):
         test_hat = self.tokenizer_ph.ids_to_text(ids)
         self.assertEqual(text_ph, test_hat)
 
+    def test_text_to_ids_phonemes_punctuation(self):
+        text = "..."
+        text_ph = self.ph.phonemize(text, separator="")
+        ids = self.tokenizer_ph.text_to_ids(text)
+        test_hat = self.tokenizer_ph.ids_to_text(ids)
+        self.assertEqual(text_ph, test_hat)
+
     def test_text_to_ids_phonemes_with_eos_bos(self):
         text = "Bu bir Örnek."
         self.tokenizer_ph.use_eos_bos = True

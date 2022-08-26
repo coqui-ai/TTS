@@ -1,4 +1,5 @@
 import logging
+import re
 import subprocess
 from typing import Dict, List
 
@@ -107,15 +108,6 @@ class ESpeak(BasePhonemizer):
         if backend not in ["espeak", "espeak-ng"]:
             raise Exception("Unknown backend: %s" % backend)
         self._ESPEAK_LIB = backend
-        # skip first two characters of the retuned text
-        # "_ p_ɹ_ˈaɪ_ɚ t_ə n_oʊ_v_ˈɛ_m_b_ɚ t_w_ˈɛ_n_t_i t_ˈuː\n"
-        #  ^^
-        self.num_skip_chars = 2
-        if backend == "espeak-ng":
-            # skip the first character of the retuned text
-            # "_p_ɹ_ˈaɪ_ɚ t_ə n_oʊ_v_ˈɛ_m_b_ɚ t_w_ˈɛ_n_t_i t_ˈuː\n"
-            #  ^
-            self.num_skip_chars = 1
 
     def auto_set_espeak_lib(self) -> None:
         if is_tool("espeak-ng"):
@@ -163,7 +155,23 @@ class ESpeak(BasePhonemizer):
         phonemes = ""
         for line in _espeak_exe(self._ESPEAK_LIB, args, sync=True):
             logging.debug("line: %s", repr(line))
-            phonemes += line.decode("utf8").strip()[self.num_skip_chars :]  # skip initial redundant characters
+            ph_decoded = line.decode("utf8").strip()
+            # espeak need to skip first two characters of the retuned text:
+            #   version 1.48.03: "_ p_ɹ_ˈaɪ_ɚ t_ə n_oʊ_v_ˈɛ_m_b_ɚ t_w_ˈɛ_n_t_i t_ˈuː\n"
+            #   version 1.48.15: " p_ɹ_ˈaɪ_ɚ t_ə n_oʊ_v_ˈɛ_m_b_ɚ t_w_ˈɛ_n_t_i t_ˈuː\n"
+            # espeak-ng need to skip the first character of the retuned text:
+            #   "_p_ɹ_ˈaɪ_ɚ t_ə n_oʊ_v_ˈɛ_m_b_ɚ t_w_ˈɛ_n_t_i t_ˈuː\n"
+
+            # dealing with the conditions descrived above
+            ph_decoded = ph_decoded[:1].replace("_", "") + ph_decoded[1:]
+
+            # espeak-ng backend can add language flags that need to be removed:
+            #   "sɛʁtˈɛ̃ mˈo kɔm (en)fˈʊtbɔːl(fr) ʒenˈɛʁ de- flˈaɡ də- lˈɑ̃ɡ."
+            # phonemize needs to remove the language flags of the returned text:
+            #   "sɛʁtˈɛ̃ mˈo kɔm fˈʊtbɔːl ʒenˈɛʁ de- flˈaɡ də- lˈɑ̃ɡ."
+            ph_decoded = re.sub(r"\(.+?\)", "", ph_decoded)
+
+            phonemes += ph_decoded.strip()
         return phonemes.replace("_", separator)
 
     def _phonemize(self, text, separator=None):

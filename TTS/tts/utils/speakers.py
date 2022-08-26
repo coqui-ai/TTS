@@ -108,6 +108,7 @@ class SpeakerManager(EmbeddingManager):
                 )
 
         if get_from_config_or_model_args_with_default(config, "use_d_vector_file", False):
+            speaker_manager = SpeakerManager()
             if get_from_config_or_model_args_with_default(config, "speakers_file", None):
                 speaker_manager = SpeakerManager(
                     d_vectors_file_path=get_from_config_or_model_args_with_default(config, "speaker_file", None)

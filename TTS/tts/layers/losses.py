@@ -7,8 +7,8 @@ from torch import nn
 from torch.nn import functional
 
 from TTS.tts.utils.helpers import sequence_mask
-from TTS.tts.utils.ssim import ssim
-from TTS.utils.audio import TorchSTFT
+from TTS.tts.utils.ssim import SSIMLoss as _SSIMLoss
+from TTS.utils.audio.torch_transforms import TorchSTFT
 
 
 # pylint: disable=abstract-method
@@ -91,30 +91,55 @@ class MSELossMasked(nn.Module):
         return loss
 
 
+def sample_wise_min_max(x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """Min-Max normalize tensor through first dimension
+    Shapes:
+        - x: :math:`[B, D1, D2]`
+        - m: :math:`[B, D1, 1]`
+    """
+    maximum = torch.amax(x.masked_fill(~mask, 0), dim=(1, 2), keepdim=True)
+    minimum = torch.amin(x.masked_fill(~mask, np.inf), dim=(1, 2), keepdim=True)
+    return (x - minimum) / (maximum - minimum + 1e-8)
+
+
 class SSIMLoss(torch.nn.Module):
-    """SSIM loss as explained here https://en.wikipedia.org/wiki/Structural_similarity"""
+    """SSIM loss as (1 - SSIM)
+    SSIM is explained here https://en.wikipedia.org/wiki/Structural_similarity
+    """
 
     def __init__(self):
         super().__init__()
-        self.loss_func = ssim
+        self.loss_func = _SSIMLoss()
 
-    def forward(self, y_hat, y, length=None):
+    def forward(self, y_hat, y, length):
         """
         Args:
             y_hat (tensor): model prediction values.
             y (tensor): target values.
-            length (tensor): length of each sample in a batch.
+            length (tensor): length of each sample in a batch for masking.
+
         Shapes:
             y_hat: B x T X D
             y: B x T x D
             length: B
+
          Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
-        if length is not None:
-            m = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2).float().to(y_hat.device)
-            y_hat, y = y_hat * m, y * m
-        return 1 - self.loss_func(y_hat.unsqueeze(1), y.unsqueeze(1))
+        mask = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2)
+        y_norm = sample_wise_min_max(y, mask)
+        y_hat_norm = sample_wise_min_max(y_hat, mask)
+        ssim_loss = self.loss_func((y_norm * mask).unsqueeze(1), (y_hat_norm * mask).unsqueeze(1))
+
+        if ssim_loss.item() > 1.0:
+            print(f" > SSIM loss is out-of-range {ssim_loss.item()}, setting it 1.0")
+            ssim_loss = torch.tensor(1.0, device=ssim_loss.device)
+
+        if ssim_loss.item() < 0.0:
+            print(f" > SSIM loss is out-of-range {ssim_loss.item()}, setting it 0.0")
+            ssim_loss = torch.tensor(0.0, device=ssim_loss.device)
+
+        return ssim_loss
 
 
 class AttentionEntropyLoss(nn.Module):
@@ -123,9 +148,6 @@ class AttentionEntropyLoss(nn.Module):
         """
         Forces attention to be more decisive by penalizing
         soft attention weights
-
-        TODO: arguments
-        TODO: unit_test
         """
         entropy = torch.distributions.Categorical(probs=align).entropy()
         loss = (entropy / np.log(align.shape[1])).mean()
@@ -133,9 +155,17 @@ class AttentionEntropyLoss(nn.Module):
 
 
 class BCELossMasked(nn.Module):
-    def __init__(self, pos_weight):
+    """BCE loss with masking.
+
+    Used mainly for stopnet in autoregressive models.
+
+    Args:
+        pos_weight (float): weight for positive samples. If set < 1, penalize early stopping. Defaults to None.
+    """
+
+    def __init__(self, pos_weight: float = None):
         super().__init__()
-        self.pos_weight = pos_weight
+        self.pos_weight = nn.Parameter(torch.tensor([pos_weight]), requires_grad=False)
 
     def forward(self, x, target, length):
         """
@@ -155,16 +185,17 @@ class BCELossMasked(nn.Module):
         Returns:
             loss: An average loss value in range [0, 1] masked by the length.
         """
-        # mask: (batch, max_len, 1)
         target.requires_grad = False
         if length is not None:
-            mask = sequence_mask(sequence_length=length, max_len=target.size(1)).float()
-            x = x * mask
-            target = target * mask
+            # mask: (batch, max_len, 1)
+            mask = sequence_mask(sequence_length=length, max_len=target.size(1))
             num_items = mask.sum()
+            loss = functional.binary_cross_entropy_with_logits(
+                x.masked_select(mask), target.masked_select(mask), pos_weight=self.pos_weight, reduction="sum"
+            )
         else:
+            loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
             num_items = torch.numel(x)
-        loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
         loss = loss / num_items
         return loss
 
@@ -281,6 +312,10 @@ class TacotronLoss(torch.nn.Module):
     def __init__(self, c, ga_sigma=0.4):
         super().__init__()
         self.stopnet_pos_weight = c.stopnet_pos_weight
+        self.use_capacitron_vae = c.use_capacitron_vae
+        if self.use_capacitron_vae:
+            self.capacitron_capacity = c.capacitron_vae.capacitron_capacity
+            self.capacitron_vae_loss_alpha = c.capacitron_vae.capacitron_VAE_loss_alpha
         self.ga_alpha = c.ga_alpha
         self.decoder_diff_spec_alpha = c.decoder_diff_spec_alpha
         self.postnet_diff_spec_alpha = c.postnet_diff_spec_alpha
@@ -308,6 +343,9 @@ class TacotronLoss(torch.nn.Module):
         # pylint: disable=not-callable
         self.criterion_st = BCELossMasked(pos_weight=torch.tensor(self.stopnet_pos_weight)) if c.stopnet else None
 
+        # For dev pruposes only
+        self.criterion_capacitron_reconstruction_loss = nn.L1Loss(reduction="sum")
+
     def forward(
         self,
         postnet_output,
@@ -317,6 +355,7 @@ class TacotronLoss(torch.nn.Module):
         stopnet_output,
         stopnet_target,
         stop_target_length,
+        capacitron_vae_outputs,
         output_lens,
         decoder_b_output,
         alignments,
@@ -347,6 +386,55 @@ class TacotronLoss(torch.nn.Module):
         loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
         return_dict["decoder_loss"] = decoder_loss
         return_dict["postnet_loss"] = postnet_loss
+
+        if self.use_capacitron_vae:
+            # extract capacitron vae infos
+            posterior_distribution, prior_distribution, beta = capacitron_vae_outputs
+
+            # KL divergence term between the posterior and the prior
+            kl_term = torch.mean(torch.distributions.kl_divergence(posterior_distribution, prior_distribution))
+
+            # Limit the mutual information between the data and latent space by the variational capacity limit
+            kl_capacity = kl_term - self.capacitron_capacity
+
+            # pass beta through softplus to keep it positive
+            beta = torch.nn.functional.softplus(beta)[0]
+
+            # This is the term going to the main ADAM optimiser, we detach beta because
+            # beta is optimised by a separate, SGD optimiser below
+            capacitron_vae_loss = beta.detach() * kl_capacity
+
+            # normalize the capacitron_vae_loss as in L1Loss or MSELoss.
+            # After this, both the standard loss and capacitron_vae_loss will be in the same scale.
+            # For this reason we don't need use L1Loss and MSELoss in "sum" reduction mode.
+            # Note: the batch is not considered because the L1Loss was calculated in "sum" mode
+            # divided by the batch size, So not dividing the capacitron_vae_loss by B is legitimate.
+
+            # get B T D dimension from input
+            B, T, D = mel_input.size()
+            # normalize
+            if self.config.loss_masking:
+                # if mask loss get T using the mask
+                T = output_lens.sum() / B
+
+            # Only for dev purposes to be able to compare the reconstruction loss with the values in the
+            # original Capacitron paper
+            return_dict["capaciton_reconstruction_loss"] = (
+                self.criterion_capacitron_reconstruction_loss(decoder_output, mel_input) / decoder_output.size(0)
+            ) + kl_capacity
+
+            capacitron_vae_loss = capacitron_vae_loss / (T * D)
+            capacitron_vae_loss = capacitron_vae_loss * self.capacitron_vae_loss_alpha
+
+            # This is the term to purely optimise beta and to pass into the SGD optimizer
+            beta_loss = torch.negative(beta) * kl_capacity.detach()
+
+            loss += capacitron_vae_loss
+
+            return_dict["capacitron_vae_loss"] = capacitron_vae_loss
+            return_dict["capacitron_vae_beta_loss"] = beta_loss
+            return_dict["capacitron_vae_kl_term"] = kl_term
+            return_dict["capacitron_beta"] = beta
 
         stop_loss = (
             self.criterion_st(stopnet_output, stopnet_target, stop_target_length)
