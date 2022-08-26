@@ -14,7 +14,7 @@ phonemizer = ESpeak(language="fr-fr")
 
 def compute_phonemes(item):
     try:
-        text = item[0]
+        text = item["text"]
         ph = phonemizer.phonemize(text).split("|")
     except:
         return []
