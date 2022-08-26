@@ -112,6 +112,7 @@ class BaseEncoder(nn.Module):
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         try:
             self.load_state_dict(state["model"])
+            print(" > Model fully restored. ")
         except (KeyError, RuntimeError) as error:
             # If eval raise the error
             if eval:
