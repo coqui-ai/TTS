@@ -8,9 +8,9 @@ from tqdm.contrib.concurrent import process_map
 from TTS.config import load_config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.utils.text.phonemizers.gruut_wrapper import Gruut
+from TTS.tts.utils.text.phonemizers.espeak_wrapper import ESpeak
 
-phonemizer = Gruut(language="en-us")
-
+phonemizer = ESpeak(language="fr-fr")
 
 def compute_phonemes(item):
     try:
