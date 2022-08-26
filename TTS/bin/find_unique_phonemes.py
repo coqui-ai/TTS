@@ -54,7 +54,16 @@ def main():
     phonemes = process_map(compute_phonemes, items, max_workers=multiprocessing.cpu_count(), chunksize=15)
     phones = []
     for ph in phonemes:
-        phones.extend(ph)
+        
+        # ph can contain one or more phonemes separated by a white space by default
+        # if ph is not split into actual phonemes, "set" function cannot remove duplicates. 
+        # So let's append each and every phoneme inside ph one by one to the phones list
+        # so that "set" can later remove all duplicates
+        # TODO take into acount the phoneme separator that can be passed (instead of white space)
+        for p in ph:
+           p.split()
+           phones.extend(p)
+
     phones = set(phones)
     lower_phones = filter(lambda c: c.islower(), phones)
     phones_force_lower = [c.lower() for c in phones]
