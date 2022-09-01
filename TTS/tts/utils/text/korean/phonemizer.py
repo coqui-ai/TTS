@@ -1,6 +1,7 @@
-from jamo import hangul_to_jamo
-from TTS.tts.utils.text.korean.korean import normalize
 from g2pkk import G2p
+from jamo import hangul_to_jamo
+
+from TTS.tts.utils.text.korean.korean import normalize
 
 g2p = G2p()
 

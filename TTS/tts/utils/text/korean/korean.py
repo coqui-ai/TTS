@@ -1,6 +1,7 @@
 ﻿# coding: utf-8
 # Code based on https://github.com/carpedm20/multi-speaker-tacotron-tensorflow/blob/master/text/korean.py
 import re
+
 from TTS.tts.utils.text.korean.ko_dictionary import english_dictionary, etc_dictionary
 
 
