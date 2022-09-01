@@ -55,11 +55,11 @@ class KO_KR_Phonemizer(BasePhonemizer):
 
 
 if __name__ == "__main__":
-    text = "이 문장은 음성합성 테스트를 위한 문장입니다."
+    texts = "이 문장은 음성합성 테스트를 위한 문장입니다."
     e = KO_KR_Phonemizer()
     print(e.supported_languages())
     print(e.version())
     print(e.language)
     print(e.name())
     print(e.is_available())
-    print(e.phonemize(text))
+    print(e.phonemize(texts))

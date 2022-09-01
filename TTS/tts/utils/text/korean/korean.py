@@ -18,8 +18,7 @@ def normalize_with_dictionary(text, dic):
     if any(key in text for key in dic.keys()):
         pattern = re.compile("|".join(re.escape(key) for key in dic.keys()))
         return pattern.sub(lambda x: dic[x.group()], text)
-    else:
-        return text
+    return text
 
 
 def normalize_english(text):
@@ -27,8 +26,6 @@ def normalize_english(text):
         word = m.group()
         if word in english_dictionary:
             return english_dictionary.get(word)
-        else:
-            return word
-
+        return word
     text = re.sub("([A-Za-z]+)", fn, text)
     return text
