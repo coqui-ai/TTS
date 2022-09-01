@@ -27,5 +27,6 @@ def normalize_english(text):
         if word in english_dictionary:
             return english_dictionary.get(word)
         return word
+
     text = re.sub("([A-Za-z]+)", fn, text)
     return text
