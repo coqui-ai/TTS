@@ -103,6 +103,8 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
     else:
         csv_files = meta_files
 
+    # Back slash to forward slash replacment for windows os users
+    csv_files = [csv_file.replace("\\","/") for csv_file in csv_files]
     # meta_files = [f.strip() for f in meta_files.split(",")]
     items = []
     for csv_file in csv_files:
