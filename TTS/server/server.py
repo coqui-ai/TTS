@@ -4,8 +4,8 @@ import io
 import json
 import os
 import sys
-from threading import Lock
 from pathlib import Path
+from threading import Lock
 from typing import Union
 
 from flask import Flask, render_template, request, send_file
@@ -168,7 +168,10 @@ def details():
         args=args.__dict__,
     )
 
+
 lock = Lock()
+
+
 @app.route("/api/tts", methods=["GET"])
 def tts():
     with lock:
