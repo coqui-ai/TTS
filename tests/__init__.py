@@ -42,7 +42,7 @@ def run_cli(command):
 
 
 def get_test_data_config():
-    return BaseDatasetConfig(name="ljspeech", path="tests/data/ljspeech/", meta_file_train="metadata.csv")
+    return BaseDatasetConfig(formatter="ljspeech", path="tests/data/ljspeech/", meta_file_train="metadata.csv")
 
 
 def assertHasAttr(test_obj, obj, intendedAttr):
