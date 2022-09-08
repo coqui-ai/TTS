@@ -235,7 +235,6 @@ class BaseDatasetConfig(Coqpit):
         """Check config fields"""
         c = asdict(self)
         check_argument("formatter", c, restricted=True)
-        check_argument("dataset_name", c, restricted=True)
         check_argument("path", c, restricted=True)
         check_argument("meta_file_train", c, restricted=True)
         check_argument("meta_file_val", c, restricted=False)
