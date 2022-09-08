@@ -5,9 +5,9 @@ import numpy as np
 import scipy.io.wavfile
 import scipy.signal
 import soundfile as sf
-from librosa import pyin
 
 from TTS.tts.utils.helpers import StandardScaler
+from TTS.utils.audio.numpy_transforms import compute_f0
 
 # pylint: disable=too-many-public-methods
 
@@ -584,25 +584,16 @@ class AudioProcessor(object):
         if len(x) % self.hop_length == 0:
             x = np.pad(x, (0, self.hop_length // 2), mode=self.stft_pad_mode)
 
-        f0, voiced_mask, _ = pyin(
-            y=x,
-            fmin=self.pitch_fmin,
-            fmax=self.pitch_fmax,
-            sr=self.sample_rate,
-            frame_length=self.win_length,
-            win_length=self.win_length // 2,
+        f0 = compute_f0(
+            x=x,
+            pitch_fmax=self.pitch_fmax,
+            pitch_fmin=self.pitch_fmin,
             hop_length=self.hop_length,
-            pad_mode=self.stft_pad_mode,
+            win_length=self.win_length,
+            sample_rate=self.sample_rate,
+            stft_pad_mode=self.stft_pad_mode,
             center=True,
-            n_thresholds=100,
-            beta_parameters=(2, 18),
-            boltzmann_parameter=2,
-            resolution=0.1,
-            max_transition_rate=35.92,
-            switch_prob=0.01,
-            no_trough_prob=0.01,
         )
-        f0[~voiced_mask] = 0.0
 
         return f0
 
