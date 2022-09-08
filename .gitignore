@@ -127,7 +127,8 @@ core
 # ignore local datasets
 recipes/WIP/*
 recipes/ljspeech/LJSpeech-1.1/*
-recipes/emovdb/files/*
+recipes/emovdb/*
+experiments/*
 recipes/vctk/VCTK/*
 recipes/**/*.npy
 recipes/**/*.json
