@@ -73,14 +73,14 @@ class SpeakerManager(EmbeddingManager):
 
     @property
     def num_speakers(self):
-        return len(self.ids)
+        return len(self.name_to_id)
 
     @property
     def speaker_names(self):
-        return list(self.ids.keys())
+        return list(self.name_to_id.keys())
 
     def get_speakers(self) -> List:
-        return self.ids
+        return self.name_to_id
 
     @staticmethod
     def init_from_config(config: "Coqpit", samples: Union[List[List], List[Dict]] = None) -> "SpeakerManager":
