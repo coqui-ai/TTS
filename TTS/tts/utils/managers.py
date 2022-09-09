@@ -112,7 +112,15 @@ class EmbeddingManager(BaseIDManager):
 
     It expects embeddings files in the following format:
 
-        ```{"audio_file_key": {"embedding": [0.1, 0.2, 0.3, ...], "name": "CoquiFrog"}}```
+    ::
+
+        {
+            'audio_file_key':{
+                'name': 'category_name',
+                'embedding'[<embedding_values>]
+            },
+            ...
+        }
 
     `audio_file_key` is a unique key to the audio file in the dataset. It can be the path to the file or any other unique key.
     `embedding` is the embedding vector of the audio file.
@@ -201,7 +209,9 @@ class EmbeddingManager(BaseIDManager):
         Args:
             file_path (str): Path to the target json file.
         """
-        self.name_to_id, self.clip_ids, self.embeddings, self.embeddings_by_names = self.read_embeddings_from_file(file_path)
+        self.name_to_id, self.clip_ids, self.embeddings, self.embeddings_by_names = self.read_embeddings_from_file(
+            file_path
+        )
 
     def load_embeddings_from_list_of_files(self, file_paths: List[str]) -> None:
         """Load embeddings from a list of json files and don't allow duplicate keys.
@@ -224,7 +234,6 @@ class EmbeddingManager(BaseIDManager):
             self.clip_ids.extend(clip_ids)
             self.embeddings_by_names.update(embeddings_by_names)
             self.embeddings.update(embeddings)
-
 
     def get_embedding_by_clip(self, clip_idx: str) -> List:
         """Get embedding by clip ID.

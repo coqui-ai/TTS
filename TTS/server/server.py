@@ -146,7 +146,7 @@ def index():
         "index.html",
         show_details=args.show_details,
         use_multi_speaker=use_multi_speaker,
-        speaker_ids=speaker_manager.ids if speaker_manager is not None else None,
+        speaker_ids=speaker_manager.name_to_id if speaker_manager is not None else None,
         use_gst=use_gst,
     )
 

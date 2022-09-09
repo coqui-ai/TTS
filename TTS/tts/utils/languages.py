@@ -37,11 +37,11 @@ class LanguageManager(BaseIDManager):
 
     @property
     def num_languages(self) -> int:
-        return len(list(self.ids.keys()))
+        return len(list(self.name_to_id.keys()))
 
     @property
     def language_names(self) -> List:
-        return list(self.ids.keys())
+        return list(self.name_to_id.keys())
 
     @staticmethod
     def parse_language_ids_from_config(c: Coqpit) -> Dict:
@@ -67,7 +67,7 @@ class LanguageManager(BaseIDManager):
         Args:
             c (Coqpit): Config.
         """
-        self.ids = self.parse_language_ids_from_config(c)
+        self.name_to_id = self.parse_language_ids_from_config(c)
 
     @staticmethod
     def parse_ids_from_data(items: List, parse_key: str) -> Any:
@@ -82,7 +82,7 @@ class LanguageManager(BaseIDManager):
         Args:
             file_path (str): Path to the output file.
         """
-        self._save_json(file_path, self.ids)
+        self._save_json(file_path, self.name_to_id)
 
     @staticmethod
     def init_from_config(config: Coqpit) -> "LanguageManager":

@@ -85,7 +85,7 @@ class EmbeddingManagerTest(unittest.TestCase):
         # test loading a pth files with duplicate embedding keys
         with self.assertRaises(Exception) as context:
             manager = EmbeddingManager(embedding_file_path=[embeddings_file_pth_path, embeddings_file_pth_path])
-        self.assertTrue('Duplicate embedding names' in str(context.exception))
+        self.assertTrue("Duplicate embedding names" in str(context.exception))
         # test loading embedding files with different embedding keys
         manager = EmbeddingManager(embedding_file_path=[embeddings_file_pth_path, embeddings_file_path2])
         self.assertEqual(manager.embedding_dim, 256)
