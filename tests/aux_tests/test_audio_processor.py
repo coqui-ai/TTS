@@ -10,7 +10,7 @@ OUT_PATH = os.path.join(get_tests_output_path(), "audio_tests")
 WAV_FILE = os.path.join(get_tests_input_path(), "example_1.wav")
 
 os.makedirs(OUT_PATH, exist_ok=True)
-conf = BaseAudioConfig(mel_fmax=8000)
+conf = BaseAudioConfig(mel_fmax=8000, pitch_fmax=640, pitch_fmin=1)
 
 
 # pylint: disable=protected-access

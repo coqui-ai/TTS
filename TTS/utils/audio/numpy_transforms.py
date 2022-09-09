@@ -2,9 +2,9 @@ from typing import Tuple
 
 import librosa
 import numpy as np
-import pyworld as pw
 import scipy
 import soundfile as sf
+from librosa import pyin
 
 # For using kwargs
 # pylint: disable=unused-argument
@@ -242,12 +242,28 @@ def compute_stft_paddings(
 
 
 def compute_f0(
-    *, x: np.ndarray = None, pitch_fmax: float = None, hop_length: int = None, sample_rate: int = None, **kwargs
+    *,
+    x: np.ndarray = None,
+    pitch_fmax: float = None,
+    pitch_fmin: float = None,
+    hop_length: int = None,
+    win_length: int = None,
+    sample_rate: int = None,
+    stft_pad_mode: str = "reflect",
+    center: bool = True,
+    **kwargs,
 ) -> np.ndarray:
     """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
 
     Args:
         x (np.ndarray): Waveform. Shape :math:`[T_wav,]`
+        pitch_fmax (float): Pitch max value.
+        pitch_fmin (float): Pitch min value.
+        hop_length (int): Number of frames between STFT columns.
+        win_length (int): STFT window length.
+        sample_rate (int): Audio sampling rate.
+        stft_pad_mode (str): Padding mode for STFT.
+        center (bool): Centered padding.
 
     Returns:
         np.ndarray: Pitch. Shape :math:`[T_pitch,]`. :math:`T_pitch == T_wav / hop_length`
@@ -255,20 +271,35 @@ def compute_f0(
     Examples:
         >>> WAV_FILE = filename = librosa.util.example_audio_file()
         >>> from TTS.config import BaseAudioConfig
-        >>> from TTS.utils.audio.processor import AudioProcessor        >>> conf = BaseAudioConfig(pitch_fmax=8000)
+        >>> from TTS.utils.audio import AudioProcessor
+        >>> conf = BaseAudioConfig(pitch_fmax=640, pitch_fmin=1)
         >>> ap = AudioProcessor(**conf)
-        >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
+        >>> wav = ap.load_wav(WAV_FILE, sr=ap.sample_rate)[:5 * ap.sample_rate]
         >>> pitch = ap.compute_f0(wav)
     """
     assert pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
+    assert pitch_fmin is not None, " [!] Set `pitch_fmin` before caling `compute_f0`."
 
-    f0, t = pw.dio(
-        x.astype(np.double),
-        fs=sample_rate,
-        f0_ceil=pitch_fmax,
-        frame_period=1000 * hop_length / sample_rate,
+    f0, voiced_mask, _ = pyin(
+        y=x.astype(np.double),
+        fmin=pitch_fmin,
+        fmax=pitch_fmax,
+        sr=sample_rate,
+        frame_length=win_length,
+        win_length=win_length // 2,
+        hop_length=hop_length,
+        pad_mode=stft_pad_mode,
+        center=center,
+        n_thresholds=100,
+        beta_parameters=(2, 18),
+        boltzmann_parameter=2,
+        resolution=0.1,
+        max_transition_rate=35.92,
+        switch_prob=0.01,
+        no_trough_prob=0.01,
     )
-    f0 = pw.stonemask(x.astype(np.double), f0, t, sample_rate)
+    f0[~voiced_mask] = 0.0
+
     return f0
 
 
