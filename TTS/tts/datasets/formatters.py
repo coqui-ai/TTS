@@ -304,6 +304,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic
     """
     file_ext = "flac"
     items = []
+    style_name = "Neutral"
     meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
     for meta_file in meta_files:
         _, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
@@ -321,7 +322,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic
             wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + f"_{mic}.{file_ext}")
         if os.path.exists(wav_file):
             items.append(
-                {"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id, "root_path": root_path}
+                [text, wav_file, "VCTK_" + speaker_id, style_name]
             )
         else:
             print(f" [!] wav files don't exist - {wav_file}")
@@ -331,6 +332,7 @@ def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic
 def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
+    style_name = "Neutral"
     meta_files = glob(f"{os.path.join(root_path,'txt')}/**/*.txt", recursive=True)
     for meta_file in meta_files:
         _, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
@@ -343,8 +345,8 @@ def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=Non
             text = file_text.readlines()[0]
         wav_file = os.path.join(root_path, wavs_path, speaker_id, file_id + ".wav")
         items.append(
-            {"text": text, "audio_file": wav_file, "speaker_name": "VCTK_old_" + speaker_id, "root_path": root_path}
-        )
+                [text, wav_file, "VCTK_old" + speaker_id, style_name]
+            )
     return items
 
 
