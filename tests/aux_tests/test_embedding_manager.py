@@ -60,7 +60,7 @@ class EmbeddingManagerTest(unittest.TestCase):
         # remove dummy model
         os.remove(encoder_model_path)
 
-    def test_embedding_file_processing(self):
+    def test_embedding_file_processing(self):  # pylint: disable=no-self-use
         manager = EmbeddingManager(embedding_file_path=embeddings_file_pth_path)
         # test embedding querying
         embedding = manager.get_embedding_by_clip(manager.clip_ids[0])

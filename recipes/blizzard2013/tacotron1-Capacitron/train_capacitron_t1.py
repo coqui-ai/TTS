@@ -15,7 +15,7 @@ output_path = os.path.dirname(os.path.abspath(__file__))
 data_path = "/srv/data/"
 
 # Using LJSpeech like dataset processing for the blizzard dataset
-dataset_config = BaseDatasetConfig(name="ljspeech", meta_file_train="metadata.csv", path=data_path)
+dataset_config = BaseDatasetConfig(formatter="ljspeech", meta_file_train="metadata.csv", path=data_path)
 
 audio_config = BaseAudioConfig(
     sample_rate=24000,
