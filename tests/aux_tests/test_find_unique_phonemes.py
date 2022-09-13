@@ -12,7 +12,7 @@ torch.manual_seed(1)
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 
 dataset_config_en = BaseDatasetConfig(
-    name="ljspeech",
+    formatter="ljspeech",
     meta_file_train="metadata.csv",
     meta_file_val="metadata.csv",
     path="tests/data/ljspeech",
@@ -21,7 +21,7 @@ dataset_config_en = BaseDatasetConfig(
 
 """
 dataset_config_pt = BaseDatasetConfig(
-    name="ljspeech",
+    formatter="ljspeech",
     meta_file_train="metadata.csv",
     meta_file_val="metadata.csv",
     path="tests/data/ljspeech",

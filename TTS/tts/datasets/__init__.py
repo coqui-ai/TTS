@@ -97,7 +97,8 @@ def load_tts_samples(
     if not isinstance(datasets, list):
         datasets = [datasets]
     for dataset in datasets:
-        name = dataset["name"]
+        formatter_name = dataset["formatter"]
+        dataset_name = dataset["dataset_name"]
         root_path = dataset["path"]
         meta_file_train = dataset["meta_file_train"]
         meta_file_val = dataset["meta_file_val"]
@@ -106,17 +107,18 @@ def load_tts_samples(
 
         # setup the right data processor
         if formatter is None:
-            formatter = _get_formatter_by_name(name)
+            formatter = _get_formatter_by_name(formatter_name)
         # load train set
         meta_data_train = formatter(root_path, meta_file_train, ignored_speakers=ignored_speakers)
-        meta_data_train = [{**item, **{"language": language}} for item in meta_data_train]
-
+        meta_data_train = [{**item, **{"language": language, "dataset_name": dataset_name}} for item in meta_data_train]
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set
         if eval_split:
             if meta_file_val:
                 meta_data_eval = formatter(root_path, meta_file_val, ignored_speakers=ignored_speakers)
-                meta_data_eval = [{**item, **{"language": language}} for item in meta_data_eval]
+                meta_data_eval = [
+                    {**item, **{"language": language, "dataset_name": dataset_name}} for item in meta_data_eval
+                ]
             else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train, eval_split_max_size, eval_split_size)
             meta_data_eval_all += meta_data_eval
