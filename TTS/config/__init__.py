@@ -62,7 +62,7 @@ def _process_model_name(config_dict: Dict) -> str:
     return model_name
 
 
-def load_config(config_path: str) -> None:
+def load_config(config_path: str) -> Coqpit:
     """Import `json` or `yaml` files as TTS configs. First, load the input file as a `dict` and check the model name
     to find the corresponding Config class. Then initialize the Config.
 

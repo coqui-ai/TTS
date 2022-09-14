@@ -13,13 +13,13 @@ from trainer.trainer_utils import get_optimizer
 
 from TTS.encoder.dataset import EncoderDataset
 from TTS.encoder.utils.generic_utils import save_best_model, save_checkpoint, setup_encoder_model
-from TTS.encoder.utils.samplers import PerfectBatchSampler
 from TTS.encoder.utils.training import init_training
 from TTS.encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder
 from TTS.utils.io import copy_model_files
+from TTS.utils.samplers import PerfectBatchSampler
 from TTS.utils.training import check_update
 
 torch.backends.cudnn.enabled = True

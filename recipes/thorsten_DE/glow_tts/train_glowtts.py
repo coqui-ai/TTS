@@ -22,7 +22,7 @@ output_path = os.path.dirname(os.path.abspath(__file__))
 # Set LJSpeech as our target dataset and define its path.
 # You can also use a simple Dict to define the dataset and pass it to your custom formatter.
 dataset_config = BaseDatasetConfig(
-    name="thorsten", meta_file_train="metadata.csv", path=os.path.join(output_path, "../thorsten-de/")
+    formatter="thorsten", meta_file_train="metadata.csv", path=os.path.join(output_path, "../thorsten-de/")
 )
 
 # download dataset if not already present

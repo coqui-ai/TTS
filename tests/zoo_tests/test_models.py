@@ -38,7 +38,7 @@ def test_run_all_models():
                     language_manager = LanguageManager(language_ids_file_path=language_files[0])
                     language_id = language_manager.language_names[0]
 
-                speaker_id = list(speaker_manager.ids.keys())[0]
+                speaker_id = list(speaker_manager.name_to_id.keys())[0]
                 run_cli(
                     f"tts --model_name  {model_name} "
                     f'--text "This is an example." --out_path "{output_path}" --speaker_idx "{speaker_id}" --language_idx "{language_id}" '

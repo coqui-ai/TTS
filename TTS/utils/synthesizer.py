@@ -212,7 +212,7 @@ class Synthesizer(object):
         # handle multi-speaker
         speaker_embedding = None
         speaker_id = None
-        if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "ids"):
+        if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "name_to_id"):
             if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
                     # get the average speaker embedding from the saved d_vectors.
@@ -222,7 +222,7 @@ class Synthesizer(object):
                     speaker_embedding = np.array(speaker_embedding)[None, :]  # [1 x embedding_dim]
                 else:
                     # get speaker idx from the speaker name
-                    speaker_id = self.tts_model.speaker_manager.ids[speaker_name]
+                    speaker_id = self.tts_model.speaker_manager.name_to_id[speaker_name]
 
             elif not speaker_name and not speaker_wav:
                 raise ValueError(
@@ -244,7 +244,7 @@ class Synthesizer(object):
             hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
         ):
             if language_name and isinstance(language_name, str):
-                language_id = self.tts_model.language_manager.ids[language_name]
+                language_id = self.tts_model.language_manager.name_to_id[language_name]
 
             elif not language_name:
                 raise ValueError(
@@ -316,7 +316,7 @@ class Synthesizer(object):
             # get the speaker embedding or speaker id for the reference wav file
             reference_speaker_embedding = None
             reference_speaker_id = None
-            if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "ids"):
+            if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "name_to_id"):
                 if reference_speaker_name and isinstance(reference_speaker_name, str):
                     if self.tts_config.use_d_vector_file:
                         # get the speaker embedding from the saved d_vectors.
@@ -328,12 +328,11 @@ class Synthesizer(object):
                         ]  # [1 x embedding_dim]
                     else:
                         # get speaker idx from the speaker name
-                        reference_speaker_id = self.tts_model.speaker_manager.ids[reference_speaker_name]
+                        reference_speaker_id = self.tts_model.speaker_manager.name_to_id[reference_speaker_name]
                 else:
                     reference_speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(
                         reference_wav
                     )
-
             outputs = transfer_voice(
                 model=self.tts_model,
                 CONFIG=self.tts_config,
