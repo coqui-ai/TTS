@@ -83,9 +83,11 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 - FastPitch: [paper](https://arxiv.org/pdf/2006.06873.pdf)
 - FastSpeech: [paper](https://arxiv.org/abs/1905.09263)
+- SC-GlowTTS: [paper](https://arxiv.org/abs/2104.05557)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
+- YourTTS: [paper](https://arxiv.org/abs/2112.02418)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
