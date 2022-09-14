@@ -18,7 +18,7 @@ def korean_text_to_phonemes(text, character: str = "hangeul") -> str:
 
     """
 
-    global g2p
+    global g2p  # pylint: disable = W0603
 
     if g2p is None:
         g2p = G2p()
