@@ -53,6 +53,7 @@ class CapacitronVAE(nn.Module):
                 text_summary_out = self.text_summary_net(text_inputs, input_lengths).to(reference_mels.device)
                 enc_out = torch.cat([enc_out, text_summary_out], dim=-1)
             if speaker_embedding is not None:
+                speaker_embedding = torch.squeeze(speaker_embedding)
                 enc_out = torch.cat([enc_out, speaker_embedding], dim=-1)
 
             # Feed the output of the ref encoder and information about text/speaker into

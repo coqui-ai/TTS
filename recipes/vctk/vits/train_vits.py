@@ -12,7 +12,7 @@ from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 dataset_config = BaseDatasetConfig(
-    name="vctk", meta_file_train="", language="en-us", path=os.path.join(output_path, "../VCTK/")
+    formatter="vctk", meta_file_train="", language="en-us", path=os.path.join(output_path, "../VCTK/")
 )
 
 

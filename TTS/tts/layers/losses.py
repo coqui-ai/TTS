@@ -8,7 +8,7 @@ from torch.nn import functional
 
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.ssim import SSIMLoss as _SSIMLoss
-from TTS.utils.audio import TorchSTFT
+from TTS.utils.audio.torch_transforms import TorchSTFT
 
 
 # pylint: disable=abstract-method
@@ -165,7 +165,7 @@ class BCELossMasked(nn.Module):
 
     def __init__(self, pos_weight: float = None):
         super().__init__()
-        self.pos_weight = torch.tensor([pos_weight])
+        self.pos_weight = nn.Parameter(torch.tensor([pos_weight]), requires_grad=False)
 
     def forward(self, x, target, length):
         """

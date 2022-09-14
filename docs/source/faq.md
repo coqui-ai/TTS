@@ -53,7 +53,7 @@ We tried to collect common issues and questions we receive about 🐸TTS. It is 
         "mixed_precision": false,
         "output_path": "recipes/ljspeech/glow_tts/",
         "test_sentences": ["Test this sentence.", "This test sentence.", "Sentence this test."],
-        "datasets":[{"name": "ljspeech", "meta_file_train":"metadata.csv", "path": "recipes/ljspeech/LJSpeech-1.1/"}]
+        "datasets":[{"formatter": "ljspeech", "meta_file_train":"metadata.csv", "path": "recipes/ljspeech/LJSpeech-1.1/"}]
     }
     ```
 

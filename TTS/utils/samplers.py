@@ -1,6 +1,8 @@
+import math
 import random
+from typing import Callable, List, Union
 
-from torch.utils.data.sampler import Sampler, SubsetRandomSampler
+from torch.utils.data.sampler import BatchSampler, Sampler, SubsetRandomSampler
 
 
 class SubsetSampler(Sampler):
@@ -112,3 +114,89 @@ class PerfectBatchSampler(Sampler):
     def __len__(self):
         class_batch_size = self._batch_size // self._num_classes_in_batch
         return min(((len(s) + class_batch_size - 1) // class_batch_size) for s in self._samplers)
+
+
+def identity(x):
+    return x
+
+
+class SortedSampler(Sampler):
+    """Samples elements sequentially, always in the same order.
+
+    Taken from https://github.com/PetrochukM/PyTorch-NLP
+
+    Args:
+        data (iterable): Iterable data.
+        sort_key (callable): Specifies a function of one argument that is used to extract a
+            numerical comparison key from each list element.
+
+    Example:
+        >>> list(SortedSampler(range(10), sort_key=lambda i: -i))
+        [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+
+    """
+
+    def __init__(self, data, sort_key: Callable = identity):
+        super().__init__(data)
+        self.data = data
+        self.sort_key = sort_key
+        zip_ = [(i, self.sort_key(row)) for i, row in enumerate(self.data)]
+        zip_ = sorted(zip_, key=lambda r: r[1])
+        self.sorted_indexes = [item[0] for item in zip_]
+
+    def __iter__(self):
+        return iter(self.sorted_indexes)
+
+    def __len__(self):
+        return len(self.data)
+
+
+class BucketBatchSampler(BatchSampler):
+    """Bucket batch sampler
+
+    Adapted from https://github.com/PetrochukM/PyTorch-NLP
+
+    Args:
+        sampler (torch.data.utils.sampler.Sampler):
+        batch_size (int): Size of mini-batch.
+        drop_last (bool): If `True` the sampler will drop the last batch if its size would be less
+            than `batch_size`.
+        data (list): List of data samples.
+        sort_key (callable, optional): Callable to specify a comparison key for sorting.
+        bucket_size_multiplier (int, optional): Buckets are of size
+            `batch_size * bucket_size_multiplier`.
+
+    Example:
+        >>> sampler = WeightedRandomSampler(weights, len(weights))
+        >>> sampler = BucketBatchSampler(sampler, data=data_items, batch_size=32, drop_last=True)
+    """
+
+    def __init__(
+        self,
+        sampler,
+        data,
+        batch_size,
+        drop_last,
+        sort_key: Union[Callable, List] = identity,
+        bucket_size_multiplier=100,
+    ):
+        super().__init__(sampler, batch_size, drop_last)
+        self.data = data
+        self.sort_key = sort_key
+        _bucket_size = batch_size * bucket_size_multiplier
+        if hasattr(sampler, "__len__"):
+            _bucket_size = min(_bucket_size, len(sampler))
+        self.bucket_sampler = BatchSampler(sampler, _bucket_size, False)
+
+    def __iter__(self):
+        for idxs in self.bucket_sampler:
+            bucket_data = [self.data[idx] for idx in idxs]
+            sorted_sampler = SortedSampler(bucket_data, self.sort_key)
+            for batch_idx in SubsetRandomSampler(list(BatchSampler(sorted_sampler, self.batch_size, self.drop_last))):
+                sorted_idxs = [idxs[i] for i in batch_idx]
+                yield sorted_idxs
+
+    def __len__(self):
+        if self.drop_last:
+            return len(self.sampler) // self.batch_size
+        return math.ceil(len(self.sampler) / self.batch_size)
