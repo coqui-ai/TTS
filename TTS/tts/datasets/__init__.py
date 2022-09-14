@@ -110,6 +110,7 @@ def load_tts_samples(
             formatter = _get_formatter_by_name(formatter_name)
         # load train set
         meta_data_train = formatter(root_path, meta_file_train, ignored_speakers=ignored_speakers)
+        assert len(meta_data_train) > 0, f" [!] No training samples found in {root_path}/{meta_file_train}"
         meta_data_train = [{**item, **{"language": language, "dataset_name": dataset_name}} for item in meta_data_train]
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set
