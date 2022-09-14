@@ -48,7 +48,7 @@ class KO_KR_Phonemizer(BasePhonemizer):
         return {"ko-kr": "hangeul(korean)"}
 
     def version(self) -> str:
-        return "0.0.2"
+        return "0.0.3"
 
     def is_available(self) -> bool:
         return True
