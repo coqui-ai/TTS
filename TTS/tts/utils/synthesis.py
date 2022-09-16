@@ -295,7 +295,12 @@ def transfer_voice(
         reference_d_vector = embedding_to_torch(reference_d_vector, cuda=use_cuda)
 
     # load reference_wav audio
-    reference_wav = embedding_to_torch(model.ap.load_wav(reference_wav, sr=model.ap.sample_rate), cuda=use_cuda)
+    reference_wav = embedding_to_torch(
+        model.ap.load_wav(
+            reference_wav, sr=model.args.encoder_sample_rate if model.args.encoder_sample_rate else model.ap.sample_rate
+        ),
+        cuda=use_cuda,
+    )
 
     if hasattr(model, "module"):
         _func = model.module.inference_voice_conversion
