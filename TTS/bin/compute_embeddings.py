@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
     Example runs:
     python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --config_dataset_path dataset_config.json
 
-    python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --fomatter vctk --dataset_path /path/to/vctk/dataset --dataset_name my_vctk
+    python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --fomatter vctk --dataset_path /path/to/vctk/dataset --dataset_name my_vctk --metafile /path/to/vctk/metafile.csv
     """,
     formatter_class=RawTextHelpFormatter,
 )
@@ -46,22 +46,27 @@ parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default 
 parser.add_argument(
     "--formatter_name",
     type=str,
-    help="Name of the formatter to use. You either need to provicder this or `config_dataset_path`",
+    help="Name of the formatter to use. You either need to provide this or `config_dataset_path`",
     default=None,
 )
 parser.add_argument(
     "--dataset_name",
     type=str,
-    help="Name of the dataset to use. You either need to provicder this or `config_dataset_path`",
+    help="Name of the dataset to use. You either need to provide this or `config_dataset_path`",
     default=None,
 )
 parser.add_argument(
     "--dataset_path",
     type=str,
-    help="Path to the dataset. You either need to provicder this or `config_dataset_path`",
+    help="Path to the dataset. You either need to provide this or `config_dataset_path`",
     default=None,
 )
-
+parser.add_argument(
+    "--metafile",
+    type=str,
+    help="Path to the meta file. If not set, dataset formatter uses the default metafile if it is defined in the formatter. You either need to provide this or `config_dataset_path`",
+    default=None,
+)
 args = parser.parse_args()
 
 use_cuda = torch.cuda.is_available() and not args.disable_cuda
@@ -74,6 +79,7 @@ else:
     c_dataset.formatter = args.formatter_name
     c_dataset.dataset_name = args.dataset_name
     c_dataset.path = args.dataset_path
+    c_dataset.meta_file_train = args.metafile if args.metafile else None
     meta_data_train, meta_data_eval = load_tts_samples(c_dataset, eval_split=not args.no_eval)
 
 
