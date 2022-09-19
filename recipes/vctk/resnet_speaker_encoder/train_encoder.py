@@ -31,7 +31,7 @@ config = SpeakerEncoderConfig()
 
 #### DATASET CONFIG ####
 # The formatter need to return the key "speaker_name"  for the speaker encoder and the "emotion_name" for the emotion encoder
-dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", language="en-us", path=VCTK_PATH)
+dataset_config = BaseDatasetConfig(formatter="vctk", meta_file_train="", language="en-us", path=VCTK_PATH)
 
 # add the dataset to the config
 config.datasets = [dataset_config]

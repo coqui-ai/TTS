@@ -31,7 +31,8 @@ class TestNumpyTransforms(unittest.TestCase):
             mel_fmin: int = 0
             hop_length: int = 256
             win_length: int = 1024
-            pitch_fmax: int = 450
+            pitch_fmax: int = 640
+            pitch_fmin: int = 1
             trim_db: int = -1
             min_silence_sec: float = 0.01
             gain: float = 1.0

@@ -73,14 +73,14 @@ class SpeakerManager(EmbeddingManager):
 
     @property
     def num_speakers(self):
-        return len(self.ids)
+        return len(self.name_to_id)
 
     @property
     def speaker_names(self):
-        return list(self.ids.keys())
+        return list(self.name_to_id.keys())
 
     def get_speakers(self) -> List:
-        return self.ids
+        return self.name_to_id
 
     @staticmethod
     def init_from_config(config: "Coqpit", samples: Union[List[List], List[Dict]] = None) -> "SpeakerManager":
@@ -182,10 +182,10 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
                     speaker_manager.load_embeddings_from_file(c.d_vector_file)
                 speaker_manager.load_embeddings_from_file(speakers_file)
             elif not c.use_d_vector_file:  # restor speaker manager with speaker ID file.
-                speaker_ids_from_data = speaker_manager.ids
+                speaker_ids_from_data = speaker_manager.name_to_id
                 speaker_manager.load_ids_from_file(speakers_file)
                 assert all(
-                    speaker in speaker_manager.ids for speaker in speaker_ids_from_data
+                    speaker in speaker_manager.name_to_id for speaker in speaker_ids_from_data
                 ), " [!] You cannot introduce new speakers to a pre-trained model."
         elif c.use_d_vector_file and c.d_vector_file:
             # new speaker manager with external speaker embeddings.
@@ -199,7 +199,7 @@ def get_speaker_manager(c: Coqpit, data: List = None, restore_path: str = None, 
         if speaker_manager.num_speakers > 0:
             print(
                 " > Speaker manager is loaded with {} speakers: {}".format(
-                    speaker_manager.num_speakers, ", ".join(speaker_manager.ids)
+                    speaker_manager.num_speakers, ", ".join(speaker_manager.name_to_id)
                 )
             )
 
