@@ -90,7 +90,59 @@ def mozilla_de(root_path, meta_file, **kwargs):  # pylint: disable=unused-argume
 
 
 def mailabs(root_path, meta_files=None, ignored_speakers=None):
+    """Normalizes M-AI-Labs meta data files to TTS format
+
+    Args:
+        root_path (str): root folder of the MAILAB language folder.
+        meta_files (str):  list of meta files to be used in the training. If None, finds all the csv files
+            recursively. Defaults to None
+    """
+    speaker_regex = re.compile("by_book/(male|female)/(?P<speaker_name>[^/]+)/")
+    if not meta_files:
+        csv_files = glob(root_path + "/**/metadata.csv", recursive=True)
+    else:
+        csv_files = meta_files
+
+    # meta_files = [f.strip() for f in meta_files.split(",")]
+    items = []
+    for csv_file in csv_files:
+        if os.path.isfile(csv_file):
+            txt_file = csv_file
+        else:
+            txt_file = os.path.join(root_path, csv_file)
+
+        folder = os.path.dirname(txt_file)
+        # determine speaker based on folder structure...
+        speaker_name_match = speaker_regex.search(txt_file)
+        if speaker_name_match is None:
+            continue
+        speaker_name = speaker_name_match.group("speaker_name")
+        # ignore speakers
+        if isinstance(ignored_speakers, list):
+            if speaker_name in ignored_speakers:
+                continue
+        print(" | > {}".format(csv_file))
+        with open(txt_file, "r", encoding="utf-8") as ttf:
+            for line in ttf:
+                cols = line.split("|")
+                if not meta_files:
+                    wav_file = os.path.join(folder, "wavs", cols[0] + ".wav")
+                else:
+                    wav_file = os.path.join(root_path, folder.replace("metadata.csv", ""), "wavs", cols[0] + ".wav")
+                if os.path.isfile(wav_file):
+                    text = cols[1].strip()
+                    items.append(
+                        {"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path}
+                    )
+                else:
+                    # M-AI-Labs have some missing samples, so just print the warning
+                    print("> File %s does not exist!" % (wav_file))
+    return items
+
+
+def mailabs_win(root_path, meta_files=None, ignored_speakers=None):
     """Normalizes M-AI-Labs metadata files to TTS format.
+    This is alternative to "mailabs" formatter and should work regardless of OS.
 
     Args:
         root_path (str): root folder of the MAILAB language folder.
@@ -113,12 +165,10 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
 
         # check proper folder structure to metadata.csv
         folder_structure = os.path.normpath(csv_file).split(os.path.sep)
-        if len(folder_structure) < 5 or folder_structure[-5] != "by_book" \
-                or "male" not in folder_structure[-4]:
+        if len(folder_structure) < 5 or folder_structure[-5] != "by_book" or "male" not in folder_structure[-4]:
             print(f" X > Wrong path structure to metadata file. Skipping: {csv_file}")
             continue
 
-        # set speaker name
         speaker_name = folder_structure[-3]
         # ignore speakers
         if isinstance(ignored_speakers, list):
@@ -133,8 +183,9 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
                 wav_file = os.path.join(folder, "wavs", cols[0] + ".wav")
                 if os.path.isfile(wav_file):
                     text = cols[1].strip()
-                    items.append({"text": text, "audio_file": wav_file,
-                                  "speaker_name": speaker_name, "root_path": root_path})
+                    items.append(
+                        {"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path}
+                    )
                 else:
                     print(f" X > File not found. Skipping: {wav_file}")
     return items
@@ -506,9 +557,9 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
         meta_data = []
         wav_files = voxceleb_path.rglob("**/*.wav")
         for path in tqdm(
-            wav_files,
-            desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
-            total=expected_count,
+                wav_files,
+                desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
+                total=expected_count,
         ):
             speaker_id = str(Path(path).parent.parent.stem)
             assert speaker_id.startswith("id")
