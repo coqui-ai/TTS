@@ -284,6 +284,7 @@ class VitsDataset(TTSDataset):
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
+            "audio_unique_name": item["audio_unique_name"],
         }
 
     @property
@@ -308,6 +309,7 @@ class VitsDataset(TTSDataset):
             - language_names: :math:`[B]`
             - audiofile_paths: :math:`[B]`
             - raw_texts: :math:`[B]`
+            - audio_unique_names: :math:`[B]`
         """
         # convert list of dicts to dict of lists
         B = len(batch)
@@ -348,6 +350,7 @@ class VitsDataset(TTSDataset):
             "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
+            "audio_unique_names": batch["audio_unique_name"],
         }
 
 
@@ -1470,7 +1473,7 @@ class Vits(BaseTTS):
         # get d_vectors from audio file names
         if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
             d_vector_mapping = self.speaker_manager.embeddings
-            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_files"]]
+            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_unique_names"]]
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names

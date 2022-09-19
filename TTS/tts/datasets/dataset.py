@@ -256,6 +256,7 @@ class TTSDataset(Dataset):
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
             "wav_file_name": os.path.basename(item["audio_file"]),
+            "audio_unique_name": item["audio_unique_name"],
         }
         return sample
 
@@ -397,8 +398,8 @@ class TTSDataset(Dataset):
                 language_ids = None
             # get pre-computed d-vectors
             if self.d_vector_mapping is not None:
-                wav_files_names = list(batch["wav_file_name"])
-                d_vectors = [self.d_vector_mapping[w]["embedding"] for w in wav_files_names]
+                embedding_keys = list(batch["audio_unique_name"])
+                d_vectors = [self.d_vector_mapping[w]["embedding"] for w in embedding_keys]
             else:
                 d_vectors = None
 
