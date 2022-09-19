@@ -557,9 +557,9 @@ def _voxcel_x(root_path, meta_file, voxcel_idx):
         meta_data = []
         wav_files = voxceleb_path.rglob("**/*.wav")
         for path in tqdm(
-                wav_files,
-                desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
-                total=expected_count,
+            wav_files,
+            desc=f"Building VoxCeleb {voxcel_idx} Meta file ... this needs to be done only once.",
+            total=expected_count,
         ):
             speaker_id = str(Path(path).parent.parent.stem)
             assert speaker_id.startswith("id")
