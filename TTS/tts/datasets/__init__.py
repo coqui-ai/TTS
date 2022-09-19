@@ -59,6 +59,18 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     return items[:eval_split_size], items[eval_split_size:]
 
 
+def add_extra_keys(metadata, language, dataset_name):
+    for item in metadata:
+        # add language name
+        item["language"] = language
+        # add unique audio name
+        relfilepath = os.path.splitext(item["audio_file"].replace(item["root_path"], ""))[0]
+        audio_unique_name = f"{dataset_name}#{relfilepath}"
+        item["audio_unique_name"] = audio_unique_name
+
+    return metadata
+
+
 def load_tts_samples(
     datasets: Union[List[Dict], Dict],
     eval_split=True,
@@ -111,15 +123,15 @@ def load_tts_samples(
         # load train set
         meta_data_train = formatter(root_path, meta_file_train, ignored_speakers=ignored_speakers)
         assert len(meta_data_train) > 0, f" [!] No training samples found in {root_path}/{meta_file_train}"
-        meta_data_train = [{**item, **{"language": language, "dataset_name": dataset_name}} for item in meta_data_train]
+
+        meta_data_train = add_extra_keys(meta_data_train, language, dataset_name)
+
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set
         if eval_split:
             if meta_file_val:
                 meta_data_eval = formatter(root_path, meta_file_val, ignored_speakers=ignored_speakers)
-                meta_data_eval = [
-                    {**item, **{"language": language, "dataset_name": dataset_name}} for item in meta_data_eval
-                ]
+                meta_data_eval = add_extra_keys(meta_data_eval, language, dataset_name)
             else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train, eval_split_max_size, eval_split_size)
             meta_data_eval_all += meta_data_eval
