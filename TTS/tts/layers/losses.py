@@ -1086,9 +1086,9 @@ class StyleForwardTTSLoss(nn.Module):
                 loss += content_dot_loss
                 return_dict["content_orthogonal_loss"] = content_dot_loss
             if self.style_encoder_config.speaker_orthogonal_loss:
-                print(style_encoder_output.shape, speaker_output.shape)
+                # print(style_encoder_output.shape, speaker_output.shape)
                 speaker_dot_loss = torch.inner(style_encoder_output, speaker_output.squeeze(-1)).mean().abs()
-                print(torch.inner(style_encoder_output, speaker_output.squeeze(-1)).shape)
+                # print(torch.inner(style_encoder_output, speaker_output.squeeze(-1)).shape)
                 loss += speaker_dot_loss
                 return_dict["speaker_orthogonal_loss"] = speaker_dot_loss
             if self.style_encoder_config.use_guided_style:
