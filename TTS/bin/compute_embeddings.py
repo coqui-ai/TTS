@@ -62,9 +62,15 @@ parser.add_argument(
     default=None,
 )
 parser.add_argument(
-    "--metafile",
+    "--meta_file_train",
     type=str,
-    help="Path to the meta file. If not set, dataset formatter uses the default metafile if it is defined in the formatter. You either need to provide this or `config_dataset_path`",
+    help="Path to the train meta file. If not set, dataset formatter uses the default metafile if it is defined in the formatter. You either need to provide this or `config_dataset_path`",
+    default=None,
+)
+parser.add_argument(
+    "--meta_file_val",
+    type=str,
+    help="Path to the evaluation meta file. If not set, dataset formatter uses the default metafile if it is defined in the formatter. You either need to provide this or `config_dataset_path`",
     default=None,
 )
 args = parser.parse_args()
@@ -79,7 +85,8 @@ else:
     c_dataset.formatter = args.formatter_name
     c_dataset.dataset_name = args.dataset_name
     c_dataset.path = args.dataset_path
-    c_dataset.meta_file_train = args.metafile if args.metafile else None
+    c_dataset.meta_file_train = args.meta_file_train if args.meta_file_train else None
+    c_dataset.meta_file_val = args.meta_file_val if args.meta_file_val else None
     meta_data_train, meta_data_eval = load_tts_samples(c_dataset, eval_split=not args.no_eval)
 
 
