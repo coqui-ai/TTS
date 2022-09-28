@@ -229,8 +229,9 @@ if __name__ == "__main__":
     print(e.is_available())
 
     e = ESpeak(language="vi", keep_puncs=False)
-    print("`" + e.phonemize("Được viết vào 6/4/2020, có thể xử lí những trường hợp chứa English") + "`")
+    print("`" + e.phonemize("Tiếng Việt, cũng gọi là tiếng Việt Nam hay Việt ngữ là ngôn ngữ của người Việt.") + "`")
     
     print("-"*30)
     e = ESpeak(language="en-us", keep_puncs=True)
-    print("`" + e.phonemize("Được viết vào 6/4/2020, có thể xử lí những trường hợp chứa English") + "`")
+    print("`" + e.phonemize("Tiếng Việt, cũng gọi là tiếng Việt Nam hay Việt ngữ là ngôn ngữ của người Việt.") + "`")
+ 

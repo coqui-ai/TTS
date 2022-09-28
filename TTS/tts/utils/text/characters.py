@@ -28,7 +28,7 @@ _punctuations = "!'(),-.:;? "
 # Phonemes definition (All IPA characters)
 _vowels = "iyɨʉɯuɪʏʊeøɘəɵɤoɛœɜɞʌɔæɐaɶɑɒᵻ"
 _non_pulmonic_consonants = "ʘɓǀɗǃʄǂɠǁʛ"
-_pulmonic_consonants = "pbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟ"
+_pulmonic_consonants = "pbtdʈɖcɟkɡqɢʔɴŋɲɳnɱmʙrʀⱱɾɽɸβfvθðszʃʒʂʐçʝxɣχʁħʕhɦɬɮʋɹɻjɰlɭʎʟt̪"
 _suprasegmentals = "ˈˌːˑ."
 _other_symbols = "ʍwɥʜʢʡɕʑɺɧʲ"
 _diacrilics = "ɚ˞ɫ"
