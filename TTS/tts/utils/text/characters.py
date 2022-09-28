@@ -33,7 +33,15 @@ _suprasegmentals = "ˈˌːˑ"
 _other_symbols = "ʍwɥʜʢʡɕʑɺɧʲ"
 _diacrilics = "ɚ˞ɫ"
 _numbers = "123456789"
-_phonemes = _vowels + _non_pulmonic_consonants + _pulmonic_consonants + _suprasegmentals + _numbers + _other_symbols + _diacrilics
+_phonemes = (
+    _vowels
+    + _non_pulmonic_consonants
+    + _pulmonic_consonants
+    + _suprasegmentals
+    + _numbers
+    + _other_symbols
+    + _diacrilics
+)
 
 
 class BaseVocabulary:

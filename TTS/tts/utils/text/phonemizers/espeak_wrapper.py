@@ -230,8 +230,7 @@ if __name__ == "__main__":
 
     e = ESpeak(language="vi", keep_puncs=False)
     print("`" + e.phonemize("Tiếng Việt, cũng gọi là tiếng Việt Nam hay Việt ngữ là ngôn ngữ của người Việt.") + "`")
-    
-    print("-"*30)
+
+    print("-" * 30)
     e = ESpeak(language="en-us", keep_puncs=True)
     print("`" + e.phonemize("Tiếng Việt, cũng gọi là tiếng Việt Nam hay Việt ngữ là ngôn ngữ của người Việt.") + "`")
- 
