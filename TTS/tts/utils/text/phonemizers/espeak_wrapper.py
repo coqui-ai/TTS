@@ -233,4 +233,4 @@ if __name__ == "__main__":
 
     print("-" * 30)
     e = ESpeak(language="en-us", keep_puncs=True)
-    print("`" + e.phonemize("Tiếng Việt, cũng gọi là tiếng Việt Nam hay Việt ngữ là ngôn ngữ của người Việt.") + "`")
+    print("`" + e.phonemize("hello how are you today?") + "`")
