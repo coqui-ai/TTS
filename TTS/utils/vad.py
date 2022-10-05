@@ -73,9 +73,11 @@ def remove_silence(
     # if have speech timestamps else save the wav
     if new_speech_timestamps:
         wav = collect_chunks(new_speech_timestamps, wav)
+        is_speech = True
     else:
         print(f"> The file {audio_path} probably does not have speech please check it !!")
+        is_speech = False
 
     # save audio
     save_audio(out_path, wav, sampling_rate=gt_sample_rate)
-    return out_path
+    return out_path, is_speech
