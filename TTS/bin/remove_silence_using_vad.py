@@ -32,7 +32,7 @@ def preprocess_audios():
     files = sorted(glob.glob(os.path.join(args.input_dir, args.glob), recursive=True))
     print("> Number of files: ", len(files))
     if not args.force:
-        print("> Ignoring files that already exist in the output directory.")
+        print("> Ignoring files that already exist in the output idrectory.")
 
     if args.trim_just_beginning_and_end:
         print("> Trimming just the beginning and the end with nonspeech parts.")
@@ -50,7 +50,7 @@ def preprocess_audios():
                 filtered_files.append(output_path)
 
         # write files that do not have speech
-        with open(os.path.join(args.output_dir, "filtered_files.txt", encoding="utf-8"), "w") as f:
+        with open(os.path.join(args.output_dir, "filtered_files.txt"), "w",  encoding="utf-8") as f:
             for file in filtered_files:
                 f.write(file + "\n")
     else:
