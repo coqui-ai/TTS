@@ -49,7 +49,7 @@ def remove_silence(
 ):
 
     # get the VAD model and utils functions
-    model, get_speech_timestamps, save_audio, collect_chunks = model_and_utils
+    model, get_speech_timestamps, _, collect_chunks = model_and_utils
 
     # read ground truth wav and resample the audio for the VAD
     wav, gt_sample_rate = read_audio(audio_path)
