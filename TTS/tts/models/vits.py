@@ -721,6 +721,10 @@ class Vits(BaseTTS):
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
             )
 
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
     def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
         or with external `d_vectors` computed from a speaker encoder model.
@@ -810,6 +814,13 @@ class Vits(BaseTTS):
             self.audio_resampler = torchaudio.transforms.Resample(
                 orig_freq=self.config.audio["sample_rate"], new_freq=self.args.encoder_sample_rate
             )  # pylint: disable=W0201
+
+    def on_epoch_start(self, trainer):  # pylint: disable=W0613
+        """Freeze layers at the beginning of an epoch"""
+        self._freeze_layers()
+        # set the device of speaker encoder
+        if self.args.use_speaker_encoder_as_loss:
+            self.speaker_manager.encoder = self.speaker_manager.encoder.to(self.device)
 
     def on_init_end(self, trainer):  # pylint: disable=W0613
         """Reinit layes if needed"""
@@ -1230,8 +1241,6 @@ class Vits(BaseTTS):
         Returns:
             Tuple[Dict, Dict]: Model ouputs and computed losses.
         """
-
-        self._freeze_layers()
 
         spec_lens = batch["spec_lens"]
 
