@@ -17,7 +17,7 @@ def adjust_path_and_remove_silence(audio_path):
     # create all directory structure
     pathlib.Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     # remove the silence and save the audio
-    output_path = remove_silence(
+    output_path, is_speech = remove_silence(
         model_and_utils,
         audio_path,
         output_path,
@@ -25,26 +25,34 @@ def adjust_path_and_remove_silence(audio_path):
         use_cuda=args.use_cuda,
     )
 
-    return output_path
+    return output_path, is_speech
 
 
 def preprocess_audios():
     files = sorted(glob.glob(os.path.join(args.input_dir, args.glob), recursive=True))
     print("> Number of files: ", len(files))
     if not args.force:
-        print("> Ignoring files that already exist in the output directory.")
+        print("> Ignoring files that already exist in the output idrectory.")
 
     if args.trim_just_beginning_and_end:
         print("> Trimming just the beginning and the end with nonspeech parts.")
     else:
         print("> Trimming all nonspeech parts.")
 
+    filtered_files = []
     if files:
         # create threads
         # num_threads = multiprocessing.cpu_count()
         # process_map(adjust_path_and_remove_silence, files, max_workers=num_threads, chunksize=15)
         for f in tqdm(files):
-            adjust_path_and_remove_silence(f)
+            output_path, is_speech = adjust_path_and_remove_silence(f)
+            if not is_speech:
+                filtered_files.append(output_path)
+
+        # write files that do not have speech
+        with open(os.path.join(args.output_dir, "filtered_files.txt"), "w", encoding="utf-8") as f:
+            for file in filtered_files:
+                f.write(file + "\n")
     else:
         print("> No files Found !")
 
