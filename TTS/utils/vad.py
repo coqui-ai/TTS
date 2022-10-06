@@ -1,5 +1,6 @@
 import torch
 import torchaudio
+import soundfile as sf
 
 
 def read_audio(path):
@@ -79,5 +80,5 @@ def remove_silence(
         is_speech = False
 
     # save audio
-    save_audio(out_path, wav, sampling_rate=gt_sample_rate)
+    sf.write(out_path, wav, gt_sample_rate, subtype='PCM_16')
     return out_path, is_speech
