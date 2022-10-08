@@ -17,7 +17,7 @@ def coqui(root_path, meta_file, ignored_speakers=None):
     """Interal dataset formatter."""
     filepath = os.path.join(root_path, meta_file)
     # ensure there are 4 columns for every line
-    with open(filepath, "r") as f:
+    with open(filepath, "r", encoding="utf8") as f:
         lines = f.readlines()
     for idx, line in enumerate(lines):
         if len(line.split("|")) != 4:
