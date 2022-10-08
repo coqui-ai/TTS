@@ -15,6 +15,14 @@ from tqdm import tqdm
 
 def coqui(root_path, meta_file, ignored_speakers=None):
     """Interal dataset formatter."""
+    filepath = os.path.join(root_path, meta_file)
+    # ensure there are 4 columns for every line
+    with open(filepath, "r") as f:
+        lines = f.readlines()
+    for idx, line in enumerate(lines):
+        if len(line.split("|")) != 4:
+            print(f" > Missing column in line {idx + 1} -> {line.strip()}")
+    # load metadata
     metadata = pd.read_csv(os.path.join(root_path, meta_file), sep="|")
     assert all(x in metadata.columns for x in ["audio_file", "text"])
     speaker_name = None if "speaker_name" in metadata.columns else "coqui"
