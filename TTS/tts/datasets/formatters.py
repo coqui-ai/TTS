@@ -19,8 +19,9 @@ def coqui(root_path, meta_file, ignored_speakers=None):
     # ensure there are 4 columns for every line
     with open(filepath, "r", encoding="utf8") as f:
         lines = f.readlines()
-    for idx, line in enumerate(lines):
-        if len(line.split("|")) != 4:
+    num_cols = len(lines[0].split("|"))  # take the first row as reference
+    for idx, line in enumerate(lines[1:]):
+        if len(line.split("|")) != num_cols:
             print(f" > Missing column in line {idx + 1} -> {line.strip()}")
     # load metadata
     metadata = pd.read_csv(os.path.join(root_path, meta_file), sep="|")
