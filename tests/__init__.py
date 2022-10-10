@@ -33,7 +33,9 @@ def get_tests_data_path():
 
 def get_tests_output_path():
     """Returns the path to the directory for test outputs."""
-    return os.path.join(get_tests_path(), "outputs")
+    path = os.path.join(get_tests_path(), "outputs")
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
 def run_cli(command):

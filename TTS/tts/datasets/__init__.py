@@ -1,3 +1,4 @@
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -12,20 +13,16 @@ from TTS.tts.datasets.formatters import *
 def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
-        Args:
-    <<<<<<< HEAD
-            items (List[List]):
-                A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
+    Args:
+        items (List[List]):
+            A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
 
-            eval_split_max_size (int):
-                Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
+        eval_split_max_size (int):
+            Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
 
-            eval_split_size (float):
-                If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
-                If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
-    =======
-            items (List[List]): A list of samples. Each sample is a list of `[text, audio_path, speaker_id]`.
-    >>>>>>> Fix docstring
+        eval_split_size (float):
+            If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
+            If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
     """
     speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
@@ -64,10 +61,9 @@ def add_extra_keys(metadata, language, dataset_name):
         # add language name
         item["language"] = language
         # add unique audio name
-        relfilepath = os.path.splitext(item["audio_file"].replace(item["root_path"], ""))[0]
+        relfilepath = os.path.splitext(os.path.relpath(item["audio_file"], item["root_path"]))[0]
         audio_unique_name = f"{dataset_name}#{relfilepath}"
         item["audio_unique_name"] = audio_unique_name
-
     return metadata
 
 
