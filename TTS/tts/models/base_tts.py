@@ -60,6 +60,7 @@ class BaseTTS(BaseTrainerModel):
             config_num_chars = (
                 self.config.model_args.num_chars if hasattr(self.config, "model_args") else self.config.num_chars
             )
+
             num_chars = config_num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
             if "characters" in config:
                 self.config.num_chars = num_chars
