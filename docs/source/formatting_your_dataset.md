@@ -89,7 +89,7 @@ from TTS.tts.datasets import load_tts_samples
 # dataset config for one of the pre-defined datasets
 dataset_config = BaseDatasetConfig(
     name="vctk", meta_file_train="", language="en-us", path="dataset-path")
-)
+
 
 # load training samples
 train_samples, eval_samples = load_tts_samples(dataset_config, eval_split=True)
