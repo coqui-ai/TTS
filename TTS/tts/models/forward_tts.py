@@ -701,7 +701,7 @@ class ForwardTTS(BaseTTS):
             "model_outputs": o_de,
             "alignments": attn,
             "pitch": o_pitch,
-            "energy": 0_energy,
+            "energy": o_energy,
             "durations_log": o_dr_log,
         }
         return outputs
