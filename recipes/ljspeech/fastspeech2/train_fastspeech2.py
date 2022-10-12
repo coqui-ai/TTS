@@ -35,7 +35,7 @@ audio_config = BaseAudioConfig(
 )
 
 config = FastPitchConfig(
-    run_name="fast_pitch_ljspeech",
+    run_name="fastspeech2_ljspeech",
     audio=audio_config,
     batch_size=32,
     eval_batch_size=16,
