@@ -50,7 +50,9 @@ class TTSDataset(Dataset):
         samples: List[Dict] = None,
         tokenizer: "TTSTokenizer" = None,
         compute_f0: bool = False,
+        compute_energy: bool = False,
         f0_cache_path: str = None,
+        energy_cache_path: str = None,
         return_wav: bool = False,
         batch_group_size: int = 0,
         min_text_len: int = 0,
@@ -83,8 +85,12 @@ class TTSDataset(Dataset):
                 use the given. Defaults to None.
 
             compute_f0 (bool): compute f0 if True. Defaults to False.
+            
+            compute_energy (bool): compute energy if True. Defaults to False.
 
             f0_cache_path (str): Path to store f0 cache. Defaults to None.
+            
+            energy_cache_path (str): Path to store energy cache. Defaults to None.
 
             return_wav (bool): Return the waveform of the sample. Defaults to False.
 
@@ -128,7 +134,9 @@ class TTSDataset(Dataset):
         self.compute_linear_spec = compute_linear_spec
         self.return_wav = return_wav
         self.compute_f0 = compute_f0
+        self.compute_f0 = compute_energy
         self.f0_cache_path = f0_cache_path
+        self.energy_cache_path = energy_cache_path
         self.min_audio_len = min_audio_len
         self.max_audio_len = max_audio_len
         self.min_text_len = min_text_len
@@ -155,7 +163,10 @@ class TTSDataset(Dataset):
             self.f0_dataset = F0Dataset(
                 self.samples, self.ap, cache_path=f0_cache_path, precompute_num_workers=precompute_num_workers
             )
-
+        if compute_energy:
+            self.energy_dataset = EnergyDataset(
+                self.samples, self.ap, cache_path=energy_cache_path, precompute_num_workers=precompute_num_workers
+            )
         if self.verbose:
             self.print_logs()
 
@@ -210,7 +221,13 @@ class TTSDataset(Dataset):
         item = self.samples[idx]
         assert item["audio_unique_name"] == out_dict["audio_unique_name"]
         return out_dict
-
+    
+    def get_energy(self, idx):
+        out_dict = self.energy_dataset[idx]
+        item = self.samples[idx]
+        assert item["audio_unique_name"] == out_dict["audio_unique_name"]
+        return out_dict
+    
     @staticmethod
     def get_attn_mask(attn_file):
         return np.load(attn_file)
@@ -252,12 +269,16 @@ class TTSDataset(Dataset):
         f0 = None
         if self.compute_f0:
             f0 = self.get_f0(idx)["f0"]
-
+        energy = None
+        if self.compute_energy:
+            energy = self.get_energy(idx)["energy"]
+            
         sample = {
             "raw_text": raw_text,
             "token_ids": token_ids,
             "wav": wav,
             "pitch": f0,
+            "energy": energy,
             "attn": attn,
             "item_idx": item["audio_file"],
             "speaker_name": item["speaker_name"],
@@ -490,7 +511,13 @@ class TTSDataset(Dataset):
                 pitch = torch.FloatTensor(pitch)[:, None, :].contiguous()  # B x 1 xT
             else:
                 pitch = None
-
+            # format energy
+            if self.compute_energy:
+                energy = prepare_data(batch["energy"])
+                assert mel.shape[1] == energy.shape[1], f"[!] {mel.shape} vs {energy.shape}"
+                energy = torch.FloatTensor(energy)[:, None, :].contiguous()  # B x 1 xT
+            else:
+                energy = None
             # format attention masks
             attns = None
             if batch["attn"][0] is not None:
@@ -519,6 +546,7 @@ class TTSDataset(Dataset):
                 "waveform": wav_padded,
                 "raw_text": batch["raw_text"],
                 "pitch": pitch,
+                "energy": energy,
                 "language_ids": language_ids,
             }
 
