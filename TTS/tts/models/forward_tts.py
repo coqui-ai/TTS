@@ -737,7 +737,7 @@ class ForwardTTS(BaseTTS):
                 pitch_output=outputs["pitch_avg"] if self.use_pitch else None,
                 pitch_target=outputs["pitch_avg_gt"] if self.use_pitch else None,
                 energy_output=outputs["energy_avg"] if self.use_energy else None,
-                energy_target=outputs["energy_output=outputs["energy_avg"] if self.use_energy else None,
+                energy_target=outputs["energy_avg_gt"] if self.use_energy else None,
                 input_lens=text_lengths,
                 alignment_logprob=outputs["alignment_logprob"] if self.use_aligner else None,
                 alignment_soft=outputs["alignment_soft"],
