@@ -15,7 +15,7 @@ from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import average_over_durations, generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_spectrogram
+from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_avg_energy, plot_spectrogram
 
 
 @dataclass
@@ -64,6 +64,18 @@ class ForwardTTSArgs(Coqpit):
 
         pitch_embedding_kernel_size (int):
             Kernel size of the projection layer in the pitch predictor. Defaults to 3.
+            
+        energy_predictor_hidden_channels (int):
+            Number of hidden channels in the energy predictor. Defaults to 256.
+
+        energy_predictor_dropout_p (float):
+            Dropout rate for the energy predictor. Defaults to 0.1.
+
+        energy_predictor_kernel_size (int):
+            Kernel size of conv layers in the energy predictor. Defaults to 3.
+
+        energy_embedding_kernel_size (int):
+            Kernel size of the projection layer in the energy predictor. Defaults to 3.
 
         positional_encoding (bool):
             Whether to use positional encoding. Defaults to True.
@@ -171,7 +183,7 @@ class ForwardTTS(BaseTTS):
         - FastPitch
         - SpeedySpeech
         - FastSpeech
-        - TODO: FastSpeech2 (requires average speech energy predictor)
+        - FastSpeech2 (requires average speech energy predictor)
 
     Args:
         config (Coqpit): Model coqpit class.
@@ -261,6 +273,7 @@ class ForwardTTS(BaseTTS):
                 kernel_size=self.args.energy_embedding_kernel_size,
                 padding=int((self.args.energy_embedding_kernel_size - 1) / 2),
             )
+            
         if self.args.use_aligner:
             self.aligner = AlignmentNetwork(
                 in_query_channels=self.args.out_channels, in_key_channels=self.args.hidden_channels
