@@ -134,7 +134,7 @@ class TTSDataset(Dataset):
         self.compute_linear_spec = compute_linear_spec
         self.return_wav = return_wav
         self.compute_f0 = compute_f0
-        self.compute_f0 = compute_energy
+        self.compute_energy = compute_energy
         self.f0_cache_path = f0_cache_path
         self.energy_cache_path = energy_cache_path
         self.min_audio_len = min_audio_len
