@@ -88,7 +88,9 @@ class FastSpeech2Config(BaseTTSConfig):
 
         pitch_loss_alpha (float):
             Weight for the pitch predictor's loss. If set 0, disables the pitch predictor. Defaults to 1.0.
-
+            
+        energy_loss_alpha (float):
+            Weight for the energy predictor's loss. If set 0, disables the energy predictor. Defaults to 1.0.
         binary_align_loss_alpha (float):
             Weight for the binary loss. If set 0, disables the binary loss. Defaults to 1.0.
 
@@ -144,6 +146,7 @@ class FastSpeech2Config(BaseTTSConfig):
     spec_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 0.1
+    energy_loss_alpha: float = 0.1
     dur_loss_alpha: float = 0.1
     binary_align_loss_alpha: float = 0.1
     binary_loss_warmup_epochs: int = 150
