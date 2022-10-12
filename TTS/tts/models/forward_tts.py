@@ -136,7 +136,7 @@ class ForwardTTSArgs(Coqpit):
     pitch_embedding_kernel_size: int = 3
         
     #energy params
-    use_energy: bool = True
+    use_energy: bool = False
     energy_predictor_hidden_channels: int = 256
     energy_predictor_kernel_size: int = 3
     energy_predictor_dropout_p: float = 0.1
