@@ -100,6 +100,18 @@ class FastPitchConfig(BaseTTSConfig):
 
         max_seq_len (int):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
+        
+        # dataset configs
+        compute_f0(bool):
+            Compute pitch. defaults to True 
+        f0_cache_path(str):
+            pith cache path. defaults to None
+    
+        # dataset configs
+        compute_energy(bool):
+            Compute energy. defaults to True 
+        energy_cache_path(str):
+            energy cache path. defaults to None
     """
 
     model: str = "fast_pitch"
@@ -144,7 +156,11 @@ class FastPitchConfig(BaseTTSConfig):
     # dataset configs
     compute_f0: bool = True
     f0_cache_path: str = None
-
+    
+    # dataset configs
+    compute_energy: bool = True
+    energy_cache_path: str = None
+        
     # testing
     test_sentences: List[str] = field(
         default_factory=lambda: [
