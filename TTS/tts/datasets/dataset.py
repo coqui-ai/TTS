@@ -85,11 +85,11 @@ class TTSDataset(Dataset):
                 use the given. Defaults to None.
 
             compute_f0 (bool): compute f0 if True. Defaults to False.
-            
+
             compute_energy (bool): compute energy if True. Defaults to False.
 
             f0_cache_path (str): Path to store f0 cache. Defaults to None.
-            
+
             energy_cache_path (str): Path to store energy cache. Defaults to None.
 
             return_wav (bool): Return the waveform of the sample. Defaults to False.
@@ -221,13 +221,13 @@ class TTSDataset(Dataset):
         item = self.samples[idx]
         assert item["audio_unique_name"] == out_dict["audio_unique_name"]
         return out_dict
-    
+
     def get_energy(self, idx):
         out_dict = self.energy_dataset[idx]
         item = self.samples[idx]
         assert item["audio_unique_name"] == out_dict["audio_unique_name"]
         return out_dict
-    
+
     @staticmethod
     def get_attn_mask(attn_file):
         return np.load(attn_file)
@@ -272,7 +272,7 @@ class TTSDataset(Dataset):
         energy = None
         if self.compute_energy:
             energy = self.get_energy(idx)["energy"]
-            
+
         sample = {
             "raw_text": raw_text,
             "token_ids": token_ids,
@@ -804,8 +804,8 @@ class F0Dataset:
         print("\n")
         print(f"{indent}> F0Dataset ")
         print(f"{indent}| > Number of instances : {len(self.samples)}")
-        
-        
+
+
 class EnergyDataset:
     """Energy Dataset for computing Energy from wav files in CPU
 
@@ -901,8 +901,8 @@ class EnergyDataset:
         wav = ap.load_wav(wav_file)
         energy = ap.compute_energy(wav)
         if energy_file:
-            np.save(energy_file, pitch)
-        return pitch
+            np.save(energy_file, energy)
+        return energy
 
     @staticmethod
     def compute_energy_stats(energy_vecs):
@@ -948,8 +948,8 @@ class EnergyDataset:
         energy_lens_max = max(energy_lens)
         energys_torch = torch.LongTensor(len(energys), energy_lens_max).fill_(self.get_pad_id())
         for i, energy_len in enumerate(energy_lens):
-            energy_torch[i, :energy_len] = torch.LongTensor(energys[i])
-        return {"audio_file": audio_file, "energy":energys_torch, "energy_lens": energy_lens}
+            energys_torch[i, :energy_len] = torch.LongTensor(energys[i])
+        return {"audio_file": audio_file, "energy": energys_torch, "energy_lens": energy_lens}
 
     def print_logs(self, level: int = 0) -> None:
         indent = "\t" * level
