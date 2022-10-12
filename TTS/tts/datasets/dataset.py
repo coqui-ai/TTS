@@ -776,3 +776,155 @@ class F0Dataset:
         print("\n")
         print(f"{indent}> F0Dataset ")
         print(f"{indent}| > Number of instances : {len(self.samples)}")
+        
+        
+class EnergyDataset:
+    """Energy Dataset for computing Energy from wav files in CPU
+
+    Pre-compute Energy values for all the samples at initialization if `cache_path` is not None or already present. It
+    also computes the mean and std of Energy values if `normalize_Energy` is True.
+
+    Args:
+        samples (Union[List[List], List[Dict]]):
+            List of samples. Each sample is a list or a dict.
+
+        ap (AudioProcessor):
+            AudioProcessor to compute Energy from wav files.
+
+        cache_path (str):
+            Path to cache Energy values. If `cache_path` is already present or None, it skips the pre-computation.
+            Defaults to None.
+
+        precompute_num_workers (int):
+            Number of workers used for pre-computing the Energy values. Defaults to 0.
+
+        normalize_Energy (bool):
+            Whether to normalize Energy values by mean and std. Defaults to True.
+    """
+
+    def __init__(
+        self,
+        samples: Union[List[List], List[Dict]],
+        ap: "AudioProcessor",
+        verbose=False,
+        cache_path: str = None,
+        precompute_num_workers=0,
+        normalize_energy=True,
+    ):
+        self.samples = samples
+        self.ap = ap
+        self.verbose = verbose
+        self.cache_path = cache_path
+        self.normalize_energy = normalize_energy
+        self.pad_id = 0.0
+        self.mean = None
+        self.std = None
+        if cache_path is not None and not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+            self.precompute(precompute_num_workers)
+        if normalize_energy:
+            self.load_stats(cache_path)
+
+    def __getitem__(self, idx):
+        item = self.samples[idx]
+        energy = self.compute_or_load(item["audio_file"])
+        if self.normalize_energy:
+            assert self.mean is not None and self.std is not None, " [!] Mean and STD is not available"
+            energy = self.normalize(energy)
+        return {"audio_file": item["audio_file"], "energy": energy}
+
+    def __len__(self):
+        return len(self.samples)
+
+    def precompute(self, num_workers=0):
+        print("[*] Pre-computing energys...")
+        with tqdm.tqdm(total=len(self)) as pbar:
+            batch_size = num_workers if num_workers > 0 else 1
+            # we do not normalize at preproessing
+            normalize_energy = self.normalize_energy
+            self.normalize_energy = False
+            dataloder = torch.utils.data.DataLoader(
+                batch_size=batch_size, dataset=self, shuffle=False, num_workers=num_workers, collate_fn=self.collate_fn
+            )
+            computed_data = []
+            for batch in dataloder:
+                energy = batch["energy"]
+                computed_data.append(e for e in energy)
+                pbar.update(batch_size)
+            self.normalize_energy = normalize_energy
+
+        if self.normalize_energy:
+            computed_data = [tensor for batch in computed_data for tensor in batch]  # flatten
+            energy_mean, energy_std = self.compute_pitch_stats(computed_data)
+            energy_stats = {"mean": energy_mean, "std": energy_std}
+            np.save(os.path.join(self.cache_path, "energy_stats"),energy_stats, allow_pickle=True)
+
+    def get_pad_id(self):
+        return self.pad_id
+
+    @staticmethod
+    def create_energy_file_path(wav_file, cache_path):
+        file_name = os.path.splitext(os.path.basename(wav_file))[0]
+        energy_file = os.path.join(cache_path, file_name + "_energy.npy")
+        return energy_file
+
+    @staticmethod
+    def _compute_and_save_energy(ap, wav_file, energy_file=None):
+        wav = ap.load_wav(wav_file)
+        energy = ap.compute_energy(wav)
+        if energy_file:
+            np.save(energy_file, pitch)
+        return pitch
+
+    @staticmethod
+    def compute_energy_stats(energy_vecs):
+        nonzeros = np.concatenate([v[np.where(v != 0.0)[0]] for v in energy_vecs])
+        mean, std = np.mean(nonzeros), np.std(nonzeros)
+        return mean, std
+
+    def load_stats(self, cache_path):
+        stats_path = os.path.join(cache_path, "energy_stats.npy")
+        stats = np.load(stats_path, allow_pickle=True).item()
+        self.mean = stats["mean"].astype(np.float32)
+        self.std = stats["std"].astype(np.float32)
+
+    def normalize(self, energy):
+        zero_idxs = np.where(energy == 0.0)[0]
+        energy = energy - self.mean
+        energy = energy / self.std
+        energy[zero_idxs] = 0.0
+        return energy
+
+    def denormalize(self, energy):
+        zero_idxs = np.where(energy == 0.0)[0]
+        energy *= self.std
+        energy += self.mean
+        energy[zero_idxs] = 0.0
+        return energy
+
+    def compute_or_load(self, wav_file):
+        """
+        compute energy and return a numpy array of energy values
+        """
+        energy_file = self.create_Energy_file_path(wav_file, self.cache_path)
+        if not os.path.exists(energy_file):
+            energy = self._compute_and_save_energy(self.ap, wav_file, energy_file)
+        else:
+            energy = np.load(energy_file)
+        return energy.astype(np.float32)
+
+    def collate_fn(self, batch):
+        audio_file = [item["audio_file"] for item in batch]
+        energys = [item["energy"] for item in batch]
+        energy_lens = [len(item["energy"]) for item in batch]
+        energy_lens_max = max(energy_lens)
+        energys_torch = torch.LongTensor(len(energys), energy_lens_max).fill_(self.get_pad_id())
+        for i, energy_len in enumerate(energy_lens):
+            energy_torch[i, :energy_len] = torch.LongTensor(energys[i])
+        return {"audio_file": audio_file, "energy":energys_torch, "energy_lens": energy_lens}
+
+    def print_logs(self, level: int = 0) -> None:
+        indent = "\t" * level
+        print("\n")
+        print(f"{indent}> energyDataset ")
+        print(f"{indent}| > Number of instances : {len(self.samples)}")
