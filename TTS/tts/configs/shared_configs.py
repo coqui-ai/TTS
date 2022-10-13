@@ -216,9 +216,10 @@ class BaseTTSConfig(BaseTrainingConfig):
 
         compute_f0 (int):
             (Not in use yet).
-            
+
         compute_energy (int):
             (Not in use yet).
+
         compute_linear_spec (bool):
             If True data loader computes and returns linear spectrograms alongside the other data.
 
