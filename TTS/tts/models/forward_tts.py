@@ -40,10 +40,10 @@ class ForwardTTSArgs(Coqpit):
 
         use_pitch (bool):
             Use pitch predictor to learn the pitch. Defaults to True.
-            
+
         use_energy (bool):
             Use energy predictor to learn the energy. Defaults to True.
-            
+
         duration_predictor_hidden_channels (int):
             Number of hidden channels in the duration predictor. Defaults to 256.
 
@@ -64,7 +64,7 @@ class ForwardTTSArgs(Coqpit):
 
         pitch_embedding_kernel_size (int):
             Kernel size of the projection layer in the pitch predictor. Defaults to 3.
-            
+
         energy_predictor_hidden_channels (int):
             Number of hidden channels in the energy predictor. Defaults to 256.
 
@@ -134,19 +134,19 @@ class ForwardTTSArgs(Coqpit):
     pitch_predictor_kernel_size: int = 3
     pitch_predictor_dropout_p: float = 0.1
     pitch_embedding_kernel_size: int = 3
-        
+
     #energy params
     use_energy: bool = False
     energy_predictor_hidden_channels: int = 256
     energy_predictor_kernel_size: int = 3
     energy_predictor_dropout_p: float = 0.1
     energy_embedding_kernel_size: int = 3
-        
+
     #duration params
     duration_predictor_hidden_channels: int = 256
     duration_predictor_kernel_size: int = 3
     duration_predictor_dropout_p: float = 0.1
-        
+
     positional_encoding: bool = True
     poisitonal_encoding_use_scale: bool = True
     length_scale: int = 1
@@ -259,7 +259,7 @@ class ForwardTTS(BaseTTS):
                 kernel_size=self.args.pitch_embedding_kernel_size,
                 padding=int((self.args.pitch_embedding_kernel_size - 1) / 2),
             )
-            
+
         if self.args.use_energy:
             self.energy_predictor = DurationPredictor(
                 self.args.hidden_channels + self.embedded_speaker_dim,
@@ -273,7 +273,7 @@ class ForwardTTS(BaseTTS):
                 kernel_size=self.args.energy_embedding_kernel_size,
                 padding=int((self.args.energy_embedding_kernel_size - 1) / 2),
             )
-            
+
         if self.args.use_aligner:
             self.aligner = AlignmentNetwork(
                 in_query_channels=self.args.out_channels, in_key_channels=self.args.hidden_channels
@@ -479,7 +479,7 @@ class ForwardTTS(BaseTTS):
             return o_pitch_emb, o_pitch, avg_pitch
         o_pitch_emb = self.pitch_emb(o_pitch)
         return o_pitch_emb, o_pitch
-    
+
     def _forward_energy_predictor(
         self,
         o_en: torch.FloatTensor,
@@ -515,7 +515,7 @@ class ForwardTTS(BaseTTS):
             return o_energy_emb, o_energy, avg_energy
         o_energy_emb = self.energy_emb(o_energy)
         return o_energy_emb, o_energy
-    
+
     def _forward_aligner(
         self, x: torch.FloatTensor, y: torch.FloatTensor, x_mask: torch.IntTensor, y_mask: torch.IntTensor
     ) -> Tuple[torch.IntTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
@@ -777,7 +777,7 @@ class ForwardTTS(BaseTTS):
                 "pitch_avg_predicted": plot_avg_pitch(pitch_avg_hat, chars, output_fig=False),
             }
             figures.update(pitch_figures)
-                                      
+
         # plot energy figures
         if self.args.use_energy:
             energy_avg = abs(outputs["energy_avg_gt"][0, 0].data.cpu().numpy())
@@ -788,7 +788,7 @@ class ForwardTTS(BaseTTS):
                 "energy_avg_predicted": plot_avg_energy(energy_avg_hat, chars, output_fig=False),
             }
             figures.update(energy_figures)
-                                      
+
         # plot the attention mask computed from the predicted durations
         if "attn_durations" in outputs:
             alignments_hat = outputs["attn_durations"][0].data.cpu().numpy()
