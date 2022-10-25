@@ -1,86 +1,17 @@
 from dataclasses import asdict, dataclass, field
 from typing import Dict, List
 
-from coqpit import Coqpit, check_argument
-
 from TTS.tts.configs.shared_configs import BaseTTSConfig
+from TTS.tts.models.delightful_tts import DelightfulTtsAudioConfig, ModelArgs
 
 
 @dataclass
-class ConformerConfig(Coqpit):
-    n_layers: int
-    n_heads: int
-    n_hidden: int
-    p_dropout: float
-    kernel_size_conv_mod: int
-    kernel_size_depthwise: int
-
-
-@dataclass
-class ReferenceEncoderConfig(Coqpit):
-    bottleneck_size_p: int
-    bottleneck_size_u: int
-    ref_enc_filters: List[int]
-    ref_enc_size: int
-    ref_enc_strides: List[int]
-    ref_enc_pad: List[int]
-    ref_enc_gru_size: int
-    ref_attention_dropout: float
-    token_num: int
-    predictor_kernel_size: int
-
-
-@dataclass
-class VarianceAdaptorConfig(Coqpit):
-    n_hidden: int
-    kernel_size: int
-    emb_kernel_size: int
-    p_dropout: float
-    n_bins: int
-
-
-@dataclass
-class AcousticModelConfig(Coqpit):
-    encoder: ConformerConfig = ConformerConfig(
-        n_layers=6,
-        n_heads=8,
-        n_hidden=512,
-        p_dropout=0.1,
-        kernel_size_conv_mod=7,
-        kernel_size_depthwise=7,
-    )
-    decoder: ConformerConfig = ConformerConfig(
-        n_layers=6,
-        n_heads=8,
-        n_hidden=512,
-        p_dropout=0.1,
-        kernel_size_conv_mod=11,
-        kernel_size_depthwise=11,
-    )
-    reference_encoder: ReferenceEncoderConfig = ReferenceEncoderConfig(
-        bottleneck_size_p=4,
-        bottleneck_size_u=256,
-        ref_enc_filters=[32, 32, 64, 64, 128, 128],
-        ref_enc_size=3,
-        ref_enc_strides=[1, 2, 1, 2, 1],
-        ref_enc_pad=[1, 1],
-        ref_enc_gru_size=32,
-        ref_attention_dropout=0.2,
-        token_num=32,
-        predictor_kernel_size=5,
-    )
-    variance_adaptor: VarianceAdaptorConfig = VarianceAdaptorConfig(
-        n_hidden=512, kernel_size=5, p_dropout=0.5, n_bins=256, emb_kernel_size=3
-    )
-
-
-@dataclass
-class SomethingTTSConfig(BaseTTSConfig):
+class DelightfulTTSConfig(BaseTTSConfig):
 
     model: str = "something_tts"
 
     # model specific params
-    audio: AudioConfig = AudioConfig()
+    audio: DelightfulTtsAudioConfig = DelightfulTtsAudioConfig()
     model_args: ModelArgs = ModelArgs()
     use_attn_priors: bool = True
 
