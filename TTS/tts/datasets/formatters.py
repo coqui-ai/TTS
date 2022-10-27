@@ -97,9 +97,9 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
         meta_files (str):  list of meta files to be used in the training. If None, finds all the csv files
             recursively. Defaults to None
     """
-    speaker_regex = re.compile(f'by_book{os.sep}(male|female){os.sep}(?P<speaker_name>[^{os.sep}]+){os.sep}')
+    speaker_regex = re.compile(f"by_book{os.sep}(male|female){os.sep}(?P<speaker_name>[^{os.sep}]+){os.sep}")
     if not meta_files:
-        csv_files = glob(root_path + f'{os.sep}**{os.sep}metadata.csv', recursive=True)
+        csv_files = glob(root_path + f"{os.sep}**{os.sep}metadata.csv", recursive=True)
     else:
         csv_files = meta_files
 
@@ -138,6 +138,7 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
                     # M-AI-Labs have some missing samples, so just print the warning
                     print("> File %s does not exist!" % (wav_file))
     return items
+
 
 def ljspeech(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the LJSpeech meta data file to TTS format
