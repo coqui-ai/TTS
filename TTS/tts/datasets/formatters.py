@@ -97,9 +97,9 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
         meta_files (str):  list of meta files to be used in the training. If None, finds all the csv files
             recursively. Defaults to None
     """
-    speaker_regex = re.compile("by_book/(male|female)/(?P<speaker_name>[^/]+)/")
+    speaker_regex = re.compile(f'by_book{os.sep}(male|female){os.sep}(?P<speaker_name>[^{os.sep}]+){os.sep}')
     if not meta_files:
-        csv_files = glob(root_path + "/**/metadata.csv", recursive=True)
+        csv_files = glob(root_path + f'{os.sep}**{os.sep}metadata.csv', recursive=True)
     else:
         csv_files = meta_files
 
@@ -138,58 +138,6 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
                     # M-AI-Labs have some missing samples, so just print the warning
                     print("> File %s does not exist!" % (wav_file))
     return items
-
-
-def mailabs_win(root_path, meta_files=None, ignored_speakers=None):
-    """Normalizes M-AI-Labs metadata files to TTS format.
-    This is alternative to "mailabs" formatter and should work regardless of OS.
-
-    Args:
-        root_path (str): root folder of the MAILAB language folder.
-        meta_files (str):  list of meta files to be used in the training. If None,
-        finds all the csv files recursively. Defaults to None.
-        ignored_speakers: list of speaker names to be ignored
-
-    Folder structure example: ./by_book/(speaker gender)/(speaker name)/(book title)/metadata.csv
-    """
-    if not meta_files:
-        csv_files = glob(os.path.join(root_path, "**", "metadata.csv"), recursive=True)
-    else:
-        csv_files = meta_files
-
-    items = []
-    for csv_file in csv_files:
-        # if provided meta_files paths are relative to root_path, then os.path.join()
-        if not os.path.isfile(csv_file):
-            csv_file = os.path.join(root_path, csv_file)
-
-        # check proper folder structure to metadata.csv
-        folder_structure = os.path.normpath(csv_file).split(os.path.sep)
-        if len(folder_structure) < 5 or folder_structure[-5] != "by_book" or "male" not in folder_structure[-4]:
-            print(f" X > Wrong path structure to metadata file. Skipping: {csv_file}")
-            continue
-
-        speaker_name = folder_structure[-3]
-        # ignore speakers
-        if isinstance(ignored_speakers, list):
-            if speaker_name in ignored_speakers:
-                continue
-
-        print(" | > {}".format(csv_file))
-        folder = os.path.dirname(csv_file)
-        with open(csv_file, "r", encoding="utf-8") as ttf:
-            for line in ttf:
-                cols = line.split("|")
-                wav_file = os.path.join(folder, "wavs", cols[0] + ".wav")
-                if os.path.isfile(wav_file):
-                    text = cols[1].strip()
-                    items.append(
-                        {"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path}
-                    )
-                else:
-                    print(f" X > File not found. Skipping: {wav_file}")
-    return items
-
 
 def ljspeech(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     """Normalizes the LJSpeech meta data file to TTS format
