@@ -84,7 +84,7 @@ We still support running training from CLI like in the old days. The same traini
         "print_eval": true,
         "mixed_precision": false,
         "output_path": "recipes/ljspeech/glow_tts/",
-        "datasets":[{"name": "ljspeech", "meta_file_train":"metadata.csv", "path": "recipes/ljspeech/LJSpeech-1.1/"}]
+        "datasets":[{"formatter": "ljspeech", "meta_file_train":"metadata.csv", "path": "recipes/ljspeech/LJSpeech-1.1/"}]
     }
     ```
 
