@@ -3,23 +3,27 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import torch
 from coqpit import Coqpit
 from torch import nn
+from TTS.tts.layers.delightful_tts import energy_adapter, phoneme_prosody_predictor
+from TTS.tts.layers.delightful_tts import variance_predictor
 from TTS.tts.layers.delightful_tts.conformer import Conformer
-from TTS.tts.layers.delightful_tts.delightful import EmbeddingPadded
-from TTS.tts.layers.delightful_tts.encoders import PhonemeLevelProsodyEncoder, UtteranceLevelProsodyEncoder
-from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictorLSTM
+from TTS.tts.layers.delightful_tts.networks import EmbeddingPadded, positional_encoding
+from TTS.tts.layers.delightful_tts.encoders import PhonemeLevelProsodyEncoder, UtteranceLevelProsodyEncoder, get_mask_from_lengths
+from TTS.tts.layers.delightful_tts.pitch_adapter import PitchAdaptor
+from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor, VariancePredictorLSTM
+from TTS.tts.layers.delightful_tts.phoneme_prosody_predictor import PhonemeProsodyPredictor
+from TTS.tts.layers.delightful_tts.energy_adapter import EnergyAdaptor
 
 from TTS.tts.layers.generic.aligner import AlignmentNetwork
-from TTS.tts.models.delightful_tts import get_mask_from_lengths
 from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.helpers import generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 
 
-class AcousticModel(nn.Module):
+class AcousticModel(torch.nn.Module):
     def __init__(
         self,
-        args: ModelArgs,
+        args: "DelightfulTtsArgs",
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
         emotion_manager: EmotionManager = None,
@@ -62,12 +66,14 @@ class AcousticModel(nn.Module):
         #     reduction_factor=4,
         # )
 
-        self.duration_predictor = VariancePredictorLSTM(
+        self.duration_predictor = VariancePredictor(
             channels_in=args.acoustic_config.encoder.n_hidden,
             channels=args.acoustic_config.variance_adaptor.n_hidden,
             channels_out=1,
             kernel_size=args.acoustic_config.variance_adaptor.kernel_size,
             p_dropout=args.acoustic_config.variance_adaptor.p_dropout,
+            lrelu_slope=args.acoustic_config.variance_adaptor.lrelu_slope,
+
         )
 
         # self.range_predictor = RangePredictor(

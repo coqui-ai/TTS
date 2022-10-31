@@ -1,3 +1,4 @@
+### credit: https://github.com/dunky11/voicesmith 
 import math
 from typing import Tuple
 
@@ -5,12 +6,13 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.functional as F
-from TTS.tts.layers.delightful_tts.delightful import Conv1dGLU, DepthWiseConv1d, GLUActivation, PointwiseConv1d
-
-from TTS.tts.models.delightful_tts import calc_same_padding
+from TTS.tts.layers.delightful_tts.networks import Conv1dGLU, DepthWiseConv1d, GLUActivation, PointwiseConv1d
 
 
-LRELU_SLOPE = 0.3
+def calc_same_padding(kernel_size: int) -> Tuple[int, int]:
+    pad = kernel_size // 2
+    return (pad, pad - (kernel_size + 1) % 2)
+
 
 class Conformer(nn.Module):
     def __init__(
@@ -128,6 +130,7 @@ class ConformerConvModule(nn.Module):
         expansion_factor: int = 2,
         kernel_size: int = 7,
         dropout: float = 0.1,
+        lrelu_slope: float = 0.3
     ):
         super().__init__()
         inner_dim = d_model * expansion_factor
@@ -141,7 +144,7 @@ class ConformerConvModule(nn.Module):
             padding=calc_same_padding(kernel_size)[0],
         )
         self.ln_2 = nn.GroupNorm(1, inner_dim)
-        self.activation = nn.LeakyReLU(LRELU_SLOPE)
+        self.activation = nn.LeakyReLU(lrelu_slope)
         self.conv_2 = PointwiseConv1d(inner_dim, d_model)
         self.dropout = nn.Dropout(dropout)
 

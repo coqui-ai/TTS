@@ -1,14 +1,27 @@
+from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.functional as F
+from TTS.tts.layers.delightful_tts.conformer import ConformerMultiHeadedSelfAttention
+from TTS.tts.layers.delightful_tts.networks import STL, CoordConv1d
 
-from TTS.tts.models.delightful_tts import ReferenceEncoderConfig, get_mask_from_lengths, stride_lens
+
+def get_mask_from_lengths(lengths: torch.Tensor) -> torch.Tensor:
+    batch_size = lengths.shape[0]
+    max_len = torch.max(lengths).item()
+    ids = torch.arange(0, max_len, device=lengths.device).unsqueeze(0).expand(batch_size, -1)
+    mask = ids >= lengths.unsqueeze(1).expand(-1, max_len)
+    return mask
+
+
+def stride_lens(lens: torch.Tensor, stride: int = 2) -> torch.Tensor:
+    return torch.ceil(lens / stride).int()
 
 
 class UtteranceLevelProsodyEncoder(nn.Module):
     def __init__(
         self,
-        args: ModelArgs,
+        args: "DelightfulTtsArgs",
     ):
         super().__init__()
 
@@ -18,7 +31,7 @@ class UtteranceLevelProsodyEncoder(nn.Module):
         ref_attention_dropout = args.reference_encoder.ref_attention_dropout
         bottleneck_size = args.reference_encoder.bottleneck_size_u
 
-        self.encoder = ReferenceEncoderConfig(args)
+        self.encoder = ReferenceEncoder(args)
         self.encoder_prj = nn.Linear(ref_enc_gru_size, self.E // 2)
         self.stl = STL(args)
         self.encoder_bottleneck = nn.Linear(self.E, bottleneck_size)
@@ -93,7 +106,7 @@ class PhonemeLevelProsodyEncoder(nn.Module):
 
 
 class ReferenceEncoder(nn.Module):
-    def __init__(self, args: ModelArgs):
+    def __init__(self, args: "DelightfulTtsArgs"):
         super().__init__()
 
         n_mel_channels = args.num_mels
@@ -170,3 +183,53 @@ class ReferenceEncoder(nn.Module):
         for _ in range(n_convs):
             L = (L - kernel_size + 2 * pad) // stride + 1
         return L
+
+
+class PhonemeLevelProsodyEncoder(nn.Module):
+    def __init__(self, args):
+        super().__init__()
+
+        self.E = args.encoder.n_hidden
+        self.d_q = self.d_k = args.encoder.n_hidden
+        bottleneck_size = args.reference_encoder.bottleneck_size_p
+        ref_enc_gru_size = args.reference_encoder.ref_enc_gru_size
+
+        self.encoder = ReferenceEncoder(args)
+        self.encoder_prj = nn.Linear(ref_enc_gru_size, args.encoder.n_hidden)
+        self.attention = ConformerMultiHeadedSelfAttention(
+            d_model=args.encoder.n_hidden,
+            num_heads=args.encoder.n_heads,
+            dropout_p=args.encoder.p_dropout,
+        )
+        self.encoder_bottleneck = nn.Linear(args.encoder.n_hidden, bottleneck_size)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        src_mask: torch.Tensor,
+        mels: torch.Tensor,
+        mel_lens: torch.Tensor,
+        encoding: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        x --- [N, seq_len, encoder_embedding_dim]
+        mels --- [N, Ty/r, n_mels*r], r=1
+        out --- [N, seq_len, bottleneck_size]
+        attn --- [N, seq_len, ref_len], Ty/r = ref_len
+        """
+        embedded_prosody, _, mel_masks = self.encoder(mels, mel_lens)
+
+        # Bottleneck
+        embedded_prosody = self.encoder_prj(embedded_prosody)
+
+        attn_mask = mel_masks.view((mel_masks.shape[0], 1, 1, -1))
+        x, _ = self.attention(
+            query=x,
+            key=embedded_prosody,
+            value=embedded_prosody,
+            mask=attn_mask,
+            encoding=encoding,
+        )
+        x = self.encoder_bottleneck(x)
+        x = x.masked_fill(src_mask.unsqueeze(-1), 0.0)
+        return x

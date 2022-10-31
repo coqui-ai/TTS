@@ -1,10 +1,20 @@
+import math
+from typing import Tuple
+
 import torch
 import torch.nn as nn
+import torch.nn.modules.conv as conv
+
 import numpy as np
 from torch.nn import functional as F
-from TTS.tts.models.delightful_tts import initialize_embeddings
 
 from TTS.tts.utils.helpers import sequence_mask
+
+
+def initialize_embeddings(shape: Tuple[int]) -> torch.Tensor:
+    assert len(shape) == 2, "Can only initialize 2-D embedding matrices ..."
+    # Kaiming initialization
+    return torch.randn(shape) * np.sqrt(2 / shape[1])
 
 
 class GaussianUpsampling(nn.Module):
@@ -510,7 +520,7 @@ class AddCoords(nn.Module):
 class STL(nn.Module):
     """Style Token Layer"""
 
-    def __init__(self, args: ModelArgs):
+    def __init__(self, args: "DelightfulTtsArgs"):
         super(STL, self).__init__()
 
         num_heads = 1
@@ -1038,3 +1048,59 @@ class LVCBlock(torch.nn.Module):
         nn.utils.remove_weight_norm(self.convt_pre[1])
         for block in self.conv_blocks:
             nn.utils.remove_weight_norm(block[1])
+
+
+class StyleEmbedAttention(nn.Module):
+    def __init__(self, query_dim: int, key_dim: int, num_units: int, num_heads: int):
+        super().__init__()
+        self.num_units = num_units
+        self.num_heads = num_heads
+        self.key_dim = key_dim
+
+        self.W_query = nn.Linear(in_features=query_dim, out_features=num_units, bias=False)
+        self.W_key = nn.Linear(in_features=key_dim, out_features=num_units, bias=False)
+        self.W_value = nn.Linear(in_features=key_dim, out_features=num_units, bias=False)
+
+    def forward(self, query: torch.Tensor, key_soft: torch.Tensor) -> torch.Tensor:
+        """
+        input:
+            query --- [N, T_q, query_dim]
+            key_soft --- [N, T_k, key_dim]
+        output:
+            out --- [N, T_q, num_units]
+        """
+        values = self.W_value(key_soft)
+        split_size = self.num_units // self.num_heads
+        values = torch.stack(torch.split(values, split_size, dim=2), dim=0)
+
+        out_soft = scores_soft = None
+        querys = self.W_query(query)  # [N, T_q, num_units]
+        keys = self.W_key(key_soft)  # [N, T_k, num_units]
+
+        # [h, N, T_q, num_units/h]
+        querys = torch.stack(torch.split(querys, split_size, dim=2), dim=0)
+        # [h, N, T_k, num_units/h]
+        keys = torch.stack(torch.split(keys, split_size, dim=2), dim=0)
+        # [h, N, T_k, num_units/h]
+
+        # score = softmax(QK^T / (d_k ** 0.5))
+        scores_soft = torch.matmul(querys, keys.transpose(2, 3))  # [h, N, T_q, T_k]
+        scores_soft = scores_soft / (self.key_dim**0.5)
+        scores_soft = F.softmax(scores_soft, dim=3)
+
+        # out = score * V
+        # [h, N, T_q, num_units/h]
+        out_soft = torch.matmul(scores_soft, values)
+        out_soft = torch.cat(torch.split(out_soft, 1, dim=0), dim=3).squeeze(0)  # [N, T_q, num_units]
+
+        return out_soft  # , scores_soft
+
+
+def positional_encoding(d_model: int, length: int, device: torch.device) -> torch.Tensor:
+    pe = torch.zeros(length, d_model, device=device)
+    position = torch.arange(0, length, dtype=torch.float, device=device).unsqueeze(1)
+    div_term = torch.exp(torch.arange(0, d_model, 2, device=device).float() * -(math.log(10000.0) / d_model))
+    pe[:, 0::2] = torch.sin(position * div_term)
+    pe[:, 1::2] = torch.cos(position * div_term)
+    pe = pe.unsqueeze(0)
+    return pe
