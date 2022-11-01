@@ -2,17 +2,17 @@ from dataclasses import asdict, dataclass, field
 from typing import Dict, List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
-from TTS.tts.models.delightful_tts import DelightfulTtsAudioConfig, ModelArgs
+from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTtsAudioConfig, DelightfulTtsArgs, VocoderConfig
 
 
 @dataclass
 class DelightfulTTSConfig(BaseTTSConfig):
 
-    model: str = "something_tts"
+    model: str = "delightful_tts"
 
     # model specific params
     audio: DelightfulTtsAudioConfig = DelightfulTtsAudioConfig()
-    model_args: ModelArgs = ModelArgs()
+    model_args: DelightfulTtsArgs = DelightfulTtsArgs()
     use_attn_priors: bool = True
 
     # vocoder
