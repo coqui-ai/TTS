@@ -402,6 +402,7 @@ class AcousticModel(torch.nn.Module):
         )
 
         # Energy predictor
+
         energy_pred, avg_energy_target, energy_emb = self.energy_adaptor.get_energy_embedding_train(
             x=encoder_outputs,
             target=energies,

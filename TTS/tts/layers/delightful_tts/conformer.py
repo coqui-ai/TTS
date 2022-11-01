@@ -5,7 +5,7 @@ from typing import Tuple
 
 import torch
 import torch.nn as nn
-import torch.functional as F
+import torch.nn.functional as F
 from TTS.tts.layers.delightful_tts.networks import Conv1dGLU, DepthWiseConv1d, GLUActivation, PointwiseConv1d
 
 
