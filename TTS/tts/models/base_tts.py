@@ -344,7 +344,7 @@ class BaseTTS(BaseTrainerModel):
             loader = DataLoader(
                 dataset,
                 batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                shuffle=False,  # shuffle is done in the dataset.
+                shuffle=True,  # if there is no other sampler
                 collate_fn=dataset.collate_fn,
                 drop_last=False,  # setting this False might cause issues in AMP training.
                 sampler=sampler,
