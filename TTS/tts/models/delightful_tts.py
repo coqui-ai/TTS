@@ -885,7 +885,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
     def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
         return self.train_step(batch, criterion, optimizer_idx)
 
-    def _log(self, batch, outputs, name_prefix="train"):
+    def _log(self, ap, batch, outputs, name_prefix="train"):
         figures, audios = {}, {}
 
         # encoder outputs
@@ -937,7 +937,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         y_hat = outputs[1]["model_outputs"]
         y = outputs[1]["waveform_seg"]
 
-        vocoder_figures = plot_results(y_hat=y_hat, y=y, audio_config=self.config.audio, name_prefix=name_prefix)
+        vocoder_figures = plot_results(y_hat=y_hat, y=y, ap=ap, name_prefix=name_prefix)
         figures.update(vocoder_figures)
 
         sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
@@ -964,7 +964,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         logger.train_audios(steps, audios, self.config.audio.sample_rate)
 
     def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
-        figures, audios = self._log(batch=batch, outputs=outputs, name_prefix="vocoder/")
+        figures, audios = self._log(ap=self.ap, batch=batch, outputs=outputs, name_prefix="vocoder/")
         logger.eval_figures(steps, figures)
         logger.eval_audios(steps, audios, self.config.audio.sample_rate)
 
