@@ -959,7 +959,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         Returns:
             Tuple[Dict, np.ndarray]: training plots and output waveform.
         """
-        figures, audios = self._log(batch=batch, outputs=outputs, name_prefix="vocoder/")
+        figures, audios = self._log(ap=self.ap, batch=batch, outputs=outputs, name_prefix="vocoder/")
         logger.train_figures(steps, figures)
         logger.train_audios(steps, audios, self.config.audio.sample_rate)
 
