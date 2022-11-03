@@ -115,7 +115,7 @@ def load_tts_samples(
 
         # setup the right data processor
         if formatter is None:
-            formatter = _get_formatter_by_name(formatter_name)
+            formatter = _get_formatter_by_name(dataset_name)
         # load train set
         meta_data_train = formatter(root_path, meta_file_train, ignored_speakers=ignored_speakers)
         assert len(meta_data_train) > 0, f" [!] No training samples found in {root_path}/{meta_file_train}"
