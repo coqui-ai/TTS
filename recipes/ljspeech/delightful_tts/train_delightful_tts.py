@@ -1,0 +1,87 @@
+import os
+from trainer import Trainer, TrainerArgs
+
+from TTS.config.shared_configs import BaseDatasetConfig
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
+from TTS.tts.configs.delightful_tts_config import DelightfulTTSConfig, DelightfulTtsAudioConfig
+
+from TTS.tts.models.delightful_tts import (
+    VocoderConfig,
+    DelightfulTTSE2e,
+    DelightfulTtsArgs,
+    
+)
+from TTS.utils.audio.processor import AudioProcessor
+
+data_path = ''
+output_path = os.path.dirname(os.path.abspath(__file__))
+
+
+dataset_config = BaseDatasetConfig(
+    dataset_name='ljspeech',
+    meta_file_train='metadata.csv',
+    path = data_path
+)
+
+audio_config = DelightfulTtsAudioConfig()
+model_args = DelightfulTtsArgs()
+
+vocoder_config = VocoderConfig()
+
+something_tts_config = DelightfulTTSConfig(
+    run_name="delightful_tts_e2e_ljspeech",
+    run_description="Train like in delightful tts paper.",
+    model_args=model_args,
+    audio=audio_config,
+    vocoder=vocoder_config,
+    batch_size=32,
+    eval_batch_size=16,
+    num_loader_workers=10,
+    num_eval_loader_workers=10,
+    precompute_num_workers=10,
+    compute_input_seq_cache=True,
+    compute_f0=True,
+    f0_cache_path=os.path.join(output_path, "f0_cache"),
+    run_eval=True,
+    test_delay_epochs=-1,
+    epochs=1000,
+    text_cleaner="english_cleaners",
+    use_phonemes=True,
+    phoneme_language="en-us",
+    phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
+    print_step=50,
+    print_eval=True,
+    mixed_precision=False,
+    output_path=output_path,
+    datasets=[dataset_config],
+    start_by_longest=True,
+    binary_align_loss_alpha=0.0,
+    use_attn_priors=False,
+    max_text_len=100
+)
+
+tokenizer, config = TTSTokenizer.init_from_config(something_tts_config)
+
+ap = AudioProcessor.init_from_config(config)
+
+
+train_samples, eval_samples = load_tts_samples(
+    dataset_config,
+    eval_split=True,
+    eval_split_max_size=config.eval_split_max_size,
+    eval_split_size=config.eval_split_size,
+)
+
+model = DelightfulTTSE2e(ap=ap, config=config, tokenizer=tokenizer, speaker_manager=None, emotion_manager=None)
+
+trainer = Trainer(
+    TrainerArgs(continue_path='/TTS/recipes/ljspeech/delightful_tts/delightful_tts_e2e_ljspeech-November-02-2022_03+03PM-4c392d89'), 
+    config, 
+    output_path, 
+    model=model, 
+    train_samples=train_samples, 
+    eval_samples=eval_samples
+)
+
+trainer.fit()
