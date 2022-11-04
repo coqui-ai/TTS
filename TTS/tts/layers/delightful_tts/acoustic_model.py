@@ -76,12 +76,6 @@ class AcousticModel(torch.nn.Module):
 
         )
 
-        # self.range_predictor = RangePredictor(
-        #     in_channels=args.acoustic_config.encoder.n_hidden,
-        #     hidden_channels=args.acoustic_config.encoder.n_hidden // 4,
-        # )
-        # self.gaussian_upsampling = GaussianUpsampling()
-
         self.utterance_prosody_encoder = UtteranceLevelProsodyEncoder(args.acoustic_config)
         self.utterance_prosody_predictor = PhonemeProsodyPredictor(args=args.acoustic_config, phoneme_level=False)
         self.phoneme_prosody_encoder = PhonemeLevelProsodyEncoder(args.acoustic_config)
@@ -417,17 +411,7 @@ class AcousticModel(torch.nn.Module):
         # Duration predictor
         # log_duration_prediction = self.duration_predictor(txt_enc=encoder_outputs_res.detach(), lens=src_lens)
         log_duration_prediction = self.duration_predictor(x=encoder_outputs_res.detach(), mask=src_mask)
-        # duration_ranges = self.range_predictor(x=encoder_outputs_res, dr=dr, x_lengths=src_lens)
 
-        # Upsample encoder outputs
-        # mel_pred_mask, encoder_outputs_ex, alignments = self._expand_encoder_with_gaussian_upsampling(
-        #     o_en=encoder_outputs,
-        #     o_ranges=duration_ranges.squeeze(2),
-        #     y_lengths=mel_lens,
-        #     dr=dr,
-        #     x_mask=~src_mask[:, None],
-        #     x_lengths=src_lens,
-        # )
         mel_pred_mask, encoder_outputs_ex, alignments = self._expand_encoder_with_durations(
             o_en=encoder_outputs, y_lengths=mel_lens, dr=dr, x_mask=~src_mask[:, None]
         )
@@ -555,17 +539,6 @@ class AcousticModel(torch.nn.Module):
         duration_pred[duration_pred < 1] = 1.0  # -> [B, T_src]
         duration_pred = torch.round(duration_pred)  # -> [B, T_src]
         mel_lens = duration_pred.sum(1)  # -> [B,]
-        # duration_ranges = self.range_predictor(x=encoder_outputs_res, dr=duration_pred.squeeze(1), x_lengths=src_lens)
-
-        # Upsample encoder outputs
-        # _, encoder_outputs_ex, alignments = self._expand_encoder_with_gaussian_upsampling(
-        #     o_en=encoder_outputs,
-        #     o_ranges=duration_ranges.squeeze(2),
-        #     y_lengths=mel_lens,
-        #     dr=duration_pred.squeeze(1),
-        #     x_mask=~src_mask[:None],
-        #     x_lengths=src_lens,
-        # )
 
         _, encoder_outputs_ex, alignments = self._expand_encoder_with_durations(
             o_en=encoder_outputs, y_lengths=mel_lens, dr=duration_pred.squeeze(1), x_mask=~src_mask[:, None]

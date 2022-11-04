@@ -17,47 +17,6 @@ def initialize_embeddings(shape: Tuple[int]) -> torch.Tensor:
     return torch.randn(shape) * np.sqrt(2 / shape[1])
 
 
-class GaussianUpsampling(nn.Module):
-    """
-    Gaussian Upsampling for duration regulation as in Non-attention Tacotron https://arxiv.org/abs/2010.04301
-    This code is from https://github.com/BridgetteSong/ExpressiveTacotron/blob/master/model_duration.py
-    """
-
-    def __init__(self):
-        super(GaussianUpsampling, self).__init__()
-        self.mask_score = -1e15
-
-    def forward(self, x, durations, vars, x_lengths=None):
-        """
-        Gaussian upsampling
-        Shapes:
-            - x:  [B, T, C]
-            - durations: [B, T]
-            - vars : [B, T]
-            - x_lengths : [B]
-            - encoder_upsampling_outputs: [B, T, C]
-        """
-        x = x.transpose(1, 2)
-        B = x.size(0)
-        N = x.size(1)
-        T = int(torch.sum(durations, dim=1).max().item())
-        c = torch.cumsum(durations, dim=1).float() - 0.5 * durations
-        c = c.unsqueeze(2)  # [B, N, 1]
-        t = torch.arange(T, device=x.device).expand(B, N, T).float()  # [B, N, T]
-        vars = vars.view(B, -1, 1)  # [B, N, 1]
-
-        w_t = -0.5 * (np.log(2.0 * np.pi) + torch.log(vars) + torch.pow(t - c, 2) / vars)  # [B, N, T]
-
-        if x_lengths is not None:
-            input_masks = ~sequence_mask(x_lengths, None)  # [B, T, 1]
-            masks = input_masks.unsqueeze(2)
-            w_t.data.masked_fill_(masks, self.mask_score)
-        w_t = F.softmax(w_t, dim=1)
-
-        encoder_upsampling_outputs = torch.bmm(w_t.transpose(1, 2), x)  # [B, T, C]
-        return encoder_upsampling_outputs.transpose(1, 2)
-
-
 class BottleneckLayer(nn.Module):
     def __init__(
         self,
