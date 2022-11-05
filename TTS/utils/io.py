@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Union
 import fsspec
 import torch
 from coqpit import Coqpit
+from TTS.utils.generic_utils import get_user_data_dir
 
 
 class RenamingUnpickler(pickle_tts.Unpickler):
@@ -57,6 +58,7 @@ def copy_model_files(config: Coqpit, out_path, new_fields=None):
 def load_fsspec(
     path: str,
     map_location: Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]] = None,
+    cache: bool = True,
     **kwargs,
 ) -> Any:
     """Like torch.load but can load from other locations (e.g. s3:// , gs://).
@@ -64,12 +66,21 @@ def load_fsspec(
     Args:
         path: Any path or url supported by fsspec.
         map_location: torch.device or str.
+        cache: If True, cache the file locally for subsequent calls. It is cached under `get_user_data_dir()/tts_cache`. Defaults to True.
         **kwargs: Keyword arguments forwarded to torch.load.
 
     Returns:
         Object stored in path.
     """
-    with fsspec.open(path, "rb") as f:
+    if cache:
+        of = fsspec.open(
+            f"filecache::{path}",
+            filecache={"cache_storage": str(get_user_data_dir('tts_cache'))},
+            mode="rb",
+        )
+    else:
+        of = fsspec.open(path, "rb")
+    with of as f:
         return torch.load(f, map_location=map_location, **kwargs)
 
 
