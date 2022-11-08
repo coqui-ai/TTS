@@ -44,7 +44,9 @@ class BaseTrainerModel(TrainerModel):
         return outputs_dict
 
     @abstractmethod
-    def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False) -> None:
+    def load_checkpoint(
+        self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False
+    ) -> None:
         """Load a model checkpoint gile and get ready for training or inference.
 
         Args:
