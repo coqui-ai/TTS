@@ -75,7 +75,7 @@ def load_fsspec(
     if cache:
         of = fsspec.open(
             f"filecache::{path}",
-            filecache={"cache_storage": str(get_user_data_dir('tts_cache'))},
+            filecache={"cache_storage": str(get_user_data_dir("tts_cache"))},
             mode="rb",
         )
     else:
