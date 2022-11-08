@@ -15,7 +15,7 @@ jobs:
       matrix:
         arch: ["amd64"]
         base:
-        - "nvcr.io/nvidia/pytorch:22.03-py3" # GPU enabled
+        # - "nvcr.io/nvidia/pytorch:22.03-py3" # GPU enabled
         - "ubuntu:20.04" # CPU only
     steps:
       - uses: actions/checkout@v2
