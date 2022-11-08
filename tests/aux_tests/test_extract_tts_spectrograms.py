@@ -15,7 +15,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
     def test_GlowTTS():
         # set paths
         config_path = os.path.join(get_tests_input_path(), "test_glow_tts.json")
-        checkpoint_path = os.path.join(get_tests_output_path(), "checkpoint_test.pth")
+        checkpoint_path = os.path.join(get_tests_output_path(), "glowtts.pth")
         output_path = os.path.join(get_tests_output_path(), "output_extract_tts_spectrograms/")
         # load config
         c = load_config(config_path)
@@ -33,7 +33,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
     def test_Tacotron2():
         # set paths
         config_path = os.path.join(get_tests_input_path(), "test_tacotron2_config.json")
-        checkpoint_path = os.path.join(get_tests_output_path(), "checkpoint_test.pth")
+        checkpoint_path = os.path.join(get_tests_output_path(), "tacotron2.pth")
         output_path = os.path.join(get_tests_output_path(), "output_extract_tts_spectrograms/")
         # load config
         c = load_config(config_path)
@@ -51,7 +51,7 @@ class TestExtractTTSSpectrograms(unittest.TestCase):
     def test_Tacotron():
         # set paths
         config_path = os.path.join(get_tests_input_path(), "test_tacotron_config.json")
-        checkpoint_path = os.path.join(get_tests_output_path(), "checkpoint_test.pth")
+        checkpoint_path = os.path.join(get_tests_output_path(), "tacotron.pth")
         output_path = os.path.join(get_tests_output_path(), "output_extract_tts_spectrograms/")
         # load config
         c = load_config(config_path)
