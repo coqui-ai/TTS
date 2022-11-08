@@ -2,7 +2,8 @@ import math
 import os
 from dataclasses import dataclass, field, replace
 from itertools import chain
-from typing import Dict, List, Tuple, Union
+from pathlib import Path
+from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -19,21 +20,30 @@ from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.tts.configs.shared_configs import CharactersConfig
-from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
+from TTS.tts.datasets.dataset import F0Dataset, TTSDataset, _parse_sample
+from TTS.tts.layers.generic.aligner import AlignmentNetwork
+from TTS.tts.layers.generic.duration_predictor_lstm import DurationPredictorLSTM
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
-from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
+from TTS.tts.layers.vits.networks import ContextEncoder, PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
-from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
+from TTS.tts.utils.helpers import (
+    average_over_durations,
+    compute_attn_prior,
+    generate_path,
+    maximum_path,
+    rand_segments,
+    segment,
+    sequence_mask,
+)
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.tts.utils.visual import plot_alignment
-from TTS.utils.io import load_fsspec
-from TTS.utils.samplers import BucketBatchSampler
+from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch
+from TTS.utils.audio.numpy_transforms import compute_f0
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
@@ -69,7 +79,9 @@ def load_audio(file_path):
     Return Shapes:
         - x: :math:`[1, T]`
     """
-    x, sr = torchaudio.load(file_path)
+    x, sr = torchaudio.load(
+        file_path,
+    )
     assert (x > 1).sum() + (x < -1).sum() == 0
     return x, sr
 
@@ -92,20 +104,13 @@ def db_to_amp(magnitudes):
     return output
 
 
-def wav_to_spec(y, n_fft, hop_length, win_length, center=False):
-    """
-    Args Shapes:
-        - y : :math:`[B, 1, T]`
-
-    Return Shapes:
-        - spec : :math:`[B,C,T]`
-    """
+def _wav_to_spec(y, n_fft, hop_length, win_length, center=False):
     y = y.squeeze(1)
 
-    if torch.min(y) < -1.0:
-        print("min value is ", torch.min(y))
-    if torch.max(y) > 1.0:
-        print("max value is ", torch.max(y))
+    # if torch.min(y) < -1.0:
+    #     print("min value is ", torch.min(y))
+    # if torch.max(y) > 1.0:
+    #     print("max value is ", torch.max(y))
 
     global hann_window
     dtype_device = str(y.dtype) + "_" + str(y.device)
@@ -130,10 +135,36 @@ def wav_to_spec(y, n_fft, hop_length, win_length, center=False):
         pad_mode="reflect",
         normalized=False,
         onesided=True,
+        return_complex=False,
     )
-
-    spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
     return spec
+
+
+def wav_to_spec(y, n_fft, hop_length, win_length, center=False):
+    """
+    Args Shapes:
+        - y : :math:`[B, 1, T]`
+
+    Return Shapes:
+        - spec : :math:`[B,C,T]`
+    """
+    with torch.cuda.amp.autocast(enabled=False):
+        spec = _wav_to_spec(y, n_fft, hop_length, win_length, center=center)
+
+        if spec.dtype in [torch.cfloat, torch.cdouble]:
+            spec = torch.view_as_real(spec)
+        spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-9)
+    return spec
+
+
+def wav_to_energy(y, n_fft, hop_length, win_length, center=False):
+    spec = wav_to_spec(y, n_fft, hop_length, win_length, center=center)
+    return torch.norm(spec, dim=1, keepdim=True)
+
+
+def name_mel_basis(spec, n_fft, fmax):
+    n_fft_len = f"{n_fft}_{fmax}_{spec.dtype}_{spec.device}"
+    return n_fft_len
 
 
 def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
@@ -145,12 +176,11 @@ def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
         - mel : :math:`[B,C,T]`
     """
     global mel_basis
-    dtype_device = str(spec.dtype) + "_" + str(spec.device)
-    fmax_dtype_device = str(fmax) + "_" + dtype_device
-    if fmax_dtype_device not in mel_basis:
+    mel_basis_key = name_mel_basis(spec, n_fft, fmax)
+    if mel_basis_key not in mel_basis:
         mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax)
-        mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=spec.dtype, device=spec.device)
-    mel = torch.matmul(mel_basis[fmax_dtype_device], spec)
+        mel_basis[mel_basis_key] = torch.from_numpy(mel).to(dtype=spec.dtype, device=spec.device)
+    mel = torch.matmul(mel_basis[mel_basis_key], spec)
     mel = amp_to_db(mel)
     return mel
 
@@ -158,10 +188,10 @@ def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
 def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fmax, center=False):
     """
     Args Shapes:
-        - y : :math:`[B, 1, T]`
+        - y : :math:`[B, 1, T_y]`
 
     Return Shapes:
-        - spec : :math:`[B,C,T]`
+        - spec : :math:`[B,C,T_spec]`
     """
     y = y.squeeze(1)
 
@@ -171,12 +201,11 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
         print("max value is ", torch.max(y))
 
     global mel_basis, hann_window
-    dtype_device = str(y.dtype) + "_" + str(y.device)
-    fmax_dtype_device = str(fmax) + "_" + dtype_device
-    wnsize_dtype_device = str(win_length) + "_" + dtype_device
-    if fmax_dtype_device not in mel_basis:
+    mel_basis_key = name_mel_basis(y, n_fft, fmax)
+    wnsize_dtype_device = str(win_length) + "_" + str(y.dtype) + "_" + str(y.device)
+    if mel_basis_key not in mel_basis:
         mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax)
-        mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=y.dtype, device=y.device)
+        mel_basis[mel_basis_key] = torch.from_numpy(mel).to(dtype=y.dtype, device=y.device)
     if wnsize_dtype_device not in hann_window:
         hann_window[wnsize_dtype_device] = torch.hann_window(win_length).to(dtype=y.dtype, device=y.device)
 
@@ -197,10 +226,11 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
         pad_mode="reflect",
         normalized=False,
         onesided=True,
+        return_complex=False,
     )
 
     spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
-    spec = torch.matmul(mel_basis[fmax_dtype_device], spec)
+    spec = torch.matmul(mel_basis[mel_basis_key], spec)
     spec = amp_to_db(spec)
     return spec
 
@@ -208,8 +238,6 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
 #############################
 # CONFIGS
 #############################
-
-
 @dataclass
 class VitsAudioConfig(Coqpit):
     fft_size: int = 1024
@@ -219,6 +247,7 @@ class VitsAudioConfig(Coqpit):
     num_mels: int = 80
     mel_fmin: int = 0
     mel_fmax: int = None
+    pitch_fmax: float = 640.0
 
 
 ##############################
@@ -226,23 +255,15 @@ class VitsAudioConfig(Coqpit):
 ##############################
 
 
-def get_attribute_balancer_weights(items: list, attr_name: str, multi_dict: dict = None):
-    """Create inverse frequency weights for balancing the dataset.
-    Use `multi_dict` to scale relative weights."""
-    attr_names_samples = np.array([item[attr_name] for item in items])
-    unique_attr_names = np.unique(attr_names_samples).tolist()
-    attr_idx = [unique_attr_names.index(l) for l in attr_names_samples]
-    attr_count = np.array([len(np.where(attr_names_samples == l)[0]) for l in unique_attr_names])
+def get_attribute_balancer_weights(items: list, attr_name: str):
+    """Create balancer weight for torch WeightedSampler"""
+    attr_names = np.array([item[attr_name] for item in items])
+    unique_attr_names = np.unique(attr_names).tolist()
+    attr_values = [unique_attr_names.index(l) for l in attr_names]
+    attr_count = np.array([len(np.where(attr_names == l)[0]) for l in unique_attr_names])
     weight_attr = 1.0 / attr_count
-    dataset_samples_weight = np.array([weight_attr[l] for l in attr_idx])
+    dataset_samples_weight = np.array([weight_attr[l] for l in attr_values])
     dataset_samples_weight = dataset_samples_weight / np.linalg.norm(dataset_samples_weight)
-    if multi_dict is not None:
-        # check if all keys are in the multi_dict
-        for k in multi_dict:
-            assert k in unique_attr_names, f"{k} not in {unique_attr_names}"
-        # scale weights
-        multiplier_samples = np.array([multi_dict.get(item[attr_name], 1.0) for item in items])
-        dataset_samples_weight *= multiplier_samples
     return (
         torch.from_numpy(dataset_samples_weight).float(),
         unique_attr_names,
@@ -250,24 +271,101 @@ def get_attribute_balancer_weights(items: list, attr_name: str, multi_dict: dict
     )
 
 
+class VitsF0Dataset(F0Dataset):
+    """Override F0Dataset to avoid the AudioProcessor."""
+
+    def __init__(
+        self,
+        audio_config: "AudioConfig",
+        samples: Union[List[List], List[Dict]],
+        verbose=False,
+        cache_path: str = None,
+        precompute_num_workers=0,
+        normalize_f0=True,
+    ):
+        super().__init__(
+            samples=samples,
+            audio_config=audio_config,
+            verbose=verbose,
+            cache_path=cache_path,
+            precompute_num_workers=precompute_num_workers,
+            normalize_f0=normalize_f0,
+        )
+
+    @staticmethod
+    def _compute_and_save_pitch(audio_config, wav_file, pitch_file=None):
+        wav, _ = load_audio(wav_file)
+        f0 = compute_f0(
+            x=wav.numpy()[0],
+            sample_rate=audio_config.sample_rate,
+            hop_length=audio_config.hop_length,
+            pitch_fmax=audio_config.pitch_fmax,
+        )
+        # skip the last F0 value to align with the spectrogram
+        if wav.shape[1] % audio_config.hop_length != 0:
+            f0 = f0[:-1]
+        if pitch_file:
+            np.save(pitch_file, f0)
+        return f0
+
+    def compute_or_load(self, wav_file):
+        """
+        compute pitch and return a numpy array of pitch values
+        """
+        pitch_file = self.create_pitch_file_path(wav_file, self.cache_path)
+        if not os.path.exists(pitch_file):
+            pitch = self._compute_and_save_pitch(
+                audio_config=self.audio_config, wav_file=wav_file, pitch_file=pitch_file
+            )
+        else:
+            pitch = np.load(pitch_file)
+        return pitch.astype(np.float32)
+
+
 class VitsDataset(TTSDataset):
-    def __init__(self, model_args, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        compute_f0 = kwargs.pop("compute_f0", False)
+        self.encoder_sample_rate = kwargs.pop("encoder_sample_rate", False)
+        kwargs["compute_f0"] = False
+        self.attn_prior_cache_path = kwargs.pop("attn_prior_cache_path")
         super().__init__(*args, **kwargs)
+        self.compute_f0 = compute_f0
         self.pad_id = self.tokenizer.characters.pad_id
-        self.model_args = model_args
+        self.audio_config = kwargs["audio_config"]
+        self.upsample_factor = self.audio_config.sample_rate // self.encoder_sample_rate
+
+        if self.compute_f0:
+            self.f0_dataset = VitsF0Dataset(
+                audio_config=self.audio_config,
+                samples=self.samples,
+                cache_path=kwargs["f0_cache_path"],
+                precompute_num_workers=kwargs["precompute_num_workers"],
+            )
+
+        if self.attn_prior_cache_path is not None:
+            os.makedirs(self.attn_prior_cache_path, exist_ok=True)
 
     def __getitem__(self, idx):
         item = self.samples[idx]
+
+        # prevent unexpected matches by keeping all the folders in the file name
+        rel_wav_path = Path(item["audio_file"]).relative_to(item["root_path"]).with_suffix("")
+        rel_wav_path = str(rel_wav_path).replace("/", "_")
+
         raw_text = item["text"]
-
         wav, _ = load_audio(item["audio_file"])
-        if self.model_args.encoder_sample_rate is not None:
-            if wav.size(1) % self.model_args.encoder_sample_rate != 0:
-                wav = wav[:, : -int(wav.size(1) % self.model_args.encoder_sample_rate)]
-
         wav_filename = os.path.basename(item["audio_file"])
 
+        if self.encoder_sample_rate is not None:
+            remain = (wav.size(1) // self.audio_config.hop_length) % self.upsample_factor
+            if remain > 0:
+                wav = wav[:, : -int(self.audio_config.hop_length) * remain]
+
         token_ids = self.get_token_ids(idx, item["text"])
+
+        f0 = None
+        if self.compute_f0:
+            f0 = self.get_f0(idx)["f0"]
 
         # after phonemization the text length may change
         # this is a shameful 🤭 hack to prevent longer phonemes
@@ -276,16 +374,34 @@ class VitsDataset(TTSDataset):
             self.rescue_item_idx += 1
             return self.__getitem__(self.rescue_item_idx)
 
+        # compute attn prior
+        attn_prior = None
+        if self.attn_prior_cache_path is not None:
+            attn_prior = self.load_or_compute_attn_prior(token_ids, wav, rel_wav_path)
+
         return {
             "raw_text": raw_text,
             "token_ids": token_ids,
             "token_len": len(token_ids),
             "wav": wav,
+            "pitch": f0,
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
-            "audio_unique_name": item["audio_unique_name"],
+            "attn_prior": attn_prior,
         }
+
+    def load_or_compute_attn_prior(self, token_ids, wav, rel_wav_path):
+        """Load or compute and save the attention prior."""
+        attn_prior_file = os.path.join(self.attn_prior_cache_path, f"{rel_wav_path}.npy")
+        if os.path.exists(attn_prior_file):
+            return np.load(attn_prior_file)
+        else:
+            token_len = len(token_ids)
+            mel_len = wav.shape[1] // (self.audio_config.hop_length * self.upsample_factor)
+            attn_prior = compute_attn_prior(token_len, mel_len)
+            np.save(attn_prior_file, attn_prior)
+            return attn_prior
 
     @property
     def lengths(self):
@@ -302,6 +418,7 @@ class VitsDataset(TTSDataset):
             - tokens: :math:`[B, T]`
             - token_lens :math:`[B]`
             - token_rel_lens :math:`[B]`
+            - pitch :math:`[B, T]`
             - waveform: :math:`[B, 1, T]`
             - waveform_lens: :math:`[B]`
             - waveform_rel_lens: :math:`[B]`
@@ -309,15 +426,11 @@ class VitsDataset(TTSDataset):
             - language_names: :math:`[B]`
             - audiofile_paths: :math:`[B]`
             - raw_texts: :math:`[B]`
-            - audio_unique_names: :math:`[B]`
+            - attn_prior: :math:`[[T_token, T_mel]]`
         """
         # convert list of dicts to dict of lists
         B = len(batch)
         batch = {k: [dic[k] for dic in batch] for k in batch[0]}
-
-        _, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([x.size(1) for x in batch["wav"]]), dim=0, descending=True
-        )
 
         max_text_len = max([len(x) for x in batch["token_ids"]])
         token_lens = torch.LongTensor(batch["token_len"])
@@ -328,21 +441,36 @@ class VitsDataset(TTSDataset):
         wav_lens_max = torch.max(wav_lens)
         wav_rel_lens = wav_lens / wav_lens_max
 
+        pitch_padded = None
+        if self.compute_f0:
+            pitch_lens = [p.shape[0] for p in batch["pitch"]]
+            pitch_lens = torch.LongTensor(pitch_lens)
+            pitch_lens_max = torch.max(pitch_lens)
+            pitch_padded = torch.FloatTensor(B, 1, pitch_lens_max)
+            pitch_padded = pitch_padded.zero_() + self.pad_id
+
         token_padded = torch.LongTensor(B, max_text_len)
         wav_padded = torch.FloatTensor(B, 1, wav_lens_max)
+
         token_padded = token_padded.zero_() + self.pad_id
         wav_padded = wav_padded.zero_() + self.pad_id
-        for i in range(len(ids_sorted_decreasing)):
+
+        for i in range(B):
             token_ids = batch["token_ids"][i]
             token_padded[i, : batch["token_len"][i]] = torch.LongTensor(token_ids)
 
             wav = batch["wav"][i]
             wav_padded[i, :, : wav.size(1)] = torch.FloatTensor(wav)
 
+            if self.compute_f0:
+                pitch = batch["pitch"][i]
+                pitch_padded[i, 0, : len(pitch)] = torch.FloatTensor(pitch)
+
         return {
             "tokens": token_padded,
             "token_lens": token_lens,
             "token_rel_lens": token_rel_lens,
+            "pitch": pitch_padded,
             "waveform": wav_padded,  # (B x T)
             "waveform_lens": wav_lens,  # (B)
             "waveform_rel_lens": wav_rel_lens,
@@ -350,7 +478,7 @@ class VitsDataset(TTSDataset):
             "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
-            "audio_unique_names": batch["audio_unique_name"],
+            "attn_priors": batch["attn_prior"] if batch["attn_prior"][0] is not None else None,
         }
 
 
@@ -595,6 +723,17 @@ class VitsArgs(Coqpit):
     interpolate_z: bool = True
     reinit_DP: bool = False
     reinit_text_encoder: bool = False
+    use_pitch: bool = False
+    pitch_predictor_hidden_channels: int = 192
+    pitch_predictor_kernel_size: int = 3
+    pitch_predictor_dropout_p: float = 0.1
+    pitch_embedding_kernel_size: int = 3
+    use_energy_predictor: bool = False
+    energy_predictor_hidden_channels: int = 256
+    energy_predictor_kernel_size: int = 3
+    energy_predictor_dropout_p: float = 0.1
+    energy_embedding_kernel_size: int = 3
+    use_context_encoder: bool = False
 
 
 class Vits(BaseTTS):
@@ -660,6 +799,8 @@ class Vits(BaseTTS):
             language_emb_dim=self.embedded_language_dim,
         )
 
+        self.text_encoder_proj = nn.Conv1d(self.args.hidden_channels, self.args.hidden_channels * 2, 1)
+
         self.posterior_encoder = PosteriorEncoder(
             self.args.out_channels,
             self.args.hidden_channels,
@@ -669,6 +810,62 @@ class Vits(BaseTTS):
             num_layers=self.args.num_layers_posterior_encoder,
             cond_channels=self.embedded_speaker_dim,
         )
+
+        self.aligner = AlignmentNetwork(
+            in_query_channels=self.args.out_channels, in_key_channels=self.args.hidden_channels
+        )
+        self.binary_loss_weight = 0.0
+
+        context_cond_channels = 0
+        if self.args.use_pitch:
+            # self.pitch_predictor = DurationPredictor(
+            #     self.args.hidden_channels,
+            #     self.args.pitch_predictor_hidden_channels,
+            #     self.args.pitch_predictor_kernel_size,
+            #     self.args.pitch_predictor_dropout_p,
+            #     cond_channels=self.embedded_speaker_dim,
+            # )
+            self.pitch_predictor = DurationPredictorLSTM(
+                self.args.hidden_channels, self.embedded_speaker_dim, reduction_factor=2
+            )
+            self.pitch_emb = nn.Conv1d(
+                1,
+                self.args.hidden_channels,
+                kernel_size=self.args.pitch_embedding_kernel_size,
+                padding=int((self.args.pitch_embedding_kernel_size - 1) / 2),
+            )
+            context_cond_channels += self.args.hidden_channels
+
+        if self.args.use_energy_predictor:
+            # self.energy_predictor = DurationPredictor(
+            #     self.args.hidden_channels,
+            #     self.args.energy_predictor_hidden_channels,
+            #     self.args.energy_predictor_kernel_size,
+            #     self.args.energy_predictor_dropout_p,
+            #     cond_channels=self.embedded_speaker_dim,
+            # )
+            self.energy_predictor = DurationPredictorLSTM(
+                self.args.hidden_channels, self.embedded_speaker_dim, reduction_factor=2
+            )
+            self.energy_emb = nn.Conv1d(
+                1,
+                self.args.hidden_channels,
+                kernel_size=self.args.energy_embedding_kernel_size,
+                padding=int((self.args.energy_embedding_kernel_size - 1) / 2),
+            )
+            self.energy_scaler = torch.nn.BatchNorm1d(1, affine=False, track_running_stats=True, momentum=None)
+            self.energy_scaler.requires_grad_(False)
+            context_cond_channels += self.args.hidden_channels
+
+        if self.args.use_context_encoder:
+            self.context_encoder = ContextEncoder(
+                in_channels=self.args.hidden_channels,
+                out_channels=self.args.hidden_channels,
+                cond_channels=context_cond_channels,
+                spk_emb_channels=self.embedded_speaker_dim,
+                num_lstm_layers=1,
+                lstm_norm="spectral",
+            )
 
         self.flow = ResidualCouplingBlocks(
             self.args.hidden_channels,
@@ -690,13 +887,16 @@ class Vits(BaseTTS):
                 language_emb_dim=self.embedded_language_dim,
             )
         else:
-            self.duration_predictor = DurationPredictor(
-                self.args.hidden_channels,
-                256,
-                3,
-                self.args.dropout_p_duration_predictor,
-                cond_channels=self.embedded_speaker_dim,
-                language_emb_dim=self.embedded_language_dim,
+            # self.duration_predictor = DurationPredictor(
+            #     self.args.hidden_channels,
+            #     256,
+            #     3,
+            #     self.args.dropout_p_duration_predictor,
+            #     cond_channels=self.embedded_speaker_dim,
+            #     language_emb_dim=self.embedded_language_dim,
+            # )
+            self.duration_predictor = DurationPredictorLSTM(
+                self.args.hidden_channels, self.embedded_speaker_dim, reduction_factor=4
             )
 
         self.waveform_decoder = HifiganGenerator(
@@ -720,10 +920,6 @@ class Vits(BaseTTS):
                 periods=self.args.periods_multi_period_discriminator,
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
             )
-
-    @property
-    def device(self):
-        return next(self.parameters()).device
 
     def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
@@ -762,12 +958,17 @@ class Vits(BaseTTS):
 
             if (
                 hasattr(self.speaker_manager.encoder, "audio_config")
-                and self.config.audio.sample_rate != self.speaker_manager.encoder.audio_config["sample_rate"]
+                and self.config.audio["sample_rate"] != self.speaker_manager.encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
-                    orig_freq=self.config.audio.sample_rate,
+                    orig_freq=self.audio_config["sample_rate"],
                     new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
                 )
+            # pylint: disable=W0101,W0105
+            self.audio_transform = torchaudio.transforms.Resample(
+                orig_freq=self.config.audio.sample_rate,
+                new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
+            )
 
     def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
@@ -810,14 +1011,17 @@ class Vits(BaseTTS):
                 orig_freq=self.config.audio["sample_rate"], new_freq=self.args.encoder_sample_rate
             )  # pylint: disable=W0201
 
-    def on_epoch_start(self, trainer):  # pylint: disable=W0613
-        """Freeze layers at the beginning of an epoch"""
-        self._freeze_layers()
-        # set the device of speaker encoder
-        if self.args.use_speaker_encoder_as_loss:
-            self.speaker_manager.encoder = self.speaker_manager.encoder.to(self.device)
+    def on_train_step_start(self, trainer):
+        """Schedule binary loss weight."""
+        if self.config.binary_alignment_loss_warmup_epochs > 0:
+            self.binary_loss_weight = (
+                min(trainer.epochs_done / self.config.binary_alignment_loss_warmup_epochs, 1.0) * 1.0
+            )
+        else:
+            self.binary_loss_weight = 1.0
+        self.binarize_alignment = trainer.total_steps_done > self.config.binarization_start_steps
 
-    def on_init_end(self, trainer):  # pylint: disable=W0613
+    def xon_init_end(self, trainer):  # pylint: disable=W0613
         """Reinit layes if needed"""
         if self.args.reinit_DP:
             before_dict = get_module_weights_sum(self.duration_predictor)
@@ -839,8 +1043,13 @@ class Vits(BaseTTS):
                     raise RuntimeError(" [!] The weights of Text Encoder was not reinit check it !")
             print(" > Text Encoder was reinit.")
 
+    def on_epoch_end(self, trainer):
+        if self.args.use_energy_predictor:
+            # stop updating mean and var
+            self.energy_scaler.eval()
+
     def get_aux_input(self, aux_input: Dict):
-        sid, g, lid, _ = self._set_cond_input(aux_input)
+        sid, g, lid = self._set_cond_input(aux_input)
         return {"speaker_ids": sid, "style_wav": None, "d_vectors": g, "language_ids": lid}
 
     def _freeze_layers(self):
@@ -871,7 +1080,7 @@ class Vits(BaseTTS):
     @staticmethod
     def _set_cond_input(aux_input: Dict):
         """Set the speaker conditioning input based on the multi-speaker mode."""
-        sid, g, lid, durations = None, None, None, None
+        sid, g, lid = None, None, None
         if "speaker_ids" in aux_input and aux_input["speaker_ids"] is not None:
             sid = aux_input["speaker_ids"]
             if sid.ndim == 0:
@@ -886,10 +1095,7 @@ class Vits(BaseTTS):
             if lid.ndim == 0:
                 lid = lid.unsqueeze_(0)
 
-        if "durations" in aux_input and aux_input["durations"] is not None:
-            durations = aux_input["durations"]
-
-        return sid, g, lid, durations
+        return sid, g, lid
 
     def _set_speaker_input(self, aux_input: Dict):
         d_vectors = aux_input.get("d_vectors", None)
@@ -904,18 +1110,7 @@ class Vits(BaseTTS):
         g = speaker_ids if speaker_ids is not None else d_vectors
         return g
 
-    def forward_mas(self, outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g, lang_emb):
-        # find the alignment path
-        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
-        with torch.no_grad():
-            o_scale = torch.exp(-2 * logs_p)
-            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p**2)])
-            logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
-            logp4 = torch.sum(-0.5 * (m_p**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
-            logp = logp2 + logp3 + logp1 + logp4
-            attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t, t']
-
+    def forward_duration_predictor(self, outputs, attn, x, x_mask, g, lang_emb, x_lengths):
         # duration predictor
         attn_durations = attn.sum(3)
         if self.args.use_sdp:
@@ -928,16 +1123,23 @@ class Vits(BaseTTS):
             )
             loss_duration = loss_duration / torch.sum(x_mask)
         else:
-            attn_log_durations = torch.log(attn_durations + 1e-6) * x_mask
+            # log_durations = self.duration_predictor(
+            #     x.detach() if self.args.detach_dp_input else x,
+            #     x_mask,
+            #     g=g.detach() if self.args.detach_dp_input and g is not None else g,
+            #     lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
+            # )
             log_durations = self.duration_predictor(
-                x.detach() if self.args.detach_dp_input else x,
-                x_mask,
-                g=g.detach() if self.args.detach_dp_input and g is not None else g,
-                lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
+                txt_enc=x.detach() if self.args.detach_dp_input else x,
+                spk_emb=g.detach() if self.args.detach_dp_input and g is not None else g,
+                lens=x_lengths,
             )
+            # compute duration loss
+            attn_log_durations = torch.log(attn_durations + 1) * x_mask
             loss_duration = torch.sum((log_durations - attn_log_durations) ** 2, [1, 2]) / torch.sum(x_mask)
+            outputs["log_duration_pred"] = log_durations.squeeze(1)  # [B, 1] -> [B]
         outputs["loss_duration"] = loss_duration
-        return outputs, attn
+        return outputs
 
     def upsampling_z(self, z, slice_ids=None, y_lengths=None, y_mask=None):
         spec_segment_size = self.spec_segment_size
@@ -956,13 +1158,194 @@ class Vits(BaseTTS):
 
         return z, spec_segment_size, slice_ids, y_mask
 
+    def _forward_pitch_predictor(
+        self,
+        o_en: torch.FloatTensor,
+        x_mask: torch.IntTensor,
+        pitch: torch.FloatTensor = None,
+        dr: torch.IntTensor = None,
+        g: torch.FloatTensor = None,
+        pitch_transform: Callable = None,
+        x_lengths: torch.IntTensor = None,
+    ) -> Tuple[torch.FloatTensor, torch.FloatTensor]:
+        """Pitch predictor forward pass.
+        1. Predict pitch from encoder outputs.
+        2. In training - Compute average pitch values for each input character from the ground truth pitch values.
+        3. Embed average pitch values.
+        Args:
+            o_en (torch.FloatTensor): Encoder output.
+            x_mask (torch.IntTensor): Input sequence mask.
+            pitch (torch.FloatTensor, optional): Ground truth pitch values. Defaults to None.
+            dr (torch.IntTensor, optional): Ground truth durations. Defaults to None.
+            g (torch.FloatTensor, optional): Conditioning vectors. In general speaker embeddings. Defaults to None.
+            pitch_transform (Callable, optional): Pitch transform function. Defaults to None.
+        Returns:
+            Tuple[torch.FloatTensor, torch.FloatTensor]: Pitch embedding, pitch prediction.
+        Shapes:
+            - o_en: :math:`(B, C, T_{en})`
+            - x_mask: :math:`(B, 1, T_{en})`
+            - pitch: :math:`(B, 1, T_{de})`
+            - dr: :math:`(B, T_{en})`
+        """
+        # o_pitch = self.pitch_predictor(o_en, x_mask, g=g)
+        o_pitch = self.pitch_predictor(
+            txt_enc=o_en,
+            spk_emb=g.detach(),
+            lens=x_lengths,
+        )
+        if pitch_transform is not None:
+            o_pitch = pitch_transform(o_pitch, x_mask.sum(dim=(1, 2)), self.pitch_mean, self.pitch_std)
+        if pitch is not None:
+            avg_pitch = average_over_durations(pitch, dr)
+            o_pitch_emb = self.pitch_emb(avg_pitch)
+            return o_pitch_emb, o_pitch, avg_pitch
+        o_pitch_emb = self.pitch_emb(o_pitch)
+        return o_pitch_emb, o_pitch
+
+    def _forward_energy_predictor(
+        self,
+        o_en: torch.FloatTensor,
+        x_mask: torch.IntTensor,
+        energy: torch.FloatTensor = None,
+        dr: torch.IntTensor = None,
+        g: torch.FloatTensor = None,
+        energy_transform: Callable = None,
+        x_lengths: torch.IntTensor = None,
+    ) -> torch.FloatTensor:
+        # o_energy = self.energy_predictor(o_en, x_mask, g=g)
+        o_energy = self.energy_predictor(
+            txt_enc=o_en,
+            spk_emb=g.detach(),
+            lens=x_lengths,
+        )
+        if energy_transform is not None:
+            o_energy = energy_transform(o_energy, x_mask.sum(dim=(1, 2)), self.pitch_mean, self.pitch_std)
+        if energy is not None:
+            avg_energy = average_over_durations(energy, dr)
+            o_energy_emb = self.energy_emb(avg_energy)
+            return o_energy_emb, o_energy, avg_energy
+        o_energy_emb = self.energy_emb(o_energy)
+        return o_energy_emb, o_energy
+
+    def _forward_aligner(
+        self,
+        x: torch.FloatTensor,
+        y: torch.FloatTensor,
+        x_mask: torch.IntTensor,
+        y_mask: torch.IntTensor,
+        attn_priors: torch.FloatTensor,
+    ) -> Tuple[torch.IntTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+        """Aligner forward pass.
+        1. Compute a mask to apply to the attention map.
+        2. Run the alignment network.
+        3. Apply MAS to compute the hard alignment map.
+        4. Compute the durations from the hard alignment map.
+        Args:
+            x (torch.FloatTensor): Input sequence.
+            y (torch.FloatTensor): Output sequence.
+            x_mask (torch.IntTensor): Input sequence mask.
+            y_mask (torch.IntTensor): Output sequence mask.
+            attn_priors (torch.FloatTensor): Prior for the aligner network map.
+        Returns:
+            Tuple[torch.IntTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+                Durations from the hard alignment map, soft alignment potentials, log scale alignment potentials,
+                hard alignment map.
+        Shapes:
+            - x: :math:`[B, C_en, T_en]`
+            - y: :math:`[B, C_de, T_de]`
+            - x_mask: :math:`[B, 1, T_en]`
+            - y_mask: :math:`[B, 1, T_de]`
+            - attn_priors: :math:`[B, T_de, T_en]`
+            - aligner_durations: :math:`[B, T_en]`
+            - aligner_soft: :math:`[B, T_de, T_en]`
+            - aligner_logprob: :math:`[B, 1, T_de, T_en]`
+            - aligner_mas: :math:`[B, T_de, T_en]`
+        """
+        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)  # [B, 1, T_max, T_max2]
+        aligner_soft, aligner_logprob = self.aligner(queries=y, keys=x, mask=x_mask, attn_prior=attn_priors)
+        aligner_hard = maximum_path(
+            aligner_soft.squeeze(1).transpose(1, 2).contiguous(), attn_mask.squeeze(1).contiguous()
+        )
+        aligner_durations = torch.sum(aligner_hard, -1)
+        aligner_soft = aligner_soft.transpose(2, 3) * attn_mask  # [B, 1, T_max2, T_max] -> [B, 1, T_max, T_max2]
+        aligner_hard = aligner_hard[:, None]  # [B, T_max, T_max2] -> [B, 1, T_max, T_max2]
+        return aligner_durations, aligner_soft, aligner_logprob, aligner_hard
+
+    def forward_mas(self, outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g, lang_emb):
+        # find the alignment path
+        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+        with torch.no_grad():
+            o_scale = torch.exp(-2 * logs_p)
+            logp1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp2 = torch.einsum("klm, kln -> kmn", [o_scale, -0.5 * (z_p**2)])
+            logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
+            logp4 = torch.sum(-0.5 * (m_p**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
+            logp = logp2 + logp3 + logp1 + logp4
+            mas_attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t, t']
+
+        # duration predictor
+        mas_attn_durations = mas_attn.sum(3)
+        if self.args.use_sdp:
+            loss_duration = self.duration_predictor(
+                x.detach() if self.args.detach_dp_input else x,
+                x_mask,
+                mas_attn_durations,
+                g=g.detach() if self.args.detach_dp_input and g is not None else g,
+                lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
+            )
+            loss_duration = loss_duration / torch.sum(x_mask)
+        else:
+            attn_log_durations = torch.log(mas_attn_durations + 1e-6) * x_mask
+            log_durations = self.duration_predictor(
+                x.detach() if self.args.detach_dp_input else x,
+                x_mask,
+                g=g.detach() if self.args.detach_dp_input and g is not None else g,
+                lang_emb=lang_emb.detach() if self.args.detach_dp_input and lang_emb is not None else lang_emb,
+            )
+            loss_duration = torch.sum((log_durations - attn_log_durations) ** 2, [1, 2]) / torch.sum(x_mask)
+        outputs["loss_duration"] = loss_duration
+        return outputs, mas_attn
+
+    def _expand_encoder(
+        self, o_en: torch.FloatTensor, y_lengths: torch.IntTensor, dr: torch.IntTensor, x_mask: torch.FloatTensor
+    ):
+        """Expand encoder outputs to match the decoder.
+
+        1. Compute the decoder output mask
+        2. Expand encoder output with the durations.
+        3. Apply position encoding.
+
+        Args:
+            o_en (torch.FloatTensor): Encoder output.
+            y_lengths (torch.IntTensor): Output sequence lengths.
+            dr (torch.IntTensor): Ground truth durations or alignment network durations.
+            x_mask (torch.IntTensor): Input sequence mask.
+
+        Returns:
+            Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]: Decoder mask, expanded encoder outputs,
+                attention map
+        """
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).to(o_en.dtype)
+        # expand o_en with durations
+        o_en_ex, attn = self.expand_encoder_outputs(
+            en=o_en, dr=dr, x_mask=x_mask, y_mask=y_mask
+        )  # [B, T_de', C_en], [B, T_en, T_de']
+        # positional encoding
+        if hasattr(self, "pos_encoder"):
+            o_en_ex = self.pos_encoder(o_en_ex, y_mask)
+        return y_mask, o_en_ex, attn.transpose(1, 2)
+
     def forward(  # pylint: disable=dangerous-default-value
         self,
         x: torch.tensor,
         x_lengths: torch.tensor,
         y: torch.tensor,
         y_lengths: torch.tensor,
+        pitch: torch.tensor,
+        energy: torch.tensor,
         waveform: torch.tensor,
+        attn_priors: torch.tensor,
+        binarize_alignment: bool,
         aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
     ) -> Dict:
         """Forward pass of the model.
@@ -970,7 +1353,7 @@ class Vits(BaseTTS):
         Args:
             x (torch.tensor): Batch of input character sequence IDs.
             x_lengths (torch.tensor): Batch of input character sequence lengths.
-            y (torch.tensor): Batch of input spectrograms.
+            y (torch.tensor): Batch of linear spectrograms.
             y_lengths (torch.tensor): Batch of input spectrogram lengths.
             waveform (torch.tensor): Batch of ground truth waveforms per sample.
             aux_input (dict, optional): Auxiliary inputs for multi-speaker and multi-lingual training.
@@ -1003,7 +1386,7 @@ class Vits(BaseTTS):
             - syn_spk_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
         """
         outputs = {}
-        sid, g, lid, _ = self._set_cond_input(aux_input)
+        sid, g, lid = self._set_cond_input(aux_input)
         # speaker embedding
         if self.args.use_speaker_embedding and sid is not None:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
@@ -1013,20 +1396,59 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x_emb, o_en, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        # x_emb, o_en, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+
+        # TODO: optional
+        y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).float()
+        aligner_durations, aligner_soft, aligner_logprob, aligner_hard = self._forward_aligner(
+            x=x_emb, y=y, x_mask=x_mask, y_mask=y_mask, attn_priors=attn_priors
+        )
+
+        # duration predictor and duration loss
+        outputs = self.forward_duration_predictor(outputs, aligner_hard, o_en, x_mask, g, lang_emb, x_lengths)
+
+        # pitch predictor pass
+        o_pitch = None
+        avg_pitch = None
+        if self.args.use_pitch:
+            o_pitch_emb, o_pitch, avg_pitch = self._forward_pitch_predictor(
+                o_en=o_en, x_mask=x_mask, pitch=pitch, dr=aligner_durations.int(), g=g, x_lengths=x_lengths
+            )
+
+        # energy predictor pass
+        o_energy = None
+        avg_energy = None
+        if self.args.use_energy_predictor:
+            o_energy_emb, o_energy, avg_energy = self._forward_energy_predictor(
+                o_en=o_en, x_mask=x_mask, energy=energy, dr=aligner_durations.int(), g=g, x_lengths=x_lengths
+            )
+
+        # context encoder pass
+        context_cond = torch.cat((o_energy_emb, o_pitch_emb), dim=1)  # [B, C * 2, T_en]
+        o_en, m_p, logs_p = self.context_encoder(o_en, x_lengths, spk_emb=g, cond=context_cond)
+
+        # # add embeddings
+        # if self.args.use_pitch:
+        #     o_en = o_en + o_pitch_emb
+        # if self.args.use_energy_predictor:
+        #     o_en = o_en + o_energy_emb
+        # stats = self.text_encoder_proj(o_en) * x_mask
+        # m_p, logs_p = torch.split(stats, self.args.hidden_channels, dim=1)
+
+        # expand prior
+        if binarize_alignment:
+            m_p = torch.einsum("klmn, kjm -> kjn", [aligner_hard, m_p])
+            logs_p = torch.einsum("klmn, kjm -> kjn", [aligner_hard, logs_p])
+        else:
+            m_p = torch.einsum("klmn, kjm -> kjn", [aligner_soft, m_p])
+            logs_p = torch.einsum("klmn, kjm -> kjn", [aligner_soft, logs_p])
 
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
 
         # flow layers
         z_p = self.flow(z, y_mask, g=g)
-
-        # duration predictor
-        outputs, attn = self.forward_mas(outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g=g, lang_emb=lang_emb)
-
-        # expand prior
-        m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
-        logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
 
         # select a random feature segment for the waveform decoder
         z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size, let_short_samples=True, pad_short=True)
@@ -1058,21 +1480,27 @@ class Vits(BaseTTS):
             gt_spk_emb, syn_spk_emb = torch.chunk(pred_embs, 2, dim=0)
         else:
             gt_spk_emb, syn_spk_emb = None, None
-
         outputs.update(
             {
                 "model_outputs": o,
-                "alignments": attn.squeeze(1),
                 "m_p": m_p,
                 "logs_p": logs_p,
                 "z": z,
                 "z_p": z_p,
                 "m_q": m_q,
                 "logs_q": logs_q,
+                "energy_avg": o_energy,
+                "pitch_avg": o_pitch,
+                "energy_avg_gt": avg_energy,
+                "pitch_avg_gt": avg_pitch,
                 "waveform_seg": wav_seg,
                 "gt_spk_emb": gt_spk_emb,
                 "syn_spk_emb": syn_spk_emb,
                 "slice_ids": slice_ids,
+                "aligner_soft": aligner_soft.squeeze(1),
+                "aligner_hard": aligner_hard.squeeze(1),
+                "aligner_durations": aligner_durations,
+                "aligner_logprob": aligner_logprob,
             }
         )
         return outputs
@@ -1087,7 +1515,9 @@ class Vits(BaseTTS):
     def inference(
         self,
         x,
-        aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "durations": None},
+        pitch_transform=None,
+        energy_transform=None,
+        aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None},
     ):  # pylint: disable=dangerous-default-value
         """
         Note:
@@ -1107,7 +1537,7 @@ class Vits(BaseTTS):
             - m_p: :math:`[B, C, T_dec]`
             - logs_p: :math:`[B, C, T_dec]`
         """
-        sid, g, lid, durations = self._set_cond_input(aux_input)
+        sid, g, lid = self._set_cond_input(aux_input)
         x_lengths = self._set_x_lengths(x, aux_input)
 
         # speaker embedding
@@ -1119,33 +1549,75 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x_emb, o_en, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
 
-        if durations is None:
-            if self.args.use_sdp:
-                logw = self.duration_predictor(
-                    x,
-                    x_mask,
-                    g=g if self.args.condition_dp_on_speaker else None,
-                    reverse=True,
-                    noise_scale=self.inference_noise_scale_dp,
-                    lang_emb=lang_emb,
-                )
-            else:
-                logw = self.duration_predictor(
-                    x, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
-                )
-            w = torch.exp(logw) * x_mask * self.length_scale
+        if self.args.use_sdp:
+            dur_log = self.duration_predictor(
+                o_en,
+                x_mask,
+                g=g if self.args.condition_dp_on_speaker else None,
+                reverse=True,
+                noise_scale=self.inference_noise_scale_dp,
+                lang_emb=lang_emb,
+            )
         else:
-            assert durations.shape[-1] == x.shape[-1]
-            w = durations.unsqueeze(0)
+            # dur_log = self.duration_predictor(
+            #     o_en, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
+            # )
+            dur_log = self.duration_predictor(o_en, g, x_lengths)
 
-        w_ceil = torch.ceil(w)
-        y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
+        dur = (torch.exp(dur_log) - 1) * x_mask * self.length_scale
+        dur[dur < 1] = 1.0
+        dur = torch.round(dur)
+
+        # pitch predictor pass
+        o_pitch = None
+        if self.args.use_pitch:
+            o_pitch_emb, o_pitch = self._forward_pitch_predictor(
+                o_en=o_en, x_mask=x_mask, g=g, pitch_transform=pitch_transform, x_lengths=x_lengths
+            )
+        # energy predictor pass
+        o_energy = None
+        if self.args.use_energy_predictor:
+            o_energy_emb, o_energy = self._forward_energy_predictor(
+                o_en=o_en, x_mask=x_mask, g=g, energy_transform=energy_transform, x_lengths=x_lengths
+            )
+
+        # context encoder pass
+        context_cond = torch.cat((o_energy_emb, o_pitch_emb), dim=1)  # [B, C * 2, T_en]
+        o_context, m_p, logs_p = self.context_encoder(o_en, x_lengths, spk_emb=g, cond=context_cond)
+
+        # if self.args.use_pitch:
+        #     o_en = o_en + o_pitch_emb
+        # if self.args.use_energy_predictor:
+        #     o_en = o_en + o_energy_emb
+
+        # stats = self.text_encoder_proj(o_en) * x_mask
+        # m_p, logs_p = torch.split(stats, self.args.hidden_channels, dim=1)
+
+        # if self.args.use_sdp:
+        #     dur_log = self.duration_predictor(
+        #         o_en,
+        #         x_mask,
+        #         g=g if self.args.condition_dp_on_speaker else None,
+        #         reverse=True,
+        #         noise_scale=self.inference_noise_scale_dp,
+        #         lang_emb=lang_emb,
+        #     )
+        # else:
+        #     dur_log = self.duration_predictor(
+        #         o_en, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
+        #     )
+
+        # dur = (torch.exp(dur_log) -1) * x_mask * self.length_scale
+        # dur[dur < 1] = 1.0
+        # dur = torch.round(dur)
+
+        y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
         y_mask = sequence_mask(y_lengths, None).to(x_mask.dtype).unsqueeze(1)  # [B, 1, T_dec]
 
         attn_mask = x_mask * y_mask.transpose(1, 2)  # [B, 1, T_enc] * [B, T_dec, 1]
-        attn = generate_path(w_ceil.squeeze(1), attn_mask.squeeze(1).transpose(1, 2))
+        attn = generate_path(dur.squeeze(1), attn_mask.squeeze(1).transpose(1, 2))
 
         m_p = torch.matmul(attn.transpose(1, 2), m_p.transpose(1, 2)).transpose(1, 2)
         logs_p = torch.matmul(attn.transpose(1, 2), logs_p.transpose(1, 2)).transpose(1, 2)
@@ -1161,7 +1633,9 @@ class Vits(BaseTTS):
         outputs = {
             "model_outputs": o,
             "alignments": attn.squeeze(1),
-            "durations": w_ceil,
+            "durations": dur,
+            "pitch": o_pitch,
+            "energy": o_energy,
             "z": z,
             "z_p": z_p,
             "m_p": m_p,
@@ -1194,6 +1668,7 @@ class Vits(BaseTTS):
         y_lengths = torch.tensor([y.size(-1)]).to(y.device)
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
+        # print(y.shape, y_lengths.shape)
         wav, _, _ = self.voice_conversion(y, y_lengths, speaker_cond_src, speaker_cond_tgt)
         return wav
 
@@ -1237,25 +1712,33 @@ class Vits(BaseTTS):
             Tuple[Dict, Dict]: Model ouputs and computed losses.
         """
 
+        self._freeze_layers()
+
         spec_lens = batch["spec_lens"]
 
         if optimizer_idx == 0:
             tokens = batch["tokens"]
             token_lenghts = batch["token_lens"]
             spec = batch["spec"]
-
+            energy = batch["energy"]
+            pitch = batch["pitch"]
             d_vectors = batch["d_vectors"]
             speaker_ids = batch["speaker_ids"]
             language_ids = batch["language_ids"]
             waveform = batch["waveform"]
+            attn_priors = batch["attn_priors"]
 
             # generator pass
             outputs = self.forward(
-                tokens,
-                token_lenghts,
-                spec,
-                spec_lens,
-                waveform,
+                x=tokens,
+                x_lengths=token_lenghts,
+                y=spec,
+                y_lengths=spec_lens,
+                pitch=pitch,
+                energy=energy,
+                waveform=waveform,
+                attn_priors=attn_priors,
+                binarize_alignment=self.binarize_alignment,
                 aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
             )
 
@@ -1316,13 +1799,23 @@ class Vits(BaseTTS):
                     m_p=self.model_outputs_cache["m_p"].float(),
                     logs_p=self.model_outputs_cache["logs_p"].float(),
                     z_len=spec_lens,
+                    token_len=batch["token_lens"],
                     scores_disc_fake=scores_disc_fake,
                     feats_disc_fake=feats_disc_fake,
                     feats_disc_real=feats_disc_real,
+                    log_duration_pred=self.model_outputs_cache["log_duration_pred"].float(),
                     loss_duration=self.model_outputs_cache["loss_duration"],
+                    pitch_output=self.model_outputs_cache["pitch_avg"] if self.args.use_pitch else None,
+                    pitch_target=self.model_outputs_cache["pitch_avg_gt"] if self.args.use_pitch else None,
+                    energy_output=self.model_outputs_cache["energy_avg"] if self.args.use_energy_predictor else None,
+                    energy_target=self.model_outputs_cache["energy_avg_gt"] if self.args.use_energy_predictor else None,
+                    aligner_logprob=self.model_outputs_cache["aligner_logprob"].float(),
                     use_speaker_encoder_as_loss=self.args.use_speaker_encoder_as_loss,
                     gt_spk_emb=self.model_outputs_cache["gt_spk_emb"],
                     syn_spk_emb=self.model_outputs_cache["syn_spk_emb"],
+                    alignment_hard=self.model_outputs_cache["aligner_hard"],
+                    alignment_soft=self.model_outputs_cache["aligner_soft"],
+                    binary_loss_weight=self.binary_loss_weight,
                 )
 
             return self.model_outputs_cache, loss_dict
@@ -1336,12 +1829,36 @@ class Vits(BaseTTS):
         sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
         audios = {f"{name_prefix}/audio": sample_voice}
 
-        alignments = outputs[1]["alignments"]
-        align_img = alignments[0].data.cpu().numpy().T
+        # plot pitch figures
+        if self.args.use_pitch:
+            pitch_avg = abs(outputs[1]["pitch_avg_gt"][0, 0].data.cpu().numpy())
+            pitch_avg_hat = abs(outputs[1]["pitch_avg"][0, 0].data.cpu().numpy())
+            chars = self.tokenizer.decode(batch["tokens"][0].data.cpu().numpy())
+            pitch_figures = {
+                "pitch_ground_truth": plot_avg_pitch(pitch_avg, chars, output_fig=False),
+                "pitch_avg_predicted": plot_avg_pitch(pitch_avg_hat, chars, output_fig=False),
+            }
+            figures.update(pitch_figures)
 
+        # plot energy figures
+        if self.args.use_energy_predictor:
+            energy_avg = abs(outputs[1]["energy_avg_gt"][0, 0].data.cpu().numpy())
+            energy_avg_hat = abs(outputs[1]["energy_avg"][0, 0].data.cpu().numpy())
+            chars = self.tokenizer.decode(batch["tokens"][0].data.cpu().numpy())
+            energy_figures = {
+                "energy_ground_truth": plot_avg_pitch(energy_avg, chars, output_fig=False),
+                "energy_avg_predicted": plot_avg_pitch(energy_avg_hat, chars, output_fig=False),
+            }
+            figures.update(energy_figures)
+
+        attn_hard = outputs[1]["aligner_hard"]
+        attn_hard = attn_hard[0].data.cpu().numpy().T
+        attn_soft = outputs[1]["aligner_soft"]
+        attn_soft = attn_soft[0].data.cpu().numpy().T
         figures.update(
             {
-                "alignment": plot_alignment(align_img, output_fig=False),
+                "alignment_hard": plot_alignment(attn_hard, output_fig=False),
+                "alignment_soft": plot_alignment(attn_soft, output_fig=False),
             }
         )
         return figures, audios
@@ -1401,7 +1918,7 @@ class Vits(BaseTTS):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embedding()
+                    d_vector = self.speaker_manager.get_random_embeddings()
                 else:
                     d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
             elif config.use_speaker_embedding:
@@ -1451,7 +1968,7 @@ class Vits(BaseTTS):
                 do_trim_silence=False,
             ).values()
             test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.transpose(1, 2), output_fig=False)
         return {"figures": test_figures, "audios": test_audios}
 
     def test_log(
@@ -1477,7 +1994,7 @@ class Vits(BaseTTS):
         # get d_vectors from audio file names
         if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
             d_vector_mapping = self.speaker_manager.embeddings
-            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_unique_names"]]
+            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_files"]]
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
@@ -1543,43 +2060,57 @@ class Vits(BaseTTS):
         # zero the padding frames
         batch["spec"] = batch["spec"] * sequence_mask(batch["spec_lens"]).unsqueeze(1)
         batch["mel"] = batch["mel"] * sequence_mask(batch["mel_lens"]).unsqueeze(1)
+
+        # attn priors
+        if self.config.use_attn_priors:
+            attn_priors_np = batch["attn_priors"]
+
+            batch["attn_priors"] = torch.zeros(
+                batch["spec"].shape[0],
+                batch["spec_lens"].max(),
+                batch["token_lens"].max(),
+                device=batch["mel"].device,
+            )
+
+            for i in range(batch["mel"].shape[0]):
+                batch["attn_priors"][i, : attn_priors_np[i].shape[0], : attn_priors_np[i].shape[1]] = torch.from_numpy(
+                    attn_priors_np[i]
+                )
+
+        batch["energy"] = None
+        if self.args.use_energy_predictor:
+            batch["energy"] = wav_to_energy(  # [B, 1, T_max2]
+                batch["waveform"],
+                hop_length=ac.hop_length,
+                win_length=ac.win_length,
+                n_fft=ac.fft_size,
+                center=False,
+            )
+            batch["energy"] = self.energy_scaler(batch["energy"])
         return batch
 
-    def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1, is_eval=False):
+    def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1):
         weights = None
         data_items = dataset.samples
         if getattr(config, "use_weighted_sampler", False):
-            for attr_name, alpha in config.weighted_sampler_attrs.items():
+            for attr_name, alpha in config.attrs_for_weighted_sampler.items():
                 print(f" > Using weighted sampler for attribute '{attr_name}' with alpha '{alpha}'")
-                multi_dict = config.weighted_sampler_multipliers.get(attr_name, None)
-                print(multi_dict)
                 weights, attr_names, attr_weights = get_attribute_balancer_weights(
-                    attr_name=attr_name, items=data_items, multi_dict=multi_dict
+                    attr_name=attr_name, items=data_items
                 )
                 weights = weights * alpha
                 print(f" > Attribute weights for '{attr_names}' \n | > {attr_weights}")
 
-        # input_audio_lenghts = [os.path.getsize(x["audio_file"]) for x in data_items]
-
         if weights is not None:
-            w_sampler = WeightedRandomSampler(weights, len(weights))
-            batch_sampler = BucketBatchSampler(
-                w_sampler,
-                data=data_items,
-                batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                sort_key=lambda x: os.path.getsize(x["audio_file"]),
-                drop_last=True,
-            )
+            sampler = WeightedRandomSampler(weights, len(weights))
         else:
-            batch_sampler = None
+            sampler = None
         # sampler for DDP
-        if batch_sampler is None:
-            batch_sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+        if sampler is None:
+            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
         else:  # If a sampler is already defined use this sampler and DDP sampler together
-            batch_sampler = (
-                DistributedSamplerWrapper(batch_sampler) if num_gpus > 1 else batch_sampler
-            )  # TODO: check batch_sampler with multi-gpu
-        return batch_sampler
+            sampler = DistributedSamplerWrapper(sampler) if num_gpus > 1 else sampler
+        return sampler
 
     def get_data_loader(
         self,
@@ -1596,8 +2127,9 @@ class Vits(BaseTTS):
         else:
             # init dataloader
             dataset = VitsDataset(
-                model_args=self.args,
+                # model_args=self.args,
                 samples=samples,
+                audio_config=self.config.audio,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_text_len=config.min_text_len,
                 max_text_len=config.max_text_len,
@@ -1605,9 +2137,13 @@ class Vits(BaseTTS):
                 max_audio_len=config.max_audio_len,
                 phoneme_cache_path=config.phoneme_cache_path,
                 precompute_num_workers=config.precompute_num_workers,
+                compute_f0=config.compute_f0,
+                f0_cache_path=config.f0_cache_path,
+                attn_prior_cache_path=config.attn_prior_cache_path if config.use_attn_priors else None,
                 verbose=verbose,
                 tokenizer=self.tokenizer,
                 start_by_longest=config.start_by_longest,
+                encoder_sample_rate=config.model_args.encoder_sample_rate,
             )
 
             # wait all the DDP process to be ready
@@ -1619,24 +2155,17 @@ class Vits(BaseTTS):
 
             # get samplers
             sampler = self.get_sampler(config, dataset, num_gpus)
-            if sampler is None:
-                loader = DataLoader(
-                    dataset,
-                    batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                    shuffle=False,  # shuffle is done in the dataset.
-                    collate_fn=dataset.collate_fn,
-                    drop_last=False,  # setting this False might cause issues in AMP training.
-                    num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
-                    pin_memory=False,
-                )
-            else:
-                loader = DataLoader(
-                    dataset,
-                    batch_sampler=sampler,
-                    collate_fn=dataset.collate_fn,
-                    num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
-                    pin_memory=False,
-                )
+
+            loader = DataLoader(
+                dataset,
+                batch_size=config.eval_batch_size if is_eval else config.batch_size,
+                shuffle=False,  # shuffle is done in the dataset.
+                drop_last=False,  # setting this False might cause issues in AMP training.
+                sampler=sampler,
+                collate_fn=dataset.collate_fn,
+                num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
+                pin_memory=False,
+            )
         return loader
 
     def get_optimizer(self) -> List:
@@ -1694,7 +2223,7 @@ class Vits(BaseTTS):
         cache=False
     ):  # pylint: disable=unused-argument, redefined-builtin
         """Load the model checkpoint and setup for training or inference"""
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"), cache=cache)
+        state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
         # compat band-aid for the pre-trained models to not use the encoder baked into the model
         # TODO: consider baking the speaker encoder into the model and call it from there.
         # as it is probably easier for model distribution.
@@ -1806,3 +2335,46 @@ class VitsCharacters(BaseCharacters):
             is_unique=False,
             is_sorted=True,
         )
+
+
+# if __name__ == "__main__":
+#     from TTS.tts.configs.vits_config import VitsConfig
+
+#     def _create_inputs(config, batch_size=2, device="cuda"):
+#         input_dummy = torch.randint(0, 24, (batch_size, 10)).long().to(device)
+#         input_lengths = torch.randint(2, 11, (batch_size,)).long().to(device)
+#         input_lengths[-1] = 10
+#         spec = torch.rand(batch_size, config.audio["fft_size"] // 2 + 1, 30).to(device)
+#         mel = torch.rand(batch_size, config.audio["num_mels"], 30).to(device)
+#         spec_lengths = torch.randint(20, 30, (batch_size,)).long().to(device)
+#         spec_lengths[-1] = spec.size(2)
+#         waveform = torch.rand(batch_size, 1, spec.size(2) * config.audio["hop_length"]).to(device)
+#         energy = torch.rand(batch_size, 1, 30).to(device)
+#         pitch = torch.rand(batch_size, 1, 30).to(device)
+#         spk_emb = torch.rand(batch_size, 512).to(device)
+#         return input_dummy, input_lengths, mel, spec, spec_lengths, waveform, energy, pitch, spk_emb
+
+#     config = VitsConfig()
+#     config.model_args.use_pitch = True
+#     config.model_args.use_energy_predictor = True
+#     config.model_args.use_context_encoder = True
+#     config.model_args.use_d_vector_file = True
+#     config.model_args.d_vector_dim = 512
+#     config.model_args.use_sdp = False
+#     model = Vits.init_from_config(config)
+#     model.cuda()
+
+#     input_dummy, input_lengths, mel, spec, spec_lengths, waveform, energy, pitch, spk_emb = _create_inputs(config)
+#     model.forward(
+#         x=input_dummy,
+#         x_lengths=input_lengths,
+#         y=spec,
+#         y_lengths=spec_lengths,
+#         waveform=waveform,
+#         energy=energy,
+#         pitch=pitch,
+#         attn_priors=None,
+#         aux_input={"d_vectors": spk_emb},
+#     )
+
+#     model.inference(x=input_dummy[0][None, :], aux_input={"d_vectors": spk_emb[0][None, :]})
