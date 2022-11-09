@@ -34,10 +34,10 @@ class ModelManager(object):
     Args:
         models_file (str): path to .model.json file. Defaults to None.
         output_prefix (str): prefix to `tts` to download models. Defaults to None
-        progress_bar (bool): print a progress bar when donwloading a file. Defaults to True.
+        progress_bar (bool): print a progress bar when donwloading a file. Defaults to False.
     """
 
-    def __init__(self, models_file=None, output_prefix=None, progress_bar=True):
+    def __init__(self, models_file=None, output_prefix=None, progress_bar=False):
         super().__init__()
         self.progress_bar = progress_bar
         if output_prefix is None:
