@@ -67,22 +67,23 @@ def load_fsspec(
     Args:
         path: Any path or url supported by fsspec.
         map_location: torch.device or str.
-        cache: If True, cache the file locally for subsequent calls. It is cached under `get_user_data_dir()/tts_cache`. Defaults to True.
+        cache: If True, cache a remote file locally for subsequent calls. It is cached under `get_user_data_dir()/tts_cache`. Defaults to True.
         **kwargs: Keyword arguments forwarded to torch.load.
 
     Returns:
         Object stored in path.
     """
-    if cache:
-        of = fsspec.open(
+    is_local = os.path.isdir(path) or os.path.isfile(path)
+    if cache and not is_local:
+        with fsspec.open(
             f"filecache::{path}",
             filecache={"cache_storage": str(get_user_data_dir("tts_cache"))},
             mode="rb",
-        )
+        ) as f:
+            return torch.load(f, map_location=map_location, **kwargs)
     else:
-        of = fsspec.open(path, "rb")
-    with of as f:
-        return torch.load(f, map_location=map_location, **kwargs)
+        with fsspec.open(path, "rb") as f:
+            return torch.load(f, map_location=map_location, **kwargs)
 
 
 def load_checkpoint(
