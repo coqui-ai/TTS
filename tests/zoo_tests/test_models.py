@@ -15,7 +15,7 @@ def test_run_all_models():
     print(" > Run synthesizer with all the models.")
     download_dir = get_user_data_dir("tts")
     output_path = os.path.join(get_tests_output_path(), "output.wav")
-    manager = ModelManager(output_prefix=get_tests_output_path())
+    manager = ModelManager(output_prefix=get_tests_output_path(), progress_bar=False)
     model_names = manager.list_models()
     for model_name in model_names:
         print(f"\n > Run - {model_name}")
@@ -41,11 +41,14 @@ def test_run_all_models():
                 speaker_id = list(speaker_manager.name_to_id.keys())[0]
                 run_cli(
                     f"tts --model_name  {model_name} "
-                    f'--text "This is an example." --out_path "{output_path}" --speaker_idx "{speaker_id}" --language_idx "{language_id}" '
+                    f'--text "This is an example." --out_path "{output_path}" --speaker_idx "{speaker_id}" --language_idx "{language_id}" --progress_bar False'
                 )
             else:
                 # single-speaker model
-                run_cli(f"tts --model_name  {model_name} " f'--text "This is an example." --out_path "{output_path}"')
+                run_cli(
+                    f"tts --model_name  {model_name} "
+                    f'--text "This is an example." --out_path "{output_path}" --progress_bar False'
+                )
             # remove downloaded models
             shutil.rmtree(download_dir)
         else:
@@ -67,5 +70,5 @@ def test_voice_conversion():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     run_cli(
         f"tts --model_name  {model_name}"
-        f" --out_path {output_path} --speaker_wav {speaker_wav} --reference_wav {reference_wav} --language_idx {language_id} "
+        f" --out_path {output_path} --speaker_wav {speaker_wav} --reference_wav {reference_wav} --language_idx {language_id} --progress_bar False"
     )
