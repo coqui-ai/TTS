@@ -15,7 +15,7 @@ def test_run_all_models():
     print(" > Run synthesizer with all the models.")
     download_dir = get_user_data_dir("tts")
     output_path = os.path.join(get_tests_output_path(), "output.wav")
-    manager = ModelManager(output_prefix=get_tests_output_path())
+    manager = ModelManager(output_prefix=get_tests_output_path(), progress_bar=False)
     model_names = manager.list_models()
     for model_name in model_names:
         print(f"\n > Run - {model_name}")
