@@ -225,6 +225,15 @@
                     "stats_file": null,
                     "commit": "540d811"
                 }
+            },
+            "css10":{
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--nl--css10--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "NeonDeckoCom - https://github.com/NeonGeckoCom/",
+                    "license": "bsd-3-clause"
+                },
             }
         },
         "de": {
