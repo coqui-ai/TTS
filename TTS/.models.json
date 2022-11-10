@@ -80,12 +80,13 @@
                     "contact": "egolge@coqui.com"
                 },
                 "vits-neon": {
-                    "description": "Vits End2End TTS model trained by Neon AI".
+                    "description": "Vits End2End TTS model trained by Neon AI",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--en--ljspeech--vits.zip",
                     "default_vocoder": null,
                     "author": "Neon AI",
                     "license": "bsd-3-clause",
-                    "contact": null
+                    "contact": null,
+                    "commit": null
                 },   
                 "fast_pitch": {
                     "description": "FastPitch model trained on LJSpeech using the Aligner Network",
