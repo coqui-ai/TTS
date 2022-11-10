@@ -224,6 +224,13 @@
                     "license": "apache 2.0",
                     "commit": "unknown"
                 },
+                "vits-neon":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--de--css10--vits.zip",
+                    "default_vocoder": null,
+                    "author": "Neon AI",
+                    "license": "apache-2.0",
+                    "commit": null
+                },   
                 "tacotron2-DDC": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--de--thorsten--tacotron2-DDC.zip",
                     "default_vocoder": "vocoder_models/de/thorsten/hifigan_v1",
