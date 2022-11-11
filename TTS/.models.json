@@ -83,7 +83,7 @@
                     "description": "Vits End2End TTS model trained by Neon AI",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--en--ljspeech--vits.zip",
                     "default_vocoder": null,
-                    "author": "@NeonDeckoCom",
+                    "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause",
                     "contact": null,
                     "commit": null
@@ -166,7 +166,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--es--css10--vits.zip",
                     "default_vocoder": null,
                     "commit": null,
-                    "author": "@NeonDeckoCom",
+                    "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
             } 
         },
@@ -186,7 +186,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--fr--css10--vits.zip",
                     "default_vocoder": null,
                     "commit": null,
-                    "author": "@NeonDeckoCom",
+                    "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
                 },
             }
@@ -231,7 +231,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--nl--css10--vits.zip",
                     "default_vocoder": null,
                     "commit": null,
-                    "author": "@NeonDeckoCom",
+                    "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
                 },
             }
@@ -265,7 +265,7 @@
                 "vits-neon":{
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--de--css10--vits.zip",
                     "default_vocoder": null,
-                    "author": "@NeonDeckoCom",
+                    "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause",
                     "commit": null
                 }
@@ -411,7 +411,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--hu--css10--vits.zip",
                     "default_vocoder": null,
                     "commit": null,
-                    "author": "@NeonDeckoCom",
+                    "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
                 }
             }
@@ -422,7 +422,7 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--el--cv--vits.zip",
                     "default_vocoder": null,
                     "commit": null,
-                    "author": "@NeonDeckoCom",
+                    "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
                 }
             }
