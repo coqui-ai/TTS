@@ -175,11 +175,11 @@
                 "tacotron2-DDC": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--fr--mai--tacotron2-DDC.zip",
                     "default_vocoder": "vocoder_models/universal/libri-tts/fullband-melgan",
-                    "commit": "",
+                    "commit": null,
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
                     "contact": "egolge@coqui.com"
-                },
+                }
             },
             "css10":{
                 "vits":{
@@ -188,9 +188,8 @@
                     "commit": null,
                     "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
-                },
+                }
             }
-        }
         },
         "uk":{
             "mai": {
