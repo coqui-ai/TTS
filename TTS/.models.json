@@ -80,7 +80,6 @@
                     "contact": "egolge@coqui.com"
                 },
                 "vits-neon": {
-                    "description": "Vits End2End TTS model trained by Neon AI",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--en--ljspeech--vits.zip",
                     "default_vocoder": null,
                     "author": "@NeonGeckoCom",
