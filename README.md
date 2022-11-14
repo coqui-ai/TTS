@@ -45,8 +45,8 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | ------------------------------- | --------------------------------------- |
 | 🚨 **Bug Reports**              | [GitHub Issue Tracker]                  |
 | 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
-| 👩‍💻 **Usage Questions**          | [Github Discussions]                    |
-| 🗯 **General Discussion**       | [Github Discussions] or [Gitter Room]   |
+| 👩‍💻 **Usage Questions**          | [GitHub Discussions]                    |
+| 🗯 **General Discussion**       | [GitHub Discussions] or [Gitter Room]   |
 
 [github issue tracker]: https://github.com/coqui-ai/tts/issues
 [github discussions]: https://github.com/coqui-ai/TTS/discussions
