@@ -28,8 +28,6 @@
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests.yml/badge.svg)
 [![Docs](<https://readthedocs.org/projects/tts/badge/?version=latest&style=plastic>)](https://tts.readthedocs.io/en/latest/)
 
-🚀 [**Sign up to free 🐸Coqui.ai API and start cloning your voice**](https://coqui.ai/)
-
 📰 [**Subscribe to 🐸Coqui.ai Newsletter**](https://coqui.ai/?subscription=true)
 
 📢 [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
@@ -46,11 +44,11 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 🚨 **Bug Reports**              | [GitHub Issue Tracker]                  |
 | 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
 | 👩‍💻 **Usage Questions**          | [GitHub Discussions]                    |
-| 🗯 **General Discussion**       | [GitHub Discussions] or [Gitter Room]   |
+| 🗯 **General Discussion**       | [GitHub Discussions] or [Discord]   |
 
 [github issue tracker]: https://github.com/coqui-ai/tts/issues
 [github discussions]: https://github.com/coqui-ai/TTS/discussions
-[gitter room]: https://gitter.im/coqui-ai/TTS?utm_source=share-link&utm_medium=link&utm_campaign=share-link
+[discord]: https://discord.gg/5eXr5seRrv
 [Tutorials and Examples]: https://github.com/coqui-ai/TTS/wiki/TTS-Notebooks-and-Tutorials
 
 
