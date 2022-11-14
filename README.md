@@ -218,7 +218,7 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
 
 - Run your own TTS and Vocoder models:
     ```
-    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
         --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
     ```
 
