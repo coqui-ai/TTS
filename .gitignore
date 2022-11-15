@@ -168,3 +168,6 @@ internal/*
 wandb
 depot/*
 coqui_recipes/*
+
+gen/
+*.wav
