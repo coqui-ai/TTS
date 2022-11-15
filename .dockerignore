@@ -1,2 +1,9 @@
 .git/
 Dockerfile
+build/
+dist/
+TTS.egg-info/
+tests/outputs/*
+tests/train_outputs/*
+__pycache__/
+*.pyc
