@@ -590,7 +590,7 @@
         "sl": {
             "cv": {
                 "vits":{
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--f--css10--vits.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--sl--css10--vits.zip",
                     "default_vocoder": null,
                     "commit": null,
                     "author": "@NeonGeckoCom",
