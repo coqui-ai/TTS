@@ -12,6 +12,61 @@
                 }
             }
         },
+        "bg": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--bg--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "cs": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--cs--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "da": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--da--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "et": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--et--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "ga": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--ga--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
         "en": {
             "ek1": {
                 "tacotron2": {
@@ -200,6 +255,13 @@
                     "license": "MIT",
                     "contact": "",
                     "default_vocoder": "vocoder_models/uk/mai/multiband-melgan"
+                },
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--uk--mai--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
                 }
             }
         },
@@ -419,6 +481,127 @@
             "cv": {
                 "vits": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--el--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "fi": {
+            "css10": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--fi--css10--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "hr": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--hr--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "lt": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--lt--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "lv": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--lv--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "mt": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--mt--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "pl": {
+            "mai_female": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--pl--mai_female--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "pt": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--pt--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "ro": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--ro--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "sk": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--sk--cv--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "sl": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--f--css10--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "author": "@NeonGeckoCom",
+                    "license": "bsd-3-clause"
+                }
+            }
+        },
+        "sv": {
+            "cv": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--sv--cv--vits.zip",
                     "default_vocoder": null,
                     "commit": null,
                     "author": "@NeonGeckoCom",
