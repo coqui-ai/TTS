@@ -134,7 +134,7 @@
                     "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
                 },
-                "vits-neon": {
+                "vits--neon": {
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.8.0_models/tts_models--en--ljspeech--vits.zip",
                     "default_vocoder": null,
                     "author": "@NeonGeckoCom",
