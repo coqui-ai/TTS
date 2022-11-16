@@ -20,6 +20,7 @@
     :caption: Using 🐸TTS
 
     inference
+    docker_images
     implementing_a_new_model
     training_a_model
     finetuning

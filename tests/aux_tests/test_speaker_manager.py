@@ -59,7 +59,7 @@ class SpeakerManagerTest(unittest.TestCase):
         # remove dummy model
         os.remove(encoder_model_path)
 
-    def test_speakers_file_processing(self):
+    def test_dvector_file_processing(self):
         manager = SpeakerManager(d_vectors_file_path=d_vectors_file_path)
         self.assertEqual(manager.num_speakers, 1)
         self.assertEqual(manager.embedding_dim, 256)

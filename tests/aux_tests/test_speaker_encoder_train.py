@@ -11,7 +11,7 @@ def run_test_train():
     command = (
         f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_encoder.py --config_path {config_path} "
         f"--coqpit.output_path {output_path} "
-        "--coqpit.datasets.0.name ljspeech_test "
+        "--coqpit.datasets.0.formatter ljspeech_test "
         "--coqpit.datasets.0.meta_file_train metadata.csv "
         "--coqpit.datasets.0.meta_file_val metadata.csv "
         "--coqpit.datasets.0.path tests/data/ljspeech "

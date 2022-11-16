@@ -15,6 +15,15 @@ from tqdm import tqdm
 
 def coqui(root_path, meta_file, ignored_speakers=None):
     """Interal dataset formatter."""
+    filepath = os.path.join(root_path, meta_file)
+    # ensure there are 4 columns for every line
+    with open(filepath, "r", encoding="utf8") as f:
+        lines = f.readlines()
+    num_cols = len(lines[0].split("|"))  # take the first row as reference
+    for idx, line in enumerate(lines[1:]):
+        if len(line.split("|")) != num_cols:
+            print(f" > Missing column in line {idx + 1} -> {line.strip()}")
+    # load metadata
     metadata = pd.read_csv(os.path.join(root_path, meta_file), sep="|")
     assert all(x in metadata.columns for x in ["audio_file", "text"])
     speaker_name = None if "speaker_name" in metadata.columns else "coqui"
@@ -97,9 +106,9 @@ def mailabs(root_path, meta_files=None, ignored_speakers=None):
         meta_files (str):  list of meta files to be used in the training. If None, finds all the csv files
             recursively. Defaults to None
     """
-    speaker_regex = re.compile("by_book/(male|female)/(?P<speaker_name>[^/]+)/")
+    speaker_regex = re.compile(f"by_book{os.sep}(male|female){os.sep}(?P<speaker_name>[^{os.sep}]+){os.sep}")
     if not meta_files:
-        csv_files = glob(root_path + "/**/metadata.csv", recursive=True)
+        csv_files = glob(root_path + f"{os.sep}**{os.sep}metadata.csv", recursive=True)
     else:
         csv_files = meta_files
 
@@ -577,4 +586,18 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[2].replace(" ", "")
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
+    return items
+
+
+def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
+    """Korean single-speaker dataset from https://www.kaggle.com/datasets/bryanpark/korean-single-speaker-speech-dataset"""
+    txt_file = os.path.join(root_path, meta_file)
+    items = []
+    speaker_name = "kss"
+    with open(txt_file, "r", encoding="utf-8") as ttf:
+        for line in ttf:
+            cols = line.split("|")
+            wav_file = os.path.join(root_path, cols[0])
+            text = cols[2]  # cols[1] => 6월, cols[2] => 유월
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items

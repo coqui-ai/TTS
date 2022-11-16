@@ -1,7 +1,7 @@
 {
     "datasets": [
         {
-            "name": "kokoro",
+            "formatter": "kokoro",
             "path": "DEFINE THIS",
             "meta_file_train": "metadata.csv",
             "meta_file_val": null
@@ -119,7 +119,7 @@
         "phonemes": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     },
     "use_speaker_embedding": false,
-    "use_gst": false,       			
+    "use_gst": false,
     "use_external_speaker_embedding_file": false,
     "external_speaker_embedding_file": "../../speakers-vctk-en.json"
 }

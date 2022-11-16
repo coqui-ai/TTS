@@ -144,11 +144,11 @@ class BaseTTS(BaseTrainerModel):
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_id()
                 else:
-                    speaker_id = self.speaker_manager.ids[speaker_name]
+                    speaker_id = self.speaker_manager.name_to_id[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
-            language_id = self.language_manager.ids[language_name]
+            language_id = self.language_manager.name_to_id[language_name]
 
         return {
             "text": text,
@@ -288,11 +288,13 @@ class BaseTTS(BaseTrainerModel):
             # setup multi-speaker attributes
             if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
                 if hasattr(config, "model_args"):
-                    speaker_id_mapping = self.speaker_manager.ids if config.model_args.use_speaker_embedding else None
+                    speaker_id_mapping = (
+                        self.speaker_manager.name_to_id if config.model_args.use_speaker_embedding else None
+                    )
                     d_vector_mapping = self.speaker_manager.embeddings if config.model_args.use_d_vector_file else None
                     config.use_d_vector_file = config.model_args.use_d_vector_file
                 else:
-                    speaker_id_mapping = self.speaker_manager.ids if config.use_speaker_embedding else None
+                    speaker_id_mapping = self.speaker_manager.name_to_id if config.use_speaker_embedding else None
                     d_vector_mapping = self.speaker_manager.embeddings if config.use_d_vector_file else None
             else:
                 speaker_id_mapping = None
@@ -300,7 +302,7 @@ class BaseTTS(BaseTrainerModel):
 
             # setup multi-lingual attributes
             if hasattr(self, "language_manager") and self.language_manager is not None:
-                language_id_mapping = self.language_manager.ids if self.args.use_language_embedding else None
+                language_id_mapping = self.language_manager.name_to_id if self.args.use_language_embedding else None
             else:
                 language_id_mapping = None
 
@@ -342,7 +344,7 @@ class BaseTTS(BaseTrainerModel):
             loader = DataLoader(
                 dataset,
                 batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                shuffle=False,  # shuffle is done in the dataset.
+                shuffle=True,  # if there is no other sampler
                 collate_fn=dataset.collate_fn,
                 drop_last=False,  # setting this False might cause issues in AMP training.
                 sampler=sampler,
@@ -363,7 +365,7 @@ class BaseTTS(BaseTrainerModel):
         aux_inputs = {
             "speaker_id": None
             if not self.config.use_speaker_embedding
-            else random.sample(sorted(self.speaker_manager.ids.values()), 1),
+            else random.sample(sorted(self.speaker_manager.name_to_id.values()), 1),
             "d_vector": d_vector,
             "style_wav": None,  # TODO: handle GST style input
         }

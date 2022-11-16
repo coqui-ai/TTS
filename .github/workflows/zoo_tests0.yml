@@ -1,4 +1,4 @@
-name: zoo-tests
+name: zoo-tests-0
 
 on:
   push:
@@ -21,9 +21,9 @@ jobs:
         python-version: [3.7, 3.8, 3.9, "3.10"]
         experimental: [false]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
-        uses: coqui-ai/setup-python@pip-cache-key-py-ver
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
@@ -47,4 +47,6 @@ jobs:
           python3 -m pip install .[all]
           python3 setup.py egg_info
       - name: Unit tests
-        run: make test_zoo
+        run: |
+          nose2 -F -v -B TTS tests.zoo_tests.test_models.test_models_offset_0_step_3
+          nose2 -F -v -B TTS tests.zoo_tests.test_models.test_voice_conversion

@@ -2,12 +2,12 @@ from typing import Dict, Tuple
 
 import librosa
 import numpy as np
-import pyworld as pw
 import scipy.io.wavfile
 import scipy.signal
 import soundfile as sf
 
 from TTS.tts.utils.helpers import StandardScaler
+from TTS.utils.audio.numpy_transforms import compute_f0
 
 # pylint: disable=too-many-public-methods
 
@@ -573,23 +573,28 @@ class AudioProcessor(object):
             >>> WAV_FILE = filename = librosa.util.example_audio_file()
             >>> from TTS.config import BaseAudioConfig
             >>> from TTS.utils.audio import AudioProcessor
-            >>> conf = BaseAudioConfig(pitch_fmax=8000)
+            >>> conf = BaseAudioConfig(pitch_fmax=640, pitch_fmin=1)
             >>> ap = AudioProcessor(**conf)
-            >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
+            >>> wav = ap.load_wav(WAV_FILE, sr=ap.sample_rate)[:5 * ap.sample_rate]
             >>> pitch = ap.compute_f0(wav)
         """
         assert self.pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
+        assert self.pitch_fmin is not None, " [!] Set `pitch_fmin` before caling `compute_f0`."
         # align F0 length to the spectrogram length
         if len(x) % self.hop_length == 0:
-            x = np.pad(x, (0, self.hop_length // 2), mode="reflect")
+            x = np.pad(x, (0, self.hop_length // 2), mode=self.stft_pad_mode)
 
-        f0, t = pw.dio(
-            x.astype(np.double),
-            fs=self.sample_rate,
-            f0_ceil=self.pitch_fmax,
-            frame_period=1000 * self.hop_length / self.sample_rate,
+        f0 = compute_f0(
+            x=x,
+            pitch_fmax=self.pitch_fmax,
+            pitch_fmin=self.pitch_fmin,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            sample_rate=self.sample_rate,
+            stft_pad_mode=self.stft_pad_mode,
+            center=True,
         )
-        f0 = pw.stonemask(x.astype(np.double), f0, t, self.sample_rate)
+
         return f0
 
     ### Audio Processing ###

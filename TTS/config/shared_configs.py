@@ -62,7 +62,7 @@ class BaseAudioConfig(Coqpit):
             Maximum frequency of the F0 frames. Defaults to ```640```.
 
         pitch_fmin (float, optional):
-            Minimum frequency of the F0 frames. Defaults to ```0```.
+            Minimum frequency of the F0 frames. Defaults to ```1```.
 
         trim_db (int):
             Silence threshold used for silence trimming. Defaults to 45.
@@ -144,7 +144,7 @@ class BaseAudioConfig(Coqpit):
     do_amp_to_db_mel: bool = True
     # f0 params
     pitch_fmax: float = 640.0
-    pitch_fmin: float = 0.0
+    pitch_fmin: float = 1.0
     # normalization params
     signal_norm: bool = True
     min_level_db: int = -100
@@ -193,21 +193,24 @@ class BaseDatasetConfig(Coqpit):
     """Base config for TTS datasets.
 
     Args:
-        name (str):
-            Dataset name that defines the preprocessor in use. Defaults to None.
+        formatter (str):
+            Formatter name that defines used formatter in ```TTS.tts.datasets.formatter```. Defaults to `""`.
+
+        dataset_name (str):
+            Unique name for the dataset. Defaults to `""`.
 
         path (str):
-            Root path to the dataset files. Defaults to None.
+            Root path to the dataset files. Defaults to `""`.
 
         meta_file_train (str):
             Name of the dataset meta file. Or a list of speakers to be ignored at training for multi-speaker datasets.
-            Defaults to None.
+            Defaults to `""`.
 
         ignored_speakers (List):
             List of speakers IDs that are not used at the training. Default None.
 
         language (str):
-            Language code of the dataset. If defined, it overrides `phoneme_language`. Defaults to None.
+            Language code of the dataset. If defined, it overrides `phoneme_language`. Defaults to `""`.
 
         meta_file_val (str):
             Name of the dataset meta file that defines the instances used at validation.
@@ -217,7 +220,8 @@ class BaseDatasetConfig(Coqpit):
             train the duration predictor.
     """
 
-    name: str = ""
+    formatter: str = ""
+    dataset_name: str = ""
     path: str = ""
     meta_file_train: str = ""
     ignored_speakers: List[str] = None
@@ -230,7 +234,7 @@ class BaseDatasetConfig(Coqpit):
     ):
         """Check config fields"""
         c = asdict(self)
-        check_argument("name", c, restricted=True)
+        check_argument("formatter", c, restricted=True)
         check_argument("path", c, restricted=True)
         check_argument("meta_file_train", c, restricted=True)
         check_argument("meta_file_val", c, restricted=False)

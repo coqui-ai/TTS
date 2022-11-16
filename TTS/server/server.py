@@ -5,6 +5,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from threading import Lock
 from typing import Union
 
 from flask import Flask, render_template, request, send_file
@@ -146,7 +147,7 @@ def index():
         "index.html",
         show_details=args.show_details,
         use_multi_speaker=use_multi_speaker,
-        speaker_ids=speaker_manager.ids if speaker_manager is not None else None,
+        speaker_ids=speaker_manager.name_to_id if speaker_manager is not None else None,
         use_gst=use_gst,
     )
 
@@ -168,17 +169,21 @@ def details():
     )
 
 
+lock = Lock()
+
+
 @app.route("/api/tts", methods=["GET"])
 def tts():
-    text = request.args.get("text")
-    speaker_idx = request.args.get("speaker_id", "")
-    style_wav = request.args.get("style_wav", "")
-    style_wav = style_wav_uri_to_dict(style_wav)
-    print(" > Model input: {}".format(text))
-    print(" > Speaker Idx: {}".format(speaker_idx))
-    wavs = synthesizer.tts(text, speaker_name=speaker_idx, style_wav=style_wav)
-    out = io.BytesIO()
-    synthesizer.save_wav(wavs, out)
+    with lock:
+        text = request.args.get("text")
+        speaker_idx = request.args.get("speaker_id", "")
+        style_wav = request.args.get("style_wav", "")
+        style_wav = style_wav_uri_to_dict(style_wav)
+        print(" > Model input: {}".format(text))
+        print(" > Speaker Idx: {}".format(speaker_idx))
+        wavs = synthesizer.tts(text, speaker_name=speaker_idx, style_wav=style_wav)
+        out = io.BytesIO()
+        synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype="audio/wav")
 
 

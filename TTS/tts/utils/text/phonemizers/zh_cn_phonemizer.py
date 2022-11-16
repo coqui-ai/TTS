@@ -42,7 +42,7 @@ class ZH_CN_Phonemizer(BasePhonemizer):
 
     @staticmethod
     def supported_languages() -> Dict:
-        return {"zh-cn": "Japanese (Japan)"}
+        return {"zh-cn": "Chinese (China)"}
 
     def version(self) -> str:
         return "0.0.1"

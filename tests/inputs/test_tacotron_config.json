@@ -166,7 +166,7 @@
     "datasets":   // List of datasets. They all merged and they get different speaker_ids.
         [
             {
-                "name": "ljspeech",
+                "formatter": "ljspeech",
                 "path": "tests/data/ljspeech/",
                 "meta_file_train": "metadata.csv",
                 "meta_file_val": "metadata.csv"
@@ -174,4 +174,3 @@
         ]
 
 }
-

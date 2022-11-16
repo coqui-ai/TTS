@@ -17,7 +17,7 @@ output_path = os.path.dirname(os.path.abspath(__file__))
 mailabs_path = "/home/julian/workspace/mailabs/**"
 dataset_paths = glob(mailabs_path)
 dataset_config = [
-    BaseDatasetConfig(name="mailabs", meta_file_train=None, path=path, language=path.split("/")[-1])
+    BaseDatasetConfig(formatter="mailabs", meta_file_train=None, path=path, language=path.split("/")[-1])
     for path in dataset_paths
 ]
 

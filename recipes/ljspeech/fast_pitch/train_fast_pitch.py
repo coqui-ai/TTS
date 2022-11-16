@@ -14,7 +14,7 @@ output_path = os.path.dirname(os.path.abspath(__file__))
 
 # init configs
 dataset_config = BaseDatasetConfig(
-    name="ljspeech",
+    formatter="ljspeech",
     meta_file_train="metadata.csv",
     # meta_file_attn_mask=os.path.join(output_path, "../LJSpeech-1.1/metadata_attn_mask.txt"),
     path=os.path.join(output_path, "../LJSpeech-1.1/"),
