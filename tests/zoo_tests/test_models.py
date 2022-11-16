@@ -10,14 +10,13 @@ from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager
 
 
-def test_run_all_models():
+def run_models(offset=0, step=1):
     """Check if all the models are downloadable and tts models run correctly."""
     print(" > Run synthesizer with all the models.")
-    download_dir = get_user_data_dir("tts")
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     manager = ModelManager(output_prefix=get_tests_output_path(), progress_bar=False)
     model_names = manager.list_models()
-    for model_name in model_names:
+    for model_name in model_names[offset::step]:
         print(f"\n > Run - {model_name}")
         model_path, _, _ = manager.download_model(model_name)
         if "tts_models" in model_name:
@@ -50,15 +49,27 @@ def test_run_all_models():
                     f'--text "This is an example." --out_path "{output_path}" --progress_bar False'
                 )
             # remove downloaded models
-            shutil.rmtree(download_dir)
+            shutil.rmtree(local_download_dir)
+            shutil.rmtree(get_user_data_dir("tts"))
         else:
             # only download the model
             manager.download_model(model_name)
         print(f" | > OK: {model_name}")
 
-    folders = glob.glob(os.path.join(manager.output_prefix, "*"))
-    assert len(folders) == len(model_names)
-    shutil.rmtree(manager.output_prefix)
+    # folders = glob.glob(os.path.join(manager.output_prefix, "*"))
+    # assert len(folders) == len(model_names) // step
+
+
+def test_models_offset_0_step_3():
+    run_models(offset=0, step=3)
+
+
+def test_models_offset_1_step_3():
+    run_models(offset=1, step=3)
+
+
+def test_models_offset_2_step_3():
+    run_models(offset=2, step=3)
 
 
 def test_voice_conversion():
