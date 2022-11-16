@@ -1,4 +1,4 @@
-name: zoo-tests
+name: zoo-tests-2
 
 on:
   push:
