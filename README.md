@@ -146,7 +146,6 @@ $ make install
 
 If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
 
-more details about docker like GPU support, etc. can be found [here](https://
 
 ## Docker Image
 You can also try TTS without install with the docker image.
@@ -159,7 +158,7 @@ python3 TTS/server/server.py --model_name tts_models/en/vctk/vits # To start a s
 ```
 
 You can then enjoy the TTS server [here](http://[::1]:5002/)
-More details about the docker images (like GPU support) can be found [here](https://tts.readthedocs.io/en/latest/docker.html)
+More details about the docker images (like GPU support) can be found [here](https://tts.readthedocs.io/en/latest/docker_images.html)
 
 
 ## Use TTS
