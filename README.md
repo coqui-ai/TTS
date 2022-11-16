@@ -234,7 +234,7 @@ More details about the docker images (like GPU support) can be found [here](http
 
 - Run your own TTS and Vocoder models:
     ```
-    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
         --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
     ```
 
@@ -255,7 +255,7 @@ More details about the docker images (like GPU support) can be found [here](http
 - Run your own multi-speaker TTS model:
 
     ```
-    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
+    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/model.pth --config_path path/to/config.json --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
     ```
 
 ## Directory Structure
