@@ -25,6 +25,26 @@ class Conformer(nn.Module):
         kernel_size_conv_mod: int,
         emotion_embedding_dim: int,
     ):
+        """
+        A Tansformer variant that integrates both CNNs and Transformers components. 
+        Conformer proposes a novel combination of self-attention and convolution, in which self-attention 
+        learns the global interaction while the convolutions efficiently capture the local correlations.
+
+        Args:
+            dim (int): Number of the dimensions for the model.
+            n_layers (int): Number of model layers.
+            n_heads (int): The number of attention heads.
+            speaker_embedding_dim (int): Number of speaker embedding dimensions.
+            p_dropout (float): Probabilty of dropout.
+            kernel_size_conv_mod (int): Size of kernels for convolution modules.
+            emotion_embedding_dim (int): Number of emotion embedding dimensions.
+
+        Inputs: inputs, mask
+            - **inputs** (batch, time, dim): Tensor containing input vector
+            - **mask** (batch, 1, time2) or (batch, time1, time2): Tensor containing indices to be masked
+        Returns:
+            - **outputs** (batch, time, dim): Tensor produced by Conformer Encoder.
+        """
         super().__init__()
         d_k = d_v = dim // n_heads
         self.layer_stack = nn.ModuleList(
@@ -51,6 +71,14 @@ class Conformer(nn.Module):
         emotion_embedding: torch.Tensor,
         encoding: torch.Tensor,
     ) -> torch.Tensor:
+        """
+            Shapes:
+                - x: :math:`[B, T_src, C]`
+                - mask: :math: `[B]`
+                - speaker_embedding: :math: `[B, C]`
+                - emotion_embedding: :math: `[B, C]`
+                - encoding: :math: `[B, T_max2, C]` 
+        """
         attn_mask = mask.view((mask.shape[0], 1, 1, mask.shape[1]))
         for enc_layer in self.layer_stack:
             x = enc_layer(
@@ -73,9 +101,28 @@ class ConformerBlock(torch.nn.Module):
         d_v: int,
         kernel_size_conv_mod: int,
         speaker_embedding_dim: int,
-        emotion_embedding_dim: int,
         dropout: float,
     ):
+        """
+        A Conformer block is composed of four modules stacked together, 
+        A feed-forward module, a self-attention module, a convolution module, 
+        and a second feed-forward module in the end. The block starts with two Feed forward
+        modules sandwiching the Multi-Headed Self-Attention module and the Conv module.
+
+        Args:
+            d_model (int): The dimension of model
+            n_head (int): The number of attention heads.
+            kernel_size_conv_mod (int): Size of kernels for convolution modules.
+            speaker_embedding_dim (int): Number of speaker embedding dimensions.
+            emotion_embedding_dim (int): Number of emotion embedding dimensions.
+            dropout (float): Probabilty of dropout.
+
+        Inputs: inputs, mask
+            - **inputs** (batch, time, dim): Tensor containing input vector
+            - **mask** (batch, 1, time2) or (batch, time1, time2): Tensor containing indices to be masked
+        Returns:
+            - **outputs** (batch, time, dim): Tensor produced by the Conformer Block.
+        """
         super().__init__()
         if isinstance(speaker_embedding_dim, int):
             self.conditioning = Conv1dGLU(
@@ -95,7 +142,7 @@ class ConformerBlock(torch.nn.Module):
         self.ff = FeedForward(d_model=d_model, dropout=dropout, kernel_size=3)
         self.conformer_conv_1 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout)
         self.ln = nn.LayerNorm(d_model)
-        self.slf_attn = ConformerMultiHeadedSelfAttention(d_model=d_model, num_heads=n_head, dropout_p=dropout)
+        self.slf_attn = ConformerMultiHeadedSefAttention(d_model=d_model, num_heads=n_head, dropout_p=dropout)
         self.conformer_conv_2 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout)
 
     def forward(
@@ -107,6 +154,15 @@ class ConformerBlock(torch.nn.Module):
         encoding: torch.Tensor,
         emotion_embedding: torch.Tensor = None,
     ) -> torch.Tensor:
+        """
+            Shapes:
+                - x: :math:`[B, T_src, C]`
+                - mask: :math: `[B]`
+                - slf_attn_mask: :math: `[B, 1, 1, T_src]`
+                - speaker_embedding: :math: `[B, C]`
+                - emotion_embedding: :math: `[B, C]`
+                - encoding: :math: `[B, T_max2, C]` 
+        """
         if speaker_embedding is not None:
             x = self.conditioning(x, embeddings=speaker_embedding)
         if emotion_embedding is not None:
@@ -132,6 +188,25 @@ class ConformerConvModule(nn.Module):
         dropout: float = 0.1,
         lrelu_slope: float = 0.3
     ):
+        """
+            Convolution module for conformer. Starts with a gating machanism. 
+            a pointwise convolution and a gated linear unit (GLU). This is followed 
+            by a single 1-D depthwise convolution layer. Batchnorm is deployed just after the convolution
+            to help with training. it also contains an expansion factor to project the number of channels.
+
+        Args:
+            d_model (int): The dimension of model.
+            expansion_factor (int): The factor by which to project the number of channels.
+            kernel_size (int): Size of kernels for convolution modules.
+            dropout (float): Probabilty of dropout.
+            lrelu_slope (float): The slope coefficient for leaky relu activation. 
+
+        Inputs: inputs, mask
+            - **inputs** (batch, time, dim): Tensor containing input vector
+        Returns:
+            - **outputs** (batch, time, dim): Tensor produced by the conv module.
+
+        """
         super().__init__()
         inner_dim = d_model * expansion_factor
         self.ln_1 = nn.LayerNorm(d_model)
@@ -149,6 +224,10 @@ class ConformerConvModule(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Shapes:
+            x: :math: `[B, T, C]`
+        """
         x = self.ln_1(x)
         x = x.permute(0, 2, 1)
         x = self.conv_1(x)
@@ -202,6 +281,20 @@ class ConformerMultiHeadedSelfAttention(nn.Module):
 
 
 class FeedForward(nn.Module):
+    """
+    Feed Forward module for conformer block.
+
+    Args:
+        d_model (int): The dimension of model.
+        kernel_size (int): Size of the kernels for conv layers.
+        dropout (float): probability of dropout.
+        expansion_factor (int): The factor by which to project the number of channels.
+
+    Inputs: inputs, mask
+        - **inputs** (batch, time, dim): Tensor containing input vector
+    Returns:
+        - **outputs** (batch, time, dim): Tensor produced by the feed forward module.
+    """
     def __init__(self, d_model: int, kernel_size: int, dropout: float, expansion_factor: int = 4):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
@@ -216,6 +309,10 @@ class FeedForward(nn.Module):
         self.conv_2 = nn.Conv1d(d_model * expansion_factor, d_model, kernel_size=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Shapes:
+            x: :math: `[B, T, C]`
+        """
         x = self.ln(x)
         x = x.permute((0, 2, 1))
         x = self.conv_1(x)
