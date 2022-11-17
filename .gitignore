@@ -171,3 +171,5 @@ coqui_recipes/*
 
 gen/
 *.wav
+LJSpeech-1.1
+*2022*
