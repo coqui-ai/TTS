@@ -143,3 +143,9 @@ def multilingual_cleaners(text):
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
     return text
+
+
+def japanese_cleaners(text: str) -> str:
+    """Basic pipeline for Japanese text"""
+    # TODO: cleaner for Japanese text
+    return text
