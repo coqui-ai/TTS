@@ -24,7 +24,9 @@ audio_config = VitsAudioConfig(
 
 characters = CharactersConfig(
     characters_class="TTS.tts.models.vits.VitsCharacters",
+    pad="<PAD>",
     characters=[
+        "pau",
         "I",
         "N",
         "U",
