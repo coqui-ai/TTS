@@ -186,6 +186,25 @@ def tts():
         synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype="audio/wav")
 
+# MaryTTS compatibility layer
+@app.route("/process", methods=["GET", "POST"])
+def api_process():
+    with lock:
+        """MaryTTS-compatible /process endpoint"""
+        if request.method == "POST":
+             from urllib.parse import urlparse, parse_qs
+             print("Request: {}".format(request))
+             data = parse_qs(request.get_data(as_text=True))
+             print("Data: {}".format(data))
+             text = data.get("INPUT_TEXT", [""])[0]
+        else:
+            text = request.args.get("INPUT_TEXT", "")
+
+        wavs = synthesizer.tts(text)
+        out = io.BytesIO()
+        synthesizer.save_wav(wavs, out)
+    return send_file(out, mimetype="audio/wav")
+
 
 def main():
     app.run(debug=args.debug, host="::", port=args.port)
