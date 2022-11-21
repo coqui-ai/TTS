@@ -2,7 +2,7 @@ import os
 
 from trainer import Trainer, TrainerArgs
 
-from TTS.tts.configs.shared_configs import BaseDatasetConfig
+from TTS.tts.configs.shared_configs import BaseDatasetConfig, CharactersConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits, VitsAudioConfig
@@ -17,8 +17,54 @@ dataset_config = BaseDatasetConfig(
     meta_file_train="transcript_utf8.txt",
     language="ja-jp",
 )
+
 audio_config = VitsAudioConfig(
     sample_rate=22050, win_length=1024, hop_length=256, num_mels=80, mel_fmin=0, mel_fmax=None
+)
+
+characters = CharactersConfig(
+    characters_class="TTS.tts.models.vits.VitsCharacters",
+    characters=[
+        "I",
+        "N",
+        "U",
+        "a",
+        "b",
+        "by",
+        "ch",
+        "cl",
+        "d",
+        "dy",
+        "e",
+        "f",
+        "g",
+        "gy",
+        "h",
+        "hy",
+        "i",
+        "j",
+        "k",
+        "ky",
+        "m",
+        "my",
+        "n",
+        "ny",
+        "o",
+        "p",
+        "py",
+        "r",
+        "ry",
+        "s",
+        "sh",
+        "t",
+        "ts",
+        "u",
+        "v",
+        "w",
+        "y",
+        "z",
+    ],
+    punctuations=".?!",
 )
 
 config = VitsConfig(
@@ -35,7 +81,9 @@ config = VitsConfig(
     text_cleaner="japanese_cleaners",
     use_phonemes=True,
     phoneme_language="ja-jp",
+    phonemizer="pyopenjtalk",  # TODO: これとcharactersを追加
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
+    characters=characters,
     compute_input_seq_cache=True,
     print_step=25,
     print_eval=True,

@@ -4,7 +4,7 @@
 import re
 import unicodedata
 
-import MeCab
+# import MeCab
 from num2words import num2words
 
 _CONVRULES = [
@@ -349,7 +349,7 @@ def hira2kata(text: str) -> str:
 
 _SYMBOL_TOKENS = set(list("・、。？！"))
 _NO_YOMI_TOKENS = set(list("「」『』―（）［］[]　…"))
-_TAGGER = MeCab.Tagger()
+# _TAGGER = MeCab.Tagger()
 
 
 def text2kata(text: str) -> str:

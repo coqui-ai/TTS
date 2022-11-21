@@ -106,7 +106,7 @@ class TTSTokenizer:
         if self.text_cleaner is not None:
             text = self.text_cleaner(text)
         if self.use_phonemes:
-            text = self.phonemizer.phonemize(text, separator="")
+            text = self.phonemizer.phonemize(text, separator=None)
         if self.add_blank:
             text = self.intersperse_blank_char(text, True)
         if self.use_eos_bos:
