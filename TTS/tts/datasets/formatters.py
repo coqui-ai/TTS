@@ -613,7 +613,8 @@ def jsut(root_path, meta_file, **kwargs):
         for line in ttf:
             line = line.rstrip()
             cols = line.split(":")
-            wav_file = os.path.join(root_path, "wav", cols[0] + ".wav")
+            # wavは48kHzなのであらかじめダウンサンプリングしてwav22kを作っておく
+            wav_file = os.path.join(root_path, "wav22k", cols[0] + ".wav")
             text = cols[1]
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
