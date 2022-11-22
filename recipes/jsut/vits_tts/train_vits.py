@@ -72,7 +72,7 @@ characters = CharactersConfig(
 config = VitsConfig(
     audio=audio_config,
     run_name="vits_jsut",
-    batch_size=32,
+    batch_size=16,
     eval_batch_size=16,
     batch_group_size=5,
     num_loader_workers=8,
@@ -83,7 +83,7 @@ config = VitsConfig(
     text_cleaner="japanese_cleaners",
     use_phonemes=True,
     phoneme_language="ja-jp",
-    phonemizer="pyopenjtalk",  # TODO: これとcharactersを追加
+    phonemizer="pyopenjtalk",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     characters=characters,
     compute_input_seq_cache=True,
@@ -98,6 +98,9 @@ config = VitsConfig(
 # INITIALIZE THE AUDIO PROCESSOR
 # Audio processor is used for feature extraction and audio I/O.
 # It mainly serves to the dataloader and the training loggers.
+
+# VITSは音声ロードにAudioProcessorを使っていないのでリサンプリングはできなに
+# あらかじめ音声を22kHzにダウンサンプリングすること
 ap = AudioProcessor.init_from_config(config)
 
 # INITIALIZE THE TOKENIZER
