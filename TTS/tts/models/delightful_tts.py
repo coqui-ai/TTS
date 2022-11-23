@@ -23,13 +23,7 @@ from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.models.base_tts import BaseTTSE2E
 from TTS.tts.models.vits import load_audio, wav_to_mel, wav_to_spec
 from TTS.tts.utils.emotions import EmotionManager
-from TTS.tts.utils.helpers import (
-    average_over_durations,
-    rand_segments,
-    compute_attn_prior,
-    segment,
-    sequence_mask,
-)
+from TTS.tts.utils.helpers import average_over_durations, compute_attn_prior, rand_segments, segment, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_pitch, plot_spectrogram
@@ -158,11 +152,11 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         wav, _ = load_audio(wav_file)
         f0 = compute_f0(
             x=wav.numpy()[0],
-            sample_rate=ap.sample_rate,# audio_config.sample_rate,
-            hop_length=ap.hop_length,# audio_config.hop_length,
-            pitch_fmax=ap.pitch_fmax,# audio_config.pitch_fmax,
+            sample_rate=ap.sample_rate,  # audio_config.sample_rate,
+            hop_length=ap.hop_length,  # audio_config.hop_length,
+            pitch_fmax=ap.pitch_fmax,  # audio_config.pitch_fmax,
             pitch_fmin=ap.pitch_fmin,
-            win_length=ap.win_length
+            win_length=ap.win_length,
         )
         # skip the last F0 value to align with the spectrogram
         if wav.shape[1] % ap.hop_length != 0:
@@ -196,11 +190,11 @@ class ForwardTTSE2eDataset(TTSDataset):
 
         self.compute_f0 = compute_f0
         self.pad_id = self.tokenizer.characters.pad_id
-       #  self.audio_config = kwargs["audio_config"]
+        #  self.audio_config = kwargs["audio_config"]
         print(self.compute_f0)
 
         if self.compute_f0:
-            self.ap = kwargs['ap']
+            self.ap = kwargs["ap"]
             self.f0_dataset = ForwardTTSE2eF0Dataset(
                 ap=self.ap,
                 # audio_config=self.audio_config,
@@ -250,6 +244,7 @@ class ForwardTTSE2eDataset(TTSDataset):
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
+            "audio_unique_name": item["audio_unique_name"],
             "attn_prior": attn_prior,
         }
 
@@ -348,40 +343,6 @@ class ForwardTTSE2eDataset(TTSDataset):
 # CONFIGS
 #############################
 
-@dataclass
-class ConformerConfig(Coqpit):
-    n_layers: int
-    n_heads: int
-    n_hidden: int
-    p_dropout: float
-    kernel_size_conv_mod: int
-    kernel_size_depthwise: int
-    lrelu_slope: float
-
-
-@dataclass
-class ReferenceEncoderConfig(Coqpit):
-    bottleneck_size_p: int
-    bottleneck_size_u: int
-    ref_enc_filters: List[int]
-    ref_enc_size: int
-    ref_enc_strides: List[int]
-    ref_enc_pad: List[int]
-    ref_enc_gru_size: int
-    ref_attention_dropout: float
-    token_num: int
-    predictor_kernel_size: int
-
-
-@dataclass
-class VarianceAdaptorConfig(Coqpit):
-    n_hidden: int
-    kernel_size: int
-    emb_kernel_size: int
-    p_dropout: float
-    n_bins: int
-    lrelu_slope:float
-
 
 @dataclass
 class VocoderConfig(Coqpit):
@@ -398,43 +359,6 @@ class VocoderConfig(Coqpit):
 
 
 @dataclass
-class AcousticModelConfig(Coqpit):
-    encoder: ConformerConfig = ConformerConfig(
-        n_layers=6,
-        n_heads=8,
-        n_hidden=512,
-        p_dropout=0.1,
-        kernel_size_conv_mod=7,
-        kernel_size_depthwise=7,
-        lrelu_slope=0.3
-    )
-    decoder: ConformerConfig = ConformerConfig(
-        n_layers=6,
-        n_heads=8,
-        n_hidden=512,
-        p_dropout=0.1,
-        kernel_size_conv_mod=11,
-        kernel_size_depthwise=11,
-        lrelu_slope=0.3
-    )
-    reference_encoder: ReferenceEncoderConfig = ReferenceEncoderConfig(
-        bottleneck_size_p=4,
-        bottleneck_size_u=256,
-        ref_enc_filters=[32, 32, 64, 64, 128, 128],
-        ref_enc_size=3,
-        ref_enc_strides=[1, 2, 1, 2, 1],
-        ref_enc_pad=[1, 1],
-        ref_enc_gru_size=32,
-        ref_attention_dropout=0.2,
-        token_num=32,
-        predictor_kernel_size=5,
-    )
-    variance_adaptor: VarianceAdaptorConfig = VarianceAdaptorConfig(
-        n_hidden=512, kernel_size=5, p_dropout=0.5, n_bins=256, emb_kernel_size=3, lrelu_slope=0.3
-    )
-
-
-@dataclass
 class DelightfulTtsAudioConfig(Coqpit):
     sample_rate: int = 22050
     hop_length: int = 256
@@ -445,18 +369,46 @@ class DelightfulTtsAudioConfig(Coqpit):
     num_mels: int = 100
     pitch_fmax: float = 640.0
     pitch_fmin: float = 1.0
+    resample: bool = False
 
 
 ##############################
 # MODEL DEFINITION
 ##############################
 
+
 @dataclass
 class DelightfulTtsArgs(Coqpit):
     num_chars: int = 100
     spec_segment_size: int = 32
-    # discriminator
-    acoustic_config: AcousticModelConfig = AcousticModelConfig()
+    n_hidden_conformer_encoder: int = 512
+    n_layers_conformer_encoder: int = 6
+    n_heads_conformer_encoder: int = 8
+    dropout_conformer_encoder: float = 0.1
+    kernel_size_conv_mod_conformer_encoder: int = 7
+    kernel_size_depthwise_conformer_encoder: int = 7
+    lrelu_slope: float = 0.3
+    n_hidden_conformer_decoder: int = 512
+    n_layers_conformer_decoder: int = 6
+    n_heads_conformer_decoder: int = 8
+    dropout_conformer_decoder: float = 0.1
+    kernel_size_conv_mod_conformer_decoder: int = 11
+    kernel_size_depthwise_conformer_decoder: int = 11
+    bottleneck_size_p_reference_encoder: int = 4
+    bottleneck_size_u_reference_encoder: int = 512
+    ref_enc_filters_reference_encoder: List[Union[int]] = [32, 32, 64, 64, 128, 128]
+    ref_enc_size_reference_encoder: int = 3
+    ref_enc_strides_reference_encoder: List[Union[int]] = [1, 2, 1, 2, 1]
+    ref_enc_pad_reference_encoder: List[Union[int]] = [1, 1]
+    ref_enc_gru_size_reference_encoder: int = 32
+    ref_attention_dropout_reference_encoder: float = 0.2
+    token_num_reference_encoder: int = 32
+    predictor_kernel_size_reference_encoder: int = 5
+    n_hidden_variance_adaptor: int = 512
+    kernel_size_variance_adaptor: int = 5
+    dropout_variance_adaptor: float = 0.5
+    n_bins_variance_adaptor: int = 256
+    emb_kernel_size_variance_adaptor: int = 3
     # multi-speaker params
     use_speaker_embedding: bool = False
     num_speakers: int = 0
@@ -465,10 +417,6 @@ class DelightfulTtsArgs(Coqpit):
     speaker_embedding_channels: int = 384
     use_d_vector_file: bool = False
     d_vector_dim: int = 0
-    use_emotion_embedding: bool = False
-    use_emotion_vector_file: bool = False
-    emotion_vector_dim: int = 0
-    emotion_vector_file: str = None
     # freeze layers
     freeze_vocoder: bool = False
     freeze_text_encoder: bool = False
@@ -481,9 +429,26 @@ class DelightfulTtsArgs(Coqpit):
     length_scale: float = 1.0
 
 
-
 class DelightfulTTSE2e(BaseTTSE2E):
     """
+    Paper::
+        https://arxiv.org/pdf/2110.12612.pdf
+
+    Paper Abstract::
+        This paper describes the Microsoft end-to-end neural text to speech (TTS) system: DelightfulTTS for Blizzard Challenge 2021. 
+        The goal of this challenge is to synthesize natural and high-quality speech from text, and we approach this goal in two perspectives: 
+        The first is to directly model and generate waveform in 48 kHz sampling rate, which brings higher perception quality than previous systems 
+        with 16 kHz or 24 kHz sampling rate; The second is to model the variation information in speech through a systematic design, which improves
+        the prosody and naturalness. Specifically, for 48 kHz modeling, we predict 16 kHz mel-spectrogram in acoustic model, and 
+        propose a vocoder called HiFiNet to directly generate 48 kHz waveform from predicted 16 kHz mel-spectrogram, which can better trade off training
+        efficiency, modelling stability and voice quality. We model variation information systematically from both explicit (speaker ID, language ID, pitch and duration) and
+        implicit (utterance-level and phoneme-level prosody) perspectives: 1) For speaker and language ID, we use lookup embedding in training and 
+        inference; 2) For pitch and duration, we extract the values from paired text-speech data in training and use two predictors to predict the values in inference; 3) 
+        For utterance-level and phoneme-level prosody, we use two reference encoders to extract the values in training, and use two separate predictors to predict the values in inference. 
+        Additionally, we introduce an improved Conformer block to better model the local and global dependency in acoustic model. For task SH1, DelightfulTTS achieves 4.17 mean score in MOS test
+        and 4.35 in SMOS test, which indicates the effectiveness of our proposed system
+
+
     Model training::
         text --> ForwardTTS() --> spec_hat --> rand_seg_select()--> GANVocoder() --> waveform_seg
         spec --------^
@@ -511,8 +476,8 @@ class DelightfulTTSE2e(BaseTTSE2E):
         self.init_multispeaker(config)
         self.binary_loss_weight = None
 
-        self.args.acoustic_config.out_channels = self.config.audio.num_mels
-        self.args.acoustic_config.num_mels = self.config.audio.num_mels
+        self.args.out_channels = self.config.audio.num_mels
+        self.args.num_mels = self.config.audio.num_mels
         self.acoustic_model = AcousticModel(
             args=self.args, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=emotion_manager
         )
@@ -527,7 +492,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
             self.config.vocoder.upsample_initial_channel_decoder,
             self.config.vocoder.upsample_rates_decoder,
             inference_padding=0,
-            # cond_channels=self.embedded_speaker_dim,
+            cond_channels=self.embedded_speaker_dim,
             conv_pre_weight_norm=False,
             conv_post_weight_norm=False,
             conv_post_bias=False,
@@ -538,7 +503,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
             self.disc = VitsDiscriminator(
                 use_spectral_norm=self.config.vocoder.use_spectral_norm_discriminator,
                 periods=self.config.vocoder.periods_discriminator,
-                upsampling_rates=self.config.vocoder.upsampling_rates_discriminator,
+                # upsampling_rates=self.config.vocoder.upsampling_rates_discriminator,
             )
 
     def init_for_training(self):
@@ -713,6 +678,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         # TODO: not sure if we need to pass spk_emb to the vocoder
         vocoder_output = self.waveform_decoder(
             x=vocoder_input_slices.detach(),
+            g=encoder_outputs['spk_emb']
         )
         wav_seg = segment(
             waveform,
@@ -728,7 +694,9 @@ class DelightfulTTSE2e(BaseTTSE2E):
         return model_outputs
 
     @torch.no_grad()
-    def inference(self, x, d_vectors=None, emotion_vectors=None, speaker_idx=None, pitch_transform=None, energy_transform=None):
+    def inference(
+        self, x, d_vectors=None, emotion_vectors=None, speaker_idx=None, pitch_transform=None, energy_transform=None
+    ):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
             d_vectors=d_vectors,
@@ -783,6 +751,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 attn_priors=attn_priors,
                 d_vectors=d_vectors,
                 emo_vectors=emo_vectors,
+                speaker_idx=speaker_ids,
             )
 
             # cache tensors for the generator pass
@@ -996,7 +965,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embeddings()
+                    d_vector = self.speaker_manager.get_random_embedding()
                 else:
                     d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
             elif config.use_speaker_embedding:
@@ -1052,9 +1021,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         input_text = self.tokenizer.ids_to_text(self.tokenizer.text_to_ids(text, language="en"))
         input_text = input_text.replace("<BLNK>", "_")
         durations = outputs["durations"]
-        pitch_avg = average_over_durations(
-            torch.from_numpy(pitch)[None, None, :], durations.cpu()
-        )  # [1, 1, n_frames]
+        pitch_avg = average_over_durations(torch.from_numpy(pitch)[None, None, :], durations.cpu())  # [1, 1, n_frames]
         pitch_avg_pred_denorm = (pitch_avg_pred * self.pitch_std) + self.pitch_mean
         figures["alignment"] = plot_alignment(alignment.transpose(1, 2), output_fig=False)
         figures["spectrogram"] = plot_spectrogram(spec)
@@ -1064,7 +1031,17 @@ class DelightfulTTSE2e(BaseTTSE2E):
         figures["energy_avg_pred"] = plot_avg_pitch(energy_avg_pred.squeeze(), input_text)
         return figures
 
-    def synthesize(self, text: str, speaker_id, language_id, emotion_id, d_vector, emotion_vector, ref_waveform=None, pitch_transform=None):
+    def synthesize(
+        self,
+        text: str,
+        speaker_id,
+        language_id,
+        emotion_id,
+        d_vector,
+        emotion_vector,
+        ref_waveform=None,
+        pitch_transform=None,
+    ):
         # TODO: add language_id
         is_cuda = next(self.parameters()).is_cuda
 
@@ -1174,14 +1151,14 @@ class DelightfulTTSE2e(BaseTTSE2E):
         for idx, s_info in enumerate(test_sentences):
             aux_inputs = self.get_aux_input_from_test_sentences(s_info)
 
-            print(f"this is auxs: {aux_inputs}")
+            # print(f"this is auxs: {aux_inputs}")
             outputs = self.synthesize(
                 aux_inputs["text"],
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 language_id=aux_inputs["language_id"],
                 emotion_vector=aux_inputs["emotion_vector"],
-                emotion_id=None
+                emotion_id=None,
             )
             outputs_gl = self.synthesize_with_gl(
                 aux_inputs["text"],
@@ -1211,7 +1188,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
 
         # get numerical speaker ids from speaker names
         if self.speaker_manager is not None and self.speaker_manager.speaker_names and self.args.use_speaker_embedding:
-            speaker_ids = [self.speaker_manager.speaker_names[sn] for sn in batch["speaker_names"]]
+            speaker_ids = [self.speaker_manager.name_to_id[sn] for sn in batch["speaker_names"]]
 
         if speaker_ids is not None:
             speaker_ids = torch.LongTensor(speaker_ids)
@@ -1286,7 +1263,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 batch["text_lengths"].max(),
                 device=batch["mel_input"].device,
             )
-            print(f'this is the attention priors np: {attn_priors_np}')
+            print(f"this is the attention priors np: {attn_priors_np}")
             print(f"this is the attention priors: {batch['attn_priors']}")
 
             for i in range(batch["mel_input"].shape[0]):
@@ -1361,6 +1338,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 verbose=verbose,
                 tokenizer=self.tokenizer,
                 start_by_longest=config.start_by_longest,
+                
             )
 
             # wait all the DDP process to be ready

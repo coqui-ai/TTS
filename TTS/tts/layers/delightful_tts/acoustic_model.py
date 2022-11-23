@@ -3,16 +3,20 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import torch
 from coqpit import Coqpit
 from torch import nn
-from TTS.tts.layers.delightful_tts import energy_adapter, phoneme_prosody_predictor
-from TTS.tts.layers.delightful_tts import variance_predictor
+import torch.nn.functional as F
+
+from TTS.tts.layers.delightful_tts import energy_adapter, phoneme_prosody_predictor, variance_predictor
 from TTS.tts.layers.delightful_tts.conformer import Conformer
+from TTS.tts.layers.delightful_tts.encoders import (
+    PhonemeLevelProsodyEncoder,
+    UtteranceLevelProsodyEncoder,
+    get_mask_from_lengths,
+)
+from TTS.tts.layers.delightful_tts.energy_adapter import EnergyAdaptor
 from TTS.tts.layers.delightful_tts.networks import EmbeddingPadded, positional_encoding
-from TTS.tts.layers.delightful_tts.encoders import PhonemeLevelProsodyEncoder, UtteranceLevelProsodyEncoder, get_mask_from_lengths
+from TTS.tts.layers.delightful_tts.phoneme_prosody_predictor import PhonemeProsodyPredictor
 from TTS.tts.layers.delightful_tts.pitch_adapter import PitchAdaptor
 from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor, VariancePredictorLSTM
-from TTS.tts.layers.delightful_tts.phoneme_prosody_predictor import PhonemeProsodyPredictor
-from TTS.tts.layers.delightful_tts.energy_adapter import EnergyAdaptor
-
 from TTS.tts.layers.generic.aligner import AlignmentNetwork
 from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.helpers import generate_path, maximum_path, sequence_mask
@@ -44,79 +48,124 @@ class AcousticModel(torch.nn.Module):
 
         self.emb_dim = args.acoustic_config.encoder.n_hidden
         self.encoder = Conformer(
-            dim=args.acoustic_config.encoder.n_hidden,
-            n_layers=args.acoustic_config.encoder.n_layers,
-            n_heads=args.acoustic_config.encoder.n_heads,
+            dim=self.args.n_hidden_conformer_encoder,
+            n_layers=self.args.n_layers_conformer_encoder,
+            n_heads=self.args.n_heads_conformer_encoder,
             speaker_embedding_dim=self.embedded_speaker_dim,
             emotion_embedding_dim=self.embedded_emotion_dim,
-            p_dropout=args.acoustic_config.encoder.p_dropout,
-            kernel_size_conv_mod=args.acoustic_config.encoder.kernel_size_conv_mod,
+            p_dropout=self.args.dropout_conformer_encoder,
+            kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_encoder,
         )
-        self.pitch_adaptor = PitchAdaptor(args.acoustic_config)
-        self.energy_adaptor = EnergyAdaptor(args.acoustic_config)
+        self.pitch_adaptor = PitchAdaptor(
+            n_input=self.args.n_hidden_conformer_encoder,
+            n_hidden=self.n_hidden_variance_adaptor,
+            n_out=1,
+            kernel_size=self.args.kernel_size_variance_adaptor,
+            emb_kernel_size=self.args.emb_kernel_size_variance_adaptor,
+            p_dropout=self.args.dropout_variance_adaptor,
+            lrelu_slope=self.args.lrelu_slope,
+        )
+        self.energy_adaptor = EnergyAdaptor(
+            channels_in=self.args.n_hidden_conformer_encoder,
+            channels_hidden=self.args.n_hidden_variance_adaptor,
+            channels_out=1,
+            kernel_size=self.args.kernel_size_variance_adaptor,
+            emb_kernel_size=self.args.emb_kernel_size_variance_adaptor,
+            dropout=self.args.dropout_variance_adaptor,
+            lrelu_slope=self.args.lrelu_slope,
+        )
 
         self.aligner = AlignmentNetwork(
-            in_query_channels=self.args.acoustic_config.out_channels,
-            in_key_channels=args.acoustic_config.encoder.n_hidden,
+            in_query_channels=self.args.out_channels,
+            in_key_channels=self.args.n_hidden_conformer_encoder,
         )
-
-        # self.duration_predictor = VariancePredictorLSTM(
-        #     in_dim=args.acoustic_config.encoder.n_hidden,
-        #     out_dim=1,
-        #     reduction_factor=4,
-        # )
 
         self.duration_predictor = VariancePredictor(
-            channels_in=args.acoustic_config.encoder.n_hidden,
-            channels=args.acoustic_config.variance_adaptor.n_hidden,
+            channels_in=self.args.n_hidden_conformer_encoder,
+            channels=self.args.n_hidden_variance_adaptor,
             channels_out=1,
-            kernel_size=args.acoustic_config.variance_adaptor.kernel_size,
-            p_dropout=args.acoustic_config.variance_adaptor.p_dropout,
-            lrelu_slope=args.acoustic_config.variance_adaptor.lrelu_slope,
-
+            kernel_size=self.args.kernel_size_variance_adaptor,
+            emb_kernel_size=self.args.emb_kernel_size_variance_adaptor,
+            p_dropout=self.args.dropout_variance_adaptor,
+            lrelu_slope=self.args.lrelu_slope,
         )
 
-        self.utterance_prosody_encoder = UtteranceLevelProsodyEncoder(args.acoustic_config)
-        self.utterance_prosody_predictor = PhonemeProsodyPredictor(args=args.acoustic_config, phoneme_level=False)
-        self.phoneme_prosody_encoder = PhonemeLevelProsodyEncoder(args.acoustic_config)
-        self.phoneme_prosody_predictor = PhonemeProsodyPredictor(args=args.acoustic_config, phoneme_level=True)
+        self.utterance_prosody_encoder = UtteranceLevelProsodyEncoder(
+            num_mels=self.args.num_mels,
+            ref_enc_filters=self.args.ref_enc_filters_reference_encoder,
+            ref_enc_size=self.args.ref_enc_size_reference_encoder,
+            ref_enc_gru_size=self.args.ref_enc_gru_size_reference_encoder,
+            ref_enc_strides=self.args.ref_enc_strides_reference_encoder,
+            n_hidden=self.args.n_hidden_conformer_encoder,
+            dropout=self.args.dropout_conformer_encoder,
+            bottleneck_size_u=self.args.bottleneck_size_u_reference_encoder,
+            token_num=self.args.token_num_reference_encoder
+        )
+
+        self.utterance_prosody_predictor = PhonemeProsodyPredictor(
+            hidden_size=self.args.n_hidden_conformer_encoder,
+            kernel_size=self.args.predictor_kernel_size_reference_encoder,
+            dropout=self.args.dropout_conformer_encoder,
+            bottleneck_size_u=self.args.bottleneck_size_u_reference_encoder,
+            lrelu_slope=self.args.lrelu_slope
+        )
+
+        self.phoneme_prosody_encoder = PhonemeLevelProsodyEncoder(
+            num_mels=self.args.num_mels,
+            ref_enc_filters=self.args.ref_enc_filters_reference_encoder,
+            ref_enc_size=self.args.ref_enc_size_reference_encoder,
+            ref_enc_gru_size=self.args.ref_enc_gru_size_reference_encoder,
+            ref_enc_strides=self.args.ref_enc_strides_reference_encoder,
+            n_hidden=self.args.n_hidden_conformer_encoder,
+            dropout=self.args.dropout_conformer_encoder,
+            bottleneck_size_p=self.args.bottleneck_size_p_reference_encoder,
+            n_heads=self.args.n_heads_conformer_encoder
+        )
+        
+        self.phoneme_prosody_predictor = PhonemeProsodyPredictor(
+            hidden_size=self.args.n_hidden_conformer_encoder,
+            kernel_size=self.args.predictor_kernel_size_reference_encoder,
+            dropout=self.args.dropout_conformer_encoder,
+            bottleneck_size=self.args.bottleneck_size_p_reference_encoder,
+            lrelu_slope=self.args.lrelu_slope
+        )
+
         self.u_bottle_out = nn.Linear(
-            args.acoustic_config.reference_encoder.bottleneck_size_u,
-            args.acoustic_config.encoder.n_hidden,
+            self.args.bottleneck_size_u_reference_encoder,
+            self.args.n_hidden_conformer_encoder,
         )
 
         # TODO: change this with IntanceNorm as in StyleTTS
-        self.u_norm = nn.LayerNorm(
-            args.acoustic_config.reference_encoder.bottleneck_size_u,
-            elementwise_affine=False,
+        self.u_norm = nn.InstanceNorm1d(
+            self.args.bottleneck_size_u_reference_encoder,
+            # elementwise_affine=False,
         )
         self.p_bottle_out = nn.Linear(
-            args.acoustic_config.reference_encoder.bottleneck_size_p,
-            args.acoustic_config.encoder.n_hidden,
+            self.args.bottleneck_size_p_reference_encoder,
+            self.args.n_hidden_conformer_encoder,
         )
         # TODO: change this with IntanceNorm as in StyleTTS
-        self.p_norm = nn.LayerNorm(
-            args.acoustic_config.reference_encoder.bottleneck_size_p,
-            elementwise_affine=False,
+        self.p_norm = nn.InstanceNorm1d(
+            self.args.bottleneck_size_p_reference_encoder,
+            # elementwise_affine=False,
         )
 
         self.decoder = Conformer(
-            dim=args.acoustic_config.decoder.n_hidden,
-            n_layers=args.acoustic_config.decoder.n_layers,
-            n_heads=args.acoustic_config.decoder.n_heads,
+            dim=self.args.n_hidden_conformer_decoder,
+            n_layers=self.args.n_layers_conformer_decoder,
+            n_heads=self.args.n_heads_conformer_decoder,
             speaker_embedding_dim=self.embedded_speaker_dim,
-            emotion_embedding_dim=self.embedded_emotion_dim,
-            p_dropout=args.acoustic_config.decoder.p_dropout,
-            kernel_size_conv_mod=args.acoustic_config.decoder.kernel_size_conv_mod,
+            p_dropout=self.args.dropout_conformer_decoder,
+            kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_decoder,
         )
 
         padding_idx = self.tokenizer.characters.pad_id
         self.src_word_emb = EmbeddingPadded(
-            self.args.num_chars, args.acoustic_config.encoder.n_hidden, padding_idx=padding_idx
+            self.args.num_chars, self.args.n_hidden_conformer_encoder, padding_idx=padding_idx
         )
         self.to_mel = nn.Linear(
-            args.acoustic_config.decoder.n_hidden,
-            args.acoustic_config.num_mels,
+            self.args.n_hidden_conformer_decoder,
+            self.args.num_mels,
         )
 
         self.energy_scaler = torch.nn.BatchNorm1d(1, affine=False, track_running_stats=True, momentum=None)
@@ -137,41 +186,29 @@ class AcousticModel(torch.nn.Module):
         if self.args.use_d_vector_file:
             self._init_d_vector()
 
-    def init_emotion(self, emotion_manager: "EmotionManager"):
-        # pylint: disable=attribute-defined-outside-init
-        """Initialize emotion modules of a model. A model can be trained either with a emotion embedding layer
-        or with external `embeddings` computed from a emotion encoder model.
-
-        You must provide a `emotion_manager` at initialization to set up the emotion modules.
-
-        Args:
-            emotion_manager (Coqpit): Emotion Manager.
-        """
-        self.embedded_emotion_dim = 0
-        self.emotion_manager = emotion_manager
-        self.num_emotions = 0
-
-        if self.emotion_manager:
-            self.num_emotions = self.emotion_manager.num_emotions
-
-        if self.args.use_emotion_embedding:
-            if self.num_emotions > 0:
-                print(" > initialization of emotion-embedding layers.")
-                self.emb_emotion = nn.Embedding(self.num_emotions, self.args.emotion_embedding_dim)
-                self.embedded_emotion_dim += self.args.emotion_embedding_dim
-
-        if self.args.use_emotion_vector_file:
-            self.embedded_emotion_dim += self.args.emotion_vector_dim
-
     def set_embedding_dims(self):
-        if self.embedded_emotion_dim > 0 and self.embedded_speaker_dim > 0:
-            self.embedding_dims = [self.embedded_speaker_dim, self.embedded_emotion_dim]
-        elif self.embedded_emotion_dim > 0:
-            self.embedding_dims = self.embedded_emotion_dim
         elif self.embedded_speaker_dim > 0:
             self.embedding_dims = self.embedded_speaker_dim
         else:
             self.embedding_dims = 0
+
+    @staticmethod
+    def _set_cond_input(aux_input: Dict):
+        """Set the speaker conditioning input based on the multi-speaker mode."""
+        sid, g, lid, durations = None, None, None, None
+        if "speaker_ids" in aux_input and aux_input["speaker_ids"] is not None:
+            sid = aux_input["speaker_ids"]
+            if sid.ndim == 0:
+                sid = sid.unsqueeze_(0)
+        if "d_vectors" in aux_input and aux_input["d_vectors"] is not None:
+            g = F.normalize(aux_input["d_vectors"]).unsqueeze(-1)
+            if g.ndim == 2:
+                g = g.unsqueeze_(0)
+
+        if "durations" in aux_input and aux_input["durations"] is not None:
+            durations = aux_input["durations"]
+
+        return sid, g, lid, durations
 
     def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
@@ -313,12 +350,11 @@ class AcousticModel(torch.nn.Module):
         attn_priors: torch.Tensor,
         use_ground_truth: bool = True,
         d_vectors: torch.Tensor = None,
-        emo_vectors: torch.Tensor = None,
         speaker_idx: torch.Tensor = None,
-        lang_idx: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         src_mask = get_mask_from_lengths(src_lens)  # [B, T_src]
         mel_mask = get_mask_from_lengths(mel_lens)  # [B, T_mel]
+        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx})
 
         # Token embeddings
         token_embeddings = self.src_word_emb(tokens)  # [B, T_src, C_hidden]
@@ -335,14 +371,11 @@ class AcousticModel(torch.nn.Module):
         dr = aligner_durations  # [B, T_en]
 
         # Embeddings
-        # TODO handle other cases
         speaker_embedding = None
-        emotion_embedding = None
         if d_vectors is not None:
             speaker_embedding = torch.nn.functional.normalize(d_vectors)
-
-        if emo_vectors is not None:
-            emotion_embedding = torch.nn.functional.normalize(emo_vectors)
+        elif speaker_idx is not None:
+            speaker_embedding = F.normalize(self.emb_g(sid))
 
         # Encoder
         pos_encoding = positional_encoding(
@@ -354,7 +387,6 @@ class AcousticModel(torch.nn.Module):
             token_embeddings,
             src_mask,
             speaker_embedding=speaker_embedding,
-            emotion_embedding=emotion_embedding,
             encoding=pos_encoding,
         )
 
@@ -396,7 +428,6 @@ class AcousticModel(torch.nn.Module):
         )
 
         # Energy predictor
-
         energy_pred, avg_energy_target, energy_emb = self.energy_adaptor.get_energy_embedding_train(
             x=encoder_outputs,
             target=energies,
@@ -421,7 +452,6 @@ class AcousticModel(torch.nn.Module):
             encoder_outputs_ex.transpose(1, 2),
             mel_mask,
             speaker_embedding=speaker_embedding,
-            emotion_embedding=emotion_embedding,
             encoding=pos_encoding,
         )
         x = self.to_mel(x)
@@ -450,7 +480,6 @@ class AcousticModel(torch.nn.Module):
             "dr_log_pred": log_duration_prediction.squeeze(1),  # [B, T]
             "dr_log_target": dr.squeeze(1),  # [B, T]
             "spk_emb": speaker_embedding,
-            "emo_emb": emotion_embedding,
         }
 
     @torch.no_grad()
@@ -461,26 +490,23 @@ class AcousticModel(torch.nn.Module):
         p_control: float = None,  # TODO
         d_control: float = None,  # TODO
         d_vectors: torch.Tensor = None,
-        emo_vectors: torch.Tensor = None,
         pitch_transform: Callable = None,
         energy_transform: Callable = None,
     ) -> torch.Tensor:
         src_mask = get_mask_from_lengths(torch.tensor([tokens.shape[1]], dtype=torch.int64, device=tokens.device))
         src_lens = torch.tensor(tokens.shape[1:2]).to(tokens.device)
+        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx})
 
         # Token embeddings
         token_embeddings = self.src_word_emb(tokens)
         token_embeddings = token_embeddings.masked_fill(src_mask.unsqueeze(-1), 0.0)
 
         # Embeddings
-        # TODO handle other cases
         speaker_embedding = None
-        emotion_embedding = None
         if d_vectors is not None:
             speaker_embedding = torch.nn.functional.normalize(d_vectors)
-
-        if emo_vectors is not None:
-            emotion_embedding = torch.nn.functional.normalize(emo_vectors)
+        elif speaker_idx is not None:
+            speaker_embedding = F.normalize(self.emb_g(sid))
 
         # Encoder
         pos_encoding = positional_encoding(
@@ -492,7 +518,6 @@ class AcousticModel(torch.nn.Module):
             token_embeddings,
             src_mask,
             speaker_embedding=speaker_embedding,
-            emotion_embedding=emotion_embedding,
             encoding=pos_encoding,
         )
 
@@ -556,7 +581,6 @@ class AcousticModel(torch.nn.Module):
             encoder_outputs_ex.transpose(1, 2),
             mel_mask,
             speaker_embedding=speaker_embedding,
-            emotion_embedding=emotion_embedding,
             encoding=encoding,
         )
         x = self.to_mel(x)
