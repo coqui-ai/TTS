@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Dict, List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
-from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTtsAudioConfig, DelightfulTtsArgs, VocoderConfig
+from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTtsAudioConfig, VocoderConfig
 
 
 @dataclass
