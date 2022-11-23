@@ -1,23 +1,39 @@
 from typing import Any, Dict
+
 import torch
 import torch.nn as nn
 
-from TTS.tts.layers.delightful_tts.encoders import ReferenceEncoder
 from TTS.tts.layers.delightful_tts.conformer import ConformerMultiHeadedSelfAttention
+from TTS.tts.layers.delightful_tts.encoders import ReferenceEncoder
 from TTS.tts.layers.delightful_tts.networks import ConvTransposed
 
 
 class PhonemeProsodyPredictor(nn.Module):
-    """Non-parallel Prosody Predictor inspired by Du et al., 2021"""
+    """Non-parallel Prosody Predictor inspired by: https://arxiv.org/pdf/2102.00851.pdf
+    It consists of 2 layers of  1D convolutions each followed by a relu activation, layer norm
+    and dropout, then finally a linear layer.
 
-    def __init__(self, args: Dict[str, Any], phoneme_level: bool):
+    Args:
+        hidden_size (int): Size of hidden channels.
+        kernel_size (int): Kernel size for the conv layers.
+        dropout: (float): Probability of dropout.
+        bottleneck_size (int): bottleneck size for last linear layer.
+        lrelu_slope (float): Slope of the leaky relu.
+
+
+    """
+
+    def __init__(
+        self,
+        hidden_size: int,
+        kernel_size: int,
+        dropout: float,
+        bottleneck_size: int,
+        lrelu_slope: float,
+
+    ):
         super().__init__()
-        self.d_model = args.encoder.n_hidden
-        kernel_size = args.reference_encoder.predictor_kernel_size
-        dropout = args.encoder.p_dropout
-        bottleneck_size = (
-            args.reference_encoder.bottleneck_size_p if phoneme_level else args.reference_encoder.bottleneck_size_u
-        )
+        self.d_model = hidden_size
         self.layers = nn.ModuleList(
             [
                 ConvTransposed(
@@ -26,7 +42,7 @@ class PhonemeProsodyPredictor(nn.Module):
                     kernel_size=kernel_size,
                     padding=(kernel_size - 1) // 2,
                 ),
-                nn.LeakyReLU(args.variance_adaptor.lrelu_slope),
+                nn.LeakyReLU(lrelu_slope),
                 nn.LayerNorm(self.d_model),
                 nn.Dropout(dropout),
                 ConvTransposed(
@@ -35,7 +51,7 @@ class PhonemeProsodyPredictor(nn.Module):
                     kernel_size=kernel_size,
                     padding=(kernel_size - 1) // 2,
                 ),
-                nn.LeakyReLU(args.variance_adaptor.lrelu_slope),
+                nn.LeakyReLU(lrelu_slope),
                 nn.LayerNorm(self.d_model),
                 nn.Dropout(dropout),
             ]

@@ -3,7 +3,7 @@ import math
 from typing import Tuple
 
 import torch
-import torch.nn as nn # pylint: disable=consider-using-from-import
+import torch.nn as nn  # pylint: disable=consider-using-from-import
 import torch.nn.functional as F
 
 from TTS.tts.layers.delightful_tts.networks import Conv1dGLU, DepthWiseConv1d, GLUActivation, PointwiseConv1d
@@ -98,8 +98,8 @@ class ConformerBlock(torch.nn.Module):
         self,
         d_model: int,
         n_head: int,
-        d_k: int, # pylint: disable=unused-argument
-        d_v: int, # pylint: disable=unused-argument
+        d_k: int,  # pylint: disable=unused-argument
+        d_v: int,  # pylint: disable=unused-argument
         kernel_size_conv_mod: int,
         speaker_embedding_dim: int,
         emotion_embedding_dim: int,
@@ -405,7 +405,7 @@ class RelativeMultiHeadAttention(nn.Module):
 
         return self.out_proj(context), attn
 
-    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor: # pylint: disable=no-self-use
+    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor:  # pylint: disable=no-self-use
         batch_size, num_heads, seq_length1, seq_length2 = pos_score.size()
         zeros = torch.zeros((batch_size, num_heads, seq_length1, 1), device=pos_score.device)
         padded_pos_score = torch.cat([zeros, pos_score], dim=-1)
@@ -423,8 +423,13 @@ class MultiHeadAttention(nn.Module):
         out --- [N, T_q, num_units]
     """
 
-    def __init__(self, query_dim: int, key_dim: int, num_units: int, num_heads: int):
-
+    def __init__(
+            self, 
+            query_dim: int, 
+            key_dim: int, 
+            num_units: int, 
+            num_heads: int
+    ):
         super().__init__()
         self.num_units = num_units
         self.num_heads = num_heads

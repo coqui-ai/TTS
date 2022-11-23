@@ -1,11 +1,10 @@
 import math
 from typing import Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.modules.conv as conv
-
-import numpy as np
 from torch.nn import functional as F
 
 from TTS.tts.utils.helpers import sequence_mask
@@ -479,12 +478,16 @@ class AddCoords(nn.Module):
 class STL(nn.Module):
     """Style Token Layer"""
 
-    def __init__(self, args: "DelightfulTtsArgs"):
+    def __init__(
+        self,
+        n_hidden: int,
+        token_num: int 
+    ):
         super(STL, self).__init__()
 
         num_heads = 1
-        E = args.encoder.n_hidden
-        self.token_num = args.reference_encoder.token_num
+        E = n_hidden
+        self.token_num = token_num
         self.embed = nn.Parameter(torch.FloatTensor(self.token_num, E // num_heads))
         d_q = E // 2
         d_k = E // num_heads
