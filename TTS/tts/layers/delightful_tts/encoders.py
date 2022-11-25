@@ -105,7 +105,6 @@ class PhonemeLevelProsodyEncoder(nn.Module):
         n_hidden: int,
         n_heads: int,
         bottleneck_size_p: int,
-        args
     ):
         super().__init__()
 
