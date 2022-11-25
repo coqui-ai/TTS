@@ -646,7 +646,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         energy: torch.FloatTensor = None,
         attn_priors: torch.FloatTensor = None,
         d_vectors: torch.FloatTensor = None,
-        emo_vectors: torch.FloatTensor = None,
         speaker_idx: torch.LongTensor = None,
     ) -> Dict:
         """Model's forward pass.
@@ -695,7 +694,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
             pad_short=True,
         )
 
-        # TODO: not sure if we need to pass spk_emb to the vocoder
         vocoder_output = self.waveform_decoder(
             x=vocoder_input_slices.detach(),
             g=encoder_outputs['spk_emb'].unsqueeze(-1)
@@ -715,7 +713,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
 
     @torch.no_grad()
     def inference(
-        self, x, d_vectors=None, emotion_vectors=None, speaker_idx=None, pitch_transform=None, energy_transform=None
+        self, x, d_vectors=None, speaker_idx=None, pitch_transform=None, energy_transform=None
     ):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
@@ -754,13 +752,11 @@ class DelightfulTTSE2e(BaseTTSE2E):
             waveform = batch["waveform"]  # [B, T, C] -> [B, C, T]
             pitch = batch["pitch"]
             d_vectors = batch["d_vectors"]
-            emo_vectors = None, # batch["emo_vectors"]
             speaker_ids = batch["speaker_ids"]
             language_ids = batch["language_ids"]
             attn_priors = batch["attn_priors"]
             energy = batch["energy"]
 
-            # generator pass
             outputs = self.forward(
                 x=tokens,
                 x_lengths=token_lenghts,
@@ -771,7 +767,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 energy=energy,
                 attn_priors=attn_priors,
                 d_vectors=d_vectors,
-                emo_vectors=emo_vectors,
                 speaker_idx=speaker_ids,
             )
 
@@ -853,12 +848,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
                     spec_slice_hat=mel_slice_hat,
                     skip_disc=not self.train_disc,
                 )
-
-                # compute duration error for logging
-                # durations_pred = self.model_outputs_cache["dr_pred"]
-                # durations_target = self.model_outputs_cache["dr_target"]
-                # duration_error = torch.abs(durations_target - durations_pred).sum() / batch["text_lengths"].sum()
-                # loss_dict["duration_error"] = duration_error
 
                 loss_dict["avg_text_length"] = batch["text_lengths"].float().mean()
                 loss_dict["avg_mel_length"] = batch["mel_lengths"].float().mean()
@@ -995,7 +984,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 else:
                     speaker_id = self.speaker_manager.ids[speaker_name]
 
-        # get emotion id/vector
 
         # get language id
         # if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
@@ -1006,7 +994,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
             "speaker_id": speaker_id,
             "style_wav": style_wav,
             "d_vector": d_vector,
-            "language_id": None,
+            "language_id": language_id,
             "language_name": None,
         }
 
@@ -1049,9 +1037,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         text: str,
         speaker_id,
         language_id,
-        emotion_id,
         d_vector,
-        emotion_vector=None,
         ref_waveform=None,
         pitch_transform=None,
     ):
@@ -1071,11 +1057,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         if d_vector is not None:
             d_vector = embedding_to_torch(d_vector, cuda=is_cuda)
 
-        if emotion_vector is not None:
-            emotion_vector = embedding_to_torch(emotion_vector, cuda=is_cuda)
-
-        # if language_id is not None:
-        #     language_id = id_to_torch(language_id, cuda=is_cuda)
 
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=is_cuda)
         text_inputs = text_inputs.unsqueeze(0)
@@ -1084,7 +1065,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         outputs = self.inference(
             text_inputs,
             d_vectors=d_vector,
-            emotion_vectors=emotion_vector,
             speaker_idx=speaker_id,
             pitch_transform=pitch_transform,
             # energy_transform=energy_transform
@@ -1101,9 +1081,8 @@ class DelightfulTTSE2e(BaseTTSE2E):
         }
         return return_dict
 
-    def synthesize_with_gl(self, text: str, speaker_id, language_id, d_vector, emotion_vector):
+    def synthesize_with_gl(self, text: str, speaker_id, language_id, d_vector):
 
-        # TODO: add language_id
         is_cuda = next(self.parameters()).is_cuda
 
         # convert text to sequence of token IDs
@@ -1118,12 +1097,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         if d_vector is not None:
             d_vector = embedding_to_torch(d_vector, cuda=is_cuda)
 
-        if emotion_vector is not None:
-            emotion_vector = embedding_to_torch(emotion_vector, cuda=is_cuda)
-
-        # if language_id is not None:
-        #     language_id = id_to_torch(language_id, cuda=is_cuda)
-
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=is_cuda)
         text_inputs = text_inputs.unsqueeze(0)
 
@@ -1131,7 +1104,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         outputs = self.inference_spec_decoder(
             x=text_inputs,
             d_vectors=d_vector,
-            emotion_vectors=emotion_vector,
             speaker_idx=speaker_id,
         )
 
@@ -1164,21 +1136,17 @@ class DelightfulTTSE2e(BaseTTSE2E):
         for idx, s_info in enumerate(test_sentences):
             aux_inputs = self.get_aux_input_from_test_sentences(s_info)
 
-            # print(f"this is auxs: {aux_inputs}")
             outputs = self.synthesize(
                 aux_inputs["text"],
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 language_id=aux_inputs["language_id"],
-                emotion_vector=None,# aux_inputs["emotion_vector"],
-                emotion_id=None,
             )
             outputs_gl = self.synthesize_with_gl(
                 aux_inputs["text"],
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 language_id=aux_inputs["language_id"],
-                emotion_vector=None# aux_inputs["emotion_vector"],
             )
             # speaker_name = self.speaker_manager.speaker_names[aux_inputs["speaker_id"]]
             test_audios["{}-audio".format(idx)] = outputs["wav"].T
@@ -1197,7 +1165,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         speaker_ids = None
         language_ids = None
         d_vectors = None
-        emotion_vectors = None
 
         # get numerical speaker ids from speaker names
         if self.speaker_manager is not None and self.speaker_manager.speaker_names and self.args.use_speaker_embedding:

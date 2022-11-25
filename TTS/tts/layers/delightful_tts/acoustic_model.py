@@ -51,7 +51,6 @@ class AcousticModel(torch.nn.Module):
             n_layers=self.args.n_layers_conformer_encoder,
             n_heads=self.args.n_heads_conformer_encoder,
             speaker_embedding_dim=self.embedded_speaker_dim,
-            emotion_embedding_dim=0,
             p_dropout=self.args.dropout_conformer_encoder,
             kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_encoder,
         )
@@ -134,18 +133,18 @@ class AcousticModel(torch.nn.Module):
         )
 
         # TODO: change this with IntanceNorm as in StyleTTS
-        self.u_norm = nn.InstanceNorm1d(
+        self.u_norm = nn.LayerNorm(
             self.args.bottleneck_size_u_reference_encoder,
-            # elementwise_affine=False,
+            elementwise_affine=False,
         )
         self.p_bottle_out = nn.Linear(
             self.args.bottleneck_size_p_reference_encoder,
             self.args.n_hidden_conformer_encoder,
         )
         # TODO: change this with IntanceNorm as in StyleTTS
-        self.p_norm = nn.InstanceNorm1d(
+        self.p_norm = nn.LayerNorm(
             self.args.bottleneck_size_p_reference_encoder,
-            # elementwise_affine=False,
+            elementwise_affine=False,
         )
 
         self.decoder = Conformer(
@@ -155,7 +154,6 @@ class AcousticModel(torch.nn.Module):
             speaker_embedding_dim=self.embedded_speaker_dim,
             p_dropout=self.args.dropout_conformer_decoder,
             kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_decoder,
-            emotion_embedding_dim=0
         )
 
         padding_idx = self.tokenizer.characters.pad_id
@@ -518,7 +516,6 @@ class AcousticModel(torch.nn.Module):
             src_mask,
             speaker_embedding=speaker_embedding,
             encoding=pos_encoding,
-            emotion_embedding=None
         )
 
         # Utterance Prosody encoder
@@ -582,13 +579,12 @@ class AcousticModel(torch.nn.Module):
             mel_mask,
             speaker_embedding=speaker_embedding,
             encoding=encoding,
-            emotion_embedding=None
         )
         x = self.to_mel(x)
         outputs = {
             "model_outputs": x,
             "alignments": alignments,
-            # "pitch": pitch_emb_pred,
+            "pitch": pitch_emb_pred,
             "durations": duration_pred,
             "pitch": pitch_pred,
             "energy": energy_pred,
