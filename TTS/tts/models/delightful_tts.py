@@ -381,6 +381,7 @@ class DelightfulTtsAudioConfig(Coqpit):
 class DelightfulTtsArgs(Coqpit):
     num_chars: int = 100
     spec_segment_size: int = 32
+    # acoustic model params
     n_hidden_conformer_encoder: int = 512
     n_layers_conformer_encoder: int = 6
     n_heads_conformer_encoder: int = 8
@@ -396,10 +397,10 @@ class DelightfulTtsArgs(Coqpit):
     kernel_size_depthwise_conformer_decoder: int = 11
     bottleneck_size_p_reference_encoder: int = 4
     bottleneck_size_u_reference_encoder: int = 512
-    ref_enc_filters_reference_encoder: List[Union[int]] = [32, 32, 64, 64, 128, 128]
+    ref_enc_filters_reference_encoder = [32, 32, 64, 64, 128, 128]
     ref_enc_size_reference_encoder: int = 3
-    ref_enc_strides_reference_encoder: List[Union[int]] = [1, 2, 1, 2, 1]
-    ref_enc_pad_reference_encoder: List[Union[int]] = [1, 1]
+    ref_enc_strides_reference_encoder = [1, 2, 1, 2, 1]
+    ref_enc_pad_reference_encoder = [1, 1]
     ref_enc_gru_size_reference_encoder: int = 32
     ref_attention_dropout_reference_encoder: float = 0.2
     token_num_reference_encoder: int = 32
@@ -466,10 +467,8 @@ class DelightfulTTSE2e(BaseTTSE2E):
         ap,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
-        emotion_manager: EmotionManager = None,
     ):
         super().__init__(config=config, ap=ap, tokenizer=tokenizer, speaker_manager=speaker_manager)
-        self.emotion_manager = emotion_manager
         self.ap = ap
 
         self._set_model_args(config)
@@ -478,9 +477,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
 
         self.args.out_channels = self.config.audio.num_mels
         self.args.num_mels = self.config.audio.num_mels
-        self.acoustic_model = AcousticModel(
-            args=self.args, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=emotion_manager
-        )
+        self.acoustic_model = AcousticModel(args=self.args, tokenizer=tokenizer, speaker_manager=speaker_manager)
 
         self.waveform_decoder = HifiganGenerator(
             self.config.audio.num_mels,
@@ -498,12 +495,10 @@ class DelightfulTTSE2e(BaseTTSE2E):
             conv_post_bias=False,
         )
 
-        # use Vits Discriminator for limiting VRAM use
         if self.config.init_discriminator:
             self.disc = VitsDiscriminator(
                 use_spectral_norm=self.config.vocoder.use_spectral_norm_discriminator,
-                periods=self.config.vocoder.periods_discriminator,
-                # upsampling_rates=self.config.vocoder.upsampling_rates_discriminator,
+                periods=self.config.vocoder.periods_discriminator
             )
 
     def init_for_training(self):
@@ -610,10 +605,36 @@ class DelightfulTTSE2e(BaseTTSE2E):
         self.embedded_speaker_dim = self.args.d_vector_dim
         self.args.embedded_speaker_dim = self.args.d_vector_dim
 
-    def _freeze_layers(self):
-        # TODO: freeze layers
-        ...
+    def on_epoch_start(self, trainer):  # pylint: disable=W0613
+        """Freeze layers at the beginning of an epoch"""
+        self._freeze_layers()
+        # set the device of speaker encoder
 
+    def _freeze_layers(self):
+        if self.args.freeze_vocoder:
+            for param in self.vocoder.paramseters():
+                param.requires_grad = False
+        
+        if self.args.freeze_text_encoder:
+            for param in self.text_encoder.parameters():
+                param.requires_grad = False
+        
+        if self.args.freeze_duration_predictor:
+            for param in self.durarion_predictor.parameters():
+                param.requires_grad = False
+
+        if self.args.freeze_pitch_predictor:
+            for param in self.pitch_predictor.parameters():
+                param.requires_grad = False
+
+        if self.args.freeze_energy_predictor:
+            for param in self.energy_predictor.parameters():
+                param.requires_grad = False
+
+        if self.args.freeze_decoder:
+            for param in self.decoder.parameters():
+                param.requires_grad = False         
+                
     def forward(
         self,
         x: torch.LongTensor,
@@ -660,7 +681,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
             energies=energy,
             attn_priors=attn_priors,
             d_vectors=d_vectors,
-            emo_vectors=emo_vectors,
             speaker_idx=speaker_idx,
         )
 
@@ -678,7 +698,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         # TODO: not sure if we need to pass spk_emb to the vocoder
         vocoder_output = self.waveform_decoder(
             x=vocoder_input_slices.detach(),
-            g=encoder_outputs['spk_emb']
+            g=encoder_outputs['spk_emb'].unsqueeze(-1)
         )
         wav_seg = segment(
             waveform,
@@ -700,7 +720,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
             d_vectors=d_vectors,
-            emo_vectors=emotion_vectors,
             speaker_idx=speaker_idx,
             pitch_transform=pitch_transform,
             energy_transform=energy_transform,
@@ -708,7 +727,10 @@ class DelightfulTTSE2e(BaseTTSE2E):
             d_control=None,
         )
         vocoder_input = encoder_outputs["model_outputs"].transpose(1, 2)  # [B, T_max2, C_mel] -> [B, C_mel, T_max2]
-        vocoder_output = self.waveform_decoder(x=vocoder_input)
+        vocoder_output = self.waveform_decoder(
+            x=vocoder_input,
+            g=encoder_outputs['spk_emb'].unsqueeze(-1)
+        )
         model_outputs = {**encoder_outputs}
         model_outputs["model_outputs"] = vocoder_output
         return model_outputs
@@ -719,7 +741,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
             tokens=x,
             speaker_idx=speaker_idx,
             d_vectors=d_vectors,
-            emo_vectors=emotion_vectors,
         )
         model_outputs = {**encoder_outputs}
         return model_outputs
@@ -733,7 +754,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
             waveform = batch["waveform"]  # [B, T, C] -> [B, C, T]
             pitch = batch["pitch"]
             d_vectors = batch["d_vectors"]
-            emo_vectors = batch["emo_vectors"]
+            emo_vectors = None, # batch["emo_vectors"]
             speaker_ids = batch["speaker_ids"]
             language_ids = batch["language_ids"]
             attn_priors = batch["attn_priors"]
@@ -975,13 +996,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
                     speaker_id = self.speaker_manager.ids[speaker_name]
 
         # get emotion id/vector
-        emotion_vector = None
-        if hasattr(self, "speaker_manager"):
-            if config.use_emotion_vector_file:
-                if emotion is None:
-                    emotion_vector = self.emotion_manager.get_random_embeddings()
-                else:
-                    emotion_vector = self.emotion_manager.get_mean_embedding(emotion, num_samples=None, randomize=False)
 
         # get language id
         # if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
@@ -994,7 +1008,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
             "d_vector": d_vector,
             "language_id": None,
             "language_name": None,
-            "emotion_vector": emotion_vector,
         }
 
     def plot_outputs(self, text, wav, alignment, outputs):
@@ -1038,7 +1051,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         language_id,
         emotion_id,
         d_vector,
-        emotion_vector,
+        emotion_vector=None,
         ref_waveform=None,
         pitch_transform=None,
     ):
@@ -1157,7 +1170,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 language_id=aux_inputs["language_id"],
-                emotion_vector=aux_inputs["emotion_vector"],
+                emotion_vector=None,# aux_inputs["emotion_vector"],
                 emotion_id=None,
             )
             outputs_gl = self.synthesize_with_gl(
@@ -1165,7 +1178,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
                 language_id=aux_inputs["language_id"],
-                emotion_vector=aux_inputs["emotion_vector"],
+                emotion_vector=None# aux_inputs["emotion_vector"],
             )
             # speaker_name = self.speaker_manager.speaker_names[aux_inputs["speaker_id"]]
             test_audios["{}-audio".format(idx)] = outputs["wav"].T
@@ -1211,15 +1224,9 @@ class DelightfulTTSE2e(BaseTTSE2E):
         if language_ids is not None:
             language_ids = torch.LongTensor(language_ids)
 
-        # get emotions
-        if self.emotion_manager is not None and self.emotion_manager.embeddings and self.args.use_emotion_vector_file:
-            emotion_mapping = self.emotion_manager.embeddings
-            emotion_vectors = [emotion_mapping[w]["embedding"] for w in batch["audio_files"]]
-            emotion_vectors = torch.FloatTensor(emotion_vectors)
 
         batch["language_ids"] = language_ids
         batch["d_vectors"] = d_vectors
-        batch["emo_vectors"] = emotion_vectors
         batch["speaker_ids"] = speaker_ids
         return batch
 
