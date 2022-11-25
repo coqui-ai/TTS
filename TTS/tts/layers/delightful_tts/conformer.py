@@ -84,7 +84,6 @@ class Conformer(nn.Module):
                 mask=mask,
                 slf_attn_mask=attn_mask,
                 speaker_embedding=speaker_embedding,
-                emotion_embedding=emotion_embedding,
                 encoding=encoding,
             )
         return x

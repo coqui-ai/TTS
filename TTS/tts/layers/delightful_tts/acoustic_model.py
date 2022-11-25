@@ -584,7 +584,7 @@ class AcousticModel(torch.nn.Module):
         outputs = {
             "model_outputs": x,
             "alignments": alignments,
-            "pitch": pitch_emb_pred,
+            # "pitch": pitch_emb_pred,
             "durations": duration_pred,
             "pitch": pitch_pred,
             "energy": energy_pred,
