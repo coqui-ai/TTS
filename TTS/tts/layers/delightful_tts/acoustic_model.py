@@ -39,26 +39,25 @@ class AcousticModel(torch.nn.Module):
         self.emotion_manager = emotion_manager
 
         self.init_multispeaker(args)
-        self.init_emotion(emotion_manager)
         self.set_embedding_dims()
 
         self.length_scale = (
             float(self.args.length_scale) if isinstance(self.args.length_scale, int) else self.args.length_scale
         )
 
-        self.emb_dim = args.acoustic_config.encoder.n_hidden
+        self.emb_dim = args.n_hidden_conformer_encoder
         self.encoder = Conformer(
             dim=self.args.n_hidden_conformer_encoder,
             n_layers=self.args.n_layers_conformer_encoder,
             n_heads=self.args.n_heads_conformer_encoder,
             speaker_embedding_dim=self.embedded_speaker_dim,
-            emotion_embedding_dim=self.embedded_emotion_dim,
+            emotion_embedding_dim=0,
             p_dropout=self.args.dropout_conformer_encoder,
             kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_encoder,
         )
         self.pitch_adaptor = PitchAdaptor(
             n_input=self.args.n_hidden_conformer_encoder,
-            n_hidden=self.n_hidden_variance_adaptor,
+            n_hidden=self.args.n_hidden_variance_adaptor,
             n_out=1,
             kernel_size=self.args.kernel_size_variance_adaptor,
             emb_kernel_size=self.args.emb_kernel_size_variance_adaptor,
@@ -85,7 +84,6 @@ class AcousticModel(torch.nn.Module):
             channels=self.args.n_hidden_variance_adaptor,
             channels_out=1,
             kernel_size=self.args.kernel_size_variance_adaptor,
-            emb_kernel_size=self.args.emb_kernel_size_variance_adaptor,
             p_dropout=self.args.dropout_variance_adaptor,
             lrelu_slope=self.args.lrelu_slope,
         )
@@ -106,7 +104,7 @@ class AcousticModel(torch.nn.Module):
             hidden_size=self.args.n_hidden_conformer_encoder,
             kernel_size=self.args.predictor_kernel_size_reference_encoder,
             dropout=self.args.dropout_conformer_encoder,
-            bottleneck_size_u=self.args.bottleneck_size_u_reference_encoder,
+            bottleneck_size=self.args.bottleneck_size_u_reference_encoder,
             lrelu_slope=self.args.lrelu_slope
         )
 
@@ -157,6 +155,7 @@ class AcousticModel(torch.nn.Module):
             speaker_embedding_dim=self.embedded_speaker_dim,
             p_dropout=self.args.dropout_conformer_decoder,
             kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_decoder,
+            emotion_embedding_dim=0
         )
 
         padding_idx = self.tokenizer.characters.pad_id
@@ -187,7 +186,7 @@ class AcousticModel(torch.nn.Module):
             self._init_d_vector()
 
     def set_embedding_dims(self):
-        elif self.embedded_speaker_dim > 0:
+        if self.embedded_speaker_dim > 0:
             self.embedding_dims = self.embedded_speaker_dim
         else:
             self.embedding_dims = 0
@@ -519,6 +518,7 @@ class AcousticModel(torch.nn.Module):
             src_mask,
             speaker_embedding=speaker_embedding,
             encoding=pos_encoding,
+            emotion_embedding=None
         )
 
         # Utterance Prosody encoder
@@ -582,6 +582,7 @@ class AcousticModel(torch.nn.Module):
             mel_mask,
             speaker_embedding=speaker_embedding,
             encoding=encoding,
+            emotion_embedding=None
         )
         x = self.to_mel(x)
         outputs = {
@@ -591,5 +592,6 @@ class AcousticModel(torch.nn.Module):
             "durations": duration_pred,
             "pitch": pitch_pred,
             "energy": energy_pred,
+            "spk_emb": speaker_embedding
         }
         return outputs

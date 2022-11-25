@@ -23,7 +23,6 @@ class Conformer(nn.Module):
         speaker_embedding_dim: int,
         p_dropout: float,
         kernel_size_conv_mod: int,
-        emotion_embedding_dim: int,
     ):
         """
         A Tansformer variant that integrates both CNNs and Transformers components.
@@ -58,7 +57,6 @@ class Conformer(nn.Module):
                     kernel_size_conv_mod=kernel_size_conv_mod,
                     dropout=p_dropout,
                     speaker_embedding_dim=speaker_embedding_dim,
-                    emotion_embedding_dim=emotion_embedding_dim,
                 )
                 for _ in range(n_layers)
             ]
@@ -69,7 +67,6 @@ class Conformer(nn.Module):
         x: torch.Tensor,
         mask: torch.Tensor,
         speaker_embedding: torch.Tensor,
-        emotion_embedding: torch.Tensor,
         encoding: torch.Tensor,
     ) -> torch.Tensor:
         """
@@ -102,7 +99,6 @@ class ConformerBlock(torch.nn.Module):
         d_v: int,  # pylint: disable=unused-argument
         kernel_size_conv_mod: int,
         speaker_embedding_dim: int,
-        emotion_embedding_dim: int,
         dropout: float,
     ):
         """
@@ -136,13 +132,6 @@ class ConformerBlock(torch.nn.Module):
                 embedding_dim=speaker_embedding_dim,
             )
 
-        if isinstance(emotion_embedding_dim, int):
-            self.emotion_conditioning = Conv1dGLU(
-                d_model=d_model,
-                kernel_size=kernel_size_conv_mod,
-                padding=kernel_size_conv_mod // 2,
-                embedding_dim=emotion_embedding_dim,
-            )
         self.ff = FeedForward(d_model=d_model, dropout=dropout, kernel_size=3)
         self.conformer_conv_1 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout)
         self.ln = nn.LayerNorm(d_model)
@@ -156,7 +145,6 @@ class ConformerBlock(torch.nn.Module):
         mask: torch.Tensor,
         slf_attn_mask: torch.Tensor,
         encoding: torch.Tensor,
-        emotion_embedding: torch.Tensor = None,
     ) -> torch.Tensor:
         """
         Shapes:
@@ -169,8 +157,6 @@ class ConformerBlock(torch.nn.Module):
         """
         if speaker_embedding is not None:
             x = self.conditioning(x, embeddings=speaker_embedding)
-        if emotion_embedding is not None:
-            x = self.emotion_conditioning(x, embeddings=emotion_embedding)
         x = self.ff(x) + x
         x = self.conformer_conv_1(x) + x
         res = x
