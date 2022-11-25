@@ -3,7 +3,7 @@ from TTS.tts.utils.text.phonemizers.espeak_wrapper import ESpeak
 from TTS.tts.utils.text.phonemizers.gruut_wrapper import Gruut
 from TTS.tts.utils.text.phonemizers.ja_jp_phonemizer import JA_JP_Phonemizer
 from TTS.tts.utils.text.phonemizers.ko_kr_phonemizer import KO_KR_Phonemizer
-from TTS.tts.utils.text.phonemizers.pyopenjtalk_phonemizer import PyOpenJTalk_Phonemizer
+from TTS.tts.utils.text.phonemizers.pyopenjtalk_phonemizer import PyOpenJTalk_Phonemizer, PyOpenJTalk_Prosody_Phonemizer
 from TTS.tts.utils.text.phonemizers.zh_cn_phonemizer import ZH_CN_Phonemizer
 
 PHONEMIZERS = {b.name(): b for b in (ESpeak, Gruut, JA_JP_Phonemizer)}
@@ -53,6 +53,8 @@ def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
         return KO_KR_Phonemizer(**kwargs)
     if name == "pyopenjtalk":
         return PyOpenJTalk_Phonemizer(**kwargs)
+    if name == "pyopenjtalk_prosody":
+        return PyOpenJTalk_Prosody_Phonemizer(**kwargs)
     raise ValueError(f"Phonemizer {name} not found")
 
 
