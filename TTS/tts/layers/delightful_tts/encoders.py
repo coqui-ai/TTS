@@ -1,7 +1,7 @@
 from typing import Tuple, List, Union
 
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 
 from TTS.tts.layers.delightful_tts.conformer import ConformerMultiHeadedSelfAttention
@@ -24,14 +24,14 @@ class UtteranceLevelProsodyEncoder(nn.Module):
     def __init__(
         self,
         num_mels: int,
-        ref_enc_filters: List[Union[int, int, int, int, int, int]], 
+        ref_enc_filters: List[Union[int, int, int, int, int, int]],
         ref_enc_size: int,
         ref_enc_strides: List[Union[int, int, int, int, int]],
         ref_enc_gru_size: int,
         dropout: float,
         n_hidden: int,
         bottleneck_size_u: int,
-        token_num: int
+        token_num: int,
     ):
         """
         Encoder to extract prosody from utterance. is up of a reference encoder
@@ -42,7 +42,7 @@ class UtteranceLevelProsodyEncoder(nn.Module):
             ref_enc_filters (list[int]): List of channel sizes for ref encoder layers.
             ref_enc_size (int): Size of the kernel for the ref encoder conv layers.
             ref_enc_strides (List[int]): List of strides to use for teh ref encoder conv layers.
-            ref_enc_gru_size (int): Number of hidden features for the gated recurrent unit. 
+            ref_enc_gru_size (int): Number of hidden features for the gated recurrent unit.
             dropout (float): Probability of dropout.
             n_hidden (int): Size of hidden layers.
             bottleneck_size_u (int): Size of the bottle neck layer.
@@ -57,7 +57,6 @@ class UtteranceLevelProsodyEncoder(nn.Module):
 
         self.E = n_hidden
         self.d_q = self.d_k = n_hidden
-        ref_enc_gru_size = ref_enc_gru_size
         bottleneck_size = bottleneck_size_u
 
         self.encoder = ReferenceEncoder(
@@ -65,7 +64,7 @@ class UtteranceLevelProsodyEncoder(nn.Module):
             ref_enc_gru_size=ref_enc_gru_size,
             ref_enc_size=ref_enc_size,
             ref_enc_strides=ref_enc_strides,
-            num_mels=num_mels
+            num_mels=num_mels,
         )
         self.encoder_prj = nn.Linear(ref_enc_gru_size, self.E // 2)
         self.stl = STL(n_hidden=n_hidden, token_num=token_num)
@@ -97,7 +96,7 @@ class PhonemeLevelProsodyEncoder(nn.Module):
     def __init__(
         self,
         num_mels: int,
-        ref_enc_filters: List[Union[int, int, int, int, int, int]], 
+        ref_enc_filters: List[Union[int, int, int, int, int, int]],
         ref_enc_size: int,
         ref_enc_strides: List[Union[int, int, int, int, int]],
         ref_enc_gru_size: int,
@@ -111,15 +110,14 @@ class PhonemeLevelProsodyEncoder(nn.Module):
         self.E = n_hidden
         self.d_q = self.d_k = n_hidden
         bottleneck_size = bottleneck_size_p
-        ref_enc_gru_size = ref_enc_gru_size
         self.encoder = ReferenceEncoder(
             ref_enc_filters=ref_enc_filters,
             ref_enc_gru_size=ref_enc_gru_size,
             ref_enc_size=ref_enc_size,
             ref_enc_strides=ref_enc_strides,
-            num_mels=num_mels
+            num_mels=num_mels,
         )
-        
+
         self.encoder_prj = nn.Linear(ref_enc_gru_size, n_hidden)
         self.attention = ConformerMultiHeadedSelfAttention(
             d_model=n_hidden,
@@ -170,7 +168,7 @@ class ReferenceEncoder(nn.Module):
         ref_enc_filters (list[int]): List of channel sizes for encoder layers.
         ref_enc_size (int): Size of the kernel for the conv layers.
         ref_enc_strides (List[int]): List of strides to use for conv layers.
-        ref_enc_gru_size (int): Number of hidden features for the gated recurrent unit. 
+        ref_enc_gru_size (int): Number of hidden features for the gated recurrent unit.
 
     Inputs: inputs, mask
         - **inputs** (batch, dim, time): Tensor containing mel vector
@@ -178,22 +176,18 @@ class ReferenceEncoder(nn.Module):
     Returns:
         - **outputs** (batch, time, dim): Tensor produced by Reference Encoder.
     """
+
     def __init__(
         self,
         num_mels: int,
-        ref_enc_filters: List[Union[int, int, int, int, int, int]], 
+        ref_enc_filters: List[Union[int, int, int, int, int, int]],
         ref_enc_size: int,
         ref_enc_strides: List[Union[int, int, int, int, int]],
-        ref_enc_gru_size: int 
+        ref_enc_gru_size: int,
     ):
         super().__init__()
 
         n_mel_channels = num_mels
-        ref_enc_filters = ref_enc_filters
-        ref_enc_size = ref_enc_size
-        ref_enc_strides = ref_enc_strides
-        ref_enc_gru_size =ref_enc_gru_size
-
         self.n_mel_channels = n_mel_channels
         K = len(ref_enc_filters)
         filters = [self.n_mel_channels] + ref_enc_filters
@@ -260,7 +254,7 @@ class ReferenceEncoder(nn.Module):
 
         return x, memory, mel_masks
 
-    def calculate_channels(self, L: int, kernel_size: int, stride: int, pad: int, n_convs: int) -> int:
+    def calculate_channels(self, L: int, kernel_size: int, stride: int, pad: int, n_convs: int) -> int: # pylint: disable=no-self-use
         for _ in range(n_convs):
             L = (L - kernel_size + 2 * pad) // stride + 1
         return L

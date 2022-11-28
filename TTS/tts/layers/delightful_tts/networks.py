@@ -3,11 +3,9 @@ from typing import Tuple
 
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.modules.conv as conv
+from torch import nn
+import torch.nn.modules.conv as conv # pylint: disable=consider-using-from-import
 from torch.nn import functional as F
-
-from TTS.tts.utils.helpers import sequence_mask
 
 
 def initialize_embeddings(shape: Tuple[int]) -> torch.Tensor:
@@ -24,9 +22,9 @@ class BottleneckLayer(nn.Module):
         norm="weightnorm",
         non_linearity="relu",
         kernel_size=3,
-        use_partial_padding=False,
+        use_partial_padding=False # pylint: disable=unused-argument
     ):
-        super(BottleneckLayer, self).__init__()
+        super(BottleneckLayer, self).__init__() # pylint: disable=super-with-arguments
 
         self.reduction_factor = reduction_factor
         reduced_dim = int(in_dim / reduction_factor)
@@ -61,7 +59,7 @@ class ConvNorm(torch.nn.Module):
         w_init_gain="linear",
         use_weight_norm=False,
     ):
-        super(ConvNorm, self).__init__()
+        super(ConvNorm, self).__init__() # pylint: disable=super-with-arguments
         if padding is None:
             assert kernel_size % 2 == 1
             padding = int(dilation * (kernel_size - 1) / 2)
@@ -103,7 +101,7 @@ class ConvLSTMLinear(nn.Module):
         lstm_type="bilstm",
         use_linear=True,
     ):
-        super(ConvLSTMLinear, self).__init__()
+        super(ConvLSTMLinear, self).__init__() # pylint: disable=super-with-arguments
         self.out_dim = out_dim
         self.lstm_type = lstm_type
         self.use_linear = use_linear
@@ -148,16 +146,16 @@ class ConvLSTMLinear(nn.Module):
         context_embedded = []
         for b_ind in range(context.size()[0]):  # TODO: speed up
             curr_context = context[b_ind : b_ind + 1, :, : lens[b_ind]].clone()
-            for conv in self.convolutions:
-                curr_context = self.dropout(F.relu(conv(curr_context)))
+            for current_conv in self.convolutions:
+                curr_context = self.dropout(F.relu(current_conv(curr_context)))
             context_embedded.append(curr_context[0].transpose(0, 1))
         context = torch.nn.utils.rnn.pad_sequence(context_embedded, batch_first=True)
         return context
 
-    def run_unsorted_inputs(self, fn, context, lens):
+    def run_unsorted_inputs(self, fn, context, lens): # pylint: disable=no-self-use
         lens_sorted, ids_sorted = torch.sort(lens, descending=True)
         unsort_ids = [0] * lens.size(0)
-        for i in range(len(ids_sorted)):
+        for i in range(len(ids_sorted)): #pylint: disable=consider-using-enumerate
             unsort_ids[ids_sorted[i]] = i
         lens_sorted = lens_sorted.long().cpu()
 
@@ -176,8 +174,8 @@ class ConvLSTMLinear(nn.Module):
             # to B, D, T
             context = context.transpose(1, 2)
         else:
-            for conv in self.convolutions:
-                context = self.dropout(F.relu(conv(context)))
+            for current_conv in self.convolutions:
+                context = self.dropout(F.relu(current_conv(context)))
 
         if self.lstm_type != "":
             context = context.transpose(1, 2)
@@ -384,7 +382,7 @@ class AddCoords(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.rank == 1:
-            batch_size_shape, channel_in_shape, dim_x = x.shape
+            batch_size_shape, channel_in_shape, dim_x = x.shape # pylint: disable=unused-variable
             xx_range = torch.arange(dim_x, dtype=torch.int32)
             xx_channel = xx_range[None, None, :]
 
@@ -478,12 +476,8 @@ class AddCoords(nn.Module):
 class STL(nn.Module):
     """Style Token Layer"""
 
-    def __init__(
-        self,
-        n_hidden: int,
-        token_num: int 
-    ):
-        super(STL, self).__init__()
+    def __init__(self, n_hidden: int, token_num: int):
+        super(STL, self).__init__() # pylint: disable=super-with-arguments
 
         num_heads = 1
         E = n_hidden
@@ -505,162 +499,6 @@ class STL(nn.Module):
         emotion_embed_soft = self.attention(query, keys_soft)
 
         return emotion_embed_soft
-
-
-class EmbeddingProjBlock(nn.Module):
-    def __init__(self, embedding_dim: int):
-        super().__init__()
-        self.layers = nn.ModuleList(
-            [
-                nn.Linear(embedding_dim, embedding_dim),
-                nn.LeakyReLU(0.3),
-                nn.Linear(embedding_dim, embedding_dim),
-                nn.LeakyReLU(0.3),
-            ]
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        res = x
-        for layer in self.layers:
-            x = layer(x)
-        x = x + res
-        return x
-
-
-class LinearNorm(nn.Module):
-    def __init__(self, in_features: int, out_features: int, bias: bool = False):
-        super().__init__()
-        self.linear = nn.Linear(in_features, out_features, bias)
-
-        nn.init.xavier_uniform_(self.linear.weight)
-        if bias:
-            nn.init.constant_(self.linear.bias, 0.0)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.linear(x)
-        return x
-
-
-class ConvTransposed(nn.Module):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: int = 1,
-        padding: int = 0,
-    ):
-        super().__init__()
-        self.conv = BSConv1d(
-            in_channels,
-            out_channels,
-            kernel_size=kernel_size,
-            padding=padding,
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.contiguous().transpose(1, 2)
-        x = self.conv(x)
-        x = x.contiguous().transpose(1, 2)
-        return x
-
-
-class AddCoords(nn.Module):
-    def __init__(self, rank: int, with_r: bool = False):
-        super().__init__()
-        self.rank = rank
-        self.with_r = with_r
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.rank == 1:
-            batch_size_shape, channel_in_shape, dim_x = x.shape
-            xx_range = torch.arange(dim_x, dtype=torch.int32)
-            xx_channel = xx_range[None, None, :]
-
-            xx_channel = xx_channel.float() / (dim_x - 1)
-            xx_channel = xx_channel * 2 - 1
-            xx_channel = xx_channel.repeat(batch_size_shape, 1, 1)
-
-            xx_channel = xx_channel.to(x.device)
-            out = torch.cat([x, xx_channel], dim=1)
-
-            if self.with_r:
-                rr = torch.sqrt(torch.pow(xx_channel - 0.5, 2))
-                out = torch.cat([out, rr], dim=1)
-
-        elif self.rank == 2:
-            batch_size_shape, channel_in_shape, dim_y, dim_x = x.shape
-            xx_ones = torch.ones([1, 1, 1, dim_x], dtype=torch.int32)
-            yy_ones = torch.ones([1, 1, 1, dim_y], dtype=torch.int32)
-
-            xx_range = torch.arange(dim_y, dtype=torch.int32)
-            yy_range = torch.arange(dim_x, dtype=torch.int32)
-            xx_range = xx_range[None, None, :, None]
-            yy_range = yy_range[None, None, :, None]
-
-            xx_channel = torch.matmul(xx_range, xx_ones)
-            yy_channel = torch.matmul(yy_range, yy_ones)
-
-            # transpose y
-            yy_channel = yy_channel.permute(0, 1, 3, 2)
-
-            xx_channel = xx_channel.float() / (dim_y - 1)
-            yy_channel = yy_channel.float() / (dim_x - 1)
-
-            xx_channel = xx_channel * 2 - 1
-            yy_channel = yy_channel * 2 - 1
-
-            xx_channel = xx_channel.repeat(batch_size_shape, 1, 1, 1)
-            yy_channel = yy_channel.repeat(batch_size_shape, 1, 1, 1)
-
-            xx_channel = xx_channel.to(x.device)
-            yy_channel = yy_channel.to(x.device)
-
-            out = torch.cat([x, xx_channel, yy_channel], dim=1)
-
-            if self.with_r:
-                rr = torch.sqrt(torch.pow(xx_channel - 0.5, 2) + torch.pow(yy_channel - 0.5, 2))
-                out = torch.cat([out, rr], dim=1)
-
-        elif self.rank == 3:
-            batch_size_shape, channel_in_shape, dim_z, dim_y, dim_x = x.shape
-            xx_ones = torch.ones([1, 1, 1, 1, dim_x], dtype=torch.int32)
-            yy_ones = torch.ones([1, 1, 1, 1, dim_y], dtype=torch.int32)
-            zz_ones = torch.ones([1, 1, 1, 1, dim_z], dtype=torch.int32)
-
-            xy_range = torch.arange(dim_y, dtype=torch.int32)
-            xy_range = xy_range[None, None, None, :, None]
-
-            yz_range = torch.arange(dim_z, dtype=torch.int32)
-            yz_range = yz_range[None, None, None, :, None]
-
-            zx_range = torch.arange(dim_x, dtype=torch.int32)
-            zx_range = zx_range[None, None, None, :, None]
-
-            xy_channel = torch.matmul(xy_range, xx_ones)
-            xx_channel = torch.cat([xy_channel + i for i in range(dim_z)], dim=2)
-
-            yz_channel = torch.matmul(yz_range, yy_ones)
-            yz_channel = yz_channel.permute(0, 1, 3, 4, 2)
-            yy_channel = torch.cat([yz_channel + i for i in range(dim_x)], dim=4)
-
-            zx_channel = torch.matmul(zx_range, zz_ones)
-            zx_channel = zx_channel.permute(0, 1, 4, 2, 3)
-            zz_channel = torch.cat([zx_channel + i for i in range(dim_y)], dim=3)
-
-            xx_channel = xx_channel.to(x.device)
-            yy_channel = yy_channel.to(x.device)
-            zz_channel = zz_channel.to(x.device)
-            out = torch.cat([x, xx_channel, yy_channel, zz_channel], dim=1)
-
-            if self.with_r:
-                rr = torch.sqrt(
-                    torch.pow(xx_channel - 0.5, 2) + torch.pow(yy_channel - 0.5, 2) + torch.pow(zz_channel - 0.5, 2)
-                )
-                out = torch.cat([out, rr], dim=1)
-        else:
-            raise NotImplementedError
-
-        return out
 
 
 class CoordConv1d(conv.Conv1d):
@@ -747,13 +585,10 @@ class CoordConv2d(conv.Conv2d):
         return x
 
 
-MAX_WAV_VALUE = 32768.0
-
-
 class KernelPredictor(torch.nn.Module):
     """Kernel predictor for the location-variable convolutions"""
 
-    def __init__(
+    def __init__( # pylint: disable=dangerous-default-value
         self,
         cond_channels,
         conv_in_channels,
@@ -876,7 +711,7 @@ class KernelPredictor(torch.nn.Module):
 class LVCBlock(torch.nn.Module):
     """the location-variable convolutions"""
 
-    def __init__(
+    def __init__( # pylint: disable=dangerous-default-value
         self,
         in_channels,
         cond_channels,
@@ -953,8 +788,8 @@ class LVCBlock(torch.nn.Module):
         x = self.convt_pre(x)  # (B, c_g, stride * L')
         kernels, bias = self.kernel_predictor(c)
 
-        for i, conv in enumerate(self.conv_blocks):
-            output = conv(x)  # (B, c_g, stride * L')
+        for i, current_conv in enumerate(self.conv_blocks):
+            output = current_conv(x)  # (B, c_g, stride * L')
 
             k = kernels[:, i, :, :, :, :]  # (B, 2 * c_g, c_g, kernel_size, cond_length)
             b = bias[:, i, :, :]  # (B, 2 * c_g, cond_length)
@@ -968,7 +803,7 @@ class LVCBlock(torch.nn.Module):
 
         return x
 
-    def location_variable_convolution(self, x, kernel, bias, dilation=1, hop_size=256):
+    def location_variable_convolution(self, x, kernel, bias, dilation=1, hop_size=256): #pylint: disable=no-self-use
         """perform location-variable convolution operation on the input sequence (x) using the local convolution kernl.
         Time: 414 μs ± 309 ns per loop (mean ± std. dev. of 7 runs, 1000 loops each), test on NVIDIA V100.
         Args:

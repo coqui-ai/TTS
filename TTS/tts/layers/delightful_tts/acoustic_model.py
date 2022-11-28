@@ -1,11 +1,11 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+### credit: https://github.com/dunky11/voicesmith
+from typing import Callable, Dict, Tuple
 
 import torch
 from coqpit import Coqpit
 from torch import nn
 import torch.nn.functional as F
 
-from TTS.tts.layers.delightful_tts import energy_adapter, phoneme_prosody_predictor, variance_predictor
 from TTS.tts.layers.delightful_tts.conformer import Conformer
 from TTS.tts.layers.delightful_tts.encoders import (
     PhonemeLevelProsodyEncoder,
@@ -15,13 +15,12 @@ from TTS.tts.layers.delightful_tts.encoders import (
 from TTS.tts.layers.delightful_tts.energy_adapter import EnergyAdaptor
 from TTS.tts.layers.delightful_tts.networks import EmbeddingPadded, positional_encoding
 from TTS.tts.layers.delightful_tts.phoneme_prosody_predictor import PhonemeProsodyPredictor
-from TTS.tts.layers.delightful_tts.pitch_adapter import PitchAdaptor
-from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor, VariancePredictorLSTM
+from TTS.tts.layers.delightful_tts.pitch_adaptor import PitchAdaptor
+from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor
 from TTS.tts.layers.generic.aligner import AlignmentNetwork
 from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.helpers import generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
 
 
 class AcousticModel(torch.nn.Module):
@@ -96,7 +95,7 @@ class AcousticModel(torch.nn.Module):
             n_hidden=self.args.n_hidden_conformer_encoder,
             dropout=self.args.dropout_conformer_encoder,
             bottleneck_size_u=self.args.bottleneck_size_u_reference_encoder,
-            token_num=self.args.token_num_reference_encoder
+            token_num=self.args.token_num_reference_encoder,
         )
 
         self.utterance_prosody_predictor = PhonemeProsodyPredictor(
@@ -104,7 +103,7 @@ class AcousticModel(torch.nn.Module):
             kernel_size=self.args.predictor_kernel_size_reference_encoder,
             dropout=self.args.dropout_conformer_encoder,
             bottleneck_size=self.args.bottleneck_size_u_reference_encoder,
-            lrelu_slope=self.args.lrelu_slope
+            lrelu_slope=self.args.lrelu_slope,
         )
 
         self.phoneme_prosody_encoder = PhonemeLevelProsodyEncoder(
@@ -116,15 +115,15 @@ class AcousticModel(torch.nn.Module):
             n_hidden=self.args.n_hidden_conformer_encoder,
             dropout=self.args.dropout_conformer_encoder,
             bottleneck_size_p=self.args.bottleneck_size_p_reference_encoder,
-            n_heads=self.args.n_heads_conformer_encoder
+            n_heads=self.args.n_heads_conformer_encoder,
         )
-        
+
         self.phoneme_prosody_predictor = PhonemeProsodyPredictor(
             hidden_size=self.args.n_hidden_conformer_encoder,
             kernel_size=self.args.predictor_kernel_size_reference_encoder,
             dropout=self.args.dropout_conformer_encoder,
             bottleneck_size=self.args.bottleneck_size_p_reference_encoder,
-            lrelu_slope=self.args.lrelu_slope
+            lrelu_slope=self.args.lrelu_slope,
         )
 
         self.u_bottle_out = nn.Linear(
@@ -168,7 +167,7 @@ class AcousticModel(torch.nn.Module):
         self.energy_scaler = torch.nn.BatchNorm1d(1, affine=False, track_running_stats=True, momentum=None)
         self.energy_scaler.requires_grad_(False)
 
-    def init_multispeaker(self, args: Coqpit):
+    def init_multispeaker(self, args: Coqpit): # pylint: disable=unused-argument
         """Init for multi-speaker training."""
         self.embedded_speaker_dim = 0
         self.num_speakers = self.args.num_speakers
@@ -331,7 +330,7 @@ class AcousticModel(torch.nn.Module):
         aligner_mas = aligner_mas.transpose(1, 2)  # [B, T_max, T_max2] -> [B, T_max2, T_max]
         return aligner_durations, aligner_soft, aligner_logprob, aligner_mas
 
-    def average_utterance_prosody(self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor) -> torch.Tensor:
+    def average_utterance_prosody(self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor) -> torch.Tensor: # pylint: disable=no-self-use
         lengths = ((~src_mask) * 1.0).sum(1)
         u_prosody_pred = u_prosody_pred.sum(1, keepdim=True) / lengths.view(-1, 1, 1)
         return u_prosody_pred
@@ -351,7 +350,7 @@ class AcousticModel(torch.nn.Module):
     ) -> Dict[str, torch.Tensor]:
         src_mask = get_mask_from_lengths(src_lens)  # [B, T_src]
         mel_mask = get_mask_from_lengths(mel_lens)  # [B, T_mel]
-        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx})
+        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx}) # pylint: disable=unused-variable
 
         # Token embeddings
         token_embeddings = self.src_word_emb(tokens)  # [B, T_src, C_hidden]
@@ -483,16 +482,16 @@ class AcousticModel(torch.nn.Module):
     def inference(
         self,
         tokens: torch.Tensor,
-        speaker_idx: torch.Tensor,  # TODO
-        p_control: float = None,  # TODO
-        d_control: float = None,  # TODO
+        speaker_idx: torch.Tensor,
+        # p_control: float = None,  # TODO
+        # d_control: float = None,  # TODO
         d_vectors: torch.Tensor = None,
         pitch_transform: Callable = None,
         energy_transform: Callable = None,
     ) -> torch.Tensor:
         src_mask = get_mask_from_lengths(torch.tensor([tokens.shape[1]], dtype=torch.int64, device=tokens.device))
-        src_lens = torch.tensor(tokens.shape[1:2]).to(tokens.device)
-        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx})
+        src_lens = torch.tensor(tokens.shape[1:2]).to(tokens.device) # pylint: disable=unused-variable
+        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx}) # pylint: disable=unused-variable
 
         # Token embeddings
         token_embeddings = self.src_word_emb(tokens)
@@ -537,6 +536,8 @@ class AcousticModel(torch.nn.Module):
         encoder_outputs = encoder_outputs + self.p_bottle_out(p_prosody_pred).expand_as(encoder_outputs)
 
         encoder_outputs_res = encoder_outputs
+
+        encoder_outputs = self.pitch_adaptor.add_pitch
 
         # Pitch predictor
         pitch_emb_pred, pitch_pred = self.pitch_adaptor.get_pitch_embedding(
@@ -584,10 +585,9 @@ class AcousticModel(torch.nn.Module):
         outputs = {
             "model_outputs": x,
             "alignments": alignments,
-            # "pitch": pitch_emb_pred,
             "durations": duration_pred,
             "pitch": pitch_pred,
             "energy": energy_pred,
-            "spk_emb": speaker_embedding
+            "spk_emb": speaker_embedding,
         }
         return outputs

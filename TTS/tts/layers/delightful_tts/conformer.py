@@ -408,13 +408,7 @@ class MultiHeadAttention(nn.Module):
         out --- [N, T_q, num_units]
     """
 
-    def __init__(
-            self, 
-            query_dim: int, 
-            key_dim: int, 
-            num_units: int, 
-            num_heads: int
-    ):
+    def __init__(self, query_dim: int, key_dim: int, num_units: int, num_heads: int):
         super().__init__()
         self.num_units = num_units
         self.num_heads = num_heads

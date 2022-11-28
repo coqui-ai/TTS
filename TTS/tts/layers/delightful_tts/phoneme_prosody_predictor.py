@@ -1,10 +1,6 @@
-from typing import Any, Dict
-
 import torch
-import torch.nn as nn
+import torch.nn as nn #pylint: disable=consider-using-from-import
 
-from TTS.tts.layers.delightful_tts.conformer import ConformerMultiHeadedSelfAttention
-from TTS.tts.layers.delightful_tts.encoders import ReferenceEncoder
 from TTS.tts.layers.delightful_tts.networks import ConvTransposed
 
 
@@ -30,7 +26,6 @@ class PhonemeProsodyPredictor(nn.Module):
         dropout: float,
         bottleneck_size: int,
         lrelu_slope: float,
-
     ):
         super().__init__()
         self.d_model = hidden_size

@@ -22,7 +22,6 @@ from TTS.tts.layers.losses import ForwardSumLoss, SSIMLoss, VitsDiscriminatorLos
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.models.base_tts import BaseTTSE2E
 from TTS.tts.models.vits import load_audio, wav_to_mel, wav_to_spec
-from TTS.tts.utils.emotions import EmotionManager
 from TTS.tts.utils.helpers import average_over_durations, compute_attn_prior, rand_segments, segment, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -134,7 +133,7 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         samples: Union[List[List], List[Dict]],
         verbose=False,
         cache_path: str = None,
-        precompute_num_workers=0,
+        precompute_num_workers=40,
         normalize_f0=True,
     ):
         super().__init__(
@@ -165,24 +164,22 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
             np.save(pitch_file, f0)
         return f0
 
-    # def compute_or_load(self, wav_file):
-    #     """
-    #     compute pitch and return a numpy array of pitch values
-    #     """
-    #     pitch_file = self.create_pitch_file_path(wav_file, self.cache_path)
-    #     if not os.path.exists(pitch_file):
-    #         pitch = self._compute_and_save_pitch(
-    #             ap=self.ap, wav_file=wav_file, pitch_file=pitch_file
-    #         )
-    #     else:
-    #         pitch = np.load(pitch_file)
-    #     return pitch.astype(np.float32)
+    def compute_or_load(self, wav_file, audio_name):
+        """
+        compute pitch and return a numpy array of pitch values
+        """
+        pitch_file = self.create_pitch_file_path(audio_name, self.cache_path)
+        if not os.path.exists(pitch_file):
+            pitch = self._compute_and_save_pitch(ap=self.ap, wav_file=wav_file, pitch_file=pitch_file)
+        else:
+            pitch = np.load(pitch_file)
+        return pitch.astype(np.float32)
 
 
 class ForwardTTSE2eDataset(TTSDataset):
     def __init__(self, *args, **kwargs):
         # don't init the default F0Dataset in TTSDataset
-        compute_f0 = kwargs.pop("compute_f0", False)
+        compute_f0 = kwargs.pop("compute_f0", False) #pylint: disable=redefined-outer-name
         kwargs["compute_f0"] = False
         self.attn_prior_cache_path = kwargs.pop("attn_prior_cache_path")
 
@@ -251,7 +248,7 @@ class ForwardTTSE2eDataset(TTSDataset):
     def load_or_compute_attn_prior(self, token_ids, wav, rel_wav_path):
         """Load or compute and save the attention prior."""
         attn_prior_file = os.path.join(self.attn_prior_cache_path, f"{rel_wav_path}.npy")
-        if os.path.exists(attn_prior_file):
+        if os.path.exists(attn_prior_file): # pylint: disable=no-else-return
             return np.load(attn_prior_file)
         else:
             token_len = len(token_ids)
@@ -436,16 +433,16 @@ class DelightfulTTSE2e(BaseTTSE2E):
         https://arxiv.org/pdf/2110.12612.pdf
 
     Paper Abstract::
-        This paper describes the Microsoft end-to-end neural text to speech (TTS) system: DelightfulTTS for Blizzard Challenge 2021. 
-        The goal of this challenge is to synthesize natural and high-quality speech from text, and we approach this goal in two perspectives: 
-        The first is to directly model and generate waveform in 48 kHz sampling rate, which brings higher perception quality than previous systems 
+        This paper describes the Microsoft end-to-end neural text to speech (TTS) system: DelightfulTTS for Blizzard Challenge 2021.
+        The goal of this challenge is to synthesize natural and high-quality speech from text, and we approach this goal in two perspectives:
+        The first is to directly model and generate waveform in 48 kHz sampling rate, which brings higher perception quality than previous systems
         with 16 kHz or 24 kHz sampling rate; The second is to model the variation information in speech through a systematic design, which improves
-        the prosody and naturalness. Specifically, for 48 kHz modeling, we predict 16 kHz mel-spectrogram in acoustic model, and 
+        the prosody and naturalness. Specifically, for 48 kHz modeling, we predict 16 kHz mel-spectrogram in acoustic model, and
         propose a vocoder called HiFiNet to directly generate 48 kHz waveform from predicted 16 kHz mel-spectrogram, which can better trade off training
         efficiency, modelling stability and voice quality. We model variation information systematically from both explicit (speaker ID, language ID, pitch and duration) and
-        implicit (utterance-level and phoneme-level prosody) perspectives: 1) For speaker and language ID, we use lookup embedding in training and 
-        inference; 2) For pitch and duration, we extract the values from paired text-speech data in training and use two predictors to predict the values in inference; 3) 
-        For utterance-level and phoneme-level prosody, we use two reference encoders to extract the values in training, and use two separate predictors to predict the values in inference. 
+        implicit (utterance-level and phoneme-level prosody) perspectives: 1) For speaker and language ID, we use lookup embedding in training and
+        inference; 2) For pitch and duration, we extract the values from paired text-speech data in training and use two predictors to predict the values in inference; 3)
+        For utterance-level and phoneme-level prosody, we use two reference encoders to extract the values in training, and use two separate predictors to predict the values in inference.
         Additionally, we introduce an improved Conformer block to better model the local and global dependency in acoustic model. For task SH1, DelightfulTTS achieves 4.17 mean score in MOS test
         and 4.35 in SMOS test, which indicates the effectiveness of our proposed system
 
@@ -498,36 +495,8 @@ class DelightfulTTSE2e(BaseTTSE2E):
         if self.config.init_discriminator:
             self.disc = VitsDiscriminator(
                 use_spectral_norm=self.config.vocoder.use_spectral_norm_discriminator,
-                periods=self.config.vocoder.periods_discriminator
+                periods=self.config.vocoder.periods_discriminator,
             )
-
-    def init_for_training(self):
-        ...
-
-    # def init_vocoder_from_pretrained(self, model_path:str):
-    #     pretrained_dict = load_fsspec(model_path)
-    #     if "model" in pretrained_dict:
-    #         pretrained_dict = pretrained_dict["model"]
-
-    #     print(" > Initializing vocoder from pretrained model: {}".format(model_path))
-    #     sub_pretrained_dict = {}
-    #     for name, param in pretrained_dict:
-    #         if name.startswith("waveform_decoder."):
-    #             new_name = name.replace("waveform_decoder.", "")
-    #             sub_pretrained_dict[new_name] = param
-    #     self.waveform_decoder.load_state_dict(sub_pretrained_dict, strict=False)
-
-    #     if self.config.init_discriminator:
-    #         print(" > Initializing vocoder discriminator from pretrained model: {}".format(model_path))
-    #         sub_pretrained_dict = {}
-    #         for name, param in pretrained_dict:
-    #             if name.startswith("disc."):
-    #                 new_name = name.replace("disc.", "")
-    #                 sub_pretrained_dict[new_name] = param
-    #         self.disc.load_state_dict(sub_pretrained_dict, strict=False)
-
-    # def on_init_end(self, trainer):
-    #     self.init_vocoder_from_pretrained(self.config.vocoder.pretrained_model_path)
 
     @property
     def energy_scaler(self):
@@ -553,7 +522,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
     def pitch_std(self):
         return self.acoustic_model.pitch_std
 
-    @pitch_mean.setter
+    @pitch_std.setter
     def pitch_std(self, value):
         self.acoustic_model.pitch_std = value
 
@@ -568,8 +537,8 @@ class DelightfulTTSE2e(BaseTTSE2E):
         )
 
     def init_for_training(self) -> None:
-        self.train_disc = self.config.steps_to_start_discriminator <= 0
-        self.update_energy_scaler = True
+        self.train_disc = self.config.steps_to_start_discriminator <= 0 # pylint: disable=attribute-defined-outside-init
+        self.update_energy_scaler = True # pylint: disable=attribute-defined-outside-init
 
     def init_multispeaker(self, config: Coqpit):
         """Init for multi-speaker training.
@@ -614,11 +583,11 @@ class DelightfulTTSE2e(BaseTTSE2E):
         if self.args.freeze_vocoder:
             for param in self.vocoder.paramseters():
                 param.requires_grad = False
-        
+
         if self.args.freeze_text_encoder:
             for param in self.text_encoder.parameters():
                 param.requires_grad = False
-        
+
         if self.args.freeze_duration_predictor:
             for param in self.durarion_predictor.parameters():
                 param.requires_grad = False
@@ -633,8 +602,8 @@ class DelightfulTTSE2e(BaseTTSE2E):
 
         if self.args.freeze_decoder:
             for param in self.decoder.parameters():
-                param.requires_grad = False         
-                
+                param.requires_grad = False
+
     def forward(
         self,
         x: torch.LongTensor,
@@ -695,8 +664,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         )
 
         vocoder_output = self.waveform_decoder(
-            x=vocoder_input_slices.detach(),
-            g=encoder_outputs['spk_emb'].unsqueeze(-1)
+            x=vocoder_input_slices.detach(), g=encoder_outputs["spk_emb"].unsqueeze(-1)
         )
         wav_seg = segment(
             waveform,
@@ -712,29 +680,22 @@ class DelightfulTTSE2e(BaseTTSE2E):
         return model_outputs
 
     @torch.no_grad()
-    def inference(
-        self, x, d_vectors=None, speaker_idx=None, pitch_transform=None, energy_transform=None
-    ):
+    def inference(self, x, d_vectors=None, speaker_idx=None, pitch_transform=None, energy_transform=None):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
             d_vectors=d_vectors,
             speaker_idx=speaker_idx,
             pitch_transform=pitch_transform,
-            energy_transform=energy_transform,
-            p_control=None,
-            d_control=None,
+            energy_transform=energy_transform
         )
         vocoder_input = encoder_outputs["model_outputs"].transpose(1, 2)  # [B, T_max2, C_mel] -> [B, C_mel, T_max2]
-        vocoder_output = self.waveform_decoder(
-            x=vocoder_input,
-            g=encoder_outputs['spk_emb'].unsqueeze(-1)
-        )
+        vocoder_output = self.waveform_decoder(x=vocoder_input, g=encoder_outputs["spk_emb"].unsqueeze(-1))
         model_outputs = {**encoder_outputs}
         model_outputs["model_outputs"] = vocoder_output
         return model_outputs
 
     @torch.no_grad()
-    def inference_spec_decoder(self, x, d_vectors=None, emotion_vectors=None, speaker_idx=None):
+    def inference_spec_decoder(self, x, d_vectors=None, speaker_idx=None):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
             speaker_idx=speaker_idx,
@@ -753,7 +714,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
             pitch = batch["pitch"]
             d_vectors = batch["d_vectors"]
             speaker_ids = batch["speaker_ids"]
-            language_ids = batch["language_ids"]
             attn_priors = batch["attn_priors"]
             energy = batch["energy"]
 
@@ -954,7 +914,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
             config = self.config
 
         # extract speaker and language info
-        text, speaker_name, style_wav, language_name = None, None, None, None
+        text, speaker_name, style_wav = None, None, None
 
         if isinstance(sentence_info, list):
             if len(sentence_info) == 1:
@@ -963,15 +923,11 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 text, speaker_name = sentence_info
             elif len(sentence_info) == 3:
                 text, speaker_name, style_wav = sentence_info
-            elif len(sentence_info) == 4:
-                text, speaker_name, style_wav, language_name = sentence_info
-            elif len(sentence_info) == 5:
-                text, speaker_name, style_wav, language_name, emotion = sentence_info
         else:
             text = sentence_info
 
         # get speaker  id/d_vector
-        speaker_id, d_vector, language_id = None, None, None
+        speaker_id, d_vector = None, None
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
@@ -984,18 +940,11 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 else:
                     speaker_id = self.speaker_manager.ids[speaker_name]
 
-
-        # get language id
-        # if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
-        #     language_id = self.language_manager.ids[language_name]
-
         return {
             "text": text,
             "speaker_id": speaker_id,
             "style_wav": style_wav,
-            "d_vector": d_vector,
-            "language_id": language_id,
-            "language_name": None,
+            "d_vector": d_vector
         }
 
     def plot_outputs(self, text, wav, alignment, outputs):
@@ -1038,10 +987,9 @@ class DelightfulTTSE2e(BaseTTSE2E):
         speaker_id,
         language_id,
         d_vector,
-        ref_waveform=None,
+        ref_waveform=None, # pylint: disable=unused-argument
         pitch_transform=None,
     ):
-        # TODO: add language_id
         is_cuda = next(self.parameters()).is_cuda
 
         # convert text to sequence of token IDs
@@ -1056,7 +1004,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
 
         if d_vector is not None:
             d_vector = embedding_to_torch(d_vector, cuda=is_cuda)
-
 
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=is_cuda)
         text_inputs = text_inputs.unsqueeze(0)
@@ -1191,7 +1138,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
         if language_ids is not None:
             language_ids = torch.LongTensor(language_ids)
 
-
         batch["language_ids"] = language_ids
         batch["d_vectors"] = d_vectors
         batch["speaker_ids"] = speaker_ids
@@ -1312,7 +1258,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 verbose=verbose,
                 tokenizer=self.tokenizer,
                 start_by_longest=config.start_by_longest,
-                
             )
 
             # wait all the DDP process to be ready
@@ -1384,13 +1329,13 @@ class DelightfulTTSE2e(BaseTTSE2E):
         """Schedule binary loss weight."""
         self.binary_loss_weight = min(trainer.epochs_done / self.config.binary_loss_warmup_epochs, 1.0) * 1.0
 
-    def on_epoch_end(self, trainer):
+    def on_epoch_end(self, trainer): # pylint: disable=unused-argument
         # stop updating mean and var
         # TODO: do the same for F0
         self.energy_scaler.eval()
 
     @staticmethod
-    def init_from_config(config: "SomethingTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False):
+    def init_from_config(config: "SomethingTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False): # pylint: disable=unused-argument
         """Initiate model from config
 
         Args:
@@ -1401,10 +1346,10 @@ class DelightfulTTSE2e(BaseTTSE2E):
 
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config.model_args, samples)
-        emotion_manager = EmotionManager.init_from_config(config.model_args)
+        ap = AudioProcessor.init_from_config(config=config)
         # language_manager = LanguageManager.init_from_config(config)
         return DelightfulTTSE2e(
-            config=new_config, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=emotion_manager
+            config=new_config, ap=ap, tokenizer=tokenizer, speaker_manager=speaker_manager
         )
 
     def load_checkpoint(self, config, checkpoint_path, eval=False):
@@ -1430,18 +1375,18 @@ class DelightfulTTSE2e(BaseTTSE2E):
 
     def save(self, config, checkpoint_path):
         """Save model to a file."""
-        save_state = self.get_state_dict(config, checkpoint_path)
+        save_state = self.get_state_dict(config, checkpoint_path)# pylint: disable=too-many-function-args
         save_state["pitch_mean"] = self.pitch_mean
         save_state["pitch_std"] = self.pitch_std
         torch.save(save_state, checkpoint_path)
 
-    def on_train_step_start(self, trainer) -> None:
+    def on_train_step_start(self, trainer) -> None: # pylint: disable=function-redefined
         """Enable the discriminator training based on `steps_to_start_discriminator`
 
         Args:
             trainer (Trainer): Trainer object.
         """
-        self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator
+        self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator # pylint: disable=attribute-defined-outside-init
 
 
 class SomethingTTSLoss(nn.Module):

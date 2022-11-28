@@ -1,14 +1,14 @@
 from typing import Callable, Tuple
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor
 from TTS.tts.utils.helpers import average_over_durations
 
 
-class EnergyAdaptor(nn.Module):
-    """Variance Adaptor with an added 1D conv layer. Used to 
+class EnergyAdaptor(nn.Module): # pylint: disable=abstract-method
+    """Variance Adaptor with an added 1D conv layer. Used to
     get energy embeddings.
 
     Args:
@@ -30,15 +30,16 @@ class EnergyAdaptor(nn.Module):
         - **average energy target(train only)** (batch, 1, time1): Tensor produced after averaging over durations
 
     """
+
     def __init__(
-        self, 
+        self,
         channels_in: int,
         channels_hidden: int,
         channels_out: int,
         kernel_size: int,
         dropout: float,
         lrelu_slope: float,
-        emb_kernel_size: int
+        emb_kernel_size: int,
     ):
         super().__init__()
         self.energy_predictor = VariancePredictor(
@@ -60,11 +61,11 @@ class EnergyAdaptor(nn.Module):
         self, x: torch.Tensor, target: torch.Tensor, dr: torch.IntTensor, mask: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-            Shapes:
-                x: :math: `[B, T_src, C]`
-                target: :math: `[B, 1, T_max2]`
-                dr: :math: `[B, T_src]`
-                mask: :math: `[B, T_src]`
+        Shapes:
+            x: :math: `[B, T_src, C]`
+            target: :math: `[B, 1, T_max2]`
+            dr: :math: `[B, T_src]`
+            mask: :math: `[B, T_src]`
         """
         energy_pred = self.energy_predictor(x, mask)
         energy_pred.unsqueeze_(1)
