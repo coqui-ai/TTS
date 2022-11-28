@@ -205,3 +205,20 @@ def download_kaggle_dataset(dataset_path: str, dataset_name: str, output_path: s
         print(
             f"""[!] in order to download kaggle datasets, you need to have a kaggle api token stored in your {os.path.join(expanduser('~'), '.kaggle/kaggle.json')}"""
         )
+
+
+def download_huggingface_dataset(dataset_path: str, dataset_name:str):
+    """Download dataset from huggingface.
+    Args:
+        dataset_path (str):
+        This the hugginface link to the dataset. for example spgi is 'kensho/spgispeech'
+    """
+
+    try:
+        from datasets import load_dataset  # pylint: disable=import-outside-toplevel
+        print(f"""\nDownloading {dataset_name}...""")
+        load_dataset(dataset_path, dataset_name, use_auth_token=True)
+    except OSError:
+        print(
+            f"""[!] in order to download huggingface datasets, you need to have a huggingface api token stored in your {os.path.join(expanduser('~'), '.huggingface/token')}"""
+        )
