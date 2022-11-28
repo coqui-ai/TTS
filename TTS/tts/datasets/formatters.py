@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 from glob import glob
 from pathlib import Path
 from typing import List
+from os.path import expanduser
+from tqdm import tqdm
 
 import pandas as pd
 from tqdm import tqdm
@@ -601,3 +603,29 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             text = cols[2]  # cols[1] => 6월, cols[2] => 유월
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
     return items
+
+
+def spgi(root_path=None, meta_file_train=None, split='test'):  # pylint: disable=unused-argument
+    """ Normalize Kensho spgi speech dataset from Hugging Face
+    
+    https://huggingface.co/datasets/kensho/spgispeech#dataset-description
+    Args:
+        split (str): which split to load {S, M, L, dev or test}
+    Returns:
+        items (dict): {"text", audio_file", "speaker_name", "root_path"}
+    """
+
+    # use downloaded data from huggingface and download if not downloaded yet
+    try:
+        from datasets import load_dataset  # pylint: disable=import-outside-toplevel
+        ds = load_dataset('kensho/spgispeech', split, use_auth_token=True)
+        items = []
+        for item in tqdm(ds[split]):
+            items.append({"text": item['transcript'], "audio_file": item['audio']['path'], "speaker_name": item['wav_filename'].split('/')[0], "root_path": item['audio']['path']})
+        return items
+    except OSError:
+        print(
+            f"""[!] in order to download huggingface datasets, you need to have a huggingface api token stored in your {os.path.join(expanduser('~'), '.huggingface/token')}"""
+        )
+
+ 
