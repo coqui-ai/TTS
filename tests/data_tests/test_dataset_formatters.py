@@ -2,7 +2,7 @@ import os
 import unittest
 
 from tests import get_tests_input_path
-from TTS.tts.datasets.formatters import common_voice
+from TTS.tts.datasets.formatters import common_voice, spgi
 
 
 class TestTTSFormatters(unittest.TestCase):
@@ -15,3 +15,10 @@ class TestTTSFormatters(unittest.TestCase):
 
         assert items[-1]["text"] == "Competition for limited resources has also resulted in some local conflicts."
         assert items[-1]["audio_file"] == os.path.join(get_tests_input_path(), "clips", "common_voice_en_19737074.wav")
+
+    def test_spgi(self):  # pylint: disable=no-self-use
+        items = spgi(split='test')
+        assert len(items) == 39341
+        assert items[0]["text"] == "This product continues to be very well received by users. Daily active user is approaching 10 million"
+        assert items[-1]["text"] == "This is one of our largest opportunities to increase overall profitability."
+
