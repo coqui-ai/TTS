@@ -605,7 +605,7 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     return items
 
 
-def spgi(root_path=None, meta_file_train=None, split='test'):  # pylint: disable=unused-argument
+def spgi(root_path:str=None, meta_file_train:str='test', ignored_speakers=None, **kwargs):  # pylint: disable=unused-argument
     """ Normalize Kensho spgi speech dataset from Hugging Face
     
     https://huggingface.co/datasets/kensho/spgispeech#dataset-description
@@ -615,12 +615,22 @@ def spgi(root_path=None, meta_file_train=None, split='test'):  # pylint: disable
         items (dict): {"text", audio_file", "speaker_name", "root_path"}
     """
 
-    # use downloaded data from huggingface and download if not downloaded yet
+    # use cached downloaded data from huggingface or download if not downloaded yet
     try:
         from datasets import load_dataset  # pylint: disable=import-outside-toplevel
-        ds = load_dataset('kensho/spgispeech', split, use_auth_token=True)
+        ds = load_dataset('kensho/spgispeech', meta_file_train, use_auth_token=True)
         items = []
-        for item in tqdm(ds[split]):
+        if meta_file_train == 'dev':
+            meta_file_train = 'validation'
+        elif meta_file_train == 'test':
+            meta_file_train = 'test'
+        else:
+            meta_file_train = 'train'
+
+        for item in tqdm(ds[meta_file_train]):
+            if isinstance(ignored_speakers, list):
+                if item['wav_filename'].split('/')[0] in ignored_speakers:
+                    continue
             items.append({"text": item['transcript'], "audio_file": item['audio']['path'], "speaker_name": item['wav_filename'].split('/')[0], "root_path": item['audio']['path']})
         return items
     except OSError:
