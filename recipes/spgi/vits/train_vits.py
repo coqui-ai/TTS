@@ -11,18 +11,13 @@ from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.downloaders import download_spgi
 
-SPGI_ROOT = "/data/en/spgi/spgi-vca"
-
 output_path = os.path.dirname(os.path.abspath(__file__))
 dataset_config = BaseDatasetConfig(
-    formatter="spgi_vca",
-    meta_file_train="spgi.txt",
-    path=os.path.join(output_path, SPGI_ROOT)
+    formatter="spgi", language='en', meta_file_train='dev'
 )
 
 # download dataset if not already present
-for split in 'test', 'dev':
-    download_spgi(split)
+download_spgi('dev')
 
 audio_config = VitsAudioConfig(
     sample_rate=16000, win_length=1024, hop_length=256, num_mels=80, mel_fmin=0, mel_fmax=None
