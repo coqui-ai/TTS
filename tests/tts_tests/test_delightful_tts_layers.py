@@ -1,13 +1,11 @@
 import torch
 
+from TTS.tts.configs.delightful_tts_config import DelightfulTTSConfig
 from TTS.tts.layers.delightful_tts.acoustic_model import AcousticModel
 from TTS.tts.models.delightful_tts import DelightfulTtsArgs, VocoderConfig
 from TTS.tts.utils.helpers import rand_segments
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.tts.configs.delightful_tts_config import DelightfulTTSConfig
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
-
-
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -52,7 +50,8 @@ def test_acoustic_model():
         d_vectors=None,
         speaker_idx=None,
     )
-    assert list(output['model_outputs'].shape) == [1, 207, 100]
+    assert list(output["model_outputs"].shape) == [1, 207, 100]
+
 
 def test_hifi_decoder():
     dummy_input = torch.rand((1, 207, 100)).to(device)
@@ -79,15 +78,12 @@ def test_hifi_decoder():
     ).to(device)
 
     vocoder_input_slices, slice_ids = rand_segments(
-            x=dummy_input.transpose(1, 2),
-            x_lengths=dummy_spec_lens,
-            segment_size=32,
-            let_short_samples=True,
-            pad_short=True,
+        x=dummy_input.transpose(1, 2),
+        x_lengths=dummy_spec_lens,
+        segment_size=32,
+        let_short_samples=True,
+        pad_short=True,
     )
 
-    outputs = waveform_decoder(
-        x=vocoder_input_slices.detach()
-    )
+    outputs = waveform_decoder(x=vocoder_input_slices.detach())
     assert list(outputs.shape) == [1, 1, 8192]
-    

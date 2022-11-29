@@ -1,19 +1,14 @@
 import os
+
 from clearml import Task
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseDatasetConfig
+from TTS.tts.configs.delightful_tts_config import DelightfulTtsAudioConfig, DelightfulTTSConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
+from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTTSE2e, VocoderConfig
 from TTS.tts.utils.speakers import SpeakerManager
-from TTS.tts.configs.delightful_tts_config import DelightfulTTSConfig, DelightfulTtsAudioConfig
-
-from TTS.tts.models.delightful_tts import (
-    VocoderConfig,
-    DelightfulTTSE2e,
-    DelightfulTtsArgs,
-    
-)
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio.processor import AudioProcessor
 
 task = Task.init(project_name="delightful-tts", task_name="vctk")
@@ -21,12 +16,7 @@ data_path = "/raid/datasets/vctk_v092_48khz_removed_silence_silero_vad"
 output_path = os.path.dirname(os.path.abspath(__file__))
 
 
-dataset_config = BaseDatasetConfig(
-    dataset_name='vctk',
-    meta_file_train='',
-    path = data_path,
-    language='en-us'
-)
+dataset_config = BaseDatasetConfig(dataset_name="vctk", meta_file_train="", path=data_path, language="en-us")
 
 audio_config = DelightfulTtsAudioConfig()
 
@@ -64,7 +54,7 @@ something_tts_config = DelightfulTTSConfig(
     binary_align_loss_alpha=0.0,
     use_attn_priors=False,
     max_text_len=60,
-    steps_to_start_discriminator=10000
+    steps_to_start_discriminator=10000,
 )
 
 tokenizer, config = TTSTokenizer.init_from_config(something_tts_config)
@@ -85,15 +75,12 @@ speaker_manager.set_ids_from_data(train_samples + eval_samples, parse_key="speak
 config.model_args.num_speakers = speaker_manager.num_speakers
 
 
-model = DelightfulTTSE2e(ap=ap, config=config, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=None)
+model = DelightfulTTSE2e(
+    ap=ap, config=config, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=None
+)
 
 trainer = Trainer(
-    TrainerArgs(), 
-    config, 
-    output_path, 
-    model=model, 
-    train_samples=train_samples, 
-    eval_samples=eval_samples
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
 )
 
 trainer.fit()

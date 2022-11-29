@@ -2,9 +2,9 @@
 from typing import Callable, Dict, Tuple
 
 import torch
+import torch.nn.functional as F
 from coqpit import Coqpit
 from torch import nn
-import torch.nn.functional as F
 
 from TTS.tts.layers.delightful_tts.conformer import Conformer
 from TTS.tts.layers.delightful_tts.encoders import (
@@ -167,7 +167,7 @@ class AcousticModel(torch.nn.Module):
         self.energy_scaler = torch.nn.BatchNorm1d(1, affine=False, track_running_stats=True, momentum=None)
         self.energy_scaler.requires_grad_(False)
 
-    def init_multispeaker(self, args: Coqpit): # pylint: disable=unused-argument
+    def init_multispeaker(self, args: Coqpit):  # pylint: disable=unused-argument
         """Init for multi-speaker training."""
         self.embedded_speaker_dim = 0
         self.num_speakers = self.args.num_speakers
@@ -330,7 +330,9 @@ class AcousticModel(torch.nn.Module):
         aligner_mas = aligner_mas.transpose(1, 2)  # [B, T_max, T_max2] -> [B, T_max2, T_max]
         return aligner_durations, aligner_soft, aligner_logprob, aligner_mas
 
-    def average_utterance_prosody(self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor) -> torch.Tensor: # pylint: disable=no-self-use
+    def average_utterance_prosody(
+        self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor
+    ) -> torch.Tensor:  # pylint: disable=no-self-use
         lengths = ((~src_mask) * 1.0).sum(1)
         u_prosody_pred = u_prosody_pred.sum(1, keepdim=True) / lengths.view(-1, 1, 1)
         return u_prosody_pred
@@ -350,7 +352,9 @@ class AcousticModel(torch.nn.Module):
     ) -> Dict[str, torch.Tensor]:
         src_mask = get_mask_from_lengths(src_lens)  # [B, T_src]
         mel_mask = get_mask_from_lengths(mel_lens)  # [B, T_mel]
-        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx}) # pylint: disable=unused-variable
+        sid, g, lid, _ = self._set_cond_input(
+            {"d_vectors": d_vectors, "speaker_ids": speaker_idx}
+        )  # pylint: disable=unused-variable
 
         # Token embeddings
         token_embeddings = self.src_word_emb(tokens)  # [B, T_src, C_hidden]
@@ -490,8 +494,10 @@ class AcousticModel(torch.nn.Module):
         energy_transform: Callable = None,
     ) -> torch.Tensor:
         src_mask = get_mask_from_lengths(torch.tensor([tokens.shape[1]], dtype=torch.int64, device=tokens.device))
-        src_lens = torch.tensor(tokens.shape[1:2]).to(tokens.device) # pylint: disable=unused-variable
-        sid, g, lid, _ = self._set_cond_input({"d_vectors": d_vectors, "speaker_ids": speaker_idx}) # pylint: disable=unused-variable
+        src_lens = torch.tensor(tokens.shape[1:2]).to(tokens.device)  # pylint: disable=unused-variable
+        sid, g, lid, _ = self._set_cond_input(
+            {"d_vectors": d_vectors, "speaker_ids": speaker_idx}
+        )  # pylint: disable=unused-variable
 
         # Token embeddings
         token_embeddings = self.src_word_emb(tokens)

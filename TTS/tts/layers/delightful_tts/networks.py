@@ -3,8 +3,8 @@ from typing import Tuple
 
 import numpy as np
 import torch
+import torch.nn.modules.conv as conv  # pylint: disable=consider-using-from-import
 from torch import nn
-import torch.nn.modules.conv as conv # pylint: disable=consider-using-from-import
 from torch.nn import functional as F
 
 
@@ -22,9 +22,9 @@ class BottleneckLayer(nn.Module):
         norm="weightnorm",
         non_linearity="relu",
         kernel_size=3,
-        use_partial_padding=False # pylint: disable=unused-argument
+        use_partial_padding=False,  # pylint: disable=unused-argument
     ):
-        super(BottleneckLayer, self).__init__() # pylint: disable=super-with-arguments
+        super(BottleneckLayer, self).__init__()  # pylint: disable=super-with-arguments
 
         self.reduction_factor = reduction_factor
         reduced_dim = int(in_dim / reduction_factor)
@@ -59,7 +59,7 @@ class ConvNorm(torch.nn.Module):
         w_init_gain="linear",
         use_weight_norm=False,
     ):
-        super(ConvNorm, self).__init__() # pylint: disable=super-with-arguments
+        super(ConvNorm, self).__init__()  # pylint: disable=super-with-arguments
         if padding is None:
             assert kernel_size % 2 == 1
             padding = int(dilation * (kernel_size - 1) / 2)
@@ -101,7 +101,7 @@ class ConvLSTMLinear(nn.Module):
         lstm_type="bilstm",
         use_linear=True,
     ):
-        super(ConvLSTMLinear, self).__init__() # pylint: disable=super-with-arguments
+        super(ConvLSTMLinear, self).__init__()  # pylint: disable=super-with-arguments
         self.out_dim = out_dim
         self.lstm_type = lstm_type
         self.use_linear = use_linear
@@ -152,10 +152,10 @@ class ConvLSTMLinear(nn.Module):
         context = torch.nn.utils.rnn.pad_sequence(context_embedded, batch_first=True)
         return context
 
-    def run_unsorted_inputs(self, fn, context, lens): # pylint: disable=no-self-use
+    def run_unsorted_inputs(self, fn, context, lens):  # pylint: disable=no-self-use
         lens_sorted, ids_sorted = torch.sort(lens, descending=True)
         unsort_ids = [0] * lens.size(0)
-        for i in range(len(ids_sorted)): #pylint: disable=consider-using-enumerate
+        for i in range(len(ids_sorted)):  # pylint: disable=consider-using-enumerate
             unsort_ids[ids_sorted[i]] = i
         lens_sorted = lens_sorted.long().cpu()
 
@@ -382,7 +382,7 @@ class AddCoords(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.rank == 1:
-            batch_size_shape, channel_in_shape, dim_x = x.shape # pylint: disable=unused-variable
+            batch_size_shape, channel_in_shape, dim_x = x.shape  # pylint: disable=unused-variable
             xx_range = torch.arange(dim_x, dtype=torch.int32)
             xx_channel = xx_range[None, None, :]
 
@@ -477,7 +477,7 @@ class STL(nn.Module):
     """Style Token Layer"""
 
     def __init__(self, n_hidden: int, token_num: int):
-        super(STL, self).__init__() # pylint: disable=super-with-arguments
+        super(STL, self).__init__()  # pylint: disable=super-with-arguments
 
         num_heads = 1
         E = n_hidden
@@ -588,7 +588,7 @@ class CoordConv2d(conv.Conv2d):
 class KernelPredictor(torch.nn.Module):
     """Kernel predictor for the location-variable convolutions"""
 
-    def __init__( # pylint: disable=dangerous-default-value
+    def __init__(  # pylint: disable=dangerous-default-value
         self,
         cond_channels,
         conv_in_channels,
@@ -711,7 +711,7 @@ class KernelPredictor(torch.nn.Module):
 class LVCBlock(torch.nn.Module):
     """the location-variable convolutions"""
 
-    def __init__( # pylint: disable=dangerous-default-value
+    def __init__(  # pylint: disable=dangerous-default-value
         self,
         in_channels,
         cond_channels,
@@ -803,7 +803,7 @@ class LVCBlock(torch.nn.Module):
 
         return x
 
-    def location_variable_convolution(self, x, kernel, bias, dilation=1, hop_size=256): #pylint: disable=no-self-use
+    def location_variable_convolution(self, x, kernel, bias, dilation=1, hop_size=256):  # pylint: disable=no-self-use
         """perform location-variable convolution operation on the input sequence (x) using the local convolution kernl.
         Time: 414 μs ± 309 ns per loop (mean ± std. dev. of 7 runs, 1000 loops each), test on NVIDIA V100.
         Args:

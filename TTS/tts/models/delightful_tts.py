@@ -179,7 +179,7 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
 class ForwardTTSDataset(TTSDataset):
     def __init__(self, *args, **kwargs):
         # don't init the default F0Dataset in TTSDataset
-        compute_f0 = kwargs.pop("compute_f0", False) #pylint: disable=redefined-outer-name
+        compute_f0 = kwargs.pop("compute_f0", False)  # pylint: disable=redefined-outer-name
         kwargs["compute_f0"] = False
         self.attn_prior_cache_path = kwargs.pop("attn_prior_cache_path")
 
@@ -238,7 +238,7 @@ class ForwardTTSDataset(TTSDataset):
             "token_len": len(token_ids),
             "wav": wav,
             "pitch": f0,
-            "audio_unique_name": item['audio_unique_name'],
+            "audio_unique_name": item["audio_unique_name"],
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
@@ -248,7 +248,7 @@ class ForwardTTSDataset(TTSDataset):
     def load_or_compute_attn_prior(self, token_ids, wav, rel_wav_path):
         """Load or compute and save the attention prior."""
         attn_prior_file = os.path.join(self.attn_prior_cache_path, f"{rel_wav_path}.npy")
-        if os.path.exists(attn_prior_file): # pylint: disable=no-else-return
+        if os.path.exists(attn_prior_file):  # pylint: disable=no-else-return
             return np.load(attn_prior_file)
         else:
             token_len = len(token_ids)
@@ -327,7 +327,7 @@ class ForwardTTSDataset(TTSDataset):
             "pitch": pitch_padded,
             "waveform": wav_padded,  # (B x T)
             "waveform_lens": wav_lens,  # (B)
-            "audio_unique_names": batch['audio_unique_name'],
+            "audio_unique_names": batch["audio_unique_name"],
             "waveform_rel_lens": wav_rel_lens,
             "speaker_names": batch["speaker_name"],
             "language_names": batch["language_name"],
@@ -538,8 +538,10 @@ class DelightfulTTS(BaseTTSE2E):
         )
 
     def init_for_training(self) -> None:
-        self.train_disc = self.config.steps_to_start_discriminator <= 0 # pylint: disable=attribute-defined-outside-init
-        self.update_energy_scaler = True # pylint: disable=attribute-defined-outside-init
+        self.train_disc = (
+            self.config.steps_to_start_discriminator <= 0
+        )  # pylint: disable=attribute-defined-outside-init
+        self.update_energy_scaler = True  # pylint: disable=attribute-defined-outside-init
 
     def init_multispeaker(self, config: Coqpit):
         """Init for multi-speaker training.
@@ -663,13 +665,11 @@ class DelightfulTTS(BaseTTSE2E):
             pad_short=True,
         )
 
-        if encoder_outputs['spk_emb'] is not None:
+        if encoder_outputs["spk_emb"] is not None:
             g = encoder_outputs["spk_emb"].unsqueeze(-1)
         else:
             g = None
-        vocoder_output = self.waveform_decoder(
-            x=vocoder_input_slices.detach(), g=g
-        )
+        vocoder_output = self.waveform_decoder(x=vocoder_input_slices.detach(), g=g)
         wav_seg = segment(
             waveform,
             slice_ids * self.config.audio.hop_length,
@@ -684,17 +684,19 @@ class DelightfulTTS(BaseTTSE2E):
         return model_outputs
 
     @torch.no_grad()
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None}, pitch_transform=None, energy_transform=None):
+    def inference(
+        self, x, aux_input={"d_vectors": None, "speaker_ids": None}, pitch_transform=None, energy_transform=None
+    ):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
             d_vectors=aux_input["d_vectors"],
             speaker_idx=aux_input["speaker_ids"],
             pitch_transform=pitch_transform,
-            energy_transform=energy_transform
+            energy_transform=energy_transform,
         )
         vocoder_input = encoder_outputs["model_outputs"].transpose(1, 2)  # [B, T_max2, C_mel] -> [B, C_mel, T_max2]
 
-        if encoder_outputs['spk_emb'] is not None:
+        if encoder_outputs["spk_emb"] is not None:
             g = encoder_outputs["spk_emb"].unsqueeze(-1)
         else:
             g = None
@@ -949,12 +951,7 @@ class DelightfulTTS(BaseTTSE2E):
                 else:
                     speaker_id = self.speaker_manager.ids[speaker_name]
 
-        return {
-            "text": text,
-            "speaker_id": speaker_id,
-            "style_wav": style_wav,
-            "d_vector": d_vector
-        }
+        return {"text": text, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector}
 
     def plot_outputs(self, text, wav, alignment, outputs):
         figures = {}
@@ -996,7 +993,7 @@ class DelightfulTTS(BaseTTSE2E):
         speaker_id,
         language_id,
         d_vector,
-        ref_waveform=None, # pylint: disable=unused-argument
+        ref_waveform=None,  # pylint: disable=unused-argument
         pitch_transform=None,
     ):
         is_cuda = next(self.parameters()).is_cuda
@@ -1095,13 +1092,13 @@ class DelightfulTTS(BaseTTSE2E):
                 aux_inputs["text"],
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
-                language_id=None
+                language_id=None,
             )
             outputs_gl = self.synthesize_with_gl(
                 aux_inputs["text"],
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
-                language_id=None
+                language_id=None,
             )
             # speaker_name = self.speaker_manager.speaker_names[aux_inputs["speaker_id"]]
             test_audios["{}-audio".format(idx)] = outputs["wav"].T
@@ -1337,13 +1334,15 @@ class DelightfulTTS(BaseTTSE2E):
         """Schedule binary loss weight."""
         self.binary_loss_weight = min(trainer.epochs_done / self.config.binary_loss_warmup_epochs, 1.0) * 1.0
 
-    def on_epoch_end(self, trainer): # pylint: disable=unused-argument
+    def on_epoch_end(self, trainer):  # pylint: disable=unused-argument
         # stop updating mean and var
         # TODO: do the same for F0
         self.energy_scaler.eval()
 
     @staticmethod
-    def init_from_config(config: "SomethingTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False): # pylint: disable=unused-argument
+    def init_from_config(
+        config: "SomethingTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False
+    ):  # pylint: disable=unused-argument
         """Initiate model from config
 
         Args:
@@ -1356,9 +1355,7 @@ class DelightfulTTS(BaseTTSE2E):
         speaker_manager = SpeakerManager.init_from_config(config.model_args, samples)
         ap = AudioProcessor.init_from_config(config=config)
         # language_manager = LanguageManager.init_from_config(config)
-        return DelightfulTTS(
-            config=new_config, ap=ap, tokenizer=tokenizer, speaker_manager=speaker_manager
-        )
+        return DelightfulTTS(config=new_config, ap=ap, tokenizer=tokenizer, speaker_manager=speaker_manager)
 
     def load_checkpoint(self, config, checkpoint_path, eval=False):
         """Load model from a checkpoint created by the 👟"""
@@ -1383,18 +1380,20 @@ class DelightfulTTS(BaseTTSE2E):
 
     def save(self, config, checkpoint_path):
         """Save model to a file."""
-        save_state = self.get_state_dict(config, checkpoint_path)# pylint: disable=too-many-function-args
+        save_state = self.get_state_dict(config, checkpoint_path)  # pylint: disable=too-many-function-args
         save_state["pitch_mean"] = self.pitch_mean
         save_state["pitch_std"] = self.pitch_std
         torch.save(save_state, checkpoint_path)
 
-    def on_train_step_start(self, trainer) -> None: # pylint: disable=function-redefined
+    def on_train_step_start(self, trainer) -> None:  # pylint: disable=function-redefined
         """Enable the discriminator training based on `steps_to_start_discriminator`
 
         Args:
             trainer (Trainer): Trainer object.
         """
-        self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator # pylint: disable=attribute-defined-outside-init
+        self.train_disc = (
+            trainer.total_steps_done >= self.config.steps_to_start_discriminator
+        )  # pylint: disable=attribute-defined-outside-init
 
 
 class SomethingTTSLoss(nn.Module):

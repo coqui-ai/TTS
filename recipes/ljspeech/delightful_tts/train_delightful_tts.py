@@ -1,28 +1,19 @@
 import os
+
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseDatasetConfig
+from TTS.tts.configs.delightful_tts_config import DelightfulTtsAudioConfig, DelightfulTTSConfig
 from TTS.tts.datasets import load_tts_samples
+from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTTSE2e, VocoderConfig
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.tts.configs.delightful_tts_config import DelightfulTTSConfig, DelightfulTtsAudioConfig
-
-from TTS.tts.models.delightful_tts import (
-    VocoderConfig,
-    DelightfulTTSE2e,
-    DelightfulTtsArgs,
-    
-)
 from TTS.utils.audio.processor import AudioProcessor
 
-data_path = ''
+data_path = ""
 output_path = os.path.dirname(os.path.abspath(__file__))
 
 
-dataset_config = BaseDatasetConfig(
-    dataset_name='ljspeech',
-    meta_file_train='metadata.csv',
-    path = data_path
-)
+dataset_config = BaseDatasetConfig(dataset_name="ljspeech", meta_file_train="metadata.csv", path=data_path)
 
 audio_config = DelightfulTtsAudioConfig()
 model_args = DelightfulTtsArgs()
@@ -58,7 +49,7 @@ something_tts_config = DelightfulTTSConfig(
     start_by_longest=True,
     binary_align_loss_alpha=0.0,
     use_attn_priors=False,
-    max_text_len=100
+    max_text_len=100,
 )
 
 tokenizer, config = TTSTokenizer.init_from_config(something_tts_config)
@@ -76,12 +67,14 @@ train_samples, eval_samples = load_tts_samples(
 model = DelightfulTTSE2e(ap=ap, config=config, tokenizer=tokenizer, speaker_manager=None, emotion_manager=None)
 
 trainer = Trainer(
-    TrainerArgs(continue_path='/TTS/recipes/ljspeech/delightful_tts/delightful_tts_e2e_ljspeech-November-02-2022_03+03PM-4c392d89'), 
-    config, 
-    output_path, 
-    model=model, 
-    train_samples=train_samples, 
-    eval_samples=eval_samples
+    TrainerArgs(
+        continue_path="/TTS/recipes/ljspeech/delightful_tts/delightful_tts_e2e_ljspeech-November-02-2022_03+03PM-4c392d89"
+    ),
+    config,
+    output_path,
+    model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples,
 )
 
 trainer.fit()

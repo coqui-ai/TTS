@@ -97,7 +97,7 @@ class DelightfulTTSConfig(BaseTTSConfig):
             "Prior to November 22, 1963.",
         ]
     )
-    
+
     def __post_init__(self):
         # Pass multi-speaker parameters to the model args as `model.init_multispeaker()` looks for it there.
         if self.num_speakers > 0:

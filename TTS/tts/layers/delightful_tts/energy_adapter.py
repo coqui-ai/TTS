@@ -7,7 +7,7 @@ from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor
 from TTS.tts.utils.helpers import average_over_durations
 
 
-class EnergyAdaptor(nn.Module): # pylint: disable=abstract-method
+class EnergyAdaptor(nn.Module):  # pylint: disable=abstract-method
     """Variance Adaptor with an added 1D conv layer. Used to
     get energy embeddings.
 

@@ -4,11 +4,10 @@ import os
 import shutil
 
 from trainer import get_last_checkpoint
-from tests import get_device_id, get_tests_output_path, run_cli
 
+from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.tts.configs.delightful_tts_config import DelightfulTtsAudioConfig, DelightfulTTSConfig
 from TTS.tts.models.delightful_tts import DelightfulTtsArgs, VocoderConfig
-
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
@@ -50,7 +49,6 @@ command_train = (
     f"CUDA_VISIBLE_DEVICES='{get_device_id()}'  python TTS/bin/train_tts.py --config_path {config_path}  "
     f"--coqpit.output_path {output_path} "
     "--coqpit.datasets.0.formatter ljspeech "
-    "--coqpit.datasets.0.dataset_name ljspeech "
     "--coqpit.datasets.0.meta_file_train metadata.csv "
     "--coqpit.datasets.0.meta_file_val metadata.csv "
     "--coqpit.datasets.0.path tests/data/ljspeech "
