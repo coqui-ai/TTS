@@ -176,7 +176,7 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         return pitch.astype(np.float32)
 
 
-class ForwardTTSE2eDataset(TTSDataset):
+class ForwardTTSDataset(TTSDataset):
     def __init__(self, *args, **kwargs):
         # don't init the default F0Dataset in TTSDataset
         compute_f0 = kwargs.pop("compute_f0", False) #pylint: disable=redefined-outer-name
@@ -238,10 +238,10 @@ class ForwardTTSE2eDataset(TTSDataset):
             "token_len": len(token_ids),
             "wav": wav,
             "pitch": f0,
+            "audio_unique_name": item['audio_unique_name'],
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
-            "audio_unique_name": item["audio_unique_name"],
             "attn_prior": attn_prior,
         }
 
@@ -327,6 +327,7 @@ class ForwardTTSE2eDataset(TTSDataset):
             "pitch": pitch_padded,
             "waveform": wav_padded,  # (B x T)
             "waveform_lens": wav_lens,  # (B)
+            "audio_unique_names": batch['audio_unique_name'],
             "waveform_rel_lens": wav_rel_lens,
             "speaker_names": batch["speaker_name"],
             "language_names": batch["language_name"],
@@ -427,7 +428,7 @@ class DelightfulTtsArgs(Coqpit):
     length_scale: float = 1.0
 
 
-class DelightfulTTSE2e(BaseTTSE2E):
+class DelightfulTTS(BaseTTSE2E):
     """
     Paper::
         https://arxiv.org/pdf/2110.12612.pdf
@@ -577,7 +578,6 @@ class DelightfulTTSE2e(BaseTTSE2E):
     def on_epoch_start(self, trainer):  # pylint: disable=W0613
         """Freeze layers at the beginning of an epoch"""
         self._freeze_layers()
-        # set the device of speaker encoder
 
     def _freeze_layers(self):
         if self.args.freeze_vocoder:
@@ -663,8 +663,12 @@ class DelightfulTTSE2e(BaseTTSE2E):
             pad_short=True,
         )
 
+        if encoder_outputs['spk_emb'] is not None:
+            g = encoder_outputs["spk_emb"].unsqueeze(-1)
+        else:
+            g = None
         vocoder_output = self.waveform_decoder(
-            x=vocoder_input_slices.detach(), g=encoder_outputs["spk_emb"].unsqueeze(-1)
+            x=vocoder_input_slices.detach(), g=g
         )
         wav_seg = segment(
             waveform,
@@ -680,16 +684,21 @@ class DelightfulTTSE2e(BaseTTSE2E):
         return model_outputs
 
     @torch.no_grad()
-    def inference(self, x, d_vectors=None, speaker_idx=None, pitch_transform=None, energy_transform=None):
+    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None}, pitch_transform=None, energy_transform=None):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
-            d_vectors=d_vectors,
-            speaker_idx=speaker_idx,
+            d_vectors=aux_input["d_vectors"],
+            speaker_idx=aux_input["speaker_ids"],
             pitch_transform=pitch_transform,
             energy_transform=energy_transform
         )
         vocoder_input = encoder_outputs["model_outputs"].transpose(1, 2)  # [B, T_max2, C_mel] -> [B, C_mel, T_max2]
-        vocoder_output = self.waveform_decoder(x=vocoder_input, g=encoder_outputs["spk_emb"].unsqueeze(-1))
+
+        if encoder_outputs['spk_emb'] is not None:
+            g = encoder_outputs["spk_emb"].unsqueeze(-1)
+        else:
+            g = None
+        vocoder_output = self.waveform_decoder(x=vocoder_input, g=g)
         model_outputs = {**encoder_outputs}
         model_outputs["model_outputs"] = vocoder_output
         return model_outputs
@@ -1011,8 +1020,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         # synthesize voice
         outputs = self.inference(
             text_inputs,
-            d_vectors=d_vector,
-            speaker_idx=speaker_id,
+            aux_input={"d_vectors": d_vector, "speaker_ids": speaker_id},
             pitch_transform=pitch_transform,
             # energy_transform=energy_transform
         )
@@ -1087,13 +1095,13 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 aux_inputs["text"],
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
-                language_id=aux_inputs["language_id"],
+                language_id=None
             )
             outputs_gl = self.synthesize_with_gl(
                 aux_inputs["text"],
                 speaker_id=aux_inputs["speaker_id"],
                 d_vector=aux_inputs["d_vector"],
-                language_id=aux_inputs["language_id"],
+                language_id=None
             )
             # speaker_name = self.speaker_manager.speaker_names[aux_inputs["speaker_id"]]
             test_audios["{}-audio".format(idx)] = outputs["wav"].T
@@ -1124,7 +1132,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         # get d_vectors from audio file names
         if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
             d_vector_mapping = self.speaker_manager.embeddings
-            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_files"]]
+            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_unique_names"]]
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
@@ -1241,7 +1249,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
             loader = None
         else:
             # init dataloader
-            dataset = ForwardTTSE2eDataset(
+            dataset = ForwardTTSDataset(
                 samples=samples,
                 ap=self.ap,
                 # audio_config=self.config.audio,
@@ -1281,9 +1289,9 @@ class DelightfulTTSE2e(BaseTTSE2E):
                 pin_memory=True,
             )
 
-            # get pitch mean and std
-            self.pitch_mean = dataset.f0_dataset.mean
-            self.pitch_std = dataset.f0_dataset.std
+        # get pitch mean and std
+        self.pitch_mean = dataset.f0_dataset.mean
+        self.pitch_std = dataset.f0_dataset.std
         return loader
 
     def get_criterion(self):
@@ -1348,7 +1356,7 @@ class DelightfulTTSE2e(BaseTTSE2E):
         speaker_manager = SpeakerManager.init_from_config(config.model_args, samples)
         ap = AudioProcessor.init_from_config(config=config)
         # language_manager = LanguageManager.init_from_config(config)
-        return DelightfulTTSE2e(
+        return DelightfulTTS(
             config=new_config, ap=ap, tokenizer=tokenizer, speaker_manager=speaker_manager
         )
 
