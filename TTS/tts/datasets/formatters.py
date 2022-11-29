@@ -615,13 +615,13 @@ def spgi(
     Returns:
         items (dict): {"text", audio_file", "speaker_name", "root_path"}
     """
-
+    items = []
     # use cached downloaded data from huggingface or download if not downloaded yet
     try:
         from datasets import load_dataset  # pylint: disable=import-outside-toplevel
 
         ds = load_dataset("kensho/spgispeech", meta_file_train, use_auth_token=True)
-        items = []
+        
         if meta_file_train == "dev":
             meta_file_train = "validation"
         elif meta_file_train == "test":
@@ -641,8 +641,8 @@ def spgi(
                     "root_path": item["audio"]["path"],
                 }
             )
-        return items
     except OSError:
         print(
             f"""[!] in order to download huggingface datasets, you need to have a huggingface api token stored in your {os.path.join(expanduser('~'), '.huggingface/token')}"""
         )
+    return items
