@@ -39,3 +39,4 @@ gruut[cs,de,es,fr,it,nl,pt,ru,sv]==2.2.3
 jamo
 nltk
 g2pkk>=0.1.1
+datasets
