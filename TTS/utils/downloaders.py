@@ -1,15 +1,16 @@
 import os
 from typing import Optional
 
-from TTS.utils.download import download_kaggle_dataset, download_url, extract_archive, download_huggingface_dataset
+from TTS.utils.download import download_huggingface_dataset, download_kaggle_dataset, download_url, extract_archive
 
-def download_spgi(split:str):
+
+def download_spgi(split: str):
     """Download and extract Kensho SPGI dataset
 
     Args:
         split (str): name of the dataset split (L(530GB), M(107GB), S(22GB), dev(11GB), test(11GB)).
     """
-    download_huggingface_dataset('kensho/spgispeech', split)
+    download_huggingface_dataset("kensho/spgispeech", split)
 
 
 def download_ljspeech(path: str):

@@ -207,7 +207,7 @@ def download_kaggle_dataset(dataset_path: str, dataset_name: str, output_path: s
         )
 
 
-def download_huggingface_dataset(dataset_path: str, dataset_name:str):
+def download_huggingface_dataset(dataset_path: str, dataset_name: str):
     """Download dataset from huggingface.
     Args:
         dataset_path (str):
@@ -216,6 +216,7 @@ def download_huggingface_dataset(dataset_path: str, dataset_name:str):
 
     try:
         from datasets import load_dataset  # pylint: disable=import-outside-toplevel
+
         print(f"""\nDownloading {dataset_name}...""")
         load_dataset(dataset_path, dataset_name, use_auth_token=True)
     except OSError:

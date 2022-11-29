@@ -2,10 +2,9 @@ import os
 import re
 import xml.etree.ElementTree as ET
 from glob import glob
+from os.path import expanduser
 from pathlib import Path
 from typing import List
-from os.path import expanduser
-from tqdm import tqdm
 
 import pandas as pd
 from tqdm import tqdm
@@ -605,9 +604,11 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     return items
 
 
-def spgi(root_path:str=None, meta_file_train:str='test', ignored_speakers:List[str]=None, **kwargs):  # pylint: disable=unused-argument
-    """ Normalize Kensho spgi speech dataset from Hugging Face
-    
+def spgi(
+    root_path: str = None, meta_file_train: str = "test", ignored_speakers: List[str] = None, **kwargs
+):  # pylint: disable=unused-argument
+    """Normalize Kensho spgi speech dataset from Hugging Face
+
     https://huggingface.co/datasets/kensho/spgispeech#dataset-description
     Args:
         split (str): which split to load {S, M, L, dev or test}
@@ -618,24 +619,30 @@ def spgi(root_path:str=None, meta_file_train:str='test', ignored_speakers:List[s
     # use cached downloaded data from huggingface or download if not downloaded yet
     try:
         from datasets import load_dataset  # pylint: disable=import-outside-toplevel
-        ds = load_dataset('kensho/spgispeech', meta_file_train, use_auth_token=True)
+
+        ds = load_dataset("kensho/spgispeech", meta_file_train, use_auth_token=True)
         items = []
-        if meta_file_train == 'dev':
-            meta_file_train = 'validation'
-        elif meta_file_train == 'test':
-            meta_file_train = 'test'
+        if meta_file_train == "dev":
+            meta_file_train = "validation"
+        elif meta_file_train == "test":
+            meta_file_train = "test"
         else:
-            meta_file_train = 'train'
+            meta_file_train = "train"
 
         for item in tqdm(ds[meta_file_train]):
             if isinstance(ignored_speakers, list):
-                if item['wav_filename'].split('/')[0] in ignored_speakers:
+                if item["wav_filename"].split("/")[0] in ignored_speakers:
                     continue
-            items.append({"text": item['transcript'], "audio_file": item['audio']['path'], "speaker_name": item['wav_filename'].split('/')[0], "root_path": item['audio']['path']})
+            items.append(
+                {
+                    "text": item["transcript"],
+                    "audio_file": item["audio"]["path"],
+                    "speaker_name": item["wav_filename"].split("/")[0],
+                    "root_path": item["audio"]["path"],
+                }
+            )
         return items
     except OSError:
         print(
             f"""[!] in order to download huggingface datasets, you need to have a huggingface api token stored in your {os.path.join(expanduser('~'), '.huggingface/token')}"""
         )
-
- 
