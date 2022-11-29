@@ -605,7 +605,7 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     return items
 
 
-def spgi(root_path:str=None, meta_file_train:str='test', ignored_speakers=None, **kwargs):  # pylint: disable=unused-argument
+def spgi(root_path:str=None, meta_file_train:str='test', ignored_speakers:List[str]=None, **kwargs):  # pylint: disable=unused-argument
     """ Normalize Kensho spgi speech dataset from Hugging Face
     
     https://huggingface.co/datasets/kensho/spgispeech#dataset-description
