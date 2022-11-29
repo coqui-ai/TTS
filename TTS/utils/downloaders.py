@@ -7,9 +7,10 @@ def download_spgi(split:str):
     """Download and extract Kensho SPGI dataset
 
     Args:
-        split (str): name of the dataset split (L(530G), M(107G), S(22G), dev(11G), test(11G)).
+        split (str): name of the dataset split (L(530GB), M(107GB), S(22GB), dev(11GB), test(11GB)).
     """
     download_huggingface_dataset('kensho/spgispeech', split)
+
 
 def download_ljspeech(path: str):
     """Download and extract LJSpeech dataset
