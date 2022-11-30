@@ -22,12 +22,18 @@ class Encoder(nn.Module):
         - output: (B, C_in, T)
     """
 
-    def __init__(self, state_per_phone, in_out_channels=512):
+    def __init__(
+        self, num_chars,
+        state_per_phone,
+        in_out_channels=512
+    ):
+
         super().__init__()
 
         self.state_per_phone = state_per_phone
         self.in_out_channels = in_out_channels
-
+        
+        self.emb = nn.Embedding(num_chars, hidden_channels)
         self.convolutions = nn.ModuleList()
         for _ in range(3):
             self.convolutions.append(ConvBNBlock(in_out_channels, in_out_channels, 5, "relu"))
@@ -42,8 +48,8 @@ class Encoder(nn.Module):
         self.rnn_state = None
 
     def forward(self, x, input_lengths):
-        b, _, T = x.shape
-        o = x
+        b, T = x.shape
+        o = self.emb(x).transpose(1, 2)
         for layer in self.convolutions:
             o = layer(o)
         o = o.transpose(1, 2)
@@ -73,7 +79,7 @@ class ParameterModel(nn.Module):
 
     def __init__(
         self,
-        parameternetwork: List[int],
+        outputnet_size: List[int],
         input_size: int,
         output_size: int,
         flat_start_params: dict,
@@ -83,9 +89,9 @@ class ParameterModel(nn.Module):
         self.flat_start_params = flat_start_params
 
         self.layers = nn.ModuleList(
-            [Linear(inp, out) for inp, out in zip([input_size] + parameternetwork[:-1], parameternetwork)]
+            [Linear(inp, out) for inp, out in zip([input_size] + outputnet_size[:-1], outputnet_size)]
         )
-        last_layer = self._flat_start_output_layer(parameternetwork[-1], output_size, frame_channels)
+        last_layer = self._flat_start_output_layer(outputnet_size[-1], output_size, frame_channels)
         self.layers.append(last_layer)
 
     def _flat_start_output_layer(self, input_size, output_size, frame_channels):
@@ -115,7 +121,7 @@ class Outputnet(nn.Module):
         encoder_dim: int,
         memory_rnn_dim: int,
         frame_channels: int,
-        parameternetwork: List[int],
+        outputnet_size: List[int],
         flat_start_params: dict,
         std_floor: float = 1e-2,
     ):
@@ -131,7 +137,7 @@ class Outputnet(nn.Module):
         self._validate_parameters()
 
         self.parametermodel = ParameterModel(
-            parameternetwork=parameternetwork,
+            outputnet_size=outputnet_size,
             input_size=input_size,
             output_size=output_size,
             flat_start_params=flat_start_params,

@@ -282,6 +282,5 @@ def logsumexp(x, dim):
 
     m, _ = x.max(dim=dim)
     mask = m == -float("inf")
-
     s = (x - m.masked_fill_(mask, 0).unsqueeze(dim=dim)).exp().sum(dim=dim)
     return s.masked_fill_(mask, 1).log() + m.masked_fill_(mask, -float("inf"))
