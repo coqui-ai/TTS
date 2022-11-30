@@ -39,7 +39,7 @@ class HMM(nn.Module):
         prenet_dropout: float,
         memory_rnn_dim: int,
         prenet_dropout_at_inference: bool,
-        parameternetwork: List[int],
+        outputnet_size: List[int],
         flat_start_params: dict,
         std_floor: float,
     ):
@@ -64,7 +64,9 @@ class HMM(nn.Module):
             bias=False,
         )
         self.memory_rnn = nn.LSTMCell(input_size=prenet_dim, hidden_size=memory_rnn_dim)
-        self.output_net = Outputnet(encoder_dim, memory_rnn_dim, frame_channels, parameternetwork, flat_start_params, std_floor)
+        self.output_net = Outputnet(
+            encoder_dim, memory_rnn_dim, frame_channels, outputnet_size, flat_start_params, std_floor
+        )
         self.register_buffer("go_tokens", torch.zeros(ar_order, 1))
 
     def forward(self, inputs, inputs_len, mels, mel_lens):
