@@ -4,56 +4,70 @@ import os
 import shutil
 
 from trainer import get_last_checkpoint
+from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTtsAudioConfig, VocoderConfig
 
 from tests import get_device_id, get_tests_output_path, run_cli
-from TTS.tts.configs.delightful_tts_config import DelightfulTtsAudioConfig, DelightfulTTSConfig
-from TTS.tts.models.delightful_tts import DelightfulTtsArgs, VocoderConfig
+
+from TTS.config.shared_configs import BaseAudioConfig
+from TTS.tts.configs.delightful_tts_config import DelightfulTTSConfig
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
+audio_config = BaseAudioConfig(
+    sample_rate=22050,
+    do_trim_silence=True,
+    trim_db=60.0,
+    signal_norm=False,
+    mel_fmin=0.0,
+    mel_fmax=8000,
+    spec_gain=1.0,
+    log_func="np.log",
+    ref_level_db=20,
+    preemphasis=0.0,
+)
 
 audio_config = DelightfulTtsAudioConfig()
-model_args = DelightfulTtsArgs(use_speaker_embedding=False)
+model_args = DelightfulTtsArgs()
 
 vocoder_config = VocoderConfig()
 
+
+
 config = DelightfulTTSConfig(
-    model_args=model_args,
     audio=audio_config,
-    vocoder=vocoder_config,
     batch_size=8,
     eval_batch_size=8,
-    compute_f0=True,
-    run_eval=True,
-    test_delay_epochs=-1,
+    num_loader_workers=0,
+    num_eval_loader_workers=0,
     text_cleaner="english_cleaners",
     use_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path="tests/data/ljspeech/phoneme_cache/",
     f0_cache_path="tests/data/ljspeech/f0_cache/",
+    run_eval=True,
+    test_delay_epochs=-1,
     epochs=1,
     print_step=1,
     print_eval=True,
-    use_attn_priors=False,
-    binary_align_loss_alpha=0.0,
     test_sentences=[
         "Be a voice, not an echo.",
     ],
-    output_path=output_path,
+    use_speaker_embedding=False,
 )
-
 config.save_json(config_path)
 
+# train the model for one epoch
 command_train = (
-    f"CUDA_VISIBLE_DEVICES='{get_device_id()}'  python TTS/bin/train_tts.py --config_path {config_path}  "
+    f"CUDA_VISIBLE_DEVICES='{'cpu'}'  python TTS/bin/train_tts.py --config_path {config_path}  "
     f"--coqpit.output_path {output_path} "
     "--coqpit.datasets.0.formatter ljspeech "
+    "--coqpit.datasets.0.dataset_name ljspeech "
     "--coqpit.datasets.0.meta_file_train metadata.csv "
     "--coqpit.datasets.0.meta_file_val metadata.csv "
     "--coqpit.datasets.0.path tests/data/ljspeech "
     "--coqpit.datasets.0.meta_file_attn_mask tests/data/ljspeech/metadata_attn_mask.txt "
-    "--coqpit.test_delay_epochs 0"
+    "--coqpit.test_delay_epochs -1"
 )
 
 run_cli(command_train)
