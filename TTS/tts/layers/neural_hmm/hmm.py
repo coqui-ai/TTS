@@ -33,22 +33,33 @@ class HMM(nn.Module):
         self,
         frame_channels: int,
         ar_order: int,
+        sampling_temp: float,
+        deterministic_transition: bool,
+        duration_threshold: float,
         encoder_dim: int,
         prenet_type: str,
         prenet_dim: int,
+        prenet_n_layers: int,
         prenet_dropout: float,
-        memory_rnn_dim: int,
         prenet_dropout_at_inference: bool,
+        memory_rnn_dim: int,
         outputnet_size: List[int],
         flat_start_params: dict,
         std_floor: float,
+        use_grad_checkpointing: bool = True,
     ):
         super().__init__()
 
         self.frame_channels = frame_channels
         self.ar_order = ar_order
+        self.determinstic_transition = deterministic_transition
+        self.duration_threshold = duration_threshold
+        self.prenet_dim = prenet_dim
         self.memory_rnn_dim = memory_rnn_dim
-
+        self.use_grad_checkpointing = use_grad_checkpointing
+ 
+        
+        
         self.transition_model = TransitionModel()
         self.emission_model = EmissionModel()
 
@@ -60,12 +71,17 @@ class HMM(nn.Module):
             prenet_type=prenet_type,
             prenet_dropout=prenet_dropout,
             dropout_at_inference=prenet_dropout_at_inference,
-            out_features=[self.prenet_dim, self.prenet_dim],
+            out_features=[self.prenet_dim for _ in range(prenet_n_layers)],
             bias=False,
         )
         self.memory_rnn = nn.LSTMCell(input_size=prenet_dim, hidden_size=memory_rnn_dim)
         self.output_net = Outputnet(
-            encoder_dim, memory_rnn_dim, frame_channels, outputnet_size, flat_start_params, std_floor
+            encoder_dim,
+            memory_rnn_dim,
+            frame_channels, 
+            outputnet_size, 
+            flat_start_params, 
+            std_floor
         )
         self.register_buffer("go_tokens", torch.zeros(ar_order, 1))
 
@@ -79,7 +95,7 @@ class HMM(nn.Module):
             mel_lens (torch.LongTensor): Length of mel inputs
 
         Shapes:
-            - inputs: (B, D_out_enc, T)
+            - inputs: (B, T, D_out_enc)
             - inputs_len: (B)
             - mels: (B, T_mel, D_mel)
             - mel_lens: (B)
@@ -88,13 +104,13 @@ class HMM(nn.Module):
             log_prob (torch.FloatTensor): Log probability of the sequence
         """
         # Get dimensions of inputs
-        batch_size, self.N = inputs.shape
+        batch_size, N = inputs.shape
         T_max = torch.max(mel_lens)
         mels = mels.permute(0, 2, 1)  #! TODO: check dataloader here
 
         # Intialize forward algorithm
         log_state_priors = self._initialize_log_state_priors(inputs)
-        log_c = self._initialize_forward_algorithm_variables(mels)
+        log_c, log_alpha_scaled, transition_vector, means = self._initialize_forward_algorithm_variables(mels)
 
         # Initialize autoregression elements
         ar_inputs = self._add_go_token(mels)
@@ -106,29 +122,33 @@ class HMM(nn.Module):
             h_memory, c_memory = self._process_ar_timestep(t, ar_inputs, h_memory, c_memory)
             # Get mean, std and transition vector from decoder for this timestep
             # Note: Gradient checkpointing currently doesn't works with multiple gpus inside a loop
-            mean, std, transition_vector = checkpoint(self.output_net, h_memory, inputs)
+            if self.use_grad_checkpointing:
+                mean, std, transition_vector = checkpoint(self.output_net, h_memory, inputs)
+            else:
+                mean, std, transition_vector = self.output_net(h_memory, inputs)
+
             if t == 0:
                 log_alpha_temp = log_state_priors + self.emission_model(mels[:, 0], mean, std, inputs_len)
             else:
                 log_alpha_temp = self.emission_model(mels[:, t], mean, std, inputs_len) + self.transition_model(
-                    self.log_alpha_scaled[:, t - 1, :], transition_vector, inputs_len
+                    log_alpha_scaled[:, t - 1, :], transition_vector, inputs_len
                 )
             log_c[:, t] = torch.logsumexp(log_alpha_temp, dim=1)
-            self.log_alpha_scaled[:, t, :] = log_alpha_temp - log_c[:, t].unsqueeze(1)
-            self.transition_vector[:, t] = transition_vector  # needed for absorption state calculation
+            log_alpha_scaled[:, t, :] = log_alpha_temp - log_c[:, t].unsqueeze(1)
+            transition_vector[:, t] = transition_vector  # needed for absorption state calculation
 
             # Save for plotting
-            self.means.append(mean.detach())
+            means.append(mean.detach())
 
-        log_c = self._mask_lengths(mels, mel_lens, log_c)
+        log_c, log_alpha_scaled = self._mask_lengths(mel_lens, log_c, log_alpha_scaled)
 
-        sum_final_log_c = self.get_absorption_state_scaling_factor(mel_lens, self.log_alpha_scaled, inputs_len)
+        sum_final_log_c = self.get_absorption_state_scaling_factor(mel_lens, log_alpha_scaled, inputs_len, transition_vector)
 
         log_probs = torch.sum(log_c, dim=1) + sum_final_log_c
 
-        return log_probs
+        return log_probs, log_alpha_scaled, transition_vector, means
 
-    def _mask_lengths(self, mel_inputs_lengths, log_c):
+    def _mask_lengths(self, mel_lens, log_c, log_alpha_scaled):
         """
         Mask the lengths of the forward variables so that the variable lenghts
         do not contribute in the loss calculation
@@ -139,11 +159,11 @@ class HMM(nn.Module):
         Returns:
             log_c (torch.FloatTensor) : scaled probabilities (batch, T)
         """
-        mask_log_c = sequence_mask(mel_inputs_lengths)
+        mask_log_c = sequence_mask(mel_lens)
         log_c = log_c * mask_log_c
         mask_log_alpha_scaled = mask_log_c.unsqueeze(2)
-        self.log_alpha_scaled = self.log_alpha_scaled * mask_log_alpha_scaled
-        return log_c
+        log_alpha_scaled = log_alpha_scaled * mask_log_alpha_scaled
+        return log_c, log_alpha_scaled
 
     def _process_ar_timestep(
         self,
@@ -188,23 +208,24 @@ class HMM(nn.Module):
         ar_inputs = torch.cat((go_tokens, mel_inputs), dim=1)[:, :T]
         return ar_inputs
 
-    def _initialize_forward_algorithm_variables(self, mel_inputs):
+    def _initialize_forward_algorithm_variables(self, mel_inputs, N):
         r"""Initialize placeholders for forward algorithm variables, to use a stable
                 version we will use log_alpha_scaled and the scaling constant
 
         Args:
-            mel_inputs (torch.FloatTensor): (b, T, frame_channels)
+            mel_inputs (torch.FloatTensor): (b, T_max, frame_channels)
+            N (int): number of states
         Returns:
-            log_c (torch.FloatTensor): Scaling constant (b, T)
+            log_c (torch.FloatTensor): Scaling constant (b, T_max)
         """
         batch_size, T_max, _ = mel_inputs.shape
-        self.log_alpha_scaled = mel_inputs.new_zeros((batch_size, T_max, self.N))
+        log_alpha_scaled = mel_inputs.new_zeros((batch_size, T_max, N))
         log_c = mel_inputs.new_zeros(batch_size, T_max)
+        transition_vector = mel_inputs.new_zeros((batch_size, T_max, N))
 
         # Saving for plotting later, will not have gradient tapes
-        self.means = []
-        self.transition_vector = mel_inputs.new_zeros((batch_size, T_max, self.N))
-        return log_c
+        means = []
+        return log_c, log_alpha_scaled, transition_vector, means
 
     def _init_lstm_states(self, batch_size, hidden_state_dim, device_tensor):
         r"""
@@ -226,11 +247,11 @@ class HMM(nn.Module):
             device_tensor.new_zeros(batch_size, hidden_state_dim),
         )
 
-    def get_absorption_state_scaling_factor(self, mels_len, log_alpha_scaled, inputs_len):
-        r"""
-        Returns the final scaling factor of absorption state
+    def get_absorption_state_scaling_factor(self, mels_len, log_alpha_scaled, inputs_len, transition_vector):
+        """Returns the final scaling factor of absorption state
+
         Args:
-            mel_inputs_lengths (torch.IntTensor): Input size of mels to
+            mels_len (torch.IntTensor): Input size of mels to
                     get the last timestep of log_alpha_scaled
             log_alpha_scaled (torch.FloatTEnsor): State probabilities
             text_lengths (torch.IntTensor): length of the states to
@@ -243,20 +264,29 @@ class HMM(nn.Module):
                     those values so that it only consider the states
                     which are needed for that length
                 )
+            transition_vector (torch.FloatTensor): transtiion vector for each state per timestep
+            
+        Shapes:
+            - mels_len: (batch_size)
+            - log_alpha_scaled: (batch_size, N, T)
+            - text_lengths: (batch_size)
+            - transition_vector: (batch_size, N, T)
 
         Returns:
+            sum_final_log_c (torch.FloatTensor): (batch_size)
 
         """
+        N = torch.max(inputs_len)
         max_inputs_len = log_alpha_scaled.shape[2]
         state_lengths_mask = sequence_mask(inputs_len, max_len=max_inputs_len)
 
         last_log_alpha_scaled_index = (
-            (mels_len - 1).unsqueeze(-1).expand(-1, self.N).unsqueeze(1)
+            (mels_len - 1).unsqueeze(-1).expand(-1, N).unsqueeze(1)
         )  # Batch X Hidden State Size
         last_log_alpha_scaled = torch.gather(log_alpha_scaled, 1, last_log_alpha_scaled_index).squeeze(1)
         last_log_alpha_scaled = last_log_alpha_scaled.masked_fill(~state_lengths_mask, -float("inf"))
 
-        last_transition_vector = torch.gather(self.transition_vector, 1, last_log_alpha_scaled_index).squeeze(1)
+        last_transition_vector = torch.gather(transition_vector, 1, last_log_alpha_scaled_index).squeeze(1)
         last_transition_probability = torch.sigmoid(last_transition_vector)
         log_probability_of_transitioning = log_clamped(last_transition_probability)
 
@@ -355,27 +385,22 @@ class HMM(nn.Module):
         Args:
             text_embeddings (torch.FloatTensor): used to create the log pi
                     on current device
+        
+        Shapes:
+            - text_embeddings: (B, T, D_out_enc)
         """
-        log_state_priors = text_embeddings.new_full([self.N], -float("inf"))
+        N = text_embeddings.shape[1]
+        log_state_priors = text_embeddings.new_full([N], -float("inf"))
         log_state_priors[0] = 0.0
         return log_state_priors
 
 
-@dataclass
 class TransitionModel(nn.Module):
     """Transition Model of the HMM, it represents the probability of transitioning
     form current state to all other states"""
-
-    staying_p: torch.FloatTensor = None
-    transition_pr: torch.FloatTensor = None
-
-    def _update_current_values(self, staying: torch.FloatTensor, transitioning: torch.FloatTensor):
-        """
-        Make reference of the staying and transitioning probabilities as instance
-        parameters of class
-        """
-        self.staying_p = staying
-        self.transition_pr = transitioning
+    
+    def __init__(self) -> None:
+        super().__init__()
 
     def forward(self, log_alpha_scaled, transition_vector, inputs_len):
         r"""
@@ -396,8 +421,6 @@ class TransitionModel(nn.Module):
         transition_p = torch.sigmoid(transition_vector)
         staying_p = torch.sigmoid(-transition_vector)
 
-        self._update_current_values(staying_p, transition_p)
-
         log_staying_probability = log_clamped(staying_p)
         log_transition_probability = log_clamped(transition_p)
 
@@ -411,12 +434,14 @@ class TransitionModel(nn.Module):
         return out
 
 
-@dataclass
+
 class EmissionModel(nn.Module):
     """Emission Model of the HMM, it represents the probability of
     emitting an observation based on the current state"""
-
-    distribution_function: tdist.Distribution = tdist.normal.Normal
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.distribution_function: tdist.Distribution = tdist.normal.Normal
 
     def sample(self, means, stds, sampling_temp):
         return self.distribution_function(means, stds * sampling_temp).sample() if sampling_temp > 0 else means

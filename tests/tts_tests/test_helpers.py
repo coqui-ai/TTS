@@ -103,3 +103,6 @@ def logsumexp_test():
     
     a = T.ones(10) # all ones
     assert T.eq(T.logsumexp(a, dim=0), logsumexp(a, dim=0)).all()
+    
+    
+    

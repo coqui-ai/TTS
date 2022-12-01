@@ -67,7 +67,7 @@ class Prenet(nn.Module):
         Prenet with BN improves the model performance significantly especially
     if it is enabled after learning a diagonal attention alignment with the original
     prenet. However, if the target dataset is high quality then it also works from
-    the start. It is also suggested to disable dropout if BN is in use.
+    the start. It is alsao suggested to disable dropout if BN is in use.
 
         prenet_type == "original"
             x -> [linear -> ReLU -> Dropout]xN -> o
