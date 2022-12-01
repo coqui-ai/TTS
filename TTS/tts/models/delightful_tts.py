@@ -27,7 +27,7 @@ from TTS.tts.utils.helpers import average_over_durations, compute_attn_prior, ra
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_pitch, plot_spectrogram
-from TTS.utils.audio.numpy_transforms import build_mel_basis
+from TTS.utils.audio.numpy_transforms import build_mel_basis, compute_f0
 from TTS.utils.audio.numpy_transforms import db_to_amp as db_to_amp_numpy
 from TTS.utils.audio.numpy_transforms import mel_to_wav as mel_to_wav_numpy
 from TTS.utils.audio.processor import AudioProcessor
@@ -385,6 +385,19 @@ class DelightfulTtsAudioConfig(Coqpit):
     pitch_fmax: float = 640.0
     pitch_fmin: float = 1.0
     resample: bool = False
+    preemphasis: float = 0.0
+    ref_level_db: int = 20
+    do_sound_norm: bool = False
+    log_func: str = "np.log10"
+    do_trim_silence: bool = True
+    trim_db: int = 45
+    do_rms_norm: bool = False
+    db_level: float = None
+    power: float = 1.5
+    griffin_lim_iters: int = 60
+    spec_gain: int = 20
+    do_amp_to_db_linear: bool = True
+    do_amp_to_db_mel: bool = True
 
 
 ##############################
@@ -396,7 +409,6 @@ class DelightfulTtsAudioConfig(Coqpit):
 class DelightfulTtsArgs(Coqpit):
     num_chars: int = 100
     spec_segment_size: int = 32
-    # acoustic model params
     n_hidden_conformer_encoder: int = 512
     n_layers_conformer_encoder: int = 6
     n_heads_conformer_encoder: int = 8
@@ -425,7 +437,6 @@ class DelightfulTtsArgs(Coqpit):
     dropout_variance_adaptor: float = 0.5
     n_bins_variance_adaptor: int = 256
     emb_kernel_size_variance_adaptor: int = 3
-    # multi-speaker params
     use_speaker_embedding: bool = False
     num_speakers: int = 0
     speakers_file: str = None
@@ -433,7 +444,6 @@ class DelightfulTtsArgs(Coqpit):
     speaker_embedding_channels: int = 384
     use_d_vector_file: bool = False
     d_vector_dim: int = 0
-    # freeze layers
     freeze_vocoder: bool = False
     freeze_text_encoder: bool = False
     freeze_duration_predictor: bool = False
@@ -441,7 +451,6 @@ class DelightfulTtsArgs(Coqpit):
     freeze_energy_predictor: bool = False
     freeze_basis_vectors_predictor: bool = False
     freeze_decoder: bool = False
-    # aux params
     length_scale: float = 1.0
 
 
@@ -516,6 +525,11 @@ class DelightfulTTS(BaseTTSE2E):
                 periods=self.config.vocoder.periods_discriminator,
             )
 
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
+    
     @property
     def energy_scaler(self):
         return self.acoustic_model.energy_scaler
