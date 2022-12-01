@@ -65,6 +65,7 @@ class TTSDataset(Dataset):
         use_noise_augment: bool = False,
         start_by_longest: bool = False,
         verbose: bool = False,
+        compute_mel_statistics: bool = False,
     ):
         """Generic 📂 data loader for `tts` models. It is configurable for different outputs and needs.
 
@@ -140,6 +141,7 @@ class TTSDataset(Dataset):
         self.language_id_mapping = language_id_mapping
         self.use_noise_augment = use_noise_augment
         self.start_by_longest = start_by_longest
+        self.compute_mel_statistics = compute_mel_statistics
 
         self.verbose = verbose
         self.rescue_item_idx = 1

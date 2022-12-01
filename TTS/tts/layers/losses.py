@@ -872,3 +872,25 @@ class ForwardTTSLoss(nn.Module):
 
         return_dict["loss"] = loss
         return return_dict
+    
+
+class NLLLoss(nn.Module):
+    """Negative log likelihood loss."""
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, log_prob: torch.Tensor) -> dict:
+        """Compute the loss.
+
+        Args:
+            logits (Tensor): [B, T, D]
+
+        Returns:
+            Tensor: [1]
+
+        """
+        return_dict = {}
+        return_dict["loss"] = - log_prob.mean()
+        return return_dict 
+    

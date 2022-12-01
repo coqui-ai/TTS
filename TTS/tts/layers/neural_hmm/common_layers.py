@@ -25,7 +25,8 @@ class Encoder(nn.Module):
     def __init__(
         self, num_chars,
         state_per_phone,
-        in_out_channels=512
+        in_out_channels=512,
+        n_convolutions=3
     ):
 
         super().__init__()
@@ -33,9 +34,9 @@ class Encoder(nn.Module):
         self.state_per_phone = state_per_phone
         self.in_out_channels = in_out_channels
         
-        self.emb = nn.Embedding(num_chars, hidden_channels)
+        self.emb = nn.Embedding(num_chars, in_out_channels)
         self.convolutions = nn.ModuleList()
-        for _ in range(3):
+        for _ in range(n_convolutions):
             self.convolutions.append(ConvBNBlock(in_out_channels, in_out_channels, 5, "relu"))
         self.lstm = nn.LSTM(
             in_out_channels,
@@ -68,13 +69,11 @@ class ParameterModel(nn.Module):
     Note: Do not put dropout layers here, the model will not converge.
 
     Args:
-            parameternetwork (List[int]): the architecture of the parameter model
+            outputnet_size (List[int]): the architecture of the parameter model
             input_size (int): size of input for the first layer
             output_size (int): size of output i.e size of the feature dim
             frame_channels (int): feature dim to set the flat start bias
-            init_transition_probability (float): flat start transition probability
-            init_mean (float): flat start mean
-            init_std (float): flat start std
+            flat_start_params (dict): flat start parameters to set the bias
     """
 
     def __init__(
@@ -82,8 +81,8 @@ class ParameterModel(nn.Module):
         outputnet_size: List[int],
         input_size: int,
         output_size: int,
-        flat_start_params: dict,
         frame_channels: int,
+        flat_start_params: dict,
     ):
         super().__init__()
         self.flat_start_params = flat_start_params
@@ -134,8 +133,6 @@ class Outputnet(nn.Module):
         input_size = memory_rnn_dim + encoder_dim
         output_size = 2 * frame_channels + 1
 
-        self._validate_parameters()
-
         self.parametermodel = ParameterModel(
             outputnet_size=outputnet_size,
             input_size=input_size,
@@ -143,20 +140,6 @@ class Outputnet(nn.Module):
             flat_start_params=flat_start_params,
             frame_channels=frame_channels,
         )
-
-    def _validate_parameters(self):
-        """Validate the hyperparameters.
-
-        Raises:
-            AssertionError: when the parameters network is not defined
-            AssertionError: transition probability is not between 0 and 1
-        """
-        assert (
-            self.parameternetwork >= 1
-        ), f"Parameter Network must have atleast one layer check the config file for parameter network. Provided: {self.parameternetwork}"
-        assert (
-            0 < self.flat_start_params["transition_p"] < 1
-        ), f"Transition probability must be between 0 and 1. Provided: {self.flat_start_params['transition_p']}"
 
     def forward(self, ar_mels, inputs):
         r"""Inputs observation and returns the means, stds and transition probability for the current state
@@ -205,3 +188,46 @@ class Outputnet(nn.Module):
                 "[*] Standard deviation was floored! The model is preventing overfitting, nothing serious to worry about"
             )
         return std
+    
+    
+class OverFlowUtils:
+    @staticmethod
+    def get_data_parameters_for_flat_start(data_loader: torch.utils.data.DataLoader, out_channels: int, states_per_phone: int):
+        """Generates data parameters for flat starting the HMM.
+
+        Args:
+            data_loader (torch.utils.data.Dataloader): _description_
+            out_channels (int): mel spectrogram channels 
+            states_per_phone (_type_): HMM states per phone
+        """
+        
+        # State related information for transition_p
+        total_state_len = 0
+        total_mel_len = 0
+        
+        # Useful for data mean an std
+        total_mel_sum = 0
+        total_mel_sq_sum = 0
+        
+        for batch in tqdm(data_loader, leave=False):
+            text_lengths = batch['token_id_lengths']
+            mels = batch['mel']
+            mel_lengths = batch['mel_lengths']
+
+            total_state_len += torch.sum(text_lengths)
+            total_mel_len += torch.sum(mel_lengths)
+            total_mel_sum += torch.sum(mels)
+            total_mel_sq_sum += torch.sum(torch.pow(mels, 2))
+        
+        data_mean = total_mel_sum / (total_mel_len * out_channels)
+        data_std = torch.sqrt((total_mel_sq_sum / (total_mel_len * out_channels)) - torch.pow(data_mean, 2))
+        average_num_states = total_state_len / len(data_loader.dataset)
+        average_mel_len = total_mel_len / len(data_loader.dataset)
+        average_duration_each_state = average_mel_len / average_num_states
+        init_transition_prob = 1 / average_duration_each_state
+        
+        return data_mean, data_std, init_transition_prob 
+ 
+    
+    
+  
