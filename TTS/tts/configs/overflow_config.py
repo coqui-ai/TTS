@@ -16,6 +16,7 @@ class OverFlowConfig(BaseTTSConfig):
     model: str = "overflow"
 
     # data parameters
+    force_generate_statistics: bool = False
     mel_statistics_parameter_path: str = None
 
     # Encoder parameters

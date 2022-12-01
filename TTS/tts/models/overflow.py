@@ -90,15 +90,15 @@ class OverFlow(BaseTTS):
             c_in_channels=self.c_in_channels,
         )
 
-        self.register_buffer("mean", None)
-        self.register_buffer("std", None)
+        self.mean = nn.Parameter(torch.zeros(1), requires_grad=False)
+        self.std = nn.Parameter(torch.ones(1), requires_grad=False)
 
     def update_mean_std(self, statistics_dict: Dict):
-        self.mean.data = statistics_dict["mean"]
-        self.std.data = statistics_dict["std"]
+        self.mean.data = torch.tensor(statistics_dict["mean"])
+        self.std.data = torch.tensor(statistics_dict["std"])
 
     def preprocess_batch(self, text, text_len, mels, mel_len):
-        if self.mean is None or self.std is None:
+        if self.mean.item() == 0 or self.std.item() == 1:
             statistics_dict = torch.load(self.mel_statistics_parameter_path)
             self.update_mean_std(statistics_dict)
 
@@ -158,7 +158,7 @@ class OverFlow(BaseTTS):
     def eval_step(self, batch: Dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def inference(input: torch.Tensor, aux_inputs={}) -> Dict:
+    def inference(self, input: torch.Tensor, aux_inputs={}) -> Dict:
         outputs_dict = {"model_outputs": None}
         return outputs_dict
 
@@ -196,7 +196,7 @@ class OverFlow(BaseTTS):
             assert not self.training
 
     def on_init_start(self, trainer):
-        if not os.path.isfile(trainer.config.mel_statistics_parameter_path):
+        if not os.path.isfile(trainer.config.mel_statistics_parameter_path) or trainer.config.force_generate_statistics:
             dataloader = trainer.get_train_dataloader(
                 training_assets=None, samples=trainer.train_samples, verbose=False
             )
@@ -204,15 +204,18 @@ class OverFlow(BaseTTS):
                 f" | > Data parameters not found for: {trainer.config.mel_statistics_parameter_path}. Computing mel normalization parameters..."
             )
             data_mean, data_std, init_transition_prob = OverFlowUtils.get_data_parameters_for_flat_start(
-                dataloader, trainer.config.out_channels, trainer.config.states_per_phone
+                dataloader, trainer.config.out_channels, trainer.config.state_per_phone
             )
             print(
                 f" | > Saving data parameters to: {trainer.config.mel_statistics_parameter_path}: value: {data_mean, data_std, init_transition_prob}"
             )
-            torch.save(
-                {"mean": data_mean, "std": data_std, "init_transition_prob": init_transition_prob},
-                trainer.config.mel_statistics_parameter_path,
-            )
+            statistics = {
+                "mean": data_mean.item(),
+                "std": data_std.item(),
+                "init_transition_prob": init_transition_prob.item(),
+            }
+            torch.save(statistics, trainer.config.mel_statistics_parameter_path)
+
         else:
             print(
                 f" | > Data parameters found for: {trainer.config.mel_statistics_parameter_path}. Loading mel normalization parameters..."
@@ -223,10 +226,8 @@ class OverFlow(BaseTTS):
                 statistics["std"],
                 statistics["init_transition_prob"],
             )
-            print(
-                f" | > Data parameters loaded for: {trainer.config.mel_statistics_parameter_path}: value: {data_mean, data_std, init_transition_prob}"
-            )
+            print(f" | > Data parameters loaded with value: {data_mean, data_std, init_transition_prob}")
 
         trainer.config.flat_start_params["transition_p"] = init_transition_prob
-        trainer.model = trainer.model.init_from_config(trainer.config, trainer.test_samples, False)
+        OverFlowUtils.update_flat_start_transition(trainer.model, init_transition_prob)
         trainer.model.update_mean_std(statistics)
