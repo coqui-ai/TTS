@@ -46,8 +46,8 @@ config = OverFlowConfig(  # This is the config that is saved for the future use
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     precompute_num_workers=8,
-    normalize_mel=True,
-    normalized_mel_parameter_path=os.path.join(output_path, "lj_parameters.pt"),
+    mel_statistics_parameter_path=os.path.join(output_path, "lj_parameters.pt"),
+    force_generate_statistics=False,
     print_step=25,
     print_eval=True,
     mixed_precision=True,
@@ -91,6 +91,6 @@ model = OverFlow(config, ap, tokenizer)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples
+    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples, gpu=1
 )
 trainer.fit()

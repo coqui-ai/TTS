@@ -81,26 +81,26 @@ class ParameterModel(nn.Module):
         flat_start_params: dict,
     ):
         super().__init__()
-        self.flat_start_params = flat_start_params
+        self.frame_channels = frame_channels
 
         self.layers = nn.ModuleList(
             [Linear(inp, out) for inp, out in zip([input_size] + outputnet_size[:-1], outputnet_size)]
         )
-        last_layer = self._flat_start_output_layer(outputnet_size[-1], output_size, frame_channels)
-        self.layers.append(last_layer)
+        self.last_layer = nn.Linear(outputnet_size[-1], output_size)
+        self.flat_start_output_layer(
+            flat_start_params["mean"], flat_start_params["std"], flat_start_params["transition_p"]
+        )
 
-    def _flat_start_output_layer(self, input_size, output_size, frame_channels):
-        last_layer = nn.Linear(input_size, output_size)
-        last_layer.weight.data.zero_()
-        last_layer.bias.data[0:frame_channels] = self.flat_start_params["mean"]
-        last_layer.bias.data[frame_channels : 2 * frame_channels] = inverse_softplus(self.flat_start_params["std"])
-        last_layer.bias.data[2 * frame_channels :] = inverse_sigmod(self.flat_start_params["transition_p"])
-        return last_layer
+    def flat_start_output_layer(self, mean, std, transition_p):
+        self.last_layer.weight.data.zero_()
+        self.last_layer.bias.data[0 : self.frame_channels] = mean
+        self.last_layer.bias.data[self.frame_channels : 2 * self.frame_channels] = inverse_softplus(std)
+        self.last_layer.bias.data[2 * self.frame_channels :] = inverse_sigmod(transition_p)
 
     def forward(self, x):
-        for layer in self.layers[:-1]:
+        for layer in self.layers:
             x = F.relu(layer(x))
-        x = self.layers[-1](x)
+        x = self.last_layers(x)
         return x
 
 
@@ -225,6 +225,11 @@ class OverFlowUtils:
         init_transition_prob = 1 / average_duration_each_state
 
         return data_mean, data_std, (init_transition_prob * states_per_phone)
+
+    @staticmethod
+    @torch.no_grad()
+    def update_flat_start_transition(model, transition_p):
+        model.hmm.output_net.parametermodel.flat_start_output_layer(0.0, 1.0, transition_p)
 
 
 class Normalise:
