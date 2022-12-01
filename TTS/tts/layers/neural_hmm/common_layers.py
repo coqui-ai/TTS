@@ -3,6 +3,7 @@ from typing import List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from tqdm.auto import tqdm
 
 from TTS.tts.layers.tacotron.common_layers import Linear
 from TTS.tts.layers.tacotron.tacotron2 import ConvBNBlock
@@ -22,18 +23,13 @@ class Encoder(nn.Module):
         - output: (B, C_in, T)
     """
 
-    def __init__(
-        self, num_chars,
-        state_per_phone,
-        in_out_channels=512,
-        n_convolutions=3
-    ):
+    def __init__(self, num_chars, state_per_phone, in_out_channels=512, n_convolutions=3):
 
         super().__init__()
 
         self.state_per_phone = state_per_phone
         self.in_out_channels = in_out_channels
-        
+
         self.emb = nn.Embedding(num_chars, in_out_channels)
         self.convolutions = nn.ModuleList()
         for _ in range(n_convolutions):
@@ -188,46 +184,101 @@ class Outputnet(nn.Module):
                 "[*] Standard deviation was floored! The model is preventing overfitting, nothing serious to worry about"
             )
         return std
-    
-    
+
+
 class OverFlowUtils:
     @staticmethod
-    def get_data_parameters_for_flat_start(data_loader: torch.utils.data.DataLoader, out_channels: int, states_per_phone: int):
+    def get_data_parameters_for_flat_start(
+        data_loader: torch.utils.data.DataLoader, out_channels: int, states_per_phone: int
+    ):
         """Generates data parameters for flat starting the HMM.
 
         Args:
             data_loader (torch.utils.data.Dataloader): _description_
-            out_channels (int): mel spectrogram channels 
+            out_channels (int): mel spectrogram channels
             states_per_phone (_type_): HMM states per phone
         """
-        
+
         # State related information for transition_p
         total_state_len = 0
         total_mel_len = 0
-        
+
         # Useful for data mean an std
         total_mel_sum = 0
         total_mel_sq_sum = 0
-        
+
         for batch in tqdm(data_loader, leave=False):
-            text_lengths = batch['token_id_lengths']
-            mels = batch['mel']
-            mel_lengths = batch['mel_lengths']
+            text_lengths = batch["token_id_lengths"]
+            mels = batch["mel"]
+            mel_lengths = batch["mel_lengths"]
 
             total_state_len += torch.sum(text_lengths)
             total_mel_len += torch.sum(mel_lengths)
             total_mel_sum += torch.sum(mels)
             total_mel_sq_sum += torch.sum(torch.pow(mels, 2))
-        
+
         data_mean = total_mel_sum / (total_mel_len * out_channels)
         data_std = torch.sqrt((total_mel_sq_sum / (total_mel_len * out_channels)) - torch.pow(data_mean, 2))
         average_num_states = total_state_len / len(data_loader.dataset)
         average_mel_len = total_mel_len / len(data_loader.dataset)
         average_duration_each_state = average_mel_len / average_num_states
         init_transition_prob = 1 / average_duration_each_state
-        
-        return data_mean, data_std, init_transition_prob 
- 
-    
-    
-  
+
+        return data_mean, data_std, (init_transition_prob * states_per_phone)
+
+
+class Normalise:
+    r"""
+    Z-Score normalisation class / Standardisation class
+    normalises the data with mean and std, when the data object is called
+
+    Args:
+        mean (int/tensor): Mean of the data
+        std (int/tensor): Standard deviation
+    """
+
+    def __init__(self, mean, std):
+        super().__init__()
+
+        if not torch.is_tensor(mean):
+            mean = torch.tensor(mean)
+        if not torch.is_tensor(std):
+            std = torch.tensor(std)
+
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, x):
+        return self.forward(x)
+
+    def forward(self, x):
+        r"""
+        Takes an input and normalises it
+
+        Args:
+            x (Any): Input to the normaliser
+
+        Returns:
+            (torch.FloatTensor): Normalised value
+        """
+        if not torch.is_tensor(x):
+            x = torch.tensor(x)
+
+        x = x.sub(self.mean).div(self.std)
+        return x
+
+    def inverse_normalise(self, x):
+        r"""
+        Takes an input and de-normalises it
+
+        Args:
+            x (Any): Input to the normaliser
+
+        Returns:
+            (torch.FloatTensor): Normalised value
+        """
+        if not torch.is_tensor(x):
+            x = torch.tensor([x])
+
+        x = x.mul(self.std).add(self.mean)
+        return x

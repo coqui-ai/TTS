@@ -4,9 +4,7 @@ from typing import Dict, List, Union
 import torch
 import torch.nn as nn
 from coqpit import Coqpit
-from tqdm.auto import tqdm
 
-from TTS.tts.configs.overflow_config import OverFlowConfig
 from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.layers.neural_hmm.common_layers import Encoder, OverFlowUtils
 from TTS.tts.layers.neural_hmm.hmm import HMM
@@ -18,10 +16,10 @@ from TTS.utils.io import load_fsspec
 
 class OverFlow(BaseTTS):
     """OverFlow TTS model.
-    
+
     Paper::
         https://arxiv.org/abs/2211.06892
-        
+
     Paper abstract::
         Neural HMMs are a type of neural transducer recently proposed for
     sequence-to-sequence modelling in text-to-speech. They combine the best features
@@ -37,26 +35,27 @@ class OverFlow(BaseTTS):
     pronunciations and better subjective speech quality than comparable methods,
     whilst retaining the original advantages of neural HMMs. Audio examples and code
     are available at https://shivammehta25.github.io/OverFlow/.
-    
+
     Check :class:`TTS.tts.configs.overflow.OverFlowConfig` for class arguments.
     """
-    
+
     def __init__(
-        self, config: "OverFlowConfig",
+        self,
+        config: "OverFlowConfig",
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
-        speaker_manager: SpeakerManager = None,        
+        speaker_manager: SpeakerManager = None,
     ):
         super().__init__(config, ap, tokenizer, speaker_manager)
-        
+
         # pass all config fields to `self`
         # for fewer code change
         self.config = config
         for key in config:
             setattr(self, key, config[key])
-    
+
         self.decoder_output_dim = config.out_channels
-        
+
         self.encoder = Encoder(config.num_chars, config.state_per_phone, config.encoder_in_out_features)
         self.hmm = HMM(
             frame_channels=self.out_channels,
@@ -74,9 +73,9 @@ class OverFlow(BaseTTS):
             outputnet_size=self.outputnet_size,
             flat_start_params=self.flat_start_params,
             std_floor=self.std_floor,
-            use_grad_checkpointing=self.use_grad_checkpointing
+            use_grad_checkpointing=self.use_grad_checkpointing,
         )
-        
+
         self.decoder = Decoder(
             self.out_channels,
             self.hidden_channels_dec,
@@ -88,15 +87,31 @@ class OverFlow(BaseTTS):
             num_splits=self.num_splits,
             num_squeeze=self.num_squeeze,
             sigmoid_scale=self.sigmoid_scale,
-            c_in_channels=self.c_in_channels
+            c_in_channels=self.c_in_channels,
         )
-        
-        self.normalizer = None
-    
-    
-    def forward(
-        self, text, text_len, mels, mel_len
-    ):
+
+        self.register_buffer("mean", None)
+        self.register_buffer("std", None)
+
+    def update_mean_std(self, statistics_dict: Dict):
+        self.mean.data = statistics_dict["mean"]
+        self.std.data = statistics_dict["std"]
+
+    def preprocess_batch(self, text, text_len, mels, mel_len):
+        if self.mean is None or self.std is None:
+            statistics_dict = torch.load(self.mel_statistics_parameter_path)
+            self.update_mean_std(statistics_dict)
+
+        mels = self.normalize(mels)
+        return text, text_len, mels, mel_len
+
+    def normalize(self, x):
+        return x.sub(self.mean).div(self.std)
+
+    def inverse_normalize(self, x):
+        return x.mul(self.std).add(self.mean)
+
+    def forward(self, text, text_len, mels, mel_len):
         """
         Forward pass for training and computing the log likelihood of a given batch.
 
@@ -107,54 +122,52 @@ class OverFlow(BaseTTS):
             mel_specs: :math:`[B, T_out, C]`
             mel_lengths: :math:`[B]`
         """
-        if self.normalizer is None:
-            pass
-            
-        
+        text, text_len, mels, mel_len = self.preprocess_batch(text, text_len, mels, mel_len)
         encoder_outputs, text_len = self.encoder(text, text_len)
         z, z_lengths, logdet = self.decoder(mels, mel_len)
-        log_probs, alignments, transition_vectors, means = self.hmm(encoder_outputs, text_len, z, z_lengths, logdet, z_lengths)
-        
+        log_probs, alignments, transition_vectors, means = self.hmm(
+            encoder_outputs, text_len, z, z_lengths, logdet, z_lengths
+        )
+
         outputs = {
             "log_probs": log_probs,
             "alignments": alignments,
             "transition_vectors": transition_vectors,
             "means": means,
         }
-        
+
         return outputs
-        
+
     def train_step(self, batch: dict, criterion: nn.Module):
         text_input = batch["text_input"]
         text_lengths = batch["text_lengths"]
         mel_input = batch["mel_input"]
         mel_lengths = batch["mel_lengths"]
-        
+
         outputs = self.forward(
             text=text_input,
             text_len=text_lengths,
             mels=mel_input,
             mel_len=mel_lengths,
         )
-        
-        loss_dict = criterion(outputs['log_probs'])
-       
-        return outputs, loss_dict 
-    
+
+        loss_dict = criterion(outputs["log_probs"])
+
+        return outputs, loss_dict
 
     def eval_step(self, batch: Dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
-    
-    
+
     def inference(input: torch.Tensor, aux_inputs={}) -> Dict:
         outputs_dict = {"model_outputs": None}
         return outputs_dict
-    
+
     @staticmethod
     def get_criterion():
         from TTS.tts.layers.losses import NLLLoss  # pylint: disable=import-outside-toplevel
-        return NLLLoss() 
-    
+
+        return NLLLoss()
+
     @staticmethod
     def init_from_config(config: "OverFlowConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
         """Initiate model from config
@@ -172,34 +185,48 @@ class OverFlow(BaseTTS):
         speaker_manager = SpeakerManager.init_from_config(config, samples)
         return OverFlow(new_config, ap, tokenizer, speaker_manager)
 
-    
-    def load_checkpoint(self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False) -> None:
+    def load_checkpoint(
+        self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False
+    ) -> None:
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
             self.eval()
             self.store_inverse()
             assert not self.training
-    
+
     def on_init_start(self, trainer):
-        if not os.path.isfile(trainer.config.normalized_mel_parameter_path):
-            dataloader = trainer.get_train_dataloader(training_assets=None, samples=trainer.train_samples, verbose=False)
-            print(f" | > Data parameters not found for: {trainer.config.normalized_mel_parameter_path}. Computing mel normalization parameters...")
-            data_mean, data_std, init_transition_prob = OverFlowUtils.get_data_parameters_for_flat_start(dataloader, trainer.config.out_channels, trainer.config.states_per_phone)
-            print(f" | > Saving data parameters to: {trainer.config.normalized_mel_parameter_path}: value: {data_mean, data_std, init_transition_prob}")
-            torch.save({
-                'mean': data_mean,
-                'std': data_std,
-                'init_transition_prob': init_transition_prob
-            }, trainer.config.normalized_mel_parameter_path)
+        if not os.path.isfile(trainer.config.mel_statistics_parameter_path):
+            dataloader = trainer.get_train_dataloader(
+                training_assets=None, samples=trainer.train_samples, verbose=False
+            )
+            print(
+                f" | > Data parameters not found for: {trainer.config.mel_statistics_parameter_path}. Computing mel normalization parameters..."
+            )
+            data_mean, data_std, init_transition_prob = OverFlowUtils.get_data_parameters_for_flat_start(
+                dataloader, trainer.config.out_channels, trainer.config.states_per_phone
+            )
+            print(
+                f" | > Saving data parameters to: {trainer.config.mel_statistics_parameter_path}: value: {data_mean, data_std, init_transition_prob}"
+            )
+            torch.save(
+                {"mean": data_mean, "std": data_std, "init_transition_prob": init_transition_prob},
+                trainer.config.mel_statistics_parameter_path,
+            )
         else:
-            print(f" | > Data parameters found for: {trainer.config.normalized_mel_parameter_path}. Loading mel normalization parameters...")
-        
-        trainer.config.flat_start_params['transition_p'] = init_transition_prob
-            
-            
-            
-       
-        
-        
-        
+            print(
+                f" | > Data parameters found for: {trainer.config.mel_statistics_parameter_path}. Loading mel normalization parameters..."
+            )
+            statistics = torch.load(trainer.config.mel_statistics_parameter_path)
+            data_mean, data_std, init_transition_prob = (
+                statistics["mean"],
+                statistics["std"],
+                statistics["init_transition_prob"],
+            )
+            print(
+                f" | > Data parameters loaded for: {trainer.config.mel_statistics_parameter_path}: value: {data_mean, data_std, init_transition_prob}"
+            )
+
+        trainer.config.flat_start_params["transition_p"] = init_transition_prob
+        trainer.model = trainer.model.init_from_config(trainer.config, trainer.test_samples, False)
+        trainer.model.update_mean_std(statistics)

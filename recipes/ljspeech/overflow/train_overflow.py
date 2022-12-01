@@ -47,7 +47,7 @@ config = OverFlowConfig(  # This is the config that is saved for the future use
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     precompute_num_workers=8,
     normalize_mel=True,
-    normalized_mel_parameter_path = os.path.join(output_path, "lj_parameters.pt"),
+    normalized_mel_parameter_path=os.path.join(output_path, "lj_parameters.pt"),
     print_step=25,
     print_eval=True,
     mixed_precision=True,
@@ -87,9 +87,6 @@ train_samples, eval_samples = load_tts_samples(
 model = OverFlow(config, ap, tokenizer)
 
 # train_dataloader = model.get_data_loader(config=config, assets=None,is_eval=False, samples=train_samples, verbose=False, num_gpus=None)
-
-
-
 
 
 # init the trainer and 🚀
