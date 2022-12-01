@@ -48,6 +48,7 @@ class TTSDataset(Dataset):
         outputs_per_step: int = 1,
         compute_linear_spec: bool = False,
         ap: AudioProcessor = None,
+        audio_config = None, # pylint: disable=unused-argument
         samples: List[Dict] = None,
         tokenizer: "TTSTokenizer" = None,
         compute_f0: bool = False,
@@ -686,6 +687,7 @@ class F0Dataset:
         self,
         samples: Union[List[List], List[Dict]],
         ap: "AudioProcessor",
+        audio_config=None,
         verbose=False,
         cache_path: str = None,
         precompute_num_workers=0,
