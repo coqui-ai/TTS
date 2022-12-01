@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import pyworld as pw
 import torch
 import torch.distributed as dist
 from coqpit import Coqpit
@@ -26,7 +27,7 @@ from TTS.tts.utils.helpers import average_over_durations, compute_attn_prior, ra
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_pitch, plot_spectrogram
-from TTS.utils.audio.numpy_transforms import build_mel_basis, compute_f0
+from TTS.utils.audio.numpy_transforms import build_mel_basis
 from TTS.utils.audio.numpy_transforms import db_to_amp as db_to_amp_numpy
 from TTS.utils.audio.numpy_transforms import mel_to_wav as mel_to_wav_numpy
 from TTS.utils.audio.processor import AudioProcessor
@@ -128,18 +129,17 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
 
     def __init__(
         self,
-        ap,
-        # audio_config: "AudioConfig",
+        audio_config: "AudioConfig",
         samples: Union[List[List], List[Dict]],
         verbose=False,
         cache_path: str = None,
-        precompute_num_workers=40,
+        precompute_num_workers=0,
         normalize_f0=True,
     ):
+        self.audio_config = audio_config
         super().__init__(
-            ap=ap,
+            ap=None,
             samples=samples,
-            # audio_config=audio_config,
             verbose=verbose,
             cache_path=cache_path,
             precompute_num_workers=precompute_num_workers,
@@ -147,39 +147,60 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         )
 
     @staticmethod
-    def _compute_and_save_pitch(ap, wav_file, pitch_file=None):
+    def compute_f0(
+    *, 
+    x: np.ndarray = None, 
+    pitch_fmax: float = None, 
+    hop_length: int = None, 
+    sample_rate: int = None, 
+    **kwargs
+    ):
+        assert pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
+
+        f0, t = pw.dio(
+            x.astype(np.double),
+            fs=sample_rate,
+            f0_ceil=pitch_fmax,
+            frame_period=1000 * hop_length / sample_rate,
+        )
+        f0 = pw.stonemask(x.astype(np.double), f0, t, sample_rate)
+        return f0
+
+    def _compute_and_save_pitch(self, audio_config, wav_file, pitch_file=None):
         wav, _ = load_audio(wav_file)
-        f0 = compute_f0(
+        f0 = self.compute_f0(
             x=wav.numpy()[0],
-            sample_rate=ap.sample_rate,  # audio_config.sample_rate,
-            hop_length=ap.hop_length,  # audio_config.hop_length,
-            pitch_fmax=ap.pitch_fmax,  # audio_config.pitch_fmax,
-            pitch_fmin=ap.pitch_fmin,
-            win_length=ap.win_length,
+            sample_rate=audio_config.sample_rate,
+            hop_length=audio_config.hop_length,
+            pitch_fmax=audio_config.pitch_fmax,
+            pitch_fmin=audio_config.pitch_fmin,
+            win_length=audio_config.win_length
         )
         # skip the last F0 value to align with the spectrogram
-        if wav.shape[1] % ap.hop_length != 0:
+        if wav.shape[1] % audio_config.hop_length != 0:
             f0 = f0[:-1]
         if pitch_file:
             np.save(pitch_file, f0)
         return f0
 
-    def compute_or_load(self, wav_file, audio_name):
+    def compute_or_load(self, wav_file, audio_unique_name):
         """
         compute pitch and return a numpy array of pitch values
         """
-        pitch_file = self.create_pitch_file_path(audio_name, self.cache_path)
+        pitch_file = self.create_pitch_file_path(wav_file, self.cache_path)
         if not os.path.exists(pitch_file):
-            pitch = self._compute_and_save_pitch(ap=self.ap, wav_file=wav_file, pitch_file=pitch_file)
+            pitch = self._compute_and_save_pitch(
+                audio_config=self.audio_config, wav_file=wav_file, pitch_file=pitch_file
+            )
         else:
             pitch = np.load(pitch_file)
         return pitch.astype(np.float32)
 
 
-class ForwardTTSDataset(TTSDataset):
+class ForwardTTSE2eDataset(TTSDataset):
     def __init__(self, *args, **kwargs):
         # don't init the default F0Dataset in TTSDataset
-        compute_f0 = kwargs.pop("compute_f0", False)  # pylint: disable=redefined-outer-name
+        compute_f0 = kwargs.pop("compute_f0", False)
         kwargs["compute_f0"] = False
         self.attn_prior_cache_path = kwargs.pop("attn_prior_cache_path")
 
@@ -187,14 +208,11 @@ class ForwardTTSDataset(TTSDataset):
 
         self.compute_f0 = compute_f0
         self.pad_id = self.tokenizer.characters.pad_id
-        #  self.audio_config = kwargs["audio_config"]
-        print(self.compute_f0)
+        self.audio_config = kwargs["audio_config"]
 
         if self.compute_f0:
-            self.ap = kwargs["ap"]
             self.f0_dataset = ForwardTTSE2eF0Dataset(
-                ap=self.ap,
-                # audio_config=self.audio_config,
+                audio_config=self.audio_config,
                 samples=self.samples,
                 cache_path=kwargs["f0_cache_path"],
                 precompute_num_workers=kwargs["precompute_num_workers"],
@@ -238,8 +256,8 @@ class ForwardTTSDataset(TTSDataset):
             "token_len": len(token_ids),
             "wav": wav,
             "pitch": f0,
-            "audio_unique_name": item["audio_unique_name"],
             "wav_file": wav_filename,
+            "audio_unique_name": item["audio_unique_name"],
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
             "attn_prior": attn_prior,
@@ -248,7 +266,7 @@ class ForwardTTSDataset(TTSDataset):
     def load_or_compute_attn_prior(self, token_ids, wav, rel_wav_path):
         """Load or compute and save the attention prior."""
         attn_prior_file = os.path.join(self.attn_prior_cache_path, f"{rel_wav_path}.npy")
-        if os.path.exists(attn_prior_file):  # pylint: disable=no-else-return
+        if os.path.exists(attn_prior_file):
             return np.load(attn_prior_file)
         else:
             token_len = len(token_ids)
@@ -327,15 +345,14 @@ class ForwardTTSDataset(TTSDataset):
             "pitch": pitch_padded,
             "waveform": wav_padded,  # (B x T)
             "waveform_lens": wav_lens,  # (B)
-            "audio_unique_names": batch["audio_unique_name"],
             "waveform_rel_lens": wav_rel_lens,
+            "audio_unique_names": batch["audio_unique_name"],
             "speaker_names": batch["speaker_name"],
             "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
             "attn_priors": batch["attn_prior"] if batch["attn_prior"][0] is not None else None,
         }
-
 
 #############################
 # CONFIGS
@@ -1246,10 +1263,9 @@ class DelightfulTTS(BaseTTSE2E):
             loader = None
         else:
             # init dataloader
-            dataset = ForwardTTSDataset(
+            dataset = ForwardTTSE2eDataset(
                 samples=samples,
-                ap=self.ap,
-                # audio_config=self.config.audio,
+                audio_config=self.config.audio,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_text_len=config.min_text_len,
                 max_text_len=config.max_text_len,
