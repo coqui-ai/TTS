@@ -131,19 +131,15 @@ class AcousticModel(torch.nn.Module):
             self.args.n_hidden_conformer_encoder,
         )
 
-        # TODO: change this with IntanceNorm as in StyleTTS
-        self.u_norm = nn.LayerNorm(
+        self.u_norm = nn.InstanceNorm1d(
             self.args.bottleneck_size_u_reference_encoder,
-            elementwise_affine=False,
         )
         self.p_bottle_out = nn.Linear(
             self.args.bottleneck_size_p_reference_encoder,
             self.args.n_hidden_conformer_encoder,
         )
-        # TODO: change this with IntanceNorm as in StyleTTS
-        self.p_norm = nn.LayerNorm(
+        self.p_norm = nn.InstanceNorm1d(
             self.args.bottleneck_size_p_reference_encoder,
-            elementwise_affine=False,
         )
 
         self.decoder = Conformer(
@@ -205,6 +201,23 @@ class AcousticModel(torch.nn.Module):
             durations = aux_input["durations"]
 
         return sid, g, lid, durations
+
+    def get_aux_input(self, aux_input: Dict):
+        sid, g, lid, _ = self._set_cond_input(aux_input)
+        return {"speaker_ids": sid, "style_wav": None, "d_vectors": g, "language_ids": lid}
+
+    def _set_speaker_input(self, aux_input: Dict):
+        d_vectors = aux_input.get("d_vectors", None)
+        speaker_ids = aux_input.get("speaker_ids", None)
+
+        if d_vectors is not None and speaker_ids is not None:
+            raise ValueError("[!] Cannot use d-vectors and speaker-ids together.")
+
+        if speaker_ids is not None and not hasattr(self, "emb_g"):
+            raise ValueError("[!] Cannot use speaker-ids without enabling speaker embedding.")
+
+        g = speaker_ids if speaker_ids is not None else d_vectors
+        return g
 
     def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
@@ -373,7 +386,7 @@ class AcousticModel(torch.nn.Module):
         # Embeddings
         speaker_embedding = None
         if d_vectors is not None:
-            speaker_embedding = torch.nn.functional.normalize(d_vectors)
+            speaker_embedding = g
         elif speaker_idx is not None:
             speaker_embedding = F.normalize(self.emb_g(sid))
 
@@ -506,7 +519,7 @@ class AcousticModel(torch.nn.Module):
         # Embeddings
         speaker_embedding = None
         if d_vectors is not None:
-            speaker_embedding = torch.nn.functional.normalize(d_vectors)
+            speaker_embedding = g
         elif speaker_idx is not None:
             speaker_embedding = F.normalize(self.emb_g(sid))
 
