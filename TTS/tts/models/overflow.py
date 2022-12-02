@@ -4,13 +4,16 @@ from typing import Dict, List, Union
 import torch
 import torch.nn as nn
 from coqpit import Coqpit
+from trainer.logging.tensorboard_logger import TensorboardLogger
 
-from TTS.tts.layers.glow_tts.decoder import Decoder
 from TTS.tts.layers.neural_hmm.common_layers import Encoder, OverFlowUtils
+from TTS.tts.layers.neural_hmm.decoder import Decoder
 from TTS.tts.layers.neural_hmm.hmm import HMM
+from TTS.tts.layers.neural_hmm.plotting_utils import get_spec_from_most_probable_state
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
+from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 from TTS.utils.io import load_fsspec
 
 
@@ -119,19 +122,19 @@ class OverFlow(BaseTTS):
             Shapes:
             text: :math:`[B, T_in]`
             text_len: :math:`[B]`
-            mel_specs: :math:`[B, T_out, C]`
-            mel_lengths: :math:`[B]`
+            mels: :math:`[B, T_out, C]`
+            mel_len: :math:`[B]`
         """
         text, text_len, mels, mel_len = self.preprocess_batch(text, text_len, mels, mel_len)
-        encoder_outputs, text_len = self.encoder(text, text_len)
-        z, z_lengths, logdet = self.decoder(mels, mel_len)
-        log_probs, alignments, transition_vectors, means = self.hmm(
-            encoder_outputs, text_len, z, z_lengths, logdet, z_lengths
+        encoder_outputs, encoder_output_len = self.encoder(text, text_len)
+        z, z_lengths, logdet = self.decoder(mels.transpose(1, 2), mel_len)
+        log_probs, fwd_alignments, transition_vectors, means = self.hmm(
+            encoder_outputs, encoder_output_len, z, z_lengths
         )
 
         outputs = {
-            "log_probs": log_probs,
-            "alignments": alignments,
+            "log_probs": log_probs + logdet,
+            "alignments": fwd_alignments,
             "transition_vectors": transition_vectors,
             "means": means,
         }
@@ -158,8 +161,10 @@ class OverFlow(BaseTTS):
     def eval_step(self, batch: Dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def inference(self, input: torch.Tensor, aux_inputs={}) -> Dict:
-        outputs_dict = {"model_outputs": None}
+    def inference(self, text: torch.Tensor, aux_inputs=None) -> Dict:
+
+        outputs_dict = {"model_outputs": None, "text": text, "aux_inputs": aux_inputs}
+        # TODO: have to write this
         return outputs_dict
 
     @staticmethod
@@ -187,7 +192,7 @@ class OverFlow(BaseTTS):
 
     def load_checkpoint(
         self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False
-    ) -> None:
+    ):  # pylint: disable=unused-argument, redefined-builtin
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         self.load_state_dict(state["model"])
         if eval:
@@ -196,6 +201,7 @@ class OverFlow(BaseTTS):
             assert not self.training
 
     def on_init_start(self, trainer):
+        """If the current dataset does not have normalisation statistics and initialisation transition_probability it computes them otherwise loads."""
         if not os.path.isfile(trainer.config.mel_statistics_parameter_path) or trainer.config.force_generate_statistics:
             dataloader = trainer.get_train_dataloader(
                 training_assets=None, samples=trainer.train_samples, verbose=False
@@ -231,3 +237,35 @@ class OverFlow(BaseTTS):
         trainer.config.flat_start_params["transition_p"] = init_transition_prob
         OverFlowUtils.update_flat_start_transition(trainer.model, init_transition_prob)
         trainer.model.update_mean_std(statistics)
+
+    def _create_logs(self, outputs):  # pylint: disable=no-self-use
+        alignments, transition_vectors = outputs["alignments"], outputs["transition_vectors"]
+        means = torch.stack(outputs["means"], dim=1)
+
+        figures = {
+            "alignment": plot_alignment(alignments[0].exp(), title="Forward alignment", fig_size=(20, 20)),
+            "log_alignment": plot_alignment(
+                alignments[0].exp(), title="Forward log alignment", plot_log=True, fig_size=(20, 20)
+            ),
+            "transition_vectors": plot_alignment(transition_vectors[0], title="Transition vectors", fig_size=(20, 20)),
+            "mel_from_most_probable_state": plot_spectrogram(
+                get_spec_from_most_probable_state(alignments[0], means[0]), fig_size=(12, 3)
+            ),
+        }
+        return figures
+
+    def eval_log(
+        self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int
+    ):  # pylint: disable=unused-argument
+        """Compute and log evaluation metrics."""
+        print("here")
+
+        # Plot model parameters histograms
+        if isinstance(logger, TensorboardLogger):
+            # I don't know if any other loggers supports this
+            for tag, value in self.named_parameters():
+                tag = tag.replace(".", "/")
+                logger.writer.add_histogram(tag, value.data.cpu().numpy(), steps)
+
+        figures = self._create_logs(outputs)
+        logger.eval_figures(steps, figures)

@@ -15,6 +15,12 @@ class OverFlowConfig(BaseTTSConfig):
 
     model: str = "overflow"
 
+    # Training and Checkpoint configs
+    run_eval_steps: int = 500
+    save_step: int = 500
+    plot_step: int = 1
+    model_param_stats: bool = True
+
     # data parameters
     force_generate_statistics: bool = False
     mel_statistics_parameter_path: str = None
@@ -59,12 +65,11 @@ class OverFlowConfig(BaseTTSConfig):
     c_in_channels: int = 0
 
     # optimizer parameters
-    optimizer: str = "RAdam"
-    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.9, 0.998], "weight_decay": 1e-6})
-    lr_scheduler: str = "NoamLR"
-    lr_scheduler_params: dict = field(default_factory=lambda: {"warmup_steps": 4000})
+    optimizer: str = "Adam"
+    optimizer_params: dict = field(default_factory=lambda: {"weight_decay": 1e-6})
     grad_clip: float = 40000.0
     lr: float = 1e-3
+    lr_scheduler: str = None
 
     # overrides
     min_seq_len: int = 3
