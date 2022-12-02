@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
@@ -13,14 +13,13 @@ from TTS.tts.utils.helpers import inverse_sigmod, inverse_softplus
 class Encoder(nn.Module):
     r"""Neural HMM Encoder
 
-    Same as Tacotron 2 encoder but increases the states per phone
+    Same as Tacotron 2 encoder but increases the input length by states per phone
 
     Args:
+        num_chars (int): Number of characters in the input.
+        state_per_phone (int): Number of states per phone.
         in_out_channels (int): number of input and output channels.
-
-    Shapes:
-        - input: (B, C_in, T)
-        - output: (B, C_in, T)
+        n_convolutions (int): number of convolutional layers.
     """
 
     def __init__(self, num_chars, state_per_phone, in_out_channels=512, n_convolutions=3):
@@ -44,7 +43,21 @@ class Encoder(nn.Module):
         )
         self.rnn_state = None
 
-    def forward(self, x, input_lengths):
+    def forward(
+        self, x: torch.FloatTensor, input_lengths: torch.LongTensor
+    ) -> Tuple[torch.FloatTensor, torch.LongTensor]:
+        """Forward pass to the encoder.
+
+        Args:
+            x (torch.FloatTensor): input text indices.
+                - shape: :math:`(b, T_{in})`
+            input_lengths (torch.LongTensor): input text lengths.
+                - shape: :math:`(b,)`
+
+        Returns:
+            Tuple[torch.FloatTensor, torch.LongTensor]: encoder outputs and output lengths.
+                -shape: :math:`((b, T_{in} * states_per_phone, in_out_channels), (b,))`
+        """
         b, T = x.shape
         o = self.emb(x).transpose(1, 2)
         for layer in self.convolutions:
@@ -100,7 +113,7 @@ class ParameterModel(nn.Module):
     def forward(self, x):
         for layer in self.layers:
             x = F.relu(layer(x))
-        x = self.last_layers(x)
+        x = self.last_layer(x)
         return x
 
 

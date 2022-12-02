@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import List
 
 import torch
@@ -52,14 +51,13 @@ class HMM(nn.Module):
 
         self.frame_channels = frame_channels
         self.ar_order = ar_order
+        self.sampling_temp = sampling_temp
         self.determinstic_transition = deterministic_transition
         self.duration_threshold = duration_threshold
         self.prenet_dim = prenet_dim
         self.memory_rnn_dim = memory_rnn_dim
         self.use_grad_checkpointing = use_grad_checkpointing
- 
-        
-        
+
         self.transition_model = TransitionModel()
         self.emission_model = EmissionModel()
 
@@ -76,12 +74,7 @@ class HMM(nn.Module):
         )
         self.memory_rnn = nn.LSTMCell(input_size=prenet_dim, hidden_size=memory_rnn_dim)
         self.output_net = Outputnet(
-            encoder_dim,
-            memory_rnn_dim,
-            frame_channels, 
-            outputnet_size, 
-            flat_start_params, 
-            std_floor
+            encoder_dim, memory_rnn_dim, frame_channels, outputnet_size, flat_start_params, std_floor
         )
         self.register_buffer("go_tokens", torch.zeros(ar_order, 1))
 
@@ -91,26 +84,26 @@ class HMM(nn.Module):
         Args:
             inputs (torch.FloatTensor): Encoder outputs
             inputs_len (torch.LongTensor): Encoder output lengths
-            mels (torch.FloatTensor): Mel inputs for teacher forcing
+            mels (torch.FloatTensor): Mel inputs
             mel_lens (torch.LongTensor): Length of mel inputs
 
         Shapes:
             - inputs: (B, T, D_out_enc)
             - inputs_len: (B)
-            - mels: (B, T_mel, D_mel)
+            - mels: (B, D_mel, T_mel)
             - mel_lens: (B)
 
         Returns:
             log_prob (torch.FloatTensor): Log probability of the sequence
         """
         # Get dimensions of inputs
-        batch_size, N = inputs.shape
+        batch_size, N, _ = inputs.shape
         T_max = torch.max(mel_lens)
-        mels = mels.permute(0, 2, 1)  #! TODO: check dataloader here
+        mels = mels.permute(0, 2, 1)
 
         # Intialize forward algorithm
         log_state_priors = self._initialize_log_state_priors(inputs)
-        log_c, log_alpha_scaled, transition_vector, means = self._initialize_forward_algorithm_variables(mels)
+        log_c, log_alpha_scaled, transition_matrix, means = self._initialize_forward_algorithm_variables(mels, N)
 
         # Initialize autoregression elements
         ar_inputs = self._add_go_token(mels)
@@ -135,20 +128,23 @@ class HMM(nn.Module):
                 )
             log_c[:, t] = torch.logsumexp(log_alpha_temp, dim=1)
             log_alpha_scaled[:, t, :] = log_alpha_temp - log_c[:, t].unsqueeze(1)
-            transition_vector[:, t] = transition_vector  # needed for absorption state calculation
+            transition_matrix[:, t] = transition_vector  # needed for absorption state calculation
 
             # Save for plotting
             means.append(mean.detach())
 
         log_c, log_alpha_scaled = self._mask_lengths(mel_lens, log_c, log_alpha_scaled)
 
-        sum_final_log_c = self.get_absorption_state_scaling_factor(mel_lens, log_alpha_scaled, inputs_len, transition_vector)
+        sum_final_log_c = self.get_absorption_state_scaling_factor(
+            mel_lens, log_alpha_scaled, inputs_len, transition_matrix
+        )
 
         log_probs = torch.sum(log_c, dim=1) + sum_final_log_c
 
-        return log_probs, log_alpha_scaled, transition_vector, means
+        return log_probs, log_alpha_scaled, transition_matrix, means
 
-    def _mask_lengths(self, mel_lens, log_c, log_alpha_scaled):
+    @staticmethod
+    def _mask_lengths(mel_lens, log_c, log_alpha_scaled):
         """
         Mask the lengths of the forward variables so that the variable lenghts
         do not contribute in the loss calculation
@@ -208,7 +204,8 @@ class HMM(nn.Module):
         ar_inputs = torch.cat((go_tokens, mel_inputs), dim=1)[:, :T]
         return ar_inputs
 
-    def _initialize_forward_algorithm_variables(self, mel_inputs, N):
+    @staticmethod
+    def _initialize_forward_algorithm_variables(mel_inputs, N):
         r"""Initialize placeholders for forward algorithm variables, to use a stable
                 version we will use log_alpha_scaled and the scaling constant
 
@@ -218,16 +215,17 @@ class HMM(nn.Module):
         Returns:
             log_c (torch.FloatTensor): Scaling constant (b, T_max)
         """
-        batch_size, T_max, _ = mel_inputs.shape
-        log_alpha_scaled = mel_inputs.new_zeros((batch_size, T_max, N))
-        log_c = mel_inputs.new_zeros(batch_size, T_max)
-        transition_vector = mel_inputs.new_zeros((batch_size, T_max, N))
+        b, T_max, _ = mel_inputs.shape
+        log_alpha_scaled = mel_inputs.new_zeros((b, T_max, N))
+        log_c = mel_inputs.new_zeros(b, T_max)
+        transition_matrix = mel_inputs.new_zeros((b, T_max, N))
 
         # Saving for plotting later, will not have gradient tapes
         means = []
-        return log_c, log_alpha_scaled, transition_vector, means
+        return log_c, log_alpha_scaled, transition_matrix, means
 
-    def _init_lstm_states(self, batch_size, hidden_state_dim, device_tensor):
+    @staticmethod
+    def _init_lstm_states(batch_size, hidden_state_dim, device_tensor):
         r"""
         Initialize Hidden and Cell states for LSTM Cell
 
@@ -265,7 +263,7 @@ class HMM(nn.Module):
                     which are needed for that length
                 )
             transition_vector (torch.FloatTensor): transtiion vector for each state per timestep
-            
+
         Shapes:
             - mels_len: (batch_size)
             - log_alpha_scaled: (batch_size, N, T)
@@ -290,102 +288,120 @@ class HMM(nn.Module):
         last_transition_probability = torch.sigmoid(last_transition_vector)
         log_probability_of_transitioning = log_clamped(last_transition_probability)
 
-        last_transition_probability_index = (
-            torch.arange(max_inputs_len, dtype=inputs_len.dtype, device=inputs_len.device).expand(
-                len(inputs_len), max_inputs_len
-            )
-        ) == (inputs_len - 1).unsqueeze(1)
+        last_transition_probability_index = self.get_mask_for_last_item(inputs_len, inputs_len.device)
         log_probability_of_transitioning = log_probability_of_transitioning.masked_fill(
             ~last_transition_probability_index, -float("inf")
         )
         final_log_c = last_log_alpha_scaled + log_probability_of_transitioning
 
-        # Uncomment the line below if you get nan values because of low precisin  in half precision training
+        # If the length of the mel is less than the number of states it will select the -inf values leading to nan gradients
+        # Ideally, we should clean the dataset otherwise this is a little hack uncomment the line below
         # final_log_c = final_log_c.clamp(min=torch.finfo(final_log_c.dtype).min)
 
         sum_final_log_c = torch.logsumexp(final_log_c, dim=1)
         return sum_final_log_c
 
-    @torch.inference_mode()
-    def sample(self, inputs, sampling_temp=1.0, T=None):
-        r"""
-        Samples an output from the parameter models
+    @staticmethod
+    def get_mask_for_last_item(lengths, device, out_tensor=None):
+        """Returns n-1 mask for the last item in the sequence.
 
         Args:
-            encoder_outputs (float tensor): (batch, text_len, encoder_embedding_dim)
-            sampling_temp
-            T (int): Max time to sample
+            lengths (torch.IntTensor): lengths in a batch
+            device (str, optional): Defaults to "cpu".
+            out_tensor (torch.Tensor, optional): uses the memory of a specific tensor.
+                Defaults to None.
 
         Returns:
-            x (list[float]): Output Observations
-            z (list[int]): Hidden states travelled
+            - Shape: :math:`(b, max_len)`
         """
-        if not T:
-            T = self.max_sampling_time
+        max_len = torch.max(lengths).item()
+        ids = (
+            torch.arange(0, max_len, device=device) if out_tensor is None else torch.arange(0, max_len, out=out_tensor)
+        )
+        mask = ids == lengths.unsqueeze(1) - 1
+        return mask
 
-        self.N = inputs.shape[1]
-        prenet_input = self.go_tokens.unsqueeze(0)
+    # @torch.inference_mode()
+    # def sample(self, inputs, sampling_temp=1.0, T=None):
+    #     r"""
+    #     Samples an output from the parameter models
 
-        z, x = [], []
-        t = 0
+    #     Args:
+    #         encoder_outputs (float tensor): (batch, text_len, encoder_embedding_dim)
+    #         sampling_temp
+    #         T (int): Max time to sample
 
-        # Sample Initial state
-        current_z_number = 0
-        z.append(current_z_number)
+    #     Returns:
+    #         x (list[float]): Output Observations
+    #         z (list[int]): Hidden states travelled
+    #     """
+    #     if not T:
+    #         T = self.max_sampling_time
 
-        h_memory, c_memory = self._init_lstm_states(1, self.post_prenet_rnn_dim, prenet_input)
+    #     self.N = inputs.shape[1]
+    #     prenet_input = self.go_tokens.unsqueeze(0)
 
-        input_parameter_values = []
-        output_parameter_values = []
-        quantile = 1
-        while True:
-            memory_input = self.prenet(prenet_input.flatten(1).unsqueeze(0))
-            # will be 1 while sampling
-            h_memory, c_memory = self.memory_rnn(memory_input.squeeze(0), (h_memory, c_memory))
+    #     z, x = [], []
+    #     t = 0
 
-            z_t = inputs[:, current_z_number]
-            mean, std, transition_vector = self.decoder(h_memory, z_t.unsqueeze(0))
+    #     # Sample Initial state
+    #     current_z_number = 0
+    #     z.append(current_z_number)
 
-            transition_probability = torch.sigmoid(transition_vector.flatten())
-            staying_probability = torch.sigmoid(-transition_vector.flatten())
-            input_parameter_values.append([ar_mel_inputs, current_z_number])
-            output_parameter_values.append([mean, std, transition_probability])
+    #     h_memory, c_memory = self._init_lstm_states(1, self.post_prenet_rnn_dim, prenet_input)
 
-            if self.predict_means:
-                x_t = mean
-            else:
-                x_t = self.emission_model.sample(mean, std, sampling_temp=sampling_temp)
-            ar_mel_inputs = torch.cat((ar_mel_inputs, x_t), dim=1)[:, 1:]
+    #     input_parameter_values = []
+    #     output_parameter_values = []
+    #     quantile = 1
+    #     while True:
+    #         memory_input = self.prenet(prenet_input.flatten(1).unsqueeze(0))
+    #         # will be 1 while sampling
+    #         h_memory, c_memory = self.memory_rnn(memory_input.squeeze(0), (h_memory, c_memory))
 
-            x.append(x_t.flatten())
+    #         z_t = inputs[:, current_z_number]
+    #         mean, std, transition_vector = self.decoder(h_memory, z_t.unsqueeze(0))
 
-            transition_matrix = torch.cat((staying_probability, transition_probability))
-            quantile *= staying_probability
-            if not self.deterministic_transition:
-                switch = transition_matrix.multinomial(1)[0].item()
-            else:
-                switch = quantile < self.duration_quantile_threshold
+    #         transition_probability = torch.sigmoid(transition_vector.flatten())
+    #         staying_probability = torch.sigmoid(-transition_vector.flatten())
+    #         input_parameter_values.append([ar_mel_inputs, current_z_number])
+    #         output_parameter_values.append([mean, std, transition_probability])
 
-            if switch:
-                current_z_number += 1
-                quantile = 1
+    #         if self.predict_means:
+    #             x_t = mean
+    #         else:
+    #             x_t = self.emission_model.sample(mean, std, sampling_temp=sampling_temp)
+    #         ar_mel_inputs = torch.cat((ar_mel_inputs, x_t), dim=1)[:, 1:]
 
-            z.append(current_z_number)
+    #         x.append(x_t.flatten())
 
-            if (current_z_number == self.N) or (T and t == T - 1):
-                break
+    #         transition_matrix = torch.cat((staying_probability, transition_probability))
+    #         quantile *= staying_probability
+    #         if not self.deterministic_transition:
+    #             switch = transition_matrix.multinomial(1)[0].item()
+    #         else:
+    #             switch = quantile < self.duration_quantile_threshold
 
-            t += 1
+    #         if switch:
+    #             current_z_number += 1
+    #             quantile = 1
 
-        return torch.stack(x), z, input_parameter_values, output_parameter_values
+    #         z.append(current_z_number)
 
-    def _initialize_log_state_priors(self, text_embeddings):
+    #         if (current_z_number == self.N) or (T and t == T - 1):
+    #             break
+
+    #         t += 1
+
+    #     return torch.stack(x), z, input_parameter_values, output_parameter_values
+
+    @staticmethod
+    def _initialize_log_state_priors(text_embeddings):
         """Creates the log pi in forward algorithm.
 
         Args:
             text_embeddings (torch.FloatTensor): used to create the log pi
                     on current device
-        
+
         Shapes:
             - text_embeddings: (B, T, D_out_enc)
         """
@@ -398,11 +414,8 @@ class HMM(nn.Module):
 class TransitionModel(nn.Module):
     """Transition Model of the HMM, it represents the probability of transitioning
     form current state to all other states"""
-    
-    def __init__(self) -> None:
-        super().__init__()
 
-    def forward(self, log_alpha_scaled, transition_vector, inputs_len):
+    def forward(self, log_alpha_scaled, transition_vector, inputs_len):  # pylint: disable=no-self-use
         r"""
         product of the past state with transitional probabilities in log space
 
@@ -434,11 +447,10 @@ class TransitionModel(nn.Module):
         return out
 
 
-
 class EmissionModel(nn.Module):
     """Emission Model of the HMM, it represents the probability of
     emitting an observation based on the current state"""
-    
+
     def __init__(self) -> None:
         super().__init__()
         self.distribution_function: tdist.Distribution = tdist.normal.Normal
@@ -467,6 +479,6 @@ class EmissionModel(nn.Module):
         """
         emission_dists = self.distribution_function(means, stds)
         out = emission_dists.log_prob(x_t.unsqueeze(1))
-        state_lengths_mask = sequence_mask(state_lengths)
+        state_lengths_mask = sequence_mask(state_lengths).unsqueeze(2)
         out = torch.sum(out * state_lengths_mask, dim=2)
         return out

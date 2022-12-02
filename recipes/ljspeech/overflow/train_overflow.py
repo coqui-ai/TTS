@@ -33,6 +33,7 @@ audio_config = BaseAudioConfig(
 )
 
 config = OverFlowConfig(  # This is the config that is saved for the future use
+    run_name="overflow_ljspeech",
     audio=audio_config,
     batch_size=32,
     eval_batch_size=16,
@@ -48,15 +49,14 @@ config = OverFlowConfig(  # This is the config that is saved for the future use
     precompute_num_workers=8,
     mel_statistics_parameter_path=os.path.join(output_path, "lj_parameters.pt"),
     force_generate_statistics=False,
-    print_step=25,
+    print_step=1,
     print_eval=True,
     mixed_precision=True,
     output_path=output_path,
     datasets=[dataset_config],
+    run_eval_steps=10,
+    save_step=10,
 )
-
-# init audio processor
-ap = AudioProcessor(**config.audio.to_dict())
 
 # INITIALIZE THE AUDIO PROCESSOR
 # Audio processor is used for feature extraction and audio I/O.
@@ -86,11 +86,15 @@ train_samples, eval_samples = load_tts_samples(
 # Speaker manager is used by multi-speaker models.
 model = OverFlow(config, ap, tokenizer)
 
-# train_dataloader = model.get_data_loader(config=config, assets=None,is_eval=False, samples=train_samples, verbose=False, num_gpus=None)
-
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples, gpu=1
+    TrainerArgs(overfit_batch=True),
+    config,
+    output_path,
+    model=model,
+    train_samples=train_samples,
+    eval_samples=eval_samples,
+    gpu=1,
 )
 trainer.fit()
