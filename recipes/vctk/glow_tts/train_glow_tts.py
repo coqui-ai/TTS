@@ -22,7 +22,7 @@ if not os.path.exists(dataset_path):
     download_vctk(dataset_path)
 
 # define dataset config
-dataset_config = BaseDatasetConfig(name="vctk", meta_file_train="", path=dataset_path)
+dataset_config = BaseDatasetConfig(formatter="vctk", meta_file_train="", path=dataset_path)
 
 # define audio config
 # ❗ resample the dataset externally using `TTS/bin/resample.py` and set `resample=False` for faster training

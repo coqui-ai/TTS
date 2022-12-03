@@ -14,7 +14,7 @@ output_path = os.path.dirname(os.path.abspath(__file__))
 
 # init configs
 dataset_config = BaseDatasetConfig(
-    name="thorsten", meta_file_train="metadata.csv", path=os.path.join(output_path, "../thorsten-de/")
+    formatter="thorsten", meta_file_train="metadata.csv", path=os.path.join(output_path, "../thorsten-de/")
 )
 
 # download dataset if not already present

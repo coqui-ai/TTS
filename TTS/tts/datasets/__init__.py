@@ -1,3 +1,4 @@
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -12,20 +13,16 @@ from TTS.tts.datasets.formatters import *
 def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
     """Split a dataset into train and eval. Consider speaker distribution in multi-speaker training.
 
-        Args:
-    <<<<<<< HEAD
-            items (List[List]):
-                A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
+    Args:
+        items (List[List]):
+            A list of samples. Each sample is a list of `[audio_path, text, speaker_id]`.
 
-            eval_split_max_size (int):
-                Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
+        eval_split_max_size (int):
+            Number maximum of samples to be used for evaluation in proportion split. Defaults to None (Disabled).
 
-            eval_split_size (float):
-                If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
-                If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
-    =======
-            items (List[List]): A list of samples. Each sample is a list of `[text, audio_path, speaker_id]`.
-    >>>>>>> Fix docstring
+        eval_split_size (float):
+            If between 0.0 and 1.0 represents the proportion of the dataset to include in the evaluation set.
+            If > 1, represents the absolute number of evaluation samples. Defaults to 0.01 (1%).
     """
     speakers = [item["speaker_name"] for item in items]
     is_multi_speaker = len(set(speakers)) > 1
@@ -57,6 +54,17 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
                 del items[item_idx]
         return items_eval, items
     return items[:eval_split_size], items[eval_split_size:]
+
+
+def add_extra_keys(metadata, language, dataset_name):
+    for item in metadata:
+        # add language name
+        item["language"] = language
+        # add unique audio name
+        relfilepath = os.path.splitext(os.path.relpath(item["audio_file"], item["root_path"]))[0]
+        audio_unique_name = f"{dataset_name}#{relfilepath}"
+        item["audio_unique_name"] = audio_unique_name
+    return metadata
 
 
 def load_tts_samples(
@@ -97,7 +105,8 @@ def load_tts_samples(
     if not isinstance(datasets, list):
         datasets = [datasets]
     for dataset in datasets:
-        name = dataset["name"]
+        formatter_name = dataset["formatter"]
+        dataset_name = dataset["dataset_name"]
         root_path = dataset["path"]
         meta_file_train = dataset["meta_file_train"]
         meta_file_val = dataset["meta_file_val"]
@@ -106,17 +115,19 @@ def load_tts_samples(
 
         # setup the right data processor
         if formatter is None:
-            formatter = _get_formatter_by_name(name)
+            formatter = _get_formatter_by_name(formatter_name)
         # load train set
         meta_data_train = formatter(root_path, meta_file_train, ignored_speakers=ignored_speakers)
-        meta_data_train = [{**item, **{"language": language}} for item in meta_data_train]
+        assert len(meta_data_train) > 0, f" [!] No training samples found in {root_path}/{meta_file_train}"
+
+        meta_data_train = add_extra_keys(meta_data_train, language, dataset_name)
 
         print(f" | > Found {len(meta_data_train)} files in {Path(root_path).resolve()}")
         # load evaluation split if set
         if eval_split:
             if meta_file_val:
                 meta_data_eval = formatter(root_path, meta_file_val, ignored_speakers=ignored_speakers)
-                meta_data_eval = [{**item, **{"language": language}} for item in meta_data_eval]
+                meta_data_eval = add_extra_keys(meta_data_eval, language, dataset_name)
             else:
                 meta_data_eval, meta_data_train = split_dataset(meta_data_train, eval_split_max_size, eval_split_size)
             meta_data_eval_all += meta_data_eval

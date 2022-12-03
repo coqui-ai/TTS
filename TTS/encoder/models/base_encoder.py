@@ -107,11 +107,18 @@ class BaseEncoder(nn.Module):
         return criterion
 
     def load_checkpoint(
-        self, config: Coqpit, checkpoint_path: str, eval: bool = False, use_cuda: bool = False, criterion=None
+        self,
+        config: Coqpit,
+        checkpoint_path: str,
+        eval: bool = False,
+        use_cuda: bool = False,
+        criterion=None,
+        cache=False,
     ):
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"), cache=cache)
         try:
             self.load_state_dict(state["model"])
+            print(" > Model fully restored. ")
         except (KeyError, RuntimeError) as error:
             # If eval raise the error
             if eval:

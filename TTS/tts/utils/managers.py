@@ -39,7 +39,7 @@ class BaseIDManager:
     """
 
     def __init__(self, id_file_path: str = ""):
-        self.ids = {}
+        self.name_to_id = {}
 
         if id_file_path:
             self.load_ids_from_file(id_file_path)
@@ -60,7 +60,7 @@ class BaseIDManager:
         Args:
             items (List): Data sampled returned by `load_tts_samples()`.
         """
-        self.ids = self.parse_ids_from_data(items, parse_key=parse_key)
+        self.name_to_id = self.parse_ids_from_data(items, parse_key=parse_key)
 
     def load_ids_from_file(self, file_path: str) -> None:
         """Set IDs from a file.
@@ -68,7 +68,7 @@ class BaseIDManager:
         Args:
             file_path (str): Path to the file.
         """
-        self.ids = load_file(file_path)
+        self.name_to_id = load_file(file_path)
 
     def save_ids_to_file(self, file_path: str) -> None:
         """Save IDs to a json file.
@@ -76,7 +76,7 @@ class BaseIDManager:
         Args:
             file_path (str): Path to the output file.
         """
-        save_file(self.ids, file_path)
+        save_file(self.name_to_id, file_path)
 
     def get_random_id(self) -> Any:
         """Get a random embedding.
@@ -86,8 +86,8 @@ class BaseIDManager:
         Returns:
             np.ndarray: embedding.
         """
-        if self.ids:
-            return self.ids[random.choices(list(self.ids.keys()))[0]]
+        if self.name_to_id:
+            return self.name_to_id[random.choices(list(self.name_to_id.keys()))[0]]
 
         return None
 
@@ -109,11 +109,27 @@ class BaseIDManager:
 class EmbeddingManager(BaseIDManager):
     """Base `Embedding` Manager class. Every new `Embedding` manager must inherit this.
     It defines common `Embedding` manager specific functions.
+
+    It expects embeddings files in the following format:
+
+    ::
+
+        {
+            'audio_file_key':{
+                'name': 'category_name',
+                'embedding'[<embedding_values>]
+            },
+            ...
+        }
+
+    `audio_file_key` is a unique key to the audio file in the dataset. It can be the path to the file or any other unique key.
+    `embedding` is the embedding vector of the audio file.
+    `name` can be name of the speaker of the audio file.
     """
 
     def __init__(
         self,
-        embedding_file_path: str = "",
+        embedding_file_path: Union[str, List[str]] = "",
         id_file_path: str = "",
         encoder_model_path: str = "",
         encoder_config_path: str = "",
@@ -129,10 +145,23 @@ class EmbeddingManager(BaseIDManager):
         self.use_cuda = use_cuda
 
         if embedding_file_path:
-            self.load_embeddings_from_file(embedding_file_path)
+            if isinstance(embedding_file_path, list):
+                self.load_embeddings_from_list_of_files(embedding_file_path)
+            else:
+                self.load_embeddings_from_file(embedding_file_path)
 
         if encoder_model_path and encoder_config_path:
             self.init_encoder(encoder_model_path, encoder_config_path, use_cuda)
+
+    @property
+    def num_embeddings(self):
+        """Get number of embeddings."""
+        return len(self.embeddings)
+
+    @property
+    def num_names(self):
+        """Get number of embeddings."""
+        return len(self.embeddings_by_names)
 
     @property
     def embedding_dim(self):
@@ -140,6 +169,11 @@ class EmbeddingManager(BaseIDManager):
         if self.embeddings:
             return len(self.embeddings[list(self.embeddings.keys())[0]]["embedding"])
         return 0
+
+    @property
+    def embedding_names(self):
+        """Get embedding names."""
+        return list(self.embeddings_by_names.keys())
 
     def save_embeddings_to_file(self, file_path: str) -> None:
         """Save embeddings to a json file.
@@ -149,20 +183,57 @@ class EmbeddingManager(BaseIDManager):
         """
         save_file(self.embeddings, file_path)
 
+    @staticmethod
+    def read_embeddings_from_file(file_path: str):
+        """Load embeddings from a json file.
+
+        Args:
+            file_path (str): Path to the file.
+        """
+        embeddings = load_file(file_path)
+        speakers = sorted({x["name"] for x in embeddings.values()})
+        name_to_id = {name: i for i, name in enumerate(speakers)}
+        clip_ids = list(set(sorted(clip_name for clip_name in embeddings.keys())))
+        # cache embeddings_by_names for fast inference using a bigger speakers.json
+        embeddings_by_names = {}
+        for x in embeddings.values():
+            if x["name"] not in embeddings_by_names.keys():
+                embeddings_by_names[x["name"]] = [x["embedding"]]
+            else:
+                embeddings_by_names[x["name"]].append(x["embedding"])
+        return name_to_id, clip_ids, embeddings, embeddings_by_names
+
     def load_embeddings_from_file(self, file_path: str) -> None:
         """Load embeddings from a json file.
 
         Args:
             file_path (str): Path to the target json file.
         """
-        self.embeddings = load_file(file_path)
+        self.name_to_id, self.clip_ids, self.embeddings, self.embeddings_by_names = self.read_embeddings_from_file(
+            file_path
+        )
 
-        speakers = sorted({x["name"] for x in self.embeddings.values()})
-        self.ids = {name: i for i, name in enumerate(speakers)}
+    def load_embeddings_from_list_of_files(self, file_paths: List[str]) -> None:
+        """Load embeddings from a list of json files and don't allow duplicate keys.
 
-        self.clip_ids = list(set(sorted(clip_name for clip_name in self.embeddings.keys())))
-        # cache embeddings_by_names for fast inference using a bigger speakers.json
-        self.embeddings_by_names = self.get_embeddings_by_names()
+        Args:
+            file_paths (List[str]): List of paths to the target json files.
+        """
+        self.name_to_id = {}
+        self.clip_ids = []
+        self.embeddings_by_names = {}
+        self.embeddings = {}
+        for file_path in file_paths:
+            ids, clip_ids, embeddings, embeddings_by_names = self.read_embeddings_from_file(file_path)
+            # check colliding keys
+            duplicates = set(self.embeddings.keys()) & set(embeddings.keys())
+            if duplicates:
+                raise ValueError(f" [!] Duplicate embedding names <{duplicates}> in {file_path}")
+            # store values
+            self.name_to_id.update(ids)
+            self.clip_ids.extend(clip_ids)
+            self.embeddings_by_names.update(embeddings_by_names)
+            self.embeddings.update(embeddings)
 
     def get_embedding_by_clip(self, clip_idx: str) -> List:
         """Get embedding by clip ID.

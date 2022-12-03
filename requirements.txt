@@ -23,7 +23,6 @@ umap-learn==0.5.1
 pandas
 # deps for training
 matplotlib
-pyworld==0.2.10 # > 0.2.10 is not p3.10.x compatible
 # coqui stack
 trainer
 # config management
@@ -35,4 +34,8 @@ pypinyin
 mecab-python3==1.0.5
 unidic-lite==1.0.8
 # gruut+supported langs
-gruut[cs,de,es,fr,it,nl,pt,ru,sv]==2.2.3
+gruut[de]==2.2.3
+# deps for korean
+jamo
+nltk
+g2pkk>=0.1.1

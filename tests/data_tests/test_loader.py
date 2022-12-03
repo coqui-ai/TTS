@@ -24,7 +24,7 @@ c.data_path = os.path.join(get_tests_data_path(), "ljspeech/")
 ok_ljspeech = os.path.exists(c.data_path)
 
 dataset_config = BaseDatasetConfig(
-    name="ljspeech_test",  # ljspeech_test to multi-speaker
+    formatter="ljspeech_test",  # ljspeech_test to multi-speaker
     meta_file_train="metadata.csv",
     meta_file_val=None,
     path=c.data_path,

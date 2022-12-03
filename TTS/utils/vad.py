@@ -1,3 +1,4 @@
+import soundfile as sf
 import torch
 import torchaudio
 
@@ -48,7 +49,7 @@ def remove_silence(
 ):
 
     # get the VAD model and utils functions
-    model, get_speech_timestamps, save_audio, collect_chunks = model_and_utils
+    model, get_speech_timestamps, _, collect_chunks = model_and_utils
 
     # read ground truth wav and resample the audio for the VAD
     wav, gt_sample_rate = read_audio(audio_path)
@@ -73,9 +74,11 @@ def remove_silence(
     # if have speech timestamps else save the wav
     if new_speech_timestamps:
         wav = collect_chunks(new_speech_timestamps, wav)
+        is_speech = True
     else:
         print(f"> The file {audio_path} probably does not have speech please check it !!")
+        is_speech = False
 
     # save audio
-    save_audio(out_path, wav, sampling_rate=gt_sample_rate)
-    return out_path
+    sf.write(out_path, wav, gt_sample_rate, subtype="PCM_16")
+    return out_path, is_speech

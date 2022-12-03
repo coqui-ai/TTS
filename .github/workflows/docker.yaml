@@ -15,8 +15,8 @@ jobs:
       matrix:
         arch: ["amd64"]
         base:
-        - "nvcr.io/nvidia/pytorch:22.03-py3" # GPU enabled
-        - "ubuntu:20.04" # CPU only
+        - "nvidia/cuda:11.8.0-base-ubuntu22.04" # GPU enabled
+        - "python:3.10.8-slim" # CPU only
     steps:
       - uses: actions/checkout@v2
       - name: Log in to the Container registry
@@ -32,7 +32,7 @@ jobs:
           base="ghcr.io/coqui-ai/tts"
           tags="" # PR build
 
-          if [[ ${{ matrix.base }} = "ubuntu:20.04" ]]; then
+          if [[ ${{ matrix.base }} = "python:3.10.8-slim" ]]; then
             base="ghcr.io/coqui-ai/tts-cpu"
           fi
 

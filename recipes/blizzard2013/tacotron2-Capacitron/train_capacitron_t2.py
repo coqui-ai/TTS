@@ -16,7 +16,7 @@ data_path = "/srv/data/blizzard2013/segmented"
 
 # Using LJSpeech like dataset processing for the blizzard dataset
 dataset_config = BaseDatasetConfig(
-    name="ljspeech",
+    formatter="ljspeech",
     meta_file_train="metadata.csv",
     path=data_path,
 )

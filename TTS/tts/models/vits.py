@@ -284,6 +284,7 @@ class VitsDataset(TTSDataset):
             "wav_file": wav_filename,
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
+            "audio_unique_name": item["audio_unique_name"],
         }
 
     @property
@@ -308,6 +309,7 @@ class VitsDataset(TTSDataset):
             - language_names: :math:`[B]`
             - audiofile_paths: :math:`[B]`
             - raw_texts: :math:`[B]`
+            - audio_unique_names: :math:`[B]`
         """
         # convert list of dicts to dict of lists
         B = len(batch)
@@ -348,6 +350,7 @@ class VitsDataset(TTSDataset):
             "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
+            "audio_unique_names": batch["audio_unique_name"],
         }
 
 
@@ -718,6 +721,10 @@ class Vits(BaseTTS):
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
             )
 
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
     def init_multispeaker(self, config: Coqpit):
         """Initialize multi-speaker modules of a model. A model can be trained either with a speaker embedding layer
         or with external `d_vectors` computed from a speaker encoder model.
@@ -755,17 +762,12 @@ class Vits(BaseTTS):
 
             if (
                 hasattr(self.speaker_manager.encoder, "audio_config")
-                and self.config.audio["sample_rate"] != self.speaker_manager.encoder.audio_config["sample_rate"]
+                and self.config.audio.sample_rate != self.speaker_manager.encoder.audio_config["sample_rate"]
             ):
                 self.audio_transform = torchaudio.transforms.Resample(
-                    orig_freq=self.audio_config["sample_rate"],
+                    orig_freq=self.config.audio.sample_rate,
                     new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
                 )
-            # pylint: disable=W0101,W0105
-            self.audio_transform = torchaudio.transforms.Resample(
-                orig_freq=self.config.audio.sample_rate,
-                new_freq=self.speaker_manager.encoder.audio_config["sample_rate"],
-            )
 
     def _init_speaker_embedding(self):
         # pylint: disable=attribute-defined-outside-init
@@ -807,6 +809,13 @@ class Vits(BaseTTS):
             self.audio_resampler = torchaudio.transforms.Resample(
                 orig_freq=self.config.audio["sample_rate"], new_freq=self.args.encoder_sample_rate
             )  # pylint: disable=W0201
+
+    def on_epoch_start(self, trainer):  # pylint: disable=W0613
+        """Freeze layers at the beginning of an epoch"""
+        self._freeze_layers()
+        # set the device of speaker encoder
+        if self.args.use_speaker_encoder_as_loss:
+            self.speaker_manager.encoder = self.speaker_manager.encoder.to(self.device)
 
     def on_init_end(self, trainer):  # pylint: disable=W0613
         """Reinit layes if needed"""
@@ -1185,7 +1194,6 @@ class Vits(BaseTTS):
         y_lengths = torch.tensor([y.size(-1)]).to(y.device)
         speaker_cond_src = reference_speaker_id if reference_speaker_id is not None else reference_d_vector
         speaker_cond_tgt = speaker_id if speaker_id is not None else d_vector
-        # print(y.shape, y_lengths.shape)
         wav, _, _ = self.voice_conversion(y, y_lengths, speaker_cond_src, speaker_cond_tgt)
         return wav
 
@@ -1228,8 +1236,6 @@ class Vits(BaseTTS):
         Returns:
             Tuple[Dict, Dict]: Model ouputs and computed losses.
         """
-
-        self._freeze_layers()
 
         spec_lens = batch["spec_lens"]
 
@@ -1402,11 +1408,11 @@ class Vits(BaseTTS):
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_id()
                 else:
-                    speaker_id = self.speaker_manager.ids[speaker_name]
+                    speaker_id = self.speaker_manager.name_to_id[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
-            language_id = self.language_manager.ids[language_name]
+            language_id = self.language_manager.name_to_id[language_name]
 
         return {
             "text": text,
@@ -1461,8 +1467,8 @@ class Vits(BaseTTS):
         d_vectors = None
 
         # get numerical speaker ids from speaker names
-        if self.speaker_manager is not None and self.speaker_manager.ids and self.args.use_speaker_embedding:
-            speaker_ids = [self.speaker_manager.ids[sn] for sn in batch["speaker_names"]]
+        if self.speaker_manager is not None and self.speaker_manager.name_to_id and self.args.use_speaker_embedding:
+            speaker_ids = [self.speaker_manager.name_to_id[sn] for sn in batch["speaker_names"]]
 
         if speaker_ids is not None:
             speaker_ids = torch.LongTensor(speaker_ids)
@@ -1471,12 +1477,12 @@ class Vits(BaseTTS):
         # get d_vectors from audio file names
         if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
             d_vector_mapping = self.speaker_manager.embeddings
-            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_files"]]
+            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_unique_names"]]
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
-        if self.language_manager is not None and self.language_manager.ids and self.args.use_language_embedding:
-            language_ids = [self.language_manager.ids[ln] for ln in batch["language_names"]]
+        if self.language_manager is not None and self.language_manager.name_to_id and self.args.use_language_embedding:
+            language_ids = [self.language_manager.name_to_id[ln] for ln in batch["language_names"]]
 
         if language_ids is not None:
             language_ids = torch.LongTensor(language_ids)
@@ -1680,14 +1686,10 @@ class Vits(BaseTTS):
         return [VitsDiscriminatorLoss(self.config), VitsGeneratorLoss(self.config)]
 
     def load_checkpoint(
-        self,
-        config,
-        checkpoint_path,
-        eval=False,
-        strict=True,
+        self, config, checkpoint_path, eval=False, strict=True, cache=False
     ):  # pylint: disable=unused-argument, redefined-builtin
         """Load the model checkpoint and setup for training or inference"""
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"), cache=cache)
         # compat band-aid for the pre-trained models to not use the encoder baked into the model
         # TODO: consider baking the speaker encoder into the model and call it from there.
         # as it is probably easier for model distribution.

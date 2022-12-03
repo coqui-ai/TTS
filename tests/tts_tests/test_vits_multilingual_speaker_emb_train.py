@@ -14,7 +14,7 @@ output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
 dataset_config_en = BaseDatasetConfig(
-    name="ljspeech",
+    formatter="ljspeech",
     meta_file_train="metadata.csv",
     meta_file_val="metadata.csv",
     path="tests/data/ljspeech",
@@ -22,7 +22,7 @@ dataset_config_en = BaseDatasetConfig(
 )
 
 dataset_config_pt = BaseDatasetConfig(
-    name="ljspeech",
+    formatter="ljspeech",
     meta_file_train="metadata.csv",
     meta_file_val="metadata.csv",
     path="tests/data/ljspeech",
