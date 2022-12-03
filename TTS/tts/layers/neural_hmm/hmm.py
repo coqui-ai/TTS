@@ -10,7 +10,7 @@ from TTS.tts.layers.tacotron.common_layers import Prenet
 from TTS.tts.utils.helpers import log_clamped, logsumexp, sequence_mask
 
 
-class HMM(nn.Module):
+class NeuralHMM(nn.Module):
     """Autoregressive left to right HMM model primarily used in "Neural HMMs are all you need (for high-quality attention-free TTS)"
 
     Paper::
@@ -32,9 +32,7 @@ class HMM(nn.Module):
         self,
         frame_channels: int,
         ar_order: int,
-        sampling_temp: float,
         deterministic_transition: bool,
-        duration_threshold: float,
         encoder_dim: int,
         prenet_type: str,
         prenet_dim: int,
@@ -51,9 +49,7 @@ class HMM(nn.Module):
 
         self.frame_channels = frame_channels
         self.ar_order = ar_order
-        self.sampling_temp = sampling_temp
-        self.determinstic_transition = deterministic_transition
-        self.duration_threshold = duration_threshold
+        self.deterministic_transition = deterministic_transition
         self.prenet_dim = prenet_dim
         self.memory_rnn_dim = memory_rnn_dim
         self.use_grad_checkpointing = use_grad_checkpointing
@@ -321,78 +317,129 @@ class HMM(nn.Module):
         mask = ids == lengths.unsqueeze(1) - 1
         return mask
 
-    # @torch.inference_mode()
-    # def sample(self, inputs, sampling_temp=1.0, T=None):
-    #     r"""
-    #     Samples an output from the parameter models
+    @torch.inference_mode()
+    def inference(
+        self,
+        inputs: torch.FloatTensor,
+        input_lens: torch.LongTensor,
+        sampling_temp: float,
+        max_sampling_time: int,
+        duration_threshold: float,
+    ):
+        """Sampling from autoregressive neural HMM
+        TODO: Add support for batched inference
 
-    #     Args:
-    #         encoder_outputs (float tensor): (batch, text_len, encoder_embedding_dim)
-    #         sampling_temp
-    #         T (int): Max time to sample
+        Args:
+            inputs (torch.FloatTensor): input states
+                - shape: :math:`(b, T, d)`
+            input_lens (torch.LongTensor): input state lengths
+                - shape: :math:`(b)`
+            sampling_temp (float): sampling temperature
+            max_sampling_temp (int): max sampling temperature
+            duration_threshold (float): duration threshold to switch to next state
+                - Use this to change the spearking rate of the synthesised audio
+        """
 
-    #     Returns:
-    #         x (list[float]): Output Observations
-    #         z (list[int]): Hidden states travelled
-    #     """
-    #     if not T:
-    #         T = self.max_sampling_time
+        b = inputs.shape[0]
+        outputs = {
+            "hmm_outputs": [],
+            "hmm_outputs_len": [],
+            "state_travelled": [],
+            "input_parameters": [],
+            "output_parameters": [],
+        }
+        for i in range(b):
+            neural_hmm_outputs, states_travelled, input_parameters, output_parameters = self.sample(
+                inputs[i : i + 1], input_lens[i], sampling_temp, max_sampling_time, duration_threshold
+            )
 
-    #     self.N = inputs.shape[1]
-    #     prenet_input = self.go_tokens.unsqueeze(0)
+            outputs["hmm_outputs"].append(neural_hmm_outputs)
+            outputs["hmm_outputs_len"].append(neural_hmm_outputs.shape[0])
+            outputs["state_travelled"].append(states_travelled)
+            outputs["input_parameters"].append(input_parameters)
+            outputs["output_parameters"].append(output_parameters)
 
-    #     z, x = [], []
-    #     t = 0
+        outputs["hmm_outputs"] = nn.utils.rnn.pad_sequence(outputs["hmm_outputs"], batch_first=True)
+        outputs["hmm_outputs_len"] = torch.tensor(
+            outputs["hmm_outputs_len"], dtype=input_lens.dtype, device=input_lens.device
+        )
+        return outputs
 
-    #     # Sample Initial state
-    #     current_z_number = 0
-    #     z.append(current_z_number)
+    @torch.inference_mode()
+    def sample(self, inputs, input_lens, sampling_temp, max_sampling_time, duration_threshold):
+        """Samples an output from the parameter models
 
-    #     h_memory, c_memory = self._init_lstm_states(1, self.post_prenet_rnn_dim, prenet_input)
+        Args:
+            inputs (torch.FloatTensor): input states
+                - shape: :math:`(1, T, d)`
+            input_lens (torch.LongTensor): input state lengths
+                - shape: :math:`(1)`
+            sampling_temp (float): sampling temperature
+            max_sampling_time (int): max sampling time
 
-    #     input_parameter_values = []
-    #     output_parameter_values = []
-    #     quantile = 1
-    #     while True:
-    #         memory_input = self.prenet(prenet_input.flatten(1).unsqueeze(0))
-    #         # will be 1 while sampling
-    #         h_memory, c_memory = self.memory_rnn(memory_input.squeeze(0), (h_memory, c_memory))
+        Returns:
+            outputs (torch.FloatTensor): Output Observations
+                - Shape: :math:`(T, output_dim)`
+            states_travelled (list[int]): Hidden states travelled
+                - Shape: :math:`(T)`
+            input_parameters (list[torch.FloatTensor]): Input parameters
+            output_parameters (list[torch.FloatTensor]): Output parameters
+        """
+        states_travelled, outputs, t = [], [], 0
 
-    #         z_t = inputs[:, current_z_number]
-    #         mean, std, transition_vector = self.decoder(h_memory, z_t.unsqueeze(0))
+        # Sample initial state
+        current_state = 0
+        states_travelled.append(current_state)
 
-    #         transition_probability = torch.sigmoid(transition_vector.flatten())
-    #         staying_probability = torch.sigmoid(-transition_vector.flatten())
-    #         input_parameter_values.append([ar_mel_inputs, current_z_number])
-    #         output_parameter_values.append([mean, std, transition_probability])
+        # Prepare autoregression
+        prenet_input = self.go_tokens.unsqueeze(0).expand(1, self.ar_order, self.frame_channels)
+        h_memory, c_memory = self._init_lstm_states(1, self.memory_rnn_dim, prenet_input)
 
-    #         if self.predict_means:
-    #             x_t = mean
-    #         else:
-    #             x_t = self.emission_model.sample(mean, std, sampling_temp=sampling_temp)
-    #         ar_mel_inputs = torch.cat((ar_mel_inputs, x_t), dim=1)[:, 1:]
+        input_parameter_values = []
+        output_parameter_values = []
+        quantile = 1
+        while True:
 
-    #         x.append(x_t.flatten())
+            memory_input = self.prenet(prenet_input.flatten(1).unsqueeze(0))
+            # will be 1 while sampling
+            h_memory, c_memory = self.memory_rnn(memory_input.squeeze(0), (h_memory, c_memory))
 
-    #         transition_matrix = torch.cat((staying_probability, transition_probability))
-    #         quantile *= staying_probability
-    #         if not self.deterministic_transition:
-    #             switch = transition_matrix.multinomial(1)[0].item()
-    #         else:
-    #             switch = quantile < self.duration_quantile_threshold
+            z_t = inputs[:, current_state].unsqueeze(0)  # Add fake time dimension
+            mean, std, transition_vector = self.output_net(h_memory, z_t)
 
-    #         if switch:
-    #             current_z_number += 1
-    #             quantile = 1
+            transition_probability = torch.sigmoid(transition_vector.flatten())
+            staying_probability = torch.sigmoid(-transition_vector.flatten())
 
-    #         z.append(current_z_number)
+            # Save for plotting
+            input_parameter_values.append([prenet_input, current_state])
+            output_parameter_values.append([mean, std, transition_probability])
 
-    #         if (current_z_number == self.N) or (T and t == T - 1):
-    #             break
+            x_t = self.emission_model.sample(mean, std, sampling_temp=sampling_temp)
 
-    #         t += 1
+            # Prepare autoregressive input for next iteration
+            prenet_input = torch.cat((prenet_input, x_t), dim=1)[:, 1:]
 
-    #     return torch.stack(x), z, input_parameter_values, output_parameter_values
+            outputs.append(x_t.flatten())
+
+            transition_matrix = torch.cat((staying_probability, transition_probability))
+            quantile *= staying_probability
+            if not self.deterministic_transition:
+                switch = transition_matrix.multinomial(1)[0].item()
+            else:
+                switch = quantile < duration_threshold
+
+            if switch:
+                current_state += 1
+                quantile = 1
+
+            states_travelled.append(current_state)
+
+            if (current_state == input_lens) or (max_sampling_time and t == max_sampling_time - 1):
+                break
+
+            t += 1
+
+        return torch.stack(outputs, dim=0), states_travelled, input_parameter_values, output_parameter_values
 
     @staticmethod
     def _initialize_log_state_priors(text_embeddings):

@@ -34,10 +34,11 @@ class OverFlowConfig(BaseTTSConfig):
     # HMM parameters
     out_channels: int = 80
     ar_order: int = 1
-    sampling_temp: float = 0.667
+    sampling_temp: float = 0.334
     deterministic_transition: bool = True
     duration_threshold: float = 0.55
     use_grad_checkpointing: bool = True
+    max_sampling_time: int = 1000
 
     ## Prenet parameters
     prenet_type: str = "original"
@@ -97,6 +98,7 @@ class OverFlowConfig(BaseTTSConfig):
             AssertionError: when the parameters network is not defined
             AssertionError: transition probability is not between 0 and 1
         """
+        assert self.ar_order > 0, "AR order must be greater than 0 it is an autoregressive model."
         assert (
             self.parameternetwork >= 1
         ), f"Parameter Network must have atleast one layer check the config file for parameter network. Provided: {self.parameternetwork}"
