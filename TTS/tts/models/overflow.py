@@ -8,12 +8,13 @@ from trainer.logging.tensorboard_logger import TensorboardLogger
 
 from TTS.tts.layers.neural_hmm.common_layers import Encoder, OverFlowUtils
 from TTS.tts.layers.neural_hmm.decoder import Decoder
-from TTS.tts.layers.neural_hmm.hmm import HMM
+from TTS.tts.layers.neural_hmm.hmm import NeuralHMM
 from TTS.tts.layers.neural_hmm.plotting_utils import get_spec_from_most_probable_state
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
+from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.io import load_fsspec
 
 
@@ -60,12 +61,10 @@ class OverFlow(BaseTTS):
         self.decoder_output_dim = config.out_channels
 
         self.encoder = Encoder(config.num_chars, config.state_per_phone, config.encoder_in_out_features)
-        self.hmm = HMM(
+        self.neural_hmm = NeuralHMM(
             frame_channels=self.out_channels,
             ar_order=self.ar_order,
-            sampling_temp=self.sampling_temp,
             deterministic_transition=self.deterministic_transition,
-            duration_threshold=self.duration_threshold,
             encoder_dim=self.encoder_in_out_features,
             prenet_type=self.prenet_type,
             prenet_dim=self.prenet_dim,
@@ -128,7 +127,7 @@ class OverFlow(BaseTTS):
         text, text_len, mels, mel_len = self.preprocess_batch(text, text_len, mels, mel_len)
         encoder_outputs, encoder_output_len = self.encoder(text, text_len)
         z, z_lengths, logdet = self.decoder(mels.transpose(1, 2), mel_len)
-        log_probs, fwd_alignments, transition_vectors, means = self.hmm(
+        log_probs, fwd_alignments, transition_vectors, means = self.neural_hmm(
             encoder_outputs, encoder_output_len, z, z_lengths
         )
 
@@ -161,11 +160,62 @@ class OverFlow(BaseTTS):
     def eval_step(self, batch: Dict, criterion: nn.Module):
         return self.train_step(batch, criterion)
 
-    def inference(self, text: torch.Tensor, aux_inputs=None) -> Dict:
+    def _format_aux_input(self, aux_input: Dict, default_input_dict):
+        """Set missing fields to their default value.
 
-        outputs_dict = {"model_outputs": None, "text": text, "aux_inputs": aux_inputs}
-        # TODO: have to write this
-        return outputs_dict
+        Args:
+            aux_inputs (Dict): Dictionary containing the auxiliary inputs.
+        """
+        default_input_dict.update(
+            {
+                "sampling_temp": self.sampling_temp,
+                "max_sampling_time": self.max_sampling_time,
+                "duration_threshold": self.duration_threshold,
+            }
+        )
+        if aux_input:
+            return format_aux_input(aux_input, default_input_dict)
+        return None
+
+    @torch.no_grad()
+    def inference(
+        self,
+        text: torch.Tensor,
+        aux_input={"text_len": None, "sampling_temp": None, "max_sampling_time": None, "duration_threshold": None},
+    ):  # pylint: disable=dangerous-default-value
+        """Sampling from the model
+
+        Args:
+            text (torch.Tensor): :math:`[B, T_in]`
+            aux_inputs (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            outputs: Dictionary containing the following
+                - mel (torch.Tensor): :math:`[B, T_out, C]`
+                - hmm_outputs_len (torch.Tensor): :math:`[B]`
+                - state_travelled (List[List[int]]): List of lists containing the state travelled for each sample in the batch.
+                - input_parameters (list[torch.FloatTensor]): Input parameters to the neural HMM.
+                - output_parameters (list[torch.FloatTensor]): Output parameters to the neural HMM.
+        """
+        default_input_dict = {
+            "text_len": torch.sum(text != 0, dim=1),
+        }
+        aux_input = self._format_aux_input(aux_input, default_input_dict)
+        encoder_outputs, encoder_output_len = self.encoder.inference(text, aux_input["text_len"])
+        outputs = self.neural_hmm.inference(
+            encoder_outputs,
+            encoder_output_len,
+            sampling_temp=aux_input["sampling_temp"],
+            max_sampling_time=aux_input["max_sampling_time"],
+            duration_threshold=aux_input["duration_threshold"],
+        )
+
+        mels, mel_outputs_len, _ = self.decoder(
+            outputs["hmm_outputs"].transpose(1, 2), outputs["hmm_outputs_len"], reverse=True
+        )
+        mels = self.inverse_normalize(mels.transpose(1, 2))
+        outputs.update({"model_outputs": mels, "model_outputs_len": mel_outputs_len})
+        return outputs
 
     @staticmethod
     def get_criterion():

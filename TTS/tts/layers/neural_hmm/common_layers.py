@@ -43,15 +43,13 @@ class Encoder(nn.Module):
         )
         self.rnn_state = None
 
-    def forward(
-        self, x: torch.FloatTensor, input_lengths: torch.LongTensor
-    ) -> Tuple[torch.FloatTensor, torch.LongTensor]:
+    def forward(self, x: torch.FloatTensor, x_len: torch.LongTensor) -> Tuple[torch.FloatTensor, torch.LongTensor]:
         """Forward pass to the encoder.
 
         Args:
             x (torch.FloatTensor): input text indices.
                 - shape: :math:`(b, T_{in})`
-            input_lengths (torch.LongTensor): input text lengths.
+            x_len (torch.LongTensor): input text lengths.
                 - shape: :math:`(b,)`
 
         Returns:
@@ -63,13 +61,37 @@ class Encoder(nn.Module):
         for layer in self.convolutions:
             o = layer(o)
         o = o.transpose(1, 2)
-        o = nn.utils.rnn.pack_padded_sequence(o, input_lengths.cpu(), batch_first=True)
+        o = nn.utils.rnn.pack_padded_sequence(o, x_len.cpu(), batch_first=True)
         self.lstm.flatten_parameters()
         o, _ = self.lstm(o)
         o, _ = nn.utils.rnn.pad_packed_sequence(o, batch_first=True)
         o = o.reshape(b, T * self.state_per_phone, self.in_out_channels)
-        T = input_lengths * self.state_per_phone
-        return o, T
+        x_len = x_len * self.state_per_phone
+        return o, x_len
+
+    def inference(self, x, x_len):
+        """Inference to the encoder.
+
+        Args:
+            x (torch.FloatTensor): input text indices.
+                - shape: :math:`(b, T_{in})`
+            x_len (torch.LongTensor): input text lengths.
+                - shape: :math:`(b,)`
+
+        Returns:
+            Tuple[torch.FloatTensor, torch.LongTensor]: encoder outputs and output lengths.
+                -shape: :math:`((b, T_{in} * states_per_phone, in_out_channels), (b,))`
+        """
+        b, T = x.shape
+        o = self.emb(x).transpose(1, 2)
+        for layer in self.convolutions:
+            o = layer(o)
+        o = o.transpose(1, 2)
+        # self.lstm.flatten_parameters()
+        o, _ = self.lstm(o)
+        o = o.reshape(b, T * self.state_per_phone, self.in_out_channels)
+        x_len = x_len * self.state_per_phone
+        return o, x_len
 
 
 class ParameterModel(nn.Module):
@@ -242,7 +264,7 @@ class OverFlowUtils:
     @staticmethod
     @torch.no_grad()
     def update_flat_start_transition(model, transition_p):
-        model.hmm.output_net.parametermodel.flat_start_output_layer(0.0, 1.0, transition_p)
+        model.neural_hmm.output_net.parametermodel.flat_start_output_layer(0.0, 1.0, transition_p)
 
 
 class Normalise:
