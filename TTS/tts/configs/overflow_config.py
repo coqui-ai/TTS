@@ -16,10 +16,10 @@ class OverFlowConfig(BaseTTSConfig):
     model: str = "overflow"
 
     # Training and Checkpoint configs
-    run_eval_steps: int = 500
+    run_eval_steps: int = 200
     save_step: int = 500
     plot_step: int = 1
-    model_param_stats: bool = True
+    model_param_stats: bool = False
 
     # data parameters
     force_generate_statistics: bool = False
@@ -90,6 +90,7 @@ class OverFlowConfig(BaseTTSConfig):
     # Extra needed config
     r: int = 1
     use_d_vector_file: bool = False
+    use_speaker_embedding: bool = False
 
     def check_values(self):
         """Validate the hyperparameters.

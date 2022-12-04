@@ -54,8 +54,6 @@ config = OverFlowConfig(  # This is the config that is saved for the future use
     mixed_precision=True,
     output_path=output_path,
     datasets=[dataset_config],
-    run_eval_steps=10,
-    save_step=10,
 )
 
 # INITIALIZE THE AUDIO PROCESSOR
@@ -89,7 +87,7 @@ model = OverFlow(config, ap, tokenizer)
 
 # init the trainer and 🚀
 trainer = Trainer(
-    TrainerArgs(overfit_batch=True),
+    TrainerArgs(),
     config,
     output_path,
     model=model,

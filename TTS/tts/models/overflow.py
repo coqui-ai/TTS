@@ -181,7 +181,7 @@ class OverFlow(BaseTTS):
     def inference(
         self,
         text: torch.Tensor,
-        aux_input={"text_len": None, "sampling_temp": None, "max_sampling_time": None, "duration_threshold": None},
+        aux_input={"x_lengths": None, "sampling_temp": None, "max_sampling_time": None, "duration_threshold": None},
     ):  # pylint: disable=dangerous-default-value
         """Sampling from the model
 
@@ -197,11 +197,12 @@ class OverFlow(BaseTTS):
                 - input_parameters (list[torch.FloatTensor]): Input parameters to the neural HMM.
                 - output_parameters (list[torch.FloatTensor]): Output parameters to the neural HMM.
         """
+        # TODO: inputs are
         default_input_dict = {
-            "text_len": torch.sum(text != 0, dim=1),
+            "x_lengths": torch.sum(text != 0, dim=1),
         }
         aux_input = self._format_aux_input(aux_input, default_input_dict)
-        encoder_outputs, encoder_output_len = self.encoder.inference(text, aux_input["text_len"])
+        encoder_outputs, encoder_output_len = self.encoder.inference(text, aux_input["x_lengths"])
         outputs = self.neural_hmm.inference(
             encoder_outputs,
             encoder_output_len,
@@ -288,7 +289,7 @@ class OverFlow(BaseTTS):
         OverFlowUtils.update_flat_start_transition(trainer.model, init_transition_prob)
         trainer.model.update_mean_std(statistics)
 
-    def _create_logs(self, outputs):  # pylint: disable=no-self-use
+    def _create_logs(self, batch, outputs):  # pylint: disable=no-self-use, unused-argument
         alignments, transition_vectors = outputs["alignments"], outputs["transition_vectors"]
         means = torch.stack(outputs["means"], dim=1)
 
@@ -302,13 +303,16 @@ class OverFlow(BaseTTS):
                 get_spec_from_most_probable_state(alignments[0], means[0]), fig_size=(12, 3)
             ),
         }
+
+        # sample one item from the batch
+        #! TODO: currently working here
+
         return figures
 
     def eval_log(
         self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int
     ):  # pylint: disable=unused-argument
         """Compute and log evaluation metrics."""
-        print("here")
 
         # Plot model parameters histograms
         if isinstance(logger, TensorboardLogger):
@@ -317,5 +321,5 @@ class OverFlow(BaseTTS):
                 tag = tag.replace(".", "/")
                 logger.writer.add_histogram(tag, value.data.cpu().numpy(), steps)
 
-        figures = self._create_logs(outputs)
+        figures = self._create_logs(batch, outputs)
         logger.eval_figures(steps, figures)
