@@ -9,7 +9,10 @@ from trainer.logging.tensorboard_logger import TensorboardLogger
 from TTS.tts.layers.neural_hmm.common_layers import Encoder, OverFlowUtils
 from TTS.tts.layers.neural_hmm.decoder import Decoder
 from TTS.tts.layers.neural_hmm.hmm import NeuralHMM
-from TTS.tts.layers.neural_hmm.plotting_utils import get_spec_from_most_probable_state
+from TTS.tts.layers.neural_hmm.plotting_utils import (
+    get_spec_from_most_probable_state,
+    plot_transition_probabilities_to_numpy,
+)
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -300,12 +303,26 @@ class OverFlow(BaseTTS):
             ),
             "transition_vectors": plot_alignment(transition_vectors[0], title="Transition vectors", fig_size=(20, 20)),
             "mel_from_most_probable_state": plot_spectrogram(
-                get_spec_from_most_probable_state(alignments[0], means[0]), fig_size=(12, 3)
+                get_spec_from_most_probable_state(alignments[0], means[0], self.decoder), fig_size=(12, 3)
             ),
+            "mel_target": plot_spectrogram(batch["mel_input"][0], fig_size=(12, 3)),
         }
 
         # sample one item from the batch
-        #! TODO: currently working here
+        inference_output = self.inference(
+            batch["text_input"][0].unsqueeze(0), aux_input={"x_lenghts": batch["text_lengths"][0].unsqueeze(0)}
+        )
+        figures["synthesised"] = plot_spectrogram(inference_output["model_outputs"][0], fig_size=(12, 3))
+
+        states = [p[1] for p in inference_output["input_parameters"][0]]
+        transition_probability_synthesising = [p[2].cpu().numpy() for p in inference_output["output_parameters"][0]]
+
+        for i in range((len(transition_probability_synthesising) // 200) + 1):
+            start = i * 200
+            end = (i + 1) * 200
+            figures[f"synthesised_transition_probabilities/{i}"] = plot_transition_probabilities_to_numpy(
+                states[start:end], transition_probability_synthesising[start:end]
+            )
 
         return figures
 
