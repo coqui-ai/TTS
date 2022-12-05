@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-from TTS.tts.layers.neural_hmm.common_layers import Outputnet, OverFlowUtils
+from TTS.tts.layers.overflow.common_layers import Outputnet, OverFlowUtils
 from TTS.tts.layers.tacotron.common_layers import Prenet
 from TTS.tts.utils.helpers import sequence_mask
 
