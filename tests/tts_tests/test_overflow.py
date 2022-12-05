@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from TTS.tts.configs.overflow_config import OverFlowConfig
-from TTS.tts.layers.neural_hmm.common_layers import OverFlowUtils
+from TTS.tts.layers.overflow.common_layers import OverFlowUtils
 from TTS.tts.models.overflow import OverFlow
 from TTS.utils.audio import AudioProcessor
 
