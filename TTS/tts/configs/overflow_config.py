@@ -101,7 +101,7 @@ class OverFlowConfig(BaseTTSConfig):
         """
         assert self.ar_order > 0, "AR order must be greater than 0 it is an autoregressive model."
         assert (
-            self.parameternetwork >= 1
+            len(self.outputnet_size) >= 1
         ), f"Parameter Network must have atleast one layer check the config file for parameter network. Provided: {self.parameternetwork}"
         assert (
             0 < self.flat_start_params["transition_p"] < 1
