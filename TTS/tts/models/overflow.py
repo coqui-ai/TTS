@@ -95,8 +95,11 @@ class OverFlow(BaseTTS):
             c_in_channels=self.c_in_channels,
         )
 
-        self.mean = nn.Parameter(torch.zeros(1), requires_grad=False)
-        self.std = nn.Parameter(torch.ones(1), requires_grad=False)
+        self.register_buffer("mean", torch.zeros(1))
+        self.register_buffer("std", torch.ones(1))
+
+        # self.mean = nn.Parameter(torch.zeros(1), requires_grad=False)
+        # self.std = nn.Parameter(torch.ones(1), requires_grad=False)
 
     def update_mean_std(self, statistics_dict: Dict):
         self.mean.data = torch.tensor(statistics_dict["mean"])
@@ -200,7 +203,6 @@ class OverFlow(BaseTTS):
                 - input_parameters (list[torch.FloatTensor]): Input parameters to the neural HMM.
                 - output_parameters (list[torch.FloatTensor]): Output parameters to the neural HMM.
         """
-        # TODO: inputs are
         default_input_dict = {
             "x_lengths": torch.sum(text != 0, dim=1),
         }
