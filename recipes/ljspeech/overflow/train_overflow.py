@@ -6,7 +6,7 @@ from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.overflow_config import OverFlowConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.overflow import OverFlow
+from TTS.tts.models.overflow import Overflow
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
@@ -54,7 +54,7 @@ config = OverFlowConfig(  # This is the config that is saved for the future use
     mixed_precision=True,
     output_path=output_path,
     datasets=[dataset_config],
-    # run_eval_steps=10
+    # run_eval_steps=2
 )
 
 # INITIALIZE THE AUDIO PROCESSOR
@@ -83,7 +83,7 @@ train_samples, eval_samples = load_tts_samples(
 # Models take a config object and a speaker manager as input
 # Config defines the details of the model like the number of layers, the size of the embedding, etc.
 # Speaker manager is used by multi-speaker models.
-model = OverFlow(config, ap, tokenizer)
+model = Overflow(config, ap, tokenizer)
 
 
 # init the trainer and 🚀

@@ -21,7 +21,7 @@ from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.io import load_fsspec
 
 
-class OverFlow(BaseTTS):
+class Overflow(BaseTTS):
     """OverFlow TTS model.
 
     Paper::
@@ -95,8 +95,8 @@ class OverFlow(BaseTTS):
             c_in_channels=self.c_in_channels,
         )
 
-        self.register_buffer("mean", torch.zeros(1))
-        self.register_buffer("std", torch.ones(1))
+        self.register_buffer("mean", torch.tensor(0))
+        self.register_buffer("std", torch.tensor(1))
 
         # self.mean = nn.Parameter(torch.zeros(1), requires_grad=False)
         # self.std = nn.Parameter(torch.ones(1), requires_grad=False)
@@ -242,7 +242,7 @@ class OverFlow(BaseTTS):
         ap = AudioProcessor.init_from_config(config, verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config, samples)
-        return OverFlow(new_config, ap, tokenizer, speaker_manager)
+        return Overflow(new_config, ap, tokenizer, speaker_manager)
 
     def load_checkpoint(
         self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False
@@ -251,7 +251,7 @@ class OverFlow(BaseTTS):
         self.load_state_dict(state["model"])
         if eval:
             self.eval()
-            self.store_inverse()
+            self.decoder.store_inverse()
             assert not self.training
 
     def on_init_start(self, trainer):

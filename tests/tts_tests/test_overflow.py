@@ -4,7 +4,7 @@ import torch
 
 from TTS.tts.configs.overflow_config import OverFlowConfig
 from TTS.tts.layers.overflow.common_layers import OverFlowUtils
-from TTS.tts.models.overflow import OverFlow
+from TTS.tts.models.overflow import Overflow
 from TTS.utils.audio import AudioProcessor
 
 # pylint: disable=unused-variable
@@ -31,7 +31,7 @@ class TestOverFlow(unittest.TestCase):
     def get_model(config=None):
         if config is None:
             config = config_global
-        model = OverFlow(config)
+        model = Overflow(config)
         model = model.to(device)
         return model
 

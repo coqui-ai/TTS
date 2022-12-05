@@ -5,7 +5,7 @@ from TTS.tts.configs.shared_configs import BaseTTSConfig
 
 
 @dataclass
-class OverFlowConfig(BaseTTSConfig):
+class OverflowConfig(BaseTTSConfig):  # The classname has to be camel case
     """
     Define parameters for OverFlow model.
 
@@ -13,7 +13,7 @@ class OverFlowConfig(BaseTTSConfig):
         BaseTTSConfig (_type_): _description_
     """
 
-    model: str = "overflow"
+    model: str = "OverFlow"
 
     # Training and Checkpoint configs
     run_eval_steps: int = 100
