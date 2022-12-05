@@ -6,10 +6,10 @@ import torch.nn as nn
 from coqpit import Coqpit
 from trainer.logging.tensorboard_logger import TensorboardLogger
 
-from TTS.tts.layers.neural_hmm.common_layers import Encoder, OverFlowUtils
-from TTS.tts.layers.neural_hmm.decoder import Decoder
-from TTS.tts.layers.neural_hmm.hmm import NeuralHMM
-from TTS.tts.layers.neural_hmm.plotting_utils import (
+from TTS.tts.layers.overflow.common_layers import Encoder, OverFlowUtils
+from TTS.tts.layers.overflow.decoder import Decoder
+from TTS.tts.layers.overflow.neural_hmm import NeuralHMM
+from TTS.tts.layers.overflow.plotting_utils import (
     get_spec_from_most_probable_state,
     plot_transition_probabilities_to_numpy,
 )
@@ -225,8 +225,6 @@ class OverFlow(BaseTTS):
 
     @staticmethod
     def get_criterion():
-        from TTS.tts.layers.losses import NLLLoss  # pylint: disable=import-outside-toplevel
-
         return NLLLoss()
 
     @staticmethod
@@ -342,3 +340,21 @@ class OverFlow(BaseTTS):
 
         figures = self._create_logs(batch, outputs)
         logger.eval_figures(steps, figures)
+
+
+class NLLLoss(nn.Module):
+    """Negative log likelihood loss."""
+
+    def forward(self, log_prob: torch.Tensor) -> dict:  # pylint: disable=no-self-use
+        """Compute the loss.
+
+        Args:
+            logits (Tensor): [B, T, D]
+
+        Returns:
+            Tensor: [1]
+
+        """
+        return_dict = {}
+        return_dict["loss"] = -log_prob.mean()
+        return return_dict
