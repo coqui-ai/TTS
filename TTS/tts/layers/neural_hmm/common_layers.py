@@ -7,7 +7,6 @@ from tqdm.auto import tqdm
 
 from TTS.tts.layers.tacotron.common_layers import Linear
 from TTS.tts.layers.tacotron.tacotron2 import ConvBNBlock
-from TTS.tts.utils.helpers import inverse_sigmod, inverse_softplus
 
 
 class Encoder(nn.Module):
@@ -129,8 +128,8 @@ class ParameterModel(nn.Module):
     def flat_start_output_layer(self, mean, std, transition_p):
         self.last_layer.weight.data.zero_()
         self.last_layer.bias.data[0 : self.frame_channels] = mean
-        self.last_layer.bias.data[self.frame_channels : 2 * self.frame_channels] = inverse_softplus(std)
-        self.last_layer.bias.data[2 * self.frame_channels :] = inverse_sigmod(transition_p)
+        self.last_layer.bias.data[self.frame_channels : 2 * self.frame_channels] = OverFlowUtils.inverse_softplus(std)
+        self.last_layer.bias.data[2 * self.frame_channels :] = OverFlowUtils.inverse_sigmod(transition_p)
 
     def forward(self, x):
         for layer in self.layers:
@@ -266,59 +265,50 @@ class OverFlowUtils:
     def update_flat_start_transition(model, transition_p):
         model.neural_hmm.output_net.parametermodel.flat_start_output_layer(0.0, 1.0, transition_p)
 
-
-class Normalise:
-    r"""
-    Z-Score normalisation class / Standardisation class
-    normalises the data with mean and std, when the data object is called
-
-    Args:
-        mean (int/tensor): Mean of the data
-        std (int/tensor): Standard deviation
-    """
-
-    def __init__(self, mean, std):
-        super().__init__()
-
-        if not torch.is_tensor(mean):
-            mean = torch.tensor(mean)
-        if not torch.is_tensor(std):
-            std = torch.tensor(std)
-
-        self.mean = mean
-        self.std = std
-
-    def __call__(self, x):
-        return self.forward(x)
-
-    def forward(self, x):
-        r"""
-        Takes an input and normalises it
+    @staticmethod
+    def log_clamped(x, eps=1e-04):
+        """
+        Avoids the log(0) problem
 
         Args:
-            x (Any): Input to the normaliser
+            x (torch.tensor): input tensor
+            eps (float, optional): lower bound. Defaults to 1e-04.
 
         Returns:
-            (torch.FloatTensor): Normalised value
+            torch.tensor: :math:`log(x)`
+        """
+        clamped_x = torch.clamp(x, min=eps)
+        return torch.log(clamped_x)
+
+    @staticmethod
+    def inverse_sigmod(x):
+        r"""
+        Inverse of the sigmoid function
         """
         if not torch.is_tensor(x):
             x = torch.tensor(x)
+        return OverFlowUtils.log_clamped(x / (1.0 - x))
 
-        x = x.sub(self.mean).div(self.std)
-        return x
-
-    def inverse_normalise(self, x):
+    @staticmethod
+    def inverse_softplus(x):
         r"""
-        Takes an input and de-normalises it
-
-        Args:
-            x (Any): Input to the normaliser
-
-        Returns:
-            (torch.FloatTensor): Normalised value
+        Inverse of the softplus function
         """
         if not torch.is_tensor(x):
-            x = torch.tensor([x])
+            x = torch.tensor(x)
+        return OverFlowUtils.log_clamped(torch.exp(x) - 1.0)
 
-        x = x.mul(self.std).add(self.mean)
-        return x
+    @staticmethod
+    def logsumexp(x, dim):
+        r"""
+        Differentiable LogSumExp: Does not creates nan gradients
+            when all the inputs are -inf yeilds 0 gradients.
+        Args:
+            x : torch.Tensor -  The input tensor
+            dim: int - The dimension on which the log sum exp has to be applied
+        """
+
+        m, _ = x.max(dim=dim)
+        mask = m == -float("inf")
+        s = (x - m.masked_fill_(mask, 0).unsqueeze(dim=dim)).exp().sum(dim=dim)
+        return s.masked_fill_(mask, 1).log() + m.masked_fill_(mask, -float("inf"))
