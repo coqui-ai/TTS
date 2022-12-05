@@ -3,6 +3,7 @@ from typing import List
 import torch
 import torch.distributions as tdist
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
 from TTS.tts.layers.neural_hmm.common_layers import Outputnet
@@ -344,7 +345,7 @@ class NeuralHMM(nn.Module):
         outputs = {
             "hmm_outputs": [],
             "hmm_outputs_len": [],
-            "state_travelled": [],
+            "alignments": [],
             "input_parameters": [],
             "output_parameters": [],
         }
@@ -355,7 +356,7 @@ class NeuralHMM(nn.Module):
 
             outputs["hmm_outputs"].append(neural_hmm_outputs)
             outputs["hmm_outputs_len"].append(neural_hmm_outputs.shape[0])
-            outputs["state_travelled"].append(states_travelled)
+            outputs["alignments"].append(states_travelled)
             outputs["input_parameters"].append(input_parameters)
             outputs["output_parameters"].append(output_parameters)
 
@@ -439,7 +440,12 @@ class NeuralHMM(nn.Module):
 
             t += 1
 
-        return torch.stack(outputs, dim=0), states_travelled, input_parameter_values, output_parameter_values
+        return (
+            torch.stack(outputs, dim=0),
+            F.one_hot(input_lens.new_tensor(states_travelled)),
+            input_parameter_values,
+            output_parameter_values,
+        )
 
     @staticmethod
     def _initialize_log_state_priors(text_embeddings):

@@ -16,7 +16,7 @@ class OverFlowConfig(BaseTTSConfig):
     model: str = "overflow"
 
     # Training and Checkpoint configs
-    run_eval_steps: int = 200
+    run_eval_steps: int = 100
     save_step: int = 500
     plot_step: int = 1
     model_param_stats: bool = False
