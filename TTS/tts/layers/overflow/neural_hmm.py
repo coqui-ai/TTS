@@ -112,7 +112,7 @@ class NeuralHMM(nn.Module):
             h_memory, c_memory = self._process_ar_timestep(t, ar_inputs, h_memory, c_memory)
             # Get mean, std and transition vector from decoder for this timestep
             # Note: Gradient checkpointing currently doesn't works with multiple gpus inside a loop
-            if self.use_grad_checkpointing:
+            if self.use_grad_checkpointing and self.training:
                 mean, std, transition_vector = checkpoint(self.output_net, h_memory, inputs)
             else:
                 mean, std, transition_vector = self.output_net(h_memory, inputs)
@@ -364,6 +364,7 @@ class NeuralHMM(nn.Module):
         outputs["hmm_outputs_len"] = torch.tensor(
             outputs["hmm_outputs_len"], dtype=input_lens.dtype, device=input_lens.device
         )
+        outputs["alignments"] = torch.stack(outputs["alignments"], dim=0)
         return outputs
 
     @torch.inference_mode()
