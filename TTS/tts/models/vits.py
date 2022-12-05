@@ -1211,8 +1211,8 @@ class Vits(BaseTTS):
         assert self.num_speakers > 0, "num_speakers have to be larger than 0."
         # speaker embedding
         if self.args.use_speaker_embedding and not self.args.use_d_vector_file:
-            g_src = self.emb_g(speaker_cond_src).unsqueeze(-1)
-            g_tgt = self.emb_g(speaker_cond_tgt).unsqueeze(-1)
+            g_src = self.emb_g(torch.from_numpy((np.array(speaker_cond_src))).unsqueeze(0)).unsqueeze(-1)
+            g_tgt = self.emb_g(torch.from_numpy((np.array(speaker_cond_tgt))).unsqueeze(0)).unsqueeze(-1)
         elif not self.args.use_speaker_embedding and self.args.use_d_vector_file:
             g_src = F.normalize(speaker_cond_src).unsqueeze(-1)
             g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
