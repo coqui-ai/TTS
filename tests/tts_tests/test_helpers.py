@@ -1,13 +1,6 @@
 import torch as T
 
-from TTS.tts.utils.helpers import (
-    average_over_durations,
-    generate_path,
-    logsumexp,
-    rand_segments,
-    segment,
-    sequence_mask,
-)
+from TTS.tts.utils.helpers import average_over_durations, generate_path, rand_segments, segment, sequence_mask
 
 
 def average_over_durations_test():  # pylint: disable=no-self-use
@@ -93,16 +86,3 @@ def generate_path_test():
             assert all(path[b, t, :current_idx] == 0.0)
             assert all(path[b, t, current_idx + durations[b, t].item() :] == 0.0)
             current_idx += durations[b, t].item()
-
-def logsumexp_test():
-    a = T.randn(10) # random numbers
-    assert T.eq(T.logsumexp(a, dim=0), logsumexp(a, dim=0)).all()
-    
-    a = T.zeros(10) # all zeros
-    assert T.eq(T.logsumexp(a, dim=0), logsumexp(a, dim=0)).all()
-    
-    a = T.ones(10) # all ones
-    assert T.eq(T.logsumexp(a, dim=0), logsumexp(a, dim=0)).all()
-    
-    
-    

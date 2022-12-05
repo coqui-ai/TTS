@@ -3,6 +3,7 @@ import unittest
 import torch
 
 from TTS.tts.configs.overflow_config import OverFlowConfig
+from TTS.tts.layers.neural_hmm.common_layers import OverFlowUtils
 from TTS.tts.models.overflow import OverFlow
 from TTS.utils.audio import AudioProcessor
 
@@ -39,3 +40,15 @@ class TestOverFlow(unittest.TestCase):
         input_dummy, input_lengths, mel_spec, mel_lengths = self._create_inputs()
         output_dict = model.inference(input_dummy)
         self.assertEqual(output_dict["model_outputs"].shape[2], config_global.out_channels)
+
+
+class TestOverFlowUtils(unittest.TestCase):
+    def logsumexp_test(self):
+        a = torch.randn(10)  # random numbers
+        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverFlowUtils.logsumexp(a, dim=0)).all())
+
+        a = torch.zeros(10)  # all zeros
+        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverFlowUtils.logsumexp(a, dim=0)).all())
+
+        a = torch.ones(10)  # all ones
+        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverFlowUtils.logsumexp(a, dim=0)).all())
