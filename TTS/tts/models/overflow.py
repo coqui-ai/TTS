@@ -354,8 +354,8 @@ class Overflow(BaseTTS):
     def test_log(
         self, outputs: dict, logger: "Logger", assets: dict, steps: int  # pylint: disable=unused-argument
     ) -> None:
-        logger.test_audios(steps, outputs["audios"], self.ap.sample_rate)
-        logger.test_figures(steps, outputs["figures"])
+        logger.test_audios(steps, outputs[1], self.ap.sample_rate)
+        logger.test_figures(steps, outputs[0])
 
 
 class NLLLoss(nn.Module):
