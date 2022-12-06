@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-from TTS.tts.layers.overflow.common_layers import Outputnet, OverFlowUtils
+from TTS.tts.layers.overflow.common_layers import Outputnet, OverflowUtils
 from TTS.tts.layers.tacotron.common_layers import Prenet
 from TTS.tts.utils.helpers import sequence_mask
 
@@ -283,7 +283,7 @@ class NeuralHMM(nn.Module):
 
         last_transition_vector = torch.gather(transition_vector, 1, last_log_alpha_scaled_index).squeeze(1)
         last_transition_probability = torch.sigmoid(last_transition_vector)
-        log_probability_of_transitioning = OverFlowUtils.log_clamped(last_transition_probability)
+        log_probability_of_transitioning = OverflowUtils.log_clamped(last_transition_probability)
 
         last_transition_probability_index = self.get_mask_for_last_item(inputs_len, inputs_len.device)
         log_probability_of_transitioning = log_probability_of_transitioning.masked_fill(
@@ -488,15 +488,15 @@ class TransitionModel(nn.Module):
         transition_p = torch.sigmoid(transition_vector)
         staying_p = torch.sigmoid(-transition_vector)
 
-        log_staying_probability = OverFlowUtils.log_clamped(staying_p)
-        log_transition_probability = OverFlowUtils.log_clamped(transition_p)
+        log_staying_probability = OverflowUtils.log_clamped(staying_p)
+        log_transition_probability = OverflowUtils.log_clamped(transition_p)
 
         staying = log_alpha_scaled + log_staying_probability
         leaving = log_alpha_scaled + log_transition_probability
         leaving = leaving.roll(1, dims=1)
         leaving[:, 0] = -float("inf")
         inputs_len_mask = sequence_mask(inputs_len)
-        out = OverFlowUtils.logsumexp(torch.stack((staying, leaving), dim=2), dim=2)
+        out = OverflowUtils.logsumexp(torch.stack((staying, leaving), dim=2), dim=2)
         out = out.masked_fill(~inputs_len_mask, -float("inf"))  # There are no states to contribute to the loss
         return out
 
