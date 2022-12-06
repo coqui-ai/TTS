@@ -128,8 +128,8 @@ class ParameterModel(nn.Module):
     def flat_start_output_layer(self, mean, std, transition_p):
         self.last_layer.weight.data.zero_()
         self.last_layer.bias.data[0 : self.frame_channels] = mean
-        self.last_layer.bias.data[self.frame_channels : 2 * self.frame_channels] = OverFlowUtils.inverse_softplus(std)
-        self.last_layer.bias.data[2 * self.frame_channels :] = OverFlowUtils.inverse_sigmod(transition_p)
+        self.last_layer.bias.data[self.frame_channels : 2 * self.frame_channels] = OverflowUtils.inverse_softplus(std)
+        self.last_layer.bias.data[2 * self.frame_channels :] = OverflowUtils.inverse_sigmod(transition_p)
 
     def forward(self, x):
         for layer in self.layers:
@@ -220,7 +220,7 @@ class Outputnet(nn.Module):
         return std
 
 
-class OverFlowUtils:
+class OverflowUtils:
     @staticmethod
     def get_data_parameters_for_flat_start(
         data_loader: torch.utils.data.DataLoader, out_channels: int, states_per_phone: int
@@ -287,7 +287,7 @@ class OverFlowUtils:
         """
         if not torch.is_tensor(x):
             x = torch.tensor(x)
-        return OverFlowUtils.log_clamped(x / (1.0 - x))
+        return OverflowUtils.log_clamped(x / (1.0 - x))
 
     @staticmethod
     def inverse_softplus(x):
@@ -296,7 +296,7 @@ class OverFlowUtils:
         """
         if not torch.is_tensor(x):
             x = torch.tensor(x)
-        return OverFlowUtils.log_clamped(torch.exp(x) - 1.0)
+        return OverflowUtils.log_clamped(torch.exp(x) - 1.0)
 
     @staticmethod
     def logsumexp(x, dim):

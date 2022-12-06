@@ -1,9 +1,11 @@
+import os
 import unittest
 
 import torch
 
-from TTS.tts.configs.overflow_config import OverFlowConfig
-from TTS.tts.layers.overflow.common_layers import OverFlowUtils
+from tests import get_tests_output_path
+from TTS.tts.configs.overflow_config import OverflowConfig
+from TTS.tts.layers.overflow.common_layers import OverflowUtils
 from TTS.tts.models.overflow import Overflow
 from TTS.utils.audio import AudioProcessor
 
@@ -13,8 +15,11 @@ torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-config_global = OverFlowConfig(num_chars=24)
+config_global = OverflowConfig(num_chars=24)
 ap = AudioProcessor.init_from_config(config_global)
+
+config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
+output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
 class TestOverFlow(unittest.TestCase):
@@ -45,10 +50,10 @@ class TestOverFlow(unittest.TestCase):
 class TestOverFlowUtils(unittest.TestCase):
     def logsumexp_test(self):
         a = torch.randn(10)  # random numbers
-        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverFlowUtils.logsumexp(a, dim=0)).all())
+        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverflowUtils.logsumexp(a, dim=0)).all())
 
         a = torch.zeros(10)  # all zeros
-        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverFlowUtils.logsumexp(a, dim=0)).all())
+        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverflowUtils.logsumexp(a, dim=0)).all())
 
         a = torch.ones(10)  # all ones
-        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverFlowUtils.logsumexp(a, dim=0)).all())
+        self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverflowUtils.logsumexp(a, dim=0)).all())

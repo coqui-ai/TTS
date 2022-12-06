@@ -6,7 +6,7 @@ import torch.nn as nn
 from coqpit import Coqpit
 from trainer.logging.tensorboard_logger import TensorboardLogger
 
-from TTS.tts.layers.overflow.common_layers import Encoder, OverFlowUtils
+from TTS.tts.layers.overflow.common_layers import Encoder, OverflowUtils
 from TTS.tts.layers.overflow.decoder import Decoder
 from TTS.tts.layers.overflow.neural_hmm import NeuralHMM
 from TTS.tts.layers.overflow.plotting_utils import (
@@ -263,7 +263,7 @@ class Overflow(BaseTTS):
             print(
                 f" | > Data parameters not found for: {trainer.config.mel_statistics_parameter_path}. Computing mel normalization parameters..."
             )
-            data_mean, data_std, init_transition_prob = OverFlowUtils.get_data_parameters_for_flat_start(
+            data_mean, data_std, init_transition_prob = OverflowUtils.get_data_parameters_for_flat_start(
                 dataloader, trainer.config.out_channels, trainer.config.state_per_phone
             )
             print(
@@ -289,7 +289,7 @@ class Overflow(BaseTTS):
             print(f" | > Data parameters loaded with value: {data_mean, data_std, init_transition_prob}")
 
         trainer.config.flat_start_params["transition_p"] = init_transition_prob
-        OverFlowUtils.update_flat_start_transition(trainer.model, init_transition_prob)
+        OverflowUtils.update_flat_start_transition(trainer.model, init_transition_prob)
         trainer.model.update_mean_std(statistics)
 
     def _create_logs(self, batch, outputs, ap):  # pylint: disable=no-self-use, unused-argument
