@@ -44,7 +44,7 @@ def get_spec_from_most_probable_state(log_alpha_scaled, means, decoder):
     max_len = means.shape[0]
     n_mel_channels = means.shape[2]
     max_state_numbers = max_state_numbers.unsqueeze(1).unsqueeze(1).expand(max_len, 1, n_mel_channels)
-    means = torch.gather(means, 1, max_state_numbers).squeeze(1)
+    means = torch.gather(means, 1, max_state_numbers).squeeze(1).to(log_alpha_scaled.dtype)
     mel = (
         decoder(means.T.unsqueeze(0), torch.tensor([means.shape[0]], device=means.device), reverse=True)[0].squeeze(0).T
     )
