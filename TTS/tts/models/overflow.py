@@ -221,6 +221,7 @@ class Overflow(BaseTTS):
         )
         mels = self.inverse_normalize(mels.transpose(1, 2))
         outputs.update({"model_outputs": mels, "model_outputs_len": mel_outputs_len})
+        outputs["alignments"] = OverflowUtils.double_pad(outputs["alignments"])
         return outputs
 
     @staticmethod
@@ -292,6 +293,7 @@ class Overflow(BaseTTS):
         OverflowUtils.update_flat_start_transition(trainer.model, init_transition_prob)
         trainer.model.update_mean_std(statistics)
 
+    @torch.inference_mode()
     def _create_logs(self, batch, outputs, ap):  # pylint: disable=no-self-use, unused-argument
         alignments, transition_vectors = outputs["alignments"], outputs["transition_vectors"]
         means = torch.stack(outputs["means"], dim=1)
@@ -308,9 +310,10 @@ class Overflow(BaseTTS):
             "mel_target": plot_spectrogram(batch["mel_input"][0], fig_size=(12, 3)),
         }
 
-        # sample one item from the batch
+        # sample one item from the batch -1 will give the smalles item
+        print(" | > Synthesising audio from the model...")
         inference_output = self.inference(
-            batch["text_input"][0].unsqueeze(0), aux_input={"x_lenghts": batch["text_lengths"][0].unsqueeze(0)}
+            batch["text_input"][-1].unsqueeze(0), aux_input={"x_lenghts": batch["text_lengths"][-1].unsqueeze(0)}
         )
         figures["synthesised"] = plot_spectrogram(inference_output["model_outputs"][0], fig_size=(12, 3))
 
@@ -339,7 +342,6 @@ class Overflow(BaseTTS):
         self, batch: Dict, outputs: Dict, logger: "Logger", assets: Dict, steps: int
     ):  # pylint: disable=unused-argument
         """Compute and log evaluation metrics."""
-
         # Plot model parameters histograms
         if isinstance(logger, TensorboardLogger):
             # I don't know if any other loggers supports this

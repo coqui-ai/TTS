@@ -312,3 +312,13 @@ class OverflowUtils:
         mask = m == -float("inf")
         s = (x - m.masked_fill_(mask, 0).unsqueeze(dim=dim)).exp().sum(dim=dim)
         return s.masked_fill_(mask, 1).log() + m.masked_fill_(mask, -float("inf"))
+
+    @staticmethod
+    def double_pad(list_of_different_shape_tensors):
+        r"""
+        Pads the list of tensors in 2 dimensions
+        """
+        second_dim_lens = [len(a) for a in [i[0] for i in list_of_different_shape_tensors]]
+        second_dim_max = max(second_dim_lens)
+        padded_x = [F.pad(x, (0, second_dim_max - len(x[0]))) for x in list_of_different_shape_tensors]
+        return nn.utils.rnn.pad_sequence(padded_x, batch_first=True)
