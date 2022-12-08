@@ -48,7 +48,8 @@ class TTS:
             return None
         return self.synthesizer.tts_model.language_manager.language_names
 
-    def get_models_file_path(self):
+    @staticmethod
+    def get_models_file_path():
         return Path(__file__).parent / ".models.json"
 
     def download_model_by_name(self, model_name: str):
@@ -74,7 +75,7 @@ class TTS:
             use_cuda=gpu,
         )
 
-    def _check_arguments(self, text: str, speaker: str = None, language: str = None):
+    def _check_arguments(self, speaker: str = None, language: str = None):
         if self.is_multi_speaker and speaker is None:
             raise ValueError("Model is multi-speaker but no speaker is provided.")
         if self.is_multi_lingual and language is None:
@@ -97,7 +98,7 @@ class TTS:
                 Language code for multi-lingual models. You can check whether loaded model is multi-lingual
                 `tts.is_multi_lingual` and list available languages by `tts.languages`. Defaults to None.
         """
-        self._check_arguments(text=text, speaker=speaker, language=language)
+        self._check_arguments(speaker=speaker, language=language)
 
         wav = self.synthesizer.tts(
             text=text,
