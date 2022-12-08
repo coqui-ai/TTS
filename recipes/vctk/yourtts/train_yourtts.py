@@ -1,13 +1,22 @@
-import torch
 import os
+
+import torch
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseDatasetConfig
-from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.vits import VitsArgs, VitsAudioConfig, Vits
 from TTS.tts.configs.vits_config import VitsConfig
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.models.vits import Vits, VitsArgs, VitsAudioConfig
 
 torch.set_num_threads(24)
+
+# pylint: disable=W0105
+"""
+    This recipe replicates the first experiment proposed in the YourTTS paper (https://arxiv.org/abs/2112.02418).
+    YourTTS model is based on the VITS model however it uses external speaker embeddings extracted from a pre-trained speaker encoder and has small architecture changes.
+    In addition, YourTTS can be trained in multilingual data, however, this recipe replicates the single language training using the VCTK dataset.
+    The VitsArgs instance has commented parameters used to enable the multilingual training.
+"""
 
 # Name of the run for the Trainer
 RUN_NAME = "YourTTS-EN-VCTK"
