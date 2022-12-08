@@ -16,8 +16,8 @@ parameter_path = os.path.join(get_tests_output_path(), "lj_parameters.pt")
 torch.save({"mean": -5.5138, "std": 2.0636, "init_transition_prob": 0.3212}, parameter_path)
 
 config = OverflowConfig(
-    batch_size=8,
-    eval_batch_size=8,
+    batch_size=3,
+    eval_batch_size=3,
     num_loader_workers=0,
     num_eval_loader_workers=0,
     text_cleaner="phoneme_cleaners",

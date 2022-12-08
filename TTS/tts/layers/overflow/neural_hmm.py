@@ -151,6 +151,7 @@ class NeuralHMM(nn.Module):
             log_c (torch.FloatTensor): (batch, T)
         Returns:
             log_c (torch.FloatTensor) : scaled probabilities (batch, T)
+            log_alpha_scaled (torch.FloatTensor): forward probabilities (batch, T, N)
         """
         mask_log_c = sequence_mask(mel_lens)
         log_c = log_c * mask_log_c
@@ -175,10 +176,11 @@ class NeuralHMM(nn.Module):
         Args:
             t (int): mel-spec timestep
             ar_inputs (torch.FloatTensor): go-token appended mel-spectrograms
+                - shape: (b, D_out, T_out)
             h_post_prenet (torch.FloatTensor): previous timestep rnn hidden state
+                - shape: (b, memory_rnn_dim)
             c_post_prenet (torch.FloatTensor): previous timestep rnn cell state
-            data_dropout_flag (bool): data dropout flag
-            prenet_dropout_flag (bool): data dropout flag
+                - shape: (b, memory_rnn_dim)
 
         Returns:
             h_post_prenet (torch.FloatTensor): rnn hidden state of the current timestep
@@ -364,7 +366,6 @@ class NeuralHMM(nn.Module):
         outputs["hmm_outputs_len"] = torch.tensor(
             outputs["hmm_outputs_len"], dtype=input_lens.dtype, device=input_lens.device
         )
-        outputs["alignments"] = torch.stack(outputs["alignments"], dim=0)
         return outputs
 
     @torch.inference_mode()
