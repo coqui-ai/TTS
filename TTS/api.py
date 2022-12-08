@@ -111,7 +111,7 @@ class TTS:
         )
         return wav
 
-    def tts_to_file(self, text: str, speaker: str = None, language: str = None, output_file_path: str = "output.wav"):
+    def tts_to_file(self, text: str, speaker: str = None, language: str = None, file_path: str = "output.wav"):
         """Convert text to speech.
 
         Args:
@@ -123,54 +123,8 @@ class TTS:
             language (str, optional):
                 Language code for multi-lingual models. You can check whether loaded model is multi-lingual
                 `tts.is_multi_lingual` and list available languages by `tts.languages`. Defaults to None.
-            output_file_path (str, optional):
+            file_path (str, optional):
                 Output file path. Defaults to "output.wav".
         """
         wav = self.tts(text=text, speaker=speaker, language=language)
-        self.synthesizer.save_wav(wav=wav, path=output_file_path)
-
-
-if __name__ == "__main__":
-    tts = TTS()
-    print(tts.models[0])
-
-    # VITS
-    # tts.load_model_by_name(tts.models[0])
-    # print(tts.is_multi_speaker)
-    # print(tts.is_multi_lingual)
-    # print(tts.speakers)
-    # print(tts.languages)
-
-    # wav = tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0])
-
-    # tts.load_model_by_name(tts.models[1])
-    # print(tts.is_multi_speaker)
-    # print(tts.is_multi_lingual)
-    # print(tts.speakers)
-    # print(tts.languages)
-
-    # # should raise an error
-    # raised_error = False
-    # try:
-    #     wav = tts.tts_to_file(text="Hello world!", speaker="place_holder", language="place_holder")
-    # except ValueError:
-    #     raised_error = True
-    # assert raised_error
-
-    # wav = tts.tts_to_file(text="Hello world!")
-
-    tts.load_model_by_name("tts_models/de/thorsten/tacotron2-DDC")
-    print(tts.is_multi_speaker)
-    print(tts.is_multi_lingual)
-    print(tts.speakers)
-    print(tts.languages)
-
-    # should raise an error
-    raised_error = False
-    try:
-        wav = tts.tts_to_file(text="Hello world!", speaker="place_holder", language="place_holder")
-    except ValueError:
-        raised_error = True
-    assert raised_error
-
-    wav = tts.tts_to_file(text="Ich heiße David und ich bin ein deutscher Sprecher.")
+        self.synthesizer.save_wav(wav=wav, path=file_path)
