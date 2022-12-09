@@ -10,6 +10,16 @@ class TTS:
     def __init__(self, model_name: str = None, progress_bar: bool = True, gpu=False):
         """🐸TTS python interface that allows to load and use the released models.
 
+        Example with a multi-speaker model:
+            >>> from TTS.api import TTS
+            >>> tts = TTS(TTS.list_models()[0])
+            >>> wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
+            >>> tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path="output.wav")
+
+        Example with a single-speaker model:
+            >>> tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
+            >>> tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path="output.wav")
+
         Args:
             model_name (str, optional): Model name to load. You can list models by ```tts.models```. Defaults to None.
             progress_bar (bool, optional): Whether to pring a progress bar while downloading a model. Defaults to True.
@@ -51,6 +61,11 @@ class TTS:
     @staticmethod
     def get_models_file_path():
         return Path(__file__).parent / ".models.json"
+
+    @staticmethod
+    def list_models():
+        manager = ModelManager(models_file=TTS.get_models_file_path(), progress_bar=progress_bar, verbose=False)
+        return manager.list_tts_models()
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
