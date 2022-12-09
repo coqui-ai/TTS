@@ -3,10 +3,13 @@ import os
 import torch
 from trainer import Trainer, TrainerArgs
 
+from TTS.bin.compute_embeddings import compute_embeddings
+from TTS.bin.resample import resample_files
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits, VitsArgs, VitsAudioConfig
+from TTS.utils.downloaders import download_vctk
 
 torch.set_num_threads(24)
 
@@ -15,8 +18,10 @@ torch.set_num_threads(24)
     This recipe replicates the first experiment proposed in the YourTTS paper (https://arxiv.org/abs/2112.02418).
     YourTTS model is based on the VITS model however it uses external speaker embeddings extracted from a pre-trained speaker encoder and has small architecture changes.
     In addition, YourTTS can be trained in multilingual data, however, this recipe replicates the single language training using the VCTK dataset.
-    The VitsArgs instance has commented parameters used to enable the multilingual training.
+    If you are interested in multilingual training, we have commented on parameters on the VitsArgs class instance that should be enabled for multilingual training.
+    In addition, you will need to add the extra datasets following the VCTK as an example.
 """
+CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Name of the run for the Trainer
 RUN_NAME = "YourTTS-EN-VCTK"
@@ -25,7 +30,7 @@ RUN_NAME = "YourTTS-EN-VCTK"
 OUT_PATH = os.path.dirname(os.path.abspath(__file__))  # "/raid/coqui/Checkpoints/original-YourTTS/"
 
 # If you want to do transfer learning and speedup your training you can set here the path to the original YourTTS model
-RESTORE_PATH = None  # "/raid/coqui/Checkpoints/YourTTS/checkpoint.pth"
+RESTORE_PATH = None  # "/root/.local/share/tts/tts_models--multilingual--multi-dataset--your_tts/model_file.pth"
 
 # This paramter is usefull to debug, it skips the training epochs and just do the evaluation  and produce the test sentences
 SKIP_TRAIN_EPOCH = False
@@ -33,24 +38,61 @@ SKIP_TRAIN_EPOCH = False
 # Set here the batch size to be used in training and evaluation
 BATCH_SIZE = 32
 
-# To get the speakers.json or speakers.pth you need to follow the steps described at: https://github.com/Edresson/YourTTS#reproducibility
-# or you can check the extract embedding script guidelines here: https://github.com/coqui-ai/TTS/blob/dev/TTS/bin/compute_embeddings.py#L20
-D_VECTOR_FILES = [
-    "/raid/datasets/VCTK/speakers.json",
-]
+# Training Sampling rate and the target sampling rate for resampling the downloaded dataset (Note: If you change this you might need to redownload the dataset !!)
+# Note: If you add new datasets, please make sure that the dataset sampling rate and this parameter are matching, otherwise resample your audios
+SAMPLE_RATE = 16000
 
-# Change our dataset paths to the VCTK dataset or replace it for others
+### Download VCTK dataset
+VCTK_DOWNLOAD_PATH = os.path.join(CURRENT_PATH, "VCTK")
+# Define the number of threads used during the audio resampling
+NUM_RESAMPLE_THREADS = 10
+# Check if VCTK dataset is not already downloaded, if not download it
+if not os.path.exists(VCTK_DOWNLOAD_PATH):
+    print(">>> Downloading VCTK dataset:")
+    download_vctk(VCTK_DOWNLOAD_PATH)
+    resample_files(VCTK_DOWNLOAD_PATH, SAMPLE_RATE, file_ext="flac", n_jobs=NUM_RESAMPLE_THREADS)
+
 # init configs
 vctk_config = BaseDatasetConfig(
-    formatter="vctk", dataset_name="vctk", meta_file_train="metadata.csv", path="/raid/datasets/VCTK/", language="en"
+    formatter="vctk", dataset_name="vctk", meta_file_train="", path=VCTK_DOWNLOAD_PATH, language="en"
 )
 
-# add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK
-datasets_list = [vctk_config]
+# Add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK. Note: If you want to added new datasets just added they here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
+DATASETS_CONFIG_LIST = [vctk_config]
 
-# Audio config used in training. Please: Check if your dataset sampling rate and the parameter sample_rate here are matching, otherwise resample your audios
+### Extract speaker embeddings
+SPEAKER_ENCODER_CHECKPOINT_PATH = (
+    "https://github.com/coqui-ai/TTS/releases/download/speaker_encoder_model/model_se.pth.tar"
+)
+SPEAKER_ENCODER_CONFIG_PATH = "https://github.com/coqui-ai/TTS/releases/download/speaker_encoder_model/config_se.json"
+
+D_VECTOR_FILES = []  # List of speaker embeddings/d-vectors to be used during the training
+
+# Iterates all the dataset configs checking if the speakers embeddings are already computated, if not compute it
+for dataset_conf in DATASETS_CONFIG_LIST:
+    # Check if the embeddings weren't already computed, if not compute it
+    embeddings_file = os.path.join(dataset_conf.path, "speakers.pth")
+    if not os.path.isfile(embeddings_file):
+        print(f">>> Computing the speaker embeddings for the {dataset_conf.dataset_name} dataset")
+        compute_embeddings(
+            SPEAKER_ENCODER_CHECKPOINT_PATH,
+            SPEAKER_ENCODER_CONFIG_PATH,
+            embeddings_file,
+            old_spakers_file=None,
+            config_dataset_path=None,
+            formatter_name=dataset_conf.formatter,
+            dataset_name=dataset_conf.dataset_name,
+            dataset_path=dataset_conf.path,
+            meta_file_train=dataset_conf.meta_file_train,
+            disable_cuda=False,
+            no_eval=False,
+        )
+    D_VECTOR_FILES.append(embeddings_file)
+
+
+# Audio config used in training.
 audio_config = VitsAudioConfig(
-    sample_rate=22050,
+    sample_rate=SAMPLE_RATE,
     hop_length=256,
     win_length=1024,
     fft_size=1024,
@@ -65,7 +107,12 @@ model_args = VitsArgs(
     use_d_vector_file=True,
     d_vector_dim=512,
     num_layers_text_encoder=10,
-    # usefull parameters to the enable multilingual training
+    resblock_type_decoder="2",  # On the paper, we accidentally trained the YourTTS using ResNet blocks type 2, if you like you can use the ResNet blocks type 1 like the VITS model
+    # Usefull parameters to enable the Speaker Consistency Loss (SCL) discribed in the paper
+    # use_speaker_encoder_as_loss=True,
+    # speaker_encoder_model_path=SPEAKER_ENCODER_CHECKPOINT_PATH,
+    # speaker_encoder_config_path=SPEAKER_ENCODER_CONFIG_PATH,
+    # Usefull parameters to the enable multilingual training
     # use_language_embedding=True,
     # embedded_language_dim=4,
 )
@@ -104,7 +151,7 @@ config = VitsConfig(
     phoneme_cache_path=None,
     precompute_num_workers=12,
     start_by_longest=True,
-    datasets=datasets_list,
+    datasets=DATASETS_CONFIG_LIST,
     cudnn_benchmark=False,
     max_audio_len=220500,  # it should be: sampling rate * max audio in sec. So it is 22050 * 10 = 220500
     mixed_precision=False,
@@ -144,6 +191,8 @@ config = VitsConfig(
     use_weighted_sampler=True,
     # Ensures that all speakers are seen in the training batch equally no matter how many samples each speaker has
     weighted_sampler_attrs={"speaker_name": 1.0},
+    # It defines the Speaker Consistency Loss (SCL) α to 9 like the paper
+    speaker_encoder_loss_alpha=9.0,
 )
 
 # Load all the datasets samples and split traning and evaluation sets
