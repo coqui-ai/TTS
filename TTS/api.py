@@ -64,7 +64,7 @@ class TTS:
 
     @staticmethod
     def list_models():
-        manager = ModelManager(models_file=TTS.get_models_file_path(), progress_bar=progress_bar, verbose=False)
+        manager = ModelManager(models_file=TTS.get_models_file_path(), progress_bar=False, verbose=False)
         return manager.list_tts_models()
 
     def download_model_by_name(self, model_name: str):
