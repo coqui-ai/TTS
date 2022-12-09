@@ -31,11 +31,13 @@ jobs:
           cache-dependency-path: 'requirements*'
       - name: check OS
         run: cat /etc/os-release
+      - name: set ENV
+        run: export TRAINER_TELEMETRY = 0
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends git make gcc
-          sudo apt-get install espeak==1.48.04+dfsg-8build1
+          sudo apt-get install espeak=1.48.04+dfsg-8build1
           sudo apt-get install espeak-ng
           make system-deps
       - name: Install/upgrade Python setup deps
