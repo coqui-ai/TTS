@@ -16,7 +16,6 @@ from TTS.tts.utils.helpers import average_over_durations, generate_path, maximum
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_avg_energy, plot_spectrogram
-from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_spectrogram
 from TTS.utils.io import load_fsspec
 
 
