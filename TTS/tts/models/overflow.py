@@ -2,8 +2,8 @@ import os
 from typing import Dict, List, Union
 
 import torch
-import torch.nn as nn
 from coqpit import Coqpit
+from torch import nn
 from trainer.logging.tensorboard_logger import TensorboardLogger
 
 from TTS.tts.layers.overflow.common_layers import Encoder, OverflowUtils
