@@ -329,8 +329,7 @@ class NeuralHMM(nn.Module):
         max_sampling_time: int,
         duration_threshold: float,
     ):
-        """Sampling from autoregressive neural HMM
-        TODO: Add support for batched inference
+        """Inference from autoregressive neural HMM
 
         Args:
             inputs (torch.FloatTensor): input states
@@ -379,6 +378,7 @@ class NeuralHMM(nn.Module):
                 - shape: :math:`(1)`
             sampling_temp (float): sampling temperature
             max_sampling_time (int): max sampling time
+            duration_threshold (float): duration threshold to switch to next state
 
         Returns:
             outputs (torch.FloatTensor): Output Observations

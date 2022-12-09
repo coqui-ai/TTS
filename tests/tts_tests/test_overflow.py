@@ -7,9 +7,9 @@ import torch
 
 from tests import get_tests_output_path
 from TTS.tts.configs.overflow_config import OverflowConfig
-from TTS.tts.layers.overflow.common_layers import Encoder, OverflowUtils
+from TTS.tts.layers.overflow.common_layers import Encoder, Outputnet, OverflowUtils
 from TTS.tts.layers.overflow.decoder import Decoder
-from TTS.tts.layers.overflow.neural_hmm import NeuralHMM
+from TTS.tts.layers.overflow.neural_hmm import EmissionModel, NeuralHMM, TransitionModel
 from TTS.tts.models.overflow import Overflow
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.utils.audio import AudioProcessor
@@ -71,7 +71,7 @@ def reset_all_weights(model):
     model.apply(fn=weight_reset)
 
 
-class TestOverFlow(unittest.TestCase):
+class TestOverflow(unittest.TestCase):
     def test_forward(self):
         model = get_model()
         input_dummy, input_lengths, mel_spec, mel_lengths = _create_inputs()
@@ -93,7 +93,7 @@ class TestOverFlow(unittest.TestCase):
         self.assertEqual(model.prenet_dim, config.prenet_dim)
 
 
-class TestOverFlowPrenet(unittest.TestCase):
+class TestOverflowEncoder(unittest.TestCase):
     @staticmethod
     def get_encoder(state_per_phone):
         config = deepcopy(config_global)
@@ -118,7 +118,7 @@ class TestOverFlowPrenet(unittest.TestCase):
             self.assertEqual(x.shape[1], input_dummy.shape[1] * s_p_p)
 
 
-class TestOverFlowUtils(unittest.TestCase):
+class TestOverflowUtils(unittest.TestCase):
     def test_logsumexp(self):
         a = torch.randn(10)  # random numbers
         self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverflowUtils.logsumexp(a, dim=0)).all())
@@ -130,7 +130,7 @@ class TestOverFlowUtils(unittest.TestCase):
         self.assertTrue(torch.eq(torch.logsumexp(a, dim=0), OverflowUtils.logsumexp(a, dim=0)).all())
 
 
-class TestOverFlowDecoder(unittest.TestCase):
+class TestOverflowDecoder(unittest.TestCase):
     @staticmethod
     def _get_decoder(num_flow_blocks_dec=None, hidden_channels_dec=None, reset_weights=True):
         config = deepcopy(config_global)
@@ -166,12 +166,10 @@ class TestOverFlowDecoder(unittest.TestCase):
                 z, z_len, _ = decoder(mel_spec.transpose(1, 2), mel_lengths)
                 mel_spec_, mel_lengths_, _ = decoder(z, z_len, reverse=True)
                 mask = sequence_mask(z_len).unsqueeze(1)
-                print(mel_spec.shape, mask.shape)
                 mel_spec = mel_spec[:, : z.shape[2], :].transpose(1, 2) * mask
                 z = z * mask
-                print(mel_spec[0], mel_spec_[0])
                 self.assertTrue(
-                    torch.isclose(mel_spec, mel_spec_, atol=1e-3).all(),
+                    torch.isclose(mel_spec, mel_spec_, atol=1e-2).all(),
                     f"num_flow_blocks_dec={num_flow_blocks_dec}, hidden_channels_dec={hidden_channels_dec}",
                 )
 
@@ -196,6 +194,14 @@ class TestNeuralHMM(unittest.TestCase):
             config.std_floor,
         ).to(device)
         return neural_hmm
+
+    @staticmethod
+    def _get_emission_model():
+        return EmissionModel().to(device)
+
+    @staticmethod
+    def _get_transition_model():
+        return TransitionModel().to(device)
 
     @staticmethod
     def _get_embedded_input():
@@ -247,5 +253,147 @@ class TestNeuralHMM(unittest.TestCase):
             c_post_prenet,
         )
 
-        assert h_post_prenet.shape == (input_dummy.shape[0], config_global.memory_rnn_dim)
-        assert c_post_prenet.shape == (input_dummy.shape[0], config_global.memory_rnn_dim)
+        self.assertEqual(h_post_prenet.shape, (input_dummy.shape[0], config_global.memory_rnn_dim))
+        self.assertEqual(c_post_prenet.shape, (input_dummy.shape[0], config_global.memory_rnn_dim))
+
+    def test_add_go_token(self):
+        model = self._get_neural_hmm()
+        input_dummy, input_lengths, mel_spec, mel_lengths = self._get_embedded_input()
+
+        out = model._add_go_token(mel_spec)  # pylint: disable=protected-access
+        self.assertEqual(out.shape, mel_spec.shape)
+        self.assertTrue((out[:, 1:] == mel_spec[:, :-1]).all(), "Go token not appended properly")
+
+    def test_forward_algorithm_variables(self):
+        model = self._get_neural_hmm()
+        input_dummy, input_lengths, mel_spec, mel_lengths = self._get_embedded_input()
+
+        (
+            log_c,
+            log_alpha_scaled,
+            transition_matrix,
+            _,
+        ) = model._initialize_forward_algorithm_variables(  # pylint: disable=protected-access
+            mel_spec, input_dummy.shape[1] * config_global.state_per_phone
+        )
+
+        self.assertEqual(log_c.shape, (mel_spec.shape[0], mel_spec.shape[1]))
+        self.assertEqual(
+            log_alpha_scaled.shape,
+            (
+                mel_spec.shape[0],
+                mel_spec.shape[1],
+                input_dummy.shape[1] * config_global.state_per_phone,
+            ),
+        )
+        self.assertEqual(
+            transition_matrix.shape,
+            (mel_spec.shape[0], mel_spec.shape[1], input_dummy.shape[1] * config_global.state_per_phone),
+        )
+
+    def test_get_absorption_state_scaling_factor(self):
+        model = self._get_neural_hmm()
+        input_dummy, input_lengths, mel_spec, mel_lengths = self._get_embedded_input()
+        input_lengths = input_lengths * config_global.state_per_phone
+        (
+            log_c,
+            log_alpha_scaled,
+            transition_matrix,
+            _,
+        ) = model._initialize_forward_algorithm_variables(  # pylint: disable=protected-access
+            mel_spec, input_dummy.shape[1] * config_global.state_per_phone
+        )
+        log_alpha_scaled = torch.rand_like(log_alpha_scaled).clamp(1e-3)
+        transition_matrix = torch.randn_like(transition_matrix).sigmoid().log()
+        sum_final_log_c = model.get_absorption_state_scaling_factor(
+            mel_lengths, log_alpha_scaled, input_lengths, transition_matrix
+        )
+
+        text_mask = ~sequence_mask(input_lengths)
+        transition_prob_mask = ~model.get_mask_for_last_item(input_lengths, device=input_lengths.device)
+
+        outputs = []
+
+        for i in range(input_dummy.shape[0]):
+            last_log_alpha_scaled = log_alpha_scaled[i, mel_lengths[i] - 1].masked_fill(text_mask[i], -float("inf"))
+            log_last_transition_probability = OverflowUtils.log_clamped(
+                torch.sigmoid(transition_matrix[i, mel_lengths[i] - 1])
+            ).masked_fill(transition_prob_mask[i], -float("inf"))
+            outputs.append(last_log_alpha_scaled + log_last_transition_probability)
+
+        sum_final_log_c_computed = torch.logsumexp(torch.stack(outputs), dim=1)
+
+        self.assertTrue(torch.isclose(sum_final_log_c_computed, sum_final_log_c).all())
+
+    def test_inference(self):
+        model = self._get_neural_hmm()
+        input_dummy, input_lengths, mel_spec, mel_lengths = self._get_embedded_input()
+        for temp in [0.334, 0.667, 1.0]:
+            outputs = model.inference(
+                input_dummy, input_lengths, temp, config_global.max_sampling_time, config_global.duration_threshold
+            )
+            self.assertEqual(outputs["hmm_outputs"].shape[-1], outputs["input_parameters"][0][0][0].shape[-1])
+            self.assertEqual(
+                outputs["output_parameters"][0][0][0].shape[-1], outputs["input_parameters"][0][0][0].shape[-1]
+            )
+            self.assertEqual(len(outputs["alignments"]), input_dummy.shape[0])
+
+    def test_emission_model(self):
+        model = self._get_emission_model()
+        input_dummy, input_lengths, mel_spec, mel_lengths = self._get_embedded_input()
+        x_t = torch.randn(input_dummy.shape[0], config_global.out_channels).to(device)
+        means = torch.randn(input_dummy.shape[0], input_dummy.shape[1], config_global.out_channels).to(device)
+        std = torch.rand_like(means).to(device).clamp_(1e-3)  # std should be positive
+        out = model(x_t, means, std, input_lengths)
+        self.assertEqual(out.shape, (input_dummy.shape[0], input_dummy.shape[1]))
+
+        # testing sampling
+        for temp in [0, 0.334, 0.667]:
+            out = model.sample(means, std, 0)
+            self.assertEqual(out.shape, means.shape)
+            if temp == 0:
+                self.assertTrue(torch.isclose(out, means).all())
+
+    def test_transition_model(self):
+        model = self._get_transition_model()
+        input_dummy, input_lengths, mel_spec, mel_lengths = self._get_embedded_input()
+        prev_t_log_scaled_alph = torch.randn(input_dummy.shape[0], input_lengths.max()).to(device)
+        transition_vector = torch.randn(input_lengths.max()).to(device)
+        out = model(prev_t_log_scaled_alph, transition_vector, input_lengths)
+        self.assertEqual(out.shape, (input_dummy.shape[0], input_lengths.max()))
+
+
+class TestOverflowOutputNet(unittest.TestCase):
+    @staticmethod
+    def _get_outputnet():
+        config = deepcopy(config_global)
+        outputnet = Outputnet(
+            config.encoder_in_out_features,
+            config.memory_rnn_dim,
+            config.out_channels,
+            config.outputnet_size,
+            config.flat_start_params,
+            config.std_floor,
+        ).to(device)
+        return outputnet
+
+    @staticmethod
+    def _get_embedded_input():
+        input_dummy, input_lengths, mel_spec, mel_lengths = _create_inputs()
+        input_dummy = torch.nn.Embedding(config_global.num_chars, config_global.encoder_in_out_features).to(device)(
+            input_dummy
+        )
+        one_timestep_frame = torch.randn(input_dummy.shape[0], config_global.memory_rnn_dim).to(device)
+        return input_dummy, one_timestep_frame
+
+    def test_outputnet_forward_with_flat_start(self):
+        model = self._get_outputnet()
+        input_dummy, one_timestep_frame = self._get_embedded_input()
+        mean, std, transition_vector = model(one_timestep_frame, input_dummy)
+        self.assertTrue(torch.isclose(mean, torch.tensor(model.flat_start_params["mean"] * 1.0)).all())
+        self.assertTrue(torch.isclose(std, torch.tensor(model.flat_start_params["std"] * 1.0)).all())
+        self.assertTrue(
+            torch.isclose(
+                transition_vector.sigmoid(), torch.tensor(model.flat_start_params["transition_p"] * 1.0)
+            ).all()
+        )
