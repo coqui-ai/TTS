@@ -3,14 +3,12 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.tts.configs.overflow_config import OverFlowConfig
+from TTS.tts.configs.overflow_config import OverflowConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.overflow import Overflow
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
-
-# from TTS.tts.datasets.tokenizer import Tokenizer
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -32,10 +30,10 @@ audio_config = BaseAudioConfig(
     preemphasis=0.0,
 )
 
-config = OverFlowConfig(  # This is the config that is saved for the future use
+config = OverflowConfig(  # This is the config that is saved for the future use
     run_name="overflow_ljspeech",
     audio=audio_config,
-    batch_size=32,
+    batch_size=30,
     eval_batch_size=16,
     num_loader_workers=4,
     num_eval_loader_workers=4,
@@ -54,7 +52,6 @@ config = OverFlowConfig(  # This is the config that is saved for the future use
     mixed_precision=True,
     output_path=output_path,
     datasets=[dataset_config],
-    # run_eval_steps=2
 )
 
 # INITIALIZE THE AUDIO PROCESSOR

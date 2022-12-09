@@ -2,8 +2,8 @@ from typing import List
 
 import torch
 import torch.distributions as tdist
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.checkpoint import checkpoint
 
 from TTS.tts.layers.overflow.common_layers import Outputnet, OverflowUtils

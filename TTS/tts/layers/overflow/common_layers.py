@@ -1,8 +1,8 @@
 from typing import List, Tuple
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from tqdm.auto import tqdm
 
 from TTS.tts.layers.tacotron.common_layers import Linear

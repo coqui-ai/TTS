@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+from torch import nn
 
 from TTS.tts.layers.glow_tts.decoder import Decoder as GlowDecoder
 from TTS.tts.utils.helpers import sequence_mask
