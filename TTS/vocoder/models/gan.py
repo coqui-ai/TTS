@@ -231,6 +231,7 @@ class GAN(BaseVocoder):
         config: Coqpit,
         checkpoint_path: str,
         eval: bool = False,  # pylint: disable=unused-argument, redefined-builtin
+        cache: bool = False,
     ) -> None:
         """Load a GAN checkpoint and initialize model parameters.
 
@@ -239,7 +240,7 @@ class GAN(BaseVocoder):
             checkpoint_path (str): Checkpoint file path.
             eval (bool, optional): If true, load the model for inference. If falseDefaults to False.
         """
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"), cache=cache)
         # band-aid for older than v0.0.15 GAN models
         if "model_disc" in state:
             self.model_g.load_checkpoint(config, checkpoint_path, eval)

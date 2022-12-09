@@ -1211,8 +1211,8 @@ class Vits(BaseTTS):
         assert self.num_speakers > 0, "num_speakers have to be larger than 0."
         # speaker embedding
         if self.args.use_speaker_embedding and not self.args.use_d_vector_file:
-            g_src = self.emb_g(speaker_cond_src).unsqueeze(-1)
-            g_tgt = self.emb_g(speaker_cond_tgt).unsqueeze(-1)
+            g_src = self.emb_g(torch.from_numpy((np.array(speaker_cond_src))).unsqueeze(0)).unsqueeze(-1)
+            g_tgt = self.emb_g(torch.from_numpy((np.array(speaker_cond_tgt))).unsqueeze(0)).unsqueeze(-1)
         elif not self.args.use_speaker_embedding and self.args.use_d_vector_file:
             g_src = F.normalize(speaker_cond_src).unsqueeze(-1)
             g_tgt = F.normalize(speaker_cond_tgt).unsqueeze(-1)
@@ -1671,8 +1671,8 @@ class Vits(BaseTTS):
         Returns:
             List: Schedulers, one for each optimizer.
         """
-        scheduler_G = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[0])
-        scheduler_D = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[1])
+        scheduler_D = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
+        scheduler_G = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
         return [scheduler_D, scheduler_G]
 
     def get_criterion(self):
@@ -1686,14 +1686,10 @@ class Vits(BaseTTS):
         return [VitsDiscriminatorLoss(self.config), VitsGeneratorLoss(self.config)]
 
     def load_checkpoint(
-        self,
-        config,
-        checkpoint_path,
-        eval=False,
-        strict=True,
+        self, config, checkpoint_path, eval=False, strict=True, cache=False
     ):  # pylint: disable=unused-argument, redefined-builtin
         """Load the model checkpoint and setup for training or inference"""
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
+        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"), cache=cache)
         # compat band-aid for the pre-trained models to not use the encoder baked into the model
         # TODO: consider baking the speaker encoder into the model and call it from there.
         # as it is probably easier for model distribution.

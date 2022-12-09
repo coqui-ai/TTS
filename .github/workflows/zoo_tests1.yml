@@ -1,4 +1,4 @@
-name: tts-tests
+name: zoo-tests-1
 
 on:
   push:
@@ -34,9 +34,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends git make gcc
-          sudo apt-get install espeak
-          sudo apt-get install espeak-ng
+          sudo apt-get install -y git make gcc
+          sudo apt-get install espeak espeak-ng
           make system-deps
       - name: Install/upgrade Python setup deps
         run: python3 -m pip install --upgrade pip setuptools wheel
@@ -48,4 +47,4 @@ jobs:
           python3 -m pip install .[all]
           python3 setup.py egg_info
       - name: Unit tests
-        run: make test_tts
+        run: nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests.test_models.test_models_offset_1_step_3

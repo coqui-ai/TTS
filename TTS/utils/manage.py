@@ -32,11 +32,14 @@ class ModelManager(object):
     home path.
 
     Args:
-        models_file (str): path to .model.json
+        models_file (str): path to .model.json file. Defaults to None.
+        output_prefix (str): prefix to `tts` to download models. Defaults to None
+        progress_bar (bool): print a progress bar when donwloading a file. Defaults to False.
     """
 
-    def __init__(self, models_file=None, output_prefix=None):
+    def __init__(self, models_file=None, output_prefix=None, progress_bar=False):
         super().__init__()
+        self.progress_bar = progress_bar
         if output_prefix is None:
             self.output_prefix = get_user_data_dir("tts")
         else:
@@ -236,7 +239,7 @@ class ModelManager(object):
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
             # download from github release
-            self._download_zip_file(model_item["github_rls_url"], output_path)
+            self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
             self.print_model_license(model_item=model_item)
         # find downloaded files
         output_model_path, output_config_path = self._find_files(output_path)
@@ -334,7 +337,7 @@ class ModelManager(object):
             config.save_json(config_path)
 
     @staticmethod
-    def _download_zip_file(file_url, output_folder):
+    def _download_zip_file(file_url, output_folder, progress_bar):
         """Download the github releases"""
         # download the file
         r = requests.get(file_url, stream=True)
@@ -342,11 +345,13 @@ class ModelManager(object):
         try:
             total_size_in_bytes = int(r.headers.get("content-length", 0))
             block_size = 1024  # 1 Kibibyte
-            progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+            if progress_bar:
+                progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
             temp_zip_name = os.path.join(output_folder, file_url.split("/")[-1])
             with open(temp_zip_name, "wb") as file:
                 for data in r.iter_content(block_size):
-                    progress_bar.update(len(data))
+                    if progress_bar:
+                        progress_bar.update(len(data))
                     file.write(data)
             with zipfile.ZipFile(temp_zip_name) as z:
                 z.extractall(output_folder)
