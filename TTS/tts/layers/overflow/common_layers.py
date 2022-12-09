@@ -176,7 +176,7 @@ class Outputnet(nn.Module):
 
         Args:
             ar_mel_inputs (torch.FloatTensor): shape (batch, prenet_dim)
-            states (torch.FloatTensor):  (hidden_states, hidden_state_dim)
+            states (torch.FloatTensor):  (batch, hidden_states, hidden_state_dim)
 
         Returns:
             means: means for the emission observation for each feature
