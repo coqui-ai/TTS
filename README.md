@@ -92,6 +92,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - FastSpeech: [paper](https://arxiv.org/abs/1905.09263)
 - SC-GlowTTS: [paper](https://arxiv.org/abs/2104.05557)
 - Capacitron: [paper](https://arxiv.org/abs/1906.03402)
+- OverFlow: [paper](https://arxiv.org/abs/2211.06892)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
