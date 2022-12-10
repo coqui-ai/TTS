@@ -22,6 +22,7 @@ def compute_embeddings(
     dataset_name=None,
     dataset_path=None,
     meta_file_train=None,
+    meta_file_val=None,
     disable_cuda=False,
     no_eval=False,
 ):
@@ -35,7 +36,10 @@ def compute_embeddings(
         c_dataset.formatter = formatter_name
         c_dataset.dataset_name = dataset_name
         c_dataset.path = dataset_path
-        c_dataset.meta_file_train = meta_file_train if meta_file_train else None
+        if meta_file_train is not None:
+            c_dataset.meta_file_train = meta_file_train
+        if meta_file_val is not None:
+            c_dataset.meta_file_val = meta_file_val
         meta_data_train, meta_data_eval = load_tts_samples(c_dataset, eval_split=not no_eval)
 
     if meta_data_eval is None:
@@ -92,7 +96,7 @@ if __name__ == "__main__":
         Example runs:
         python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --config_dataset_path dataset_config.json
 
-        python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --fomatter vctk --dataset_path /path/to/vctk/dataset --dataset_name my_vctk --metafile /path/to/vctk/metafile.csv
+        python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --formatter_name coqui --dataset_path /path/to/vctk/dataset --dataset_name my_vctk --meta_file_train /path/to/vctk/metafile_train.csv --meta_file_val /path/to/vctk/metafile_eval.csv
         """,
         formatter_class=RawTextHelpFormatter,
     )
@@ -139,9 +143,15 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "--metafile",
+        "--meta_file_train",
         type=str,
-        help="Path to the meta file. If not set, dataset formatter uses the default metafile if it is defined in the formatter. You either need to provide this or `config_dataset_path`",
+        help="Path to the train meta file. If not set, dataset formatter uses the default metafile if it is defined in the formatter. You either need to provide this or `config_dataset_path`",
+        default=None,
+    )
+    parser.add_argument(
+        "--meta_file_val",
+        type=str,
+        help="Path to the evaluation meta file. If not set, dataset formatter uses the default metafile if it is defined in the formatter. You either need to provide this or `config_dataset_path`",
         default=None,
     )
     args = parser.parse_args()
@@ -155,7 +165,8 @@ if __name__ == "__main__":
         formatter_name=args.formatter_name,
         dataset_name=args.dataset_name,
         dataset_path=args.dataset_path,
-        meta_file_train=args.metafile,
+        meta_file_train=args.meta_file_train,
+        meta_file_val=args.meta_file_val,
         disable_cuda=args.disable_cuda,
         no_eval=args.no_eval,
     )

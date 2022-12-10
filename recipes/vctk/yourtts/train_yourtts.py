@@ -42,6 +42,9 @@ BATCH_SIZE = 32
 # Note: If you add new datasets, please make sure that the dataset sampling rate and this parameter are matching, otherwise resample your audios
 SAMPLE_RATE = 16000
 
+# Max audio length in seconds to be used in training (every audio bigger than it will be ignored)
+MAX_AUDIO_LEN_IN_SECONDS = 10
+
 ### Download VCTK dataset
 VCTK_DOWNLOAD_PATH = os.path.join(CURRENT_PATH, "VCTK")
 # Define the number of threads used during the audio resampling
@@ -54,7 +57,7 @@ if not os.path.exists(VCTK_DOWNLOAD_PATH):
 
 # init configs
 vctk_config = BaseDatasetConfig(
-    formatter="vctk", dataset_name="vctk", meta_file_train="", path=VCTK_DOWNLOAD_PATH, language="en"
+    formatter="vctk", dataset_name="vctk", meta_file_train="", meta_file_val="", path=VCTK_DOWNLOAD_PATH, language="en"
 )
 
 # Add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK. Note: If you want to added new datasets just added they here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
@@ -84,6 +87,7 @@ for dataset_conf in DATASETS_CONFIG_LIST:
             dataset_name=dataset_conf.dataset_name,
             dataset_path=dataset_conf.path,
             meta_file_train=dataset_conf.meta_file_train,
+            meta_file_val=dataset_conf.meta_file_val,
             disable_cuda=False,
             no_eval=False,
         )
@@ -153,7 +157,7 @@ config = VitsConfig(
     start_by_longest=True,
     datasets=DATASETS_CONFIG_LIST,
     cudnn_benchmark=False,
-    max_audio_len=220500,  # it should be: sampling rate * max audio in sec. So it is 22050 * 10 = 220500
+    max_audio_len=SAMPLE_RATE * MAX_AUDIO_LEN_IN_SECONDS,
     mixed_precision=False,
     test_sentences=[
         [
