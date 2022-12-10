@@ -27,6 +27,22 @@ class NeuralHMM(nn.Module):
         approximation. We also describe how to combine ideas from classical and contemporary TTS for best results. The resulting
         example system is smaller and simpler than Tacotron 2, and learns to speak with fewer iterations and less data, whilst
         achieving comparable naturalness prior to the post-net. Our approach also allows easy control over speaking rate.
+
+    Args:
+        frame_channels (int): Output dimension to generate.
+        ar_order (int): Autoregressive order of the model. In ablations of Neural HMM it was found that more autoregression while giving more variation hurts naturalness of the synthesised audio.
+        deterministic_transition (bool): deterministic duration generation based on duration quantiles as defiend in "S. Ronanki, O. Watts, S. King, and G. E. Henter, “Medianbased generation of synthetic speech durations using a nonparametric approach,” in Proc. SLT, 2016.". Defaults to True.
+        encoder_dim (int): Channels of encoder input and character embedding tensors. Defaults to 512.
+        prenet_type (str): `original` or `bn`. `original` sets the default Prenet and `bn` uses Batch Normalization version of the Prenet.
+        prenet_dim (int): Dimension of the Prenet.
+        prenet_n_layers (int): Number of layers in the Prenet.
+        prenet_dropout (float): Dropout probability of the Prenet.
+        prenet_dropout_at_inference (bool): If True, dropout is applied at inference time.
+        memory_rnn_dim (int): Size of the memory RNN to process output of prenet.
+        outputnet_size (List[int]): Size of the output network inside the neural HMM.
+        flat_start_params (dict): Parameters for the flat start initialization of the neural HMM.
+        std_floor (float): Floor value for the standard deviation of the neural HMM. Prevents model cheating by putting point mass and getting infinite likelihood at any datapoint.
+        use_grad_checkpointing (bool, optional): Use gradient checkpointing to save memory. Defaults to True.
     """
 
     def __init__(
