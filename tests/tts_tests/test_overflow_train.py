@@ -40,7 +40,22 @@ config.audio.trim_db = 60
 config.save_json(config_path)
 
 
-# train the model for one epoch
+# train the model for one epoch when mel parameters exists
+command_train = (
+    f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --config_path {config_path} "
+    f"--coqpit.output_path {output_path} "
+    "--coqpit.datasets.0.formatter ljspeech "
+    "--coqpit.datasets.0.meta_file_train metadata.csv "
+    "--coqpit.datasets.0.meta_file_val metadata.csv "
+    "--coqpit.datasets.0.path tests/data/ljspeech "
+    "--coqpit.test_delay_epochs 0 "
+)
+run_cli(command_train)
+
+
+# train the model for one epoch when mel parameters have to be computed from the dataset
+if os.path.exists(parameter_path):
+    os.remove(parameter_path)
 command_train = (
     f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --config_path {config_path} "
     f"--coqpit.output_path {output_path} "
