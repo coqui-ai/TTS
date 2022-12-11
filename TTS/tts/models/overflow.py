@@ -302,7 +302,9 @@ class Overflow(BaseTTS):
             )
             print(f" | > Data parameters loaded with value: {data_mean, data_std, init_transition_prob}")
 
-        trainer.config.flat_start_params["transition_p"] = init_transition_prob
+        trainer.config.flat_start_params["transition_p"] = (
+            init_transition_prob.item() if torch.is_tensor(init_transition_prob) else init_transition_prob
+        )
         OverflowUtils.update_flat_start_transition(trainer.model, init_transition_prob)
         trainer.model.update_mean_std(statistics)
 
