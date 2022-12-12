@@ -1,8 +1,8 @@
 import logging
 import re
 import subprocess
-from typing import Dict, List
 from distutils.version import LooseVersion
+from typing import Dict, List
 
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 from TTS.tts.utils.text.punctuation import Punctuation

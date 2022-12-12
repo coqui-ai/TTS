@@ -1,5 +1,5 @@
-from distutils.version import LooseVersion
 import unittest
+from distutils.version import LooseVersion
 
 from TTS.tts.utils.text.phonemizers import ESpeak, Gruut, JA_JP_Phonemizer, ZH_CN_Phonemizer
 
