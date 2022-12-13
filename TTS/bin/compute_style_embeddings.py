@@ -285,7 +285,7 @@ if __name__ == '__main__':
     # Plotting and saving figs of generated style distributions 
     ### TRAIN
     plt.figure(figsize=(12,5))
-    for i in range(train_plot_df.style.nunique()):
+    for i in range(train_plot_df['style'].nunique()):
         df_filt = train_plot_df[train_plot_df['style'] == i]
         plt.scatter(df_filt['dim1'], df_filt['dim2'], label = id2style[i])
     plt.legend(fontsize=15)
@@ -296,7 +296,7 @@ if __name__ == '__main__':
 
     ### VAL
     plt.figure(figsize=(12,5))
-    for i in range(val_plot_df.style.nunique()):
+    for i in range(val_plot_df['style'].nunique()):
         df_filt = val_plot_df[val_plot_df['style'] == i]
         plt.scatter(df_filt['dim1'], df_filt['dim2'], label = id2style[i])
     plt.legend(fontsize=15)
@@ -308,7 +308,7 @@ if __name__ == '__main__':
 
     ### TEST
     plt.figure(figsize=(12,5))
-    for i in range(test_plot_df.style.nunique()):
+    for i in range(test_plot_df['style'].nunique()):
         df_filt = test_plot_df[test_plot_df['style'] == i]
         plt.scatter(df_filt['dim1'], df_filt['dim2'], label = id2style[i])
     plt.legend(fontsize=15)
