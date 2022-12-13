@@ -221,7 +221,7 @@ if __name__ == '__main__':
             outputs = outputs['style']
 
         train_feats[i] = outputs.squeeze(0).squeeze(0).detach().cpu().numpy()
-        train_styles_id.append(style2id[train_df.wav_path.values[i]])
+        train_styles_id.append(style2id[train_df.style.values[i]])
 
     ### VAL DATASET
     val_styles_id = []
@@ -239,7 +239,7 @@ if __name__ == '__main__':
             outputs = outputs['style']
 
         val_feats[i] = outputs.squeeze(0).squeeze(0).detach().cpu().numpy()
-        val_styles_id.append(style2id[val_df.wav_path.values[i]])
+        val_styles_id.append(style2id[val_df.style.values[i]])
 
     ### TEST DATASET
     test_styles_id = []
