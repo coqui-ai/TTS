@@ -8,6 +8,8 @@ import numpy as np
 import umap
 import matplotlib.pyplot as plt
 
+sys.path.insert(1, '/workspace/coqui-tts')
+
 from TTS.trainer import Trainer, TrainingArgs
 
 import warnings
@@ -22,7 +24,6 @@ from TTS.tts.utils.styles import StyleManager
 
 warnings.filterwarnings('ignore')
 
-sys.path.insert(1, '/workspace/coqui-tts')
 
 # parser = argparse.ArgumentParser(
 #     description="""Compute embedding vectors for each wav file in a dataset.\n\n"""
@@ -265,7 +266,7 @@ if __name__ == '__main__':
     # Saving pickle for this fitted umap "u" to be able to re-use it in other data partitions without running this script all again
     import pickle
 
-    f_name = 'umap.pkl'
+    f_name = args.experiment_path + '/umap.pkl'
     pickle.dump(u, open(f_name, 'wb'))
 
     val_embeddings = u.transform(val_feats)
@@ -277,9 +278,9 @@ if __name__ == '__main__':
     val_plot_df = pd.DataFrame({'style': val_styles_id, 'dim1': val_embeddings[:,0], 'dim2': val_embeddings[:,1]})
     test_plot_df = pd.DataFrame({'style': test_styles_id, 'dim1': test_embeddings[:,0], 'dim2': test_embeddings[:,1]})
 
-    train_plot_df.to_csv('train_plot_df.csv', index = False)
-    val_plot_df.to_csv('val_plot_df.csv', index = False)
-    test_plot_df.to_csv('test_plot_df.csv', index = False)
+    train_plot_df.to_csv(args.experiment_path + '/train_plot_df.csv', index = False)
+    val_plot_df.to_csv(args.experiment_path + '/val_plot_df.csv', index = False)
+    test_plot_df.to_csv(args.experiment_path + '/test_plot_df.csv', index = False)
 
     # Plotting and saving figs of generated style distributions 
     ### TRAIN
@@ -291,7 +292,7 @@ if __name__ == '__main__':
     plt.xlabel('UMAP dim 1', fontsize = 20)
     plt.ylabel('UMAP dim 1', fontsize = 20)
 
-    plt.savefig("training_style_distribution.png", dpi = 300)
+    plt.savefig(args.experiment_path + "/training_style_distribution.png", dpi = 300)
 
     ### VAL
     plt.figure(figsize=(12,5))
@@ -302,7 +303,7 @@ if __name__ == '__main__':
     plt.xlabel('UMAP dim 1', fontsize = 20)
     plt.ylabel('UMAP dim 1', fontsize = 20)
 
-    plt.savefig("validation_style_distribution.png", dpi = 300)
+    plt.savefig(args.experiment_path + "/validation_style_distribution.png", dpi = 300)
 
 
     ### TEST
@@ -314,4 +315,4 @@ if __name__ == '__main__':
     plt.xlabel('UMAP dim 1', fontsize = 20)
     plt.ylabel('UMAP dim 1', fontsize = 20)
 
-    plt.savefig("testing_style_distribution.png", dpi = 300)
+    plt.savefig(args.experiment_path + "/testing_style_distribution.png", dpi = 300)
