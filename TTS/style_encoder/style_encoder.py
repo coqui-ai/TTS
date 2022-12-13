@@ -101,6 +101,9 @@ class StyleEncoder(nn.Module):
             raise NotImplementedError
         return out
 
+    def get_embedding(self, ref_mels):
+        return self.layer(ref_mels)
+
     def gst_embedding(self, inputs, style_input, speaker_embedding=None):
             if isinstance(style_input, dict):
                 # multiply each style token with a weight
