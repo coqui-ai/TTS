@@ -520,6 +520,7 @@ class TTSDataset(Dataset):
                 "raw_text": batch["raw_text"],
                 "pitch": pitch,
                 "language_ids": language_ids,
+                "audio_unique_names": batch["audio_unique_name"],
             }
 
         raise TypeError(

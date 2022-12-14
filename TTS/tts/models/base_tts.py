@@ -232,6 +232,7 @@ class BaseTTS(BaseTrainerModel):
             "waveform": waveform,
             "pitch": pitch,
             "language_ids": language_ids,
+            "audio_unique_names": batch["audio_unique_names"],
         }
 
     def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1):
@@ -388,6 +389,9 @@ class BaseTTS(BaseTrainerModel):
         test_sentences = self.config.test_sentences
         aux_inputs = self._get_test_aux_input()
         for idx, sen in enumerate(test_sentences):
+            if isinstance(sen, list):
+                aux_inputs = self.get_aux_input_from_test_sentences(sen)
+                sen = aux_inputs["text"]
             outputs_dict = synthesis(
                 self,
                 sen,
