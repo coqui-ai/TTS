@@ -159,7 +159,8 @@ class Overflow(BaseTTS):
 
         return outputs
 
-    def _training_stats(self, batch):
+    @staticmethod
+    def _training_stats(batch):
         stats = {}
         stats["avg_text_length"] = batch["text_lengths"].float().mean()
         stats["avg_spec_length"] = batch["mel_lengths"].float().mean()
