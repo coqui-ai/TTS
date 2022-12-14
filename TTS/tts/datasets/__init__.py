@@ -130,9 +130,7 @@ def load_tts_samples(
                 meta_data_eval = add_extra_keys(meta_data_eval, language, dataset_name)
             else:
                 eval_size_per_dataset = eval_split_max_size // len(datasets) if eval_split_max_size else None
-                meta_data_eval, meta_data_train = split_dataset(
-                    meta_data_train, eval_size_per_dataset, eval_split_size
-                )
+                meta_data_eval, meta_data_train = split_dataset(meta_data_train, eval_size_per_dataset, eval_split_size)
             meta_data_eval_all += meta_data_eval
         meta_data_train_all += meta_data_train
         # load attention masks for the duration predictor training
