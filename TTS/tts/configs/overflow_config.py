@@ -169,8 +169,9 @@ class OverflowConfig(BaseTTSConfig):  # The classname has to be camel case
     lr_scheduler: str = None
 
     # overrides
-    min_seq_len: int = 3
-    max_seq_len: int = 500
+    min_text_len: int = 10
+    max_text_len: int = 500
+    min_audio_len: int = 512
 
     # testing
     test_sentences: List[str] = field(
