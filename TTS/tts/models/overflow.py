@@ -163,22 +163,14 @@ class Overflow(BaseTTS):
         stats = {}
         stats["avg_text_length"] = batch["text_lengths"].float().mean()
         stats["avg_spec_length"] = batch["mel_lengths"].float().mean()
-        stats["avg_text_batch_occupancy"] = (
-            batch["text_lengths"].float() / batch["text_lengths"].float().max()
-        ).mean()
-        stats["avg_spec_batch_occupancy"] = (
-            batch["mel_lengths"].float() / batch["mel_lengths"].float().max()
-        ).mean()
+        stats["avg_text_batch_occupancy"] = (batch["text_lengths"].float() / batch["text_lengths"].float().max()).mean()
+        stats["avg_spec_batch_occupancy"] = (batch["mel_lengths"].float() / batch["mel_lengths"].float().max()).mean()
 
         # compute useful training stats
         stats["avg_text_length"] = batch["text_lengths"].float().mean()
         stats["avg_spec_length"] = batch["mel_lengths"].float().mean()
-        stats["avg_text_batch_occupancy"] = (
-            batch["text_lengths"].float() / batch["text_lengths"].float().max()
-        ).mean()
-        stats["avg_spec_batch_occupancy"] = (
-            batch["mel_lengths"].float() / batch["mel_lengths"].float().max()
-        ).mean()
+        stats["avg_text_batch_occupancy"] = (batch["text_lengths"].float() / batch["text_lengths"].float().max()).mean()
+        stats["avg_spec_batch_occupancy"] = (batch["mel_lengths"].float() / batch["mel_lengths"].float().max()).mean()
         return stats
 
     def train_step(self, batch: dict, criterion: nn.Module):
