@@ -25,7 +25,9 @@
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/text_tests.yml/badge.svg)
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/tts_tests.yml/badge.svg)
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/vocoder_tests.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests0.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests1.yml/badge.svg)
+![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests2.yml/badge.svg)
 [![Docs](<https://readthedocs.org/projects/tts/badge/?version=latest&style=plastic>)](https://tts.readthedocs.io/en/latest/)
 
 📰 [**Subscribe to 🐸Coqui.ai Newsletter**](https://coqui.ai/?subscription=true)
@@ -162,9 +164,36 @@ You can then enjoy the TTS server [here](http://[::1]:5002/)
 More details about the docker images (like GPU support) can be found [here](https://tts.readthedocs.io/en/latest/docker_images.html)
 
 
-## Use TTS
+## Synthesizing speech by 🐸TTS
 
-### Single Speaker Models
+### 🐍 Python API
+
+```python
+from TTS.api import TTS
+
+# Running a multi-speaker and multi-lingual model
+
+# List available 🐸TTS models and choose the first one
+model_name = TTS.list_models()[0]
+# Init TTS
+tts = TTS(model_name)
+# Run TTS
+# ❗ Since this model is multi-speaker and multi-lingual, we must set the target speaker and the language
+# Text to speech with a numpy output
+wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
+# Text to speech to a file
+tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path="output.wav")
+
+# Running a single speaker model
+
+# Init TTS with the target model name
+tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
+# Run TTS
+tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path=OUTPUT_PATH)
+```
+
+### Command line `tts`
+#### Single Speaker Models
 
 - List provided models:
 
@@ -238,7 +267,7 @@ More details about the docker images (like GPU support) can be found [here](http
         --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
     ```
 
-### Multi-speaker Models
+#### Multi-speaker Models
 
 - List the available speakers and choose as <speaker_id> among them:
 
