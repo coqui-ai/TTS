@@ -159,6 +159,15 @@ class Overflow(BaseTTS):
 
         return outputs
 
+    @staticmethod
+    def _training_stats(batch):
+        stats = {}
+        stats["avg_text_length"] = batch["text_lengths"].float().mean()
+        stats["avg_spec_length"] = batch["mel_lengths"].float().mean()
+        stats["avg_text_batch_occupancy"] = (batch["text_lengths"].float() / batch["text_lengths"].float().max()).mean()
+        stats["avg_spec_batch_occupancy"] = (batch["mel_lengths"].float() / batch["mel_lengths"].float().max()).mean()
+        return stats
+
     def train_step(self, batch: dict, criterion: nn.Module):
         text_input = batch["text_input"]
         text_lengths = batch["text_lengths"]
@@ -171,9 +180,10 @@ class Overflow(BaseTTS):
             mels=mel_input,
             mel_len=mel_lengths,
         )
+        loss_dict = criterion(outputs["log_probs"] / (mel_lengths.sum() + text_lengths.sum()))
 
-        loss_dict = criterion(outputs["log_probs"])
-
+        # for printing useful statistics on terminal
+        loss_dict.update(self._training_stats(batch))
         return outputs, loss_dict
 
     def eval_step(self, batch: Dict, criterion: nn.Module):
