@@ -366,7 +366,8 @@ class ModelManager(object):
         for file_path in z.namelist()[1:]:
             src_path = os.path.join(output_folder, file_path)
             dst_path = os.path.join(output_folder, os.path.basename(file_path))
-            copyfile(src_path, dst_path)
+            if src_path != dst_path:
+                copyfile(src_path, dst_path)
         # remove the extracted folder
         rmtree(os.path.join(output_folder, z.namelist()[0]))
 

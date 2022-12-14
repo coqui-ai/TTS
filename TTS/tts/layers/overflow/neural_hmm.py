@@ -311,7 +311,7 @@ class NeuralHMM(nn.Module):
 
         # If the length of the mel is less than the number of states it will select the -inf values leading to nan gradients
         # Ideally, we should clean the dataset otherwise this is a little hack uncomment the line below
-        # final_log_c = final_log_c.clamp(min=torch.finfo(final_log_c.dtype).min)
+        final_log_c = final_log_c.clamp(min=torch.finfo(final_log_c.dtype).min)
 
         sum_final_log_c = torch.logsumexp(final_log_c, dim=1)
         return sum_final_log_c
