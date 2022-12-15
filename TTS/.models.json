@@ -141,7 +141,7 @@
                     "license": "bsd-3-clause",
                     "contact": null,
                     "commit": null
-                },   
+                },
                 "fast_pitch": {
                     "description": "FastPitch model trained on LJSpeech using the Aligner Network",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--ljspeech--fast_pitch.zip",
@@ -150,6 +150,15 @@
                     "author": "Eren Gölge @erogol",
                     "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
+                },
+                "overflow": {
+                    "description": "Overflow model trained on LJSpeech",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.0_models/tts_models--en--ljspeech--overflow.zip",
+                    "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
+                    "commit": "3b1a28f",
+                    "author": "Eren Gölge @erogol",
+                    "license": "apache 2.0",
+                    "contact": "egolge@coqui.ai"
                 }
             },
             "vctk": {
@@ -223,7 +232,7 @@
                     "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
                 }
-            } 
+            }
         },
         "fr": {
             "mai": {

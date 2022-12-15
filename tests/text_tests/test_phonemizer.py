@@ -1,4 +1,5 @@
 import unittest
+from distutils.version import LooseVersion
 
 from TTS.tts.utils.text.phonemizers import ESpeak, Gruut, JA_JP_Phonemizer, ZH_CN_Phonemizer
 
@@ -18,6 +19,14 @@ EXPECTED_ESPEAK_PHONEMES = [
 ]
 
 
+EXPECTED_ESPEAK_v1_48_15_PHONEMES = [
+    "ɹ|ˈiː|s|ə|n|t ɹ|ɪ|s|ˈɜː|tʃ æ|t h|ˈɑːɹ|v|ɚ|d h|ɐ|z ʃ|ˈoʊ|n m|ˈɛ|d|ᵻ|t|ˌeɪ|ɾ|ɪ|ŋ",
+    "f|ɔː|ɹ æ|z l|ˈɪ|ɾ|əl æ|z ˈeɪ|t w|ˈiː|k|s k|æ|n ˈæ|k|tʃ|uː|əl|i| ˈɪ|n|k|ɹ|iː|s, ð|ə ɡ|ɹ|ˈeɪ m|ˈæ|ɾ|ɚ",
+    "ɪ|n|ð|ə p|ˈɑːɹ|t|s ʌ|v|ð|ə b|ɹ|ˈeɪ|n ɹ|ɪ|s|p|ˈɑː|n|s|ə|b|əl",
+    "f|ɔː|ɹ ɪ|m|ˈoʊ|ʃ|ə|n|əl ɹ|ˌɛ|ɡ|j|uː|l|ˈeɪ|ʃ|ə|n|| æ|n|d l|ˈɜː|n|ɪ|ŋ!",
+]
+
+
 EXPECTED_ESPEAKNG_PHONEMES = [
     "ɹ|ˈiː|s|ə|n|t ɹ|ᵻ|s|ˈɜː|tʃ æ|t h|ˈɑːɹ|v|ɚ|d h|ɐ|z ʃ|ˈoʊ|n m|ˈɛ|d|ᵻ|t|ˌeɪ|ɾ|ɪ|ŋ",
     "f|ɔː|ɹ æ|z l|ˈɪ|ɾ|əl æ|z ˈeɪ|t w|ˈiː|k|s k|æ|n ˈæ|k|tʃ|uː|əl|i| ˈɪ|ŋ|k|ɹ|iː|s, ð|ə ɡ|ɹ|ˈeɪ m|ˈæ|ɾ|ɚ",
@@ -30,13 +39,20 @@ class TestEspeakPhonemizer(unittest.TestCase):
     def setUp(self):
         self.phonemizer = ESpeak(language="en-us", backend="espeak")
 
-        for text, ph in zip(EXAMPLE_TEXTs, EXPECTED_ESPEAK_PHONEMES):
+        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+            target_phonemes = EXPECTED_ESPEAK_v1_48_15_PHONEMES
+        else:
+            target_phonemes = EXPECTED_ESPEAK_PHONEMES
+
+        for text, ph in zip(EXAMPLE_TEXTs, target_phonemes):
             phonemes = self.phonemizer.phonemize(text)
             self.assertEqual(phonemes, ph)
 
         # multiple punctuations
         text = "Be a voice, not an! echo?"
         gt = "biː ɐ vˈɔɪs, nˈɑːt ɐn! ˈɛkoʊ?"
+        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+            gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ?"
         output = self.phonemizer.phonemize(text, separator="|")
         output = output.replace("|", "")
         self.assertEqual(output, gt)
@@ -44,12 +60,16 @@ class TestEspeakPhonemizer(unittest.TestCase):
         # not ending with punctuation
         text = "Be a voice, not an! echo"
         gt = "biː ɐ vˈɔɪs, nˈɑːt ɐn! ˈɛkoʊ"
+        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+            gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ"
         output = self.phonemizer.phonemize(text, separator="")
         self.assertEqual(output, gt)
 
         # extra space after the sentence
         text = "Be a voice, not an! echo.  "
         gt = "biː ɐ vˈɔɪs, nˈɑːt ɐn! ˈɛkoʊ."
+        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+            gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ."
         output = self.phonemizer.phonemize(text, separator="")
         self.assertEqual(output, gt)
 

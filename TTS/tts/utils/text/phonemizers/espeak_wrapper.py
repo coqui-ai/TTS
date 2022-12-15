@@ -1,6 +1,7 @@
 import logging
 import re
 import subprocess
+from distutils.version import LooseVersion
 from typing import Dict, List
 
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
@@ -13,13 +14,26 @@ def is_tool(name):
     return which(name) is not None
 
 
+def get_espeak_version():
+    output = subprocess.getoutput("espeak --version")
+    return output.split()[2]
+
+
+def get_espeakng_version():
+    output = subprocess.getoutput("espeak-ng --version")
+    return output.split()[3]
+
+
 # priority: espeakng > espeak
 if is_tool("espeak-ng"):
     _DEF_ESPEAK_LIB = "espeak-ng"
+    _DEF_ESPEAK_VER = get_espeakng_version()
 elif is_tool("espeak"):
     _DEF_ESPEAK_LIB = "espeak"
+    _DEF_ESPEAK_VER = get_espeak_version()
 else:
     _DEF_ESPEAK_LIB = None
+    _DEF_ESPEAK_VER = None
 
 
 def _espeak_exe(espeak_lib: str, args: List, sync=False) -> List[str]:
@@ -85,6 +99,7 @@ class ESpeak(BasePhonemizer):
     """
 
     _ESPEAK_LIB = _DEF_ESPEAK_LIB
+    _ESPEAK_VER = _DEF_ESPEAK_VER
 
     def __init__(self, language: str, backend=None, punctuations=Punctuation.default_puncs(), keep_puncs=True):
         if self._ESPEAK_LIB is None:
@@ -105,17 +120,24 @@ class ESpeak(BasePhonemizer):
     def backend(self):
         return self._ESPEAK_LIB
 
+    @property
+    def backend_version(self):
+        return self._ESPEAK_VER
+
     @backend.setter
     def backend(self, backend):
         if backend not in ["espeak", "espeak-ng"]:
             raise Exception("Unknown backend: %s" % backend)
         self._ESPEAK_LIB = backend
+        self._ESPEAK_VER = get_espeakng_version() if backend == "espeak-ng" else get_espeak_version()
 
     def auto_set_espeak_lib(self) -> None:
         if is_tool("espeak-ng"):
             self._ESPEAK_LIB = "espeak-ng"
+            self._ESPEAK_VER = get_espeakng_version()
         elif is_tool("espeak"):
             self._ESPEAK_LIB = "espeak"
+            self._ESPEAK_VER = get_espeak_version()
         else:
             raise Exception("Cannot set backend automatically. espeak-ng or espeak not found")
 
@@ -146,7 +168,10 @@ class ESpeak(BasePhonemizer):
         else:
             # split with '_'
             if self.backend == "espeak":
-                args.append("--ipa=3")
+                if LooseVersion(self.backend_version) >= LooseVersion("1.48.15"):
+                    args.append("--ipa=1")
+                else:
+                    args.append("--ipa=3")
             else:
                 args.append("--ipa=1")
         if tie:

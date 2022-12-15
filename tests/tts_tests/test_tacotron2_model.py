@@ -301,7 +301,7 @@ class TacotronCapacitronTrainTest(unittest.TestCase):
         batch["stop_targets"] = (batch["stop_targets"].sum(2) > 0.0).unsqueeze(2).float().squeeze()
 
         model = Tacotron2(config).to(device)
-        criterion = model.get_criterion()
+        criterion = model.get_criterion().to(device)
         optimizer = model.get_optimizer()
 
         model.train()

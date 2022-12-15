@@ -232,6 +232,7 @@ class BaseTTS(BaseTrainerModel):
             "waveform": waveform,
             "pitch": pitch,
             "language_ids": language_ids,
+            "audio_unique_names": batch["audio_unique_names"],
         }
 
     def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1):
@@ -344,9 +345,9 @@ class BaseTTS(BaseTrainerModel):
             loader = DataLoader(
                 dataset,
                 batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                shuffle=True,  # if there is no other sampler
+                shuffle=config.shuffle if sampler is not None else False,  # if there is no other sampler
                 collate_fn=dataset.collate_fn,
-                drop_last=False,  # setting this False might cause issues in AMP training.
+                drop_last=config.drop_last,  # setting this False might cause issues in AMP training.
                 sampler=sampler,
                 num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
                 pin_memory=False,
@@ -388,6 +389,9 @@ class BaseTTS(BaseTrainerModel):
         test_sentences = self.config.test_sentences
         aux_inputs = self._get_test_aux_input()
         for idx, sen in enumerate(test_sentences):
+            if isinstance(sen, list):
+                aux_inputs = self.get_aux_input_from_test_sentences(sen)
+                sen = aux_inputs["text"]
             outputs_dict = synthesis(
                 self,
                 sen,
