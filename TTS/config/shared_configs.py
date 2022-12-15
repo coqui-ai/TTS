@@ -235,10 +235,10 @@ class BaseDatasetConfig(Coqpit):
         """Check config fields"""
         c = asdict(self)
         check_argument("formatter", c, restricted=True)
-        check_argument("path", c, restricted=True)
-        check_argument("meta_file_train", c, restricted=True)
-        check_argument("meta_file_val", c, restricted=False)
-        check_argument("meta_file_attn_mask", c, restricted=False)
+        check_argument("path", c, restricted=True, is_path=True)
+        check_argument("meta_file_train", c, restricted=True, is_path=True)
+        check_argument("meta_file_val", c, restricted=False, is_path=True)
+        check_argument("meta_file_attn_mask", c, restricted=False, is_path=True)
 
 
 @dataclass
