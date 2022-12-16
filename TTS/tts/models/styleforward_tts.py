@@ -19,6 +19,7 @@ from TTS.tts.utils.styles import StyleManager, get_style_weighted_sampler
 
 # Import Style Encoder
 from TTS.style_encoder.style_encoder import StyleEncoder
+from TTS.style_encoder.layers.grl import GradientReversalLayer
 
 
 @dataclass
@@ -189,6 +190,12 @@ class StyleforwardTTS(BaseTTS):
                 print(f"Using style guided training with {self.num_style} styles")
                 style_embedding_dim = config.style_encoder_config.proj_dim if config.style_encoder_config.use_proj_linear else config.style_encoder_config.style_embedding_dim
                 self.style_classify_layer = nn.Linear(style_embedding_dim,self.num_style)
+        
+        if(config.style_encoder_config.use_grl_on_speakers_in_style_embedding): #Already assuming that we can have different GRL in different layers
+            self.speaker_classifier_using_style_embedding = nn.Linear(style_embedding_dim, self.num_speakers)
+            self.grl_on_speakers_in_style_embedding = GradientReversalLayer(self.style_encoder_config.grl_alpha) # Still assuming only one alpha value
+        
+        
         # # pass all config fields to `self`
         # # for fewer code change
         # for key in config:
@@ -593,6 +600,10 @@ class StyleforwardTTS(BaseTTS):
         if(self.config.style_encoder_config.use_guided_style):
             style_preds = self.style_classify_layer(style_encoder_outputs)
 
+        speaker_preds_from_style = None
+        if(self.config.style_encoder_config.use_grl_on_speakers_in_style_embedding):
+            speaker_preds_from_style = self.speaker_classifier_using_style_embedding(style_encoder_outputs)
+
         # duration predictor pass
         if self.args.detach_duration_predictor:
             o_dr_log = self.duration_predictor(o_en.detach(), x_mask)
@@ -640,7 +651,8 @@ class StyleforwardTTS(BaseTTS):
             "style_encoder_outputs": style_encoder_outputs,
             "encoder_outputs": encoder_outputs,
             "speaker_outputs": g,
-            "style_preds": style_preds
+            "style_preds": style_preds,
+            'speaker_preds_from_style': speaker_preds_from_style
         }
         return outputs
 
@@ -737,9 +749,11 @@ class StyleforwardTTS(BaseTTS):
                 alignment_hard=outputs["alignment_mas"] if self.use_binary_alignment_loss else None,
                 style_encoder_output=outputs['style_encoder_outputs'],
                 style_ids = style_ids,
+                speaker_ids = speaker_ids,
                 encoder_output = outputs['encoder_outputs'],
                 speaker_output = outputs['speaker_outputs'],
                 style_preds = outputs['style_preds'],
+                speaker_preds_from_style = outputs['speaker_preds_from_style']
             )
             # compute duration error
             durations_pred = outputs["durations"]
