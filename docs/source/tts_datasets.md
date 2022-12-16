@@ -12,5 +12,6 @@ Some of the known public datasets that we successfully applied 🐸TTS:
 - [German - Thorsten OGVD](https://github.com/thorstenMueller/deep-learning-german-tts)
 - [Japanese - Kokoro](https://www.kaggle.com/kaiida/kokoro-speech-dataset-v11-small/version/1)
 - [Chinese](https://www.data-baker.com/data/index/source/)
+- [Ukrainian - LADA](https://github.com/egorsmkv/ukrainian-tts-datasets/tree/main/lada)
 
 Let us know if you use 🐸TTS on a different dataset.
