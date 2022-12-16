@@ -602,7 +602,8 @@ class StyleforwardTTS(BaseTTS):
 
         speaker_preds_from_style = None
         if(self.config.style_encoder_config.use_grl_on_speakers_in_style_embedding):
-            speaker_preds_from_style = self.speaker_classifier_using_style_embedding(style_encoder_outputs)
+            grl_output = self.grl_on_speakers_in_style_embedding(style_encoder_outputs)
+            speaker_preds_from_style = self.speaker_classifier_using_style_embedding(grl_output)
 
         # duration predictor pass
         if self.args.detach_duration_predictor:
