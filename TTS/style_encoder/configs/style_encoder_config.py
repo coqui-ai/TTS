@@ -39,6 +39,9 @@ class StyleEncoderConfig(Coqpit):
     content_orthogonal_loss: bool = False # whether use othogonal loss between style and content embeddings
     speaker_orthogonal_loss: bool = False # whether use othogonal loss between speaker and content embeddings
     use_guided_style: bool = False # Whether use guided style encoder training
+    
+    
+    # GRL additional configs
     use_grl_on_speakers_in_style_embedding: bool = False # Whether use or not GRL in style embedding output avoinding speaker information
     grl_alpha: float = 1 # GRL alpha, still one for all GRL's
 
