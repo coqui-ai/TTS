@@ -193,7 +193,7 @@ class StyleforwardTTS(BaseTTS):
         
         if(config.style_encoder_config.use_grl_on_speakers_in_style_embedding): #Already assuming that we can have different GRL in different layers
             self.speaker_classifier_using_style_embedding = nn.Linear(style_embedding_dim, self.num_speakers)
-            self.grl_on_speakers_in_style_embedding = GradientReversalLayer(self.style_encoder_config.grl_alpha) # Still assuming only one alpha value
+            self.grl_on_speakers_in_style_embedding = GradientReversalLayer(config.style_encoder_config.grl_alpha) # Still assuming only one alpha value
         
         
         # # pass all config fields to `self`
