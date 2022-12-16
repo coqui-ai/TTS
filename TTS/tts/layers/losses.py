@@ -993,6 +993,9 @@ class StyleForwardTTSLoss(nn.Module):
             self.criterion_guided = nn.CrossEntropyLoss()
             # self.criterion_guided = nn.CrossEntropyLoss(weight =torch.Tensor([10,10,0.1,10])) # To balance styles
             # self.criterion_guided = nn.CrossEntropyLoss(ignore_index = 3) # To ignore none style (semi supervised)
+        if(self.style_encoder_config.use_grl_on_speakers_in_style_embedding):
+            self.criterion_grl_speaker_in_style_embedding = nn.CrossEntropyLoss()
+            self.grl_speaker_in_style_embedding_alpha = self.style_encoder_config.grl_alpha
 
         self.spec_loss_alpha = c.spec_loss_alpha
         self.dur_loss_alpha = c.dur_loss_alpha
@@ -1021,9 +1024,11 @@ class StyleForwardTTSLoss(nn.Module):
         alignment_hard=None,
         alignment_soft=None,
         style_ids=None,
+        speaker_ids = None,
         encoder_output=None,
         speaker_output=None,
-        style_preds=None
+        style_preds=None,
+        speaker_preds_from_style=None
     ):
         loss = 0
         return_dict = {}
@@ -1099,6 +1104,13 @@ class StyleForwardTTSLoss(nn.Module):
                 
                 loss += style_guided_loss
                 return_dict["style_guided_loss"] = style_guided_loss
+
+            if self.style_encoder_config.use_grl_on_speakers_in_style_embedding:
+                grl_speaker_in_style_loss = self.criterion_grl_speaker_in_style_embedding(speaker_preds_from_style, speaker_ids)
+                
+                loss += self.grl_speaker_in_style_embedding_alpha*grl_speaker_in_style_loss
+                
+                return_dict["grl_speaker_in_style_embedding"] = grl_speaker_in_style_loss
 
         return_dict["loss"] = loss
         return return_dict
