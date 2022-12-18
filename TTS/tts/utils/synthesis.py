@@ -69,7 +69,7 @@ def run_model_torch(
     model: nn.Module,
     inputs: torch.Tensor,
     speaker_id: int = None,
-    cond_speaker_id: ind = None,
+    cond_speaker_id: int = None,
     style_mel: torch.Tensor = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
