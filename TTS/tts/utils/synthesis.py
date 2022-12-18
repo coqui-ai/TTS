@@ -69,6 +69,7 @@ def run_model_torch(
     model: nn.Module,
     inputs: torch.Tensor,
     speaker_id: int = None,
+    cond_speaker_id: ind = None,
     style_mel: torch.Tensor = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
@@ -99,6 +100,7 @@ def run_model_torch(
         aux_input={
             "x_lengths": input_lengths,
             "speaker_ids": speaker_id,
+            "cond_speaker_ids": cond_speaker_id,
             "d_vectors": d_vector,
             "style_mel": style_mel,
             "language_ids": language_id,
@@ -214,6 +216,7 @@ def synthesis(
     use_cuda,
     ap,
     speaker_id=None,
+    cond_speaker_id=None,
     style_wav=None,
     style_representation=None,
     enable_eos_bos_chars=False,  # pylint: disable=unused-argument
@@ -310,7 +313,7 @@ def synthesis(
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id, style_id = style_id, diff_t = diff_t, z = z, pitch_control = pitch_control)
+        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id, style_id = style_id, cond_speaker_id = cond_speaker_id, diff_t = diff_t, z = z, pitch_control = pitch_control)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
         alignments = outputs["alignments"]
