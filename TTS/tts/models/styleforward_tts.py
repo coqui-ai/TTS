@@ -535,6 +535,7 @@ class StyleforwardTTS(BaseTTS):
     def _set_speaker_input(self, aux_input: Dict):
         d_vectors = aux_input.get("d_vectors", None)
         speaker_ids = aux_input.get("speaker_ids", None)
+        conditioned_speaker_ids = aux_input.get("cond_speaker_ids", None)
 
         if d_vectors is not None and speaker_ids is not None:
             raise ValueError("[!] Cannot use d-vectors and speaker-ids together.")
@@ -543,7 +544,10 @@ class StyleforwardTTS(BaseTTS):
             raise ValueError("[!] Cannot use speaker-ids without enabling speaker embedding.")
 
         g = speaker_ids if speaker_ids is not None else d_vectors
-        return g
+
+        cond_g = conditioned_speaker_ids if conditioned_speaker_ids is not None else d_vectors
+
+        return g, cond_g
 
     def forward(
         self,
@@ -575,7 +579,7 @@ class StyleforwardTTS(BaseTTS):
             - g: :math:`[B, C]`
             - pitch: :math:`[B, 1, T]`
         """
-        g = self._set_speaker_input(aux_input)
+        g , _ = self._set_speaker_input(aux_input)
        
         # compute sequence masks
         y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).float()
@@ -658,7 +662,7 @@ class StyleforwardTTS(BaseTTS):
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, 'style_mel': None, "style_ids": None,'pitch_control': None}):  # pylint: disable=unused-argument
+    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, "cond_speaker_ids" : None, 'style_mel': None, "style_ids": None,'pitch_control': None}):  # pylint: disable=unused-argument
         """Model's inference pass.
 
         Args:
@@ -670,12 +674,15 @@ class StyleforwardTTS(BaseTTS):
             - x_lengths: [B]
             - g: [B, C]
         """
-        g = self._set_speaker_input(aux_input)
+        g , cond_g = self._set_speaker_input(aux_input)
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).to(x.dtype).float()
         
         # encoder pass
-        o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, g)
+        if(cond_g):
+            o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, cond_g)
+        else:
+            o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, g)
             
         #Style embedding 
         # se_inputs = [o_en, aux_input['style_mel']]
@@ -701,6 +708,11 @@ class StyleforwardTTS(BaseTTS):
         if self.args.use_pitch:
             o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = aux_input['pitch_control'])
             o_en = o_en + o_pitch_emb
+        
+        # Remove conditional speaker embedding, and add the provided speaker
+        if(cond_g):
+            o_en = o_en - cond_g.expand(o_en.size(0), o_en.size(1), -1) + g.expand(o_en.size(0), o_en.size(1), -1)
+
         # decoder pass
         o_de, attn = self._forward_decoder(o_en, o_dr, x_mask, y_lengths, g=None)
         outputs = {
