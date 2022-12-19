@@ -299,6 +299,9 @@ def synthesis(
 
         if style_id is not None:
             style_id = id_to_torch(style_id, cuda=use_cuda)
+        
+        if cond_speaker_id is not None:
+            cond_speaker_id = id_to_torch(cond_speaker_id, cuda=use_cuda)
 
         if not isinstance(style_mel, dict):
             style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
@@ -313,7 +316,7 @@ def synthesis(
         text_inputs = tf.expand_dims(text_inputs, 0)
     # synthesize voice
     if backend == "torch":
-        outputs = run_model_torch(model, text_inputs, speaker_id, style_mel, d_vector=d_vector, language_id=language_id, style_id = style_id, cond_speaker_id = cond_speaker_id, diff_t = diff_t, z = z, pitch_control = pitch_control)
+        outputs = run_model_torch(model, text_inputs, speaker_id, cond_speaker_id, style_mel, d_vector=d_vector, language_id=language_id, style_id = style_id, diff_t = diff_t, z = z, pitch_control = pitch_control)
         model_outputs = outputs["model_outputs"]
         model_outputs = model_outputs[0].data.cpu().numpy()
         alignments = outputs["alignments"]
