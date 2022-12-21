@@ -1615,7 +1615,7 @@ class DelightfulTTS(BaseTTSE2E):
         self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator
 
 
-class SomethingTTSLoss(nn.Module):
+class DelightfulTTSLoss(nn.Module):
     def __init__(self, config):
         super().__init__()
 
