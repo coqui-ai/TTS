@@ -1514,7 +1514,7 @@ class DelightfulTTS(BaseTTSE2E):
         return loader
 
     def get_criterion(self):
-        return [VitsDiscriminatorLoss(self.config), SomethingTTSLoss(self.config)]
+        return [VitsDiscriminatorLoss(self.config), DelightfulTTSLoss(self.config)]
 
     def get_optimizer(self) -> List:
         """Initiate and return the GAN optimizers based on the config parameters.
