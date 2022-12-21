@@ -57,6 +57,15 @@ class AlignmentNetwork(torch.nn.Module):
             nn.Conv1d(in_query_channels, attn_channels, kernel_size=1, padding=0, bias=True),
         )
 
+        self.init_layers()
+
+    def init_layers(self):
+        torch.nn.init.xavier_uniform_(self.key_layer[0].weight, gain=torch.nn.init.calculate_gain("relu"))
+        torch.nn.init.xavier_uniform_(self.key_layer[2].weight, gain=torch.nn.init.calculate_gain("linear"))
+        torch.nn.init.xavier_uniform_(self.query_layer[0].weight, gain=torch.nn.init.calculate_gain("relu"))
+        torch.nn.init.xavier_uniform_(self.query_layer[2].weight, gain=torch.nn.init.calculate_gain("linear"))
+        torch.nn.init.xavier_uniform_(self.query_layer[4].weight, gain=torch.nn.init.calculate_gain("linear"))
+
     def forward(
         self, queries: torch.tensor, keys: torch.tensor, mask: torch.tensor = None, attn_prior: torch.tensor = None
     ) -> Tuple[torch.tensor, torch.tensor]:
@@ -75,7 +84,9 @@ class AlignmentNetwork(torch.nn.Module):
         attn_logp = -self.temperature * attn_factor.sum(1, keepdim=True)
         if attn_prior is not None:
             attn_logp = self.log_softmax(attn_logp) + torch.log(attn_prior[:, None] + 1e-8)
+
         if mask is not None:
             attn_logp.data.masked_fill_(~mask.bool().unsqueeze(2), -float("inf"))
+
         attn = self.softmax(attn_logp)
         return attn, attn_logp
