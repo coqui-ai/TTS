@@ -257,32 +257,6 @@ class AcousticModel(torch.nn.Module):
         attn = generate_path(dr, attn_mask.squeeze(1)).to(dr.dtype)
         return attn
 
-    def _expand_encoder_with_gaussian_upsampling(
-        self,
-        o_en: torch.FloatTensor,
-        o_ranges: torch.FloatTensor,
-        y_lengths: torch.IntTensor,
-        dr: torch.IntTensor,
-        x_mask: torch.IntTensor,
-        x_lengths: torch.LongTensor,
-    ):
-        """
-        Shapes:
-            - o_en: :math:`(B, C, T_src)`
-            - o_ranges: :math:`(B, T_src)`
-            - y_lengths: :math:`(B)`
-            - dr: :math:`(B, T_src)`
-            - x_mask: :math:`(B, 1, T_src)`
-        """
-        y_mask = torch.unsqueeze(sequence_mask(y_lengths, None), 1).to(o_en.dtype)
-        # expand o_en with durations
-        o_en_ex = self.gaussian_upsampling(x=o_en, durations=dr, vars=o_ranges, x_lengths=x_lengths)  # [B, T_de', C_en]
-        attn = self.generate_attn(dr, x_mask, y_mask)  # [B, T_en, T_de']
-        # positional encoding
-        if hasattr(self, "pos_encoder"):
-            o_en_ex = self.pos_encoder(o_en_ex, y_mask)
-        return y_mask, o_en_ex, attn.transpose(1, 2)
-
     def _expand_encoder_with_durations(
         self,
         o_en: torch.FloatTensor,
@@ -446,9 +420,7 @@ class AcousticModel(torch.nn.Module):
         encoder_outputs = (
             encoder_outputs.transpose(1, 2) + pitch_emb + energy_emb
         ) 
-        # log_duration_prediction = self.duration_predictor(txt_enc=encoder_outputs_res.detach(), lens=src_lens)
         log_duration_prediction = self.duration_predictor(x=encoder_outputs_res.detach(), mask=src_mask)
-        # duration_ranges = self.range_predictor(x=encoder_outputs_res, dr=dr, x_lengths=src_lens)
 
     
         mel_pred_mask, encoder_outputs_ex, alignments = self._expand_encoder_with_durations(
@@ -493,7 +465,7 @@ class AcousticModel(torch.nn.Module):
     def inference(
         self,
         tokens: torch.Tensor,
-        speaker_idx: torch.Tensor,  # TODO
+        speaker_idx: torch.Tensor,  
         p_control: float = None,  # TODO
         d_control: float = None,  # TODO
         d_vectors: torch.Tensor = None,
@@ -568,7 +540,6 @@ class AcousticModel(torch.nn.Module):
         duration_pred[duration_pred < 1] = 1.0  # -> [B, T_src]
         duration_pred = torch.round(duration_pred)  # -> [B, T_src]
         mel_lens = duration_pred.sum(1)  # -> [B,]
-        # duration_ranges = self.range_predictor(x=encoder_outputs_res, dr=duration_pred.squeeze(1), x_lengths=src_lens)
 
         _, encoder_outputs_ex, alignments = self._expand_encoder_with_durations(
             o_en=encoder_outputs, y_lengths=mel_lens, dr=duration_pred.squeeze(1), x_mask=~src_mask[:, None]
