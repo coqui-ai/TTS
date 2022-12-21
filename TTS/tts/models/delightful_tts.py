@@ -474,7 +474,7 @@ class ForwardTTSE2eDataset(TTSDataset):
             return np.load(attn_prior_file)
         else:
             token_len = len(token_ids)
-            mel_len = wav.shape[1] // self.audio_config.hop_length
+            mel_len = wav.shape[1] // self.ap.hop_length
             attn_prior = compute_attn_prior(token_len, mel_len)
             np.save(attn_prior_file, attn_prior)
             return attn_prior
@@ -775,11 +775,11 @@ class DelightfulTTS(BaseTTSE2E):
     @property
     def mel_basis(self):
         return build_mel_basis(
-            sample_rate=self.config.audio.sample_rate,
-            fft_size=self.config.audio.fft_size,
-            num_mels=self.config.audio.num_mels,
-            mel_fmax=self.config.audio.mel_fmax,
-            mel_fmin=self.config.audio.mel_fmin,
+            sample_rate=self.ap.sample_rate,
+            fft_size=self.ap.fft_size,
+            num_mels=self.ap.num_mels,
+            mel_fmax=self.ap.mel_fmax,
+            mel_fmin=self.ap.mel_fmin,
         )
 
     def init_for_training(self) -> None:
@@ -914,8 +914,8 @@ class DelightfulTTS(BaseTTSE2E):
         )
         wav_seg = segment(
             waveform,
-            slice_ids * self.config.audio.hop_length,
-            self.args.spec_segment_size * self.config.audio.hop_length,
+            slice_ids * self.ap.hop_length,
+            self.args.spec_segment_size * self.ap.hop_length,
             pad_short=True,
         )
         model_outputs = {**encoder_outputs}
@@ -1012,13 +1012,13 @@ class DelightfulTTS(BaseTTSE2E):
 
                 mel_slice_hat = wav_to_mel(
                     y=self.model_outputs_cache["model_outputs"].float(),
-                    n_fft=self.config.audio.fft_size,
-                    sample_rate=self.config.audio.sample_rate,
-                    num_mels=self.config.audio.num_mels,
-                    hop_length=self.config.audio.hop_length,
-                    win_length=self.config.audio.win_length,
-                    fmin=self.config.audio.mel_fmin,
-                    fmax=self.config.audio.mel_fmax,
+                    n_fft=self.ap.fft_size,
+                    sample_rate=self.ap.sample_rate,
+                    num_mels=self.ap.num_mels,
+                    hop_length=self.ap.hop_length,
+                    win_length=self.ap.win_length,
+                    fmin=self.ap.mel_fmin,
+                    fmax=self.ap.mel_fmax,
                     center=False,
                 )
 
@@ -1154,12 +1154,12 @@ class DelightfulTTS(BaseTTSE2E):
         """
         figures, audios = self._log(batch=batch, outputs=outputs, name_prefix="vocoder/")
         logger.train_figures(steps, figures)
-        logger.train_audios(steps, audios, self.config.audio.sample_rate)
+        logger.train_audios(steps, audios, self.ap.sample_rate)
 
     def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
         figures, audios = self._log(batch=batch, outputs=outputs, name_prefix="vocoder/")
         logger.eval_figures(steps, figures)
-        logger.eval_audios(steps, audios, self.config.audio.sample_rate)
+        logger.eval_audios(steps, audios, self.ap.sample_rate)
 
     def get_aux_input_from_test_sentences(self, sentence_info):
         if hasattr(self.config, "model_args"):
@@ -1207,20 +1207,20 @@ class DelightfulTTS(BaseTTSE2E):
         energy_avg_pred = outputs["energy"].cpu()
         spec = wav_to_mel(
             y=torch.from_numpy(wav[None, :]),
-            n_fft=self.config.audio.fft_size,
-            sample_rate=self.config.audio.sample_rate,
-            num_mels=self.config.audio.num_mels,
-            hop_length=self.config.audio.hop_length,
-            win_length=self.config.audio.win_length,
-            fmin=self.config.audio.mel_fmin,
-            fmax=self.config.audio.mel_fmax,
+            n_fft=self.ap.fft_size,
+            sample_rate=self.ap.sample_rate,
+            num_mels=self.ap.num_mels,
+            hop_length=self.ap.hop_length,
+            win_length=self.ap.win_length,
+            fmin=self.ap.mel_fmin,
+            fmax=self.ap.mel_fmax,
             center=False,
         )[0].transpose(0, 1)
         pitch = compute_f0(
             x=wav[0],
-            sample_rate=self.config.audio.sample_rate,
-            hop_length=self.config.audio.hop_length,
-            pitch_fmax=self.config.audio.pitch_fmax,
+            sample_rate=self.ap.sample_rate,
+            hop_length=self.ap.hop_length,
+            pitch_fmax=self.ap.pitch_fmax,
         )
         input_text = self.tokenizer.ids_to_text(self.tokenizer.text_to_ids(text, language="en"))
         input_text = input_text.replace("<BLNK>", "_")
@@ -1376,7 +1376,7 @@ class DelightfulTTS(BaseTTSE2E):
     def format_batch_on_device(self, batch):
         """Compute spectrograms on the device."""
 
-        ac = self.config.audio
+        ac = self.ap
 
         # compute spectrograms
         batch["mel_input"] = wav_to_mel(
