@@ -1562,7 +1562,7 @@ class DelightfulTTS(BaseTTSE2E):
         self.energy_scaler.eval()
 
     @staticmethod
-    def init_from_config(config: "SomethingTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False):
+    def init_from_config(config: "DelightfulTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False):
         """Initiate model from config
 
         Args:
