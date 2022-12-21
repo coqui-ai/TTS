@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from TTS.tts.utils.helpers import average_over_durations
-from TTS.tts.layers.d_tts.variance_predictor import VariancePredictor
+from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor
 
 class PitchAdaptor(nn.Module):
     """Module to get pitch embeddings via pitch predictor

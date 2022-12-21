@@ -2,7 +2,7 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from TTS.tts.layers.d_tts.kernel_predictor import KernelPredictor
+from TTS.tts.layers.delightful_tts.kernel_predictor import KernelPredictor
 
 
 def calc_same_padding(kernel_size: int) -> Tuple[int, int]:

@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn  # pylint: disable=consider-using-from-import
 import torch.nn.functional as F
 
-from TTS.tts.layers.d_tts.conv_layers import Conv1dGLU, DepthWiseConv1d, PointwiseConv1d
-from TTS.tts.layers.d_tts.networks import GLUActivation
+from TTS.tts.layers.delightful_tts.conv_layers import Conv1dGLU, DepthWiseConv1d, PointwiseConv1d
+from TTS.tts.layers.delightful_tts.networks import GLUActivation
 
 
 def calc_same_padding(kernel_size: int) -> Tuple[int, int]:
