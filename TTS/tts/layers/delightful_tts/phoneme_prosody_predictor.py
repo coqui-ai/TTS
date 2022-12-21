@@ -1,8 +1,9 @@
+from typing import Dict, Any
+
 import torch
-import torch.nn as nn  # pylint: disable=consider-using-from-import
+import torch.nn as nn
 
-from TTS.tts.layers.delightful_tts.networks import ConvTransposed
-
+from TTS.tts.layers.d_tts.conv_layers import ConvTransposed
 
 class PhonemeProsodyPredictor(nn.Module):
     """Non-parallel Prosody Predictor inspired by: https://arxiv.org/pdf/2102.00851.pdf
@@ -15,8 +16,6 @@ class PhonemeProsodyPredictor(nn.Module):
         dropout: (float): Probability of dropout.
         bottleneck_size (int): bottleneck size for last linear layer.
         lrelu_slope (float): Slope of the leaky relu.
-
-
     """
 
     def __init__(
@@ -55,9 +54,9 @@ class PhonemeProsodyPredictor(nn.Module):
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """
-        x -- [B, src_len, d_model]
-        mask -- [B, src_len]
-        outputs -- [B, src_len, 2 * d_model]
+        Shapes:
+            x: :math: `[B, T, D]`
+            mask: :math: `[B, T]`
         """
         mask = mask.unsqueeze(2)
         for layer in self.layers:

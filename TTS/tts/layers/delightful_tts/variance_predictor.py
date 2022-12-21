@@ -1,12 +1,12 @@
 import torch
-import torch.nn as nn  # pylint: disable=consider-using-from-import
+import torch.nn as nn
 
-from TTS.tts.layers.delightful_tts.networks import BottleneckLayer, ConvLSTMLinear, ConvTransposed
-
+from TTS.tts.layers.d_tts.conv_layers import ConvLSTMLinear, ConvTransposed
+from TTS.tts.layers.d_tts.networks import BottleneckLayer
 
 class VariancePredictorLSTM(nn.Module):
     def __init__(self, in_dim, out_dim=1, reduction_factor=4):
-        super(VariancePredictorLSTM, self).__init__()  # pylint: disable=super-with-arguments
+        super(VariancePredictorLSTM, self).__init__()
         self.bottleneck_layer = BottleneckLayer(
             in_dim, reduction_factor, norm="weightnorm", non_linearity="relu", kernel_size=3, use_partial_padding=False
         )
@@ -48,7 +48,13 @@ class VariancePredictor(nn.Module):
     """
 
     def __init__(
-        self, channels_in: int, channels: int, channels_out: int, kernel_size: int, p_dropout: float, lrelu_slope: float
+        self,
+        channels_in: int,
+        channels: int,
+        channels_out: int,
+        kernel_size: int,
+        p_dropout: float,
+        lrelu_slope: float
     ):
         super().__init__()
 

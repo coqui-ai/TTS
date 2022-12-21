@@ -1,11 +1,12 @@
 from typing import List, Tuple, Union
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from torch import nn
 
-from TTS.tts.layers.delightful_tts.conformer import ConformerMultiHeadedSelfAttention
-from TTS.tts.layers.delightful_tts.networks import STL, CoordConv1d
+from TTS.tts.layers.d_tts.conformer import ConformerMultiHeadedSelfAttention
+from TTS.tts.layers.d_tts.conv_layers import CoordConv1d
+from TTS.tts.layers.d_tts.networks import STL
 
 
 def get_mask_from_lengths(lengths: torch.Tensor) -> torch.Tensor:
@@ -18,6 +19,105 @@ def get_mask_from_lengths(lengths: torch.Tensor) -> torch.Tensor:
 
 def stride_lens(lens: torch.Tensor, stride: int = 2) -> torch.Tensor:
     return torch.ceil(lens / stride).int()
+
+
+class ReferenceEncoder(nn.Module):
+    """
+    Referance encoder for utterance and phoneme prosody encoders. Reference encoder
+    made up of convolution and RNN layers.
+
+    Args:
+        num_mels (int): Number of mel frames to produce.
+        ref_enc_filters (list[int]): List of channel sizes for encoder layers.
+        ref_enc_size (int): Size of the kernel for the conv layers.
+        ref_enc_strides (List[int]): List of strides to use for conv layers.
+        ref_enc_gru_size (int): Number of hidden features for the gated recurrent unit.
+
+    Inputs: inputs, mask
+        - **inputs** (batch, dim, time): Tensor containing mel vector
+        - **lengths** (batch): Tensor containing the mel lengths.
+    Returns:
+        - **outputs** (batch, time, dim): Tensor produced by Reference Encoder.
+    """
+    def __init__(
+        self,
+        num_mels: int,
+        ref_enc_filters: List[Union[int, int, int, int, int, int]],
+        ref_enc_size: int,
+        ref_enc_strides: List[Union[int, int, int, int, int]],
+        ref_enc_gru_size: int,
+    ):
+        super().__init__()
+
+        n_mel_channels = num_mels
+        self.n_mel_channels = n_mel_channels
+        K = len(ref_enc_filters)
+        filters = [self.n_mel_channels] + ref_enc_filters
+        strides = [1] + ref_enc_strides
+        # Use CoordConv at the first layer to better preserve positional information: https://arxiv.org/pdf/1811.02122.pdf
+        convs = [
+            CoordConv1d(
+                in_channels=filters[0],
+                out_channels=filters[0 + 1],
+                kernel_size=ref_enc_size,
+                stride=strides[0],
+                padding=ref_enc_size // 2,
+                with_r=True,
+            )
+        ]
+        convs2 = [
+            nn.Conv1d(
+                in_channels=filters[i],
+                out_channels=filters[i + 1],
+                kernel_size=ref_enc_size,
+                stride=strides[i],
+                padding=ref_enc_size // 2,
+            )
+            for i in range(1, K)
+        ]
+        convs.extend(convs2)
+        self.convs = nn.ModuleList(convs)
+
+        self.norms = nn.ModuleList([nn.InstanceNorm1d(num_features=ref_enc_filters[i], affine=True) for i in range(K)])
+
+        self.gru = nn.GRU(
+            input_size=ref_enc_filters[-1],
+            hidden_size=ref_enc_gru_size,
+            batch_first=True,
+        )
+
+    def forward(self, x: torch.Tensor, mel_lens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        inputs --- [N,  n_mels, timesteps]
+        outputs --- [N, E//2]
+        """
+
+        mel_masks = get_mask_from_lengths(mel_lens).unsqueeze(1)
+        x = x.masked_fill(mel_masks, 0)
+        for conv, norm in zip(self.convs, self.norms):
+            x = conv(x)
+            x = F.leaky_relu(x, 0.3)  # [N, 128, Ty//2^K, n_mels//2^K]
+            x = norm(x)
+
+        for _ in range(2):
+            mel_lens = stride_lens(mel_lens)
+
+        mel_masks = get_mask_from_lengths(mel_lens)
+
+        x = x.masked_fill(mel_masks.unsqueeze(1), 0)
+        x = x.permute((0, 2, 1))
+        x = torch.nn.utils.rnn.pack_padded_sequence(x, mel_lens.cpu().int(), batch_first=True, enforce_sorted=False)
+
+        self.gru.flatten_parameters()
+        x, memory = self.gru(x)  # memory --- [N, Ty, E//2], out --- [1, N, E//2]
+        x, _ = torch.nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
+
+        return x, memory, mel_masks
+
+    def calculate_channels(self, L: int, kernel_size: int, stride: int, pad: int, n_convs: int) -> int:
+        for _ in range(n_convs): # pylint: disable=no-self-use
+            L = (L - kernel_size + 2 * pad) // stride + 1
+        return L
 
 
 class UtteranceLevelProsodyEncoder(nn.Module):
@@ -34,7 +134,7 @@ class UtteranceLevelProsodyEncoder(nn.Module):
         token_num: int,
     ):
         """
-        Encoder to extract prosody from utterance. is up of a reference encoder
+        Encoder to extract prosody from utterance. it is made up of a reference encoder
         with a couple of linear layers and style token layer with dropout.
 
         Args:
@@ -110,6 +210,7 @@ class PhonemeLevelProsodyEncoder(nn.Module):
         self.E = n_hidden
         self.d_q = self.d_k = n_hidden
         bottleneck_size = bottleneck_size_p
+
         self.encoder = ReferenceEncoder(
             ref_enc_filters=ref_enc_filters,
             ref_enc_gru_size=ref_enc_gru_size,
@@ -117,7 +218,6 @@ class PhonemeLevelProsodyEncoder(nn.Module):
             ref_enc_strides=ref_enc_strides,
             num_mels=num_mels,
         )
-
         self.encoder_prj = nn.Linear(ref_enc_gru_size, n_hidden)
         self.attention = ConformerMultiHeadedSelfAttention(
             d_model=n_hidden,
@@ -156,107 +256,3 @@ class PhonemeLevelProsodyEncoder(nn.Module):
         x = self.encoder_bottleneck(x)
         x = x.masked_fill(src_mask.unsqueeze(-1), 0.0)
         return x
-
-
-class ReferenceEncoder(nn.Module):
-    """
-    Referance encoder for utterance and phoneme prosody encoders. Reference encoder
-    made up of convolution and RNN layers.
-
-    Args:
-        num_mels (int): Number of mel frames to produce.
-        ref_enc_filters (list[int]): List of channel sizes for encoder layers.
-        ref_enc_size (int): Size of the kernel for the conv layers.
-        ref_enc_strides (List[int]): List of strides to use for conv layers.
-        ref_enc_gru_size (int): Number of hidden features for the gated recurrent unit.
-
-    Inputs: inputs, mask
-        - **inputs** (batch, dim, time): Tensor containing mel vector
-        - **lengths** (batch): Tensor containing the mel lengths.
-    Returns:
-        - **outputs** (batch, time, dim): Tensor produced by Reference Encoder.
-    """
-
-    def __init__(
-        self,
-        num_mels: int,
-        ref_enc_filters: List[Union[int, int, int, int, int, int]],
-        ref_enc_size: int,
-        ref_enc_strides: List[Union[int, int, int, int, int]],
-        ref_enc_gru_size: int,
-    ):
-        super().__init__()
-
-        n_mel_channels = num_mels
-        self.n_mel_channels = n_mel_channels
-        K = len(ref_enc_filters)
-        filters = [self.n_mel_channels] + ref_enc_filters
-        strides = [1] + ref_enc_strides
-        convs = [
-            CoordConv1d(
-                in_channels=filters[0],
-                out_channels=filters[0 + 1],
-                kernel_size=ref_enc_size,
-                stride=strides[0],
-                padding=ref_enc_size // 2,
-                with_r=True,
-            )
-        ]
-        convs2 = [
-            nn.Conv1d(
-                in_channels=filters[i],
-                out_channels=filters[i + 1],
-                kernel_size=ref_enc_size,
-                stride=strides[i],
-                padding=ref_enc_size // 2,
-            )
-            for i in range(1, K)
-        ]
-        convs.extend(convs2)
-        self.convs = nn.ModuleList(convs)
-
-        self.norms = nn.ModuleList([nn.InstanceNorm1d(num_features=ref_enc_filters[i], affine=True) for i in range(K)])
-
-        self.gru = nn.GRU(
-            input_size=ref_enc_filters[-1],
-            hidden_size=ref_enc_gru_size,
-            batch_first=True,
-        )
-
-    def forward(self, x: torch.Tensor, mel_lens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Shapes:
-            mels: :math: `[B, C, T]`
-            mel_lens: :math: `[B]`
-
-        outputs --- [N, E//2]
-        """
-
-        mel_masks = get_mask_from_lengths(mel_lens).unsqueeze(1)
-        x = x.masked_fill(mel_masks, 0)
-        for conv, norm in zip(self.convs, self.norms):
-            x = conv(x)
-            x = F.leaky_relu(x, 0.3)  # [N, 128, Ty//2^K, n_mels//2^K]
-            x = norm(x)
-
-        for _ in range(2):
-            mel_lens = stride_lens(mel_lens)
-
-        mel_masks = get_mask_from_lengths(mel_lens)
-
-        x = x.masked_fill(mel_masks.unsqueeze(1), 0)
-        x = x.permute((0, 2, 1))
-        x = torch.nn.utils.rnn.pack_padded_sequence(x, mel_lens.cpu().int(), batch_first=True, enforce_sorted=False)
-
-        self.gru.flatten_parameters()
-        x, memory = self.gru(x)  # memory --- [N, Ty, E//2], out --- [1, N, E//2]
-        x, _ = torch.nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
-
-        return x, memory, mel_masks
-
-    def calculate_channels(
-        self, L: int, kernel_size: int, stride: int, pad: int, n_convs: int
-    ) -> int:  # pylint: disable=no-self-use
-        for _ in range(n_convs):
-            L = (L - kernel_size + 2 * pad) // stride + 1
-        return L

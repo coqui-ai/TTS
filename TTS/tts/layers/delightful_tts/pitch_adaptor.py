@@ -1,14 +1,14 @@
-from typing import Callable, Tuple
+from typing import Tuple, Callable
 
 import torch
-import torch.nn as nn  # pylint: disable=consider-using-from-import
+import torch.nn as nn
 
-from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor
 from TTS.tts.utils.helpers import average_over_durations
+from TTS.tts.layers.d_tts.variance_predictor import VariancePredictor
 
-
-class PitchAdaptor(nn.Module):  # pylint: disable=abstract-method
+class PitchAdaptor(nn.Module):
     """Module to get pitch embeddings via pitch predictor
+    
     Args:
         n_input (int): Number of pitch predictor input channels.
         n_hidden (int): Number of pitch predictor hidden channels.
@@ -28,7 +28,6 @@ class PitchAdaptor(nn.Module):  # pylint: disable=abstract-method
         - **pitch embedding** (batch, channels, time1): Tensor produced pitch pitch adaptor
         - **average pitch target(train only)** (batch, 1, time1): Tensor produced after averaging over durations
     """
-
     def __init__(
         self,
         n_input: int,
@@ -71,14 +70,7 @@ class PitchAdaptor(nn.Module):  # pylint: disable=abstract-method
         pitch_emb = self.pitch_emb(avg_pitch_target)  # [B, 1, T_src] --> [B, C_hidden, T_src]
         return pitch_pred, avg_pitch_target, pitch_emb
 
-    def get_pitch_embedding(
-        self,
-        x: torch.Tensor,
-        mask: torch.Tensor,
-        pitch_transform: Callable,
-        pitch_mean: torch.Tensor,
-        pitch_std: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_pitch_embedding(self, x: torch.Tensor, mask: torch.Tensor, pitch_transform: Callable, pitch_mean: torch.Tensor, pitch_std: torch.Tensor) -> torch.Tensor:
         pitch_pred = self.pitch_predictor(x, mask)
         if pitch_transform is not None:
             pitch_pred = pitch_transform(pitch_pred, (~mask).sum(), pitch_mean, pitch_std)

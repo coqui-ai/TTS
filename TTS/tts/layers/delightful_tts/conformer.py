@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn  # pylint: disable=consider-using-from-import
 import torch.nn.functional as F
 
-from TTS.tts.layers.delightful_tts.networks import Conv1dGLU, DepthWiseConv1d, GLUActivation, PointwiseConv1d
+from TTS.tts.layers.d_tts.conv_layers import Conv1dGLU, DepthWiseConv1d, PointwiseConv1d
+from TTS.tts.layers.d_tts.networks import GLUActivation
 
 
 def calc_same_padding(kernel_size: int) -> Tuple[int, int]:
@@ -23,6 +24,7 @@ class Conformer(nn.Module):
         speaker_embedding_dim: int,
         p_dropout: float,
         kernel_size_conv_mod: int,
+        lrelu_slope: float
     ):
         """
         A Tansformer variant that integrates both CNNs and Transformers components.
@@ -36,7 +38,6 @@ class Conformer(nn.Module):
             speaker_embedding_dim (int): Number of speaker embedding dimensions.
             p_dropout (float): Probabilty of dropout.
             kernel_size_conv_mod (int): Size of kernels for convolution modules.
-            emotion_embedding_dim (int): Number of emotion embedding dimensions.
 
         Inputs: inputs, mask
             - **inputs** (batch, time, dim): Tensor containing input vector
@@ -57,6 +58,7 @@ class Conformer(nn.Module):
                     kernel_size_conv_mod=kernel_size_conv_mod,
                     dropout=p_dropout,
                     speaker_embedding_dim=speaker_embedding_dim,
+                    lrelu_slope=lrelu_slope
                 )
                 for _ in range(n_layers)
             ]
@@ -74,7 +76,6 @@ class Conformer(nn.Module):
             - x: :math:`[B, T_src, C]`
             - mask: :math: `[B]`
             - speaker_embedding: :math: `[B, C]`
-            - emotion_embedding: :math: `[B, C]`
             - encoding: :math: `[B, T_max2, C]`
         """
         attn_mask = mask.view((mask.shape[0], 1, 1, mask.shape[1]))
@@ -99,6 +100,7 @@ class ConformerBlock(torch.nn.Module):
         kernel_size_conv_mod: int,
         speaker_embedding_dim: int,
         dropout: float,
+        lrelu_slope: float = 0.3
     ):
         """
         A Conformer block is composed of four modules stacked together,
@@ -131,11 +133,11 @@ class ConformerBlock(torch.nn.Module):
                 embedding_dim=speaker_embedding_dim,
             )
 
-        self.ff = FeedForward(d_model=d_model, dropout=dropout, kernel_size=3)
-        self.conformer_conv_1 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout)
+        self.ff = FeedForward(d_model=d_model, dropout=dropout, kernel_size=3, lrelu_slope=lrelu_slope)
+        self.conformer_conv_1 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout, lrelu_slope=lrelu_slope)
         self.ln = nn.LayerNorm(d_model)
         self.slf_attn = ConformerMultiHeadedSelfAttention(d_model=d_model, num_heads=n_head, dropout_p=dropout)
-        self.conformer_conv_2 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout)
+        self.conformer_conv_2 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout, lrelu_slope=lrelu_slope)
 
     def forward(
         self,
@@ -168,6 +170,61 @@ class ConformerBlock(torch.nn.Module):
         return x
 
 
+class FeedForward(nn.Module):
+    def __init__(
+        self, 
+        d_model: int, 
+        kernel_size: int, 
+        dropout: float, 
+        lrelu_slope: float,
+        expansion_factor: int = 4,
+    ):
+        """
+        Feed Forward module for conformer block.
+
+        Args:
+            d_model (int): The dimension of model.
+            kernel_size (int): Size of the kernels for conv layers.
+            dropout (float): probability of dropout.
+            expansion_factor (int): The factor by which to project the number of channels.
+            lrelu_slope (int): the negative slope factor for the leaky relu activation.
+
+        Inputs: inputs
+            - **inputs** (batch, time, dim): Tensor containing input vector
+        Returns:
+            - **outputs** (batch, time, dim): Tensor produced by the feed forward module.
+        """
+        super().__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.ln = nn.LayerNorm(d_model)
+        self.conv_1 = nn.Conv1d(
+            d_model,
+            d_model * expansion_factor,
+            kernel_size=kernel_size,
+            padding=kernel_size // 2,
+        )
+        self.act = nn.LeakyReLU(lrelu_slope)
+        self.conv_2 = nn.Conv1d(d_model * expansion_factor, d_model, kernel_size=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Shapes:
+            x: :math: `[B, T, C]`
+        """
+        x = self.ln(x)
+        x = x.permute((0, 2, 1))
+        x = self.conv_1(x)
+        x = x.permute((0, 2, 1))
+        x = self.act(x)
+        x = self.dropout(x)
+        x = x.permute((0, 2, 1))
+        x = self.conv_2(x)
+        x = x.permute((0, 2, 1))
+        x = self.dropout(x)
+        x = 0.5 * x
+        return x
+
+
 class ConformerConvModule(nn.Module):
     def __init__(
         self,
@@ -175,13 +232,13 @@ class ConformerConvModule(nn.Module):
         expansion_factor: int = 2,
         kernel_size: int = 7,
         dropout: float = 0.1,
-        lrelu_slope: float = 0.3,
+        lrelu_slope: float = 0.3
     ):
         """
-            Convolution module for conformer. Starts with a gating machanism.
-            a pointwise convolution and a gated linear unit (GLU). This is followed
-            by a single 1-D depthwise convolution layer. Batchnorm is deployed just after the convolution
-            to help with training. it also contains an expansion factor to project the number of channels.
+        Convolution module for conformer. Starts with a gating machanism.
+        a pointwise convolution and a gated linear unit (GLU). This is followed
+        by a single 1-D depthwise convolution layer. Batchnorm is deployed just after the convolution
+        to help with training. it also contains an expansion factor to project the number of channels.
 
         Args:
             d_model (int): The dimension of model.
@@ -200,7 +257,7 @@ class ConformerConvModule(nn.Module):
         inner_dim = d_model * expansion_factor
         self.ln_1 = nn.LayerNorm(d_model)
         self.conv_1 = PointwiseConv1d(d_model, inner_dim * 2)
-        self.conv_act = GLUActivation()
+        self.conv_act = GLUActivation(slope=lrelu_slope)
         self.depthwise = DepthWiseConv1d(
             inner_dim,
             inner_dim,
@@ -241,14 +298,19 @@ class ConformerMultiHeadedSelfAttention(nn.Module):
         d_model (int): The dimension of model
         num_heads (int): The number of attention heads.
         dropout_p (float): probability of dropout
-    Inputs: inputs
+    Inputs: inputs, mask
         - **inputs** (batch, time, dim): Tensor containing input vector
         - **mask** (batch, 1, time2) or (batch, time1, time2): Tensor containing indices to be masked
     Returns:
         - **outputs** (batch, time, dim): Tensor produces by relative multi headed self attention module.
     """
 
-    def __init__(self, d_model: int, num_heads: int, dropout_p: float):
+    def __init__(
+        self, 
+        d_model: int, 
+        num_heads: int, 
+        dropout_p: float
+    ):
         super().__init__()
         self.attention = RelativeMultiHeadAttention(d_model=d_model, num_heads=num_heads)
         self.dropout = nn.Dropout(p=dropout_p)
@@ -261,60 +323,12 @@ class ConformerMultiHeadedSelfAttention(nn.Module):
         mask: torch.Tensor,
         encoding: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch_size, _, _ = key.size()
+        batch_size, seq_length, _ = key.size()
         encoding = encoding[:, : key.shape[1]]
         encoding = encoding.repeat(batch_size, 1, 1)
         outputs, attn = self.attention(query, key, value, pos_embedding=encoding, mask=mask)
         outputs = self.dropout(outputs)
         return outputs, attn
-
-
-class FeedForward(nn.Module):
-    """
-    Feed Forward module for conformer block.
-
-    Args:
-        d_model (int): The dimension of model.
-        kernel_size (int): Size of the kernels for conv layers.
-        dropout (float): probability of dropout.
-        expansion_factor (int): The factor by which to project the number of channels.
-
-    Inputs: inputs
-        - **inputs** (batch, time, dim): Tensor containing input vector
-    Returns:
-        - **outputs** (batch, time, dim): Tensor produced by the feed forward module.
-    """
-
-    def __init__(self, d_model: int, kernel_size: int, dropout: float, expansion_factor: int = 4):
-        super().__init__()
-        self.dropout = nn.Dropout(dropout)
-        self.ln = nn.LayerNorm(d_model)
-        self.conv_1 = nn.Conv1d(
-            d_model,
-            d_model * expansion_factor,
-            kernel_size=kernel_size,
-            padding=kernel_size // 2,
-        )
-        self.act = nn.LeakyReLU(0.3)
-        self.conv_2 = nn.Conv1d(d_model * expansion_factor, d_model, kernel_size=1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Shapes:
-            x: :math: `[B, T, C]`
-        """
-        x = self.ln(x)
-        x = x.permute((0, 2, 1))
-        x = self.conv_1(x)
-        x = x.permute((0, 2, 1))
-        x = self.act(x)
-        x = self.dropout(x)
-        x = x.permute((0, 2, 1))
-        x = self.conv_2(x)
-        x = x.permute((0, 2, 1))
-        x = self.dropout(x)
-        x = 0.5 * x
-        return x
 
 
 class RelativeMultiHeadAttention(nn.Module):
@@ -390,14 +404,14 @@ class RelativeMultiHeadAttention(nn.Module):
 
         return self.out_proj(context), attn
 
-    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor:  # pylint: disable=no-self-use
+    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor:
         batch_size, num_heads, seq_length1, seq_length2 = pos_score.size()
         zeros = torch.zeros((batch_size, num_heads, seq_length1, 1), device=pos_score.device)
         padded_pos_score = torch.cat([zeros, pos_score], dim=-1)
         padded_pos_score = padded_pos_score.view(batch_size, num_heads, seq_length2 + 1, seq_length1)
         pos_score = padded_pos_score[:, :, 1:].view_as(pos_score)
         return pos_score
-
+    
 
 class MultiHeadAttention(nn.Module):
     """
@@ -409,6 +423,7 @@ class MultiHeadAttention(nn.Module):
     """
 
     def __init__(self, query_dim: int, key_dim: int, num_units: int, num_heads: int):
+
         super().__init__()
         self.num_units = num_units
         self.num_heads = num_heads
