@@ -1,4 +1,3 @@
-from email.policy import default
 from typing import Callable, Dict, List, Union
 
 from TTS.tts.utils.text import cleaners
