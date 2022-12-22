@@ -17,7 +17,6 @@ class MultiPhonemizer:
     lang_to_phonemizer = {}
 
     def __init__(self, lang_to_phonemizer_name: Dict = {}) -> None:  # pylint: disable=dangerous-default-value
-        print(DEF_LANG_TO_PHONEMIZER)
         for k, v in lang_to_phonemizer_name.items():
             if v == "" and k in DEF_LANG_TO_PHONEMIZER.keys():
                 lang_to_phonemizer_name[k] = DEF_LANG_TO_PHONEMIZER[k]

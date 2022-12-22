@@ -2,6 +2,7 @@ import unittest
 from distutils.version import LooseVersion
 
 from TTS.tts.utils.text.phonemizers import ESpeak, Gruut, JA_JP_Phonemizer, ZH_CN_Phonemizer
+from TTS.tts.utils.text.phonemizers.multi_phonemizer import MultiPhonemizer
 
 EXAMPLE_TEXTs = [
     "Recent research at Harvard has shown meditating",
@@ -226,3 +227,44 @@ class TestZH_CN_Phonemizer(unittest.TestCase):
 
     def test_is_available(self):
         self.assertTrue(self.phonemizer.is_available())
+
+
+class TestMultiPhonemizer(unittest.TestCase):
+    def setUp(self):
+        self.phonemizer = MultiPhonemizer({"tr": "espeak", "en-us": "", "de": "gruut", "zh-cn": ""})
+
+    def test_phonemize(self):
+    
+        # Enlish espeak
+        text = "Be a voice, not an! echo?"
+        gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ?"
+        output = self.phonemizer.phonemize(text, separator="|", language="en-us")
+        output = output.replace("|", "")
+        self.assertEqual(output, gt)
+
+        # German gruut
+        text = "Hallo, das ist ein Deutches Beipiel!"
+        gt = "haloː, das ɪst aeːn dɔɔʏ̯tçəs bəʔiːpiːl!"
+        output = self.phonemizer.phonemize(text, separator="|", language="de")
+        output = output.replace("|", "")
+        self.assertEqual(output, gt)
+
+    def test_phonemizer_initialization(self):
+        # test with unsupported language
+        with self.assertRaises(ValueError):
+            MultiPhonemizer({"tr": "espeak", "xx": ""})
+
+        # test with unsupported phonemizer
+        with self.assertRaises(ValueError):
+            MultiPhonemizer({"tr": "espeak", "fr": "xx"})
+
+    def test_sub_phonemizers(self):
+        for lang in self.phonemizer.lang_to_phonemizer_name.keys():
+            self.assertEqual(lang, self.phonemizer.lang_to_phonemizer[lang].language)
+            self.assertEqual(self.phonemizer.lang_to_phonemizer_name[lang], self.phonemizer.lang_to_phonemizer[lang].name())
+          
+    def test_name(self):
+        self.assertEqual(self.phonemizer.name(), "multi-phonemizer")
+
+    def test_get_supported_languages(self):
+        self.assertIsInstance(self.phonemizer.supported_languages(), list)
