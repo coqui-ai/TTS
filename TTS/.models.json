@@ -4,7 +4,7 @@
             "multi-dataset":{
                 "your_tts":{
                     "description": "Your TTS model accompanying the paper https://arxiv.org/abs/2112.02418",
-                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--multilingual--multi-dataset--your_tts.zip",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.1_models/tts_models--multilingual--multi-dataset--your_tts.zip",
                     "default_vocoder": null,
                     "commit": "e9a1953e",
                     "license": "CC BY-NC-ND 4.0",
