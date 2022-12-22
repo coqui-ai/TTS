@@ -416,10 +416,7 @@ class BaseTTS(BaseTrainerModel):
         """Save the speaker.pth and language_ids.json at the beginning of the training. Also update both paths."""
         if self.speaker_manager is not None:
             output_path = os.path.join(trainer.output_path, "speakers.pth")
-            if trainer.config.use_d_vector_file and trainer.config.d_vector_file:
-                self.speaker_manager.save_embeddings_to_file(output_path)
-            else:
-                self.speaker_manager.save_ids_to_file(output_path)
+            self.speaker_manager.save_ids_to_file(output_path)
             trainer.config.speakers_file = output_path
             # some models don't have `model_args` set
             if hasattr(trainer.config, "model_args"):
