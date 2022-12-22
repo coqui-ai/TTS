@@ -230,6 +230,13 @@ class BaseTTSConfig(BaseTrainingConfig):
             If True, the data loader will start loading the longest batch first. It is useful for checking OOM issues.
             Defaults to False.
 
+        shuffle (bool):
+            If True, the data loader will shuffle the dataset when there is not sampler defined. Defaults to True.
+
+        drop_last (bool):
+            If True, the data loader will drop the last batch if it is not complete. It helps to prevent
+            issues that emerge from the partial batch statistics. Defaults to True.
+
         add_blank (bool):
             Add blank characters between each other two characters. It improves performance for some models at expense
             of slower run-time due to the longer input sequence.
@@ -309,6 +316,8 @@ class BaseTTSConfig(BaseTrainingConfig):
     precompute_num_workers: int = 0
     use_noise_augment: bool = False
     start_by_longest: bool = False
+    shuffle: bool = False
+    drop_last: bool = False
     # dataset
     datasets: List[BaseDatasetConfig] = field(default_factory=lambda: [BaseDatasetConfig()])
     # optimizer
