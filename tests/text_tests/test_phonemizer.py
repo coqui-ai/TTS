@@ -261,7 +261,9 @@ class TestMultiPhonemizer(unittest.TestCase):
     def test_sub_phonemizers(self):
         for lang in self.phonemizer.lang_to_phonemizer_name.keys():
             self.assertEqual(lang, self.phonemizer.lang_to_phonemizer[lang].language)
-            self.assertEqual(self.phonemizer.lang_to_phonemizer_name[lang], self.phonemizer.lang_to_phonemizer[lang].name())
+            self.assertEqual(
+                self.phonemizer.lang_to_phonemizer_name[lang], self.phonemizer.lang_to_phonemizer[lang].name()
+            )
 
     def test_name(self):
         self.assertEqual(self.phonemizer.name(), "multi-phonemizer")
