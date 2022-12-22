@@ -478,7 +478,7 @@ class VitsArgs(Coqpit):
             Enable/Disable the use of d-vectors for multi-speaker training. Defaults to False.
 
         d_vector_file (List[str]):
-            A List of paths to the files including pre-computed speaker embeddings. Defaults to None.
+            List of paths to the files including pre-computed speaker embeddings. Defaults to None.
 
         d_vector_dim (int):
             Number of d-vector channels. Defaults to 0.

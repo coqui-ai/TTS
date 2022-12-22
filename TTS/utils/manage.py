@@ -333,10 +333,18 @@ class ModelManager(object):
                         sub_conf = sub_conf[fd]
                     else:
                         return
-                sub_conf[field_names[-1]] = new_path
+                if isinstance(sub_conf[field_names[-1]], list): 
+                    sub_conf[field_names[-1]] = [new_path]
+                else:
+                    sub_conf[field_names[-1]] = new_path
             else:
                 # field name points to a top-level field
-                config[field_name] = new_path
+                if not field_name in config:
+                    return
+                if isinstance(config[field_name], list): 
+                    config[field_name] = [new_path]
+                else:
+                    config[field_name] = new_path
             config.save_json(config_path)
 
     @staticmethod
