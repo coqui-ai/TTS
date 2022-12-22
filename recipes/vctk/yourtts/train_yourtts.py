@@ -57,7 +57,25 @@ if not os.path.exists(VCTK_DOWNLOAD_PATH):
 
 # init configs
 vctk_config = BaseDatasetConfig(
-    formatter="vctk", dataset_name="vctk", meta_file_train="", meta_file_val="", path=VCTK_DOWNLOAD_PATH, language="en"
+    formatter="vctk",
+    dataset_name="vctk",
+    meta_file_train="",
+    meta_file_val="",
+    path=VCTK_DOWNLOAD_PATH,
+    language="en",
+    ignored_speakers=[
+        "p261",
+        "p225",
+        "p294",
+        "p347",
+        "p238",
+        "p234",
+        "p248",
+        "p335",
+        "p245",
+        "p326",
+        "p302",
+    ],  # Ignore the test speakers to full replicate the paper experiment
 )
 
 # Add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK. Note: If you want to added new datasets just added they here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
@@ -114,8 +132,6 @@ model_args = VitsArgs(
     resblock_type_decoder="2",  # On the paper, we accidentally trained the YourTTS using ResNet blocks type 2, if you like you can use the ResNet blocks type 1 like the VITS model
     # Usefull parameters to enable the Speaker Consistency Loss (SCL) discribed in the paper
     # use_speaker_encoder_as_loss=True,
-    # speaker_encoder_model_path=SPEAKER_ENCODER_CHECKPOINT_PATH,
-    # speaker_encoder_config_path=SPEAKER_ENCODER_CONFIG_PATH,
     # Usefull parameters to the enable multilingual training
     # use_language_embedding=True,
     # embedded_language_dim=4,
