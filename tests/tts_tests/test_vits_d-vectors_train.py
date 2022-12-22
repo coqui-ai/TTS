@@ -33,7 +33,7 @@ config.audio.trim_db = 60
 
 # active multispeaker d-vec mode
 config.model_args.use_d_vector_file = True
-config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
+config.model_args.d_vector_file = ["tests/data/ljspeech/speakers.json"]
 config.model_args.d_vector_dim = 256
 
 
