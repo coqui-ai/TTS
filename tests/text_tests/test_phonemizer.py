@@ -234,7 +234,7 @@ class TestMultiPhonemizer(unittest.TestCase):
         self.phonemizer = MultiPhonemizer({"tr": "espeak", "en-us": "", "de": "gruut", "zh-cn": ""})
 
     def test_phonemize(self):
-    
+
         # Enlish espeak
         text = "Be a voice, not an! echo?"
         gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ?"
@@ -262,7 +262,7 @@ class TestMultiPhonemizer(unittest.TestCase):
         for lang in self.phonemizer.lang_to_phonemizer_name.keys():
             self.assertEqual(lang, self.phonemizer.lang_to_phonemizer[lang].language)
             self.assertEqual(self.phonemizer.lang_to_phonemizer_name[lang], self.phonemizer.lang_to_phonemizer[lang].name())
-          
+
     def test_name(self):
         self.assertEqual(self.phonemizer.name(), "multi-phonemizer")
 
