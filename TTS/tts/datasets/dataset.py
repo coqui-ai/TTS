@@ -10,6 +10,7 @@ import tqdm
 from torch.utils.data import Dataset
 
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
+from TTS.utils.audio.numpy_transforms import compute_energy
 from TTS.utils.audio import AudioProcessor
 
 # to prevent too many open files error as suggested here
@@ -899,7 +900,7 @@ class EnergyDataset:
     @staticmethod
     def _compute_and_save_energy(ap, wav_file, energy_file=None):
         wav = ap.load_wav(wav_file)
-        energy = ap.compute_energy(wav)
+        energy = compute_energy(wav)
         if energy_file:
             np.save(energy_file, energy)
         return energy
