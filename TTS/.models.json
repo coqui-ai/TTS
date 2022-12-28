@@ -141,7 +141,7 @@
                     "license": "bsd-3-clause",
                     "contact": null,
                     "commit": null
-                },   
+                },
                 "fast_pitch": {
                     "description": "FastPitch model trained on LJSpeech using the Aligner Network",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--ljspeech--fast_pitch.zip",
@@ -150,6 +150,15 @@
                     "author": "Eren Gölge @erogol",
                     "license": "apache 2.0",
                     "contact": "egolge@coqui.com"
+                },
+                "overflow": {
+                    "description": "Overflow model trained on LJSpeech",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.0_models/tts_models--en--ljspeech--overflow.zip",
+                    "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
+                    "commit": "3b1a28f",
+                    "author": "Eren Gölge @erogol",
+                    "license": "apache 2.0",
+                    "contact": "egolge@coqui.ai"
                 }
             },
             "vctk": {
@@ -223,7 +232,7 @@
                     "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
                 }
-            } 
+            }
         },
         "fr": {
             "mai": {
@@ -606,6 +615,30 @@
                     "commit": null,
                     "author": "@NeonGeckoCom",
                     "license": "bsd-3-clause"
+                }
+            }
+        },
+        "ca": {
+            "custom": {
+                "vits":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.1_models/tts_models--ca--custom--vits.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "description": " It is trained from zero with 101460 utterances consisting of 257 speakers, approx 138 hours of speech. We used three datasets;\nFestcat and Google Catalan TTS (both TTS datasets) and also a part of Common Voice 8. It is trained with TTS v0.8.0.\nhttps://github.com/coqui-ai/TTS/discussions/930#discussioncomment-4466345",
+                    "author": "@gullabi",
+                    "license": "CC-BY-4.0"
+                }
+            }
+        },
+        "fa":{
+            "custom":{
+                "glow-tts": {
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.1_models/tts_models--fa--custom--glow-tts.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "description": "persian-tts-female-glow_tts model for text to speech purposes. Single-speaker female voice Trained on persian-tts-dataset-famale. \nThis model has no compatible vocoder thus the output quality is not very good. \nDataset: https://www.kaggle.com/datasets/magnoliasis/persian-tts-dataset-famale.",
+                    "author": "@karim23657",
+                    "license": "CC-BY-4.0"
                 }
             }
         }

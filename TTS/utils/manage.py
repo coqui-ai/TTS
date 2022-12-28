@@ -35,11 +35,13 @@ class ModelManager(object):
         models_file (str): path to .model.json file. Defaults to None.
         output_prefix (str): prefix to `tts` to download models. Defaults to None
         progress_bar (bool): print a progress bar when donwloading a file. Defaults to False.
+        verbose (bool): print info. Defaults to True.
     """
 
-    def __init__(self, models_file=None, output_prefix=None, progress_bar=False):
+    def __init__(self, models_file=None, output_prefix=None, progress_bar=False, verbose=True):
         super().__init__()
         self.progress_bar = progress_bar
+        self.verbose = verbose
         if output_prefix is None:
             self.output_prefix = get_user_data_dir("tts")
         else:
@@ -62,30 +64,31 @@ class ModelManager(object):
             self.models_dict = json.load(json_file)
 
     def _list_models(self, model_type, model_count=0):
+        if self.verbose:
+            print(" Name format: type/language/dataset/model")
         model_list = []
         for lang in self.models_dict[model_type]:
             for dataset in self.models_dict[model_type][lang]:
                 for model in self.models_dict[model_type][lang][dataset]:
                     model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
                     output_path = os.path.join(self.output_prefix, model_full_name)
-                    if os.path.exists(output_path):
-                        print(f" {model_count}: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
-                    else:
-                        print(f" {model_count}: {model_type}/{lang}/{dataset}/{model}")
+                    if self.verbose:
+                        if os.path.exists(output_path):
+                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
+                        else:
+                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model}")
                     model_list.append(f"{model_type}/{lang}/{dataset}/{model}")
                     model_count += 1
         return model_list
 
     def _list_for_model_type(self, model_type):
-        print(" Name format: language/dataset/model")
         models_name_list = []
         model_count = 1
         model_type = "tts_models"
         models_name_list.extend(self._list_models(model_type, model_count))
-        return [name.replace(model_type + "/", "") for name in models_name_list]
+        return models_name_list
 
     def list_models(self):
-        print(" Name format: type/language/dataset/model")
         models_name_list = []
         model_count = 1
         for model_type in self.models_dict:
@@ -295,7 +298,9 @@ class ModelManager(object):
         """
         output_stats_path = os.path.join(output_path, "scale_stats.npy")
         output_d_vector_file_path = os.path.join(output_path, "speakers.json")
+        output_d_vector_file_pth_path = os.path.join(output_path, "speakers.pth")
         output_speaker_ids_file_path = os.path.join(output_path, "speaker_ids.json")
+        output_speaker_ids_file_pth_path = os.path.join(output_path, "speaker_ids.pth")
         speaker_encoder_config_path = os.path.join(output_path, "config_se.json")
         speaker_encoder_model_path = self._find_speaker_encoder(output_path)
 
@@ -304,11 +309,15 @@ class ModelManager(object):
 
         # update the speakers.json file path in the model config.json to the current path
         self._update_path("d_vector_file", output_d_vector_file_path, config_path)
+        self._update_path("d_vector_file", output_d_vector_file_pth_path, config_path)
         self._update_path("model_args.d_vector_file", output_d_vector_file_path, config_path)
+        self._update_path("model_args.d_vector_file", output_d_vector_file_pth_path, config_path)
 
         # update the speaker_ids.json file path in the model config.json to the current path
         self._update_path("speakers_file", output_speaker_ids_file_path, config_path)
+        self._update_path("speakers_file", output_speaker_ids_file_pth_path, config_path)
         self._update_path("model_args.speakers_file", output_speaker_ids_file_path, config_path)
+        self._update_path("model_args.speakers_file", output_speaker_ids_file_pth_path, config_path)
 
         # update the speaker_encoder file path in the model config.json to the current path
         self._update_path("speaker_encoder_model_path", speaker_encoder_model_path, config_path)
@@ -363,7 +372,8 @@ class ModelManager(object):
         for file_path in z.namelist()[1:]:
             src_path = os.path.join(output_folder, file_path)
             dst_path = os.path.join(output_folder, os.path.basename(file_path))
-            copyfile(src_path, dst_path)
+            if src_path != dst_path:
+                copyfile(src_path, dst_path)
         # remove the extracted folder
         rmtree(os.path.join(output_folder, z.namelist()[0]))
 

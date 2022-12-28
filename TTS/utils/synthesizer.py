@@ -62,7 +62,6 @@ class Synthesizer(object):
         self.tts_model = None
         self.vocoder_model = None
         self.speaker_manager = None
-        self.num_speakers = 0
         self.tts_speakers = {}
         self.language_manager = None
         self.num_languages = 0
