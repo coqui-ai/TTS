@@ -19,7 +19,8 @@ class PositionalEncoding(nn.Module):
         super().__init__()
         if channels % 2 != 0:
             raise ValueError(
-                "Cannot use sin/cos positional encoding with " "odd channels (got channels={:d})".format(channels)
+                "Cannot use sin/cos positional encoding with "
+                "odd channels (got channels={:d})".format(channels)
             )
         self.use_scale = use_scale
         if use_scale:
