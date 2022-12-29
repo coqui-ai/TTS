@@ -176,11 +176,7 @@ class ESpeak(BasePhonemizer):
                 args.append("--ipa=1")
         if tie:
             args.append("--tie=%s" % tie)
-           
-        # espeak crash on this string: https://sourceforge.net/p/espeak/mailman/message/27000413/
-        # working on espeak & espeak-ng both
         args.append(" -- ")
-
         args.append('"' + text + '"')
         # compute phonemes
         phonemes = ""
