@@ -100,7 +100,7 @@
                     "description": "",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/tts_models--en--ljspeech--glow-tts.zip",
                     "stats_file": null,
-                    "default_vocoder": "vocoder_models/en/ljspeech/multiband-melgan",
+                    "default_vocoder": "vocoder_models/en/ljspeech/univnet",
                     "commit": "",
                     "author": "Eren Gölge @erogol",
                     "license": "MPL",
