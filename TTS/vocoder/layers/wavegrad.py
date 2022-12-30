@@ -26,18 +26,12 @@ class PositionalEncoding(nn.Module):
     def forward(self, x, noise_level):
         if x.shape[2] > self.pe.shape[1]:
             self.init_pe_matrix(x.shape[1], x.shape[2], x)
-        return (
-            x
-            + noise_level[..., None, None]
-            + self.pe[:, : x.size(2)].repeat(x.shape[0], 1, 1) / self.C
-        )
+        return x + noise_level[..., None, None] + self.pe[:, : x.size(2)].repeat(x.shape[0], 1, 1) / self.C
 
     def init_pe_matrix(self, n_channels, max_len, x):
         pe = torch.zeros(max_len, n_channels)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, n_channels, 2).float() * -(math.log(10000.0) / n_channels)
-        )
+        div_term = torch.exp(torch.arange(0, n_channels, 2).float() * -(math.log(10000.0) / n_channels))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         self.pe = pe.transpose(0, 1).to(x)
