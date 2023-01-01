@@ -111,7 +111,7 @@ class BaseTTS(BaseTrainerModel):
         """Prepare and return `aux_input` used by `forward()`"""
         return {"speaker_id": None, "style_wav": None, "d_vector": None, "language_id": None}
 
-    def get_aux_input_from_test_setences(self, sentence_info):
+    def get_aux_input_from_test_sentences(self, sentence_info):
         if hasattr(self.config, "model_args"):
             config = self.config.model_args
         else:
