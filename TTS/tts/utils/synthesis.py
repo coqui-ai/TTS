@@ -175,9 +175,15 @@ def synthesis(
         style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
         style_mel = style_mel.transpose(1, 2)  # [1, time, depth]
 
+    language_name = None
+    if language_id is not None:
+        language = [k for k, v in model.language_manager.name_to_id.items() if v == language_id]
+        assert len(language) == 1, "language_id must be a valid language"
+        language_name = language[0]
+
     # convert text to sequence of token IDs
     text_inputs = np.asarray(
-        model.tokenizer.text_to_ids(text, language=language_id),
+        model.tokenizer.text_to_ids(text, language=language_name),
         dtype=np.int32,
     )
     # pass tensors to backend

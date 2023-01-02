@@ -569,14 +569,14 @@ class PhonemeDataset(Dataset):
 
     def __getitem__(self, index):
         item = self.samples[index]
-        ids = self.compute_or_load(string2filename(item["audio_unique_name"]), item["text"])
+        ids = self.compute_or_load(string2filename(item["audio_unique_name"]), item["text"], item["language"])
         ph_hat = self.tokenizer.ids_to_text(ids)
         return {"text": item["text"], "ph_hat": ph_hat, "token_ids": ids, "token_ids_len": len(ids)}
 
     def __len__(self):
         return len(self.samples)
 
-    def compute_or_load(self, file_name, text):
+    def compute_or_load(self, file_name, text, language):
         """Compute phonemes for the given text.
 
         If the phonemes are already cached, load them from cache.
@@ -586,7 +586,7 @@ class PhonemeDataset(Dataset):
         try:
             ids = np.load(cache_path)
         except FileNotFoundError:
-            ids = self.tokenizer.text_to_ids(text)
+            ids = self.tokenizer.text_to_ids(text, language=language)
             np.save(cache_path, ids)
         return ids
 

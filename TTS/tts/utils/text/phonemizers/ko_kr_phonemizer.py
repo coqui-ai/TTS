@@ -40,7 +40,7 @@ class KO_KR_Phonemizer(BasePhonemizer):
             return separator.join(ph)
         return ph
 
-    def phonemize(self, text: str, separator: str = "", character: str = "hangeul") -> str:
+    def phonemize(self, text: str, separator: str = "", character: str = "hangeul", language=None) -> str:
         return self._phonemize(text, separator, character)
 
     @staticmethod

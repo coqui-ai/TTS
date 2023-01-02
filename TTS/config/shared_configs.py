@@ -212,6 +212,9 @@ class BaseDatasetConfig(Coqpit):
         language (str):
             Language code of the dataset. If defined, it overrides `phoneme_language`. Defaults to `""`.
 
+        phonemizer (str):
+            Phonemizer used for that dataset's language. By default it uses `DEF_LANG_TO_PHONEMIZER`. Defaults to `""`.
+
         meta_file_val (str):
             Name of the dataset meta file that defines the instances used at validation.
 
@@ -226,6 +229,7 @@ class BaseDatasetConfig(Coqpit):
     meta_file_train: str = ""
     ignored_speakers: List[str] = None
     language: str = ""
+    phonemizer: str = ""
     meta_file_val: str = ""
     meta_file_attn_mask: str = ""
 
