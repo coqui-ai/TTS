@@ -235,6 +235,9 @@ class EmbeddingManager(BaseIDManager):
             self.embeddings_by_names.update(embeddings_by_names)
             self.embeddings.update(embeddings)
 
+        # reset name_to_id to get the right speaker ids
+        self.name_to_id = {name: i for i, name in enumerate(self.name_to_id)}
+
     def get_embedding_by_clip(self, clip_idx: str) -> List:
         """Get embedding by clip ID.
 
