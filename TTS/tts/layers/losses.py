@@ -800,7 +800,7 @@ class ForwardTTSLoss(nn.Module):
         if c.model_args.use_pitch:
             self.pitch_loss = MSELossMasked(False)
             self.pitch_loss_alpha = c.pitch_loss_alpha
-            
+
         if c.model_args.use_energy:
             self.energy_loss = MSELossMasked(False)
             self.energy_loss_alpha = c.energy_loss_alpha
