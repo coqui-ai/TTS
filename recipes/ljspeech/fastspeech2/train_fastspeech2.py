@@ -4,7 +4,7 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig, BaseDatasetConfig
-from TTS.tts.configs.fastspeech2_config import FastSpeech2Config
+from TTS.tts.configs.fastspeech2_config import Fastspeech2Config
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.forward_tts import ForwardTTS
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -34,7 +34,7 @@ audio_config = BaseAudioConfig(
     preemphasis=0.0,
 )
 
-config = FastSpeech2Config(
+config = Fastspeech2Config(
     run_name="fastspeech2_ljspeech",
     audio=audio_config,
     batch_size=32,
