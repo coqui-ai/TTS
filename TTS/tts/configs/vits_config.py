@@ -167,7 +167,7 @@ class VitsConfig(BaseTTSConfig):
 
     # use d-vectors
     use_d_vector_file: bool = False
-    d_vector_file: str = None
+    d_vector_file: List[str] = None
     d_vector_dim: int = None
 
     def __post_init__(self):
