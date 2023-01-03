@@ -6,7 +6,7 @@ from TTS.tts.models.forward_tts import ForwardTTSArgs
 
 
 @dataclass
-class FastSpeech2Config(BaseTTSConfig):
+class Fastspeech2Config(BaseTTSConfig):
     """Configure `ForwardTTS` as FastPitch model.
 
     Example:
