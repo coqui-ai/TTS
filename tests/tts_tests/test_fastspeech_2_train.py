@@ -7,7 +7,7 @@ from trainer import get_last_checkpoint
 
 from tests import get_device_id, get_tests_output_path, run_cli
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.tts.configs.fast_pitch_config import FastSpeech2Config
+from TTS.tts.configs.fastspeech2_config import FastSpeech2Config
 
 config_path = os.path.join(get_tests_output_path(), "test_model_config.json")
 output_path = os.path.join(get_tests_output_path(), "train_outputs")
