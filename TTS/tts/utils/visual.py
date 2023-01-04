@@ -119,6 +119,7 @@ def plot_avg_pitch(pitch, chars, fig_size=(30, 10), output_fig=False):
         plt.close()
     return fig
 
+
 def plot_avg_energy(energy, chars, fig_size=(30, 10), output_fig=False):
     """Plot energy curves on top of the input characters.
 
@@ -150,6 +151,7 @@ def plot_avg_energy(energy, chars, fig_size=(30, 10), output_fig=False):
     if not output_fig:
         plt.close()
     return fig
+
 
 def visualize(
     alignment,

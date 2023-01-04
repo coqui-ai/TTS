@@ -4,7 +4,7 @@ import librosa
 import numpy as np
 import scipy
 import soundfile as sf
-from librosa import pyin, magphase
+from librosa import magphase, pyin
 
 # For using kwargs
 # pylint: disable=unused-argument
@@ -302,25 +302,28 @@ def compute_f0(
 
     return f0
 
+
 def compute_energy(y: np.ndarray, **kwargs) -> np.ndarray:
     """Compute energy of a waveform using the same parameters used for computing melspectrogram.
-       Args:
-         x (np.ndarray): Waveform. Shape :math:`[T_wav,]`
-       Returns:
-         np.ndarray: energy. Shape :math:`[T_energy,]`. :math:`T_energy == T_wav / hop_length`
-       Examples:
-         >>> WAV_FILE = filename = librosa.util.example_audio_file()
-         >>> from TTS.config import BaseAudioConfig
-         >>> from TTS.utils.audio import AudioProcessor
-         >>> conf = BaseAudioConfig()
-         >>> ap = AudioProcessor(**conf)
-         >>> wav = ap.load_wav(WAV_FILE, sr=ap.sample_rate)[:5 * ap.sample_rate]
-         >>> energy = ap.compute_energy(wav)
+    Args:
+      x (np.ndarray): Waveform. Shape :math:`[T_wav,]`
+    Returns:
+      np.ndarray: energy. Shape :math:`[T_energy,]`. :math:`T_energy == T_wav / hop_length`
+    Examples:
+      >>> WAV_FILE = filename = librosa.util.example_audio_file()
+      >>> from TTS.config import BaseAudioConfig
+      >>> from TTS.utils.audio import AudioProcessor
+      >>> conf = BaseAudioConfig()
+      >>> ap = AudioProcessor(**conf)
+      >>> wav = ap.load_wav(WAV_FILE, sr=ap.sample_rate)[:5 * ap.sample_rate]
+      >>> energy = ap.compute_energy(wav)
     """
     x = stft(y=y, **kwargs)
-    mag , _ = magphase(x)
-    energy = np.sqrt(np.sum(mag ** 2, axis=0))
+    mag, _ = magphase(x)
+    energy = np.sqrt(np.sum(mag**2, axis=0))
     return energy
+
+
 ### Audio Processing ###
 def find_endpoint(
     *,

@@ -15,7 +15,7 @@ from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import average_over_durations, generate_path, maximum_path, sequence_mask
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
-from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_avg_energy, plot_spectrogram
+from TTS.tts.utils.visual import plot_alignment, plot_avg_energy, plot_avg_pitch, plot_spectrogram
 from TTS.utils.io import load_fsspec
 
 
@@ -129,21 +129,21 @@ class ForwardTTSArgs(Coqpit):
     out_channels: int = 80
     hidden_channels: int = 384
     use_aligner: bool = True
-    #pitch params
+    # pitch params
     use_pitch: bool = True
     pitch_predictor_hidden_channels: int = 256
     pitch_predictor_kernel_size: int = 3
     pitch_predictor_dropout_p: float = 0.1
     pitch_embedding_kernel_size: int = 3
 
-    #energy params
+    # energy params
     use_energy: bool = False
     energy_predictor_hidden_channels: int = 256
     energy_predictor_kernel_size: int = 3
     energy_predictor_dropout_p: float = 0.1
     energy_embedding_kernel_size: int = 3
 
-    #duration params
+    # duration params
     duration_predictor_hidden_channels: int = 256
     duration_predictor_kernel_size: int = 3
     duration_predictor_dropout_p: float = 0.1
@@ -721,7 +721,14 @@ class ForwardTTS(BaseTTS):
 
         # forward pass
         outputs = self.forward(
-            text_input, text_lengths, mel_lengths, y=mel_input, dr=durations, pitch=pitch, energy=energy, aux_input=aux_input
+            text_input,
+            text_lengths,
+            mel_lengths,
+            y=mel_input,
+            dr=durations,
+            pitch=pitch,
+            energy=energy,
+            aux_input=aux_input,
         )
         # use aligner's output as the duration target
         if self.use_aligner:

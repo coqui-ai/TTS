@@ -10,8 +10,8 @@ import tqdm
 from torch.utils.data import Dataset
 
 from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
-from TTS.utils.audio.numpy_transforms import compute_energy as calculate_energy
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.numpy_transforms import compute_energy as calculate_energy
 
 # to prevent too many open files error as suggested here
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
@@ -886,7 +886,7 @@ class EnergyDataset:
             computed_data = [tensor for batch in computed_data for tensor in batch]  # flatten
             energy_mean, energy_std = self.compute_pitch_stats(computed_data)
             energy_stats = {"mean": energy_mean, "std": energy_std}
-            np.save(os.path.join(self.cache_path, "energy_stats"),energy_stats, allow_pickle=True)
+            np.save(os.path.join(self.cache_path, "energy_stats"), energy_stats, allow_pickle=True)
 
     def get_pad_id(self):
         return self.pad_id
