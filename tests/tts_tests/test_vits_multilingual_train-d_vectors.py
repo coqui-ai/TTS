@@ -63,8 +63,8 @@ config.use_speaker_embedding = False
 # active multispeaker d-vec mode
 config.model_args.use_d_vector_file = True
 config.use_d_vector_file = True
-config.model_args.d_vector_file = "tests/data/ljspeech/speakers.json"
-config.d_vector_file = "tests/data/ljspeech/speakers.json"
+config.model_args.d_vector_file = ["tests/data/ljspeech/speakers.json"]
+config.d_vector_file = ["tests/data/ljspeech/speakers.json"]
 config.model_args.d_vector_dim = 256
 config.d_vector_dim = 256
 

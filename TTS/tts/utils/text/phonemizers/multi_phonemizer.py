@@ -14,30 +14,40 @@ class MultiPhonemizer:
     TODO: find a way to pass custom kwargs to the phonemizers
     """
 
-    lang_to_phonemizer_name = DEF_LANG_TO_PHONEMIZER
-    language = "multi-lingual"
+    lang_to_phonemizer = {}
 
-    def __init__(self, custom_lang_to_phonemizer: Dict = {}) -> None:  # pylint: disable=dangerous-default-value
-        self.lang_to_phonemizer_name.update(custom_lang_to_phonemizer)
+    def __init__(self, lang_to_phonemizer_name: Dict = {}) -> None:  # pylint: disable=dangerous-default-value
+        for k, v in lang_to_phonemizer_name.items():
+            if v == "" and k in DEF_LANG_TO_PHONEMIZER.keys():
+                lang_to_phonemizer_name[k] = DEF_LANG_TO_PHONEMIZER[k]
+            elif v == "":
+                raise ValueError(f"Phonemizer wasn't set for language {k} and doesn't have a default.")
+        self.lang_to_phonemizer_name = lang_to_phonemizer_name
         self.lang_to_phonemizer = self.init_phonemizers(self.lang_to_phonemizer_name)
 
     @staticmethod
     def init_phonemizers(lang_to_phonemizer_name: Dict) -> Dict:
         lang_to_phonemizer = {}
         for k, v in lang_to_phonemizer_name.items():
-            phonemizer = get_phonemizer_by_name(v, language=k)
-            lang_to_phonemizer[k] = phonemizer
+            lang_to_phonemizer[k] = get_phonemizer_by_name(v, language=k)
         return lang_to_phonemizer
 
     @staticmethod
     def name():
         return "multi-phonemizer"
 
-    def phonemize(self, text, language, separator="|"):
+    def phonemize(self, text, separator="|", language=""):
+        if language == "":
+            raise ValueError("Language must be set for multi-phonemizer to phonemize.")
         return self.lang_to_phonemizer[language].phonemize(text, separator)
 
     def supported_languages(self) -> List:
-        return list(self.lang_to_phonemizer_name.keys())
+        return list(self.lang_to_phonemizer.keys())
+
+    def print_logs(self, level: int = 0):
+        indent = "\t" * level
+        print(f"{indent}| > phoneme language: {self.supported_languages()}")
+        print(f"{indent}| > phoneme backend: {self.name()}")
 
 
 # if __name__ == "__main__":
@@ -48,7 +58,7 @@ class MultiPhonemizer:
 #         "zh-cn": "这是中国的例子",
 #     }
 #     phonemes = {}
-#     ph = MultiPhonemizer()
+#     ph = MultiPhonemizer({"tr": "espeak", "en-us": "", "de": "gruut", "zh-cn": ""})
 #     for lang, text in texts.items():
 #         phoneme = ph.phonemize(text, lang)
 #         phonemes[lang] = phoneme

@@ -298,7 +298,9 @@ class ModelManager(object):
         """
         output_stats_path = os.path.join(output_path, "scale_stats.npy")
         output_d_vector_file_path = os.path.join(output_path, "speakers.json")
+        output_d_vector_file_pth_path = os.path.join(output_path, "speakers.pth")
         output_speaker_ids_file_path = os.path.join(output_path, "speaker_ids.json")
+        output_speaker_ids_file_pth_path = os.path.join(output_path, "speaker_ids.pth")
         speaker_encoder_config_path = os.path.join(output_path, "config_se.json")
         speaker_encoder_model_path = self._find_speaker_encoder(output_path)
 
@@ -307,11 +309,15 @@ class ModelManager(object):
 
         # update the speakers.json file path in the model config.json to the current path
         self._update_path("d_vector_file", output_d_vector_file_path, config_path)
+        self._update_path("d_vector_file", output_d_vector_file_pth_path, config_path)
         self._update_path("model_args.d_vector_file", output_d_vector_file_path, config_path)
+        self._update_path("model_args.d_vector_file", output_d_vector_file_pth_path, config_path)
 
         # update the speaker_ids.json file path in the model config.json to the current path
         self._update_path("speakers_file", output_speaker_ids_file_path, config_path)
+        self._update_path("speakers_file", output_speaker_ids_file_pth_path, config_path)
         self._update_path("model_args.speakers_file", output_speaker_ids_file_path, config_path)
+        self._update_path("model_args.speakers_file", output_speaker_ids_file_pth_path, config_path)
 
         # update the speaker_encoder file path in the model config.json to the current path
         self._update_path("speaker_encoder_model_path", speaker_encoder_model_path, config_path)
@@ -333,10 +339,18 @@ class ModelManager(object):
                         sub_conf = sub_conf[fd]
                     else:
                         return
-                sub_conf[field_names[-1]] = new_path
+                if isinstance(sub_conf[field_names[-1]], list):
+                    sub_conf[field_names[-1]] = [new_path]
+                else:
+                    sub_conf[field_names[-1]] = new_path
             else:
                 # field name points to a top-level field
-                config[field_name] = new_path
+                if not field_name in config:
+                    return
+                if isinstance(config[field_name], list):
+                    config[field_name] = [new_path]
+                else:
+                    config[field_name] = new_path
             config.save_json(config_path)
 
     @staticmethod
