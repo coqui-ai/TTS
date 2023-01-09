@@ -5,7 +5,7 @@ from TTS.tts.configs.shared_configs import BaseTTSConfig
 
 
 @dataclass
-class NeuralHMMTTSConfig(BaseTTSConfig):
+class NeuralhmmTTSConfig(BaseTTSConfig):
     """
     Define parameters for Neural HMM TTS model.
 
@@ -109,7 +109,7 @@ class NeuralHMMTTSConfig(BaseTTSConfig):
             Maximum input sequence length to be used at training. Larger values result in more VRAM usage.
     """
 
-    model: str = "NeuralHMMTTS"
+    model: str = "NeuralHMM_TTS"
 
     # Training and Checkpoint configs
     run_eval_steps: int = 100

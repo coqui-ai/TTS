@@ -3,10 +3,10 @@ import os
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
-from TTS.tts.configs.neuralhmm_tts_config import NeuralHMMTTSConfig
+from TTS.tts.configs.neuralhmm_tts_config import NeuralhmmTTSConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.neuralhmm_tts import NeuralHMMTTS
+from TTS.tts.models.neuralhmm_tts import NeuralhmmTTS
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
@@ -30,7 +30,7 @@ audio_config = BaseAudioConfig(
     preemphasis=0.0,
 )
 
-config = NeuralHMMTTSConfig(  # This is the config that is saved for the future use
+config = NeuralhmmTTSConfig(  # This is the config that is saved for the future use
     run_name="overflow_ljspeech",
     audio=audio_config,
     batch_size=30,
@@ -80,7 +80,7 @@ train_samples, eval_samples = load_tts_samples(
 # Models take a config object and a speaker manager as input
 # Config defines the details of the model like the number of layers, the size of the embedding, etc.
 # Speaker manager is used by multi-speaker models.
-model = NeuralHMMTTS(config, ap, tokenizer)
+model = NeuralhmmTTS(config, ap, tokenizer)
 
 
 # init the trainer and 🚀
