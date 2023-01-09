@@ -77,6 +77,9 @@ class Overflow(BaseTTS):
         for key in config:
             setattr(self, key, config[key])
 
+        if not hasattr(self, "neural_hmm_tts_only"):
+            self.neural_hmm_tts_only = False
+
         self.decoder_output_dim = config.out_channels
 
         self.encoder = Encoder(config.num_chars, config.state_per_phone, config.encoder_in_out_features)
