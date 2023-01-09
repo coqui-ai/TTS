@@ -20,7 +20,7 @@ from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.io import load_fsspec
 
 
-class NeuralHMMTTS(BaseTTS):
+class NeuralhmmTTS(BaseTTS):
     """Neural HMM TTS model.
 
     Paper::
@@ -248,7 +248,7 @@ class NeuralHMMTTS(BaseTTS):
         ap = AudioProcessor.init_from_config(config, verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config, samples)
-        return NeuralHMMTTS(new_config, ap, tokenizer, speaker_manager)
+        return NeuralhmmTTS(new_config, ap, tokenizer, speaker_manager)
 
     def load_checkpoint(
         self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False
