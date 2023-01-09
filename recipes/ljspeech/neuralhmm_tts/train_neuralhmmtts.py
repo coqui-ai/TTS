@@ -31,7 +31,7 @@ audio_config = BaseAudioConfig(
 )
 
 config = NeuralhmmTTSConfig(  # This is the config that is saved for the future use
-    run_name="overflow_ljspeech",
+    run_name="neuralhmmtts_ljspeech",
     audio=audio_config,
     batch_size=30,
     eval_batch_size=16,
