@@ -56,6 +56,9 @@ class Overflow(BaseTTS):
         probability distribution at the current step i.e the difference between the forward
         algorithm and viterbi approximation.
 
+        - To run a parameter efficient version of this model, (15.3M vs 28.5M in the original OverFlow) set `neural_hmm_tts_only=True` in config.
+        Enabling this flag will run neural HMM TTS, which is described in the paper "Neural HMMs are all you need (for high-quality attention-free TTS)".
+
     Check :class:`TTS.tts.configs.overflow.OverFlowConfig` for class arguments.
     """
 
@@ -93,26 +96,25 @@ class Overflow(BaseTTS):
             std_floor=self.std_floor,
             use_grad_checkpointing=self.use_grad_checkpointing,
         )
-
-        self.decoder = Decoder(
-            self.out_channels,
-            self.hidden_channels_dec,
-            self.kernel_size_dec,
-            self.dilation_rate,
-            self.num_flow_blocks_dec,
-            self.num_block_layers,
-            dropout_p=self.dropout_p_dec,
-            num_splits=self.num_splits,
-            num_squeeze=self.num_squeeze,
-            sigmoid_scale=self.sigmoid_scale,
-            c_in_channels=self.c_in_channels,
-        )
+        if not self.neural_hmm_tts_only:
+            self.decoder = Decoder(
+                self.out_channels,
+                self.hidden_channels_dec,
+                self.kernel_size_dec,
+                self.dilation_rate,
+                self.num_flow_blocks_dec,
+                self.num_block_layers,
+                dropout_p=self.dropout_p_dec,
+                num_splits=self.num_splits,
+                num_squeeze=self.num_squeeze,
+                sigmoid_scale=self.sigmoid_scale,
+                c_in_channels=self.c_in_channels,
+            )
+        else:
+            self.decoder = None
 
         self.register_buffer("mean", torch.tensor(0))
         self.register_buffer("std", torch.tensor(1))
-
-        # self.mean = nn.Parameter(torch.zeros(1), requires_grad=False)
-        # self.std = nn.Parameter(torch.ones(1), requires_grad=False)
 
     def update_mean_std(self, statistics_dict: Dict):
         self.mean.data = torch.tensor(statistics_dict["mean"])
@@ -145,7 +147,12 @@ class Overflow(BaseTTS):
         """
         text, text_len, mels, mel_len = self.preprocess_batch(text, text_len, mels, mel_len)
         encoder_outputs, encoder_output_len = self.encoder(text, text_len)
-        z, z_lengths, logdet = self.decoder(mels.transpose(1, 2), mel_len)
+
+        if not self.neural_hmm_tts_only:
+            z, z_lengths, logdet = self.decoder(mels.transpose(1, 2), mel_len)
+        else:
+            z, z_lengths, logdet = mels.transpose(1, 2), mel_len, 0.0
+
         log_probs, fwd_alignments, transition_vectors, means = self.neural_hmm(
             encoder_outputs, encoder_output_len, z, z_lengths
         )
@@ -238,11 +245,15 @@ class Overflow(BaseTTS):
             max_sampling_time=aux_input["max_sampling_time"],
             duration_threshold=aux_input["duration_threshold"],
         )
+        if not self.neural_hmm_tts_only:
+            mels, mel_outputs_len, _ = self.decoder(
+                outputs["hmm_outputs"].transpose(1, 2), outputs["hmm_outputs_len"], reverse=True
+            )
+            mels = mels.transpose(1, 2)
+        else:
+            mels, mel_outputs_len = outputs["hmm_outputs"], outputs["hmm_outputs_len"]
 
-        mels, mel_outputs_len, _ = self.decoder(
-            outputs["hmm_outputs"].transpose(1, 2), outputs["hmm_outputs_len"], reverse=True
-        )
-        mels = self.inverse_normalize(mels.transpose(1, 2))
+        mels = self.inverse_normalize(mels)
         outputs.update({"model_outputs": mels, "model_outputs_len": mel_outputs_len})
         outputs["alignments"] = OverflowUtils.double_pad(outputs["alignments"])
         return outputs
@@ -275,6 +286,8 @@ class Overflow(BaseTTS):
         self.load_state_dict(state["model"])
         if eval:
             self.eval()
+            if not config.neural_hmm_tts_only:
+                self.decoder.store_inverse()
             self.decoder.store_inverse()
             assert not self.training
 

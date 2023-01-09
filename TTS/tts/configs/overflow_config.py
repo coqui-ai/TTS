@@ -17,6 +17,10 @@ class OverflowConfig(BaseTTSConfig):  # The classname has to be camel case
     Args:
         model (str):
             Model name used to select the right model class to initilize. Defaults to `Overflow`.
+
+        neural_hmm_tts_only (bool):
+            Turning this on will instead run neural HMM TTS model which has lower quality but almost half the number of parameters.
+            It is recommended to use this if there is parameter limit or resource limit. Defaults to False.
         run_eval_steps (int):
             Run evalulation epoch after N steps. If None, waits until training epoch is completed. Defaults to None.
         save_step (int):
@@ -110,6 +114,7 @@ class OverflowConfig(BaseTTSConfig):  # The classname has to be camel case
     """
 
     model: str = "Overflow"
+    neural_hmm_tts_only: bool = False
 
     # Training and Checkpoint configs
     run_eval_steps: int = 100
