@@ -73,25 +73,6 @@ class NeuralhmmTTSConfig(BaseTTSConfig):
         std_floor (float):
             Floor value for the standard deviation of the neural HMM. Prevents model cheating by putting point mass and getting infinite likelihood at any datapoint. Defaults to 0.01.
             It is called `variance flooring` in standard HMM literature.
-        hidden_channels_dec (int):
-            Number of base hidden channels used by the decoder WaveNet network. Defaults to 150.
-        kernel_size_dec (int):
-            Decoder kernel size. Defaults to 5
-        dilation_rate (int):
-            Rate to increase dilation by each layer in a decoder block. Defaults to 1.
-        num_flow_blocks_dec (int):
-            Number of decoder layers in each decoder block.  Defaults to 4.
-        dropout_p_dec (float):
-            Dropout rate of the decoder. Defaults to 0.05.
-        num_splits (int):
-            Number of split levels in inversible conv1x1 operation. Defaults to 4.
-        num_squeeze (int):
-            Number of squeeze levels. When squeezing channels increases and time steps reduces by the factor
-            'num_squeeze'. Defaults to 2.
-        sigmoid_scale (bool):
-            enable/disable sigmoid scaling in decoder. Defaults to False.
-        c_in_channels (int):
-            Unused parameter from GlowTTS's decoder. Defaults to 0.
         optimizer (str):
             Optimizer to use for training. Defaults to `adam`.
         optimizer_params (dict):
