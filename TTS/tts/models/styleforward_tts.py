@@ -681,9 +681,9 @@ class StyleforwardTTS(BaseTTS):
         
         # encoder pass
         if(cond_g):
-            o_en, x_mask, _, _ = self._forward_encoder(x, x_mask, cond_g)
+            o_en, x_mask, g_check, _ = self._forward_encoder(x, x_mask, cond_g)
         else:
-            o_en, x_mask, _, _ = self._forward_encoder(x, x_mask, g)
+            o_en, x_mask, g_check, _ = self._forward_encoder(x, x_mask, g)
             
 
         # After we already have used the indices g or cond_g, lets get the speaker embedding
@@ -737,7 +737,8 @@ class StyleforwardTTS(BaseTTS):
             "g":  g,
             "cond_g": cond_g,
             "cond_g_emb": cond_g_emb,
-            "g_emb": g_emb
+            "g_emb": g_emb,
+            'g_check': g_check
         }
         return outputs
 
