@@ -680,7 +680,7 @@ class StyleforwardTTS(BaseTTS):
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).to(x.dtype).float()
         
         # encoder pass
-        if(cond_g):
+        if(cond_g is not None):
             o_en, x_mask, g_check, _ = self._forward_encoder(x, x_mask, cond_g)
         else:
             o_en, x_mask, g_check, _ = self._forward_encoder(x, x_mask, g)
@@ -691,7 +691,7 @@ class StyleforwardTTS(BaseTTS):
             g_emb = self.emb_g(g)  # [B, C, 1]
         if g_emb is not None:
             g_emb = g_emb.unsqueeze(-1)
-        if(cond_g):
+        if(cond_g is not None):
             if hasattr(self, "emb_g"):
                 cond_g_emb = self.emb_g(cond_g)  # [B, C, 1]
             if cond_g_emb is not None:
@@ -723,7 +723,7 @@ class StyleforwardTTS(BaseTTS):
             o_en = o_en + o_pitch_emb
         
         # Remove conditional speaker embedding, and add the provided speaker
-        if(cond_g):
+        if(cond_g is not None):
             o_en = o_en - cond_g_emb.expand(o_en.size(0), o_en.size(1), -1) + g_emb.expand(o_en.size(0), o_en.size(1), -1)
 
         # decoder pass
