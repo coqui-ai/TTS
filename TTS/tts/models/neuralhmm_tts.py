@@ -59,12 +59,12 @@ class NeuralhmmTTS(BaseTTS):
         probability distribution at the current step i.e the difference between the forward
         algorithm and viterbi approximation.
 
-    Check :class:`TTS.tts.configs.neuralhmm_tts.NeuralHMMTTSConfig` for class arguments.
+    Check :class:`TTS.tts.configs.neuralhmm_tts_config.NeuralhmmTTSConfig` for class arguments.
     """
 
     def __init__(
         self,
-        config: "OverFlowConfig",
+        config: "NeuralhmmTTSConfig",
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
@@ -234,7 +234,7 @@ class NeuralhmmTTS(BaseTTS):
         return NLLLoss()
 
     @staticmethod
-    def init_from_config(config: "NeuralHMMTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
+    def init_from_config(config: "NeuralhmmTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
         """Initiate model from config
 
         Args:
