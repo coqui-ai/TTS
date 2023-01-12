@@ -685,16 +685,16 @@ class StyleforwardTTS(BaseTTS):
             o_en, x_mask, _, _ = self._forward_encoder(x, x_mask, g)
             
 
-        # After we already have used the indices g or cond_g, lets transform them to the speaker embedding
+        # After we already have used the indices g or cond_g, lets get the speaker embedding
         if hasattr(self, "emb_g"):
-            g = self.emb_g(g)  # [B, C, 1]
-        if g is not None:
-            g = g.unsqueeze(-1)
+            g_emb = self.emb_g(g)  # [B, C, 1]
+        if g_emb is not None:
+            g_emb = g_emb.unsqueeze(-1)
         if(cond_g):
             if hasattr(self, "emb_g"):
-                cond_g = self.emb_g(cond_g)  # [B, C, 1]
-            if cond_g is not None:
-                cond_g = cond_g.unsqueeze(-1)
+                cond_g_emb = self.emb_g(cond_g)  # [B, C, 1]
+            if cond_g_emb is not None:
+                cond_g_emb = cond_g_emb.unsqueeze(-1)
 
         #Style embedding 
         # se_inputs = [o_en, aux_input['style_mel']]
@@ -723,7 +723,7 @@ class StyleforwardTTS(BaseTTS):
         
         # Remove conditional speaker embedding, and add the provided speaker
         if(cond_g):
-            o_en = o_en - cond_g.expand(o_en.size(0), o_en.size(1), -1) + g.expand(o_en.size(0), o_en.size(1), -1)
+            o_en = o_en - cond_g_emb.expand(o_en.size(0), o_en.size(1), -1) + g_emb.expand(o_en.size(0), o_en.size(1), -1)
 
         # decoder pass
         o_de, attn = self._forward_decoder(o_en, o_dr, x_mask, y_lengths, g=None)
@@ -735,7 +735,8 @@ class StyleforwardTTS(BaseTTS):
             "style_encoder_outputs": style_encoder_outputs,
             "g":  g,
             "cond_g": cond_g,
-            "o_en_size": o_en.shape
+            "cond_g_emb": cond_g_emb,
+            "g_emb": g_emb
         }
         return outputs
 
