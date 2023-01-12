@@ -723,7 +723,10 @@ class StyleforwardTTS(BaseTTS):
             "alignments": attn,
             "pitch": o_pitch,
             "durations_log": o_dr_log,
-            "style_encoder_outputs": style_encoder_outputs
+            "style_encoder_outputs": style_encoder_outputs,
+            "g":  g,
+            "cond_g": cond_g,
+            "o_en_size": o_en.shape
         }
         return outputs
 
