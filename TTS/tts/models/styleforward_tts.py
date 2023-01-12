@@ -678,8 +678,8 @@ class StyleforwardTTS(BaseTTS):
         x_lengths = torch.tensor(x.shape[1:2]).to(x.device)
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.shape[1]), 1).to(x.dtype).float()
         
-        print(aux_input['speaker_ids'])
-        print(g, cond_g)
+        print(aux_input['speaker_ids'], flush=True)
+        print(g, cond_g, flush=True)
         # encoder pass
         if(cond_g):
             o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, cond_g)
@@ -713,7 +713,7 @@ class StyleforwardTTS(BaseTTS):
         
         # Remove conditional speaker embedding, and add the provided speaker
         if(cond_g):
-            print('shapes: ',o_en.shape, cond_g.shape, g.shape)
+            print('shapes: ',o_en.shape, cond_g.shape, g.shape, flush=True)
             o_en = o_en - cond_g.expand(o_en.size(0), o_en.size(1), -1) + g.expand(o_en.size(0), o_en.size(1), -1)
 
         # decoder pass
