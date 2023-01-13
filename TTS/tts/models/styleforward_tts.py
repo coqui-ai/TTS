@@ -719,12 +719,21 @@ class StyleforwardTTS(BaseTTS):
         # pitch predictor pass
         o_pitch = None
         if self.args.use_pitch:
-            o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = aux_input['pitch_control'])
-            o_en = o_en + o_pitch_emb
+            # Remove conditional speaker embedding, and add the provided speaker, we provide pitch predicted by cond_speaker in order to generate the pitch embedding
+            # for target speaker and avoid speaker leakage (empirical results)
+            if(cond_g is not None):
+                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = aux_input['pitch_control'])
+
+                o_en = o_en - cond_g_emb.expand(o_en.size(0), o_en.size(1), -1) + g_emb.expand(o_en.size(0), o_en.size(1), -1)
+
+                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = o_pitch)
+
+                o_en = o_en + o_pitch_emb
+
+            else:
+                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = aux_input['pitch_control'])
+                o_en = o_en + o_pitch_emb
         
-        # Remove conditional speaker embedding, and add the provided speaker
-        if(cond_g is not None):
-            o_en = o_en - cond_g_emb.expand(o_en.size(0), o_en.size(1), -1) + g_emb.expand(o_en.size(0), o_en.size(1), -1)
 
         # decoder pass
         o_de, attn = self._forward_decoder(o_en, o_dr, x_mask, y_lengths, g=None)
