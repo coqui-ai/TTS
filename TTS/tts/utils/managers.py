@@ -324,7 +324,7 @@ class EmbeddingManager(BaseIDManager):
         self.encoder_config = load_config(config_path)
         self.encoder = setup_encoder_model(self.encoder_config)
         self.encoder_criterion = self.encoder.load_checkpoint(
-            self.encoder_config, model_path, eval=True, use_cuda=use_cuda
+            self.encoder_config, model_path, eval=True, use_cuda=use_cuda, cache=True
         )
         self.encoder_ap = AudioProcessor(**self.encoder_config.audio)
 
