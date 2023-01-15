@@ -6,13 +6,13 @@ from TTS.tts.models.forward_tts import ForwardTTSArgs
 
 
 @dataclass
-class FastPitchConfig(BaseTTSConfig):
+class Fastspeech2Config(BaseTTSConfig):
     """Configure `ForwardTTS` as FastPitch model.
 
     Example:
 
-        >>> from TTS.tts.configs.fast_pitch_config import FastPitchConfig
-        >>> config = FastPitchConfig()
+        >>> from TTS.tts.configs.fastspeech2_config import FastSpeech2Config
+        >>> config = FastSpeech2Config()
 
     Args:
         model (str):
@@ -89,6 +89,9 @@ class FastPitchConfig(BaseTTSConfig):
         pitch_loss_alpha (float):
             Weight for the pitch predictor's loss. If set 0, disables the pitch predictor. Defaults to 1.0.
 
+        energy_loss_alpha (float):
+            Weight for the energy predictor's loss. If set 0, disables the energy predictor. Defaults to 1.0.
+
         binary_align_loss_alpha (float):
             Weight for the binary loss. If set 0, disables the binary loss. Defaults to 1.0.
 
@@ -107,9 +110,16 @@ class FastPitchConfig(BaseTTSConfig):
 
         f0_cache_path(str):
             pith cache path. defaults to None
+
+        # dataset configs
+        compute_energy(bool):
+            Compute energy. defaults to True
+
+        energy_cache_path(str):
+            energy cache path. defaults to None
     """
 
-    model: str = "fast_pitch"
+    model: str = "fastspeech2"
     base_model: str = "forward_tts"
 
     # model specific params
@@ -139,6 +149,7 @@ class FastPitchConfig(BaseTTSConfig):
     spec_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 0.1
+    energy_loss_alpha: float = 0.1
     dur_loss_alpha: float = 0.1
     binary_align_loss_alpha: float = 0.1
     binary_loss_warmup_epochs: int = 150
@@ -151,6 +162,10 @@ class FastPitchConfig(BaseTTSConfig):
     # dataset configs
     compute_f0: bool = True
     f0_cache_path: str = None
+
+    # dataset configs
+    compute_energy: bool = True
+    energy_cache_path: str = None
 
     # testing
     test_sentences: List[str] = field(
