@@ -23,7 +23,7 @@ for dir in os.listdir(files_folder):
             high = ran[1]
 
         low = ran[0]
-        
+
         if text_idx not in range(int(low), int(high)+1):
             print(file_path)
 '''

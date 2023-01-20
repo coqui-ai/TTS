@@ -40,5 +40,3 @@ train.to_csv('./metadata_train.csv', index=False, header=False, sep='|')
 
 val = pd.concat([josh_val, bea_val, jenie_val, sam_val]).drop(columns=['index'])
 val.to_csv('./metadata_val.csv', index=False, header=False, sep='|')
-
-

@@ -3,9 +3,9 @@
 RUN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo $RUN_DIR
 
-# download transcriptions
-wget http://www.festvox.org/cmu_arctic/cmuarctic.data
-mv cmuarctic.data transcriptions.txt
+# download transcriptions (already on repo)
+#wget http://www.festvox.org/cmu_arctic/cmuarctic.data
+#mv cmuarctic.data transcriptions.txt
 
 # download dataset
 wget https://www.openslr.org/resources/115/bea_Amused.tar.gz
