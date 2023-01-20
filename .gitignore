@@ -125,10 +125,11 @@ version.py
 core
 
 # ignore local datasets
-recipes/WIP/*
-recipes/ljspeech/LJSpeech-1.1/*
-recipes/emovdb/*
+recipes/emovdb/emovdb/files*
+recipes/emovdb/emovdb/metadata*
 experiments/*
+recipes/ljspeech/LJSpeech-1.1/*
+recipes/WIP/*
 recipes/vctk/VCTK/*
 recipes/**/*.npy
 recipes/**/*.json
