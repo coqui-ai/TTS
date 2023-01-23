@@ -7,7 +7,14 @@ from TTS.utils.synthesizer import Synthesizer
 class TTS:
     """TODO: Add voice conversion and Capacitron support."""
 
-    def __init__(self, model_name: str = None, model_path:str = None, config_path:str=None, progress_bar: bool = True, gpu=False):
+    def __init__(
+        self,
+        model_name: str = None,
+        model_path: str = None,
+        config_path: str = None,
+        progress_bar: bool = True,
+        gpu=False,
+    ):
         """🐸TTS python interface that allows to load and use the released models.
 
         Example with a multi-speaker model:
