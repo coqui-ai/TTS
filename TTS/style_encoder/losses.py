@@ -1,4 +1,51 @@
 import torch
+from torch import nn
+import torch.nn.functional as F
+
+class ClipLloss(torch.nn.Module):
+    '''
+        Apply CLIP contrastive loss to the reference style embedding and the resynt-mel-spectrogram style embedding.
+        The idea is to guide the style embedding to generate a bottleneck where the generated mel-spectrogram has the same
+        style embedding as used to generate itself, while, at the same time, putting far away other representations, such as
+        other styles.
+
+        Details: We don't use the projection head layer because our nature problem and pipeline already guarantee that our embeddings
+        have the same shape.
+
+        Based on: https://github.com/moein-shariatnia/OpenAI-CLIP
+    '''
+    def __init__(self, c):
+        super(ClipLloss, self).__init__()
+        self.temperature = c.clip_temperature
+        self.config = c
+
+        print(f'CLIP report - Using alpha loss: {self.config.clip_alpha_loss} and temperature: {self.temperature}')
+
+        
+    def cross_entropy(self, preds, targets, reduction='none'):
+        log_softmax = nn.LogSoftmax(dim=-1)
+        loss = (-targets * log_softmax(preds)).sum(1)
+        if reduction == "none":
+            return loss
+        elif reduction == "mean":
+            return loss.mean()
+
+    def forward(self, ref_embedding, resynt_embedding):
+
+        # Calculating the Loss
+        logits = (ref_embedding @ resynt_embedding.T) / self.temperature
+        resynt_similarity = resynt_embedding @ resynt_embedding.T
+        ref_similarity = ref_embedding @ ref_embedding.T
+        targets = F.softmax(
+            (resynt_similarity + ref_similarity) / 2 * self.temperature, dim=-1
+        )
+        ref_loss = self.cross_entropy(logits, targets, reduction='none')
+        resynt_loss = self.cross_entropy(logits.T, targets.T, reduction='none')
+        clip_loss =  (resynt_loss + ref_loss) / 2.0 # shape: (batch_size)
+        clip_loss= clip_loss.mean()
+    
+        clip_loss = self.config.clip_alpha_loss*clip_loss
+        return clip_loss 
 
 class DiffusionStyleEncoderLoss(torch.nn.Module):
     def __init__(self, c) -> None:
