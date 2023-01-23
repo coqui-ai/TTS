@@ -809,7 +809,7 @@ class StyleforwardTTS(BaseTTS):
                 speaker_output = outputs['speaker_outputs'],
                 style_preds = outputs['style_preds'],
                 speaker_preds_from_style = outputs['speaker_preds_from_style'],
-                ressynt_style_encoder_output = outputs['ressynt_style_encoder_enc']
+                ressynt_style_encoder_output = outputs['ressynt_style_encoder_output']
             )
             # compute duration error
             durations_pred = outputs["durations"]
