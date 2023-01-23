@@ -639,6 +639,14 @@ class StyleforwardTTS(BaseTTS):
         o_de, attn = self._forward_decoder(
             o_en, dr, x_mask, y_lengths, g=None
         )  # TODO: maybe pass speaker embedding (g) too
+
+        ressynt_style_encoder_output = None
+
+        if(self.config.style_encoder_config.use_clip_loss):
+            se_inputs = [encoder_outputs.permute(0,2,1), o_de]
+            _, ressynt_style_encoder_output = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
+
+
         outputs = {
             "model_outputs": o_de,  # [B, T, C]
             "durations_log": o_dr_log.squeeze(1),  # [B, T]
@@ -657,7 +665,8 @@ class StyleforwardTTS(BaseTTS):
             "encoder_outputs": encoder_outputs,
             "speaker_outputs": g,
             "style_preds": style_preds,
-            'speaker_preds_from_style': speaker_preds_from_style
+            'speaker_preds_from_style': speaker_preds_from_style,
+            'ressynt_style_encoder_output': ressynt_style_encoder_output
         }
         return outputs
 
@@ -737,6 +746,11 @@ class StyleforwardTTS(BaseTTS):
 
         # decoder pass
         o_de, attn = self._forward_decoder(o_en, o_dr, x_mask, y_lengths, g=None)
+
+        if(self.config.style_encoder_config.use_clip_loss):
+            se_inputs = [o_en.permute(0,2,1), o_de]
+            _, ressynt_style_encoder_output = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
+
         outputs = {
             "model_outputs": o_de,
             "alignments": attn,
@@ -747,7 +761,8 @@ class StyleforwardTTS(BaseTTS):
             "cond_g": cond_g,
             "cond_g_emb": cond_g_emb,
             "g_emb": g_emb,
-            'g_check': g_check
+            'g_check': g_check,
+            'ressynt_style_encoder_output': ressynt_style_encoder_output
         }
         return outputs
 
@@ -793,7 +808,8 @@ class StyleforwardTTS(BaseTTS):
                 encoder_output = outputs['encoder_outputs'],
                 speaker_output = outputs['speaker_outputs'],
                 style_preds = outputs['style_preds'],
-                speaker_preds_from_style = outputs['speaker_preds_from_style']
+                speaker_preds_from_style = outputs['speaker_preds_from_style'],
+                ressynt_style_encoder_output = outputs['ressynt_style_encoder_enc']
             )
             # compute duration error
             durations_pred = outputs["durations"]

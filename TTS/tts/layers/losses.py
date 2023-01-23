@@ -997,6 +997,9 @@ class StyleForwardTTSLoss(nn.Module):
             self.criterion_grl_speaker_in_style_embedding = nn.CrossEntropyLoss()
             self.grl_speaker_in_style_embedding_alpha = self.style_encoder_config.grl_alpha
 
+        if(self.style_encoder_config.use_clip_loss):
+            self.criterion_clip = ClipLloss(self.style_encoder_config)
+
         self.spec_loss_alpha = c.spec_loss_alpha
         self.dur_loss_alpha = c.dur_loss_alpha
         self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
@@ -1028,7 +1031,8 @@ class StyleForwardTTSLoss(nn.Module):
         encoder_output=None,
         speaker_output=None,
         style_preds=None,
-        speaker_preds_from_style=None
+        speaker_preds_from_style=None,
+        ressynt_style_encoder_output=None
     ):
         loss = 0
         return_dict = {}
@@ -1111,6 +1115,13 @@ class StyleForwardTTSLoss(nn.Module):
                 loss += self.grl_speaker_in_style_embedding_alpha*grl_speaker_in_style_loss
                 
                 return_dict["grl_speaker_in_style_embedding"] = grl_speaker_in_style_loss
+
+
+        if(self.style_encoder_config.use_clip_loss):
+            clip_loss = self.criterion_clip(style_encoder_output, ressynt_style_encoder_output)
+            loss += clip_loss #It already has the alpha in it
+
+            return_dict['clip_loss'] = clip_loss
 
         return_dict["loss"] = loss
         return return_dict
