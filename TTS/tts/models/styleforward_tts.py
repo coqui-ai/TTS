@@ -747,6 +747,7 @@ class StyleforwardTTS(BaseTTS):
         # decoder pass
         o_de, attn = self._forward_decoder(o_en, o_dr, x_mask, y_lengths, g=None)
 
+        ressynt_style_encoder_output = None
         if(self.config.style_encoder_config.use_clip_loss):
             se_inputs = [o_en.permute(0,2,1), o_de]
             _, ressynt_style_encoder_output = self.style_encoder_layer.forward(se_inputs, aux_input["style_ids"])
