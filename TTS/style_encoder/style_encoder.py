@@ -2,7 +2,7 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 from TTS.style_encoder.layers.gst import GST
-from TTS.style_encoder.layers.re import ReferenceEncoder
+from TTS.style_encoder.layers.ref import ReferenceEncoder
 from TTS.style_encoder.layers.vae import VAEStyleEncoder
 from TTS.style_encoder.layers.vaeflow import VAEFlowStyleEncoder
 from TTS.style_encoder.layers.diffusion import DiffStyleEncoder
