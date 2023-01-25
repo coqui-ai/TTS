@@ -482,12 +482,12 @@ class StyleforwardTTS(BaseTTS):
             # Put the control over phonemes      
             if(pitch_control is not None):
                 print('entrou no pitch control: ', pitch_control, avg_pitch)
-                avg_pitch = avg_pitch*pitch_control
+                avg_pitch = avg_pitch*pitch_control # TODO, check if its necessary, cuz while training we dont intend to control pitch
             o_pitch_emb = self.pitch_emb(avg_pitch)
             return o_pitch_emb, o_pitch, avg_pitch
         if(pitch_control is not None):
             print('entrou no pitch control: ', pitch_control, o_pitch)
-            o_pitch = o_pitch + pitch_control
+            o_pitch = o_pitch + pitch_control # I don't remember why is it residual instead of replace, stay as TODO
         o_pitch_emb = self.pitch_emb(o_pitch)
         return o_pitch_emb, o_pitch
 
