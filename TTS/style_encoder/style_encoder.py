@@ -6,6 +6,7 @@ from TTS.style_encoder.layers.ref import ReferenceEncoder
 from TTS.style_encoder.layers.vae import VAEStyleEncoder
 from TTS.style_encoder.layers.vaeflow import VAEFlowStyleEncoder
 from TTS.style_encoder.layers.diffusion import DiffStyleEncoder
+from TTS.style_encoder.layers.finegrainedre import FineGrainedReferenceEncoder
 
 class StyleEncoder(nn.Module):
     def __init__(self, config:Coqpit) -> None:
@@ -38,6 +39,15 @@ class StyleEncoder(nn.Module):
             self.layer = ReferenceEncoder(
                 num_mel = self.num_mel,
                 embedding_dim = self.style_embedding_dim
+            )
+        elif self.se_type == 'finegrainedre':
+            self.layer = FineGrainedReferenceEncoder(
+                num_mel = self.num_mel,
+                embedding_dim = self.style_embedding_dim,
+                prosody_embedding_dim = self.prosody_embedding_dim,
+                encoder_embedding_dim = self.proj_dim,
+                fg_attention_dropout = self.fg_attention_dropout,
+                fg_attention_dim = self.fg_attention_dim
             )
         elif self.se_type == 'vae':
             self.layer = VAEStyleEncoder(
@@ -76,6 +86,8 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(*inputs)
         elif self.se_type == 're':
             out = self.re_embedding(*inputs)
+        elif self.se_type == 'finegrainedre':
+            out = self.finegrainedre_embedding(*inputs)
         elif self.se_type == 'diffusion':
             out = self.diff_forward(*inputs)
         elif self.se_type == 'vae':
@@ -91,6 +103,8 @@ class StyleEncoder(nn.Module):
             out = self.gst_embedding(inputs, kwargs['style_mel'], kwargs['d_vectors'])
         elif self.se_type == 're':
             out = self.re_embedding(inputs, kwargs['style_mel'])
+        elif self.se_type == 'finegrainedre':
+            out = self.finegrainedre_embedding(inputs, kwargs['style_mel'])
         elif self.se_type == 'diffusion':
             out = self.diff_inference(inputs, ref_mels = kwargs['style_mel'], infer_from = kwargs['diff_t'])
         elif self.se_type == 'vae':
@@ -165,6 +179,37 @@ class StyleEncoder(nn.Module):
                 inputs = self._adain(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
             else:
                 inputs = self._add_speaker_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
+            return inputs, gst_outputs
+
+    def finegrainedre_embedding(self, inputs, style_input, text_len, mel_len):
+            if style_input is None:
+                # ignore style token and return zero tensor
+                gst_outputs = torch.zeros(1, 1, self.style_embedding_dim).type_as(inputs)
+            elif style_input.shape[-1] == self.style_embedding_dim:
+                gst_outputs = style_input
+            else:
+                # compute style tokens
+                # input_args = [style_input]
+                gst_outputs = self.layer(inputs, text_len, style_input, mel_len)  # pylint: disable=not-callable
+            
+                if(self.use_nonlinear_proj):
+                    gst_outputs = torch.tanh(self.nl_proj(gst_outputs))
+                    gst_outputs = self.dropout(gst_outputs)
+                
+                if(self.use_proj_linear):
+                    gst_outputs = self.proj(gst_outputs)
+
+            # if(self.agg_type == 'concat'):
+            #     inputs = self._concat_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
+            # elif(self.agg_type == 'adain'):
+            #     inputs = self._adain(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
+            # else:
+            #     inputs = self._add_speaker_embedding(outputs = inputs, embedded_speakers = gst_outputs.unsqueeze(1))
+
+            # Initially for fine-grained you must only add them, cuz we assume they are same shape
+
+            inputs = inputs + gst_outputs
+
             return inputs, gst_outputs
 
     def diff_forward(self, inputs, ref_mels):
