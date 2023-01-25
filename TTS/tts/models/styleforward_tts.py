@@ -454,6 +454,7 @@ class StyleforwardTTS(BaseTTS):
         pitch: torch.FloatTensor = None,
         dr: torch.IntTensor = None,
         pitch_control: torch.FloatTensor = None,
+        pitch_replace: torch.FloatTensor = None,
     ) -> Tuple[torch.FloatTensor, torch.FloatTensor]:
         """Pitch predictor forward pass.
 
@@ -486,8 +487,11 @@ class StyleforwardTTS(BaseTTS):
             o_pitch_emb = self.pitch_emb(avg_pitch)
             return o_pitch_emb, o_pitch, avg_pitch
         if(pitch_control is not None):
-            print('entrou no pitch control: ', pitch_control, o_pitch)
+            print('Pitch changed by arg!')
             o_pitch = o_pitch + pitch_control # I don't remember why is it residual instead of replace, stay as TODO
+        if(pitch_replace is not None):
+            print("Pitch replaced by arg!")
+            o_pitch = pitch_replace
         o_pitch_emb = self.pitch_emb(o_pitch)
         return o_pitch_emb, o_pitch
 
@@ -675,7 +679,7 @@ class StyleforwardTTS(BaseTTS):
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, "cond_speaker_ids" : None, 'style_mel': None, "style_ids": None,'pitch_control': None}):  # pylint: disable=unused-argument
+    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None, "cond_speaker_ids" : None, 'style_mel': None, "style_ids": None,'pitch_control': None, 'pitch_replace': None}):  # pylint: disable=unused-argument
         """Model's inference pass.
 
         Args:
@@ -740,16 +744,16 @@ class StyleforwardTTS(BaseTTS):
             # Remove conditional speaker embedding, and add the provided speaker, we provide pitch predicted by cond_speaker in order to generate the pitch embedding
             # for target speaker and avoid speaker leakage (empirical results)
             if(cond_g is not None):
-                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = aux_input['pitch_control'])
+                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask)
 
                 o_en = o_en - cond_g_emb.expand(o_en.size(0), o_en.size(1), -1) + g_emb.expand(o_en.size(0), o_en.size(1), -1)
 
-                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = o_pitch)
+                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_replace = o_pitch)
 
                 o_en = o_en + o_pitch_emb
 
             else:
-                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = aux_input['pitch_control'])
+                o_pitch_emb, o_pitch = self._forward_pitch_predictor(o_en, x_mask, pitch_control = aux_input['pitch_control'], pitch_replace = aux_input['pitch_replace'])
                 o_en = o_en + o_pitch_emb
         
 
