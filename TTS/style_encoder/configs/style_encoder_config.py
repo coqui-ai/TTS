@@ -30,7 +30,7 @@ class StyleEncoderConfig(Coqpit):
     agg_type: str = "concat" # Can be concat, sum, or adain
     agg_norm: bool = False # If agg_type == sum, you can rather than normalizing or not
     use_proj_linear: bool = False # Whether use linear projection to decoder dim or not (specifcally useful for sum agg_style)
-    proj_dim: int = 512 # Projection dim, often the encoder output (512 is the tacotron2 default encoder output)
+    proj_dim: int = 384 # Projection dim, often the encoder output (512 is the tacotron2 default encoder output, 384 for fastpitch)
     start_loss_at: int = 0 # Iteration that the style loss should start propagate 
     use_nonlinear_proj: bool = False # Whether use or not a linear (last_dim, last_dim) + tanh before agg in TTS encoder outputs
     use_speaker_embedding: bool = False
@@ -40,6 +40,11 @@ class StyleEncoderConfig(Coqpit):
     speaker_orthogonal_loss: bool = False # whether use othogonal loss between speaker and content embeddings
     use_guided_style: bool = False # Whether use guided style encoder training
     
+    # Finegrained re specific configs
+    fg_attention_dropout: float = 0.1
+    fg_attention_dim: int = 384
+    prosody_embedding_dim: int = 3 #Default to align with text, according to reference repo, by my first look it should be = proj_dim = encoder_output_dim
+
     # CLIP loss configs
     use_clip_loss: bool = False 
     clip_alpha_loss: float = 1
@@ -88,7 +93,7 @@ class StyleEncoderConfig(Coqpit):
         """Check config fields"""
         c = asdict(self)
         super().check_values()
-        check_argument("se_type", c, restricted=True, enum_list=["gst", "re","vae", "diffusion", "vaeflow"])
+        check_argument("se_type", c, restricted=True, enum_list=["gst", "re","vae", "diffusion", "vaeflow","finegrainedre"])
         check_argument("agg_type", c, restricted=True, enum_list=["sum", "concat", "adain"])
         check_argument("num_mel", c, restricted=False)
         check_argument("style_embedding_dim", c, restricted=True, min_val=0, max_val=1000)
