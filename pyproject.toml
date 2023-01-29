@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "cython==0.29.28", "numpy==1.21.6"]
+requires = ["setuptools", "wheel", "cython==0.29.28", "numpy==1.21.6", "packaging"]
 
 [flake8]
 max-line-length=120

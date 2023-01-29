@@ -1,8 +1,9 @@
 import logging
 import re
 import subprocess
-from distutils.version import LooseVersion
 from typing import Dict, List
+
+from packaging.version import Version
 
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 from TTS.tts.utils.text.punctuation import Punctuation
@@ -168,7 +169,7 @@ class ESpeak(BasePhonemizer):
         else:
             # split with '_'
             if self.backend == "espeak":
-                if LooseVersion(self.backend_version) >= LooseVersion("1.48.15"):
+                if Version(self.backend_version) >= Version("1.48.15"):
                     args.append("--ipa=1")
                 else:
                     args.append("--ipa=3")

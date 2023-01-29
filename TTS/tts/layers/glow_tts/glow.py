@@ -1,6 +1,5 @@
-from distutils.version import LooseVersion
-
 import torch
+from packaging.version import Version
 from torch import nn
 from torch.nn import functional as F
 
@@ -91,7 +90,7 @@ class InvConvNear(nn.Module):
         self.no_jacobian = no_jacobian
         self.weight_inv = None
 
-        if LooseVersion(torch.__version__) < LooseVersion("1.9"):
+        if Version(torch.__version__) < Version("1.9"):
             w_init = torch.qr(torch.FloatTensor(self.num_splits, self.num_splits).normal_())[0]
         else:
             w_init = torch.linalg.qr(torch.FloatTensor(self.num_splits, self.num_splits).normal_(), "complete")[0]
