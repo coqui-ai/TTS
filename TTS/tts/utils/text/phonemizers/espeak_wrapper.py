@@ -15,9 +15,16 @@ def is_tool(name):
     return which(name) is not None
 
 
+# Use a regex pattern to match the espeak version, because it may be
+# symlinked to espeak-ng, which moves the version bits to another spot.
+espeak_version_pattern = re.compile(r"text-to-speech:\s(?P<version>\d+\.\d+(\.\d+)?)")
+
+
 def get_espeak_version():
     output = subprocess.getoutput("espeak --version")
-    return output.split()[2]
+    match = espeak_version_pattern.search(output)
+
+    return match.group("version")
 
 
 def get_espeakng_version():
