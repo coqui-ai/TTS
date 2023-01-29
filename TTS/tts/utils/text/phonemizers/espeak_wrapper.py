@@ -1,8 +1,9 @@
 import logging
 import re
 import subprocess
-from distutils.version import LooseVersion
 from typing import Dict, List
+
+from packaging.version import Version
 
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 from TTS.tts.utils.text.punctuation import Punctuation
@@ -14,9 +15,16 @@ def is_tool(name):
     return which(name) is not None
 
 
+# Use a regex pattern to match the espeak version, because it may be
+# symlinked to espeak-ng, which moves the version bits to another spot.
+espeak_version_pattern = re.compile(r"text-to-speech:\s(?P<version>\d+\.\d+(\.\d+)?)")
+
+
 def get_espeak_version():
     output = subprocess.getoutput("espeak --version")
-    return output.split()[2]
+    match = espeak_version_pattern.search(output)
+
+    return match.group("version")
 
 
 def get_espeakng_version():
@@ -168,7 +176,7 @@ class ESpeak(BasePhonemizer):
         else:
             # split with '_'
             if self.backend == "espeak":
-                if LooseVersion(self.backend_version) >= LooseVersion("1.48.15"):
+                if Version(self.backend_version) >= Version("1.48.15"):
                     args.append("--ipa=1")
                 else:
                     args.append("--ipa=3")

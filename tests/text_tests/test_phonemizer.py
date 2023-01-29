@@ -1,5 +1,6 @@
 import unittest
-from distutils.version import LooseVersion
+
+from packaging.version import Version
 
 from TTS.tts.utils.text.phonemizers import ESpeak, Gruut, JA_JP_Phonemizer, ZH_CN_Phonemizer
 from TTS.tts.utils.text.phonemizers.multi_phonemizer import MultiPhonemizer
@@ -40,7 +41,7 @@ class TestEspeakPhonemizer(unittest.TestCase):
     def setUp(self):
         self.phonemizer = ESpeak(language="en-us", backend="espeak")
 
-        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+        if Version(self.phonemizer.backend_version) >= Version("1.48.15"):
             target_phonemes = EXPECTED_ESPEAK_v1_48_15_PHONEMES
         else:
             target_phonemes = EXPECTED_ESPEAK_PHONEMES
@@ -52,7 +53,7 @@ class TestEspeakPhonemizer(unittest.TestCase):
         # multiple punctuations
         text = "Be a voice, not an! echo?"
         gt = "biː ɐ vˈɔɪs, nˈɑːt ɐn! ˈɛkoʊ?"
-        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+        if Version(self.phonemizer.backend_version) >= Version("1.48.15"):
             gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ?"
         output = self.phonemizer.phonemize(text, separator="|")
         output = output.replace("|", "")
@@ -61,7 +62,7 @@ class TestEspeakPhonemizer(unittest.TestCase):
         # not ending with punctuation
         text = "Be a voice, not an! echo"
         gt = "biː ɐ vˈɔɪs, nˈɑːt ɐn! ˈɛkoʊ"
-        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+        if Version(self.phonemizer.backend_version) >= Version("1.48.15"):
             gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ"
         output = self.phonemizer.phonemize(text, separator="")
         self.assertEqual(output, gt)
@@ -69,7 +70,7 @@ class TestEspeakPhonemizer(unittest.TestCase):
         # extra space after the sentence
         text = "Be a voice, not an! echo.  "
         gt = "biː ɐ vˈɔɪs, nˈɑːt ɐn! ˈɛkoʊ."
-        if LooseVersion(self.phonemizer.backend_version) >= LooseVersion("1.48.15"):
+        if Version(self.phonemizer.backend_version) >= Version("1.48.15"):
             gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ."
         output = self.phonemizer.phonemize(text, separator="")
         self.assertEqual(output, gt)

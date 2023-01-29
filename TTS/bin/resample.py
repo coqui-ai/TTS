@@ -2,8 +2,8 @@ import argparse
 import glob
 import os
 from argparse import RawTextHelpFormatter
-from distutils.dir_util import copy_tree
 from multiprocessing import Pool
+from shutil import copytree
 
 import librosa
 import soundfile as sf
@@ -19,7 +19,7 @@ def resample_file(func_args):
 def resample_files(input_dir, output_sr, output_dir=None, file_ext="wav", n_jobs=10):
     if output_dir:
         print("Recursively copying the input folder...")
-        copy_tree(input_dir, output_dir)
+        copytree(input_dir, output_dir)
         input_dir = output_dir
 
     print("Resampling the audio files...")
