@@ -37,7 +37,7 @@ class TTSTest(unittest.TestCase):
         self.assertGreater(len(tts.speakers), 1)
         self.assertGreater(len(tts.languages), 1)
 
-    def test_voice_cloning():
+    def test_voice_cloning(self):
         tts = TTS()
         tts.load_model_by_name("tts_models/multilingual/multi-dataset/your_tts")
         tts.tts_to_file("Hello world!", speaker_wav=cloning_test_wav_path, language="en", file_path=OUTPUT_PATH)
