@@ -183,6 +183,7 @@ class BaseTTS(BaseTrainerModel):
         attn_mask = batch["attns"]
         waveform = batch["waveform"]
         pitch = batch["pitch"]
+        energy = batch["energy"]
         language_ids = batch["language_ids"]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
@@ -231,6 +232,7 @@ class BaseTTS(BaseTrainerModel):
             "item_idx": item_idx,
             "waveform": waveform,
             "pitch": pitch,
+            "energy": energy,
             "language_ids": language_ids,
             "audio_unique_names": batch["audio_unique_names"],
         }
