@@ -3,6 +3,7 @@ from typing import Callable, Dict, List, Union
 from TTS.tts.utils.text import cleaners
 from TTS.tts.utils.text.characters import Graphemes, IPAPhonemes
 from TTS.tts.utils.text.phonemizers import DEF_LANG_TO_PHONEMIZER, get_phonemizer_by_name
+from TTS.tts.utils.text.phonemizers.multi_phonemizer import MultiPhonemizer
 from TTS.utils.generic_utils import get_import_path, import_class
 
 
@@ -106,7 +107,7 @@ class TTSTokenizer:
         if self.text_cleaner is not None:
             text = self.text_cleaner(text)
         if self.use_phonemes:
-            text = self.phonemizer.phonemize(text, separator="")
+            text = self.phonemizer.phonemize(text, separator="", language=language)
         if self.add_blank:
             text = self.intersperse_blank_char(text, True)
         if self.use_eos_bos:
@@ -182,21 +183,29 @@ class TTSTokenizer:
         # init phonemizer
         phonemizer = None
         if config.use_phonemes:
-            phonemizer_kwargs = {"language": config.phoneme_language}
-
-            if "phonemizer" in config and config.phonemizer:
-                phonemizer = get_phonemizer_by_name(config.phonemizer, **phonemizer_kwargs)
+            if "phonemizer" in config and config.phonemizer == "multi_phonemizer":
+                lang_to_phonemizer_name = {}
+                for dataset in config.datasets:
+                    if dataset.language != "":
+                        lang_to_phonemizer_name[dataset.language] = dataset.phonemizer
+                    else:
+                        raise ValueError("Multi phonemizer requires language to be set for each dataset.")
+                phonemizer = MultiPhonemizer(lang_to_phonemizer_name)
             else:
-                try:
-                    phonemizer = get_phonemizer_by_name(
-                        DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs
-                    )
-                    new_config.phonemizer = phonemizer.name()
-                except KeyError as e:
-                    raise ValueError(
-                        f"""No phonemizer found for language {config.phoneme_language}.
-                        You may need to install a third party library for this language."""
-                    ) from e
+                phonemizer_kwargs = {"language": config.phoneme_language}
+                if "phonemizer" in config and config.phonemizer:
+                    phonemizer = get_phonemizer_by_name(config.phonemizer, **phonemizer_kwargs)
+                else:
+                    try:
+                        phonemizer = get_phonemizer_by_name(
+                            DEF_LANG_TO_PHONEMIZER[config.phoneme_language], **phonemizer_kwargs
+                        )
+                        new_config.phonemizer = phonemizer.name()
+                    except KeyError as e:
+                        raise ValueError(
+                            f"""No phonemizer found for language {config.phoneme_language}.
+                            You may need to install a third party library for this language."""
+                        ) from e
 
         return (
             TTSTokenizer(

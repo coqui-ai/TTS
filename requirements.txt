@@ -14,6 +14,7 @@ tqdm
 anyascii
 pyyaml
 fsspec>=2021.04.0
+packaging
 # deps for examples
 flask
 # deps for inference
@@ -24,7 +25,7 @@ pandas
 # deps for training
 matplotlib
 # coqui stack
-trainer
+trainer==0.0.20
 # config management
 coqpit>=0.0.16
 # chinese g2p deps

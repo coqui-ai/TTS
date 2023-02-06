@@ -114,7 +114,7 @@ class BasePhonemizer(abc.ABC):
             return self._punctuator.restore(phonemized, punctuations)[0]
         return phonemized[0]
 
-    def phonemize(self, text: str, separator="|") -> str:
+    def phonemize(self, text: str, separator="|", language: str = None) -> str:  # pylint: disable=unused-argument
         """Returns the `text` phonemized for the given language
 
         Args:

@@ -235,6 +235,9 @@ class EmbeddingManager(BaseIDManager):
             self.embeddings_by_names.update(embeddings_by_names)
             self.embeddings.update(embeddings)
 
+        # reset name_to_id to get the right speaker ids
+        self.name_to_id = {name: i for i, name in enumerate(self.name_to_id)}
+
     def get_embedding_by_clip(self, clip_idx: str) -> List:
         """Get embedding by clip ID.
 
@@ -321,7 +324,7 @@ class EmbeddingManager(BaseIDManager):
         self.encoder_config = load_config(config_path)
         self.encoder = setup_encoder_model(self.encoder_config)
         self.encoder_criterion = self.encoder.load_checkpoint(
-            self.encoder_config, model_path, eval=True, use_cuda=use_cuda
+            self.encoder_config, model_path, eval=True, use_cuda=use_cuda, cache=True
         )
         self.encoder_ap = AudioProcessor(**self.encoder_config.audio)
 

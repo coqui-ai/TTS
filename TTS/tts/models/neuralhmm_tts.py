@@ -7,7 +7,6 @@ from torch import nn
 from trainer.logging.tensorboard_logger import TensorboardLogger
 
 from TTS.tts.layers.overflow.common_layers import Encoder, OverflowUtils
-from TTS.tts.layers.overflow.decoder import Decoder
 from TTS.tts.layers.overflow.neural_hmm import NeuralHMM
 from TTS.tts.layers.overflow.plotting_utils import (
     get_spec_from_most_probable_state,
@@ -21,29 +20,33 @@ from TTS.utils.generic_utils import format_aux_input
 from TTS.utils.io import load_fsspec
 
 
-class Overflow(BaseTTS):
-    """OverFlow TTS model.
+class NeuralhmmTTS(BaseTTS):
+    """Neural HMM TTS model.
 
     Paper::
-        https://arxiv.org/abs/2211.06892
+        https://arxiv.org/abs/2108.13320
 
     Paper abstract::
-        Neural HMMs are a type of neural transducer recently proposed for
-    sequence-to-sequence modelling in text-to-speech. They combine the best features
-    of classic statistical speech synthesis and modern neural TTS, requiring less
-    data and fewer training updates, and are less prone to gibberish output caused
-    by neural attention failures. In this paper, we combine neural HMM TTS with
-    normalising flows for describing the highly non-Gaussian distribution of speech
-    acoustics. The result is a powerful, fully probabilistic model of durations and
-    acoustics that can be trained using exact maximum likelihood. Compared to
-    dominant flow-based acoustic models, our approach integrates autoregression for
-    improved modelling of long-range dependences such as utterance-level prosody.
-    Experiments show that a system based on our proposal gives more accurate
-    pronunciations and better subjective speech quality than comparable methods,
-    whilst retaining the original advantages of neural HMMs. Audio examples and code
-    are available at https://shivammehta25.github.io/OverFlow/.
+        Neural sequence-to-sequence TTS has achieved significantly better output quality
+    than statistical speech synthesis using HMMs.However, neural TTS is generally not probabilistic
+    and uses non-monotonic attention. Attention failures increase training time and can make
+    synthesis babble incoherently. This paper describes how the old and new paradigms can be
+    combined to obtain the advantages of both worlds, by replacing attention in neural TTS with
+    an autoregressive left-right no-skip hidden Markov model defined by a neural network.
+    Based on this proposal, we modify Tacotron 2 to obtain an HMM-based neural TTS model with
+    monotonic alignment, trained to maximise the full sequence likelihood without approximation.
+    We also describe how to combine ideas from classical and contemporary TTS for best results.
+    The resulting example system is smaller and simpler than Tacotron 2, and learns to speak with
+    fewer iterations and less data, whilst achieving comparable naturalness prior to the post-net.
+    Our approach also allows easy control over speaking rate. Audio examples and code
+    are available at https://shivammehta25.github.io/Neural-HMM/ .
 
     Note:
+        - This is a parameter efficient version of OverFlow (15.3M vs 28.6M). Since it has half the
+        number of parameters as OverFlow the synthesis output quality is suboptimal (but comparable to Tacotron2
+        without Postnet), but it learns to speak with even lesser amount of data and is still significantly faster
+        than other attention-based methods.
+
         - Neural HMMs uses flat start initialization i.e it computes the means and std and transition probabilities
         of the dataset and uses them to initialize the model. This benefits the model and helps with faster learning
         If you change the dataset or want to regenerate the parameters change the `force_generate_statistics` and
@@ -56,12 +59,12 @@ class Overflow(BaseTTS):
         probability distribution at the current step i.e the difference between the forward
         algorithm and viterbi approximation.
 
-    Check :class:`TTS.tts.configs.overflow.OverFlowConfig` for class arguments.
+    Check :class:`TTS.tts.configs.neuralhmm_tts_config.NeuralhmmTTSConfig` for class arguments.
     """
 
     def __init__(
         self,
-        config: "OverFlowConfig",
+        config: "NeuralhmmTTSConfig",
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
@@ -73,8 +76,6 @@ class Overflow(BaseTTS):
         self.config = config
         for key in config:
             setattr(self, key, config[key])
-
-        self.decoder_output_dim = config.out_channels
 
         self.encoder = Encoder(config.num_chars, config.state_per_phone, config.encoder_in_out_features)
         self.neural_hmm = NeuralHMM(
@@ -92,20 +93,6 @@ class Overflow(BaseTTS):
             flat_start_params=self.flat_start_params,
             std_floor=self.std_floor,
             use_grad_checkpointing=self.use_grad_checkpointing,
-        )
-
-        self.decoder = Decoder(
-            self.out_channels,
-            self.hidden_channels_dec,
-            self.kernel_size_dec,
-            self.dilation_rate,
-            self.num_flow_blocks_dec,
-            self.num_block_layers,
-            dropout_p=self.dropout_p_dec,
-            num_splits=self.num_splits,
-            num_squeeze=self.num_squeeze,
-            sigmoid_scale=self.sigmoid_scale,
-            c_in_channels=self.c_in_channels,
         )
 
         self.register_buffer("mean", torch.tensor(0))
@@ -142,13 +129,13 @@ class Overflow(BaseTTS):
         """
         text, text_len, mels, mel_len = self.preprocess_batch(text, text_len, mels, mel_len)
         encoder_outputs, encoder_output_len = self.encoder(text, text_len)
-        z, z_lengths, logdet = self.decoder(mels.transpose(1, 2), mel_len)
+
         log_probs, fwd_alignments, transition_vectors, means = self.neural_hmm(
-            encoder_outputs, encoder_output_len, z, z_lengths
+            encoder_outputs, encoder_output_len, mels.transpose(1, 2), mel_len
         )
 
         outputs = {
-            "log_probs": log_probs + logdet,
+            "log_probs": log_probs,
             "alignments": fwd_alignments,
             "transition_vectors": transition_vectors,
             "means": means,
@@ -235,11 +222,9 @@ class Overflow(BaseTTS):
             max_sampling_time=aux_input["max_sampling_time"],
             duration_threshold=aux_input["duration_threshold"],
         )
+        mels, mel_outputs_len = outputs["hmm_outputs"], outputs["hmm_outputs_len"]
 
-        mels, mel_outputs_len, _ = self.decoder(
-            outputs["hmm_outputs"].transpose(1, 2), outputs["hmm_outputs_len"], reverse=True
-        )
-        mels = self.inverse_normalize(mels.transpose(1, 2))
+        mels = self.inverse_normalize(mels)
         outputs.update({"model_outputs": mels, "model_outputs_len": mel_outputs_len})
         outputs["alignments"] = OverflowUtils.double_pad(outputs["alignments"])
         return outputs
@@ -249,7 +234,7 @@ class Overflow(BaseTTS):
         return NLLLoss()
 
     @staticmethod
-    def init_from_config(config: "OverFlowConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
+    def init_from_config(config: "NeuralhmmTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
         """Initiate model from config
 
         Args:
@@ -263,7 +248,7 @@ class Overflow(BaseTTS):
         ap = AudioProcessor.init_from_config(config, verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config, samples)
-        return Overflow(new_config, ap, tokenizer, speaker_manager)
+        return NeuralhmmTTS(new_config, ap, tokenizer, speaker_manager)
 
     def load_checkpoint(
         self, config: Coqpit, checkpoint_path: str, eval: bool = False, strict: bool = True, cache=False
@@ -272,7 +257,6 @@ class Overflow(BaseTTS):
         self.load_state_dict(state["model"])
         if eval:
             self.eval()
-            self.decoder.store_inverse()
             assert not self.training
 
     def on_init_start(self, trainer):
@@ -327,7 +311,7 @@ class Overflow(BaseTTS):
             ),
             "transition_vectors": plot_alignment(transition_vectors[0], title="Transition vectors", fig_size=(20, 20)),
             "mel_from_most_probable_state": plot_spectrogram(
-                get_spec_from_most_probable_state(alignments[0], means[0], self.decoder), fig_size=(12, 3)
+                get_spec_from_most_probable_state(alignments[0], means[0]), fig_size=(12, 3)
             ),
             "mel_target": plot_spectrogram(batch["mel_input"][0], fig_size=(12, 3)),
         }

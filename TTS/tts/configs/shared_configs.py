@@ -217,6 +217,9 @@ class BaseTTSConfig(BaseTrainingConfig):
         compute_f0 (int):
             (Not in use yet).
 
+        compute_energy (int):
+            (Not in use yet).
+
         compute_linear_spec (bool):
             If True data loader computes and returns linear spectrograms alongside the other data.
 
@@ -312,6 +315,7 @@ class BaseTTSConfig(BaseTrainingConfig):
     min_text_len: int = 1
     max_text_len: int = float("inf")
     compute_f0: bool = False
+    compute_energy: bool = False
     compute_linear_spec: bool = False
     precompute_num_workers: int = 0
     use_noise_augment: bool = False

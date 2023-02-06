@@ -23,7 +23,7 @@
 import os
 import subprocess
 import sys
-from distutils.version import LooseVersion
+from packaging.version import Version
 
 import numpy
 import setuptools.command.build_py
@@ -31,7 +31,8 @@ import setuptools.command.develop
 from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 
-if LooseVersion(sys.version) < LooseVersion("3.7") or LooseVersion(sys.version) >= LooseVersion("3.11"):
+python_version = sys.version.split()[0]
+if Version(python_version) < Version("3.7") or Version(python_version) >= Version("3.11"):
     raise RuntimeError("TTS requires python >= 3.7 and < 3.11 " "but your Python version is {}".format(sys.version))
 
 

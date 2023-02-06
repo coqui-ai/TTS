@@ -65,7 +65,7 @@
                 </ul>
 
                 {%if use_gst%}
-                <input value='{"0": 0.1}' id="style_wav" placeholder="style wav (dict or path ot wav).." size=45
+                <input value='{"0": 0.1}' id="style_wav" placeholder="style wav (dict or path to wav).." size=45
                     type="text" name="style_wav">
                 {%endif%}
 
@@ -80,6 +80,16 @@
                     {% endfor %}
                 </select><br /><br />
                 {%endif%}
+
+                {%if use_multi_language%}
+                Choose a language:
+                <select id="language_id" name=language_id method="GET" action="/">
+                    {% for language_id in language_ids %}
+                    <option value="{{language_id}}" SELECTED>{{language_id}}</option>"
+                    {% endfor %}
+                </select><br /><br />
+                {%endif%}
+
 
                 {%if show_details%}
                 <button id="details-button" onclick="location.href = 'details'" name="model-details">Model
@@ -106,11 +116,12 @@
             const text = q('#text').value
             const speaker_id = getTextValue('#speaker_id')
             const style_wav = getTextValue('#style_wav')
+            const language_id = getTextValue('#language_id')
             if (text) {
                 q('#message').textContent = 'Synthesizing...'
                 q('#speak-button').disabled = true
                 q('#audio').hidden = true
-                synthesize(text, speaker_id, style_wav)
+                synthesize(text, speaker_id, style_wav, language_id)
             }
             e.preventDefault()
             return false
@@ -121,8 +132,8 @@
                 do_tts(e)
             }
         })
-        function synthesize(text, speaker_id = "", style_wav = "") {
-            fetch(`/api/tts?text=${encodeURIComponent(text)}&speaker_id=${encodeURIComponent(speaker_id)}&style_wav=${encodeURIComponent(style_wav)}`, { cache: 'no-cache' })
+        function synthesize(text, speaker_id = "", style_wav = "", language_id = "") {
+            fetch(`/api/tts?text=${encodeURIComponent(text)}&speaker_id=${encodeURIComponent(speaker_id)}&style_wav=${encodeURIComponent(style_wav)}&language_id=${encodeURIComponent(language_id)}`, { cache: 'no-cache' })
                 .then(function (res) {
                     if (!res.ok) throw Error(res.statusText)
                     return res.blob()
