@@ -109,7 +109,6 @@ class AlignTTS(BaseTTS):
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
     ):
-
         super().__init__(config, ap, tokenizer, speaker_manager)
         self.speaker_manager = speaker_manager
         self.phase = -1

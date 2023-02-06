@@ -235,7 +235,6 @@ class TestMultiPhonemizer(unittest.TestCase):
         self.phonemizer = MultiPhonemizer({"tr": "espeak", "en-us": "", "de": "gruut", "zh-cn": ""})
 
     def test_phonemize(self):
-
         # Enlish espeak
         text = "Be a voice, not an! echo?"
         gt = "biː ɐ vˈɔɪs, nˈɑːt æn! ˈɛkoʊ?"

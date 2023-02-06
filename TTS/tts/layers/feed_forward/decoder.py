@@ -81,7 +81,6 @@ class RelativePositionTransformerDecoder(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, hidden_channels, params):
-
         super().__init__()
         self.prenet = Conv1dBN(in_channels, hidden_channels, 1, 1)
         self.rel_pos_transformer = RelativePositionTransformer(in_channels, out_channels, hidden_channels, **params)
@@ -111,7 +110,6 @@ class FFTransformerDecoder(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, params):
-
         super().__init__()
         self.transformer_block = FFTransformerBlock(in_channels, **params)
         self.postnet = nn.Conv1d(in_channels, out_channels, 1)

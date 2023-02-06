@@ -14,7 +14,6 @@ from TTS.utils.io import save_fsspec
 
 class AugmentWAV(object):
     def __init__(self, ap, augmentation_config):
-
         self.ap = ap
         self.use_additive_noise = False
 
@@ -67,7 +66,6 @@ class AugmentWAV(object):
             self.global_noise_list.append("RIR_AUG")
 
     def additive_noise(self, noise_type, audio):
-
         clean_db = 10 * np.log10(np.mean(audio**2) + 1e-4)
 
         noise_list = random.sample(

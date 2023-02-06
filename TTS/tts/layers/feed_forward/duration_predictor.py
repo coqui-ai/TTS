@@ -18,7 +18,6 @@ class DurationPredictor(nn.Module):
     """
 
     def __init__(self, hidden_channels):
-
         super().__init__()
 
         self.layers = nn.ModuleList(

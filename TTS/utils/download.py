@@ -43,7 +43,6 @@ def stream_url(
         total=url_size,
         disable=not progress_bar,
     ) as pbar:
-
         num_bytes = 0
         while True:
             chunk = upointer.read(block_size)

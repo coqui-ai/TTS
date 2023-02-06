@@ -633,7 +633,6 @@ class Vits(BaseTTS):
         speaker_manager: SpeakerManager = None,
         language_manager: LanguageManager = None,
     ):
-
         super().__init__(config, ap, tokenizer, speaker_manager, language_manager)
 
         self.init_multispeaker(config)
@@ -1280,7 +1279,6 @@ class Vits(BaseTTS):
 
             # compute melspec segment
             with autocast(enabled=False):
-
                 if self.args.encoder_sample_rate:
                     spec_segment_size = self.spec_segment_size * int(self.interpolate_factor)
                 else:

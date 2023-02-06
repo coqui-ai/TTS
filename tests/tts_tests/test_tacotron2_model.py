@@ -332,7 +332,6 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
 
     @staticmethod
     def test_train_step():
-
         config = config_global.copy()
         config.use_d_vector_file = True
 
