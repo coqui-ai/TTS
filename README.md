@@ -3,7 +3,6 @@
 ----
 
 ### 📣 Clone your voice with a single click on [🐸Coqui.ai](https://app.coqui.ai/auth/signin)
-### 📣 🐸Coqui Studio is launching soon!! Join our [waiting list](https://coqui.ai/)!!
 
 ----
 
@@ -92,6 +91,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 - FastPitch: [paper](https://arxiv.org/pdf/2006.06873.pdf)
 - FastSpeech: [paper](https://arxiv.org/abs/1905.09263)
+- FastSpeech2: [paper](https://arxiv.org/abs/2006.04558)
 - SC-GlowTTS: [paper](https://arxiv.org/abs/2104.05557)
 - Capacitron: [paper](https://arxiv.org/abs/1906.03402)
 - OverFlow: [paper](https://arxiv.org/abs/2211.06892)
