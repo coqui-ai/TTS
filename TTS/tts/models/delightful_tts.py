@@ -165,7 +165,7 @@ def get_module_weights_sum(mdl: nn.Module):
     return dict_sums
 
 
-def load_audio(file_path):
+def load_audio(file_path, sample_rate=None):
     """Load the audio file normalized in [-1, 1]
 
     Return Shapes:
@@ -175,6 +175,13 @@ def load_audio(file_path):
         file_path,
     )
     assert (x > 1).sum() + (x < -1).sum() == 0
+    if sample_rate:
+        x = torchaudio.functional.resample(
+            x,
+            orig_freq=sr,
+            new_freq=sample_rate,
+        )
+        sr = sample_rate
     return x, sr
 
 
@@ -375,7 +382,7 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         )
 
     def _compute_and_save_pitch(self, wav_file, pitch_file=None):
-        wav, _ = load_audio(wav_file)
+        wav, _ = load_audio(wav_file, sample_rate=self.ap.sample_rate)
         f0 = compute_f0(
             x=wav.numpy()[0],
             sample_rate=self.ap.sample_rate,
@@ -434,7 +441,7 @@ class ForwardTTSE2eDataset(TTSDataset):
         rel_wav_path = str(rel_wav_path).replace("/", "_")
 
         raw_text = item["text"]
-        wav, _ = load_audio(item["audio_file"])
+        wav, _ = load_audio(item["audio_file"], sample_rate=self.ap.sample_rate)
         wav_filename = os.path.basename(item["audio_file"])
 
         token_ids = self.get_token_ids(idx, item["text"])
@@ -601,6 +608,8 @@ class DelightfulTtsAudioConfig(Coqpit):
     spec_gain: int = 20
     do_amp_to_db_linear: bool = True
     do_amp_to_db_mel: bool = True
+    min_level_db: int = -100
+    max_norm: float = 4.0
 
 
 @dataclass
@@ -1185,7 +1194,7 @@ class DelightfulTTS(BaseTTSE2E):
         if hasattr(self, "speaker_manager"):
             if config.use_d_vector_file:
                 if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embeddings()
+                    d_vector = self.speaker_manager.get_random_embedding()
                 else:
                     d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
             elif config.use_speaker_embedding:
