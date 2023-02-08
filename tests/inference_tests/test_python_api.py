@@ -1,10 +1,12 @@
 import os
 import unittest
 
-from tests import get_tests_output_path
+from tests import get_tests_data_path, get_tests_output_path
+
 from TTS.api import TTS
 
 OUTPUT_PATH = os.path.join(get_tests_output_path(), "test_python_api.wav")
+cloning_test_wav_path = os.path.join(get_tests_data_path(), "ljspeech/wavs/LJ001-0028.wav")
 
 
 class TTSTest(unittest.TestCase):
@@ -34,3 +36,8 @@ class TTSTest(unittest.TestCase):
         self.assertTrue(tts.is_multi_lingual)
         self.assertGreater(len(tts.speakers), 1)
         self.assertGreater(len(tts.languages), 1)
+
+    def test_voice_cloning(self):  # pylint: disable=no-self-use
+        tts = TTS()
+        tts.load_model_by_name("tts_models/multilingual/multi-dataset/your_tts")
+        tts.tts_to_file("Hello world!", speaker_wav=cloning_test_wav_path, language="en", file_path=OUTPUT_PATH)

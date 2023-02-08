@@ -43,7 +43,7 @@ class JA_JP_Phonemizer(BasePhonemizer):
             return separator.join(ph)
         return ph
 
-    def phonemize(self, text: str, separator="|") -> str:
+    def phonemize(self, text: str, separator="|", language=None) -> str:
         """Custom phonemize for JP_JA
 
         Skip pre-post processing steps used by the other phonemizers.

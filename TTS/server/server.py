@@ -115,8 +115,13 @@ synthesizer = Synthesizer(
 use_multi_speaker = hasattr(synthesizer.tts_model, "num_speakers") and (
     synthesizer.tts_model.num_speakers > 1 or synthesizer.tts_speakers_file is not None
 )
-
 speaker_manager = getattr(synthesizer.tts_model, "speaker_manager", None)
+
+use_multi_language = hasattr(synthesizer.tts_model, "num_languages") and (
+    synthesizer.tts_model.num_languages > 1 or synthesizer.tts_languages_file is not None
+)
+language_manager = getattr(synthesizer.tts_model, "language_manager", None)
+
 # TODO: set this from SpeakerManager
 use_gst = synthesizer.tts_config.get("use_gst", False)
 app = Flask(__name__)
@@ -147,7 +152,9 @@ def index():
         "index.html",
         show_details=args.show_details,
         use_multi_speaker=use_multi_speaker,
+        use_multi_language=use_multi_language,
         speaker_ids=speaker_manager.name_to_id if speaker_manager is not None else None,
+        language_ids=language_manager.name_to_id if language_manager is not None else None,
         use_gst=use_gst,
     )
 
@@ -177,11 +184,13 @@ def tts():
     with lock:
         text = request.args.get("text")
         speaker_idx = request.args.get("speaker_id", "")
+        language_idx = request.args.get("language_id", "")
         style_wav = request.args.get("style_wav", "")
         style_wav = style_wav_uri_to_dict(style_wav)
         print(" > Model input: {}".format(text))
         print(" > Speaker Idx: {}".format(speaker_idx))
-        wavs = synthesizer.tts(text, speaker_name=speaker_idx, style_wav=style_wav)
+        print(" > Language Idx: {}".format(language_idx))
+        wavs = synthesizer.tts(text, speaker_name=speaker_idx, language_name=language_idx, style_wav=style_wav)
         out = io.BytesIO()
         synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype="audio/wav")

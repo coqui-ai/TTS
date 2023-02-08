@@ -3,7 +3,6 @@
 ----
 
 ### 📣 Clone your voice with a single click on [🐸Coqui.ai](https://app.coqui.ai/auth/signin)
-### 📣 🐸Coqui Studio is launching soon!! Join our [waiting list](https://coqui.ai/)!!
 
 ----
 
@@ -92,9 +91,11 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 - FastPitch: [paper](https://arxiv.org/pdf/2006.06873.pdf)
 - FastSpeech: [paper](https://arxiv.org/abs/1905.09263)
+- FastSpeech2: [paper](https://arxiv.org/abs/2006.04558)
 - SC-GlowTTS: [paper](https://arxiv.org/abs/2104.05557)
 - Capacitron: [paper](https://arxiv.org/abs/1906.03402)
 - OverFlow: [paper](https://arxiv.org/abs/2211.06892)
+- Neural HMM TTS: [paper](https://arxiv.org/abs/2108.13320)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
@@ -190,6 +191,12 @@ tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.langu
 tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
 # Run TTS
 tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path=OUTPUT_PATH)
+
+# Example voice cloning with YourTTS in English, French and Portuguese:
+tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False, gpu=True)
+tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
+tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr", file_path="output.wav")
+tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt", file_path="output.wav")
 ```
 
 ### Command line `tts`

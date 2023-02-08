@@ -30,7 +30,7 @@ def validate_numpy_array(value: Any):
     return value
 
 
-def get_spec_from_most_probable_state(log_alpha_scaled, means, decoder):
+def get_spec_from_most_probable_state(log_alpha_scaled, means, decoder=None):
     """Get the most probable state means from the log_alpha_scaled.
 
     Args:
@@ -38,16 +38,21 @@ def get_spec_from_most_probable_state(log_alpha_scaled, means, decoder):
             - Shape: :math:`(T, N)`
         means (torch.Tensor): Means of the states.
             - Shape: :math:`(N, T, D_out)`
-        decoder (torch.nn.Module): Decoder module to decode the latent to melspectrogram
+        decoder (torch.nn.Module): Decoder module to decode the latent to melspectrogram. Defaults to None.
     """
     max_state_numbers = torch.max(log_alpha_scaled, dim=1)[1]
     max_len = means.shape[0]
     n_mel_channels = means.shape[2]
     max_state_numbers = max_state_numbers.unsqueeze(1).unsqueeze(1).expand(max_len, 1, n_mel_channels)
     means = torch.gather(means, 1, max_state_numbers).squeeze(1).to(log_alpha_scaled.dtype)
-    mel = (
-        decoder(means.T.unsqueeze(0), torch.tensor([means.shape[0]], device=means.device), reverse=True)[0].squeeze(0).T
-    )
+    if decoder is not None:
+        mel = (
+            decoder(means.T.unsqueeze(0), torch.tensor([means.shape[0]], device=means.device), reverse=True)[0]
+            .squeeze(0)
+            .T
+        )
+    else:
+        mel = means
     return mel
 
 
