@@ -77,7 +77,7 @@ class ConditionalDiscriminator(nn.Module):
         # layers before condition features
         self.pre_cond_layers += [DBlock(in_channels, 64, 1)]
         in_channels = 64
-        for (i, channel) in enumerate(out_channels):
+        for i, channel in enumerate(out_channels):
             self.pre_cond_layers.append(DBlock(in_channels, channel, downsample_factors[i]))
             in_channels = channel
 
@@ -116,7 +116,7 @@ class UnconditionalDiscriminator(nn.Module):
         self.layers = nn.ModuleList()
         self.layers += [DBlock(self.in_channels, base_channels, 1)]
         in_channels = base_channels
-        for (i, factor) in enumerate(downsample_factors):
+        for i, factor in enumerate(downsample_factors):
             self.layers.append(DBlock(in_channels, out_channels[i], factor))
             in_channels *= 2
         self.layers += [
@@ -147,7 +147,6 @@ class RandomWindowDiscriminator(nn.Module):
         cond_disc_out_channels=((128, 128, 256, 256), (128, 256, 256), (128, 256), (256,), (128, 256)),
         window_sizes=(512, 1024, 2048, 4096, 8192),
     ):
-
         super().__init__()
         self.cond_channels = cond_channels
         self.window_sizes = window_sizes
@@ -185,14 +184,14 @@ class RandomWindowDiscriminator(nn.Module):
         scores = []
         feats = []
         # unconditional pass
-        for (window_size, layer) in zip(self.window_sizes, self.unconditional_discriminators):
+        for window_size, layer in zip(self.window_sizes, self.unconditional_discriminators):
             index = np.random.randint(x.shape[-1] - window_size)
 
             score = layer(x[:, :, index : index + window_size])
             scores.append(score)
 
         # conditional pass
-        for (window_size, layer) in zip(self.window_sizes, self.conditional_discriminators):
+        for window_size, layer in zip(self.window_sizes, self.conditional_discriminators):
             frame_size = window_size // self.hop_length
             lc_index = np.random.randint(c.shape[-1] - frame_size)
             sample_index = lc_index * self.hop_length

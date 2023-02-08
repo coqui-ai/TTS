@@ -357,7 +357,6 @@ class BaseTTS(BaseTrainerModel):
     def _get_test_aux_input(
         self,
     ) -> Dict:
-
         d_vector = None
         if self.config.use_d_vector_file:
             d_vector = [self.speaker_manager.embeddings[name]["embedding"] for name in self.speaker_manager.embeddings]

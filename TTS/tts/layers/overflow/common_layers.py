@@ -22,7 +22,6 @@ class Encoder(nn.Module):
     """
 
     def __init__(self, num_chars, state_per_phone, in_out_channels=512, n_convolutions=3):
-
         super().__init__()
 
         self.state_per_phone = state_per_phone

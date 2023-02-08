@@ -31,7 +31,6 @@ class ReferenceEncoder(nn.Module):
     """
 
     def __init__(self, num_mel, embedding_dim):
-
         super().__init__()
         self.num_mel = num_mel
         filters = [1] + [32, 32, 64, 64, 128, 128]
@@ -119,7 +118,6 @@ class MultiHeadAttention(nn.Module):
     """
 
     def __init__(self, query_dim, key_dim, num_units, num_heads):
-
         super().__init__()
         self.num_units = num_units
         self.num_heads = num_heads

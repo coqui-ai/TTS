@@ -401,7 +401,6 @@ class TestVits(unittest.TestCase):
     def test_train_step(self):
         # setup the model
         with torch.autograd.set_detect_anomaly(True):
-
             config = VitsConfig(model_args=VitsArgs(num_chars=32, spec_segment_size=10))
             model = Vits(config).to(device)
             model.train()

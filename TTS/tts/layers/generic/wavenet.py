@@ -153,7 +153,6 @@ class WNBlocks(nn.Module):
         dropout_p=0,
         weight_norm=True,
     ):
-
         super().__init__()
         self.wn_blocks = nn.ModuleList()
         for idx in range(num_blocks):

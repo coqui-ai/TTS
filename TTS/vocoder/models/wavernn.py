@@ -312,7 +312,6 @@ class Wavernn(BaseVocoder):
         return self.fc3(x)
 
     def inference(self, mels, batched=None, target=None, overlap=None):
-
         self.eval()
         output = []
         start = time.time()
@@ -346,7 +345,6 @@ class Wavernn(BaseVocoder):
                 aux_split = [aux[:, :, d * i : d * (i + 1)] for i in range(4)]
 
             for i in range(seq_len):
-
                 m_t = mels[:, i, :]
 
                 if self.args.use_aux_net:

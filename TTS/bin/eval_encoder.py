@@ -10,7 +10,6 @@ from TTS.tts.utils.speakers import SpeakerManager
 
 
 def compute_encoder_accuracy(dataset_items, encoder_manager):
-
     class_name_key = encoder_manager.encoder_config.class_name_key
     map_classid_to_classname = getattr(encoder_manager.encoder_config, "map_classid_to_classname", None)
 

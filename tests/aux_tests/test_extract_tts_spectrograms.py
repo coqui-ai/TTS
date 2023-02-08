@@ -9,6 +9,7 @@ from TTS.tts.models import setup_model
 
 torch.manual_seed(1)
 
+
 # pylint: disable=protected-access
 class TestExtractTTSSpectrograms(unittest.TestCase):
     @staticmethod

@@ -64,7 +64,6 @@ class RelativePositionMultiHeadAttention(nn.Module):
         proximal_bias=False,
         proximal_init=False,
     ):
-
         super().__init__()
         assert channels % num_heads == 0, " [!] channels should be divisible by num_heads."
         # class attributes
@@ -272,7 +271,6 @@ class FeedForwardNetwork(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, hidden_channels, kernel_size, dropout_p=0.0, causal=False):
-
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels

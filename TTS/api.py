@@ -102,7 +102,7 @@ class TTS:
         return model_path, config_path, vocoder_path, vocoder_config_path
 
     def load_model_by_name(self, model_name: str, gpu: bool = False):
-        """ Load one of 🐸TTS models by name.
+        """Load one of 🐸TTS models by name.
 
         Args:
             model_name (str): Model name to load. You can list models by ```tts.models```.
