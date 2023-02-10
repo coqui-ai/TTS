@@ -159,6 +159,15 @@
                     "author": "Eren Gölge @erogol",
                     "license": "apache 2.0",
                     "contact": "egolge@coqui.ai"
+                },
+                "neural_hmm": {
+                    "description": "Neural HMM model trained on LJSpeech",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.11.0_models/tts_models--en--ljspeech--neural_hmm.zip",
+                    "default_vocoder": "vocoder_models/en/ljspeech/hifigan_v2",
+                    "commit": "3b1a28f",
+                    "author": "Shivam Metha @shivammehta25",
+                    "license": "apache 2.0",
+                    "contact": "d83ee8fe45e3c0d776d4a865aca21d7c2ac324c4"
                 }
             },
             "vctk": {
