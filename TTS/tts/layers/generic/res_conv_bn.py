@@ -100,7 +100,6 @@ class ResidualConv1dBNBlock(nn.Module):
     def __init__(
         self, in_channels, out_channels, hidden_channels, kernel_size, dilations, num_res_blocks=13, num_conv_blocks=2
     ):
-
         super().__init__()
         assert len(dilations) == num_res_blocks
         self.res_blocks = nn.ModuleList()

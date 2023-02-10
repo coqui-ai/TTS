@@ -35,7 +35,6 @@ def resample_files(input_dir, output_sr, output_dir=None, file_ext="wav", n_jobs
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="""Resample a folder recusively with librosa
                        Can be used in place or create a copy of the folder as an output.\n\n

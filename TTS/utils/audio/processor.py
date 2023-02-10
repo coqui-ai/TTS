@@ -158,7 +158,6 @@ class AudioProcessor(object):
         verbose=True,
         **_,
     ):
-
         # setup class attributed
         self.sample_rate = sample_rate
         self.resample = resample

@@ -83,7 +83,6 @@ class ReferenceEncoder(nn.Module):
     """
 
     def __init__(self, num_mel, out_dim):
-
         super().__init__()
         self.num_mel = num_mel
         filters = [1] + [32, 32, 64, 64, 128, 128]

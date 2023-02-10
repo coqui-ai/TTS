@@ -2,7 +2,6 @@ import os
 import unittest
 
 from tests import get_tests_data_path, get_tests_output_path
-
 from TTS.api import TTS
 
 OUTPUT_PATH = os.path.join(get_tests_output_path(), "test_python_api.wav")

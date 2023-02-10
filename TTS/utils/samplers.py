@@ -72,7 +72,6 @@ class PerfectBatchSampler(Sampler):
         self._num_classes_in_batch = num_classes_in_batch
 
     def __iter__(self):
-
         batch = []
         if self._num_classes_in_batch != len(self._samplers):
             valid_samplers_idx = random.sample(range(len(self._samplers)), self._num_classes_in_batch)

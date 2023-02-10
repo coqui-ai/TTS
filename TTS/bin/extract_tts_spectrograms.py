@@ -164,7 +164,6 @@ def extract_spectrograms(
     model.eval()
     export_metadata = []
     for _, data in tqdm(enumerate(data_loader), total=len(data_loader)):
-
         # format data
         (
             text_input,

@@ -32,7 +32,6 @@ class SpecDiscriminator(nn.Module):
         self.out = norm_f(nn.Conv2d(32, 1, 3, 1, 1))
 
     def forward(self, y):
-
         fmap = []
         with torch.no_grad():
             y = y.squeeze(1)
@@ -53,7 +52,6 @@ class MultiResSpecDiscriminator(torch.nn.Module):
     def __init__(  # pylint: disable=dangerous-default-value
         self, fft_sizes=[1024, 2048, 512], hop_sizes=[120, 240, 50], win_lengths=[600, 1200, 240], window="hann_window"
     ):
-
         super().__init__()
         self.discriminators = nn.ModuleList(
             [

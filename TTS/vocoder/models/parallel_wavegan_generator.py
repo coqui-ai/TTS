@@ -33,7 +33,6 @@ class ParallelWaveganGenerator(torch.nn.Module):
         upsample_factors=[4, 4, 4, 4],
         inference_padding=2,
     ):
-
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
