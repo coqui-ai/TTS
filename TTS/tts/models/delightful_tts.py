@@ -175,13 +175,6 @@ def load_audio(file_path, sample_rate=None):
         file_path,
     )
     assert (x > 1).sum() + (x < -1).sum() == 0
-    if sample_rate:
-        x = torchaudio.functional.resample(
-            x,
-            orig_freq=sr,
-            new_freq=sample_rate,
-        )
-        sr = sample_rate
     return x, sr
 
 
@@ -444,8 +437,11 @@ class ForwardTTSE2eDataset(TTSDataset):
         wav, _ = load_audio(item["audio_file"], sample_rate=self.ap.sample_rate)
         wav_filename = os.path.basename(item["audio_file"])
 
-        token_ids = self.get_token_ids(idx, item["text"])
-
+        try:
+            token_ids = self.get_token_ids(idx, item["text"])
+        except:
+            print(idx, item)
+            raise OSError
         f0 = None
         if self.compute_f0:
             f0 = self.get_f0(idx)["f0"]
