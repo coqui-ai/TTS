@@ -188,9 +188,9 @@ def tts():
         language_idx = request.args.get("language_id", "")
         style_wav = request.args.get("style_wav", "")
         style_wav = style_wav_uri_to_dict(style_wav)
-        print(" > Model input: {}".format(text))
-        print(" > Speaker Idx: {}".format(speaker_idx))
-        print(" > Language Idx: {}".format(language_idx))
+        print(f" > Model input: {text}")
+        print(f" > Speaker Idx: {speaker_idx}")
+        print(f" > Language Idx: {language_idx}")
         wavs = synthesizer.tts(text, speaker_name=speaker_idx, language_name=language_idx, style_wav=style_wav)
         out = io.BytesIO()
         synthesizer.save_wav(wavs, out)
@@ -233,7 +233,7 @@ def mary_tts_api_process():
             text = data.get("INPUT_TEXT", [""])[0]
         else:
             text = request.args.get("INPUT_TEXT", "")
-        print(" > Model input: {}".format(text))
+        print(f" > Model input: {text}")
         wavs = synthesizer.tts(text)
         out = io.BytesIO()
         synthesizer.save_wav(wavs, out)
