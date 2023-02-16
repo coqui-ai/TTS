@@ -211,7 +211,7 @@ def mary_tts_api_locales():
 @app.route("/voices", methods=["GET"])
 def mary_tts_api_voices():
     """MaryTTS-compatible /voices endpoint"""
-    # NOTE: We currently assume there is only one model active at the same time	
+    # NOTE: We currently assume there is only one model active at the same time
     if args.model_name is not None:
         model_details = args.model_name.split("/")
     else:
@@ -228,14 +228,12 @@ def mary_tts_api_process():
     """MaryTTS-compatible /process endpoint"""
     with lock:
         if request.method == "POST":
-            print("Request: {}".format(request))
             data = parse_qs(request.get_data(as_text=True))
-            print("Data: {}".format(data))
-            # NOTE: we ignore param. LOCALE and VOICE for now since we have only one active model			
+            # NOTE: we ignore param. LOCALE and VOICE for now since we have only one active model
             text = data.get("INPUT_TEXT", [""])[0]
         else:
             text = request.args.get("INPUT_TEXT", "")
-
+        print(" > Model input: {}".format(text))
         wavs = synthesizer.tts(text)
         out = io.BytesIO()
         synthesizer.save_wav(wavs, out)
