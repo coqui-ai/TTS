@@ -315,6 +315,8 @@ class BaseTTS(BaseTrainerModel):
                 compute_linear_spec=config.model.lower() == "tacotron" or config.compute_linear_spec,
                 compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
+                compute_energy=config.get("compute_energy", False),
+                energy_cache_path=config.get("energy_cache_path", None),
                 samples=samples,
                 ap=self.ap,
                 return_wav=config.return_wav if "return_wav" in config else False,
