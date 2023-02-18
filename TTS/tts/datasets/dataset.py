@@ -903,7 +903,7 @@ class EnergyDataset:
     @staticmethod
     def _compute_and_save_energy(ap, wav_file, energy_file=None):
         wav = ap.load_wav(wav_file)
-        energy = calculate_energy(wav, fft_size=ap.fft_size, hop_length=ap.hop_length ,win_length=ap.win_length)
+        energy = calculate_energy(wav, fft_size=ap.fft_size, hop_length=ap.hop_length, win_length=ap.win_length)
         if energy_file:
             np.save(energy_file, energy)
         return energy
