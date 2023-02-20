@@ -21,7 +21,6 @@ def piecewise_rational_quadratic_transform(
     min_bin_height=DEFAULT_MIN_BIN_HEIGHT,
     min_derivative=DEFAULT_MIN_DERIVATIVE,
 ):
-
     if tails is None:
         spline_fn = rational_quadratic_spline
         spline_kwargs = {}

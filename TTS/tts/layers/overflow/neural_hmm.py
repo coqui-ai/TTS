@@ -123,7 +123,6 @@ class NeuralHMM(nn.Module):
         h_memory, c_memory = self._init_lstm_states(batch_size, self.memory_rnn_dim, mels)
 
         for t in range(T_max):
-
             # Process Autoregression
             h_memory, c_memory = self._process_ar_timestep(t, ar_inputs, h_memory, c_memory)
             # Get mean, std and transition vector from decoder for this timestep
@@ -418,7 +417,6 @@ class NeuralHMM(nn.Module):
         output_parameter_values = []
         quantile = 1
         while True:
-
             memory_input = self.prenet(prenet_input.flatten(1).unsqueeze(0))
             # will be 1 while sampling
             h_memory, c_memory = self.memory_rnn(memory_input.squeeze(0), (h_memory, c_memory))

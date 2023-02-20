@@ -63,7 +63,6 @@ class GlowTTS(BaseTTS):
         tokenizer: "TTSTokenizer" = None,
         speaker_manager: SpeakerManager = None,
     ):
-
         super().__init__(config, ap, tokenizer, speaker_manager)
 
         # pass all config fields to `self`

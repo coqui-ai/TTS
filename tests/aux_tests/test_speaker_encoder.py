@@ -129,7 +129,6 @@ class AngleProtoLossTests(unittest.TestCase):
 class SoftmaxAngleProtoLossTests(unittest.TestCase):
     # pylint: disable=R0201
     def test_in_out(self):
-
         embedding_dim = 64
         num_speakers = 5
         batch_size = 4

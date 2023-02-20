@@ -36,7 +36,6 @@ class Decoder(nn.Module):
         sigmoid_scale=False,
         c_in_channels=0,
     ):
-
         super().__init__()
 
         self.glow_decoder = GlowDecoder(

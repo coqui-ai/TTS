@@ -363,7 +363,6 @@ class TacotronLoss(torch.nn.Module):
         alignments_backwards,
         input_lens,
     ):
-
         # decoder outputs linear or mel spectrograms for Tacotron and Tacotron2
         # the target should be set acccordingly
         postnet_target = linear_input if self.config.model.lower() in ["tacotron"] else mel_input

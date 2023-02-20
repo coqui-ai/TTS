@@ -226,7 +226,6 @@ class Synthesizer(object):
         speaker_embedding = None
         speaker_id = None
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "name_to_id"):
-
             # handle Neon models with single speaker.
             if len(self.tts_model.speaker_manager.name_to_id) == 1:
                 speaker_id = list(self.tts_model.speaker_manager.name_to_id.values())[0]
@@ -261,7 +260,6 @@ class Synthesizer(object):
         if self.tts_languages_file or (
             hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
         ):
-
             if len(self.tts_model.language_manager.name_to_id) == 1:
                 language_id = list(self.tts_model.language_manager.name_to_id.values())[0]
 

@@ -411,7 +411,6 @@ class TTSDataset(Dataset):
 
         # Puts each data field into a tensor with outer dimension batch size
         if isinstance(batch[0], collections.abc.Mapping):
-
             token_ids_lengths = np.array([len(d["token_ids"]) for d in batch])
 
             # sort items with text input length for RNN efficiency

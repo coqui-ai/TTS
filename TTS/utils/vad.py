@@ -47,7 +47,6 @@ def get_vad_model_and_utils(use_cuda=False):
 def remove_silence(
     model_and_utils, audio_path, out_path, vad_sample_rate=8000, trim_just_beginning_and_end=True, use_cuda=False
 ):
-
     # get the VAD model and utils functions
     model, get_speech_timestamps, _, collect_chunks = model_and_utils
 

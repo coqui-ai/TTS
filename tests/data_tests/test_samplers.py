@@ -75,7 +75,6 @@ class TestSamplers(unittest.TestCase):
         assert is_balanced(en, pt), "Language Weighted sampler is supposed to be balanced"
 
     def test_speaker_weighted_random_sampler(self):  # pylint: disable=no-self-use
-
         weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(
             get_speaker_balancer_weights(train_samples), len(train_samples)
         )
