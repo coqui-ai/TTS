@@ -1082,11 +1082,12 @@ class Vits(BaseTTS):
             return aux_input["x_lengths"]
         return torch.tensor(x.shape[1:2]).to(x.device)
 
+    # JMa: add `length_scale`` to `aux_input` to enable changing length (duration) per each input text (sentence)
     @torch.no_grad()
     def inference(
         self,
         x,
-        aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "durations": None},
+        aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "durations": None, "length_scale": None},
     ):  # pylint: disable=dangerous-default-value
         """
         Note:
@@ -1134,7 +1135,9 @@ class Vits(BaseTTS):
                 logw = self.duration_predictor(
                     x, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
                 )
-            w = torch.exp(logw) * x_mask * self.length_scale
+            # JMa: length scale for the given sentence-like input
+            length_scale = aux_input["length_scale"] if aux_input["length_scale"] else self.length_scale
+            w = torch.exp(logw) * x_mask * length_scale
         else:
             assert durations.shape[-1] == x.shape[-1]
             w = durations.unsqueeze(0)
