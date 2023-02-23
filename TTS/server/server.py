@@ -196,7 +196,9 @@ def tts():
         synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype="audio/wav")
 
+
 # Basic MaryTTS compatibility layer
+
 
 @app.route("/locales", methods=["GET"])
 def mary_tts_api_locales():
@@ -206,7 +208,8 @@ def mary_tts_api_locales():
         model_details = args.model_name.split("/")
     else:
         model_details = ["", "en", "", "default"]
-    return render_template_string('{{ locale }}\n', locale=model_details[1])
+    return render_template_string("{{ locale }}\n", locale=model_details[1])
+
 
 @app.route("/voices", methods=["GET"])
 def mary_tts_api_voices():
@@ -217,11 +220,9 @@ def mary_tts_api_voices():
     else:
         model_details = ["", "en", "", "default"]
     return render_template_string(
-        '{{ name }} {{ locale }} {{ gender }}\n',
-        name=model_details[3],
-        locale=model_details[1],
-        gender='u'
+        "{{ name }} {{ locale }} {{ gender }}\n", name=model_details[3], locale=model_details[1], gender="u"
     )
+
 
 @app.route("/process", methods=["GET", "POST"])
 def mary_tts_api_process():
