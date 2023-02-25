@@ -1439,7 +1439,8 @@ class Vits(BaseTTS):
         test_sentences = self.config.test_sentences
         for idx, s_info in enumerate(test_sentences):
             aux_inputs = self.get_aux_input_from_test_sentences(s_info)
-            wav, alignment, _, _ = synthesis(
+            # JMa: replace individual variables with dictionary
+            outputs = synthesis(
                 self,
                 aux_inputs["text"],
                 self.config,
@@ -1450,9 +1451,9 @@ class Vits(BaseTTS):
                 language_id=aux_inputs["language_id"],
                 use_griffin_lim=True,
                 do_trim_silence=False,
-            ).values()
-            test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            )
+            test_audios["{}-audio".format(idx)] = outputs["wav"]
+            test_figures["{}-alignment".format(idx)] = plot_alignment(outputs["alignments"].T, output_fig=False)
         return {"figures": test_figures, "audios": test_audios}
 
     def test_log(
