@@ -103,7 +103,7 @@ class BigVganDiscriminator(nn.Module):
         super().__init__()
         self.nets = nn.ModuleList()
         self.nets.append(MultiResolutionDiscriminator(resolutions = resolutions, use_spectral_norm=use_spectral_norm))
-        self.nets.extend(MultiPeriodDiscriminator(mpd_reshapes = periods, use_spectral_norm=use_spectral_norm))
+        self.nets.append(MultiPeriodDiscriminator(mpd_reshapes = periods, use_spectral_norm=use_spectral_norm))
 
     def forward(self, x, x_hat=None):
         """
@@ -121,8 +121,10 @@ class BigVganDiscriminator(nn.Module):
         x_hat_feats = [] if x_hat is not None else None
         for net in self.nets:
             x_score, x_feat , x_hat_score, x_hat_feat = net(x, x_hat)
-            x_scores.append(x_score)
-            x_feats.append(x_feat)
-            x_hat_scores.append(x_hat_score)
-            x_hat_feats.append(x_hat_feat)
+            for net_idx, _ in enumerate(x_score):
+                for batch_idx, _ in enumerate(x_score[net_idx]):
+                    x_scores.append(x_score[net_idx][batch_idx])
+                    x_feats.append(x_feat[net_idx][batch_idx])
+                    x_hat_scores.append(x_hat_score[net_idx][batch_idx])
+                    x_hat_feats.append(x_hat_feat[net_idx][batch_idx])
         return x_scores, x_feats, x_hat_scores, x_hat_feats

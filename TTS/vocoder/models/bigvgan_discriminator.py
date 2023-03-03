@@ -1,9 +1,9 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import Conv2d, spectral_norm
-from torch.nn.utils import weight_norm
-from utils.generic_utils import get_padding
+from torch.nn import Conv2d
+from torch.nn.utils import weight_norm, spectral_norm
+from TTS.vocoder.utils.generic_utils import get_padding
 LRELU_SLOPE = 0.1
 
 class DiscriminatorP(torch.nn.Module):

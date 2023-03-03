@@ -25,4 +25,4 @@ class Activation1d(nn.Module):
         x = self.act(x)
         x = self.downsample(x)
 
-        return 
+        return x

@@ -606,8 +606,8 @@ class VitsArgs(Coqpit):
     bg_resblock_dilation_sizes = [[1,3,5], [1,3,5], [1,3,5]]
     bg_activation = "snakebeta"
     bg_snake_logscale = True
-    bg_periods_multi_period_discriminator = List[int] = field(default_factory=lambda: [2, 3, 5, 7, 11])
-    bg_resolutions_multi_resolution_discriminator: List[List[int]] = [[1024, 120, 600], [2048, 240, 1200], [512, 50, 240]]
+    bg_periods_multi_period_discriminator = (2, 3, 5, 7, 11)
+    bg_resolutions_multi_resolution_discriminator = [[1024, 120, 600], [2048, 240, 1200], [512, 50, 240]]
 class Vits(BaseTTS):
     """VITS TTS model
 
@@ -720,11 +720,11 @@ class Vits(BaseTTS):
                 activation = self.args.bg_activation,
                 snake_logscale = self.args.bg_snake_logscale,
             )
-            
+
             if self.args.init_discriminator:
                 self.disc = BigVganDiscriminator(
                     periods=self.args.bg_periods_multi_period_discriminator,
-                    resolutions=self.args.bg_resolutions_multi_resolution_discriminators,
+                    resolutions=self.args.bg_resolutions_multi_resolution_discriminator,
                     use_spectral_norm=self.args.use_spectral_norm_disriminator,
                 )
         else:

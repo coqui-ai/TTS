@@ -11,11 +11,11 @@ from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn.utils import weight_norm, remove_weight_norm
 
 from TTS.vocoder.utils import activations
-from utils.generic_utils import init_weights, get_padding
-from utils.alias_free_torch.act import Activation1d
+from TTS.vocoder.utils.generic_utils import init_weights, get_padding
+from TTS.vocoder.utils.alias_free_torch.act import Activation1d
 
 class AMPBlock1(torch.nn.Module):
-    def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5), snake_logscale = True, activation=None):
+    def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5), snake_logscale = True, activation="snakebeta"):
         super().__init__()
         self.convs1 = nn.ModuleList([
             weight_norm(Conv1d(channels, channels, kernel_size, 1, dilation=dilation[0],
@@ -73,7 +73,7 @@ class AMPBlock1(torch.nn.Module):
 
 
 class AMPBlock2(torch.nn.Module):
-    def __init__(self, channels, kernel_size=3, dilation=(1, 3), snake_logscale = True, activation=None):
+    def __init__(self, channels, kernel_size=3, dilation=(1, 3), snake_logscale = True, activation="snakebeta"):
         super().__init__()
         self.convs = nn.ModuleList([
             weight_norm(Conv1d(channels, channels, kernel_size, 1, dilation=dilation[0],
@@ -124,7 +124,8 @@ class BigVGAN(torch.nn.Module):
             upsample_kernel_sizes = None,
             resblock_dilation_sizes = None,
             activation = "snakebeta",
-            snake_logscale = True):
+            snake_logscale = True,
+            cond_channels=0):
         super().__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
@@ -153,25 +154,25 @@ class BigVGAN(torch.nn.Module):
 
         # post conv
         if activation == "snake": # periodic nonlinearity with snake function and anti-aliasing
-            activation_post = activations.Snake(ch, alpha_logscale=snake_logscale)
-            self.activation_post = Activation1d(activation=activation_post)
+            self.activation_post = Activation1d(activation=activations.Snake(ch, alpha_logscale=snake_logscale))
         elif activation == "snakebeta": # periodic nonlinearity with snakebeta function and anti-aliasing
-            activation_post = activations.SnakeBeta(ch, alpha_logscale=snake_logscale)
-            self.activation_post = Activation1d(activation=activation_post)
+            self.activation_post = Activation1d(activation=activations.SnakeBeta(ch, alpha_logscale=snake_logscale))
         else:
             raise NotImplementedError("activation incorrectly specified. check the config file and look for 'activation'.")
 
         self.conv_post = weight_norm(Conv1d(ch, 1, 7, 1, padding=3))
-
+        if cond_channels > 0:
+            self.cond_layer = nn.Conv1d(cond_channels, upsample_initial_channel, 1)
         # weight initialization
         for i in range(len(self.ups)):
             self.ups[i].apply(init_weights)
         self.conv_post.apply(init_weights)
 
-    def forward(self, x):
+    def forward(self, x, g= None):
         # pre conv
         x = self.conv_pre(x)
-
+        if hasattr(self, "cond_layer"):
+            x = x + self.cond_layer(g)
         for i in range(self.num_upsamples):
             # upsampling
             for i_up in range(len(self.ups[i])):

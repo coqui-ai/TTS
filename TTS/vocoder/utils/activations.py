@@ -117,4 +117,4 @@ class SnakeBeta(nn.Module):
             beta = torch.exp(beta)
         x = x + (1.0 / (beta + self.no_div_by_zero)) * pow(sin(x * alpha), 2)
 
-        return 
+        return x
