@@ -21,7 +21,7 @@ from trainer.trainer_utils import get_optimizer, get_scheduler
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.vits.discriminator import VitsDiscriminator
+from TTS.tts.layers.vits.discriminator import VitsDiscriminator, BigVganDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
@@ -36,7 +36,7 @@ from TTS.utils.io import load_fsspec
 from TTS.utils.samplers import BucketBatchSampler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-
+from TTS.vocoder.models.bigvgan_generator import BigVGAN
 ##############################
 # IO / Feature extraction
 ##############################
@@ -595,8 +595,19 @@ class VitsArgs(Coqpit):
     interpolate_z: bool = True
     reinit_DP: bool = False
     reinit_text_encoder: bool = False
-
-
+    
+    #bigvgan params
+    use_bigvgan: bool = True
+    bg_resblock_kernel_sizes = [3,7,11]
+    bg_upsample_rates = [4,4,2,2,2,2]
+    bg_upsample_initial_channel = 1536
+    bg_resblock = "1"
+    bg_upsample_kernel_sizes = [8,8,4,4,4,4]
+    bg_resblock_dilation_sizes = [[1,3,5], [1,3,5], [1,3,5]]
+    bg_activation = "snakebeta"
+    bg_snake_logscale = True
+    bg_periods_multi_period_discriminator = List[int] = field(default_factory=lambda: [2, 3, 5, 7, 11])
+    bg_resolutions_multi_resolution_discriminator: List[List[int]] = [[1024, 120, 600], [2048, 240, 1200], [512, 50, 240]]
 class Vits(BaseTTS):
     """VITS TTS model
 
@@ -697,28 +708,47 @@ class Vits(BaseTTS):
                 cond_channels=self.embedded_speaker_dim,
                 language_emb_dim=self.embedded_language_dim,
             )
-
-        self.waveform_decoder = HifiganGenerator(
-            self.args.hidden_channels,
-            1,
-            self.args.resblock_type_decoder,
-            self.args.resblock_dilation_sizes_decoder,
-            self.args.resblock_kernel_sizes_decoder,
-            self.args.upsample_kernel_sizes_decoder,
-            self.args.upsample_initial_channel_decoder,
-            self.args.upsample_rates_decoder,
-            inference_padding=0,
-            cond_channels=self.embedded_speaker_dim,
-            conv_pre_weight_norm=False,
-            conv_post_weight_norm=False,
-            conv_post_bias=False,
-        )
-
-        if self.args.init_discriminator:
-            self.disc = VitsDiscriminator(
-                periods=self.args.periods_multi_period_discriminator,
-                use_spectral_norm=self.args.use_spectral_norm_disriminator,
+        if self.args.use_bigvgan:
+            self.waveform_decoder = BigVGAN(
+                resblock_kernel_sizes = self.args.bg_resblock_kernel_sizes,
+                upsample_rates = self.args.bg_upsample_rates,
+                num_mels = self.args.hidden_channels,
+                upsample_initial_channel = self.args.bg_upsample_initial_channel,
+                resblock = self.args.bg_resblock,
+                upsample_kernel_sizes = self.args.bg_upsample_kernel_sizes,
+                resblock_dilation_sizes = self.args.bg_resblock_dilation_sizes,
+                activation = self.args.bg_activation,
+                snake_logscale = self.args.bg_snake_logscale,
             )
+            
+            if self.args.init_discriminator:
+                self.disc = BigVganDiscriminator(
+                    periods=self.args.bg_periods_multi_period_discriminator,
+                    resolutions=self.args.bg_resolutions_multi_resolution_discriminators,
+                    use_spectral_norm=self.args.use_spectral_norm_disriminator,
+                )
+        else:
+            self.waveform_decoder = HifiganGenerator(
+                self.args.hidden_channels,
+                1,
+                self.args.resblock_type_decoder,
+                self.args.resblock_dilation_sizes_decoder,
+                self.args.resblock_kernel_sizes_decoder,
+                self.args.upsample_kernel_sizes_decoder,
+                self.args.upsample_initial_channel_decoder,
+                self.args.upsample_rates_decoder,
+                inference_padding=0,
+                cond_channels=self.embedded_speaker_dim,
+                conv_pre_weight_norm=False,
+                conv_post_weight_norm=False,
+                conv_post_bias=False,
+            )
+
+            if self.args.init_discriminator:
+                self.disc = VitsDiscriminator(
+                    periods=self.args.periods_multi_period_discriminator,
+                    use_spectral_norm=self.args.use_spectral_norm_disriminator,
+                )
 
     @property
     def device(self):

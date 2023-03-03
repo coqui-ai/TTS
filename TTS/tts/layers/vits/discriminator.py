@@ -2,8 +2,8 @@ import torch
 from torch import nn
 from torch.nn.modules.conv import Conv1d
 
-from TTS.vocoder.models.hifigan_discriminator import DiscriminatorP, MultiPeriodDiscriminator
-
+from TTS.vocoder.models.hifigan_discriminator import DiscriminatorP
+from TTS.vocoder.models.bigvgan_discriminator import MultiResolutionDiscriminator, MultiPeriodDiscriminator
 
 class DiscriminatorS(torch.nn.Module):
     """HiFiGAN Scale Discriminator. Channel sizes are different from the original HiFiGAN.
@@ -52,7 +52,7 @@ class VitsDiscriminator(nn.Module):
 
     ::
         waveform -> ScaleDiscriminator() -> scores_sd, feats_sd --> append() -> scores, feats
-               |--> MultiPeriodDiscriminator() -> scores_mpd, feats_mpd ^
+               |--> DiscriminatorP() -> scores_mpd, feats_mpd ^
 
     Args:
         use_spectral_norm (bool): if `True` swith to spectral norm instead of weight norm.
@@ -86,4 +86,43 @@ class VitsDiscriminator(nn.Module):
                 x_hat_score, x_hat_feat = net(x_hat)
                 x_hat_scores.append(x_hat_score)
                 x_hat_feats.append(x_hat_feat)
+        return x_scores, x_feats, x_hat_scores, x_hat_feats
+
+class BigVganDiscriminator(nn.Module):
+    """BigVgan discriminator wrapping one MultiResolutionDiscriminator and a MultiPeriodDiscriminator.
+
+    ::
+        waveform -> MultiResolutionDiscriminator() -> scores_sd, feats_sd --> append() -> scores, feats
+               |--> MultiPeriodDiscriminator() -> scores_mpd, feats_mpd ^
+
+    Args:
+        use_spectral_norm (bool): if `True` swith to spectral norm instead of weight norm.
+    """
+
+    def __init__(self, periods=(2, 3, 5, 7, 11), resolutions = None, use_spectral_norm=False):
+        super().__init__()
+        self.nets = nn.ModuleList()
+        self.nets.append(MultiResolutionDiscriminator(resolutions = resolutions, use_spectral_norm=use_spectral_norm))
+        self.nets.extend(MultiPeriodDiscriminator(mpd_reshapes = periods, use_spectral_norm=use_spectral_norm))
+
+    def forward(self, x, x_hat=None):
+        """
+        Args:
+            x (Tensor): ground truth waveform.
+            x_hat (Tensor): predicted waveform.
+
+        Returns:
+            List[Tensor]: discriminator scores.
+            List[List[Tensor]]: list of list of features from each layers of each discriminator.
+        """
+        x_scores = []
+        x_hat_scores = [] if x_hat is not None else None
+        x_feats = []
+        x_hat_feats = [] if x_hat is not None else None
+        for net in self.nets:
+            x_score, x_feat , x_hat_score, x_hat_feat = net(x, x_hat)
+            x_scores.append(x_score)
+            x_feats.append(x_feat)
+            x_hat_scores.append(x_hat_score)
+            x_hat_feats.append(x_hat_feat)
         return x_scores, x_feats, x_hat_scores, x_hat_feats
