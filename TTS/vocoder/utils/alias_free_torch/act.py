@@ -2,16 +2,14 @@
 #   LICENSE is in incl_licenses directory.
 
 from torch import nn
-from .resample import UpSample1d, DownSample1d
+
+from .resample import DownSample1d, UpSample1d
 
 
 class Activation1d(nn.Module):
-    def __init__(self,
-                 activation,
-                 up_ratio: int = 2,
-                 down_ratio: int = 2,
-                 up_kernel_size: int = 12,
-                 down_kernel_size: int = 12):
+    def __init__(
+        self, activation, up_ratio: int = 2, down_ratio: int = 2, up_kernel_size: int = 12, down_kernel_size: int = 12
+    ):
         super().__init__()
         self.up_ratio = up_ratio
         self.down_ratio = down_ratio
