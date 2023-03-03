@@ -30,7 +30,7 @@ def run_model_torch(
     style_text: str = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
-    aux_input: Dict = {},
+    aux_input: Dict = {"durations": None, "length_scale": None, "min_input_length": 0},
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
 
@@ -49,22 +49,19 @@ def run_model_torch(
         _func = model.module.inference
     else:
         _func = model.inference
-    outputs = _func(
-        inputs,
-        aux_input={
-            "x_lengths": input_lengths,
-            "speaker_ids": speaker_id,
-            "d_vectors": d_vector,
-            "style_mel": style_mel,
-            "style_text": style_text,
-            "language_ids": language_id,
-            # JMa: add `durations`` and `length_scale`` to `aux_input` to enable changing length (durations) per each input text (sentence)
-            # - `length_scale` changes length of the whole generated wav
-            # - `durations` sets up duration (in frames) for each input text ID
-            "durations": aux_input.get("durations", None),
-            "length_scale": aux_input.get("length_scale", None),
-        },
-    )
+    # JMa: propagate `durations``, `length_scale``, and  `min_input_length` to `aux_input`
+    #      to enable changing length (durations) per each input text (sentence) and to set
+    #      minimum allowed length of each input char/phoneme
+    #   - `length_scale` changes length of the whole generated wav
+    #   - `durations` sets up duration (in frames) for each input text ID
+    #   -  minimum allowed length (in frames) per input ID (char/phoneme) during inference
+    aux_input["x_lengths"] = input_lengths
+    aux_input["speaker_ids"] = speaker_id
+    aux_input["d_vectors"] = d_vector
+    aux_input["style_mel"] = style_mel
+    aux_input["style_text"] = style_text
+    aux_input["language_ids"] = language_id
+    outputs = _func(inputs, aux_input)
     return outputs
 
 
