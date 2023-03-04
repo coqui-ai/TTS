@@ -130,6 +130,6 @@ class BigVganDiscriminator(nn.Module):
             if x_hat is not None:
                 for net_idx, _ in enumerate(x_hat_score):
                     for batch_idx, _ in enumerate(x_hat_score[net_idx]):
-                            x_hat_scores.append(x_hat_score[net_idx][batch_idx])
-                            x_hat_feats.append(x_hat_feat[net_idx][batch_idx])
+                        x_hat_scores.append(x_hat_score[net_idx][batch_idx])
+                        x_hat_feats.append(x_hat_feat[net_idx][batch_idx])
         return x_scores, x_feats, x_hat_scores, x_hat_feats
