@@ -95,7 +95,7 @@ class BigVganDiscriminator(nn.Module):
     """BigVgan discriminator wrapping one MultiResolutionDiscriminator and a MultiPeriodDiscriminator.
 
     ::
-        waveform -> MultiResolutionDiscriminator() -> scores_mrd, feats_mrd 
+        waveform -> MultiResolutionDiscriminator() -> scores_mrd, feats_mrd
                |--> MultiPeriodDiscriminator() -> scores_mpd, feats_mpd ^ --> append() -> scores, feats
 
     Args:
