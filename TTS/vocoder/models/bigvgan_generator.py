@@ -219,7 +219,7 @@ class BigVGAN(torch.nn.Module):
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2 ** (i + 1))
-            for j, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+            for _, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
                 self.resblocks.append(resblock(ch, k, d, snake_logscale=snake_logscale, activation=activation))
 
         # post conv
@@ -236,7 +236,7 @@ class BigVGAN(torch.nn.Module):
         if cond_channels > 0:
             self.cond_layer = nn.Conv1d(cond_channels, upsample_initial_channel, 1)
         # weight initialization
-        for i in range(len(self.ups)):
+        for i, _ in enumerate(self.ups):
             self.ups[i].apply(init_weights)
         self.conv_post.apply(init_weights)
 

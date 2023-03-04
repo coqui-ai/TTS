@@ -4,7 +4,7 @@
 import math
 
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 
 if "sinc" in dir(torch):
@@ -53,9 +53,9 @@ def kaiser_sinc_filter1d(cutoff, half_width, kernel_size):  # return filter [1,1
         # Normalize filter to have sum = 1, otherwise we will have a small leakage
         # of the constant component in the input signal.
         filter_ /= filter_.sum()
-        filter = filter_.view(1, 1, kernel_size)
+        filter_ = filter_.view(1, 1, kernel_size)
 
-    return filter
+    return filter_
 
 
 class LowPassFilter1d(nn.Module):
@@ -82,8 +82,8 @@ class LowPassFilter1d(nn.Module):
         self.stride = stride
         self.padding = padding
         self.padding_mode = padding_mode
-        filter = kaiser_sinc_filter1d(cutoff, half_width, kernel_size)
-        self.register_buffer("filter", filter)
+        filter_ = kaiser_sinc_filter1d(cutoff, half_width, kernel_size)
+        self.register_buffer("filter", filter_)
 
     # input [B, C, T]
     def forward(self, x):
