@@ -598,7 +598,7 @@ class VitsArgs(Coqpit):
     reinit_text_encoder: bool = False
 
     # bigvgan params
-    use_bigvgan: bool = True
+    use_bigvgan: bool = False
     bg_resblock_kernel_sizes = [3, 7, 11]
     bg_upsample_rates = [4, 4, 2, 2, 2, 2]
     bg_upsample_initial_channel = 1536
