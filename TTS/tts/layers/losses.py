@@ -747,8 +747,6 @@ class VitsDiscriminatorLoss(nn.Module):
         real_losses = []
         fake_losses = []
         for dr, dg in zip(scores_real, scores_fake):
-            # print(dr)
-            # print(len(dr))
             dr = dr.float()
             dg = dg.float()
             real_loss = torch.mean((1 - dr) ** 2)

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import nn
 from torch.nn.modules.conv import Conv1d
@@ -94,8 +95,8 @@ class BigVganDiscriminator(nn.Module):
     """BigVgan discriminator wrapping one MultiResolutionDiscriminator and a MultiPeriodDiscriminator.
 
     ::
-        waveform -> MultiResolutionDiscriminator() -> scores_sd, feats_sd --> append() -> scores, feats
-               |--> MultiPeriodDiscriminator() -> scores_mpd, feats_mpd ^
+        waveform -> MultiResolutionDiscriminator() -> scores_mrd, feats_mrd 
+               |--> MultiPeriodDiscriminator() -> scores_mpd, feats_mpd ^ --> append() -> scores, feats
 
     Args:
         use_spectral_norm (bool): if `True` swith to spectral norm instead of weight norm.
@@ -124,12 +125,10 @@ class BigVganDiscriminator(nn.Module):
         for net in self.nets:
             x_score, x_feat, x_hat_score, x_hat_feat = net(x, x_hat)
             for net_idx, _ in enumerate(x_score):
-                for batch_idx, _ in enumerate(x_score[net_idx]):
-                    x_scores.append(x_score[net_idx][batch_idx])
-                    x_feats.append(x_feat[net_idx][batch_idx])
+                x_scores.append(x_score[net_idx])
+                x_feats.append(x_feat[net_idx])
             if x_hat is not None:
                 for net_idx, _ in enumerate(x_hat_score):
-                    for batch_idx, _ in enumerate(x_hat_score[net_idx]):
-                        x_hat_scores.append(x_hat_score[net_idx][batch_idx])
-                        x_hat_feats.append(x_hat_feat[net_idx][batch_idx])
+                    x_hat_scores.append(x_hat_score[net_idx])
+                    x_hat_feats.append(x_hat_feat[net_idx])
         return x_scores, x_feats, x_hat_scores, x_hat_feats

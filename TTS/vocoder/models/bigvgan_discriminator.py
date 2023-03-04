@@ -99,7 +99,7 @@ class MultiPeriodDiscriminator(torch.nn.Module):
             y_d_gs.append(y_d_g)
             fmap_gs.append(fmap_g)
 
-        return y_d_rs, y_d_gs, fmap_rs, fmap_gs
+        return y_d_rs, fmap_rs, y_d_gs, fmap_gs
 
 
 class DiscriminatorR(nn.Module):
@@ -201,4 +201,4 @@ class MultiResolutionDiscriminator(nn.Module):
             y_d_gs.append(y_d_g)
             fmap_gs.append(fmap_g)
 
-        return y_d_rs, y_d_gs, fmap_rs, fmap_gs
+        return y_d_rs, fmap_rs, y_d_gs, fmap_gs
