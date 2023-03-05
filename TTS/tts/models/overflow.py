@@ -200,7 +200,7 @@ class Overflow(BaseTTS):
             }
         )
         if aux_input:
-            return format_aux_input(aux_input, default_input_dict)
+            return format_aux_input(default_input_dict, aux_input.copy())
         return None
 
     @torch.no_grad()
