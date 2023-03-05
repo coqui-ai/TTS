@@ -21,7 +21,7 @@ audio_config = VitsAudioConfig(
 vits_args = VitsArgs(use_bigvgan=True)
 
 config = VitsConfig(
-    model_args==vits_args,
+    model_args=vits_args,
     audio=audio_config,
     run_name="vits_ljspeech",
     batch_size=32,
