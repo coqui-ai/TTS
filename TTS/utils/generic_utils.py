@@ -169,7 +169,7 @@ def format_aux_input(def_args: Dict, kwargs: Dict) -> Dict:
     """
     for name in def_args:
         if name not in kwargs:
-            kwargs[def_args[name]] = None
+            kwargs[name] = def_args[name]
     return kwargs
 
 
