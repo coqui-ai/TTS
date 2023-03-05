@@ -187,7 +187,7 @@ class NeuralhmmTTS(BaseTTS):
             }
         )
         if aux_input:
-            return format_aux_input(aux_input, default_input_dict)
+            return format_aux_input(default_input_dict, aux_input.copy())
         return None
 
     @torch.no_grad()
@@ -319,7 +319,7 @@ class NeuralhmmTTS(BaseTTS):
         # sample one item from the batch -1 will give the smalles item
         print(" | > Synthesising audio from the model...")
         inference_output = self.inference(
-            batch["text_input"][-1].unsqueeze(0), aux_input={"x_lenghts": batch["text_lengths"][-1].unsqueeze(0)}
+            batch["text_input"][-1].unsqueeze(0), aux_input={"x_lengths": batch["text_lengths"][-1].unsqueeze(0)}
         )
         figures["synthesised"] = plot_spectrogram(inference_output["model_outputs"][0], fig_size=(12, 3))
 
