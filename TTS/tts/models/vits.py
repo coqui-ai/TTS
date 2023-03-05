@@ -610,6 +610,7 @@ class VitsArgs(Coqpit):
     bg_periods_multi_period_discriminator = (2, 3, 5, 7, 11)
     bg_resolutions_multi_resolution_discriminator = [[1024, 120, 600], [2048, 240, 1200], [512, 50, 240]]
 
+
 class Vits(BaseTTS):
     """VITS TTS model
 
@@ -723,12 +724,12 @@ class Vits(BaseTTS):
                 snake_logscale=self.args.bg_snake_logscale,
             )
 
-            # if self.args.init_discriminator:
-            #     self.disc = BigVganDiscriminator(
-            #         periods=self.args.bg_periods_multi_period_discriminator,
-            #         resolutions=self.args.bg_resolutions_multi_resolution_discriminator,
-            #         use_spectral_norm=self.args.use_spectral_norm_disriminator,
-            #     )
+            if self.args.init_discriminator:
+                self.disc = BigVganDiscriminator(
+                    periods=self.args.bg_periods_multi_period_discriminator,
+                    resolutions=self.args.bg_resolutions_multi_resolution_discriminator,
+                    use_spectral_norm=self.args.use_spectral_norm_disriminator,
+                )
         else:
             self.waveform_decoder = HifiganGenerator(
                 self.args.hidden_channels,
@@ -746,11 +747,11 @@ class Vits(BaseTTS):
                 conv_post_bias=False,
             )
 
-        if self.args.init_discriminator:
-            self.disc = VitsDiscriminator(
-                periods=self.args.periods_multi_period_discriminator,
-                use_spectral_norm=self.args.use_spectral_norm_disriminator,
-            )
+            if self.args.init_discriminator:
+                self.disc = VitsDiscriminator(
+                    periods=self.args.periods_multi_period_discriminator,
+                    use_spectral_norm=self.args.use_spectral_norm_disriminator,
+                )
 
     @property
     def device(self):

@@ -18,9 +18,10 @@ audio_config = VitsAudioConfig(
     sample_rate=22050, win_length=1024, hop_length=256, num_mels=80, mel_fmin=0, mel_fmax=None
 )
 
-vitsArgs = VitsArgs(use_bigvgan=True)
+vits_args = VitsArgs(use_bigvgan=True)
 
 config = VitsConfig(
+    VitsArgs=vits_args,
     audio=audio_config,
     run_name="vits_ljspeech",
     batch_size=32,
@@ -36,6 +37,8 @@ config = VitsConfig(
     phoneme_language="en-us",
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     compute_input_seq_cache=True,
+    lr_gen=1e-4,
+    lr_disc=1e-4,
     print_step=25,
     print_eval=True,
     mixed_precision=True,
