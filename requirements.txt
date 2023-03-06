@@ -25,7 +25,7 @@ pandas
 # deps for training
 matplotlib
 # coqui stack
-trainer==0.0.20
+trainer
 # config management
 coqpit>=0.0.16
 # chinese g2p deps
