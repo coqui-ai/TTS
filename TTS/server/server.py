@@ -7,8 +7,9 @@ import sys
 from pathlib import Path
 from threading import Lock
 from typing import Union
+from urllib.parse import parse_qs
 
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, render_template_string, request, send_file
 
 from TTS.config import load_config
 from TTS.utils.manage import ModelManager
@@ -187,10 +188,54 @@ def tts():
         language_idx = request.args.get("language_id", "")
         style_wav = request.args.get("style_wav", "")
         style_wav = style_wav_uri_to_dict(style_wav)
-        print(" > Model input: {}".format(text))
-        print(" > Speaker Idx: {}".format(speaker_idx))
-        print(" > Language Idx: {}".format(language_idx))
+        print(f" > Model input: {text}")
+        print(f" > Speaker Idx: {speaker_idx}")
+        print(f" > Language Idx: {language_idx}")
         wavs = synthesizer.tts(text, speaker_name=speaker_idx, language_name=language_idx, style_wav=style_wav)
+        out = io.BytesIO()
+        synthesizer.save_wav(wavs, out)
+    return send_file(out, mimetype="audio/wav")
+
+
+# Basic MaryTTS compatibility layer
+
+
+@app.route("/locales", methods=["GET"])
+def mary_tts_api_locales():
+    """MaryTTS-compatible /locales endpoint"""
+    # NOTE: We currently assume there is only one model active at the same time
+    if args.model_name is not None:
+        model_details = args.model_name.split("/")
+    else:
+        model_details = ["", "en", "", "default"]
+    return render_template_string("{{ locale }}\n", locale=model_details[1])
+
+
+@app.route("/voices", methods=["GET"])
+def mary_tts_api_voices():
+    """MaryTTS-compatible /voices endpoint"""
+    # NOTE: We currently assume there is only one model active at the same time
+    if args.model_name is not None:
+        model_details = args.model_name.split("/")
+    else:
+        model_details = ["", "en", "", "default"]
+    return render_template_string(
+        "{{ name }} {{ locale }} {{ gender }}\n", name=model_details[3], locale=model_details[1], gender="u"
+    )
+
+
+@app.route("/process", methods=["GET", "POST"])
+def mary_tts_api_process():
+    """MaryTTS-compatible /process endpoint"""
+    with lock:
+        if request.method == "POST":
+            data = parse_qs(request.get_data(as_text=True))
+            # NOTE: we ignore param. LOCALE and VOICE for now since we have only one active model
+            text = data.get("INPUT_TEXT", [""])[0]
+        else:
+            text = request.args.get("INPUT_TEXT", "")
+        print(f" > Model input: {text}")
+        wavs = synthesizer.tts(text)
         out = io.BytesIO()
         synthesizer.save_wav(wavs, out)
     return send_file(out, mimetype="audio/wav")
