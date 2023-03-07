@@ -201,7 +201,7 @@ class Overflow(BaseTTS):
         )
         if aux_input:
             return format_aux_input(default_input_dict, aux_input.copy())
-        return None
+        return default_input_dict.copy()
 
     @torch.no_grad()
     def inference(
