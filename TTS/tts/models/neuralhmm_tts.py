@@ -194,8 +194,8 @@ class NeuralhmmTTS(BaseTTS):
     def inference(
         self,
         text: torch.Tensor,
-        aux_input={"x_lengths": None, "sampling_temp": None, "max_sampling_time": None, "duration_threshold": None},
-    ):  # pylint: disable=dangerous-default-value
+        aux_input=None,
+    ):
         """Sampling from the model
 
         Args:
@@ -210,6 +210,9 @@ class NeuralhmmTTS(BaseTTS):
                 - input_parameters (list[torch.FloatTensor]): Input parameters to the neural HMM.
                 - output_parameters (list[torch.FloatTensor]): Output parameters to the neural HMM.
         """
+        if aux_input is None:
+            aux_input = {}
+
         default_input_dict = {
             "x_lengths": torch.sum(text != 0, dim=1),
         }
