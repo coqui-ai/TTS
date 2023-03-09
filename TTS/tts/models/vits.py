@@ -1175,7 +1175,7 @@ class Vits(BaseTTS):
                 )
             # JMa: set minimum duration if required
             # w = self._set_min_inference_length(torch.exp(logw) * x_mask, aux_input["min_input_length"]) if aux_input["min_input_length"] else torch.exp(logw) * x_mask
-            w = self._set_min_inference_length(x_input, torch.exp(logw) * x_mask, aux_input["min_input_length"]) if aux_input["min_input_length"] else torch.exp(logw) * x_mask
+            w = self._set_min_inference_length(x_input, torch.exp(logw) * x_mask, aux_input["min_input_length"]) if aux_input.get("min_input_length", 0) else torch.exp(logw) * x_mask
             # JMa: length scale for the given sentence-like input
             length_scale = aux_input["length_scale"] if aux_input["length_scale"] else self.length_scale
             w *= length_scale

@@ -30,7 +30,7 @@ def run_model_torch(
     style_text: str = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
-    aux_input: Dict = {"durations": None, "length_scale": None, "min_input_length": 0},
+    aux_input: Dict = {},
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
 
@@ -49,9 +49,9 @@ def run_model_torch(
         _func = model.module.inference
     else:
         _func = model.inference
-    # JMa: propagate `durations``, `length_scale``, and  `min_input_length` to `aux_input`
-    #      to enable changing length (durations) per each input text (sentence) and to set
-    #      minimum allowed length of each input char/phoneme
+    # JMa: propagate other inputs like `durations``, `length_scale``, and  `min_input_length`
+    #      to `aux_input` to enable changing length (durations) per each input text (sentence)
+    #      and to set minimum allowed length of each input char/phoneme
     #   - `length_scale` changes length of the whole generated wav
     #   - `durations` sets up duration (in frames) for each input text ID
     #   -  minimum allowed length (in frames) per input ID (char/phoneme) during inference
@@ -114,7 +114,7 @@ def apply_griffin_lim(inputs, input_lens, CONFIG, ap):
     return wavs
 
 
-# JMa: add `aux_input` to enable extra input (length_scale, durations)
+# JMa: add `aux_input` to enable extra input (like length_scale, durations)
 def synthesis(
     model,
     text,
