@@ -39,7 +39,7 @@ def setup_generator(c):
     # this is to preserve the Wavernn class name (instead of Wavernn)
     if c.generator_model.lower() in "hifigan_generator":
         model = MyModel(in_channels=c.audio["num_mels"], out_channels=1, **c.generator_model_params)
-    if c.generator_model.lower() in "bigvgan_generator":
+    elif c.generator_model.lower() in "bigvgan_generator":
         model = MyModel(in_channels=c.audio["num_mels"], **c.generator_model_params)
     elif c.generator_model.lower() in "melgan_generator":
         model = MyModel(
@@ -106,9 +106,9 @@ def setup_discriminator(c):
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
     if c.discriminator_model in "hifigan_discriminator":
         model = MyModel()
-    if c.discriminator_model in "bigvgan_discriminator":
+    elif c.discriminator_model in "bigvgan_discriminator":
         model = MyModel(use_spectral_norm=c.discriminator_model_params["use_spectral_norm"])
-    if c.discriminator_model in "random_window_discriminator":
+    elif c.discriminator_model in "random_window_discriminator":
         model = MyModel(
             cond_channels=c.audio["num_mels"],
             hop_length=c.audio["hop_length"],
@@ -117,7 +117,7 @@ def setup_discriminator(c):
             cond_disc_out_channels=c.discriminator_model_params["cond_disc_out_channels"],
             window_sizes=c.discriminator_model_params["window_sizes"],
         )
-    if c.discriminator_model in "melgan_multiscale_discriminator":
+    elif c.discriminator_model in "melgan_multiscale_discriminator":
         model = MyModel(
             in_channels=1,
             out_channels=1,
@@ -126,7 +126,7 @@ def setup_discriminator(c):
             max_channels=c.discriminator_model_params["max_channels"],
             downsample_factors=c.discriminator_model_params["downsample_factors"],
         )
-    if c.discriminator_model == "residual_parallel_wavegan_discriminator":
+    elif c.discriminator_model == "residual_parallel_wavegan_discriminator":
         model = MyModel(
             in_channels=1,
             out_channels=1,
@@ -141,7 +141,7 @@ def setup_discriminator(c):
             nonlinear_activation="LeakyReLU",
             nonlinear_activation_params={"negative_slope": 0.2},
         )
-    if c.discriminator_model == "parallel_wavegan_discriminator":
+    elif c.discriminator_model == "parallel_wavegan_discriminator":
         model = MyModel(
             in_channels=1,
             out_channels=1,
@@ -153,6 +153,8 @@ def setup_discriminator(c):
             nonlinear_activation_params={"negative_slope": 0.2},
             bias=True,
         )
-    if c.discriminator_model == "univnet_discriminator":
+    elif c.discriminator_model == "univnet_discriminator":
         model = MyModel()
+    else:
+        raise NotImplementedError(f"Model {c.generator_model} not implemented!")
     return model
