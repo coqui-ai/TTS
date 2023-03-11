@@ -6,12 +6,13 @@ from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.models.vits import Vits, VitsArgs, VitsAudioConfig
+from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 output_path = os.path.dirname(os.path.abspath(__file__))
 dataset_config = BaseDatasetConfig(
-    formatter="ljspeech", meta_file_train="metadata.csv", path=os.path.join(output_path, "../LJSpeech-1.1/")
+    formatter="vctk", meta_file_train="", language="en-us", path=os.path.join(output_path, "../VCTK/")
 )
 
 audio_config = VitsAudioConfig(
@@ -23,7 +24,7 @@ vits_args = VitsArgs(use_bigvgan=True)
 config = VitsConfig(
     model_args=vits_args,
     audio=audio_config,
-    run_name="vits_bigvgan_ljspeech",
+    run_name="vits_bigvgan_vctk",
     batch_size=32,
     eval_batch_size=16,
     batch_group_size=5,
@@ -42,6 +43,7 @@ config = VitsConfig(
     print_step=25,
     print_eval=True,
     mixed_precision=False,
+    max_text_len=325,  # change this if you have a larger VRAM than 16GB
     output_path=output_path,
     datasets=[dataset_config],
     cudnn_benchmark=False,
@@ -69,8 +71,14 @@ train_samples, eval_samples = load_tts_samples(
     eval_split_size=config.eval_split_size,
 )
 
+# init speaker manager for multi-speaker training
+# it maps speaker-id to speaker-name in the model and data-loader
+speaker_manager = SpeakerManager()
+speaker_manager.set_ids_from_data(train_samples + eval_samples, parse_key="speaker_name")
+config.model_args.num_speakers = speaker_manager.num_speakers
+
 # init model
-model = Vits(config, ap, tokenizer, speaker_manager=None)
+model = Vits(config, ap, tokenizer, speaker_manager)
 
 # init the trainer and 🚀
 trainer = Trainer(

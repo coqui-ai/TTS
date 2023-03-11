@@ -21,7 +21,7 @@ from trainer.trainer_utils import get_optimizer, get_scheduler
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.vits.discriminator import BigVganDiscriminator, VitsDiscriminator
+from TTS.tts.layers.vits.discriminator import BigvganDiscriminator, VitsDiscriminator
 from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
 from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
@@ -34,7 +34,7 @@ from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment
 from TTS.utils.io import load_fsspec
 from TTS.utils.samplers import BucketBatchSampler
-from TTS.vocoder.models.bigvgan_generator import BigVGAN
+from TTS.vocoder.models.bigvgan_generator import BigvganGenerator
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
@@ -597,6 +597,10 @@ class VitsArgs(Coqpit):
     reinit_DP: bool = False
     reinit_text_encoder: bool = False
 
+    # params are taken from https://github.com/NVIDIA/BigVGAN/blob/main/configs/bigvgan_22khz_80band.json
+    # params for bigvgan base is given here https://github.com/NVIDIA/BigVGAN/blob/main/configs/bigvgan_base_22khz_80band.json
+    # paper https://arxiv.org/abs/2206.04658
+
     # bigvgan params
     use_bigvgan: bool = False
     bg_resblock_kernel_sizes = [3, 7, 11]
@@ -607,8 +611,11 @@ class VitsArgs(Coqpit):
     bg_resblock_dilation_sizes = [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
     bg_activation = "snakebeta"
     bg_snake_logscale = True
-    bg_periods_multi_period_discriminator = (2, 3, 5, 7, 11)
-    bg_resolutions_multi_resolution_discriminator = [[1024, 120, 600], [2048, 240, 1200], [512, 50, 240]]
+
+    # bigvgan descriminator params
+    bg_fft_size = [1024, 2048, 512]
+    bg_hop_length = [120, 240, 50]
+    bg_win_lengths = [600, 1200, 240]
 
 
 class Vits(BaseTTS):
@@ -712,10 +719,10 @@ class Vits(BaseTTS):
                 language_emb_dim=self.embedded_language_dim,
             )
         if self.args.use_bigvgan:
-            self.waveform_decoder = BigVGAN(
+            self.waveform_decoder = BigvganGenerator(
                 resblock_kernel_sizes=self.args.bg_resblock_kernel_sizes,
                 upsample_rates=self.args.bg_upsample_rates,
-                num_mels=self.args.hidden_channels,
+                in_channels=self.args.hidden_channels,
                 upsample_initial_channel=self.args.bg_upsample_initial_channel,
                 resblock=self.args.bg_resblock,
                 upsample_kernel_sizes=self.args.bg_upsample_kernel_sizes,
@@ -725,9 +732,10 @@ class Vits(BaseTTS):
             )
 
             if self.args.init_discriminator:
-                self.disc = BigVganDiscriminator(
-                    periods=self.args.bg_periods_multi_period_discriminator,
-                    resolutions=self.args.bg_resolutions_multi_resolution_discriminator,
+                self.disc = BigvganDiscriminator(
+                    fft_size=self.args.bg_fft_size,
+                    hop_length=self.args.bg_hop_length,
+                    win_lengths=self.args.bg_win_lengths,
                     use_spectral_norm=self.args.use_spectral_norm_disriminator,
                 )
         else:

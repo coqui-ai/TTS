@@ -3,8 +3,8 @@ import torch
 from torch import nn
 from torch.nn.modules.conv import Conv1d
 
-from TTS.vocoder.models.bigvgan_discriminator import MultiPeriodDiscriminator, MultiResolutionDiscriminator
-from TTS.vocoder.models.hifigan_discriminator import DiscriminatorP
+from TTS.vocoder.models.hifigan_discriminator import DiscriminatorP, MultiPeriodDiscriminator
+from TTS.vocoder.models.univnet_discriminator import MultiResSpecDiscriminator
 
 
 class DiscriminatorS(torch.nn.Module):
@@ -91,7 +91,7 @@ class VitsDiscriminator(nn.Module):
         return x_scores, x_feats, x_hat_scores, x_hat_feats
 
 
-class BigVganDiscriminator(nn.Module):
+class BigvganDiscriminator(nn.Module):
     """BigVgan discriminator wrapping one MultiResolutionDiscriminator and a MultiPeriodDiscriminator.
 
     ::
@@ -102,11 +102,17 @@ class BigVganDiscriminator(nn.Module):
         use_spectral_norm (bool): if `True` swith to spectral norm instead of weight norm.
     """
 
-    def __init__(self, periods=(2, 3, 5, 7, 11), resolutions=None, use_spectral_norm=False):
+    def __init__(
+        self,
+        fft_size=[1024, 2048, 512],
+        hop_length=[120, 240, 50],
+        win_lengths=[600, 1200, 240],
+        use_spectral_norm=False,
+    ):
         super().__init__()
         self.nets = nn.ModuleList()
-        self.nets.append(MultiResolutionDiscriminator(resolutions=resolutions, use_spectral_norm=use_spectral_norm))
-        self.nets.append(MultiPeriodDiscriminator(mpd_reshapes=periods, use_spectral_norm=use_spectral_norm))
+        self.nets.append(MultiResSpecDiscriminator(fft_sizes=fft_size, hop_sizes=hop_length, win_lengths=win_lengths))
+        self.nets.append(MultiPeriodDiscriminator(use_spectral_norm=use_spectral_norm))
 
     def forward(self, x, x_hat=None):
         """
@@ -123,7 +129,8 @@ class BigVganDiscriminator(nn.Module):
         x_feats = []
         x_hat_feats = [] if x_hat is not None else None
         for net in self.nets:
-            x_score, x_feat, x_hat_score, x_hat_feat = net(x, x_hat)
+            x_score, x_feat = net(x)
+            x_hat_score, x_hat_feat = net(x_hat)
             for net_idx, _ in enumerate(x_score):
                 x_scores.append(x_score[net_idx])
                 x_feats.append(x_feat[net_idx])

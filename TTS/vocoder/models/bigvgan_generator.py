@@ -171,13 +171,13 @@ class AMPBlock2(torch.nn.Module):
             remove_weight_norm(l)
 
 
-class BigVGAN(torch.nn.Module):
+class BigvganGenerator(torch.nn.Module):
     # this is our main BigVGAN model. Applies anti-aliased periodic activation for resblocks.
     def __init__(
         self,
         resblock_kernel_sizes=None,
         upsample_rates=None,
-        num_mels=80,
+        in_channels=80,
         upsample_initial_channel=1536,
         resblock="1",
         upsample_kernel_sizes=None,
@@ -191,7 +191,7 @@ class BigVGAN(torch.nn.Module):
         self.num_upsamples = len(upsample_rates)
 
         # pre conv
-        self.conv_pre = weight_norm(Conv1d(num_mels, upsample_initial_channel, 7, 1, padding=3))
+        self.conv_pre = weight_norm(Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
 
         # define which AMPBlock to use. BigVGAN uses AMPBlock1 as default
         resblock = AMPBlock1 if resblock == "1" else AMPBlock2

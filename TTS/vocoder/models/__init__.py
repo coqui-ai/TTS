@@ -39,6 +39,8 @@ def setup_generator(c):
     # this is to preserve the Wavernn class name (instead of Wavernn)
     if c.generator_model.lower() in "hifigan_generator":
         model = MyModel(in_channels=c.audio["num_mels"], out_channels=1, **c.generator_model_params)
+    if c.generator_model.lower() in "bigvgan_generator":
+        model = MyModel(in_channels=c.audio["num_mels"], **c.generator_model_params)
     elif c.generator_model.lower() in "melgan_generator":
         model = MyModel(
             in_channels=c.audio["num_mels"],
@@ -104,6 +106,8 @@ def setup_discriminator(c):
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
     if c.discriminator_model in "hifigan_discriminator":
         model = MyModel()
+    if c.discriminator_model in "bigvgan_discriminator":
+        model = MyModel(use_spectral_norm=c.discriminator_model_params["use_spectral_norm"])
     if c.discriminator_model in "random_window_discriminator":
         model = MyModel(
             cond_channels=c.audio["num_mels"],
