@@ -192,6 +192,7 @@ class Overflow(BaseTTS):
         Args:
             aux_inputs (Dict): Dictionary containing the auxiliary inputs.
         """
+        default_input_dict = default_input_dict.copy()
         default_input_dict.update(
             {
                 "sampling_temp": self.sampling_temp,
@@ -200,15 +201,15 @@ class Overflow(BaseTTS):
             }
         )
         if aux_input:
-            return format_aux_input(default_input_dict, aux_input.copy())
-        return default_input_dict.copy()
+            return format_aux_input(default_input_dict, aux_input)
+        return default_input_dict
 
     @torch.no_grad()
     def inference(
         self,
         text: torch.Tensor,
-        aux_input=None,
-    ):
+        aux_input={"x_lengths": None, "sampling_temp": None, "max_sampling_time": None, "duration_threshold": None},
+    ): # pylint: disable=dangerous-default-value
         """Sampling from the model
 
         Args:
@@ -223,9 +224,6 @@ class Overflow(BaseTTS):
                 - input_parameters (list[torch.FloatTensor]): Input parameters to the neural HMM.
                 - output_parameters (list[torch.FloatTensor]): Output parameters to the neural HMM.
         """
-        if aux_input is None:
-            aux_input = {}
-
         default_input_dict = {
             "x_lengths": torch.sum(text != 0, dim=1),
         }
