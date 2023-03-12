@@ -167,8 +167,9 @@ def format_aux_input(def_args: Dict, kwargs: Dict) -> Dict:
     Returns:
         Dict: arguments with formatted auxilary inputs.
     """
+    kwargs = kwargs.copy()
     for name in def_args:
-        if name not in kwargs:
+        if name not in kwargs or kwargs[name] is None:
             kwargs[name] = def_args[name]
     return kwargs
 
