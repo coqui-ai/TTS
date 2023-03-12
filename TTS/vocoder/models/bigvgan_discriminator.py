@@ -1,13 +1,5 @@
-import torch
-import torch.nn.functional as F
-from torch import nn
-from torch.nn import Conv2d
-from torch.nn.utils import spectral_norm, weight_norm
-
-from TTS.utils.audio.torch_transforms import TorchSTFT
 from TTS.vocoder.models.hifigan_discriminator import MultiPeriodDiscriminator
 from TTS.vocoder.models.univnet_discriminator import MultiResSpecDiscriminator
-from TTS.vocoder.utils.generic_utils import get_padding
 
 LRELU_SLOPE = 0.1
 
