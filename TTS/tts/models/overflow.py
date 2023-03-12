@@ -209,7 +209,7 @@ class Overflow(BaseTTS):
         self,
         text: torch.Tensor,
         aux_input={"x_lengths": None, "sampling_temp": None, "max_sampling_time": None, "duration_threshold": None},
-    ): # pylint: disable=dangerous-default-value
+    ):  # pylint: disable=dangerous-default-value
         """Sampling from the model
 
         Args:
