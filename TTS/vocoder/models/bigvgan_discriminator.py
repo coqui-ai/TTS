@@ -1,3 +1,5 @@
+from torch import nn
+
 from TTS.vocoder.models.hifigan_discriminator import MultiPeriodDiscriminator
 from TTS.vocoder.models.univnet_discriminator import MultiResSpecDiscriminator
 
