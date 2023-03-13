@@ -1630,13 +1630,13 @@ class Vits(BaseTTS):
             else:
                 if num_gpus > 1:
                     loader = DataLoader(
-                    dataset,
-                    sampler=sampler,
-                    batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                    collate_fn=dataset.collate_fn,
-                    num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
-                    pin_memory=False,
-                )
+                        dataset,
+                        sampler=sampler,
+                        batch_size=config.eval_batch_size if is_eval else config.batch_size,
+                        collate_fn=dataset.collate_fn,
+                        num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
+                        pin_memory=False,
+                    )
                 else:
                     loader = DataLoader(
                         dataset,
