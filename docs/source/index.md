@@ -28,6 +28,7 @@
     formatting_your_dataset
     what_makes_a_good_dataset
     tts_datasets
+    marytts
 
 .. toctree::
     :maxdepth: 2
@@ -48,10 +49,10 @@
     models/vits.md
     models/forward_tts.md
     models/tacotron1-2.md
+    models/overflow.md
 
 .. toctree::
     :maxdepth: 2
     :caption: `vocoder` Models
 
 ```
-
