@@ -111,7 +111,7 @@ class BaseTTS(BaseTrainerModel):
         """Prepare and return `aux_input` used by `forward()`"""
         return {"speaker_id": None, "style_wav": None, "d_vector": None, "language_id": None}
 
-    def get_aux_input_from_test_setences(self, sentence_info):
+    def get_aux_input_from_test_sentences(self, sentence_info):
         if hasattr(self.config, "model_args"):
             config = self.config.model_args
         else:
@@ -134,7 +134,7 @@ class BaseTTS(BaseTrainerModel):
 
         # get speaker  id/d_vector
         speaker_id, d_vector, language_id = None, None, None
-        if hasattr(self, "speaker_manager"):
+        if self.speaker_manager is not None:
             if config.use_d_vector_file:
                 if speaker_name is None:
                     d_vector = self.speaker_manager.get_random_embedding()
@@ -147,7 +147,7 @@ class BaseTTS(BaseTrainerModel):
                     speaker_id = self.speaker_manager.name_to_id[speaker_name]
 
         # get language id
-        if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
+        if self.language_manager is not None and config.use_language_embedding and language_name is not None:
             language_id = self.language_manager.name_to_id[language_name]
 
         return {
@@ -183,6 +183,7 @@ class BaseTTS(BaseTrainerModel):
         attn_mask = batch["attns"]
         waveform = batch["waveform"]
         pitch = batch["pitch"]
+        energy = batch["energy"]
         language_ids = batch["language_ids"]
         max_text_length = torch.max(text_lengths.float())
         max_spec_length = torch.max(mel_lengths.float())
@@ -231,6 +232,7 @@ class BaseTTS(BaseTrainerModel):
             "item_idx": item_idx,
             "waveform": waveform,
             "pitch": pitch,
+            "energy": energy,
             "language_ids": language_ids,
             "audio_unique_names": batch["audio_unique_names"],
         }
@@ -287,7 +289,7 @@ class BaseTTS(BaseTrainerModel):
             loader = None
         else:
             # setup multi-speaker attributes
-            if hasattr(self, "speaker_manager") and self.speaker_manager is not None:
+            if self.speaker_manager is not None:
                 if hasattr(config, "model_args"):
                     speaker_id_mapping = (
                         self.speaker_manager.name_to_id if config.model_args.use_speaker_embedding else None
@@ -302,7 +304,7 @@ class BaseTTS(BaseTrainerModel):
                 d_vector_mapping = None
 
             # setup multi-lingual attributes
-            if hasattr(self, "language_manager") and self.language_manager is not None:
+            if self.language_manager is not None:
                 language_id_mapping = self.language_manager.name_to_id if self.args.use_language_embedding else None
             else:
                 language_id_mapping = None
@@ -313,6 +315,8 @@ class BaseTTS(BaseTrainerModel):
                 compute_linear_spec=config.model.lower() == "tacotron" or config.compute_linear_spec,
                 compute_f0=config.get("compute_f0", False),
                 f0_cache_path=config.get("f0_cache_path", None),
+                compute_energy=config.get("compute_energy", False),
+                energy_cache_path=config.get("energy_cache_path", None),
                 samples=samples,
                 ap=self.ap,
                 return_wav=config.return_wav if "return_wav" in config else False,
@@ -424,7 +428,7 @@ class BaseTTS(BaseTrainerModel):
             print(f" > `speakers.pth` is saved to {output_path}.")
             print(" > `speakers_file` is updated in the config.json.")
 
-        if hasattr(self, "language_manager") and self.language_manager is not None:
+        if self.language_manager is not None:
             output_path = os.path.join(trainer.output_path, "language_ids.json")
             self.language_manager.save_ids_to_file(output_path)
             trainer.config.language_ids_file = output_path
