@@ -597,17 +597,17 @@ class VitsArgs(Coqpit):
     reinit_DP: bool = False
     reinit_text_encoder: bool = False
 
-    # params are taken from https://github.com/NVIDIA/BigVGAN/blob/main/configs/bigvgan_base_22khz_80band.json
-    # params for bigvgan(take more vram) is given here https://github.com/NVIDIA/BigVGAN/blob/main/configs/bigvgan_22khz_80band.json 
+    # params are taken(takes less vram) from https://github.com/NVIDIA/BigVGAN/blob/main/configs/bigvgan_22khz_80band.json changed initial channels to 1024
+    # params for bigvgan(take more vram) is given here https://github.com/NVIDIA/BigVGAN/blob/main/configs/bigvgan_22khz_80band.json
     # paper https://arxiv.org/abs/2206.04658
 
     # bigvgan params
     use_bigvgan: bool = False
     bg_resblock_kernel_sizes: List[int] = field(default_factory=lambda: [3, 7, 11])
-    bg_upsample_rates: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
-    bg_upsample_initial_channel: int = 512
+    bg_upsample_rates: List[int] = field(default_factory=lambda: [4, 4, 2, 2, 2, 2])
+    bg_upsample_initial_channel: int = 1024
     bg_resblock: str = "1"
-    bg_upsample_kernel_sizes: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
+    bg_upsample_kernel_sizes: List[int] = field(default_factory=lambda: [8, 8, 4, 4, 4, 4])
     bg_resblock_dilation_sizes: List[List[int]] = field(default_factory=lambda: [[1, 3, 5], [1, 3, 5], [1, 3, 5]])
     bg_activation: str = "snakebeta"
     bg_snake_logscale: bool = True
