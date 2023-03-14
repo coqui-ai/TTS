@@ -604,10 +604,10 @@ class VitsArgs(Coqpit):
     # bigvgan params
     use_bigvgan: bool = False
     bg_resblock_kernel_sizes: List[int] = [3, 7, 11]
-    bg_upsample_rates: List[int] = [4, 4, 2, 2, 2, 2]
-    bg_upsample_initial_channel: int = 1536
+    bg_upsample_rates: List[int] = [8, 8, 2, 2]
+    bg_upsample_initial_channel: int = 512
     bg_resblock: str = "1"
-    bg_upsample_kernel_sizes: List[int] = [8, 8, 4, 4, 4, 4]
+    bg_upsample_kernel_sizes: List[int] = [16, 16, 4, 4]
     bg_resblock_dilation_sizes: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
     bg_activation: str = "snakebeta"
     bg_snake_logscale: bool = True
