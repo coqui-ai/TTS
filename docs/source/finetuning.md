@@ -11,7 +11,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
     Since a pre-trained model has already learned features that are relevant for the task, it will converge faster on
     a new dataset. This will reduce the cost of training and let you experiment faster.
 
-2. Better resutls with small datasets
+2. Better results with small datasets
 
     Deep learning models are data hungry and they give better performance with more data. However, it is not always
     possible to have this abundance, especially in specific domains. For instance, the LJSpeech dataset, that we released most of
