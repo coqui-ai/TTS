@@ -27,6 +27,8 @@ class BaseTTS(BaseTrainerModel):
     It defines common `tts` specific functions on top of `Model` implementation.
     """
 
+    MODEL_TYPE = "tts"
+
     def __init__(
         self,
         config: Coqpit,
