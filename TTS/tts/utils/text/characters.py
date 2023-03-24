@@ -20,8 +20,8 @@ _pad = "<PAD>"
 _eos = "<EOS>"
 _bos = "<BOS>"
 _blank = "<BLNK>"  # TODO: check if we need this alongside with PAD
-_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-_punctuations = "!'(),-.:;? "
+_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzáàÁÀéèÉÈíÍóòÓÒúÚü"
+_punctuations = "!'(),-.:;?¡¿ "
 
 
 # DEFAULT SET OF IPA PHONEMES
