@@ -243,7 +243,7 @@ class AudioProcessor(object):
         if self.mel_fmax is not None:
             assert self.mel_fmax <= self.sample_rate // 2
         return librosa.filters.mel(
-            self.sample_rate, self.fft_size, n_mels=self.num_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
+            sr=self.sample_rate, n_fft=self.fft_size, n_mels=self.num_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
         )
 
     def _stft_parameters(
