@@ -130,7 +130,7 @@ def wav_to_spec(y, n_fft, hop_length, win_length, center=False):
         pad_mode="reflect",
         normalized=False,
         onesided=True,
-        return_complex=False,
+        return_complex=False # CAMBIO MIO
     )
 
     spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
@@ -149,7 +149,7 @@ def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
     dtype_device = str(spec.dtype) + "_" + str(spec.device)
     fmax_dtype_device = str(fmax) + "_" + dtype_device
     if fmax_dtype_device not in mel_basis:
-        mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax)
+        mel = librosa_mel_fn(sr=sample_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax)
         mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=spec.dtype, device=spec.device)
     mel = torch.matmul(mel_basis[fmax_dtype_device], spec)
     mel = amp_to_db(mel)
@@ -284,9 +284,6 @@ class VitsDataset(TTSDataset):
             "token_len": len(token_ids),
             "wav": wav,
             "wav_file": wav_filename,
-            "speaker_name": item["speaker_name"],
-            "language_name": item["language"],
-            "audio_unique_name": item["audio_unique_name"],
         }
 
     @property
@@ -348,11 +345,8 @@ class VitsDataset(TTSDataset):
             "waveform": wav_padded,  # (B x T)
             "waveform_lens": wav_lens,  # (B)
             "waveform_rel_lens": wav_rel_lens,
-            "speaker_names": batch["speaker_name"],
-            "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
-            "audio_unique_names": batch["audio_unique_name"],
         }
 
 
@@ -1013,30 +1007,30 @@ class Vits(BaseTTS):
         lang_emb = None
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
-
+        print("starting encodings")
         x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
-
+        print("text done")
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
-
+        print("post done")
         # flow layers
         z_p = self.flow(z, y_mask, g=g)
-
+        print("flow done")
         # duration predictor
         outputs, attn = self.forward_mas(outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g=g, lang_emb=lang_emb)
-
+        print("fmas done")
         # expand prior
         m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
         logs_p = torch.einsum("klmn, kjm -> kjn", [attn, logs_p])
-
+        print("m logs done")
         # select a random feature segment for the waveform decoder
         z_slice, slice_ids = rand_segments(z, y_lengths, self.spec_segment_size, let_short_samples=True, pad_short=True)
-
+        print("slice done")
         # interpolate z if needed
         z_slice, spec_segment_size, slice_ids, _ = self.upsampling_z(z_slice, slice_ids=slice_ids)
-
+        print("wave start")
         o = self.waveform_decoder(z_slice, g=g)
-
+        print("wave done")
         wav_seg = segment(
             waveform,
             slice_ids * self.config.audio.hop_length,
@@ -1244,12 +1238,12 @@ class Vits(BaseTTS):
             tokens = batch["tokens"]
             token_lenghts = batch["token_lens"]
             spec = batch["spec"]
-
-            d_vectors = batch["d_vectors"]
-            speaker_ids = batch["speaker_ids"]
-            language_ids = batch["language_ids"]
+            # CAMBIO MIO
+            #d_vectors = batch["d_vectors"]
+            #speaker_ids = batch["speaker_ids"]
+            #language_ids = batch["language_ids"]
             waveform = batch["waveform"]
-
+            print("starting forward")
             # generator pass
             outputs = self.forward(
                 tokens,
@@ -1257,9 +1251,9 @@ class Vits(BaseTTS):
                 spec,
                 spec_lens,
                 waveform,
-                aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids},
+                #aux_input={"d_vectors": d_vectors, "speaker_ids": speaker_ids, "language_ids": language_ids}, # CAMBIO MIO
             )
-
+            print("end forward")
             # cache tensors for the generator pass
             self.model_outputs_cache = outputs  # pylint: disable=attribute-defined-outside-init
 
@@ -1584,7 +1578,6 @@ class Vits(BaseTTS):
     def get_data_loader(
         self,
         config: Coqpit,
-        assets: Dict,
         is_eval: bool,
         samples: Union[List[Dict], List[List]],
         verbose: bool,
