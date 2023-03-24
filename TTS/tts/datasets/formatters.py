@@ -606,7 +606,7 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
 
 # ===================================== OWN DATASETS =================================================
 
-def tcstar(root_path, meta_file='metadata.txt', **kwargs):
+def tcstar(root_path, meta_file='metadata_norm.txt', **kwargs):
     FOLDERS = ['72_norm', '73_norm', '75_norm', '76_norm', '79_norm', '80_norm']
     items = []
     for folder in FOLDERS:
