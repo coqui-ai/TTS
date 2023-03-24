@@ -13,7 +13,7 @@ from TTS.utils.audio import AudioProcessor
 
 
 dataset_config = BaseDatasetConfig(
-    formatter="tcstar", meta_file_train="metadata_norm.txt", language="es-es", path="/home/usuaris/veu/daniel.gonzalbez/TTS"
+    formatter="tcstar", meta_file_train="metadata_norm.txt", language="es-es", path="/home/usuaris/veu/daniel.gonzalbez"
 )
 audio_config = VitsAudioConfig(
     sample_rate=22050, win_length=1024, hop_length=256, num_mels=80, mel_fmin=0, mel_fmax=None
@@ -43,7 +43,7 @@ config = VitsConfig(
     print_eval=False,
     mixed_precision=True,
     max_text_len=325,  # change this if you have a larger VRAM than 16GB
-    output_path='/home/usuaris/veu/daniel.gonzalbez/TTS/logs',
+    output_path='/home/usuaris/veu/daniel.gonzalbez/logs',
     datasets=[dataset_config],
     cudnn_benchmark=False,
 )
@@ -78,7 +78,7 @@ model = Vits(config, ap, tokenizer, speaker_manager)
 
 #loader = model.get_data_loader(config, False, train_samples, True, 1)
 
-output_path = '/home/usuaris/veu/daniel.gonzalbez/TTS/logs'
+output_path = '/home/usuaris/veu/daniel.gonzalbez/logs'
 trainer = Trainer(
     TrainerArgs(),
     config,
