@@ -56,7 +56,7 @@ def run_models(offset=0, step=1):
             reference_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0032.wav")
             run_cli(
                 f"tts --model_name  {model_name} "
-                f'--out_path "{output_path}" --speaker_wav "{speaker_wav}" --reference_wav "{reference_wav}" --progress_bar False'
+                f'--out_path "{output_path}" --source_wav "{speaker_wav}" --target_wav "{reference_wav}" --progress_bar False'
             )
         else:
             # only download the model
