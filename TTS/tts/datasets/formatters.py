@@ -601,3 +601,23 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             text = cols[2]  # cols[1] => 6월, cols[2] => 유월
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
+
+
+
+# ===================================== OWN DATASETS =================================================
+
+def tcstar(root_path, meta_file='metadata.txt', **kwargs):
+    FOLDERS = ['72_norm', '73_norm', '75_norm', '76_norm', '79_norm', '80_norm']
+    items = []
+    for folder in FOLDERS:
+        txt_file = os.path.join(root_path + '/' + folder, meta_file)
+        text = open(txt_file, 'r')
+        lines = text.readlines()
+        os.chdir(root_path + '/'+ folder)
+        filenames = sorted(os.listdir())
+        for line in lines:
+            file_text, text = line.split('|')
+            if file_text + '.wav' in filenames: # there have been some transcripts and audio files deleted in preprocessing
+                items.append({"text": text, "audio_file": root_path + '/' + folder + '/' + file_text + '.wav', "speaker_name": folder, "root_path": root_path})
+        return items
+
