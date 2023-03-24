@@ -13,7 +13,7 @@ from TTS.utils.audio import AudioProcessor
 
 
 dataset_config = BaseDatasetConfig(
-    formatter="tcstar", meta_file_train="metadata_norm.txt", language="es-es", path=os.path.join('/Users/daniju18/Documents/TFG', '')
+    formatter="tcstar", meta_file_train="metadata_norm.txt", language="es-es", path="/Users/daniju18/Documents/TFG")
 )
 audio_config = VitsAudioConfig(
     sample_rate=22050, win_length=1024, hop_length=256, num_mels=80, mel_fmin=0, mel_fmax=None
