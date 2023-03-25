@@ -1,4 +1,5 @@
 from pathlib import Path
+import tempfile
 
 from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
@@ -268,10 +269,12 @@ class TTS:
                 Path to a reference wav file to use for voice cloning with supporting models like YourTTS.
                 Defaults to None.
         """
-        wav = self.tts(text=text, speaker=None, language=language)
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fp:
+            # Lazy code... save it to a temp file to resample it while reading it for VC
+            self.tts_to_file(text=text, speaker=None, language=language, file_path=fp.name)
         if self.voice_converter is None:
             self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
-        wav = self.voice_converter.voice_conversion(source_wav=wav, target_wav=speaker_wav)
+        wav = self.voice_converter.voice_conversion(source_wav=fp.name, target_wav=speaker_wav)
         return wav
 
     def tts_with_vc_to_file(
