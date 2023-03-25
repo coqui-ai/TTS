@@ -185,6 +185,13 @@ class ModelManager(object):
         """
         return self._list_for_model_type("vocoder_models")
 
+    def list_vc_models(self):
+        """Print all the voice conversion models and return a list of model names
+
+        Format is `language/dataset/model`
+        """
+        return self._list_for_model_type("voice_conversion_models")
+
     def list_langs(self):
         """Print all the available languages"""
         print(" Name format: type/language")
@@ -234,6 +241,7 @@ class ModelManager(object):
         model_type, lang, dataset, model = model_name.split("/")
         model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
         model_item = self.models_dict[model_type][lang][dataset][model]
+        model_item["model_type"] = model_type
         # set the model specific output path
         output_path = os.path.join(self.output_prefix, model_full_name)
         if os.path.exists(output_path):

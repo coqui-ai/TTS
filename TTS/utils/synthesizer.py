@@ -12,6 +12,8 @@ from TTS.tts.models import setup_model as setup_tts_model
 # pylint: disable=wildcard-import
 from TTS.tts.utils.synthesis import synthesis, transfer_voice, trim_silence
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.numpy_transforms import save_wav
+from TTS.vc.models import setup_model as setup_vc_model
 from TTS.vocoder.models import setup_model as setup_vocoder_model
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
 
@@ -19,14 +21,16 @@ from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
 class Synthesizer(object):
     def __init__(
         self,
-        tts_checkpoint: str,
-        tts_config_path: str,
+        tts_checkpoint: str = "",
+        tts_config_path: str = "",
         tts_speakers_file: str = "",
         tts_languages_file: str = "",
         vocoder_checkpoint: str = "",
         vocoder_config: str = "",
         encoder_checkpoint: str = "",
         encoder_config: str = "",
+        vc_checkpoint: str = "",
+        vc_config: str = "",
         use_cuda: bool = False,
     ) -> None:
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
@@ -41,12 +45,14 @@ class Synthesizer(object):
         TODO: set the segmenter based on the source language
 
         Args:
-            tts_checkpoint (str): path to the tts model file.
-            tts_config_path (str): path to the tts config file.
+            tts_checkpoint (str, optional): path to the tts model file.
+            tts_config_path (str, optional): path to the tts config file.
             vocoder_checkpoint (str, optional): path to the vocoder model file. Defaults to None.
             vocoder_config (str, optional): path to the vocoder config file. Defaults to None.
             encoder_checkpoint (str, optional): path to the speaker encoder model file. Defaults to `""`,
             encoder_config (str, optional): path to the speaker encoder config file. Defaults to `""`,
+            vc_checkpoint (str, optional): path to the voice conversion model file. Defaults to `""`,
+            vc_config (str, optional): path to the voice conversion config file. Defaults to `""`,
             use_cuda (bool, optional): enable/disable cuda. Defaults to False.
         """
         self.tts_checkpoint = tts_checkpoint
@@ -57,10 +63,13 @@ class Synthesizer(object):
         self.vocoder_config = vocoder_config
         self.encoder_checkpoint = encoder_checkpoint
         self.encoder_config = encoder_config
+        self.vc_checkpoint = vc_checkpoint
+        self.vc_config = vc_config
         self.use_cuda = use_cuda
 
         self.tts_model = None
         self.vocoder_model = None
+        self.vc_model = None
         self.speaker_manager = None
         self.tts_speakers = {}
         self.language_manager = None
@@ -72,11 +81,18 @@ class Synthesizer(object):
 
         if self.use_cuda:
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
-        self._load_tts(tts_checkpoint, tts_config_path, use_cuda)
-        self.output_sample_rate = self.tts_config.audio["sample_rate"]
+
+        if tts_checkpoint:
+            self._load_tts(tts_checkpoint, tts_config_path, use_cuda)
+            self.output_sample_rate = self.tts_config.audio["sample_rate"]
+
         if vocoder_checkpoint:
             self._load_vocoder(vocoder_checkpoint, vocoder_config, use_cuda)
             self.output_sample_rate = self.vocoder_config.audio["sample_rate"]
+
+        if vc_checkpoint:
+            self._load_vc(vc_checkpoint, vc_config, use_cuda)
+            self.output_sample_rate = self.vc_config.audio["output_sample_rate"]
 
     @staticmethod
     def _get_segmenter(lang: str):
@@ -89,6 +105,26 @@ class Synthesizer(object):
             [type]: [description]
         """
         return pysbd.Segmenter(language=lang, clean=True)
+
+    def _load_vc(self, vc_checkpoint: str, vc_config_path: str, use_cuda: bool) -> None:
+        """Load the voice conversion model.
+
+        1. Load the model config.
+        2. Init the model from the config.
+        3. Load the model weights.
+        4. Move the model to the GPU if CUDA is enabled.
+
+        Args:
+            vc_checkpoint (str): path to the model checkpoint.
+            tts_config_path (str): path to the model config file.
+            use_cuda (bool): enable/disable CUDA use.
+        """
+        # pylint: disable=global-statement
+        self.vc_config = load_config(vc_config_path)
+        self.vc_model = setup_vc_model(config=self.vc_config)
+        self.vc_model.load_checkpoint(self.vc_config, vc_checkpoint)
+        if use_cuda:
+            self.vc_model.cuda()
 
     def _load_tts(self, tts_checkpoint: str, tts_config_path: str, use_cuda: bool) -> None:
         """Load the TTS model.
@@ -168,7 +204,11 @@ class Synthesizer(object):
             path (str): output path to save the waveform.
         """
         wav = np.array(wav)
-        self.tts_model.ap.save_wav(wav, path, self.output_sample_rate)
+        save_wav(wav=wav, path=path, sample_rate=self.output_sample_rate)
+
+    def voice_conversion(self, source_wav: str, target_wav: str) -> List[int]:
+        output_wav = self.vc_model.voice_conversion(source_wav, target_wav)
+        return output_wav
 
     def tts(
         self,

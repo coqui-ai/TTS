@@ -14,6 +14,7 @@ tqdm
 anyascii
 pyyaml
 fsspec>=2021.04.0
+aiohttp
 packaging
 # deps for examples
 flask

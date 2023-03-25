@@ -1,5 +1,7 @@
+import tempfile
 from pathlib import Path
 
+from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
 
@@ -49,11 +51,14 @@ class TTS:
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
         self.manager = ModelManager(models_file=self.get_models_file_path(), progress_bar=progress_bar, verbose=False)
+
         self.synthesizer = None
+        self.voice_converter = None
+
         if model_name:
-            self.load_model_by_name(model_name, gpu)
+            self.load_tts_model_by_name(model_name, gpu)
         if model_path:
-            self.load_model_by_path(
+            self.load_tts_model_by_path(
                 model_path, config_path, vocoder_path=vocoder_path, vocoder_config=vocoder_config_path, gpu=gpu
             )
 
@@ -96,12 +101,22 @@ class TTS:
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
-        if model_item["default_vocoder"] is None:
+        if model_item.get("default_vocoder") is None:
             return model_path, config_path, None, None
         vocoder_path, vocoder_config_path, _ = self.manager.download_model(model_item["default_vocoder"])
         return model_path, config_path, vocoder_path, vocoder_config_path
 
-    def load_model_by_name(self, model_name: str, gpu: bool = False):
+    def load_vc_model_by_name(self, model_name: str, gpu: bool = False):
+        """Load one of the voice conversion models by name.
+
+        Args:
+            model_name (str): Model name to load. You can list models by ```tts.models```.
+            gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
+        """
+        model_path, config_path, _, _ = self.download_model_by_name(model_name)
+        self.voice_converter = Synthesizer(vc_checkpoint=model_path, vc_config=config_path, use_cuda=gpu)
+
+    def load_tts_model_by_name(self, model_name: str, gpu: bool = False):
         """Load one of 🐸TTS models by name.
 
         Args:
@@ -127,7 +142,7 @@ class TTS:
             use_cuda=gpu,
         )
 
-    def load_model_by_path(
+    def load_tts_model_by_path(
         self, model_path: str, config_path: str, vocoder_path: str = None, vocoder_config: str = None, gpu: bool = False
     ):
         """Load a model from a path.
@@ -219,3 +234,67 @@ class TTS:
         """
         wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav)
         self.synthesizer.save_wav(wav=wav, path=file_path)
+
+    def voice_conversion(
+        self,
+        sourve_wav: str,
+        target_wav: str,
+    ):
+        """Voice conversion with FreeVC. Convert source wav to target speaker.
+
+        Args:
+            source_wav (str):
+                Path to the source wav file.
+            target_wav (str):
+                Path to the target wav file.
+        """
+        wav = self.synthesizer.voice_conversion(source_wav=sourve_wav, target_wav=target_wav)
+        return wav
+
+    def tts_with_vc(self, text: str, language: str = None, speaker_wav: str = None):
+        """Convert text to speech with voice conversion.
+
+        It combines tts with voice conversion to fake voice cloning.
+
+        - Convert text to speech with tts.
+        - Convert the output wav to target speaker with voice conversion.
+
+        Args:
+            text (str):
+                Input text to synthesize.
+            language (str, optional):
+                Language code for multi-lingual models. You can check whether loaded model is multi-lingual
+                `tts.is_multi_lingual` and list available languages by `tts.languages`. Defaults to None.
+            speaker_wav (str, optional):
+                Path to a reference wav file to use for voice cloning with supporting models like YourTTS.
+                Defaults to None.
+        """
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fp:
+            # Lazy code... save it to a temp file to resample it while reading it for VC
+            self.tts_to_file(text=text, speaker=None, language=language, file_path=fp.name)
+        if self.voice_converter is None:
+            self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
+        wav = self.voice_converter.voice_conversion(source_wav=fp.name, target_wav=speaker_wav)
+        return wav
+
+    def tts_with_vc_to_file(
+        self, text: str, language: str = None, speaker_wav: str = None, file_path: str = "output.wav"
+    ):
+        """Convert text to speech with voice conversion and save to file.
+
+        Check `tts_with_vc` for more details.
+
+        Args:
+            text (str):
+                Input text to synthesize.
+            language (str, optional):
+                Language code for multi-lingual models. You can check whether loaded model is multi-lingual
+                `tts.is_multi_lingual` and list available languages by `tts.languages`. Defaults to None.
+            speaker_wav (str, optional):
+                Path to a reference wav file to use for voice cloning with supporting models like YourTTS.
+                Defaults to None.
+            file_path (str, optional):
+                Output file path. Defaults to "output.wav".
+        """
+        wav = self.tts_with_vc(text=text, language=language, speaker_wav=speaker_wav)
+        save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)

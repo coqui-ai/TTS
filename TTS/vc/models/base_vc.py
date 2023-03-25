@@ -14,33 +14,31 @@ from TTS.model import BaseTrainerModel
 from TTS.tts.datasets.dataset import TTSDataset
 from TTS.tts.utils.data import get_length_balancer_weights
 from TTS.tts.utils.languages import LanguageManager, get_language_balancer_weights
-from TTS.tts.utils.speakers import SpeakerManager, get_speaker_balancer_weights, get_speaker_manager
+from TTS.tts.utils.speakers import SpeakerManager, get_speaker_balancer_weights
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.visual import plot_alignment, plot_spectrogram
 
 # pylint: skip-file
 
 
-class BaseTTS(BaseTrainerModel):
-    """Base `tts` class. Every new `tts` model must inherit this.
+class BaseVC(BaseTrainerModel):
+    """Base `vc` class. Every new `vc` model must inherit this.
 
-    It defines common `tts` specific functions on top of `Model` implementation.
+    It defines common `vc` specific functions on top of `Model` implementation.
     """
 
-    MODEL_TYPE = "tts"
+    MODEL_TYPE = "vc"
 
     def __init__(
         self,
         config: Coqpit,
         ap: "AudioProcessor",
-        tokenizer: "TTSTokenizer",
         speaker_manager: SpeakerManager = None,
         language_manager: LanguageManager = None,
     ):
         super().__init__()
         self.config = config
         self.ap = ap
-        self.tokenizer = tokenizer
         self.speaker_manager = speaker_manager
         self.language_manager = language_manager
         self._set_model_args(config)
@@ -59,18 +57,8 @@ class BaseTTS(BaseTrainerModel):
         """
         # don't use isintance not to import recursively
         if "Config" in config.__class__.__name__:
-            config_num_chars = (
-                self.config.model_args.num_chars if hasattr(self.config, "model_args") else self.config.num_chars
-            )
-            num_chars = config_num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
-            if "characters" in config:
-                self.config.num_chars = num_chars
-                if hasattr(self.config, "model_args"):
-                    config.model_args.num_chars = num_chars
-                    self.args = self.config.model_args
-            else:
-                self.config = config
-                self.args = config.model_args
+            self.config = config
+            self.args = config.model_args
         elif "Args" in config.__class__.__name__:
             self.args = config
         else:
@@ -161,7 +149,7 @@ class BaseTTS(BaseTrainerModel):
         }
 
     def format_batch(self, batch: Dict) -> Dict:
-        """Generic batch formatting for `TTSDataset`.
+        """Generic batch formatting for `VCDataset`.
 
         You must override this if you use a custom dataset.
 
@@ -333,7 +321,7 @@ class BaseTTS(BaseTrainerModel):
                 verbose=verbose,
                 speaker_id_mapping=speaker_id_mapping,
                 d_vector_mapping=d_vector_mapping if config.use_d_vector_file else None,
-                tokenizer=self.tokenizer,
+                tokenizer=None,
                 start_by_longest=config.start_by_longest,
                 language_id_mapping=language_id_mapping,
             )
@@ -378,12 +366,12 @@ class BaseTTS(BaseTrainerModel):
         return aux_inputs
 
     def test_run(self, assets: Dict) -> Tuple[Dict, Dict]:
-        """Generic test run for `tts` models used by `Trainer`.
+        """Generic test run for `vc` models used by `Trainer`.
 
         You can override this for a different behaviour.
 
         Args:
-            assets (dict): A dict of training assets. For `tts` models, it must include `{'audio_processor': ap}`.
+            assets (dict): A dict of training assets. For `vc` models, it must include `{'audio_processor': ap}`.
 
         Returns:
             Tuple[Dict, Dict]: Test figures and audios to be projected to Tensorboard.
