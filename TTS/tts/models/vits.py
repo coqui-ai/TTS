@@ -1327,7 +1327,11 @@ class Vits(BaseTTS):
         y_hat = outputs[1]["model_outputs"]
         y = outputs[1]["waveform_seg"]
         figures = plot_results(y_hat, y, ap, name_prefix)
-        sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
+        try:
+            sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
+        except:
+            y_hat = y_hat.to(torch.double) # CAMBIO MIO
+            sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
         audios = {f"{name_prefix}/audio": sample_voice}
 
         alignments = outputs[1]["alignments"]
