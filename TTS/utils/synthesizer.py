@@ -290,7 +290,15 @@ class Synthesizer(object):
                 language_id = list(self.tts_model.language_manager.name_to_id.values())[0]
 
             elif language_name and isinstance(language_name, str):
-                language_id = self.tts_model.language_manager.name_to_id[language_name]
+                try:
+                    language_id = self.tts_model.language_manager.name_to_id[language_name]
+                except KeyError:
+                    raise ValueError(
+                        f" [!] Looks like you use a multi-lingual model. "
+                        f"Language {language_name} is not in the available languages: "
+                        f"{self.tts_model.language_manager.name_to_id.keys()}."
+                    )
+
 
             elif not language_name:
                 raise ValueError(
