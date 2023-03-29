@@ -23,7 +23,7 @@ class WN(torch.nn.Module):
 
     Args:
         in_channels (int): number of input channels.
-        hidden_channes (int): number of hidden channels.
+        hidden_channes (int): number of hidden channels
         kernel_size (int): filter kernel size for the first conv layer.
         dilation_rate (int): dilations rate to increase dilation per layer.
             If it is 2, dilations are 1, 2, 4, 8 for the next 4 layers.
@@ -61,27 +61,28 @@ class WN(torch.nn.Module):
 
         # init conditioning layer
         if c_in_channels > 0:
-            cond_layer = torch.nn.Conv1d(c_in_channels, 2 * hidden_channels * num_layers, 1)
+            cond_layer = torch.nn.Conv1d(
+                c_in_channels, 2 * hidden_channels * num_layers, 1
+            )
             self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name="weight")
         # intermediate layers
         for i in range(num_layers):
             dilation = dilation_rate**i
             padding = int((kernel_size * dilation - dilation) / 2)
-            if i == 0:
-                in_layer = torch.nn.Conv1d(
-                    in_channels, 2 * hidden_channels, kernel_size, dilation=dilation, padding=padding
-                )
-            else:
-                in_layer = torch.nn.Conv1d(
-                    hidden_channels, 2 * hidden_channels, kernel_size, dilation=dilation, padding=padding
-                )
+            in_layer = torch.nn.Conv1d(
+                in_channels,
+                2 * hidden_channels,
+                kernel_size,
+                dilation=dilation,
+                padding=padding,
+            )
             in_layer = torch.nn.utils.weight_norm(in_layer, name="weight")
             self.in_layers.append(in_layer)
 
             if i < num_layers - 1:
-                res_skip_channels = 2 * hidden_channels
+                res_skip_channels = 2 * in_channels
             else:
-                res_skip_channels = hidden_channels
+                res_skip_channels = in_channels
 
             res_skip_layer = torch.nn.Conv1d(hidden_channels, res_skip_channels, 1)
             res_skip_layer = torch.nn.utils.weight_norm(res_skip_layer, name="weight")
@@ -90,7 +91,9 @@ class WN(torch.nn.Module):
         if not weight_norm:
             self.remove_weight_norm()
 
-    def forward(self, x, x_mask=None, g=None, **kwargs):  # pylint: disable=unused-argument
+    def forward(
+        self, x, x_mask=None, g=None, **kwargs
+    ):  # pylint: disable=unused-argument
         output = torch.zeros_like(x)
         n_channels_tensor = torch.IntTensor([self.hidden_channels])
         x_mask = 1.0 if x_mask is None else x_mask
@@ -105,10 +108,12 @@ class WN(torch.nn.Module):
             else:
                 g_l = torch.zeros_like(x_in)
             acts = fused_add_tanh_sigmoid_multiply(x_in, g_l, n_channels_tensor)
+            # (ref: https://github.com/jaywalnut310/vits/blob/2e561ba58618d021b5b8323d3765880f7e0ecfdb/modules.py#L167)
+            # acts = self.dropout(acts) # introducing this for experiment, since this will break BC
             res_skip_acts = self.res_skip_layers[i](acts)
             if i < self.num_layers - 1:
-                x = (x + res_skip_acts[:, : self.hidden_channels, :]) * x_mask
-                output = output + res_skip_acts[:, self.hidden_channels :, :]
+                x = (x + res_skip_acts[:, : self.in_channels, :]) * x_mask
+                output = output + res_skip_acts[:, self.in_channels :, :]
             else:
                 output = output + res_skip_acts
         return output * x_mask
