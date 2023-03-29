@@ -61,15 +61,21 @@ class WN(torch.nn.Module):
 
         # init conditioning layer
         if c_in_channels > 0:
-            cond_layer = torch.nn.Conv1d(c_in_channels, 2 * hidden_channels * num_layers, 1)
+            cond_layer = torch.nn.Conv1d(
+                c_in_channels, 2 * hidden_channels * num_layers, 1
+            )
             self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name="weight")
         # intermediate layers
         for i in range(num_layers):
             dilation = dilation_rate**i
             padding = int((kernel_size * dilation - dilation) / 2)
             in_layer = torch.nn.Conv1d(
-                in_channels, 2 * hidden_channels, kernel_size, dilation=dilation, padding=padding
-                )
+                in_channels,
+                2 * hidden_channels,
+                kernel_size,
+                dilation=dilation,
+                padding=padding,
+            )
             in_layer = torch.nn.utils.weight_norm(in_layer, name="weight")
             self.in_layers.append(in_layer)
 
@@ -85,7 +91,9 @@ class WN(torch.nn.Module):
         if not weight_norm:
             self.remove_weight_norm()
 
-    def forward(self, x, x_mask=None, g=None, **kwargs):  # pylint: disable=unused-argument
+    def forward(
+        self, x, x_mask=None, g=None, **kwargs
+    ):  # pylint: disable=unused-argument
         output = torch.zeros_like(x)
         n_channels_tensor = torch.IntTensor([self.hidden_channels])
         x_mask = 1.0 if x_mask is None else x_mask
