@@ -1472,7 +1472,7 @@ class Vits(BaseTTS):
 
         if speaker_ids is not None:
             speaker_ids = torch.LongTensor(speaker_ids)
-            
+
         # get d_vectors from audio file names
         if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
             d_vector_mapping = self.speaker_manager.embeddings
