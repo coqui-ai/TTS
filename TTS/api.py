@@ -126,12 +126,20 @@ class CS_API:
                 return speaker
         raise ValueError(f"Speaker {name} not found.")
 
-    def url_to_np(self, url):
+    def id_to_speaker(self, speaker_id):
+        for speaker in self.speakers:
+            if speaker.id == speaker_id:
+                return speaker
+        raise ValueError(f"Speaker {speaker_id} not found.")
+
+    @staticmethod
+    def url_to_np(url):
         tmp_file, _ = urllib.request.urlretrieve(url)
         rate, data = wavfile.read(tmp_file)
         return data, rate
 
-    def _create_payload(self, text, speaker, emotion, speed):
+    @staticmethod
+    def _create_payload(text, speaker, emotion, speed):
         payload = {}
         if speaker.is_voice:
             payload["voice_id"] = speaker.id
@@ -148,7 +156,7 @@ class CS_API:
         return payload
 
     def tts(
-        self, text: str, speaker_name: str, speaker_id=None, emotion="Neutral", speed=1.0, language=None
+        self, text: str, speaker_name: str=None, speaker_id=None, emotion="Neutral", speed=1.0, language=None  # pylint: disable=unused-argument
     ) -> Tuple[np.ndarray, int]:
         """Synthesize speech from text.
 
@@ -162,7 +170,12 @@ class CS_API:
             language (str): Language of the text. If None, the default language of the speaker is used.
         """
         self._check_token()
-        speaker = self.name_to_speaker(speaker_name)
+        if speaker_name is None and speaker_id is None:
+            raise ValueError(" [!] Please provide either a `speaker_name` or a `speaker_id`.")
+        if speaker_id is None:
+            speaker = self.name_to_speaker(speaker_name)
+        else:
+            speaker = self.id_to_speaker(speaker_id)
         conn = http.client.HTTPSConnection("app.coqui.ai")
         payload = self._create_payload(text, speaker, emotion, speed)
         conn.request("POST", "/api/v2/samples", json.dumps(payload), self.headers)
@@ -170,8 +183,8 @@ class CS_API:
         data = res.read()
         try:
             wav, sr = self.url_to_np(json.loads(data)["audio_url"])
-        except KeyError:
-            raise ValueError(f" [!] 🐸 API returned error: {data}")
+        except KeyError as e:
+            raise ValueError(f" [!] 🐸 API returned error: {data}") from e
         return wav, sr
 
     def tts_to_file(
