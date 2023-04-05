@@ -51,6 +51,13 @@ def run_models(offset=0, step=1):
             # remove downloaded models
             shutil.rmtree(local_download_dir)
             shutil.rmtree(get_user_data_dir("tts"))
+        elif "voice_conversion_models" in model_name:
+            speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
+            reference_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0032.wav")
+            run_cli(
+                f"tts --model_name  {model_name} "
+                f'--out_path "{output_path}" --source_wav "{speaker_wav}" --target_wav "{reference_wav}" --progress_bar False'
+            )
         else:
             # only download the model
             manager.download_model(model_name)

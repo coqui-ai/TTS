@@ -137,7 +137,7 @@ VCTK-Corpus-removed-silence/*
 # ignore training logs
 trainer_*_log.txt
 
-# files used internally fro dev, test etc.
+# files used internally for dev, test etc.
 tests/outputs/*
 tests/train_outputs/*
 TODO.txt
@@ -168,3 +168,4 @@ internal/*
 wandb
 depot/*
 coqui_recipes/*
+local_scripts/*

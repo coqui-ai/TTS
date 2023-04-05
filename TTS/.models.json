@@ -802,5 +802,18 @@
                 }
             }
         }
+    },
+    "voice_conversion_models":{
+        "multilingual":{
+            "vctk":{
+                "freevc24":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.13.0_models/voice_conversion_models--multilingual--vctk--freevc24.zip",
+                    "description": "FreeVC model trained on VCTK dataset from https://github.com/OlaWod/FreeVC",
+                    "author": "Jing-Yi Li @OlaWod",
+                    "license": "MIT",
+                    "commit": null
+                }
+            }
+        }
     }
 }
