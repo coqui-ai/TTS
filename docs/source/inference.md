@@ -109,7 +109,7 @@ tts-server --model_name "<type>/<language>/<dataset>/<model_name>" \
            --vocoder_name "<type>/<language>/<dataset>/<model_name>"
 ```
 
-## Python API
+## Python 🐸TTS API
 
 You can run a multi-speaker and multi-lingual model in Python as
 
@@ -163,4 +163,34 @@ tts.tts_with_vc_to_file(
     speaker_wav="target/speaker.wav",
     file_path="ouptut.wav"
 )
+
+Example text to speech using [🐸Coqui Studio](https://coqui.ai) models. You can use all of your available speakers in the studio.
+[🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
+You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
+
+```python
+# If you have a valid API token set you will see the studio speakers as separate models in the list.
+# The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
+models = TTS().list_models()
+# Init TTS with the target studio speaker
+tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False, gpu=False)
+# Run TTS
+tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
+# Run TTS with emotion and speed control
+tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
+```
+
+If you just need 🐸 Coqui Studio speakers, you can use `CS_API`. It is a wrapper around the 🐸 Coqui Studio API.
+
+```python
+from TTS.api import CS_API
+
+# Init 🐸 Coqui Studio API
+# you can either set the API token as an environment variable `COQUI_STUDIO_TOKEN` or pass it as an argument.
+api = CS_API(api_token=<token>)
+api.speakers
+api.emotions
+api.list_speakers()
+api.list_voices()
+wav, sample_rate = api.tts(text="This is a test.", speaker=api.speakers[0].name, emotion="Happy", speed=1.5)
 ```

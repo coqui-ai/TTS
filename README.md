@@ -197,6 +197,36 @@ tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_
 tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr-fr", file_path="output.wav")
 tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt-br", file_path="output.wav")
+
+
+# Example voice conversion converting speaker of the `source_wav` to the speaker of the `target_wav`
+
+tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=True)
+tts.voice_conversion_to_file(source_wav="my/source.wav", target_wav="my/target.wav", file_path="output.wav")
+
+# Example voice cloning by a single speaker TTS model combining with the voice conversion model. This way, you can
+# clone voices by using any model in 🐸TTS.
+
+tts = TTS("tts_models/de/thorsten/tacotron2-DDC")
+tts.tts_with_vc_to_file(
+    "Wie sage ich auf Italienisch, dass ich dich liebe?",
+    speaker_wav="target/speaker.wav",
+    file_path="ouptut.wav"
+)
+
+# Example text to speech using [🐸Coqui Studio](https://coqui.ai) models. You can use all of your available speakers in the studio.
+# [🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
+# You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
+
+# If you have a valid API token set you will see the studio speakers as separate models in the list.
+# The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
+models = TTS().list_models()
+# Init TTS with the target studio speaker
+tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False, gpu=False)
+# Run TTS
+tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
+# Run TTS with emotion and speed control
+tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
 ```
 
 ### Command line `tts`

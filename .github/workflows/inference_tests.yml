@@ -32,7 +32,8 @@ jobs:
       - name: check OS
         run: cat /etc/os-release
       - name: set ENV
-        run: export TRAINER_TELEMETRY=0
+        run: |
+          export TRAINER_TELEMETRY=0
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -49,4 +50,6 @@ jobs:
           python3 -m pip install .[all]
           python3 setup.py egg_info
       - name: Unit tests
-        run: make inference_tests
+        run: |
+          export COQUI_STUDIO_TOKEN=${{ secrets.COQUI_STUDIO_TOKEN }}
+          make inference_tests
