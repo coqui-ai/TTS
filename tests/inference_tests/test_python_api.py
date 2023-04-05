@@ -2,7 +2,7 @@ import os
 import unittest
 
 from tests import get_tests_data_path, get_tests_output_path
-from TTS.api import TTS, CS_API
+from TTS.api import CS_API, TTS
 
 OUTPUT_PATH = os.path.join(get_tests_output_path(), "test_python_api.wav")
 cloning_test_wav_path = os.path.join(get_tests_data_path(), "ljspeech/wavs/LJ001-0028.wav")
@@ -78,7 +78,6 @@ class TTSTest(unittest.TestCase):
         # check valid call
         wav = tts.tts(text="This is a test.", speed=2.0, emotion="Sad")
         self.assertGreater(len(wav), 0)
-
 
     def test_multi_speaker_multi_lingual_model(self):
         tts = TTS()

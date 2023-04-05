@@ -391,8 +391,7 @@ class TTS:
         emotion: str = None,
         speed: float = None,
     ) -> None:
-        """Check if the arguments are valid for the model.
-        """
+        """Check if the arguments are valid for the model."""
         if not self.is_coqui_studio:
             # check for the coqui tts models
             if self.is_multi_speaker and (speaker is None and speaker_wav is None):
