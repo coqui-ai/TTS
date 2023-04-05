@@ -156,7 +156,13 @@ class CS_API:
         return payload
 
     def tts(
-        self, text: str, speaker_name: str=None, speaker_id=None, emotion="Neutral", speed=1.0, language=None  # pylint: disable=unused-argument
+        self,
+        text: str,
+        speaker_name: str = None,
+        speaker_id=None,
+        emotion="Neutral",
+        speed=1.0,
+        language=None,  # pylint: disable=unused-argument
     ) -> Tuple[np.ndarray, int]:
         """Synthesize speech from text.
 
