@@ -30,7 +30,7 @@ class Speaker(object):
 
 
 class CS_API:
-    """🐸Coqui Studio API.
+    """🐸Coqui Studio API Wrapper.
 
     🐸Coqui Studio is the most advanced voice generation platform. You can generate new voices by voice cloning, voice
     interpolation, or our unique prompt to voice technology. It also provides a set of built-in voices with different
@@ -608,27 +608,3 @@ class TTS:
         """
         wav = self.tts_with_vc(text=text, language=language, speaker_wav=speaker_wav)
         save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)
-
-
-if __name__ == "__main__":
-    # api = CS_API()
-    # print(api.list_speakers())
-    # print(api.list_voices())
-    # api.speakers
-
-    # try:
-    #     api.name_to_speaker("ljspeech")
-    # except ValueError:
-    #     print("ljspeech is not a speaker name")
-
-    # s = api.name_to_speaker("Claribel Dervla")
-    # print(s)
-
-    # wav, sr = api.tts("Hello world", speaker_name="Claribel Dervla")
-    # print(wav.shape, sr)
-
-    # filename = api.tts_to_file("Hello world", speaker_name="Claribel Dervla", file_path="hello.wav")
-    # print(filename)
-
-    tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio")
-    tts.tts_to_file("Hello world", file_path="hello.wav")
