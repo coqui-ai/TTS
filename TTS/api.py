@@ -273,8 +273,8 @@ class TTS:
         self.csapi = None
         self.model_name = None
 
-        if model_name:
-            if "tts_models" in model_name:
+        if model_name is not None:
+            if "tts_models" in model_name or "coqui_studio" in model_name:
                 self.load_tts_model_by_name(model_name, gpu)
             elif "voice_conversion_models" in model_name:
                 self.load_vc_model_by_name(model_name, gpu)
