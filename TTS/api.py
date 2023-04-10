@@ -345,6 +345,7 @@ class TTS:
             model_name (str): Model name to load. You can list models by ```tts.models```.
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
+        self.model_name = model_name
         model_path, config_path, _, _ = self.download_model_by_name(model_name)
         self.voice_converter = Synthesizer(vc_checkpoint=model_path, vc_config=config_path, use_cuda=gpu)
 
