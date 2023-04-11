@@ -1,10 +1,13 @@
-<img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
 
-----
 
-### 📣 Clone your voice with a single click on [🐸Coqui.ai](https://app.coqui.ai/auth/signin)
+## 🐸Coqui.ai News
+- 📣 Coqui Studio API is landed on 🐸TTS. You can use the studio voices in combination with 🐸TTS models. [Example](https://github.com/coqui-ai/TTS/edit/dev/README.md#-python-api)
+- 📣 Voice generation with prompts - **Prompt to Voice** - is live on Coqui.ai!! [Blog Post](https://coqui.ai/blog/tts/prompt-to-voice)
+- 📣 Clone your voice with a single click on [🐸Coqui.ai](https://app.coqui.ai/auth/signin)
+<br>
 
-----
+## <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
+
 
 🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
 🐸TTS comes with pretrained models, tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
@@ -122,6 +125,9 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - WaveGrad: [paper](https://arxiv.org/abs/2009.00713)
 - HiFiGAN: [paper](https://arxiv.org/abs/2010.05646)
 - UnivNet: [paper](https://arxiv.org/abs/2106.07889)
+
+### Voice Conversion
+- FreeVC: [paper](https://arxiv.org/abs/2210.15418)
 
 You can also help us implement more models.
 
