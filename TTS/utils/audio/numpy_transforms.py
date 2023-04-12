@@ -269,7 +269,7 @@ def compute_f0(
         np.ndarray: Pitch. Shape :math:`[T_pitch,]`. :math:`T_pitch == T_wav / hop_length`
 
     Examples:
-        >>> WAV_FILE = filename = librosa.util.example_audio_file()
+        >>> WAV_FILE = filename = librosa.example('vibeace')
         >>> from TTS.config import BaseAudioConfig
         >>> from TTS.utils.audio import AudioProcessor
         >>> conf = BaseAudioConfig(pitch_fmax=640, pitch_fmin=1)
@@ -310,7 +310,7 @@ def compute_energy(y: np.ndarray, **kwargs) -> np.ndarray:
     Returns:
       np.ndarray: energy. Shape :math:`[T_energy,]`. :math:`T_energy == T_wav / hop_length`
     Examples:
-      >>> WAV_FILE = filename = librosa.util.example_audio_file()
+      >>> WAV_FILE = filename = librosa.example('vibeace')
       >>> from TTS.config import BaseAudioConfig
       >>> from TTS.utils.audio import AudioProcessor
       >>> conf = BaseAudioConfig()

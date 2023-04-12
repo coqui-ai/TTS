@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
+import requests
 from scipy.io import wavfile
 
 from TTS.utils.audio.numpy_transforms import save_wav
@@ -65,6 +66,11 @@ class CS_API:
         self._speakers = None
         self._check_token()
 
+    @staticmethod
+    def ping_api():
+        URL = "https://coqui.gateway.scarf.sh/tts/api"
+        _ = requests.get(URL)
+
     @property
     def speakers(self):
         if self._speakers is None:
@@ -80,12 +86,13 @@ class CS_API:
         return ["Neutral", "Happy", "Sad", "Angry", "Dull"]
 
     def _check_token(self):
+        self.ping_api()
         if self.api_token is None:
             self.api_token = os.environ.get("COQUI_STUDIO_TOKEN")
             self.headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.api_token}"}
         if not self.api_token:
             raise ValueError(
-                "No API token found for 🐸Coqui Studio voices - https://coqui.ai.\n"
+                "No API token found for 🐸Coqui Studio voices - https://coqui.ai \n"
                 "Visit 🔗https://app.coqui.ai/account to get one.\n"
                 "Set it as an environment variable `export COQUI_STUDIO_TOKEN=<token>`\n"
                 ""
@@ -273,8 +280,11 @@ class TTS:
         self.csapi = None
         self.model_name = None
 
-        if model_name:
-            self.load_tts_model_by_name(model_name, gpu)
+        if model_name is not None:
+            if "tts_models" in model_name or "coqui_studio" in model_name:
+                self.load_tts_model_by_name(model_name, gpu)
+            elif "voice_conversion_models" in model_name:
+                self.load_vc_model_by_name(model_name, gpu)
 
         if model_path:
             self.load_tts_model_by_path(
@@ -342,6 +352,7 @@ class TTS:
             model_name (str): Model name to load. You can list models by ```tts.models```.
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
+        self.model_name = model_name
         model_path, config_path, _, _ = self.download_model_by_name(model_name)
         self.voice_converter = Synthesizer(vc_checkpoint=model_path, vc_config=config_path, use_cuda=gpu)
 
@@ -565,8 +576,25 @@ class TTS:
 
     def voice_conversion(
         self,
-        sourve_wav: str,
+        source_wav: str,
         target_wav: str,
+    ):
+        """Voice conversion with FreeVC. Convert source wav to target speaker.
+
+        Args:``
+            source_wav (str):
+                Path to the source wav file.
+            target_wav (str):`
+                Path to the target wav file.
+        """
+        wav = self.voice_converter.voice_conversion(source_wav=source_wav, target_wav=target_wav)
+        return wav
+
+    def voice_conversion_to_file(
+        self,
+        source_wav: str,
+        target_wav: str,
+        file_path: str = "output.wav",
     ):
         """Voice conversion with FreeVC. Convert source wav to target speaker.
 
@@ -575,9 +603,12 @@ class TTS:
                 Path to the source wav file.
             target_wav (str):
                 Path to the target wav file.
+            file_path (str, optional):
+                Output file path. Defaults to "output.wav".
         """
-        wav = self.synthesizer.voice_conversion(source_wav=sourve_wav, target_wav=target_wav)
-        return wav
+        wav = self.voice_conversion(source_wav=source_wav, target_wav=target_wav)
+        save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)
+        return file_path
 
     def tts_with_vc(self, text: str, language: str = None, speaker_wav: str = None):
         """Convert text to speech with voice conversion.

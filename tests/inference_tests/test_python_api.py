@@ -93,3 +93,11 @@ class TTSTest(unittest.TestCase):
         tts = TTS()
         tts.load_tts_model_by_name("tts_models/multilingual/multi-dataset/your_tts")
         tts.tts_to_file("Hello world!", speaker_wav=cloning_test_wav_path, language="en", file_path=OUTPUT_PATH)
+
+    def test_voice_conversion(self):  # pylint: disable=no-self-use
+        tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=False)
+        tts.voice_conversion_to_file(
+            source_wav=cloning_test_wav_path,
+            target_wav=cloning_test_wav_path,
+            file_path=OUTPUT_PATH,
+        )
