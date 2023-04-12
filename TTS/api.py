@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
+import requests
 from scipy.io import wavfile
 
 from TTS.utils.audio.numpy_transforms import save_wav
@@ -65,6 +66,11 @@ class CS_API:
         self._speakers = None
         self._check_token()
 
+    @staticmethod
+    def ping_api():
+        URL = "https://coqui.gateway.scarf.sh/tts/api"
+        _ = requests.get(URL)
+
     @property
     def speakers(self):
         if self._speakers is None:
@@ -80,6 +86,7 @@ class CS_API:
         return ["Neutral", "Happy", "Sad", "Angry", "Dull"]
 
     def _check_token(self):
+        self.ping_api()
         if self.api_token is None:
             self.api_token = os.environ.get("COQUI_STUDIO_TOKEN")
             self.headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.api_token}"}
