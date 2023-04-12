@@ -1,11 +1,16 @@
 import argparse
 import glob
+import multiprocessing
 import os
 import pathlib
 
 from tqdm import tqdm
 
 from TTS.utils.vad import get_vad_model_and_utils, remove_silence
+
+import torch
+torch.set_num_threads(1)
+
 
 
 def adjust_path_and_remove_silence(audio_path):
@@ -44,10 +49,24 @@ def preprocess_audios():
         # create threads
         # num_threads = multiprocessing.cpu_count()
         # process_map(adjust_path_and_remove_silence, files, max_workers=num_threads, chunksize=15)
-        for f in tqdm(files):
-            output_path, is_speech = adjust_path_and_remove_silence(f)
-            if not is_speech:
-                filtered_files.append(output_path)
+
+        if args.num_processes > 1:
+            with multiprocessing.Pool(processes=args.num_processes) as pool:
+                results = list(
+                    tqdm(
+                        pool.imap_unordered(adjust_path_and_remove_silence, files),
+                        total=len(files),
+                        desc="Processing audio files",
+                    )
+                )
+            for output_path, is_speech in results:
+                if not is_speech:
+                    filtered_files.append(output_path)
+        else:
+            for f in tqdm(files):
+                output_path, is_speech = adjust_path_and_remove_silence(f)
+                if not is_speech:
+                    filtered_files.append(output_path)
 
         # write files that do not have speech
         with open(os.path.join(args.output_dir, "filtered_files.txt"), "w", encoding="utf-8") as f:
@@ -86,6 +105,18 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="If True use cuda",
+    )
+    parser.add_argument(
+        "--use_onnx",
+        type=bool,
+        default=False,
+        help="If True use onnx",
+    )
+    parser.add_argument(
+        "--num_processes",
+        type=int,
+        default=1,
+        help="Number of processes to use",
     )
     args = parser.parse_args()
     # load the model and utils
