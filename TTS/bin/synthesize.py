@@ -7,7 +7,9 @@ from argparse import RawTextHelpFormatter
 
 # pylint: disable=redefined-outer-name, unused-argument
 from pathlib import Path
+from pprint import pprint
 
+from TTS.api import TTS
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
 
@@ -183,6 +185,14 @@ If you don't specify any models, then it uses LJSpeech based English model.
     )
     parser.add_argument("--encoder_config_path", type=str, help="Path to speaker encoder config file.", default=None)
 
+    # args for coqui studio
+    parser.add_argument(
+        "--emotion",
+        type=str,
+        help="Emotion to condition the model with. Only available for 🐸Coqui Studio models.",
+        default="Neutral",
+    )
+
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
     parser.add_argument("--language_ids_file_path", type=str, help="JSON file for multi-lingual model.", default=None)
@@ -285,6 +295,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     # load model manager
     path = Path(__file__).parent / "../.models.json"
     manager = ModelManager(path, progress_bar=args.progress_bar)
+    api = TTS()
 
     tts_path = None
     tts_config_path = None
@@ -299,6 +310,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
     # CASE1 #list : list pre-trained TTS models
     if args.list_models:
+        manager.add_cs_api_models(api.list_models())
         manager.list_models()
         sys.exit()
 
@@ -313,7 +325,15 @@ If you don't specify any models, then it uses LJSpeech based English model.
         manager.model_info_by_full_name(model_query_full_name)
         sys.exit()
 
-    # CASE3: load pre-trained model paths
+    # CASE3: TTS with coqui studio models
+    if "coqui_studio" in args.model_name:
+        print(" > Using 🐸Coqui Studio model: ", args.model_name)
+        api = TTS(model_name=args.model_name)
+        api.tts_to_file(text=args.text, emotion=args.emotion, file_path=args.out_path)
+        print(" > Saving output to ", args.out_path)
+        return
+
+    # CASE4: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
 
@@ -333,7 +353,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.vocoder_name is not None and not args.vocoder_path:
         vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
-    # CASE4: set custom model paths
+    # CASE5: set custom model paths
     if args.model_path is not None:
         tts_path = args.model_path
         tts_config_path = args.config_path
