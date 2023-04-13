@@ -7,7 +7,6 @@ from argparse import RawTextHelpFormatter
 
 # pylint: disable=redefined-outer-name, unused-argument
 from pathlib import Path
-from pprint import pprint
 
 from TTS.api import TTS
 from TTS.utils.manage import ModelManager
