@@ -15,7 +15,7 @@ def get_padding(k, d):
 
 
 class ResBlock1(torch.nn.Module):
-    """Residual Block Type 1. It has 3 convolutional layers in each convolutiona block.
+    """Residual Block Type 1. It has 3 convolutional layers in each convolutional block.
 
     Network::
 
@@ -105,7 +105,7 @@ class ResBlock1(torch.nn.Module):
 
 
 class ResBlock2(torch.nn.Module):
-    """Residual Block Type 1. It has 3 convolutional layers in each convolutiona block.
+    """Residual Block Type 2. It has 1 convolutional layers in each convolutional block.
 
     Network::
 

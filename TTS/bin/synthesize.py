@@ -100,6 +100,12 @@ If you don't specify any models, then it uses LJSpeech based English model.
     ```
     $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
     ```
+
+### Voice Conversion Models
+
+    ```
+    $ tts --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>" --source_wav <path/to/speaker/wav> --target_wav <path/to/reference/wav>
+    ```
     """
     # We remove Markdown code formatting programmatically here to allow us to copy-and-paste from main README to keep
     # documentation in sync more easily.
@@ -245,6 +251,20 @@ If you don't specify any models, then it uses LJSpeech based English model.
         default=True,
     )
 
+    # voice conversion args
+    parser.add_argument(
+        "--source_wav",
+        type=str,
+        default=None,
+        help="Original audio file to convert in the voice of the target_wav",
+    )
+    parser.add_argument(
+        "--target_wav",
+        type=str,
+        default=None,
+        help="Target audio file to convert in the voice of the source_wav",
+    )
+
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
@@ -256,6 +276,8 @@ If you don't specify any models, then it uses LJSpeech based English model.
         args.reference_wav,
         args.model_info_by_idx,
         args.model_info_by_name,
+        args.source_wav,
+        args.target_wav,
     ]
     if not any(check_args):
         parser.parse_args(["-h"])
@@ -264,21 +286,23 @@ If you don't specify any models, then it uses LJSpeech based English model.
     path = Path(__file__).parent / "../.models.json"
     manager = ModelManager(path, progress_bar=args.progress_bar)
 
-    model_path = None
-    config_path = None
+    tts_path = None
+    tts_config_path = None
     speakers_file_path = None
     language_ids_file_path = None
     vocoder_path = None
     vocoder_config_path = None
     encoder_path = None
     encoder_config_path = None
+    vc_path = None
+    vc_config_path = None
 
     # CASE1 #list : list pre-trained TTS models
     if args.list_models:
         manager.list_models()
         sys.exit()
 
-    # CASE2 #info : model info of pre-trained TTS models
+    # CASE2 #info : model info for pre-trained TTS models
     if args.model_info_by_idx:
         model_query = args.model_info_by_idx
         manager.model_info_by_idx(model_query)
@@ -292,15 +316,27 @@ If you don't specify any models, then it uses LJSpeech based English model.
     # CASE3: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
-        args.vocoder_name = model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
 
+        # tts model
+        if model_item["model_type"] == "tts_models":
+            tts_path = model_path
+            tts_config_path = config_path
+            if "default_vocoder" in model_item:
+                args.vocoder_name = model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
+
+        # voice conversion model
+        if model_item["model_type"] == "voice_conversion_models":
+            vc_path = model_path
+            vc_config_path = config_path
+
+    # load vocoder
     if args.vocoder_name is not None and not args.vocoder_path:
         vocoder_path, vocoder_config_path, _ = manager.download_model(args.vocoder_name)
 
     # CASE4: set custom model paths
     if args.model_path is not None:
-        model_path = args.model_path
-        config_path = args.config_path
+        tts_path = args.model_path
+        tts_config_path = args.config_path
         speakers_file_path = args.speakers_file_path
         language_ids_file_path = args.language_ids_file_path
 
@@ -314,14 +350,16 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
     # load models
     synthesizer = Synthesizer(
-        model_path,
-        config_path,
+        tts_path,
+        tts_config_path,
         speakers_file_path,
         language_ids_file_path,
         vocoder_path,
         vocoder_config_path,
         encoder_path,
         encoder_config_path,
+        vc_path,
+        vc_config_path,
         args.use_cuda,
     )
 
@@ -354,16 +392,22 @@ If you don't specify any models, then it uses LJSpeech based English model.
         print(" > Text: {}".format(args.text))
 
     # kick it
-    wav = synthesizer.tts(
-        args.text,
-        args.speaker_idx,
-        args.language_idx,
-        args.speaker_wav,
-        reference_wav=args.reference_wav,
-        style_wav=args.capacitron_style_wav,
-        style_text=args.capacitron_style_text,
-        reference_speaker_name=args.reference_speaker_idx,
-    )
+    if tts_path is not None:
+        wav = synthesizer.tts(
+            args.text,
+            args.speaker_idx,
+            args.language_idx,
+            args.speaker_wav,
+            reference_wav=args.reference_wav,
+            style_wav=args.capacitron_style_wav,
+            style_text=args.capacitron_style_text,
+            reference_speaker_name=args.reference_speaker_idx,
+        )
+    elif vc_path is not None:
+        wav = synthesizer.voice_conversion(
+            source_wav=args.source_wav,
+            target_wav=args.target_wav,
+        )
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))

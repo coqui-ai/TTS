@@ -192,6 +192,7 @@ class Overflow(BaseTTS):
         Args:
             aux_inputs (Dict): Dictionary containing the auxiliary inputs.
         """
+        default_input_dict = default_input_dict.copy()
         default_input_dict.update(
             {
                 "sampling_temp": self.sampling_temp,
@@ -200,8 +201,8 @@ class Overflow(BaseTTS):
             }
         )
         if aux_input:
-            return format_aux_input(aux_input, default_input_dict)
-        return None
+            return format_aux_input(default_input_dict, aux_input)
+        return default_input_dict
 
     @torch.no_grad()
     def inference(
@@ -335,7 +336,7 @@ class Overflow(BaseTTS):
         # sample one item from the batch -1 will give the smalles item
         print(" | > Synthesising audio from the model...")
         inference_output = self.inference(
-            batch["text_input"][-1].unsqueeze(0), aux_input={"x_lenghts": batch["text_lengths"][-1].unsqueeze(0)}
+            batch["text_input"][-1].unsqueeze(0), aux_input={"x_lengths": batch["text_lengths"][-1].unsqueeze(0)}
         )
         figures["synthesised"] = plot_spectrogram(inference_output["model_outputs"][0], fig_size=(12, 3))
 

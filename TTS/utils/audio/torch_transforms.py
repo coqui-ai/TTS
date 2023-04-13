@@ -144,8 +144,8 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
 
     def _build_mel_basis(self):
         mel_basis = librosa.filters.mel(
-            self.sample_rate,
-            self.n_fft,
+            sr=self.sample_rate,
+            n_fft=self.n_fft,
             n_mels=self.n_mels,
             fmin=self.mel_fmin,
             fmax=self.mel_fmax,

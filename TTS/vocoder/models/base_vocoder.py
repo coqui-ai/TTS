@@ -18,6 +18,8 @@ class BaseVocoder(BaseTrainerModel):
         - 1D tensors `batch x 1`
     """
 
+    MODEL_TYPE = "vocoder"
+
     def __init__(self, config):
         super().__init__()
         self._set_model_args(config)

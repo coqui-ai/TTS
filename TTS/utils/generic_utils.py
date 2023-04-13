@@ -85,6 +85,7 @@ def to_camel(text):
     text = text.capitalize()
     text = re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
     text = text.replace("Tts", "TTS")
+    text = text.replace("vc", "VC")
     return text
 
 
@@ -167,9 +168,10 @@ def format_aux_input(def_args: Dict, kwargs: Dict) -> Dict:
     Returns:
         Dict: arguments with formatted auxilary inputs.
     """
+    kwargs = kwargs.copy()
     for name in def_args:
-        if name not in kwargs:
-            kwargs[def_args[name]] = None
+        if name not in kwargs or kwargs[name] is None:
+            kwargs[name] = def_args[name]
     return kwargs
 
 
