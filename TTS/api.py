@@ -303,7 +303,7 @@ class TTS:
 
     @property
     def is_coqui_studio(self):
-        if(self.model_name is None):
+        if self.model_name is None:
             return False
         return "coqui_studio" in self.model_name
 
