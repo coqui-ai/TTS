@@ -435,6 +435,8 @@ class Synthesizer(object):
         print(f" > Processing time: {process_time}")
         print(f" > Real-time factor: {process_time / audio_time}")
         if return_extra_outputs:
-            return wavs, outputs
+            output = wavs, outputs
         else:
-            return wavs
+            output = wavs
+        return output
+
