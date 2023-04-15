@@ -1099,6 +1099,7 @@ class Vits(BaseTTS):
             - x_lengths: :math:`[B]`
             - d_vectors: :math:`[B, C]`
             - speaker_ids: :math:`[B]`
+            - durations: :math:`[B, T_seq]`
 
         Return Shapes:
             - model_outputs: :math:`[B, 1, T_wav]`
