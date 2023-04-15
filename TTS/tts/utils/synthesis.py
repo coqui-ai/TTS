@@ -216,7 +216,7 @@ def synthesis(
 
     text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
     text_inputs = text_inputs.unsqueeze(0)
-    #durations
+    # durations
     if durations is not None:
         durations = numpy_to_torch(durations, torch.long, cuda=use_cuda)
     else:
