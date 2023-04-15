@@ -303,7 +303,7 @@ class TTS:
 
     @property
     def is_coqui_studio(self):
-        return "coqui_studio" in self.model_name
+        return "coqui_studio" in self.model_name if self.model_name is not None else False
 
     @property
     def is_multi_lingual(self):
