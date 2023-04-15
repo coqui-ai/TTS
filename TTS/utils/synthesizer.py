@@ -220,6 +220,8 @@ class Synthesizer(object):
         style_text=None,
         reference_wav=None,
         reference_speaker_name=None,
+        durations=None,
+        return_extra_outputs = False
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -232,6 +234,8 @@ class Synthesizer(object):
             style_text ([type], optional): transcription of style_wav for Capacitron. Defaults to None.
             reference_wav ([type], optional): reference waveform for voice conversion. Defaults to None.
             reference_speaker_name ([type], optional): spekaer id of reference waveform. Defaults to None.
+            durations ([type], optional): durations for custom duration. Defaults to None.
+            return_extra_outputs (bool, optional): return extra outputs from the model. Defaults to False.
         Returns:
             List[int]: [description]
         """
@@ -316,7 +320,7 @@ class Synthesizer(object):
             speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)
 
         use_gl = self.vocoder_model is None
-
+        
         if not reference_wav:
             for sen in sens:
                 # synthesize voice
@@ -331,6 +335,7 @@ class Synthesizer(object):
                     use_griffin_lim=use_gl,
                     d_vector=speaker_embedding,
                     language_id=language_id,
+                    durations=durations,
                 )
                 waveform = outputs["wav"]
                 mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
@@ -429,4 +434,7 @@ class Synthesizer(object):
         audio_time = len(wavs) / self.tts_config.audio["sample_rate"]
         print(f" > Processing time: {process_time}")
         print(f" > Real-time factor: {process_time / audio_time}")
-        return wavs
+        if return_extra_outputs:
+            return wavs, outputs
+        else:
+            return wavs

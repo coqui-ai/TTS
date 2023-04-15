@@ -29,6 +29,7 @@ def run_model_torch(
     style_text: str = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
+    durations: torch.Tensor = None,
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
 
@@ -36,8 +37,9 @@ def run_model_torch(
         model (nn.Module): The model to run inference.
         inputs (torch.Tensor): Input tensor with character ids.
         speaker_id (int, optional): Input speaker ids for multi-speaker models. Defaults to None.
-        style_mel (torch.Tensor, optional): Spectrograms used for voice styling . Defaults to None.
-        d_vector (torch.Tensor, optional): d-vector for multi-speaker models    . Defaults to None.
+        style_mel (torch.Tensor, optional): Spectrograms used for voice styling. Defaults to None.
+        d_vector (torch.Tensor, optional): d-vector for multi-speaker models. Defaults to None.
+        durations (torch.Tensor, optional): custom durations. Defaults to None.
 
     Returns:
         Dict: model outputs.
@@ -56,6 +58,7 @@ def run_model_torch(
             "style_mel": style_mel,
             "style_text": style_text,
             "language_ids": language_id,
+            "durations": durations,
         },
     )
     return outputs
@@ -122,6 +125,7 @@ def synthesis(
     do_trim_silence=False,
     d_vector=None,
     language_id=None,
+    durations=None,
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
     the vocoder model.
@@ -161,6 +165,9 @@ def synthesis(
 
         language_id (int):
             Language ID passed to the language embedding layer in multi-langual model. Defaults to None.
+
+        durations (List[int]):
+            Custom duration tensor for duration based models. Defaults to None.
     """
     # GST or Capacitron processing
     # TODO: need to handle the case of setting both gst and capacitron to true somewhere
@@ -209,6 +216,11 @@ def synthesis(
 
     text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
     text_inputs = text_inputs.unsqueeze(0)
+    #durations
+    if durations is not None:
+        durations = numpy_to_torch(durations, torch.long, cuda=use_cuda)
+    else:
+        durations = None
     # synthesize voice
     outputs = run_model_torch(
         model,
@@ -218,6 +230,7 @@ def synthesis(
         style_text,
         d_vector=d_vector,
         language_id=language_id,
+        durations=durations,
     )
     model_outputs = outputs["model_outputs"]
     model_outputs = model_outputs[0].data.cpu().numpy()
