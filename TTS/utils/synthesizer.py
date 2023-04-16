@@ -221,7 +221,7 @@ class Synthesizer(object):
         reference_wav=None,
         reference_speaker_name=None,
         durations=None,
-        return_extra_outputs = False
+        return_extra_outputs=False,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -320,7 +320,7 @@ class Synthesizer(object):
             speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)
 
         use_gl = self.vocoder_model is None
-        
+
         if not reference_wav:
             for sen in sens:
                 # synthesize voice
@@ -439,4 +439,3 @@ class Synthesizer(object):
         else:
             output = wavs
         return output
-
