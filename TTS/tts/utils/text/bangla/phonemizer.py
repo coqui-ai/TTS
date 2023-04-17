@@ -5,8 +5,6 @@ from bnnumerizer import numerize
 from bnunicodenormalizer import Normalizer
 import bangla
 
-from .pinyinToPhonemes import PINYIN_DICT
-
 # initialize
 bnorm = Normalizer()
 
