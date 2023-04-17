@@ -4,7 +4,7 @@ import os
 import tempfile
 import urllib.request
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import requests
@@ -86,7 +86,6 @@ class CS_API:
         return ["Neutral", "Happy", "Sad", "Angry", "Dull"]
 
     def _check_token(self):
-        self.ping_api()
         if self.api_token is None:
             self.api_token = os.environ.get("COQUI_STUDIO_TOKEN")
             self.headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.api_token}"}
@@ -183,6 +182,7 @@ class CS_API:
             language (str): Language of the text. If None, the default language of the speaker is used.
         """
         self._check_token()
+        self.ping_api()
         if speaker_name is None and speaker_id is None:
             raise ValueError(" [!] Please provide either a `speaker_name` or a `speaker_id`.")
         if speaker_id is None:
@@ -457,7 +457,7 @@ class TTS:
         emotion: str = "Neutral",
         speed: float = 1.0,
         file_path: str = None,
-    ):
+    ) -> Union[np.ndarray, str]:
         """Convert text to speech using Coqui Studio models. Use `CS_API` class if you are only interested in the API.
 
         Args:
@@ -473,9 +473,12 @@ class TTS:
                 Speed of the speech. Defaults to 1.0.
             file_path (str, optional):
                 Path to save the output file. When None it returns the `np.ndarray` of waveform. Defaults to None.
+
+        Returns:
+            Union[np.ndarray, str]: Waveform of the synthesized speech or path to the output file.
         """
         speaker_name = self.model_name.split("/")[2]
-        if file_path is None:
+        if file_path is not None:
             return self.csapi.tts_to_file(
                 text=text,
                 speaker_name=speaker_name,

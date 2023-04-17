@@ -19,9 +19,9 @@ def test_synthesize():
         f'--text "This is an example." --out_path "{output_path}"'
     )
 
-    # multi-speaker SC-Glow model
-    # run_cli("tts --model_name tts_models/en/vctk/sc-glow-tts --list_speaker_idxs")
-    # run_cli(
-    #     f'tts --model_name tts_models/en/vctk/sc-glow-tts --speaker_idx "p304" '
-    #     f'--text "This is an example." --out_path "{output_path}"'
-    # )
+    # 🐸 Coqui studio model
+    run_cli(
+        'tts --model_name "coqui_studio/en/Torcull Diarmuid/coqui_studio" '
+        '--text "This is it" '
+        f'--out_path "{output_path}"'
+    )
