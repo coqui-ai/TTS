@@ -1,9 +1,9 @@
 import re
 from typing import List
 
+import bangla
 from bnnumerizer import numerize
 from bnunicodenormalizer import Normalizer
-import bangla
 
 # initialize
 bnorm = Normalizer()
