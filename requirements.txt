@@ -41,3 +41,7 @@ gruut[de]==2.2.3
 jamo
 nltk
 g2pkk>=0.1.1
+# deps for bangla
+bangla==0.0.2
+bnnumerizer
+bnunicodenormalizer==0.1.1
