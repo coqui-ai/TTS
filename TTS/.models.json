@@ -654,7 +654,7 @@
         "bn":{
             "custom":{
                 "vits-male":{
-                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.14.0_models/tts_models--bn--custom--vits_male.zip",
+                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.13.3_models/tts_models--bn--custom--vits_male.zip",
                     "default_vocoder": null,
                     "commit": null,
                     "description": "Single speaker Bangla male model. For more information -> https://github.com/mobassir94/comprehensive-bangla-tts",
@@ -662,7 +662,7 @@
                     "license": "Apache 2.0"
                 },
                 "vits-female":{
-                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.14.0_models/tts_models--bn--custom--vits_female.zip",
+                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.13.3_models/tts_models--bn--custom--vits_female.zip",
                     "default_vocoder": null,
                     "commit": null,
                     "description": "Single speaker Bangla female model. For more information -> https://github.com/mobassir94/comprehensive-bangla-tts",
