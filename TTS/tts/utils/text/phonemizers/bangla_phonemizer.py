@@ -33,8 +33,8 @@ class BN_Phonemizer(BasePhonemizer):
         return "bn_phonemizer"
 
     @staticmethod
-    def phonemize_bn(text: str, separator: str = "|") -> str:
-        ph = bangla_text_to_phonemes(text, separator)
+    def phonemize_bn(text: str, separator: str = "|") -> str:  # pylint: disable=unused-argument
+        ph = bangla_text_to_phonemes(text)
         return ph
 
     def _phonemize(self, text, separator):
@@ -52,11 +52,11 @@ class BN_Phonemizer(BasePhonemizer):
 
 
 if __name__ == "__main__":
-    text = "রাসূলুল্লাহ সাল্লাল্লাহু আলাইহি ওয়া সাল্লাম শিক্ষা দিয়েছেন যে, কেউ যদি কোন খারাপ কিছুর সম্মুখীন হয়, তখনও যেন বলে."
+    txt = "রাসূলুল্লাহ সাল্লাল্লাহু আলাইহি ওয়া সাল্লাম শিক্ষা দিয়েছেন যে, কেউ যদি কোন খারাপ কিছুর সম্মুখীন হয়, তখনও যেন বলে."
     e = BN_Phonemizer()
     print(e.supported_languages())
     print(e.version())
     print(e.language)
     print(e.name())
     print(e.is_available())
-    print("`" + e.phonemize(text) + "`")
+    print("`" + e.phonemize(txt) + "`")

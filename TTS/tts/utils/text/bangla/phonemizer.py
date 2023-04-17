@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 import bangla
 from bnnumerizer import numerize
@@ -59,15 +58,15 @@ def tag_text(text: str):
 
 
 def normalize(sen):
-    global bnorm
+    global bnorm  # pylint: disable=global-statement
     _words = [bnorm(word)["normalized"] for word in sen.split()]
     return " ".join([word for word in _words if word is not None])
 
 
 def expand_full_attribution(text):
-    for word in attribution_dict:
+    for word, attr in attribution_dict.items():
         if word in text:
-            text = text.replace(word, normalize(attribution_dict[word]))
+            text = text.replace(word, normalize(attr))
     return text
 
 
@@ -77,7 +76,7 @@ def collapse_whitespace(text):
     return re.sub(_whitespace_re, " ", text)
 
 
-def bangla_text_to_phonemes(text: str, seperator: str = "|") -> str:
+def bangla_text_to_phonemes(text: str) -> str:
     # english numbers to bangla conversion
     res = re.search("[0-9]", text)
     if res is not None:
@@ -110,8 +109,8 @@ def bangla_text_to_phonemes(text: str, seperator: str = "|") -> str:
     sentences = sentenceEnders.split(str(bn_text))
 
     data = ""
-    for i in range(len(sentences)):
-        res = re.sub("\n", "", sentences[i])
+    for sent in sentences:
+        res = re.sub("\n", "", sent)
         res = normalize(res)
         # expand attributes
         res = expand_full_attribution(res)
