@@ -3,6 +3,7 @@ import unittest
 from packaging.version import Version
 
 from TTS.tts.utils.text.phonemizers import ESpeak, Gruut, JA_JP_Phonemizer, ZH_CN_Phonemizer
+from TTS.tts.utils.text.phonemizers.bangla_phonemizer import BN_Phonemizer
 from TTS.tts.utils.text.phonemizers.multi_phonemizer import MultiPhonemizer
 
 EXAMPLE_TEXTs = [
@@ -219,6 +220,28 @@ class TestZH_CN_Phonemizer(unittest.TestCase):
 
     def test_name(self):
         self.assertEqual(self.phonemizer.name(), "zh_cn_phonemizer")
+
+    def test_get_supported_languages(self):
+        self.assertIsInstance(self.phonemizer.supported_languages(), dict)
+
+    def test_get_version(self):
+        self.assertIsInstance(self.phonemizer.version(), str)
+
+    def test_is_available(self):
+        self.assertTrue(self.phonemizer.is_available())
+
+
+class TestBN_Phonemizer(unittest.TestCase):
+    def setUp(self):
+        self.phonemizer = BN_Phonemizer()
+        self._TEST_CASES = "রাসূলুল্লাহ সাল্লাল্লাহু আলাইহি ওয়া সাল্লাম শিক্ষা দিয়েছেন যে, কেউ যদি কোন খারাপ কিছুর সম্মুখীন হয়, তখনও যেন"
+        self._EXPECTED = "রাসূলুল্লাহ সাল্লাল্লাহু আলাইহি ওয়া সাল্লাম শিক্ষা দিয়েছেন যে কেউ যদি কোন খারাপ কিছুর সম্মুখীন হয় তখনও যেন।"
+
+    def test_phonemize(self):
+        self.assertEqual(self.phonemizer.phonemize(self._TEST_CASES, separator=""), self._EXPECTED)
+
+    def test_name(self):
+        self.assertEqual(self.phonemizer.name(), "bn_phonemizer")
 
     def test_get_supported_languages(self):
         self.assertIsInstance(self.phonemizer.supported_languages(), dict)
