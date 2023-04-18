@@ -78,7 +78,7 @@ vctk_config = BaseDatasetConfig(
     ],  # Ignore the test speakers to full replicate the paper experiment
 )
 
-# Add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK. Note: If you want to added new datasets just added they here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
+# Add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK. Note: If you want to add new datasets, just add them here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
 DATASETS_CONFIG_LIST = [vctk_config]
 
 ### Extract speaker embeddings
