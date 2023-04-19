@@ -32,7 +32,7 @@ OUT_PATH = os.path.dirname(os.path.abspath(__file__))  # "/raid/coqui/Checkpoint
 # If you want to do transfer learning and speedup your training you can set here the path to the original YourTTS model
 RESTORE_PATH = None  # "/root/.local/share/tts/tts_models--multilingual--multi-dataset--your_tts/model_file.pth"
 
-# This paramter is usefull to debug, it skips the training epochs and just do the evaluation  and produce the test sentences
+# This paramter is useful to debug, it skips the training epochs and just do the evaluation  and produce the test sentences
 SKIP_TRAIN_EPOCH = False
 
 # Set here the batch size to be used in training and evaluation
