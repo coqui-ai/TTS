@@ -15,7 +15,8 @@
     `Nervous Beginners`.
     A recipe for `GlowTTS` using `LJSpeech` dataset looks like below. Let's be creative and call this `train_glowtts.py`.
 
-    ```{literalinclude} ../../recipes/ljspeech/glow_tts/train_glowtts.py
+    ```
+    ../../recipes/ljspeech/glow_tts/train_glowtts.py
     ```
 
     You need to change fields of the `BaseDatasetConfig` to match your dataset and then update `GlowTTSConfig`
@@ -142,5 +143,6 @@ d-vectors. For using d-vectors, you first need to compute the d-vectors using th
 
 The same Glow-TTS model above can be trained on a multi-speaker VCTK dataset with the script below.
 
-```{literalinclude} ../../recipes/vctk/glow_tts/train_glow_tts.py
+```
+../../recipes/vctk/glow_tts/train_glow_tts.py
 ```
