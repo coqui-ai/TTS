@@ -14,8 +14,7 @@ D_STEM = "https://drive.google.com/uc?id="
 DEFAULT_MODELS_DIR = os.path.join(
     os.path.expanduser("~"), ".cache", "tortoise", "models"
 )
-# MODELS_DIR = os.environ.get("TORTOISE_MODELS_DIR", DEFAULT_MODELS_DIR)
-MODELS_DIR = "/data/speech_synth/models/"
+MODELS_DIR = os.environ.get("TORTOISE_MODELS_DIR", DEFAULT_MODELS_DIR)
 MODELS = {
     "autoregressive.pth": "https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/autoregressive.pth",
     "classifier.pth": "https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/classifier.pth",
