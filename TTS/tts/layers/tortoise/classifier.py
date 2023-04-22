@@ -1,13 +1,7 @@
 import torch
 import torch.nn as nn
 
-from TTS.tts.layers.tortoise.arch_utils import (
-    AttentionBlock,
-    Downsample,
-    Upsample,
-    normalization,
-    zero_module,
-)
+from TTS.tts.layers.tortoise.arch_utils import AttentionBlock, Downsample, Upsample, normalization, zero_module
 
 
 class ResBlock(nn.Module):
@@ -54,19 +48,13 @@ class ResBlock(nn.Module):
             normalization(self.out_channels),
             nn.SiLU(),
             nn.Dropout(p=dropout),
-            zero_module(
-                nn.Conv1d(
-                    self.out_channels, self.out_channels, kernel_size, padding=padding
-                )
-            ),
+            zero_module(nn.Conv1d(self.out_channels, self.out_channels, kernel_size, padding=padding)),
         )
 
         if self.out_channels == channels:
             self.skip_connection = nn.Identity()
         elif use_conv:
-            self.skip_connection = nn.Conv1d(
-                dims, channels, self.out_channels, kernel_size, padding=padding
-            )
+            self.skip_connection = nn.Conv1d(dims, channels, self.out_channels, kernel_size, padding=padding)
         else:
             self.skip_connection = nn.Conv1d(dims, channels, self.out_channels, 1)
 
@@ -104,24 +92,14 @@ class AudioMiniEncoder(nn.Module):
         self.layers = depth
         for l in range(depth):
             for r in range(resnet_blocks):
-                res.append(
-                    ResBlock(ch, dropout, do_checkpoint=False, kernel_size=kernel_size)
-                )
-            res.append(
-                Downsample(
-                    ch, use_conv=True, out_channels=ch * 2, factor=downsample_factor
-                )
-            )
+                res.append(ResBlock(ch, dropout, do_checkpoint=False, kernel_size=kernel_size))
+            res.append(Downsample(ch, use_conv=True, out_channels=ch * 2, factor=downsample_factor))
             ch *= 2
         self.res = nn.Sequential(*res)
-        self.final = nn.Sequential(
-            normalization(ch), nn.SiLU(), nn.Conv1d(ch, embedding_dim, 1)
-        )
+        self.final = nn.Sequential(normalization(ch), nn.SiLU(), nn.Conv1d(ch, embedding_dim, 1))
         attn = []
         for a in range(attn_blocks):
-            attn.append(
-                AttentionBlock(embedding_dim, num_attn_heads, do_checkpoint=False)
-            )
+            attn.append(AttentionBlock(embedding_dim, num_attn_heads, do_checkpoint=False))
         self.attn = nn.Sequential(*attn)
         self.dim = embedding_dim
 

@@ -36,12 +36,8 @@ def route_args(router, args, depth):
 
     for key in matched_keys:
         val = args[key]
-        for depth, ((f_args, g_args), routes) in enumerate(
-            zip(routed_args, router[key])
-        ):
-            new_f_args, new_g_args = map(
-                lambda route: ({key: val} if route else {}), routes
-            )
+        for depth, ((f_args, g_args), routes) in enumerate(zip(routed_args, router[key])):
+            new_f_args, new_g_args = map(lambda route: ({key: val} if route else {}), routes)
             routed_args[depth] = ({**f_args, **new_f_args}, {**g_args, **new_g_args})
     return routed_args
 
@@ -217,12 +213,8 @@ class Transformer(nn.Module):
             layers.append(
                 nn.ModuleList(
                     [
-                        LayerScale(
-                            dim, ind + 1, PreNorm(dim, attn, sandwich=sandwich_norm)
-                        ),
-                        LayerScale(
-                            dim, ind + 1, PreNorm(dim, ff, sandwich=sandwich_norm)
-                        ),
+                        LayerScale(dim, ind + 1, PreNorm(dim, attn, sandwich=sandwich_norm)),
+                        LayerScale(dim, ind + 1, PreNorm(dim, ff, sandwich=sandwich_norm)),
                     ]
                 )
             )

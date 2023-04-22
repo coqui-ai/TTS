@@ -95,9 +95,7 @@ def _expand_number(m):
         elif num % 100 == 0:
             return _inflect.number_to_words(num // 100) + " hundred"
         else:
-            return _inflect.number_to_words(
-                num, andword="", zero="oh", group=2
-            ).replace(", ", " ")
+            return _inflect.number_to_words(num, andword="", zero="oh", group=2).replace(", ", " ")
     else:
         return _inflect.number_to_words(num, andword="")
 
@@ -165,9 +163,7 @@ def lev_distance(s1, s2):
             if c1 == c2:
                 distances_.append(distances[i1])
             else:
-                distances_.append(
-                    1 + min((distances[i1], distances[i1 + 1], distances_[-1]))
-                )
+                distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
         distances = distances_
     return distances[-1]
 

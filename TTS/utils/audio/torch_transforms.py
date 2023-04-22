@@ -97,7 +97,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         self.mel_norm = mel_norm
         self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
         self.mel_basis = None
-        self.normalized=normalized
+        self.normalized = normalized
         if use_mel:
             self._build_mel_basis()
 

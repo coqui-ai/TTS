@@ -1,5 +1,7 @@
 import os
-try: import gdown
+
+try:
+    import gdown
 except ImportError:
     raise ImportError(
         "Sorry, gdown is required in order to download the new BigVGAN vocoder.\n"
@@ -11,9 +13,7 @@ import progressbar
 
 D_STEM = "https://drive.google.com/uc?id="
 
-DEFAULT_MODELS_DIR = os.path.join(
-    os.path.expanduser("~"), ".cache", "tortoise", "models"
-)
+DEFAULT_MODELS_DIR = os.path.join(os.path.expanduser("~"), ".cache", "tortoise", "models")
 MODELS_DIR = os.environ.get("TORTOISE_MODELS_DIR", DEFAULT_MODELS_DIR)
 MODELS = {
     "autoregressive.pth": "https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/autoregressive.pth",
@@ -30,6 +30,8 @@ MODELS = {
 }
 
 pbar = None
+
+
 def download_models(specific_models=None):
     """
     Call to download all the models that Tortoise uses.
@@ -61,6 +63,7 @@ def download_models(specific_models=None):
         else:
             request.urlretrieve(url, model_path, show_progress)
         print("Done.")
+
 
 def get_model_path(model_name, models_dir=MODELS_DIR):
     """

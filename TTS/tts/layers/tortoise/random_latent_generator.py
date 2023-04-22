@@ -40,8 +40,7 @@ class RandomLatentConverter(nn.Module):
     def __init__(self, channels):
         super().__init__()
         self.layers = nn.Sequential(
-            *[EqualLinear(channels, channels, lr_mul=0.1) for _ in range(5)],
-            nn.Linear(channels, channels)
+            *[EqualLinear(channels, channels, lr_mul=0.1) for _ in range(5)], nn.Linear(channels, channels)
         )
         self.channels = channels
 

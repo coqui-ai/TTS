@@ -13,8 +13,8 @@ import math
 import numpy as np
 import torch
 import torch as th
-from tqdm import tqdm
 from k_diffusion.sampling import sample_dpmpp_2m, sample_euler_ancestral
+from tqdm import tqdm
 
 from TTS.tts.layers.tortoise.dpm_solver import DPM_Solver, NoiseScheduleVP, model_wrapper
 
@@ -38,18 +38,9 @@ def normal_kl(mean1, logvar1, mean2, logvar2):
 
     # Force variances to be Tensors. Broadcasting helps convert scalars to
     # Tensors, but it does not work for th.exp().
-    logvar1, logvar2 = [
-        x if isinstance(x, th.Tensor) else th.tensor(x).to(tensor)
-        for x in (logvar1, logvar2)
-    ]
+    logvar1, logvar2 = [x if isinstance(x, th.Tensor) else th.tensor(x).to(tensor) for x in (logvar1, logvar2)]
 
-    return 0.5 * (
-        -1.0
-        + logvar2
-        - logvar1
-        + th.exp(logvar1 - logvar2)
-        + ((mean1 - mean2) ** 2) * th.exp(-logvar2)
-    )
+    return 0.5 * (-1.0 + logvar2 - logvar1 + th.exp(logvar1 - logvar2) + ((mean1 - mean2) ** 2) * th.exp(-logvar2))
 
 
 def approx_standard_normal_cdf(x):
@@ -112,9 +103,7 @@ def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
         scale = 1000 / num_diffusion_timesteps
         beta_start = scale * 0.0001
         beta_end = scale * 0.02
-        return np.linspace(
-            beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64
-        )
+        return np.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64)
     elif schedule_name == "cosine":
         return betas_for_alpha_bar(
             num_diffusion_timesteps,
@@ -149,9 +138,9 @@ class ModelMeanType(enum.Enum):
     Which type of output the model predicts.
     """
 
-    PREVIOUS_X = 'previous_x'  # the model predicts x_{t-1}
-    START_X = 'start_x'  # the model predicts x_0
-    EPSILON = 'epsilon'  # the model predicts epsilon
+    PREVIOUS_X = "previous_x"  # the model predicts x_{t-1}
+    START_X = "start_x"  # the model predicts x_0
+    EPSILON = "epsilon"  # the model predicts epsilon
 
 
 class ModelVarType(enum.Enum):
@@ -162,17 +151,17 @@ class ModelVarType(enum.Enum):
     values between FIXED_SMALL and FIXED_LARGE, making its job easier.
     """
 
-    LEARNED = 'learned'
-    FIXED_SMALL = 'fixed_small'
-    FIXED_LARGE = 'fixed_large'
-    LEARNED_RANGE = 'learned_range'
+    LEARNED = "learned"
+    FIXED_SMALL = "fixed_small"
+    FIXED_LARGE = "fixed_large"
+    LEARNED_RANGE = "learned_range"
 
 
 class LossType(enum.Enum):
-    MSE = 'mse'  # use raw MSE loss (and KL when learning variances)
-    RESCALED_MSE = 'rescaled_mse'  # use raw MSE loss (with RESCALED_KL when learning variances)
-    KL = 'kl'  # use the variational lower-bound
-    RESCALED_KL = 'rescaled_kl'  # like KL, but rescale to estimate the full VLB
+    MSE = "mse"  # use raw MSE loss (and KL when learning variances)
+    RESCALED_MSE = "rescaled_mse"  # use raw MSE loss (with RESCALED_KL when learning variances)
+    KL = "kl"  # use the variational lower-bound
+    RESCALED_KL = "rescaled_kl"  # like KL, but rescale to estimate the full VLB
 
     def is_vb(self):
         return self == LossType.KL or self == LossType.RESCALED_KL
@@ -239,22 +228,12 @@ class GaussianDiffusion:
         self.sqrt_recipm1_alphas_cumprod = np.sqrt(1.0 / self.alphas_cumprod - 1)
 
         # calculations for posterior q(x_{t-1} | x_t, x_0)
-        self.posterior_variance = (
-            betas * (1.0 - self.alphas_cumprod_prev) / (1.0 - self.alphas_cumprod)
-        )
+        self.posterior_variance = betas * (1.0 - self.alphas_cumprod_prev) / (1.0 - self.alphas_cumprod)
         # log calculation clipped because the posterior variance is 0 at the
         # beginning of the diffusion chain.
-        self.posterior_log_variance_clipped = np.log(
-            np.append(self.posterior_variance[1], self.posterior_variance[1:])
-        )
-        self.posterior_mean_coef1 = (
-            betas * np.sqrt(self.alphas_cumprod_prev) / (1.0 - self.alphas_cumprod)
-        )
-        self.posterior_mean_coef2 = (
-            (1.0 - self.alphas_cumprod_prev)
-            * np.sqrt(alphas)
-            / (1.0 - self.alphas_cumprod)
-        )
+        self.posterior_log_variance_clipped = np.log(np.append(self.posterior_variance[1], self.posterior_variance[1:]))
+        self.posterior_mean_coef1 = betas * np.sqrt(self.alphas_cumprod_prev) / (1.0 - self.alphas_cumprod)
+        self.posterior_mean_coef2 = (1.0 - self.alphas_cumprod_prev) * np.sqrt(alphas) / (1.0 - self.alphas_cumprod)
 
     def q_mean_variance(self, x_start, t):
         """
@@ -264,13 +243,9 @@ class GaussianDiffusion:
         :param t: the number of diffusion steps (minus 1). Here, 0 means one step.
         :return: A tuple (mean, variance, log_variance), all of x_start's shape.
         """
-        mean = (
-            _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
-        )
+        mean = _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
         variance = _extract_into_tensor(1.0 - self.alphas_cumprod, t, x_start.shape)
-        log_variance = _extract_into_tensor(
-            self.log_one_minus_alphas_cumprod, t, x_start.shape
-        )
+        log_variance = _extract_into_tensor(self.log_one_minus_alphas_cumprod, t, x_start.shape)
         return mean, variance, log_variance
 
     def q_sample(self, x_start, t, noise=None):
@@ -289,8 +264,7 @@ class GaussianDiffusion:
         assert noise.shape == x_start.shape
         return (
             _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
-            + _extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
-            * noise
+            + _extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
         )
 
     def q_posterior_mean_variance(self, x_start, x_t, t):
@@ -306,9 +280,7 @@ class GaussianDiffusion:
             + _extract_into_tensor(self.posterior_mean_coef2, t, x_t.shape) * x_t
         )
         posterior_variance = _extract_into_tensor(self.posterior_variance, t, x_t.shape)
-        posterior_log_variance_clipped = _extract_into_tensor(
-            self.posterior_log_variance_clipped, t, x_t.shape
-        )
+        posterior_log_variance_clipped = _extract_into_tensor(self.posterior_log_variance_clipped, t, x_t.shape)
         assert (
             posterior_mean.shape[0]
             == posterior_variance.shape[0]
@@ -317,9 +289,7 @@ class GaussianDiffusion:
         )
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    def p_mean_variance(
-        self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
-    ):
+    def p_mean_variance(self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
         the initial x, x_0.
@@ -358,9 +328,7 @@ class GaussianDiffusion:
                 model_log_variance = model_var_values
                 model_variance = th.exp(model_log_variance)
             else:
-                min_log = _extract_into_tensor(
-                    self.posterior_log_variance_clipped, t, x.shape
-                )
+                min_log = _extract_into_tensor(self.posterior_log_variance_clipped, t, x.shape)
                 max_log = _extract_into_tensor(np.log(self.betas), t, x.shape)
                 # The model_var_values is [-1, 1] for [min_var, max_var].
                 frac = (model_var_values + 1) / 2
@@ -398,26 +366,18 @@ class GaussianDiffusion:
             return x
 
         if self.model_mean_type == ModelMeanType.PREVIOUS_X:
-            pred_xstart = process_xstart(
-                self._predict_xstart_from_xprev(x_t=x, t=t, xprev=model_output)
-            )
+            pred_xstart = process_xstart(self._predict_xstart_from_xprev(x_t=x, t=t, xprev=model_output))
             model_mean = model_output
         elif self.model_mean_type in [ModelMeanType.START_X, ModelMeanType.EPSILON]:
             if self.model_mean_type == ModelMeanType.START_X:
                 pred_xstart = process_xstart(model_output)
             else:
-                pred_xstart = process_xstart(
-                    self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output)
-                )
-            model_mean, _, _ = self.q_posterior_mean_variance(
-                x_start=pred_xstart, x_t=x, t=t
-            )
+                pred_xstart = process_xstart(self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output))
+            model_mean, _, _ = self.q_posterior_mean_variance(x_start=pred_xstart, x_t=x, t=t)
         else:
             raise NotImplementedError(self.model_mean_type)
 
-        assert (
-            model_mean.shape == model_log_variance.shape == pred_xstart.shape == x.shape
-        )
+        assert model_mean.shape == model_log_variance.shape == pred_xstart.shape == x.shape
         return {
             "mean": model_mean,
             "variance": model_variance,
@@ -436,16 +396,12 @@ class GaussianDiffusion:
         assert x_t.shape == xprev.shape
         return (  # (xprev - coef2*x_t) / coef1
             _extract_into_tensor(1.0 / self.posterior_mean_coef1, t, x_t.shape) * xprev
-            - _extract_into_tensor(
-                self.posterior_mean_coef2 / self.posterior_mean_coef1, t, x_t.shape
-            )
-            * x_t
+            - _extract_into_tensor(self.posterior_mean_coef2 / self.posterior_mean_coef1, t, x_t.shape) * x_t
         )
 
     def _predict_eps_from_xstart(self, x_t, t, pred_xstart):
         return (
-            _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
-            - pred_xstart
+            _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t - pred_xstart
         ) / _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape)
 
     def _scale_timesteps(self, t):
@@ -463,9 +419,7 @@ class GaussianDiffusion:
         This uses the conditioning strategy from Sohl-Dickstein et al. (2015).
         """
         gradient = cond_fn(x, self._scale_timesteps(t), **model_kwargs)
-        new_mean = (
-            p_mean_var["mean"].float() + p_mean_var["variance"] * gradient.float()
-        )
+        new_mean = p_mean_var["mean"].float() + p_mean_var["variance"] * gradient.float()
         return new_mean
 
     def condition_score(self, cond_fn, p_mean_var, x, t, model_kwargs=None):
@@ -481,16 +435,13 @@ class GaussianDiffusion:
         alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
 
         eps = self._predict_eps_from_xstart(x, t, p_mean_var["pred_xstart"])
-        eps = eps - (1 - alpha_bar).sqrt() * cond_fn(
-            x, self._scale_timesteps(t), **model_kwargs
-        )
+        eps = eps - (1 - alpha_bar).sqrt() * cond_fn(x, self._scale_timesteps(t), **model_kwargs)
 
         out = p_mean_var.copy()
         out["pred_xstart"] = self._predict_xstart_from_eps(x, t, eps)
-        out["mean"], _, _ = self.q_posterior_mean_variance(
-            x_start=out["pred_xstart"], x_t=x, t=t
-        )
+        out["mean"], _, _ = self.q_posterior_mean_variance(x_start=out["pred_xstart"], x_t=x, t=t)
         return out
+
     def k_diffusion_sample_loop(
         self,
         k_sampler,
@@ -512,9 +463,7 @@ class GaussianDiffusion:
 
         def model_split(*args, **kwargs):
             model_output = model(*args, **kwargs)
-            model_epsilon, model_var = th.split(
-                model_output, model_output.shape[1] // 2, dim=1
-            )
+            model_epsilon, model_var = th.split(model_output, model_output.shape[1] // 2, dim=1)
             return model_epsilon, model_var
 
         #
@@ -523,9 +472,7 @@ class GaussianDiffusion:
         print(th.tensor(self.betas))
         noise_schedule = NoiseScheduleVP(schedule='discrete', betas=th.tensor(self.betas))
         """
-        noise_schedule = NoiseScheduleVP(
-            schedule="linear", continuous_beta_0=0.1 / 4, continuous_beta_1=20.0 / 4
-        )
+        noise_schedule = NoiseScheduleVP(schedule="linear", continuous_beta_0=0.1 / 4, continuous_beta_1=20.0 / 4)
 
         def model_fn_prewrap(x, t, *args, **kwargs):
             """
@@ -584,11 +531,10 @@ class GaussianDiffusion:
             if self.conditioning_free is not True:
                 raise RuntimeError("cond_free must be true")
             with tqdm(total=self.num_timesteps) as pbar:
-                return self.k_diffusion_sample_loop(
-                    K_DIFFUSION_SAMPLERS[s], pbar, *args, **kwargs
-                )
+                return self.k_diffusion_sample_loop(K_DIFFUSION_SAMPLERS[s], pbar, *args, **kwargs)
         else:
             raise RuntimeError("sampler not impl")
+
     def p_sample(
         self,
         model,
@@ -625,13 +571,9 @@ class GaussianDiffusion:
             model_kwargs=model_kwargs,
         )
         noise = th.randn_like(x)
-        nonzero_mask = (
-            (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
-        )  # no noise when t == 0
+        nonzero_mask = (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))  # no noise when t == 0
         if cond_fn is not None:
-            out["mean"] = self.condition_mean(
-                cond_fn, out, x, t, model_kwargs=model_kwargs
-            )
+            out["mean"] = self.condition_mean(cond_fn, out, x, t, model_kwargs=model_kwargs)
         sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
 
@@ -758,20 +700,11 @@ class GaussianDiffusion:
 
         alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
         alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
-        sigma = (
-            eta
-            * th.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
-            * th.sqrt(1 - alpha_bar / alpha_bar_prev)
-        )
+        sigma = eta * th.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar)) * th.sqrt(1 - alpha_bar / alpha_bar_prev)
         # Equation 12.
         noise = th.randn_like(x)
-        mean_pred = (
-            out["pred_xstart"] * th.sqrt(alpha_bar_prev)
-            + th.sqrt(1 - alpha_bar_prev - sigma ** 2) * eps
-        )
-        nonzero_mask = (
-            (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
-        )  # no noise when t == 0
+        mean_pred = out["pred_xstart"] * th.sqrt(alpha_bar_prev) + th.sqrt(1 - alpha_bar_prev - sigma**2) * eps
+        nonzero_mask = (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))  # no noise when t == 0
         sample = mean_pred + nonzero_mask * sigma * noise
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
 
@@ -800,16 +733,12 @@ class GaussianDiffusion:
         # Usually our model outputs epsilon, but we re-derive it
         # in case we used x_start or x_prev prediction.
         eps = (
-            _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x.shape) * x
-            - out["pred_xstart"]
+            _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x.shape) * x - out["pred_xstart"]
         ) / _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x.shape)
         alpha_bar_next = _extract_into_tensor(self.alphas_cumprod_next, t, x.shape)
 
         # Equation 12. reversed
-        mean_pred = (
-            out["pred_xstart"] * th.sqrt(alpha_bar_next)
-            + th.sqrt(1 - alpha_bar_next) * eps
-        )
+        mean_pred = out["pred_xstart"] * th.sqrt(alpha_bar_next) + th.sqrt(1 - alpha_bar_next) * eps
 
         return {"sample": mean_pred, "pred_xstart": out["pred_xstart"]}
 
@@ -897,9 +826,7 @@ class GaussianDiffusion:
                 yield out
                 img = out["sample"]
 
-    def _vb_terms_bpd(
-        self, model, x_start, x_t, t, clip_denoised=True, model_kwargs=None
-    ):
+    def _vb_terms_bpd(self, model, x_start, x_t, t, clip_denoised=True, model_kwargs=None):
         """
         Get a term for the variational lower-bound.
 
@@ -910,15 +837,9 @@ class GaussianDiffusion:
                  - 'output': a shape [N] tensor of NLLs or KLs.
                  - 'pred_xstart': the x_0 predictions.
         """
-        true_mean, _, true_log_variance_clipped = self.q_posterior_mean_variance(
-            x_start=x_start, x_t=x_t, t=t
-        )
-        out = self.p_mean_variance(
-            model, x_t, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
-        )
-        kl = normal_kl(
-            true_mean, true_log_variance_clipped, out["mean"], out["log_variance"]
-        )
+        true_mean, _, true_log_variance_clipped = self.q_posterior_mean_variance(x_start=x_start, x_t=x_t, t=t)
+        out = self.p_mean_variance(model, x_t, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs)
+        kl = normal_kl(true_mean, true_log_variance_clipped, out["mean"], out["log_variance"])
         kl = mean_flat(kl) / np.log(2.0)
 
         decoder_nll = -discretized_gaussian_log_likelihood(
@@ -969,7 +890,7 @@ class GaussianDiffusion:
             model_outputs = model(x_t, self._scale_timesteps(t), **model_kwargs)
             if isinstance(model_outputs, tuple):
                 model_output = model_outputs[0]
-                terms['extra_outputs'] = model_outputs[1:]
+                terms["extra_outputs"] = model_outputs[1:]
             else:
                 model_output = model_outputs
 
@@ -996,9 +917,7 @@ class GaussianDiffusion:
                     terms["vb"] *= self.num_timesteps / 1000.0
 
             if self.model_mean_type == ModelMeanType.PREVIOUS_X:
-                target = self.q_posterior_mean_variance(
-                    x_start=x_start, x_t=x_t, t=t
-                )[0]
+                target = self.q_posterior_mean_variance(x_start=x_start, x_t=x_t, t=t)[0]
                 x_start_pred = torch.zeros(x_start)  # Not supported.
             elif self.model_mean_type == ModelMeanType.START_X:
                 target = x_start
@@ -1020,7 +939,9 @@ class GaussianDiffusion:
 
         return terms
 
-    def autoregressive_training_losses(self, model, x_start, t, model_output_keys, gd_out_key, model_kwargs=None, noise=None):
+    def autoregressive_training_losses(
+        self, model, x_start, t, model_output_keys, gd_out_key, model_kwargs=None, noise=None
+    ):
         """
         Compute training losses for a single timestep.
 
@@ -1068,9 +989,7 @@ class GaussianDiffusion:
                     terms["vb"] *= self.num_timesteps / 1000.0
 
             if self.model_mean_type == ModelMeanType.PREVIOUS_X:
-                target = self.q_posterior_mean_variance(
-                    x_start=x_start, x_t=x_t, t=t
-                )[0]
+                target = self.q_posterior_mean_variance(x_start=x_start, x_t=x_t, t=t)[0]
                 x_start_pred = torch.zeros(x_start)  # Not supported.
             elif self.model_mean_type == ModelMeanType.START_X:
                 target = x_start
@@ -1105,9 +1024,7 @@ class GaussianDiffusion:
         batch_size = x_start.shape[0]
         t = th.tensor([self.num_timesteps - 1] * batch_size, device=x_start.device)
         qt_mean, _, qt_log_variance = self.q_mean_variance(x_start, t)
-        kl_prior = normal_kl(
-            mean1=qt_mean, logvar1=qt_log_variance, mean2=0.0, logvar2=0.0
-        )
+        kl_prior = normal_kl(mean1=qt_mean, logvar1=qt_log_variance, mean2=0.0, logvar2=0.0)
         return mean_flat(kl_prior) / np.log(2.0)
 
     def calc_bpd_loop(self, model, x_start, clip_denoised=True, model_kwargs=None):
@@ -1183,9 +1100,7 @@ def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
         scale = 1000 / num_diffusion_timesteps
         beta_start = scale * 0.0001
         beta_end = scale * 0.02
-        return np.linspace(
-            beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64
-        )
+        return np.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64)
     elif schedule_name == "cosine":
         return betas_for_alpha_bar(
             num_diffusion_timesteps,
@@ -1219,19 +1134,13 @@ class SpacedDiffusion(GaussianDiffusion):
         kwargs["betas"] = np.array(new_betas)
         super().__init__(**kwargs)
 
-    def p_mean_variance(
-        self, model, *args, **kwargs
-    ):  # pylint: disable=signature-differs
+    def p_mean_variance(self, model, *args, **kwargs):  # pylint: disable=signature-differs
         return super().p_mean_variance(self._wrap_model(model), *args, **kwargs)
 
-    def training_losses(
-        self, model, *args, **kwargs
-    ):  # pylint: disable=signature-differs
+    def training_losses(self, model, *args, **kwargs):  # pylint: disable=signature-differs
         return super().training_losses(self._wrap_model(model), *args, **kwargs)
 
-    def autoregressive_training_losses(
-        self, model, *args, **kwargs
-    ):  # pylint: disable=signature-differs
+    def autoregressive_training_losses(self, model, *args, **kwargs):  # pylint: disable=signature-differs
         return super().autoregressive_training_losses(self._wrap_model(model, True), *args, **kwargs)
 
     def condition_mean(self, cond_fn, *args, **kwargs):
@@ -1244,9 +1153,7 @@ class SpacedDiffusion(GaussianDiffusion):
         if isinstance(model, _WrappedModel) or isinstance(model, _WrappedAutoregressiveModel):
             return model
         mod = _WrappedAutoregressiveModel if autoregressive else _WrappedModel
-        return mod(
-            model, self.timestep_map, self.rescale_timesteps, self.original_num_steps
-        )
+        return mod(model, self.timestep_map, self.rescale_timesteps, self.original_num_steps)
 
     def _scale_timesteps(self, t):
         # Scaling is done by the wrapped model.
@@ -1281,9 +1188,7 @@ def space_timesteps(num_timesteps, section_counts):
             for i in range(1, num_timesteps):
                 if len(range(0, num_timesteps, i)) == desired_count:
                     return set(range(0, num_timesteps, i))
-            raise ValueError(
-                f"cannot create exactly {num_timesteps} steps with an integer stride"
-            )
+            raise ValueError(f"cannot create exactly {num_timesteps} steps with an integer stride")
         section_counts = [int(x) for x in section_counts.split(",")]
     size_per = num_timesteps // len(section_counts)
     extra = num_timesteps % len(section_counts)
@@ -1292,9 +1197,7 @@ def space_timesteps(num_timesteps, section_counts):
     for i, section_count in enumerate(section_counts):
         size = size_per + (1 if i < extra else 0)
         if size < section_count:
-            raise ValueError(
-                f"cannot divide section of {size} steps into {section_count}"
-            )
+            raise ValueError(f"cannot divide section of {size} steps into {section_count}")
         if section_count <= 1:
             frac_stride = 1
         else:
@@ -1315,6 +1218,7 @@ class _WrappedModel:
         self.timestep_map = timestep_map
         self.rescale_timesteps = rescale_timesteps
         self.original_num_steps = original_num_steps
+
     def __call__(self, x, ts, **kwargs):
         map_tensor = th.tensor(self.timestep_map, device=ts.device, dtype=ts.dtype)
         new_ts = map_tensor[ts]
@@ -1322,6 +1226,7 @@ class _WrappedModel:
             new_ts = new_ts.float() * (1000.0 / self.original_num_steps)
         model_output = self.model(x, new_ts, **kwargs)
         return model_output
+
 
 class _WrappedAutoregressiveModel:
     def __init__(self, model, timestep_map, rescale_timesteps, original_num_steps):
@@ -1336,6 +1241,7 @@ class _WrappedAutoregressiveModel:
         if self.rescale_timesteps:
             new_ts = new_ts.float() * (1000.0 / self.original_num_steps)
         return self.model(x, x0, new_ts, **kwargs)
+
 
 def _extract_into_tensor(arr, timesteps, broadcast_shape):
     """

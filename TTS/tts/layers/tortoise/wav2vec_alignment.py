@@ -12,9 +12,7 @@ def max_alignment(s1, s2, skip_character="~", record=None):
     """
     if record is None:
         record = {}
-    assert (
-        skip_character not in s1
-    ), f"Found the skip character {skip_character} in the provided string, {s1}"
+    assert skip_character not in s1, f"Found the skip character {skip_character} in the provided string, {s1}"
     if len(s1) == 0:
         return ""
     if len(s2) == 0:
@@ -49,15 +47,9 @@ class Wav2VecAlignment:
     """
 
     def __init__(self, device="cuda"):
-        self.model = Wav2Vec2ForCTC.from_pretrained(
-            "jbetker/wav2vec2-large-robust-ft-libritts-voxpopuli"
-        ).cpu()
-        self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
-            "facebook/wav2vec2-large-960h"
-        )
-        self.tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-            "jbetker/tacotron-symbols"
-        )
+        self.model = Wav2Vec2ForCTC.from_pretrained("jbetker/wav2vec2-large-robust-ft-libritts-voxpopuli").cpu()
+        self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/wav2vec2-large-960h")
+        self.tokenizer = Wav2Vec2CTCTokenizer.from_pretrained("jbetker/tacotron-symbols")
         self.device = device
 
     def align(self, audio, expected_text, audio_sample_rate=24000):
@@ -117,9 +109,7 @@ class Wav2VecAlignment:
             )
 
         # Now fix up alignments. Anything with -1 should be interpolated.
-        alignments.append(
-            orig_len
-        )  # This'll get removed but makes the algorithm below more readable.
+        alignments.append(orig_len)  # This'll get removed but makes the algorithm below more readable.
         for i in range(len(alignments)):
             if alignments[i] == -1:
                 for j in range(i + 1, len(alignments)):
@@ -128,9 +118,7 @@ class Wav2VecAlignment:
                         break
                 for j in range(i, next_found_token):
                     gap = alignments[next_found_token] - alignments[i - 1]
-                    alignments[j] = (j - i + 1) * gap // (
-                        next_found_token - i + 1
-                    ) + alignments[i - 1]
+                    alignments[j] = (j - i + 1) * gap // (next_found_token - i + 1) + alignments[i - 1]
 
         return alignments[:-1]
 
@@ -140,9 +128,7 @@ class Wav2VecAlignment:
         splitted = expected_text.split("[")
         fully_split = [splitted[0]]
         for spl in splitted[1:]:
-            assert (
-                "]" in spl
-            ), 'Every "[" character must be paired with a "]" with no nesting.'
+            assert "]" in spl, 'Every "[" character must be paired with a "]" with no nesting.'
             fully_split.extend(spl.split("]"))
 
         # At this point, fully_split is a list of strings, with every other string being something that should be redacted.

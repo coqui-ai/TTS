@@ -17,16 +17,7 @@ def masked_mean(t, mask):
 
 
 class CollapsingTransformer(nn.Module):
-    def __init__(
-        self,
-        model_dim,
-        output_dims,
-        heads,
-        dropout,
-        depth,
-        mask_percentage=0,
-        **encoder_kwargs
-    ):
+    def __init__(self, model_dim, output_dims, heads, dropout, depth, mask_percentage=0, **encoder_kwargs):
         super().__init__()
         self.transformer = ContinuousTransformerWrapper(
             max_seq_len=-1,
@@ -105,9 +96,7 @@ class CVVP(nn.Module):
         self.to_conditioning_latent = nn.Linear(latent_dim, latent_dim, bias=False)
 
         if mel_codes is None:
-            self.speech_emb = nn.Conv1d(
-                mel_channels, model_dim, kernel_size=5, padding=2
-            )
+            self.speech_emb = nn.Conv1d(mel_channels, model_dim, kernel_size=5, padding=2)
         else:
             self.speech_emb = ConvFormatEmbedding(mel_codes, model_dim)
         self.speech_transformer = CollapsingTransformer(
@@ -135,9 +124,7 @@ class CVVP(nn.Module):
         enc_speech = self.speech_transformer(speech_emb)
         speech_latents = self.to_speech_latent(enc_speech)
 
-        cond_latents, speech_latents = map(
-            lambda t: F.normalize(t, p=2, dim=-1), (cond_latents, speech_latents)
-        )
+        cond_latents, speech_latents = map(lambda t: F.normalize(t, p=2, dim=-1), (cond_latents, speech_latents))
         temp = self.temperature.exp()
 
         if not return_loss:

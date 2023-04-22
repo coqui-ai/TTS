@@ -1,15 +1,15 @@
-import os
 import functools
 import math
+import os
 
 import torch
-
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
 from transformers import LogitsWarper
 
 from TTS.tts.layers.tortoise.xtransformers import ContinuousTransformerWrapper, RelativePositionBias
+
 
 def zero_module(module):
     """
@@ -64,11 +64,11 @@ class QKVAttentionLegacy(nn.Module):
         ch = width // (3 * self.n_heads)
         q, k, v = qkv.reshape(bs * self.n_heads, ch * 3, length).split(ch, dim=1)
         scale = 1 / math.sqrt(math.sqrt(ch))
-        weight = torch.einsum(
-            "bct,bcs->bts", q * scale, k * scale
-        )  # More stable with f16 than dividing afterwards
+        weight = torch.einsum("bct,bcs->bts", q * scale, k * scale)  # More stable with f16 than dividing afterwards
         if rel_pos is not None:
-            weight = rel_pos(weight.reshape(bs, self.n_heads, weight.shape[-2], weight.shape[-1])).reshape(bs * self.n_heads, weight.shape[-2], weight.shape[-1])
+            weight = rel_pos(weight.reshape(bs, self.n_heads, weight.shape[-2], weight.shape[-1])).reshape(
+                bs * self.n_heads, weight.shape[-2], weight.shape[-1]
+            )
         weight = torch.softmax(weight.float(), dim=-1).type(weight.dtype)
         if mask is not None:
             # The proper way to do this is to mask before the softmax using -inf, but that doesn't work properly on CPUs.
@@ -112,7 +112,13 @@ class AttentionBlock(nn.Module):
 
         self.proj_out = zero_module(nn.Conv1d(channels, channels, 1))
         if relative_pos_embeddings:
-            self.relative_pos_embeddings = RelativePositionBias(scale=(channels // self.num_heads) ** .5, causal=False, heads=num_heads, num_buckets=32, max_distance=64)
+            self.relative_pos_embeddings = RelativePositionBias(
+                scale=(channels // self.num_heads) ** 0.5,
+                causal=False,
+                heads=num_heads,
+                num_buckets=32,
+                max_distance=64,
+            )
         else:
             self.relative_pos_embeddings = None
 
@@ -168,9 +174,7 @@ class Downsample(nn.Module):
 
         stride = factor
         if use_conv:
-            self.op = nn.Conv1d(
-                self.channels, self.out_channels, ksize, stride=stride, padding=pad
-            )
+            self.op = nn.Conv1d(self.channels, self.out_channels, ksize, stride=stride, padding=pad)
         else:
             assert self.channels == self.out_channels
             self.op = nn.AvgPool1d(kernel_size=stride, stride=stride)
@@ -182,15 +186,15 @@ class Downsample(nn.Module):
 
 class ResBlock(nn.Module):
     def __init__(
-            self,
-            channels,
-            dropout,
-            out_channels=None,
-            use_conv=False,
-            use_scale_shift_norm=False,
-            up=False,
-            down=False,
-            kernel_size=3,
+        self,
+        channels,
+        dropout,
+        out_channels=None,
+        use_conv=False,
+        use_scale_shift_norm=False,
+        up=False,
+        down=False,
+        kernel_size=3,
     ):
         super().__init__()
         self.channels = channels
@@ -221,17 +225,13 @@ class ResBlock(nn.Module):
             normalization(self.out_channels),
             nn.SiLU(),
             nn.Dropout(p=dropout),
-            zero_module(
-                nn.Conv1d(self.out_channels, self.out_channels, kernel_size, padding=padding)
-            ),
+            zero_module(nn.Conv1d(self.out_channels, self.out_channels, kernel_size, padding=padding)),
         )
 
         if self.out_channels == channels:
             self.skip_connection = nn.Identity()
         elif use_conv:
-            self.skip_connection = nn.Conv1d(
-                channels, self.out_channels, kernel_size, padding=padding
-            )
+            self.skip_connection = nn.Conv1d(channels, self.out_channels, kernel_size, padding=padding)
         else:
             self.skip_connection = nn.Conv1d(channels, self.out_channels, 1)
 
@@ -249,37 +249,38 @@ class ResBlock(nn.Module):
 
 
 class AudioMiniEncoder(nn.Module):
-    def __init__(self,
-                 spec_dim,
-                 embedding_dim,
-                 base_channels=128,
-                 depth=2,
-                 resnet_blocks=2,
-                 attn_blocks=4,
-                 num_attn_heads=4,
-                 dropout=0,
-                 downsample_factor=2,
-                 kernel_size=3):
+    def __init__(
+        self,
+        spec_dim,
+        embedding_dim,
+        base_channels=128,
+        depth=2,
+        resnet_blocks=2,
+        attn_blocks=4,
+        num_attn_heads=4,
+        dropout=0,
+        downsample_factor=2,
+        kernel_size=3,
+    ):
         super().__init__()
-        self.init = nn.Sequential(
-            nn.Conv1d(spec_dim, base_channels, 3, padding=1)
-        )
+        self.init = nn.Sequential(nn.Conv1d(spec_dim, base_channels, 3, padding=1))
         ch = base_channels
         res = []
         for l in range(depth):
             for r in range(resnet_blocks):
                 res.append(ResBlock(ch, dropout, kernel_size=kernel_size))
-            res.append(Downsample(ch, use_conv=True, out_channels=ch*2, factor=downsample_factor))
+            res.append(Downsample(ch, use_conv=True, out_channels=ch * 2, factor=downsample_factor))
             ch *= 2
         self.res = nn.Sequential(*res)
-        self.final = nn.Sequential(
-            normalization(ch),
-            nn.SiLU(),
-            nn.Conv1d(ch, embedding_dim, 1)
-        )
+        self.final = nn.Sequential(normalization(ch), nn.SiLU(), nn.Conv1d(ch, embedding_dim, 1))
         attn = []
         for a in range(attn_blocks):
-            attn.append(AttentionBlock(embedding_dim, num_attn_heads,))
+            attn.append(
+                AttentionBlock(
+                    embedding_dim,
+                    num_attn_heads,
+                )
+            )
         self.attn = nn.Sequential(*attn)
         self.dim = embedding_dim
 
@@ -291,15 +292,24 @@ class AudioMiniEncoder(nn.Module):
         return h[:, :, 0]
 
 
-DEFAULT_MEL_NORM_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../utils/assets/tortoise/mel_norms.pth')
+DEFAULT_MEL_NORM_FILE = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/mel_norms.pth"
+)
 
 
 class TorchMelSpectrogram(nn.Module):
-    def __init__(self, filter_length=1024, hop_length=256, 
-                 win_length=1024, n_mel_channels=80, 
-                 mel_fmin=0, mel_fmax=8000,
-                 sampling_rate=22050, normalize=False, 
-                 mel_norm_file=DEFAULT_MEL_NORM_FILE):
+    def __init__(
+        self,
+        filter_length=1024,
+        hop_length=256,
+        win_length=1024,
+        n_mel_channels=80,
+        mel_fmin=0,
+        mel_fmax=8000,
+        sampling_rate=22050,
+        normalize=False,
+        mel_norm_file=DEFAULT_MEL_NORM_FILE,
+    ):
         super().__init__()
         # These are the default tacotron values for the MEL spectrogram.
         self.filter_length = filter_length
@@ -309,16 +319,18 @@ class TorchMelSpectrogram(nn.Module):
         self.mel_fmin = mel_fmin
         self.mel_fmax = mel_fmax
         self.sampling_rate = sampling_rate
-        self.mel_stft = torchaudio.transforms.MelSpectrogram(n_fft=self.filter_length,
-                                                            hop_length=self.hop_length,
-                                                            win_length=self.win_length,
-                                                            power=2,
-                                                            normalized=normalize,
-                                                            sample_rate=self.sampling_rate,
-                                                            f_min=self.mel_fmin,
-                                                            f_max=self.mel_fmax,
-                                                            n_mels=self.n_mel_channels,
-                                                            norm="slaney")
+        self.mel_stft = torchaudio.transforms.MelSpectrogram(
+            n_fft=self.filter_length,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            power=2,
+            normalized=normalize,
+            sample_rate=self.sampling_rate,
+            f_min=self.mel_fmin,
+            f_max=self.mel_fmax,
+            n_mels=self.n_mel_channels,
+            norm="slaney",
+        )
         self.mel_norm_file = mel_norm_file
         if self.mel_norm_file is not None:
             self.mel_norms = torch.load(self.mel_norm_file)
@@ -326,7 +338,9 @@ class TorchMelSpectrogram(nn.Module):
             self.mel_norms = None
 
     def forward(self, inp):
-        if len(inp.shape) == 3:  # Automatically squeeze out the channels dimension if it is present (assuming mono-audio)
+        if (
+            len(inp.shape) == 3
+        ):  # Automatically squeeze out the channels dimension if it is present (assuming mono-audio)
             inp = inp.squeeze(1)
         assert len(inp.shape) == 2
         self.mel_stft = self.mel_stft.to(inp.device)
@@ -344,6 +358,7 @@ class CheckpointedLayer(nn.Module):
     Wraps a module. When forward() is called, passes kwargs that require_grad through torch.checkpoint() and bypasses
     checkpoint for all other args.
     """
+
     def __init__(self, wrap):
         super().__init__()
         self.wrap = wrap
@@ -360,6 +375,7 @@ class CheckpointedXTransformerEncoder(nn.Module):
     Wraps a ContinuousTransformerWrapper and applies CheckpointedLayer to each layer and permutes from channels-mid
     to channels-last that XTransformer expects.
     """
+
     def __init__(self, needs_permute=True, exit_permute=True, checkpoint=True, **xtransformer_kwargs):
         super().__init__()
         self.transformer = ContinuousTransformerWrapper(**xtransformer_kwargs)
@@ -374,10 +390,10 @@ class CheckpointedXTransformerEncoder(nn.Module):
 
     def forward(self, x, **kwargs):
         if self.needs_permute:
-            x = x.permute(0,2,1)
+            x = x.permute(0, 2, 1)
         h = self.transformer(x, **kwargs)
         if self.exit_permute:
-            h = h.permute(0,2,1)
+            h = h.permute(0, 2, 1)
         return h
 
 
@@ -392,9 +408,7 @@ class TypicalLogitsWarper(LogitsWarper):
         self.mass = mass
         self.min_tokens_to_keep = min_tokens_to_keep
 
-    def __call__(
-        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
-    ) -> torch.FloatTensor:
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
         # calculate entropy
         normalized = torch.nn.functional.log_softmax(scores, dim=-1)
         p = torch.exp(normalized)
@@ -409,15 +423,11 @@ class TypicalLogitsWarper(LogitsWarper):
         # Remove tokens with cumulative mass above the threshold
         last_ind = (cumulative_probs < self.mass).sum(dim=1)
         last_ind[last_ind < 0] = 0
-        sorted_indices_to_remove = sorted_scores > sorted_scores.gather(
-            1, last_ind.view(-1, 1)
-        )
+        sorted_indices_to_remove = sorted_scores > sorted_scores.gather(1, last_ind.view(-1, 1))
         if self.min_tokens_to_keep > 1:
             # Keep at least min_tokens_to_keep (set to min_tokens_to_keep-1 because we add the first one below)
             sorted_indices_to_remove[..., : self.min_tokens_to_keep] = 0
-        indices_to_remove = sorted_indices_to_remove.scatter(
-            1, sorted_indices, sorted_indices_to_remove
-        )
+        indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
 
         scores = scores.masked_fill(indices_to_remove, self.filter_value)
         return scores

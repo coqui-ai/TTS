@@ -7,11 +7,10 @@ import numpy as np
 import torch
 import torchaudio
 from scipy.io.wavfile import read
+
 from TTS.utils.audio.torch_transforms import TorchSTFT
 
-BUILTIN_VOICES_DIR = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/voices"
-)
+BUILTIN_VOICES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/voices")
 
 
 def load_wav_to_torch(full_path):
@@ -58,10 +57,7 @@ def read_audio_file(audiopath: str):
 def load_required_audio(audiopath: str):
     audio, lsr = read_audio_file(audiopath)
 
-    audios = [
-        torchaudio.functional.resample(audio, lsr, sampling_rate)
-        for sampling_rate in (22050, 24000)
-    ]
+    audios = [torchaudio.functional.resample(audio, lsr, sampling_rate) for sampling_rate in (22050, 24000)]
     for audio in audios:
         check_audio(audio, audiopath)
 
@@ -83,9 +79,7 @@ TACOTRON_MEL_MIN = -11.512925148010254
 
 
 def denormalize_tacotron_mel(norm_mel):
-    return ((norm_mel + 1) / 2) * (
-        TACOTRON_MEL_MAX - TACOTRON_MEL_MIN
-    ) + TACOTRON_MEL_MIN
+    return ((norm_mel + 1) / 2) * (TACOTRON_MEL_MAX - TACOTRON_MEL_MIN) + TACOTRON_MEL_MIN
 
 
 def normalize_tacotron_mel(mel):
@@ -118,11 +112,7 @@ def get_voices(extra_voice_dirs: List[str] = []):
         for sub in subs:
             subj = os.path.join(d, sub)
             if os.path.isdir(subj):
-                voices[sub] = (
-                    list(glob(f"{subj}/*.wav"))
-                    + list(glob(f"{subj}/*.mp3"))
-                    + list(glob(f"{subj}/*.pth"))
-                )
+                voices[sub] = list(glob(f"{subj}/*.wav")) + list(glob(f"{subj}/*.mp3")) + list(glob(f"{subj}/*.pth"))
     return voices
 
 
@@ -148,9 +138,7 @@ def load_voices(voices: List[str], extra_voice_dirs: List[str] = []):
     for voice in voices:
         if voice == "random":
             if len(voices) > 1:
-                print(
-                    "Cannot combine a random voice with a non-random voice. Just using a random voice."
-                )
+                print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
             return None, None
         clip, latent = load_voice(voice, extra_voice_dirs)
         if latent is None:
@@ -171,15 +159,18 @@ def load_voices(voices: List[str], extra_voice_dirs: List[str] = []):
         latents = (latents_0, latents_1)
         return None, latents
 
+
 def wav_to_univnet_mel(wav, do_normalization=False, device="cuda"):
-    stft = TorchSTFT(n_fft=1024, 
-                     hop_length=256, 
-                     win_length=1024, 
-                     use_mel=True,
-                     n_mels=100, 
-                     sample_rate=24000, 
-                     mel_fmin=0, 
-                     mel_fmax=12000)
+    stft = TorchSTFT(
+        n_fft=1024,
+        hop_length=256,
+        win_length=1024,
+        use_mel=True,
+        n_mels=100,
+        sample_rate=24000,
+        mel_fmin=0,
+        mel_fmax=12000,
+    )
     stft = stft.to(device)
     mel = stft(wav)
     mel = dynamic_range_compression(mel)
